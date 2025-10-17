@@ -42,6 +42,8 @@ coverage
 
 # Misc
 *.tsbuildinfo
+package-lock.json
+**/package-lock.json
 
 # Apps with separate formatting
 apps/chart
