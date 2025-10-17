@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-  signal,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarkdownModule } from 'ngx-markdown';
 import { DiagramModel } from '../../../../models/diagram.model';

@@ -1,11 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  RouterOutlet,
-  Router,
-  ActivatedRoute,
-  NavigationEnd,
-} from '@angular/router';
+import { RouterOutlet, Router, ActivatedRoute, NavigationEnd } from '@angular/router';
 import { SplashScreenComponent } from './components/splash-screen/splash-screen';
 import { filter, map, startWith, distinctUntilChanged } from 'rxjs/operators';
 import { Observable, Subject } from 'rxjs';
@@ -45,25 +40,19 @@ export class App implements OnInit, OnDestroy {
   protected readonly isInitialLoading = signal(true);
 
   /** Layout courant selon la route active */
-  protected readonly currentLayout$: Observable<
-    'public' | 'dashboard' | 'empty'
-  > = this.router.events.pipe(
-    filter((event) => event instanceof NavigationEnd),
-    startWith(null),
-    map(() => {
-      let route = this.activatedRoute.firstChild;
-      while (route?.firstChild) {
-        route = route.firstChild;
-      }
-      return (
-        (route?.snapshot.data?.['layout'] as
-          | 'public'
-          | 'dashboard'
-          | 'empty') || 'public'
-      );
-    }),
-    distinctUntilChanged()
-  );
+  protected readonly currentLayout$: Observable<'public' | 'dashboard' | 'empty'> =
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => {
+        let route = this.activatedRoute.firstChild;
+        while (route?.firstChild) {
+          route = route.firstChild;
+        }
+        return (route?.snapshot.data?.['layout'] as 'public' | 'dashboard' | 'empty') || 'public';
+      }),
+      distinctUntilChanged()
+    );
 
   ngOnInit(): void {
     // Force dark mode only - prevent light mode

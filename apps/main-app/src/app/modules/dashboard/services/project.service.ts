@@ -27,10 +27,7 @@ export class ProjectService {
    */
   createProject(projectData: ProjectModel): Observable<string> {
     return this.http
-      .post<{ message: string; projectId: string }>(
-        `${this.apiUrl}/create`,
-        projectData
-      )
+      .post<{ message: string; projectId: string }>(`${this.apiUrl}/create`, projectData)
       .pipe(
         map((response) => response.projectId),
         tap((projectId) => console.log('createProject response:', projectId)),
@@ -63,9 +60,7 @@ export class ProjectService {
     const finalizeUrl = `${environment.services.api.url}/project/finalize/${projectId}`;
 
     return this.http.post<any>(finalizeUrl, acceptanceData).pipe(
-      tap((response) =>
-        console.log('finalizeProjectCreation response:', response)
-      ),
+      tap((response) => console.log('finalizeProjectCreation response:', response)),
       catchError((error) => {
         console.error('Error in finalizeProjectCreation:', error);
         throw error;
@@ -94,9 +89,7 @@ export class ProjectService {
    */
   getProjectById(projectId: string): Observable<ProjectModel | null> {
     return this.http.get<ProjectModel>(`${this.apiUrl}/${projectId}`).pipe(
-      tap((response) =>
-        console.log(`getProjectById response for ${projectId}:`, response)
-      ),
+      tap((response) => console.log(`getProjectById response for ${projectId}:`, response)),
       catchError((error) => {
         console.error(`Error in getProjectById for ${projectId}:`, error);
         return throwError(() => error);
@@ -110,21 +103,14 @@ export class ProjectService {
    * @param updatedData Partial project data to update
    * @returns Observable of the updated project
    */
-  updateProject(
-    projectId: string,
-    updatedData: Partial<ProjectModel>
-  ): Observable<ProjectModel> {
-    return this.http
-      .put<ProjectModel>(`${this.apiUrl}/update/${projectId}`, updatedData)
-      .pipe(
-        tap((response) =>
-          console.log(`updateProject response for ${projectId}:`, response)
-        ),
-        catchError((error) => {
-          console.error(`Error in updateProject for ${projectId}:`, error);
-          return throwError(() => error);
-        })
-      );
+  updateProject(projectId: string, updatedData: Partial<ProjectModel>): Observable<ProjectModel> {
+    return this.http.put<ProjectModel>(`${this.apiUrl}/update/${projectId}`, updatedData).pipe(
+      tap((response) => console.log(`updateProject response for ${projectId}:`, response)),
+      catchError((error) => {
+        console.error(`Error in updateProject for ${projectId}:`, error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**
@@ -134,9 +120,7 @@ export class ProjectService {
    */
   deleteProject(projectId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/delete/${projectId}`).pipe(
-      tap((response) =>
-        console.log(`deleteProject response for ${projectId}:`, response)
-      ),
+      tap((response) => console.log(`deleteProject response for ${projectId}:`, response)),
       catchError((error) => {
         console.error(`Error in deleteProject for ${projectId}:`, error);
         return throwError(() => error);

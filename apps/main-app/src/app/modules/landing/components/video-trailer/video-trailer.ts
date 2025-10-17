@@ -1,4 +1,13 @@
-import { Component, signal, ViewChild, ElementRef, AfterViewInit, OnInit, inject, PLATFORM_ID } from '@angular/core';
+import {
+  Component,
+  signal,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+  OnInit,
+  inject,
+  PLATFORM_ID,
+} from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { SeoService } from '../../../../shared/services/seo.service';
 
@@ -7,7 +16,7 @@ import { SeoService } from '../../../../shared/services/seo.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './video-trailer.html',
-  styleUrl: './video-trailer.css'
+  styleUrl: './video-trailer.css',
 })
 export class VideoTrailer implements OnInit, AfterViewInit {
   // Angular-initialized properties
@@ -15,7 +24,7 @@ export class VideoTrailer implements OnInit, AfterViewInit {
   private readonly seoService = inject(SeoService);
 
   @ViewChild('videoPlayer', { static: false }) videoPlayer!: ElementRef<HTMLVideoElement>;
-  
+
   protected readonly isPlaying = signal(false);
   protected readonly isLoading = signal(true);
   protected readonly currentTime = signal(0);
@@ -29,7 +38,7 @@ export class VideoTrailer implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     const video = this.videoPlayer.nativeElement;
-    
+
     video.addEventListener('loadedmetadata', () => {
       this.duration.set(video.duration);
       this.isLoading.set(false);
@@ -55,7 +64,7 @@ export class VideoTrailer implements OnInit, AfterViewInit {
 
   protected togglePlay(): void {
     const video = this.videoPlayer.nativeElement;
-    
+
     if (this.isPlaying()) {
       video.pause();
     } else {
@@ -66,7 +75,7 @@ export class VideoTrailer implements OnInit, AfterViewInit {
   protected toggleMute(): void {
     const video = this.videoPlayer.nativeElement;
     const newMutedState = !this.isMuted();
-    
+
     video.muted = newMutedState;
     this.isMuted.set(newMutedState);
   }
@@ -74,10 +83,10 @@ export class VideoTrailer implements OnInit, AfterViewInit {
   protected onVolumeChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     const newVolume = parseFloat(target.value);
-    
+
     this.volume.set(newVolume);
     this.videoPlayer.nativeElement.volume = newVolume;
-    
+
     if (newVolume === 0) {
       this.isMuted.set(true);
       this.videoPlayer.nativeElement.muted = true;
@@ -90,7 +99,7 @@ export class VideoTrailer implements OnInit, AfterViewInit {
   protected onSeek(event: Event): void {
     const target = event.target as HTMLInputElement;
     const newTime = parseFloat(target.value);
-    
+
     this.videoPlayer.nativeElement.currentTime = newTime;
     this.currentTime.set(newTime);
   }
@@ -110,28 +119,29 @@ export class VideoTrailer implements OnInit, AfterViewInit {
   private setupSeoForVideoTrailer(): void {
     // Add structured data for video trailer
     const videoStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "VideoObject",
-      "name": "Idem Platform Demo",
-      "description": "Interactive demo showcasing Idem's AI-powered brand creation and deployment capabilities",
-      "thumbnailUrl": `${this.seoService.domain}/assets/video/demo-thumbnail.jpg`,
-      "uploadDate": new Date().toISOString(),
-      "duration": "PT3M45S",
-      "contentUrl": `${this.seoService.domain}/assets/video/idem-demo.mp4`,
-      "embedUrl": `${this.seoService.domain}/video-demo`,
-      "publisher": {
-        "@type": "Organization",
-        "name": "Idem",
-        "logo": {
-          "@type": "ImageObject",
-          "url": `${this.seoService.domain}/assets/images/logo.png`
-        }
+      '@context': 'https://schema.org',
+      '@type': 'VideoObject',
+      name: 'Idem Platform Demo',
+      description:
+        "Interactive demo showcasing Idem's AI-powered brand creation and deployment capabilities",
+      thumbnailUrl: `${this.seoService.domain}/assets/video/demo-thumbnail.jpg`,
+      uploadDate: new Date().toISOString(),
+      duration: 'PT3M45S',
+      contentUrl: `${this.seoService.domain}/assets/video/idem-demo.mp4`,
+      embedUrl: `${this.seoService.domain}/video-demo`,
+      publisher: {
+        '@type': 'Organization',
+        name: 'Idem',
+        logo: {
+          '@type': 'ImageObject',
+          url: `${this.seoService.domain}/assets/images/logo.png`,
+        },
       },
-      "interactionStatistic": {
-        "@type": "InteractionCounter",
-        "interactionType": "https://schema.org/WatchAction",
-        "userInteractionCount": 0
-      }
+      interactionStatistic: {
+        '@type': 'InteractionCounter',
+        interactionType: 'https://schema.org/WatchAction',
+        userInteractionCount: 0,
+      },
     };
 
     // Add structured data to page if not already present

@@ -1,9 +1,9 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   saveDevelopmentConfigsController,
   getDevelopmentConfigsController,
-} from "../controllers/development.controller";
-import { authenticate } from "../services/auth.service";
+} from '../controllers/development.controller';
+import { authenticate } from '../services/auth.service';
 
 export const developmentRoutes = Router();
 
@@ -12,8 +12,8 @@ export const developmentRoutes = Router();
  * primaryResourceName: The main resource category
  * secondaryResourceName: The specific resource type being managed
  */
-const primaryResourceName = "developments";
-const secondaryResourceName = "webcontainers";
+const primaryResourceName = 'developments';
+const secondaryResourceName = 'webcontainers';
 
 // All routes are protected by authentication middleware
 

@@ -1,6 +1,6 @@
-import { Router } from "express";
-import { profileController } from "../controllers/user.controller";
-import { authRoutes } from "./auth.routes";
+import { Router } from 'express';
+import { profileController } from '../controllers/user.controller';
+import { authRoutes } from './auth.routes';
 
 export const userRoutes = Router();
 /**
@@ -44,4 +44,4 @@ export const userRoutes = Router();
  *       '500':
  *         description: Internal server error.
  */
-userRoutes.get("/profile", profileController);
+userRoutes.get('/profile', profileController);

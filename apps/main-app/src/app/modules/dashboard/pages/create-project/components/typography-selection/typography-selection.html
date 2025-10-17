@@ -1,19 +1,12 @@
 <!-- Error State -->
 @if (error()) {
-<div
-  class="flex flex-col items-center justify-center min-h-[60vh] w-full px-4 sm:px-6 lg:px-8"
->
+<div class="flex flex-col items-center justify-center min-h-[60vh] w-full px-4 sm:px-6 lg:px-8">
   <div class="text-center max-w-md mx-auto">
     <div class="mb-6">
       <div
         class="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4"
       >
-        <svg
-          class="w-8 h-8 text-red-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -22,9 +15,7 @@
           ></path>
         </svg>
       </div>
-      <h3 class="text-xl font-semibold text-white mb-2">
-        Typography Not Available
-      </h3>
+      <h3 class="text-xl font-semibold text-white mb-2">Typography Not Available</h3>
       <p class="text-gray-400 mb-6">{{error()}}</p>
     </div>
 
@@ -33,12 +24,7 @@
         (click)="goToPreviousStep()"
         class="flex items-center justify-center px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
       >
-        <svg
-          class="w-4 h-4 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -120,8 +106,7 @@
       Choose Your Typography
     </h1>
     <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
-      Select the typography style that best complements your brand's voice and
-      personality.
+      Select the typography style that best complements your brand's voice and personality.
     </p>
   </div>
 
@@ -152,14 +137,10 @@
           ></div>
 
           <div class="relative z-10">
-            <h3 class="text-white text-lg font-medium mb-3">
-              {{ typography.name }}
-            </h3>
+            <h3 class="text-white text-lg font-medium mb-3">{{ typography.name }}</h3>
 
             <!-- Typography Preview -->
-            <div
-              class="bg-white/5 rounded-lg p-4 mb-4 border border-gray-600/30"
-            >
+            <div class="bg-white/5 rounded-lg p-4 mb-4 border border-gray-600/30">
               <div class="mb-3">
                 <h4
                   [style.fontFamily]="typography.primaryFont"
@@ -167,12 +148,8 @@
                 >
                   Your Brand Name
                 </h4>
-                <p
-                  [style.fontFamily]="typography.secondaryFont"
-                  class="text-gray-300 text-sm"
-                >
-                  This is how your content will look with this typography
-                  combination.
+                <p [style.fontFamily]="typography.secondaryFont" class="text-gray-300 text-sm">
+                  This is how your content will look with this typography combination.
                 </p>
               </div>
             </div>
@@ -181,23 +158,17 @@
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-400">Primary:</span>
-                <span class="text-white font-medium"
-                  >{{ typography.primaryFont }}</span
-                >
+                <span class="text-white font-medium">{{ typography.primaryFont }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-400">Secondary:</span>
-                <span class="text-white font-medium"
-                  >{{ typography.secondaryFont }}</span
-                >
+                <span class="text-white font-medium">{{ typography.secondaryFont }}</span>
               </div>
             </div>
 
             @if (selectedTypographyId() === typography.id) {
             <div class="absolute top-2 right-2">
-              <div
-                class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
-              >
+              <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                 <svg
                   class="w-4 h-4 text-white"
                   fill="none"
@@ -222,9 +193,7 @@
     <!-- Navigation Hint -->
     @if (selectedTypographyId()) {
     <div class="text-center mt-8">
-      <p class="text-gray-400 text-sm">
-        Perfect choice! Click Next to continue to the next step.
-      </p>
+      <p class="text-gray-400 text-sm">Perfect choice! Click Next to continue to the next step.</p>
     </div>
     }
   </div>

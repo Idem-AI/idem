@@ -18,7 +18,16 @@ import { ScrollPanelModule } from 'primeng/scrollpanel';
 @Component({
   selector: 'app-deployment-details',
   standalone: true,
-  imports: [CommonModule, RouterLink, TerraformFiles, Loader, AccordionModule, DialogModule, ButtonModule, ScrollPanelModule],
+  imports: [
+    CommonModule,
+    RouterLink,
+    TerraformFiles,
+    Loader,
+    AccordionModule,
+    DialogModule,
+    ButtonModule,
+    ScrollPanelModule,
+  ],
   templateUrl: './deployment-details.html',
 })
 export class DeploymentDetails implements OnInit, OnDestroy {
@@ -31,7 +40,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
   protected readonly error = signal<string | null>(null);
   protected readonly projectId = signal<string | null>(null);
   protected readonly showExecutionModal = signal<boolean>(false);
-  
+
   // Execution modal state
   protected readonly executionLogs = signal<string[]>([]);
   protected readonly isExecuting = signal<boolean>(false);
@@ -49,11 +58,10 @@ export class DeploymentDetails implements OnInit, OnDestroy {
   );
   protected readonly showTerraformFiles = computed(
     () =>
-      this.hasDeployment() &&
-      this.deployment()?.generatedTerraformTfvarsFileContent !== undefined
+      this.hasDeployment() && this.deployment()?.generatedTerraformTfvarsFileContent !== undefined
   );
-  protected readonly currentDeploymentId = computed(() => 
-    this.deploymentId() || this.route.snapshot.paramMap.get('id') || ''
+  protected readonly currentDeploymentId = computed(
+    () => this.deploymentId() || this.route.snapshot.paramMap.get('id') || ''
   );
 
   // Services
@@ -70,8 +78,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
 
   protected fetchDeploymentData(): void {
     // Use route params if input is not provided through router binding
-    const deploymentId =
-      this.deploymentId() || this.route.snapshot.paramMap.get('id');
+    const deploymentId = this.deploymentId() || this.route.snapshot.paramMap.get('id');
     const projectId = this.cookieService.get('projectId');
 
     if (!deploymentId || !projectId) {
@@ -84,25 +91,22 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
 
-    this.deploymentService
-      .getDeploymentById(projectId, deploymentId)
-      .subscribe({
-        next: (deployment) => {
-          console.log('Fetched deployment details:', deployment);
-          this.deployment.set(deployment);
-          this.loading.set(false);
-        },
-        error: (error) => {
-          console.error('Error fetching deployment details:', error);
-          this.error.set('Failed to load deployment details');
-          this.loading.set(false);
-        },
-      });
+    this.deploymentService.getDeploymentById(projectId, deploymentId).subscribe({
+      next: (deployment) => {
+        console.log('Fetched deployment details:', deployment);
+        this.deployment.set(deployment);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        console.error('Error fetching deployment details:', error);
+        this.error.set('Failed to load deployment details');
+        this.loading.set(false);
+      },
+    });
   }
 
   protected redeployDeployment(): void {
-    const deploymentId =
-      this.deploymentId() || this.route.snapshot.paramMap.get('id');
+    const deploymentId = this.deploymentId() || this.route.snapshot.paramMap.get('id');
     const projectId = this.projectId();
 
     if (!deploymentId || !projectId) {
@@ -113,25 +117,22 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
 
-    this.deploymentService
-      .redeployDeployment(projectId, deploymentId)
-      .subscribe({
-        next: (updatedDeployment) => {
-          console.log('Redeployed successfully:', updatedDeployment);
-          this.deployment.set(updatedDeployment);
-          this.loading.set(false);
-        },
-        error: (error) => {
-          console.error('Error redeploying:', error);
-          this.error.set('Failed to redeploy');
-          this.loading.set(false);
-        },
-      });
+    this.deploymentService.redeployDeployment(projectId, deploymentId).subscribe({
+      next: (updatedDeployment) => {
+        console.log('Redeployed successfully:', updatedDeployment);
+        this.deployment.set(updatedDeployment);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        console.error('Error redeploying:', error);
+        this.error.set('Failed to redeploy');
+        this.loading.set(false);
+      },
+    });
   }
 
   protected cancelDeployment(): void {
-    const deploymentId =
-      this.deploymentId() || this.route.snapshot.paramMap.get('id');
+    const deploymentId = this.deploymentId() || this.route.snapshot.paramMap.get('id');
     const projectId = this.projectId();
 
     if (!deploymentId || !projectId) {
@@ -165,14 +166,11 @@ export class DeploymentDetails implements OnInit, OnDestroy {
    * Generates a deployment pipeline for the current deployment
    */
   protected generatePipeline(): void {
-    const deploymentId =
-      this.deploymentId() || this.route.snapshot.paramMap.get('id');
+    const deploymentId = this.deploymentId() || this.route.snapshot.paramMap.get('id');
     const projectId = this.projectId();
 
     if (!deploymentId || !projectId) {
-      this.error.set(
-        'Cannot generate pipeline: Missing deployment ID or project ID'
-      );
+      this.error.set('Cannot generate pipeline: Missing deployment ID or project ID');
       return;
     }
 
@@ -197,37 +195,29 @@ export class DeploymentDetails implements OnInit, OnDestroy {
    * Generates Terraform files for the current deployment
    */
   protected generateTerraformFiles(): void {
-    const deploymentId =
-      this.deploymentId() || this.route.snapshot.paramMap.get('id');
+    const deploymentId = this.deploymentId() || this.route.snapshot.paramMap.get('id');
     const projectId = this.projectId();
 
     if (!deploymentId || !projectId) {
-      this.error.set(
-        'Cannot generate Terraform files: Missing deployment ID or project ID'
-      );
+      this.error.set('Cannot generate Terraform files: Missing deployment ID or project ID');
       return;
     }
 
     this.loading.set(true);
     this.error.set(null);
 
-    this.deploymentService
-      .generateTerraformFiles(projectId, deploymentId)
-      .subscribe({
-        next: (updatedDeployment: DeploymentModel) => {
-          console.log(
-            'Terraform files generated successfully:',
-            updatedDeployment
-          );
-          this.deployment.set(updatedDeployment);
-          this.loading.set(false);
-        },
-        error: (error: Error) => {
-          console.error('Error generating Terraform files:', error);
-          this.error.set('Failed to generate Terraform files');
-          this.loading.set(false);
-        },
-      });
+    this.deploymentService.generateTerraformFiles(projectId, deploymentId).subscribe({
+      next: (updatedDeployment: DeploymentModel) => {
+        console.log('Terraform files generated successfully:', updatedDeployment);
+        this.deployment.set(updatedDeployment);
+        this.loading.set(false);
+      },
+      error: (error: Error) => {
+        console.error('Error generating Terraform files:', error);
+        this.error.set('Failed to generate Terraform files');
+        this.loading.set(false);
+      },
+    });
   }
 
   /**
@@ -280,7 +270,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     this.executionStatus.set('executing');
     this.executionStartTime.set(new Date().toISOString());
     this.executionEndTime.set(null);
-    
+
     this.addExecutionLog('info', `Starting deployment execution for ID: ${deploymentId}`);
     this.addExecutionLog('info', 'Connecting to deployment stream...');
 
@@ -319,15 +309,15 @@ export class DeploymentDetails implements OnInit, OnDestroy {
       this.sseSubscription.unsubscribe();
       this.sseSubscription = null;
     }
-    
+
     // Mettre à jour l'état
     this.isExecuting.set(false);
     this.executionEndTime.set(new Date().toISOString());
     this.executionStatus.set('error'); // Marquer comme annulé
-    
+
     // Ajouter un log d'annulation
     this.addExecutionLog('error', 'Deployment execution cancelled by user');
-    
+
     console.log('Deployment execution stopped by user');
   }
 
@@ -346,8 +336,11 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     this.addExecutionLog(event.type, formattedMessage);
 
     // Handle completion events
-    if (event.type === 'completed' || event.type === 'success' || 
-        (event.type === 'end' && event.status === 'finished')) {
+    if (
+      event.type === 'completed' ||
+      event.type === 'success' ||
+      (event.type === 'end' && event.status === 'finished')
+    ) {
       this.isExecuting.set(false);
       this.executionStatus.set('completed');
       this.executionEndTime.set(new Date().toISOString());
@@ -360,7 +353,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
       this.isExecuting.set(false);
       this.executionStatus.set('error');
       this.executionEndTime.set(new Date().toISOString());
-      
+
       // Add error code if available
       if (event.errorCode) {
         this.addExecutionLog('error', `Error Code: ${event.errorCode}`);
@@ -383,16 +376,16 @@ export class DeploymentDetails implements OnInit, OnDestroy {
    */
   private addExecutionLog(type: string, message: string): void {
     const timestamp = new Date().toISOString();
-    
+
     // Create structured log entry for modern display
     const logEntry = {
       timestamp,
       type: type.toLowerCase(),
       message,
-      id: Date.now() + Math.random() // Unique ID for tracking
+      id: Date.now() + Math.random(), // Unique ID for tracking
     };
-    
-    this.executionLogs.update(logs => [...logs, JSON.stringify(logEntry)]);
+
+    this.executionLogs.update((logs) => [...logs, JSON.stringify(logEntry)]);
   }
 
   /**
@@ -407,7 +400,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
         timestamp: new Date().toISOString(),
         type: 'info',
         message: logString,
-        id: Date.now()
+        id: Date.now(),
       };
     }
   }
@@ -417,14 +410,21 @@ export class DeploymentDetails implements OnInit, OnDestroy {
    */
   protected getLogIcon(type: string): string {
     switch (type) {
-      case 'info': return 'pi pi-info-circle';
-      case 'status': return 'pi pi-sync';
-      case 'stdout': return 'pi pi-arrow-up';
-      case 'stderr': return 'pi pi-exclamation-triangle';
-      case 'error': return 'pi pi-times-circle';
+      case 'info':
+        return 'pi pi-info-circle';
+      case 'status':
+        return 'pi pi-sync';
+      case 'stdout':
+        return 'pi pi-arrow-up';
+      case 'stderr':
+        return 'pi pi-exclamation-triangle';
+      case 'error':
+        return 'pi pi-times-circle';
       case 'success':
-      case 'completed': return 'pi pi-check-circle';
-      default: return 'pi pi-file';
+      case 'completed':
+        return 'pi pi-check-circle';
+      default:
+        return 'pi pi-file';
     }
   }
 
@@ -433,14 +433,21 @@ export class DeploymentDetails implements OnInit, OnDestroy {
    */
   protected getLogClass(type: string): string {
     switch (type) {
-      case 'info': return 'log-info';
-      case 'status': return 'log-status';
-      case 'stdout': return 'log-output';
-      case 'stderr': return 'log-warning';
-      case 'error': return 'log-error';
+      case 'info':
+        return 'log-info';
+      case 'status':
+        return 'log-status';
+      case 'stdout':
+        return 'log-output';
+      case 'stderr':
+        return 'log-warning';
+      case 'error':
+        return 'log-error';
       case 'success':
-      case 'completed': return 'log-success';
-      default: return 'log-default';
+      case 'completed':
+        return 'log-success';
+      default:
+        return 'log-default';
     }
   }
 
@@ -450,11 +457,11 @@ export class DeploymentDetails implements OnInit, OnDestroy {
   protected formatLogTime(timestamp: string): string {
     try {
       const date = new Date(timestamp);
-      return date.toLocaleTimeString('en-US', { 
+      return date.toLocaleTimeString('en-US', {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
       });
     } catch {
       return new Date().toLocaleTimeString();
@@ -475,13 +482,13 @@ export class DeploymentDetails implements OnInit, OnDestroy {
   protected getExecutionDuration(): string {
     const startTime = this.executionStartTime();
     const endTime = this.executionEndTime();
-    
+
     if (!startTime) return '';
-    
+
     const start = new Date(startTime);
     const end = endTime ? new Date(endTime) : new Date();
     const duration = Math.floor((end.getTime() - start.getTime()) / 1000);
-    
+
     if (duration < 60) {
       return `${duration}s`;
     } else {
@@ -507,18 +514,26 @@ export class DeploymentDetails implements OnInit, OnDestroy {
    */
   protected getLogStats(): { total: number; errors: number; warnings: number; success: number } {
     const logs = this.executionLogs();
-    let errors = 0, warnings = 0, success = 0;
-    
-    logs.forEach(logString => {
+    let errors = 0,
+      warnings = 0,
+      success = 0;
+
+    logs.forEach((logString) => {
       const log = this.parseLogEntry(logString);
       switch (log.type) {
-        case 'error': errors++; break;
-        case 'stderr': warnings++; break;
+        case 'error':
+          errors++;
+          break;
+        case 'stderr':
+          warnings++;
+          break;
         case 'success':
-        case 'completed': success++; break;
+        case 'completed':
+          success++;
+          break;
       }
     });
-    
+
     return { total: logs.length, errors, warnings, success };
   }
 }

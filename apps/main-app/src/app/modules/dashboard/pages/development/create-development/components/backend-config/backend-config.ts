@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  effect,
-  input,
-  OnInit,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
@@ -33,8 +26,7 @@ export class BackendConfigComponent implements OnInit {
       this.frameworkApiTypes[this.backendForm()?.get('framework')?.value] || []
     );
     this.availableOrms.set(
-      this.frameworkSpecificOrms[this.backendForm()?.get('framework')?.value] ||
-        []
+      this.frameworkSpecificOrms[this.backendForm()?.get('framework')?.value] || []
     );
   }
 
@@ -48,8 +40,7 @@ export class BackendConfigComponent implements OnInit {
       this.frameworkApiTypes[this.backendForm()?.get('framework')?.value] || []
     );
     this.availableOrms.set(
-      this.frameworkSpecificOrms[this.backendForm()?.get('framework')?.value] ||
-        []
+      this.frameworkSpecificOrms[this.backendForm()?.get('framework')?.value] || []
     );
   }
 
@@ -60,8 +51,7 @@ export class BackendConfigComponent implements OnInit {
       this.frameworkApiTypes[this.backendForm()?.get('framework')?.value] || []
     );
     this.availableOrms.set(
-      this.frameworkSpecificOrms[this.backendForm()?.get('framework')?.value] ||
-        []
+      this.frameworkSpecificOrms[this.backendForm()?.get('framework')?.value] || []
     );
   }
 
@@ -69,8 +59,7 @@ export class BackendConfigComponent implements OnInit {
     this.backendForm()?.get('apiType')?.setValue(event);
     this.backendForm()?.get('apiIconUrl')?.setValue(iconUrl);
     this.availableOrms.set(
-      this.frameworkSpecificOrms[this.backendForm()?.get('framework')?.value] ||
-        []
+      this.frameworkSpecificOrms[this.backendForm()?.get('framework')?.value] || []
     );
   }
 
@@ -91,11 +80,9 @@ export class BackendConfigComponent implements OnInit {
 
   public readonly programmingLanguages: TechCardModel[] = PROGRAMMING_LANGUAGES;
 
-  protected readonly languageFrameworks: { [key: string]: TechCardModel[] } =
-    LANGUAGE_FRAMEWORKS;
+  protected readonly languageFrameworks: { [key: string]: TechCardModel[] } = LANGUAGE_FRAMEWORKS;
 
-  protected readonly frameworkApiTypes: { [key: string]: TechCardModel[] } =
-    FRAMEWORK_API_TYPES;
+  protected readonly frameworkApiTypes: { [key: string]: TechCardModel[] } = FRAMEWORK_API_TYPES;
 
   protected readonly frameworkSpecificOrms: { [key: string]: TechCardModel[] } =
     FRAMEWORK_SPECIFIC_ORMS;
@@ -119,9 +106,7 @@ export class BackendConfigComponent implements OnInit {
   protected getLanguageVersions(): string[] {
     const selectedLanguage = this.backendForm()?.get('language')?.value;
     if (selectedLanguage) {
-      const language = this.programmingLanguages.find(
-        (l) => l.id === selectedLanguage
-      );
+      const language = this.programmingLanguages.find((l) => l.id === selectedLanguage);
       return language?.versions || ['latest'];
     }
     return ['latest'];
@@ -166,43 +151,43 @@ export class BackendConfigComponent implements OnInit {
       name: 'Authentication',
       description: 'User login/registration',
       icon: 'pi pi-user',
-      formControlName: 'features.authentication'
+      formControlName: 'features.authentication',
     },
     {
       id: 'authorization',
       name: 'Authorization',
       description: 'Role-based permissions',
       icon: 'pi pi-lock',
-      formControlName: 'features.authorization'
+      formControlName: 'features.authorization',
     },
     {
       id: 'logging',
       name: 'Logging',
       description: 'Comprehensive system logs',
       icon: 'pi pi-list',
-      formControlName: 'features.logging'
+      formControlName: 'features.logging',
     },
     {
       id: 'testing',
       name: 'Testing',
       description: 'Unit and integration tests',
       icon: 'pi pi-check-square',
-      formControlName: 'features.testing'
+      formControlName: 'features.testing',
     },
     {
       id: 'monitoring',
       name: 'Monitoring',
       description: 'Performance and health monitoring',
       icon: 'pi pi-chart-line',
-      formControlName: 'features.monitoring'
+      formControlName: 'features.monitoring',
     },
     {
       id: 'caching',
       name: 'Caching',
       description: 'Response and data caching',
       icon: 'pi pi-database',
-      formControlName: 'features.caching'
-    }
+      formControlName: 'features.caching',
+    },
   ];
 
   /**

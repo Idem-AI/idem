@@ -3,18 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
-import {
-  BrandIdentityModel,
-  ColorModel,
-  TypographyModel,
-} from '../../models/brand-identity.model';
+import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { ProjectModel } from '../../models/project.model';
 import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
 import { SSEService } from '../../../../shared/services/sse.service';
-import {
-  SSEStepEvent,
-  SSEConnectionConfig,
-} from '../../../../shared/models/sse-step.model';
+import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 
 @Injectable({
   providedIn: 'root',
@@ -79,9 +72,7 @@ export class BrandingService {
         project: ProjectModel;
       }>(`${this.apiUrl}/generate/colors-typography`, { project })
       .pipe(
-        tap((response) =>
-          console.log('generateColorsAndTypography response:', response)
-        ),
+        tap((response) => console.log('generateColorsAndTypography response:', response)),
         catchError((error) => {
           console.error('Error in generateColorsAndTypography:', error);
           throw error;
@@ -116,9 +107,7 @@ export class BrandingService {
         customDescription: preferences.customDescription,
       })
       .pipe(
-        tap((response) =>
-          console.log('generateLogosWithPreferences response:', response)
-        ),
+        tap((response) => console.log('generateLogosWithPreferences response:', response)),
         catchError((error) => {
           console.error('Error in generateLogosWithPreferences:', error);
           throw error;
@@ -168,9 +157,7 @@ export class BrandingService {
         selectedLogo: selectedLogo,
       })
       .pipe(
-        tap((response) =>
-          console.log('generateLogoVariations response:', response)
-        ),
+        tap((response) => console.log('generateLogoVariations response:', response)),
         catchError((error) => {
           console.error('Error in generateLogoVariations:', error);
           throw error;
@@ -220,14 +207,9 @@ export class BrandingService {
         },
       })
       .pipe(
-        tap(() =>
-          console.log(`Downloading branding PDF for project: ${projectId}`)
-        ),
+        tap(() => console.log(`Downloading branding PDF for project: ${projectId}`)),
         catchError((error) => {
-          console.error(
-            `Error downloading branding PDF for project ${projectId}:`,
-            error
-          );
+          console.error(`Error downloading branding PDF for project ${projectId}:`, error);
 
           // Handle specific error cases
           if (error.status === 401) {
@@ -276,14 +258,9 @@ export class BrandingService {
         },
       })
       .pipe(
-        tap(() =>
-          console.log(`Downloading logos ZIP for project: ${projectId}`)
-        ),
+        tap(() => console.log(`Downloading logos ZIP for project: ${projectId}`)),
         catchError((error) => {
-          console.error(
-            `Error downloading logos ZIP for project ${projectId}:`,
-            error
-          );
+          console.error(`Error downloading logos ZIP for project ${projectId}:`, error);
 
           // Handle specific error cases
           if (error.status === 401) {

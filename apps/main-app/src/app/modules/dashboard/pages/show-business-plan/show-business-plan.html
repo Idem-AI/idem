@@ -12,9 +12,7 @@
   </div>
   } @else if(existingBusinessPlan()) {
   <!-- Display existing business plan -->
-  <app-business-plan-display
-    [businessPlan]="existingBusinessPlan()!"
-  ></app-business-plan-display>
+  <app-business-plan-display [businessPlan]="existingBusinessPlan()!"></app-business-plan-display>
   } @else if(hasError() && isRetryable()) {
   <!-- Error state with retry button -->
   <div class="max-w-6xl mx-auto text-center py-10">
@@ -36,9 +34,7 @@
     <h3 class="text-2xl font-bold text-gray-900 mb-4">Loading Error</h3>
     <p class="text-gray-600 mb-8">{{ errorMessage() }}</p>
     <div class="flex gap-4 justify-center">
-      <button class="inner-button" (click)="retryLoadBusinessPlan()">
-        Retry
-      </button>
+      <button class="inner-button" (click)="retryLoadBusinessPlan()">Retry</button>
       <button
         class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
         (click)="goToProjects()"
@@ -65,15 +61,11 @@
         ></path>
       </svg>
     </div>
-    <h3 class="text-2xl font-bold text-gray-900 mb-4">
-      No business plan found
-    </h3>
+    <h3 class="text-2xl font-bold text-gray-900 mb-4">No business plan found</h3>
     <p class="text-gray-600 mb-8">
       Start by generating your comprehensive business plan and strategy.
     </p>
-    <button class="inner-button" (click)="generateBusinessPlan()">
-      Generate Business Plan
-    </button>
+    <button class="inner-button" (click)="generateBusinessPlan()">Generate Business Plan</button>
   </div>
   } @else {
   <!-- Empty State - No project ID -->
@@ -94,12 +86,8 @@
       </svg>
     </div>
     <h3 class="text-lg font-medium text-gray-900 mb-2">No Project Selected</h3>
-    <p class="text-gray-600 mb-4">
-      Please select a project first to view business plan.
-    </p>
-    <button class="inner-button" (click)="goToProjects()">
-      Select Project
-    </button>
+    <p class="text-gray-600 mb-4">Please select a project first to view business plan.</p>
+    <button class="inner-button" (click)="goToProjects()">Select Project</button>
   </div>
   }
 </div>

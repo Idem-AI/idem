@@ -105,20 +105,28 @@
   .mermaid-diagram {
     font-size: 12px;
   }
-  
+
   .mermaid-diagram svg {
     transform: scale(0.8);
     transform-origin: top left;
   }
-  
+
   .prose {
     font-size: 14px;
   }
-  
-  .prose h1 { font-size: 1.5rem; }
-  .prose h2 { font-size: 1.25rem; }
-  .prose h3 { font-size: 1.125rem; }
-  .prose h4 { font-size: 1rem; }
+
+  .prose h1 {
+    font-size: 1.5rem;
+  }
+  .prose h2 {
+    font-size: 1.25rem;
+  }
+  .prose h3 {
+    font-size: 1.125rem;
+  }
+  .prose h4 {
+    font-size: 1rem;
+  }
 }
 
 /* Tablet adjustments */
@@ -126,7 +134,7 @@
   .mermaid-diagram {
     font-size: 14px;
   }
-  
+
   .mermaid-diagram svg {
     transform: scale(0.9);
     transform-origin: top center;
@@ -138,7 +146,7 @@
   .mermaid-diagram {
     font-size: 16px;
   }
-  
+
   .mermaid-diagram svg {
     transform: scale(1);
   }
@@ -154,26 +162,26 @@
   .prose h6 {
     color: #f9fafb;
   }
-  
+
   .prose p {
     color: #d1d5db;
   }
-  
+
   .prose code {
     background-color: #374151;
     color: #f9fafb;
   }
-  
+
   .prose th {
     background-color: #374151;
     color: #f9fafb;
   }
-  
+
   .prose td {
     border-color: #4b5563;
     color: #d1d5db;
   }
-  
+
   .prose blockquote {
     color: #9ca3af;
     border-left-color: #60a5fa;

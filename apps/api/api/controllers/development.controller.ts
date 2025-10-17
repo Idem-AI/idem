@@ -1,10 +1,10 @@
-import { Response } from "express";
-import logger from "../config/logger";
-import { DevelopmentService } from "../services/Development/development.service";
-import { CustomRequest } from "../interfaces/express.interface";
+import { Response } from 'express';
+import logger from '../config/logger';
+import { DevelopmentService } from '../services/Development/development.service';
+import { CustomRequest } from '../interfaces/express.interface';
 
-import { PromptService } from "../services/prompt.service";
-import { DevelopmentConfigsModel } from "../models/development.model";
+import { PromptService } from '../services/prompt.service';
+import { DevelopmentConfigsModel } from '../models/development.model';
 
 const promptService = new PromptService();
 const developmentService = new DevelopmentService(promptService);
@@ -19,8 +19,8 @@ export const saveDevelopmentConfigsController = async (
   const userId = req.user?.uid;
   const { developmentConfigs, projectId } = req.body;
 
-  console.log("developmentConfigs", developmentConfigs);
-  console.log("projectId", projectId);
+  console.log('developmentConfigs', developmentConfigs);
+  console.log('projectId', projectId);
 
   logger.info(
     `saveDevelopmentConfigsController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -28,18 +28,14 @@ export const saveDevelopmentConfigsController = async (
 
   try {
     if (!userId) {
-      logger.warn(
-        "User not authenticated for saveDevelopmentConfigsController"
-      );
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn('User not authenticated for saveDevelopmentConfigsController');
+      res.status(401).json({ message: 'User not authenticated' });
       return;
     }
 
     if (!projectId) {
-      logger.warn(
-        "Project ID is required for saveDevelopmentConfigsController"
-      );
-      res.status(400).json({ message: "Project ID is required" });
+      logger.warn('Project ID is required for saveDevelopmentConfigsController');
+      res.status(400).json({ message: 'Project ID is required' });
       return;
     }
 
@@ -50,25 +46,21 @@ export const saveDevelopmentConfigsController = async (
     );
 
     if (result) {
-      logger.info(
-        `Successfully saved development configs for projectId: ${projectId}`
-      );
+      logger.info(`Successfully saved development configs for projectId: ${projectId}`);
       res.status(200).json(result);
     } else {
-      logger.error(
-        `Failed to save development configs for projectId: ${projectId}`
-      );
-      res.status(400).json({ message: "Failed to save development configs" });
+      logger.error(`Failed to save development configs for projectId: ${projectId}`);
+      res.status(400).json({ message: 'Failed to save development configs' });
     }
     return;
   } catch (error) {
-    logger.error("Error in saveDevelopmentConfigsController:", {
+    logger.error('Error in saveDevelopmentConfigsController:', {
       userId,
       projectId,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
-    res.status(500).json({ message: "Failed to save development configs" });
+    res.status(500).json({ message: 'Failed to save development configs' });
     return;
   }
 };
@@ -89,42 +81,33 @@ export const getDevelopmentConfigsController = async (
 
   try {
     if (!userId) {
-      logger.warn("User not authenticated for getDevelopmentConfigsController");
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn('User not authenticated for getDevelopmentConfigsController');
+      res.status(401).json({ message: 'User not authenticated' });
       return;
     }
 
     if (!projectId) {
-      logger.warn("Project ID is required for getDevelopmentConfigsController");
-      res.status(400).json({ message: "Project ID is required" });
+      logger.warn('Project ID is required for getDevelopmentConfigsController');
+      res.status(400).json({ message: 'Project ID is required' });
       return;
     }
 
-    const result = await developmentService.getDevelopmentConfigs(
-      userId,
-      projectId
-    );
+    const result = await developmentService.getDevelopmentConfigs(userId, projectId);
 
     if (result) {
-      logger.info(
-        `Successfully retrieved development configs for projectId: ${projectId}`
-      );
+      logger.info(`Successfully retrieved development configs for projectId: ${projectId}`);
       res.status(200).json(result);
     } else {
-      logger.error(
-        `Failed to retrieve development configs for projectId: ${projectId}`
-      );
-      res
-        .status(200)
-        .json(null);
+      logger.error(`Failed to retrieve development configs for projectId: ${projectId}`);
+      res.status(200).json(null);
     }
   } catch (error) {
-    logger.error("Error in getDevelopmentConfigsController:", {
+    logger.error('Error in getDevelopmentConfigsController:', {
       userId,
       projectId,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
-    res.status(500).json({ message: "Failed to retrieve development configs" });
+    res.status(500).json({ message: 'Failed to retrieve development configs' });
   }
 };

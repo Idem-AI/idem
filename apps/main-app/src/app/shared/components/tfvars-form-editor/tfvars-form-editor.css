@@ -88,7 +88,6 @@
   margin-top: 1rem;
 }
 
-
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .tfvars-form-editor .grid-cols-2 {

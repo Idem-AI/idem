@@ -23,12 +23,7 @@ The root `package.json` file defines the workspaces:
 
 ```json
 {
-  "workspaces": [
-    "apps/main-app",
-    "apps/chart",
-    "apps/appgen",
-    "apps/api"
-  ]
+  "workspaces": ["apps/main-app", "apps/chart", "apps/appgen", "apps/api"]
 }
 ```
 
@@ -141,6 +136,7 @@ The CI/CD workflow has been simplified and no longer uses NX. See `.github/workf
 This project was migrated from NX to npm workspaces. Main differences:
 
 ### Before (NX)
+
 ```bash
 nx run main-app:serve
 nx run-many --target=build --all
@@ -148,6 +144,7 @@ nx affected --target=test
 ```
 
 ### After (npm workspaces)
+
 ```bash
 npm run start --workspace=idem
 npm run build --workspaces --if-present

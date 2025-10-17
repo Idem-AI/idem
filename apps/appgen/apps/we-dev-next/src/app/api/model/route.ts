@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { modelConfig } from "./config";
+import { NextResponse } from 'next/server';
+import { modelConfig } from './config';
 // Get model configuration, can be migrated to the configuration center
 export async function POST() {
   // Filter out the key part

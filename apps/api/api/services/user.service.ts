@@ -1,8 +1,8 @@
-import { admin } from "..";
-import logger from "../config/logger";
-import { QuotaData, UserModel } from "../models/userModel";
-import { IRepository } from "../repository/IRepository";
-import { RepositoryFactory } from "../repository/RepositoryFactory";
+import { admin } from '..';
+import logger from '../config/logger';
+import { QuotaData, UserModel } from '../models/userModel';
+import { IRepository } from '../repository/IRepository';
+import { RepositoryFactory } from '../repository/RepositoryFactory';
 
 export interface QuotaLimits {
   dailyLimit: number;
@@ -24,48 +24,35 @@ class UserService {
   constructor() {
     this.userRepository = RepositoryFactory.getRepository<UserModel>();
 
-    this.isBeta = process.env.IS_BETA === "true";
+    this.isBeta = process.env.IS_BETA === 'true';
 
     // Configure quota limits based on environment
     this.quotaLimits = {
-      dailyLimit: parseInt(process.env.DAILY_QUOTA_LIMIT || "50"),
-      weeklyLimit: parseInt(process.env.WEEKLY_QUOTA_LIMIT || "200"),
-      betaDailyLimit: parseInt(process.env.BETA_DAILY_QUOTA_LIMIT || "20"),
-      betaWeeklyLimit: parseInt(process.env.BETA_WEEKLY_QUOTA_LIMIT || "200"),
+      dailyLimit: parseInt(process.env.DAILY_QUOTA_LIMIT || '50'),
+      weeklyLimit: parseInt(process.env.WEEKLY_QUOTA_LIMIT || '200'),
+      betaDailyLimit: parseInt(process.env.BETA_DAILY_QUOTA_LIMIT || '20'),
+      betaWeeklyLimit: parseInt(process.env.BETA_WEEKLY_QUOTA_LIMIT || '200'),
     };
 
-    logger.info(
-      `QuotaService initialized - Beta mode: ${this.isBeta}, Limits:`,
-      this.quotaLimits
-    );
+    logger.info(`QuotaService initialized - Beta mode: ${this.isBeta}, Limits:`, this.quotaLimits);
   }
 
   public async createUser(user: UserModel): Promise<UserModel> {
     if (!user) {
-      logger.warn("createUser failed: No user data provided.");
-      throw new Error("No user data provided.");
+      logger.warn('createUser failed: No user data provided.');
+      throw new Error('No user data provided.');
     }
 
     try {
       user.quota = {
         dailyUsage: 0,
         weeklyUsage: 0,
-        dailyLimit: this.isBeta
-          ? this.quotaLimits.betaDailyLimit
-          : this.quotaLimits.dailyLimit,
-        weeklyLimit: this.isBeta
-          ? this.quotaLimits.betaWeeklyLimit
-          : this.quotaLimits.weeklyLimit,
-        lastResetDaily: new Date().toISOString().split("T")[0], // YYYY-MM-DD
-        lastResetWeekly: this.getWeekStart(new Date())
-          .toISOString()
-          .split("T")[0],
+        dailyLimit: this.isBeta ? this.quotaLimits.betaDailyLimit : this.quotaLimits.dailyLimit,
+        weeklyLimit: this.isBeta ? this.quotaLimits.betaWeeklyLimit : this.quotaLimits.weeklyLimit,
+        lastResetDaily: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+        lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
       };
-      const createdUser = await this.userRepository.create(
-        user,
-        "users",
-        user.uid
-      );
+      const createdUser = await this.userRepository.create(user, 'users', user.uid);
       logger.info(`User created successfully: ${createdUser.uid}`);
       return createdUser;
     } catch (error: any) {
@@ -78,59 +65,48 @@ class UserService {
   }
 
   public async getUserProfile(sessionCookie: string): Promise<UserModel> {
-    logger.info("Attempting to get user profile from session cookie.");
+    logger.info('Attempting to get user profile from session cookie.');
     if (!sessionCookie) {
-      logger.warn("getUserProfile failed: No session cookie provided.");
-      throw new Error("No session cookie provided.");
+      logger.warn('getUserProfile failed: No session cookie provided.');
+      throw new Error('No session cookie provided.');
     }
 
     try {
       // Verify the session cookie
-      const decodedToken = await admin
-        .auth()
-        .verifySessionCookie(sessionCookie, true);
+      const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true);
       const { uid } = decodedToken;
 
-      logger.info(
-        `Session cookie verified for UID: ${uid}. Fetching user profile.`
-      );
+      logger.info(`Session cookie verified for UID: ${uid}. Fetching user profile.`);
 
       // Get user from Firebase Auth
       const userRecord = await admin.auth().getUser(uid);
 
       // Get user data from repository
-      let user: UserModel | null = await this.userRepository.findById(
-        uid,
-        "users"
-      );
+      let user: UserModel | null = await this.userRepository.findById(uid, 'users');
 
       if (!user) {
         // User doesn't exist in repository, create a new user
-        logger.info(
-          `User ${uid} not found in repository, creating new user record`
-        );
+        logger.info(`User ${uid} not found in repository, creating new user record`);
 
         user = await this.userRepository.create(
           {
             uid: uid,
-            email: userRecord.email || "",
-            displayName: userRecord.displayName || "",
-            photoURL: userRecord.photoURL || "",
-            subscription: "free", // Default subscription
+            email: userRecord.email || '',
+            displayName: userRecord.displayName || '',
+            photoURL: userRecord.photoURL || '',
+            subscription: 'free', // Default subscription
             lastLogin: new Date(),
             quota: {
               dailyUsage: 0,
               weeklyUsage: 0,
               dailyLimit: this.quotaLimits.dailyLimit,
               weeklyLimit: this.quotaLimits.weeklyLimit,
-              lastResetDaily: new Date().toISOString().split("T")[0],
-              lastResetWeekly: this.getWeekStart(new Date())
-                .toISOString()
-                .split("T")[0],
+              lastResetDaily: new Date().toISOString().split('T')[0],
+              lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
             },
-            roles: ["user"],
+            roles: ['user'],
           },
-          "users",
+          'users',
           uid
         );
       } else {
@@ -140,8 +116,8 @@ class UserService {
           user.quota = {
             dailyUsage: this.quotaLimits.dailyLimit,
             weeklyUsage: this.quotaLimits.weeklyLimit,
-            lastResetDaily: new Date().toISOString().split("T")[0],
-            lastResetWeekly: new Date().toISOString().split("T")[0],
+            lastResetDaily: new Date().toISOString().split('T')[0],
+            lastResetWeekly: new Date().toISOString().split('T')[0],
           };
         }
         user =
@@ -151,7 +127,7 @@ class UserService {
               lastLogin: new Date(),
               quota: user.quota, // Ensure quota is preserved
             },
-            "users"
+            'users'
           )) || user;
       }
 
@@ -161,7 +137,7 @@ class UserService {
       logger.error(`Error in getUserProfile: ${error.message}`, {
         stack: error.stack,
       });
-      throw new Error(error.message || "Invalid or expired session.");
+      throw new Error(error.message || 'Invalid or expired session.');
     }
   }
 
@@ -191,14 +167,8 @@ class UserService {
             weekly: this.quotaLimits.weeklyLimit,
           };
 
-      const remainingDaily = Math.max(
-        0,
-        currentLimits.daily - quotaData.dailyUsage
-      );
-      const remainingWeekly = Math.max(
-        0,
-        currentLimits.weekly - quotaData.weeklyUsage
-      );
+      const remainingDaily = Math.max(0, currentLimits.daily - quotaData.dailyUsage);
+      const remainingWeekly = Math.max(0, currentLimits.weekly - quotaData.weeklyUsage);
 
       const allowed = remainingDaily > 0 && remainingWeekly > 0;
 
@@ -258,7 +228,7 @@ class UserService {
             lastResetWeekly: quotaData.lastResetWeekly,
           },
         },
-        "users"
+        'users'
       );
 
       logger.info(
@@ -302,14 +272,8 @@ class UserService {
             weekly: this.quotaLimits.weeklyLimit,
           };
 
-      const remainingDaily = Math.max(
-        0,
-        currentLimits.daily - quotaData.dailyUsage
-      );
-      const remainingWeekly = Math.max(
-        0,
-        currentLimits.weekly - quotaData.weeklyUsage
-      );
+      const remainingDaily = Math.max(0, currentLimits.daily - quotaData.dailyUsage);
+      const remainingWeekly = Math.max(0, currentLimits.weekly - quotaData.weeklyUsage);
 
       return {
         dailyUsage: quotaData.dailyUsage,
@@ -331,10 +295,7 @@ class UserService {
    */
   private async getUserQuota(userId: string): Promise<QuotaData | null> {
     try {
-      const user: UserModel | null = await this.userRepository.findById(
-        userId,
-        "users"
-      );
+      const user: UserModel | null = await this.userRepository.findById(userId, 'users');
 
       if (!user) {
         logger.warn(`User ${userId} not found when getting quota data`);
@@ -377,8 +338,8 @@ class UserService {
       weeklyUsage: 0,
       dailyLimit: this.quotaLimits.dailyLimit,
       weeklyLimit: this.quotaLimits.weeklyLimit,
-      lastResetDaily: now.toISOString().split("T")[0], // YYYY-MM-DD
-      lastResetWeekly: this.getWeekStart(now).toISOString().split("T")[0],
+      lastResetDaily: now.toISOString().split('T')[0], // YYYY-MM-DD
+      lastResetWeekly: this.getWeekStart(now).toISOString().split('T')[0],
     };
 
     // Update the user document with quota data
@@ -394,7 +355,7 @@ class UserService {
           lastResetWeekly: quotaData.lastResetWeekly,
         },
       },
-      "users"
+      'users'
     );
 
     logger.info(`Created new quota data for user ${userId}`);
@@ -404,13 +365,10 @@ class UserService {
   /**
    * Reset counters if day/week has changed
    */
-  private async resetCountersIfNeeded(
-    userId: string,
-    quotaData: QuotaData
-  ): Promise<QuotaData> {
+  private async resetCountersIfNeeded(userId: string, quotaData: QuotaData): Promise<QuotaData> {
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
-    const weekStart = this.getWeekStart(now).toISOString().split("T")[0];
+    const today = now.toISOString().split('T')[0];
+    const weekStart = this.getWeekStart(now).toISOString().split('T')[0];
 
     let needsUpdate = false;
     const updatedQuotaData = { ...quotaData };
@@ -443,7 +401,7 @@ class UserService {
             lastResetWeekly: updatedQuotaData.lastResetWeekly,
           },
         },
-        "users"
+        'users'
       );
     }
 

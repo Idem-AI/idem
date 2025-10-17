@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Jura:wght@300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Jura:wght@300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 
 @layer tailwind-base, antd;
 
@@ -9,7 +9,7 @@
 @tailwind utilities;
 
 * {
-  font-family: "Jura", sans-serif;
+  font-family: 'Jura', sans-serif;
   font-optical-sizing: auto;
   font-weight: normal;
   font-style: normal;
@@ -27,11 +27,8 @@
 
 body {
   background-size: 50px 50px;
-  background-image: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px
-    ),
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   overflow-x: hidden;
   min-height: 100vh;
@@ -49,7 +46,7 @@ body {
   align-items: center;
 }
 
-.p-select{
+.p-select {
   z-index: 999;
 }
 
@@ -212,11 +209,7 @@ body {
 }
 
 .inner-button {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary),
-    var(--color-primary-glow)
-  );
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-glow));
   background-size: 200% 100%;
   animation: gradient-shift 3s ease infinite;
   color: white;
@@ -249,18 +242,13 @@ body {
 
 .outer-button::before,
 .inner-button::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.7s;
 }
 
@@ -340,14 +328,10 @@ body {
 }
 
 .bg-gradient-glow::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at center,
-    var(--color-primary-glow) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle at center, var(--color-primary-glow) 0%, transparent 70%);
   opacity: 0.3;
 }
 

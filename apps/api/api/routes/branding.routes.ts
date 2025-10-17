@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   getBrandingsByProjectController,
   getBrandingByIdController,
@@ -11,13 +11,13 @@ import {
   generateBrandingPdfController,
   generateLogosZipController,
   editLogoController,
-} from "../controllers/branding.controller";
-import { authenticate } from "../services/auth.service"; // Updated import path
-import { checkQuota } from "../middleware/quota.middleware";
+} from '../controllers/branding.controller';
+import { authenticate } from '../services/auth.service'; // Updated import path
+import { checkQuota } from '../middleware/quota.middleware';
 
 export const brandingRoutes = Router();
 
-const resourceName = "brandings";
+const resourceName = 'brandings';
 
 // All routes are protected and project-specific where applicable
 
@@ -328,11 +328,7 @@ brandingRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.get(
-  `/${resourceName}/get/:projectId`,
-  authenticate,
-  getBrandingByIdController
-);
+brandingRoutes.get(`/${resourceName}/get/:projectId`, authenticate, getBrandingByIdController);
 
 // Update a specific branding by its ID
 /**
@@ -373,11 +369,7 @@ brandingRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.put(
-  `/${resourceName}/update/:projectId`,
-  authenticate,
-  updateBrandingController
-);
+brandingRoutes.put(`/${resourceName}/update/:projectId`, authenticate, updateBrandingController);
 
 // Delete a specific branding by its ID
 /**
@@ -414,11 +406,7 @@ brandingRoutes.put(
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.delete(
-  `/${resourceName}/delete/:projectId`,
-  authenticate,
-  deleteBrandingController
-);
+brandingRoutes.delete(`/${resourceName}/delete/:projectId`, authenticate, deleteBrandingController);
 
 // Generate PDF from branding sections
 /**

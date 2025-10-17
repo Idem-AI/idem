@@ -6,10 +6,7 @@ import { environment } from '../../../../../environments/environment';
 import { DiagramModel } from '../../models/diagram.model';
 import { DiagramStepEvent } from '../../models/diagram-step.model';
 import { SSEService } from '../../../../shared/services/sse.service';
-import {
-  SSEStepEvent,
-  SSEConnectionConfig,
-} from '../../../../shared/models/sse-step.model';
+import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 
 @Injectable({
   providedIn: 'root',
@@ -48,7 +45,7 @@ export class DiagramsService {
 
   /**
    * Cancel ongoing SSE connection
-   */    
+   */
   cancelGeneration(): void {
     this.sseService.cancelGeneration('diagram');
   }
@@ -76,14 +73,8 @@ export class DiagramsService {
    * @param updates Partial diagram updates
    * @returns Observable with the updated diagram model
    */
-  updateDiagram(
-    diagramId: string,
-    updates: Partial<DiagramModel>
-  ): Observable<DiagramModel> {
-    return this.http.put<DiagramModel>(
-      `${this.apiUrl}/diagram/${diagramId}`,
-      updates
-    );
+  updateDiagram(diagramId: string, updates: Partial<DiagramModel>): Observable<DiagramModel> {
+    return this.http.put<DiagramModel>(`${this.apiUrl}/diagram/${diagramId}`, updates);
   }
 
   /**

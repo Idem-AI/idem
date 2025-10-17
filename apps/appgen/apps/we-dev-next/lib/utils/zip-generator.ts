@@ -1,5 +1,5 @@
-import archiver from "archiver";
-import { Readable } from "stream";
+import archiver from 'archiver';
+import { Readable } from 'stream';
 
 export interface ZipFileEntry {
   path: string;
@@ -14,28 +14,28 @@ export interface ZipFileEntry {
  */
 export async function createZipFromFiles(
   files: ZipFileEntry[],
-  zipName: string = "archive.zip"
+  zipName: string = 'archive.zip'
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    const archive = archiver("zip", {
+    const archive = archiver('zip', {
       zlib: { level: 9 }, // Maximum compression
     });
 
     // Collect chunks
-    archive.on("data", (chunk) => {
+    archive.on('data', (chunk) => {
       chunks.push(chunk);
     });
 
     // Handle completion
-    archive.on("end", () => {
+    archive.on('end', () => {
       const buffer = Buffer.concat(chunks);
       console.log(`Zip file created: ${zipName}, size: ${buffer.length} bytes`);
       resolve(buffer);
     });
 
     // Handle errors
-    archive.on("error", (err) => {
+    archive.on('error', (err) => {
       console.error(`Error creating zip file ${zipName}:`, err);
       reject(err);
     });
@@ -43,9 +43,7 @@ export async function createZipFromFiles(
     // Add files to the archive
     files.forEach((file) => {
       const content =
-        typeof file.content === "string"
-          ? Buffer.from(file.content, "utf-8")
-          : file.content;
+        typeof file.content === 'string' ? Buffer.from(file.content, 'utf-8') : file.content;
 
       archive.append(content, { name: file.path });
     });
@@ -63,7 +61,7 @@ export async function createZipFromFiles(
  */
 export async function createZipFromDirectoryStructure(
   directoryStructure: Record<string, any>,
-  basePath: string = ""
+  basePath: string = ''
 ): Promise<Buffer> {
   const files: ZipFileEntry[] = [];
 
@@ -71,13 +69,13 @@ export async function createZipFromDirectoryStructure(
     for (const [key, value] of Object.entries(obj)) {
       const fullPath = currentPath ? `${currentPath}/${key}` : key;
 
-      if (typeof value === "string" || Buffer.isBuffer(value)) {
+      if (typeof value === 'string' || Buffer.isBuffer(value)) {
         // It's a file
         files.push({
           path: fullPath,
           content: value,
         });
-      } else if (typeof value === "object" && value !== null) {
+      } else if (typeof value === 'object' && value !== null) {
         // It's a directory, traverse recursively
         traverseStructure(value, fullPath);
       }
@@ -86,7 +84,7 @@ export async function createZipFromDirectoryStructure(
 
   traverseStructure(directoryStructure, basePath);
 
-  return createZipFromFiles(files, `${basePath || "archive"}.zip`);
+  return createZipFromFiles(files, `${basePath || 'archive'}.zip`);
 }
 
 /**
@@ -108,24 +106,18 @@ export async function createGeneratedAppZips(generatedCode: {
 
   try {
     if (generatedCode.frontend) {
-      console.log("Creating frontend zip file...");
-      result.frontend = await createZipFromDirectoryStructure(
-        generatedCode.frontend,
-        "frontend"
-      );
+      console.log('Creating frontend zip file...');
+      result.frontend = await createZipFromDirectoryStructure(generatedCode.frontend, 'frontend');
     }
 
     if (generatedCode.backend) {
-      console.log("Creating backend zip file...");
-      result.backend = await createZipFromDirectoryStructure(
-        generatedCode.backend,
-        "backend"
-      );
+      console.log('Creating backend zip file...');
+      result.backend = await createZipFromDirectoryStructure(generatedCode.backend, 'backend');
     }
 
     return result;
   } catch (error: any) {
-    console.error("Error creating generated app zips:", error);
+    console.error('Error creating generated app zips:', error);
     throw new Error(`Failed to create zip files: ${error.message}`);
   }
 }
@@ -136,13 +128,11 @@ export async function createGeneratedAppZips(generatedCode: {
  * @param files - Array of files with path and content
  * @returns Directory structure object
  */
-export function createDirectoryStructureFromFiles(
-  files: ZipFileEntry[]
-): Record<string, any> {
+export function createDirectoryStructureFromFiles(files: ZipFileEntry[]): Record<string, any> {
   const structure: Record<string, any> = {};
 
   files.forEach((file) => {
-    const parts = file.path.split("/");
+    const parts = file.path.split('/');
     let current = structure;
 
     parts.forEach((part, index) => {

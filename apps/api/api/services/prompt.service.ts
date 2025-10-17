@@ -1,16 +1,16 @@
-import { GoogleGenAI, createPartFromUri, Content, File } from "@google/genai";
-import dotenv from "dotenv";
-import * as fs from "fs-extra";
-import logger from "../config/logger";
-import betaRestrictionsService from "./betaRestrictions.service";
-import OpenAI from "openai";
-import { userService } from "./user.service";
+import { GoogleGenAI, createPartFromUri, Content, File } from '@google/genai';
+import dotenv from 'dotenv';
+import * as fs from 'fs-extra';
+import logger from '../config/logger';
+import betaRestrictionsService from './betaRestrictions.service';
+import OpenAI from 'openai';
+import { userService } from './user.service';
 dotenv.config();
 
 export enum LLMProvider {
-  GEMINI = "GEMINI",
-  CHATGPT = "CHATGPT",
-  DEEPSEEK = "DEEPSEEK",
+  GEMINI = 'GEMINI',
+  CHATGPT = 'CHATGPT',
+  DEEPSEEK = 'DEEPSEEK',
 }
 
 export interface LLMOptions {
@@ -35,7 +35,7 @@ export interface PromptConfig {
 }
 
 export interface AIChatMessage {
-  role: "user" | "assistant" | "system";
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
@@ -64,32 +64,32 @@ export class PromptService {
   private openaiClient!: OpenAI; // Using definite assignment assertion as client may be conditionally initialized
 
   constructor() {
-    logger.info("Initializing PromptService...");
+    logger.info('Initializing PromptService...');
 
     // Initialize Gemini client
     const geminiApiKey = process.env.GEMINI_API_KEY;
     if (!geminiApiKey) {
-      logger.error("GEMINI_API_KEY is not set in environment variables.");
-      throw new Error("GEMINI_API_KEY is not set in environment variables.");
+      logger.error('GEMINI_API_KEY is not set in environment variables.');
+      throw new Error('GEMINI_API_KEY is not set in environment variables.');
     }
     this.genAIClient = new GoogleGenAI({ apiKey: geminiApiKey });
-    logger.info("GoogleGenAI client initialized successfully.");
+    logger.info('GoogleGenAI client initialized successfully.');
 
     // Initialize OpenAI client
     const openaiApiKey = process.env.OPENAI_API_KEY;
     if (!openaiApiKey) {
       logger.warn(
-        "OPENAI_API_KEY is not set in environment variables. OpenAI features will not be available."
+        'OPENAI_API_KEY is not set in environment variables. OpenAI features will not be available.'
       );
     } else {
       this.openaiClient = new OpenAI({ apiKey: openaiApiKey });
-      logger.info("OpenAI client initialized successfully.");
+      logger.info('OpenAI client initialized successfully.');
     }
   }
 
   private toGeminiMessages(messages: AIChatMessage[]): Content[] {
     return messages.map((msg) => ({
-      role: msg.role === "assistant" ? "model" : "user",
+      role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }],
     }));
   }
@@ -104,7 +104,7 @@ export class PromptService {
 
     if (fileInput && fileInput.localPath) {
       if (geminiContent.length === 0) {
-        geminiContent.push({ role: "user", parts: [] });
+        geminiContent.push({ role: 'user', parts: [] });
       }
 
       try {
@@ -114,11 +114,7 @@ export class PromptService {
           logger.warn(
             `File ${fileInput.localPath} is empty. Writing a placeholder to avoid potential upload issues.`
           );
-          await fs.writeFile(
-            fileInput.localPath,
-            "[Initial empty context]",
-            "utf-8"
-          );
+          await fs.writeFile(fileInput.localPath, '[Initial empty context]', 'utf-8');
         }
 
         logger.info(
@@ -138,10 +134,10 @@ export class PromptService {
 
         if (!uploadedFile || !uploadedFile.uri || !effectiveMimeType) {
           logger.error(
-            "File upload response did not contain expected file details (uri or an effective mimeType)."
+            'File upload response did not contain expected file details (uri or an effective mimeType).'
           );
           throw new Error(
-            "File upload response did not contain expected file details (uri or an effective mimeType)."
+            'File upload response did not contain expected file details (uri or an effective mimeType).'
           );
         }
         logger.info(
@@ -166,50 +162,39 @@ export class PromptService {
         const firstPart = firstCandidate?.content?.parts?.[0];
         const textContent = firstPart?.text;
 
-        if (typeof textContent === "string") {
+        if (typeof textContent === 'string') {
           return textContent;
         } else {
-          let detailedError = "Invalid response structure from Gemini API: ";
+          let detailedError = 'Invalid response structure from Gemini API: ';
           if (!result.candidates || result.candidates.length === 0) {
-            detailedError += "No candidates array or empty candidates array.";
+            detailedError += 'No candidates array or empty candidates array.';
           } else if (!firstCandidate) {
             detailedError +=
-              "First candidate is undefined (candidates array might be sparse or malformed, or was empty).";
+              'First candidate is undefined (candidates array might be sparse or malformed, or was empty).';
           } else if (!firstCandidate.content) {
             detailedError += "First candidate is missing 'content' property.";
-          } else if (
-            !firstCandidate.content.parts ||
-            firstCandidate.content.parts.length === 0
-          ) {
+          } else if (!firstCandidate.content.parts || firstCandidate.content.parts.length === 0) {
             detailedError +=
               "First candidate's content is missing 'parts' array or 'parts' array is empty.";
           } else if (!firstPart) {
             detailedError +=
               "First part of first candidate's content is undefined (parts array might be sparse or malformed, or was empty).";
-          } else if (typeof firstPart.text !== "string") {
-            detailedError +=
-              "First part's 'text' property is missing or not a string.";
+          } else if (typeof firstPart.text !== 'string') {
+            detailedError += "First part's 'text' property is missing or not a string.";
           } else {
-            detailedError +=
-              "textContent was not a string for an unknown reason after checks.";
+            detailedError += 'textContent was not a string for an unknown reason after checks.';
           }
           logger.error(
-            "Gemini API Error: " +
+            'Gemini API Error: ' +
               detailedError +
-              " Full response for debugging: " +
+              ' Full response for debugging: ' +
               JSON.stringify(result, null, 2)
           );
-          logger.error(
-            "Invalid or empty response structure from Gemini API. " +
-              detailedError
-          );
-          throw new Error(
-            "Invalid or empty response structure from Gemini API. " +
-              detailedError
-          );
+          logger.error('Invalid or empty response structure from Gemini API. ' + detailedError);
+          throw new Error('Invalid or empty response structure from Gemini API. ' + detailedError);
         }
       } catch (uploadError) {
-        logger.error("Error uploading file to Gemini:", uploadError);
+        logger.error('Error uploading file to Gemini:', uploadError);
         const errorMessage = `Failed to upload file: ${
           fileInput.localPath
         }. Error: ${(uploadError as Error).message || uploadError}`;
@@ -234,12 +219,8 @@ export class PromptService {
     });
     const response = result.text;
     if (!response) {
-      logger.error("Failed to generate response from Gemini API.");
-      const runPromptErrorMessage = `Failed to run prompt: ${JSON.stringify(
-        result,
-        null,
-        2
-      )}`;
+      logger.error('Failed to generate response from Gemini API.');
+      const runPromptErrorMessage = `Failed to run prompt: ${JSON.stringify(result, null, 2)}`;
       logger.error(runPromptErrorMessage);
       throw new Error(runPromptErrorMessage);
     }
@@ -254,7 +235,7 @@ export class PromptService {
   ): Promise<string> {
     if (!this.openaiClient) {
       const error = new Error(
-        "OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable."
+        'OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable.'
       );
       logger.error(error.message);
       throw error;
@@ -280,31 +261,24 @@ export class PromptService {
 
       // Handle file uploads if needed
       if (fileInput && fileInput.localPath) {
-        logger.info(
-          `Processing file input for ChatGPT: ${fileInput.localPath}`
-        );
+        logger.info(`Processing file input for ChatGPT: ${fileInput.localPath}`);
 
         try {
           // Read the file content
-          const fileContent = await fs.readFile(fileInput.localPath, "utf-8");
+          const fileContent = await fs.readFile(fileInput.localPath, 'utf-8');
 
           // Instead of uploading the file directly, we'll add its contents to the prompt
           // Add context as system message at the beginning
           openaiMessages.unshift({
-            role: "system",
+            role: 'system',
             content: `File content for context: ${fileContent}`,
           });
 
-          logger.info("File content added to ChatGPT prompt");
+          logger.info('File content added to ChatGPT prompt');
         } catch (fileError) {
-          logger.error(
-            `Error reading file for ChatGPT: ${fileInput.localPath}`,
-            fileError
-          );
+          logger.error(`Error reading file for ChatGPT: ${fileInput.localPath}`, fileError);
           throw new Error(
-            `Failed to read file for ChatGPT: ${
-              (fileError as Error).message || fileError
-            }`
+            `Failed to read file for ChatGPT: ${(fileError as Error).message || fileError}`
           );
         }
       }
@@ -317,22 +291,20 @@ export class PromptService {
       });
 
       if (!response.choices || response.choices.length === 0) {
-        logger.error("ChatGPT API returned no choices");
-        throw new Error("ChatGPT API returned no choices");
+        logger.error('ChatGPT API returned no choices');
+        throw new Error('ChatGPT API returned no choices');
       }
 
       const textContent = response.choices[0].message.content;
 
       if (!textContent) {
-        logger.error("ChatGPT API returned empty text content");
-        throw new Error("ChatGPT API returned empty text content");
+        logger.error('ChatGPT API returned empty text content');
+        throw new Error('ChatGPT API returned empty text content');
       }
 
       return textContent;
     } catch (error) {
-      const errorMessage = `Error with ChatGPT API: ${
-        (error as Error).message || error
-      }`;
+      const errorMessage = `Error with ChatGPT API: ${(error as Error).message || error}`;
       logger.error(errorMessage);
       throw new Error(errorMessage);
     }
@@ -347,7 +319,7 @@ export class PromptService {
     // DeepSeek is accessed through the OpenAI API compatibility layer
     if (!this.openaiClient) {
       const error = new Error(
-        "OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable."
+        'OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable.'
       );
       logger.error(error.message);
       throw error;
@@ -373,39 +345,31 @@ export class PromptService {
 
       // Handle file uploads if needed
       if (fileInput && fileInput.localPath) {
-        logger.info(
-          `Processing file input for DeepSeek: ${fileInput.localPath}`
-        );
+        logger.info(`Processing file input for DeepSeek: ${fileInput.localPath}`);
 
         try {
           // Read the file content
-          const fileContent = await fs.readFile(fileInput.localPath, "utf-8");
+          const fileContent = await fs.readFile(fileInput.localPath, 'utf-8');
 
           // Add file content to the prompt
           openaiMessages.unshift({
-            role: "system",
+            role: 'system',
             content: `File content for context: ${fileContent}`,
           });
 
-          logger.info("File content added to DeepSeek prompt");
+          logger.info('File content added to DeepSeek prompt');
         } catch (fileError) {
-          logger.error(
-            `Error reading file for DeepSeek: ${fileInput.localPath}`,
-            fileError
-          );
+          logger.error(`Error reading file for DeepSeek: ${fileInput.localPath}`, fileError);
           throw new Error(
-            `Failed to read file for DeepSeek: ${
-              (fileError as Error).message || fileError
-            }`
+            `Failed to read file for DeepSeek: ${(fileError as Error).message || fileError}`
           );
         }
       }
 
       // Make API call with the DeepSeek base URL if provided, otherwise use the default OpenAI URL
-      const deepSeekBaseUrl =
-        process.env.DEEPSEEK_API_URL || "https://api.deepseek.com";
+      const deepSeekBaseUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com';
       const customClient = new OpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY || "",
+        apiKey: process.env.OPENROUTER_API_KEY || '',
         baseURL: deepSeekBaseUrl,
       });
 
@@ -417,22 +381,20 @@ export class PromptService {
       });
 
       if (!response.choices || response.choices.length === 0) {
-        logger.error("DeepSeek API returned no choices");
-        throw new Error("DeepSeek API returned no choices");
+        logger.error('DeepSeek API returned no choices');
+        throw new Error('DeepSeek API returned no choices');
       }
 
       const textContent = response.choices[0].message.content;
 
       if (!textContent) {
-        logger.error("DeepSeek API returned empty text content");
-        throw new Error("DeepSeek API returned empty text content");
+        logger.error('DeepSeek API returned empty text content');
+        throw new Error('DeepSeek API returned empty text content');
       }
 
       return textContent;
     } catch (error) {
-      const errorMessage = `Error with DeepSeek API: ${
-        (error as Error).message || error
-      }`;
+      const errorMessage = `Error with DeepSeek API: ${(error as Error).message || error}`;
       logger.error(errorMessage);
       throw new Error(errorMessage);
     }
@@ -455,8 +417,8 @@ export class PromptService {
     } = request;
 
     if (!messages || messages.length === 0) {
-      logger.error("Messages array cannot be empty.");
-      throw new Error("Messages array cannot be empty."); 
+      logger.error('Messages array cannot be empty.');
+      throw new Error('Messages array cannot be empty.');
     }
 
     // Quota checking for authenticated users (skip for system/internal calls)
@@ -466,7 +428,7 @@ export class PromptService {
 
       if (!quotaCheck.allowed) {
         logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
-        throw new Error(quotaCheck.message || "Quota exceeded");
+        throw new Error(quotaCheck.message || 'Quota exceeded');
       }
 
       logger.info(
@@ -476,29 +438,20 @@ export class PromptService {
 
     // Beta restrictions validation
     if (promptType) {
-      const featureValidation =
-        betaRestrictionsService.validateFeature(promptType);
+      const featureValidation = betaRestrictionsService.validateFeature(promptType);
       if (!featureValidation.allowed) {
-        logger.warn(
-          `Feature ${promptType} not allowed in beta: ${featureValidation.message}`
-        );
-        throw new Error(
-          featureValidation.message || "Feature not available in beta"
-        );
+        logger.warn(`Feature ${promptType} not allowed in beta: ${featureValidation.message}`);
+        throw new Error(featureValidation.message || 'Feature not available in beta');
       }
 
       // Validate and adjust prompt parameters for beta
-      const paramValidation = betaRestrictionsService.validatePromptParams(
-        promptType,
-        { llmOptions, ...request }
-      );
+      const paramValidation = betaRestrictionsService.validatePromptParams(promptType, {
+        llmOptions,
+        ...request,
+      });
       if (!paramValidation.allowed) {
-        logger.warn(
-          `Prompt parameters not allowed in beta: ${paramValidation.message}`
-        );
-        throw new Error(
-          paramValidation.message || "Parameters not allowed in beta"
-        );
+        logger.warn(`Prompt parameters not allowed in beta: ${paramValidation.message}`);
+        throw new Error(paramValidation.message || 'Parameters not allowed in beta');
       }
 
       // Apply adjusted parameters if any
@@ -532,50 +485,31 @@ export class PromptService {
     let modifiedMessages = messages;
     if (betaRestrictionsService.isBetaMode() && messages.length > 0) {
       modifiedMessages = messages.map((msg) => {
-        if (msg.role === "user" || msg.role === "system") {
+        if (msg.role === 'user' || msg.role === 'system') {
           return {
             ...msg,
-            content: betaRestrictionsService.applyBetaPromptModifications(
-              msg.content
-            ),
+            content: betaRestrictionsService.applyBetaPromptModifications(msg.content),
           };
         }
         return msg;
       });
-      logger.info("Applied beta prompt modifications");
+      logger.info('Applied beta prompt modifications');
     }
 
     try {
       let result: string;
       switch (provider) {
         case LLMProvider.GEMINI:
-          result = await this._runGeminiPrompt(
-            modelName,
-            modifiedMessages,
-            llmOptions,
-            file
-          );
+          result = await this._runGeminiPrompt(modelName, modifiedMessages, llmOptions, file);
           break;
         case LLMProvider.CHATGPT:
-          result = await this._runChatGPTPrompt(
-            modelName,
-            modifiedMessages,
-            llmOptions,
-            file
-          );
+          result = await this._runChatGPTPrompt(modelName, modifiedMessages, llmOptions, file);
           break;
         case LLMProvider.DEEPSEEK:
-          result = await this._runDeepSeekPrompt(
-            modelName,
-            modifiedMessages,
-            llmOptions,
-            file
-          );
+          result = await this._runDeepSeekPrompt(modelName, modifiedMessages, llmOptions, file);
           break;
         default:
-          const unsupportedProviderError = new Error(
-            `Unsupported LLM provider: ${provider}`
-          );
+          const unsupportedProviderError = new Error(`Unsupported LLM provider: ${provider}`);
           logger.error(
             `Unsupported LLM provider encountered in runPrompt: ${unsupportedProviderError.message}`,
             { provider, stack: unsupportedProviderError.stack }
@@ -588,10 +522,7 @@ export class PromptService {
         try {
           logger.info(`Incremented quota usage for user ${userId}`);
         } catch (quotaError) {
-          logger.error(
-            `Failed to increment quota for user ${userId}:`,
-            quotaError
-          );
+          logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
           // Don't throw here as the API call was successful
         }
       }
@@ -607,20 +538,20 @@ export class PromptService {
   }
 
   public getCleanAIText(response: any): string {
-    logger.debug("Attempting to clean AI text response.");
-    if (typeof response === "string") {
+    logger.debug('Attempting to clean AI text response.');
+    if (typeof response === 'string') {
       return response
-        .replace(/^```(json)?\s*/i, "")
-        .replace(/```$/g, "")
+        .replace(/^```(json)?\s*/i, '')
+        .replace(/```$/g, '')
         .trim();
     }
 
-    if (response && typeof response.text === "function") {
+    if (response && typeof response.text === 'function') {
       try {
         const text = response.text();
         return text
-          .replace(/^```(json)?\s*/i, "")
-          .replace(/```$/g, "")
+          .replace(/^```(json)?\s*/i, '')
+          .replace(/```$/g, '')
           .trim();
       } catch (e: any) {
         logger.warn(
@@ -630,12 +561,11 @@ export class PromptService {
       }
     }
 
-    const raw =
-      response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const raw = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     return raw
-      .replace(/^```(json)?\s*/i, "")
-      .replace(/```$/g, "")
+      .replace(/^```(json)?\s*/i, '')
+      .replace(/```$/g, '')
       .trim();
   }
 }

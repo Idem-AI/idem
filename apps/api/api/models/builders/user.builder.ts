@@ -1,4 +1,4 @@
-import { UserModel } from "../userModel";
+import { UserModel } from '../userModel';
 
 /**
  * Builder for UserModel
@@ -9,9 +9,9 @@ export class UserBuilder {
    */
   static createEmpty(): UserModel {
     return {
-      uid: "",
-      email: "",
-      subscription: "free",
+      uid: '',
+      email: '',
+      subscription: 'free',
       createdAt: new Date(),
       lastLogin: new Date(),
       quota: {

@@ -30,11 +30,7 @@
           routerLink="/"
           class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
         >
-          <img
-            src="/assets/icons/logo_white.png"
-            alt="Lexi"
-            class="sm:w-[120px] w-[50px] h-auto"
-          />
+          <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto" />
           <app-beta-badge></app-beta-badge>
         </a>
       </div>
@@ -114,9 +110,7 @@
           class="absolute right-0 mt-2 w-56 glass-card border border-white/10 rounded-xl shadow-xl z-50 py-2"
         >
           <div class="px-4 py-3 border-b border-white/10">
-            <p class="text-white font-medium truncate">
-              {{ user()!.displayName }}
-            </p>
+            <p class="text-white font-medium truncate">{{ user()!.displayName }}</p>
             <p class="text-gray-400 text-sm truncate">{{ user()!.email }}</p>
           </div>
 
@@ -200,26 +194,20 @@
     >
       <!-- Active indicator -->
       @if (item.isActive) {
-      <div
-        class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"
-      ></div>
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"></div>
       }
 
       <!-- Icon -->
       <div class="flex-shrink-0 relative">
         <i [class]="item.icon" class="text-lg transition-all duration-200"></i>
         @if (item.isActive) {
-        <div
-          class="absolute inset-0 bg-primary/20 rounded-lg -z-10 animate-pulse"
-        ></div>
+        <div class="absolute inset-0 bg-primary/20 rounded-lg -z-10 animate-pulse"></div>
         }
       </div>
 
       <!-- Label -->
       @if (!isSidebarCollapsed()) {
-      <span
-        class="font-medium transition-all duration-200 group-hover:translate-x-1"
-      >
+      <span class="font-medium transition-all duration-200 group-hover:translate-x-1">
         {{ item.label }}
       </span>
       }
@@ -245,9 +233,7 @@
     </div>
     } @else {
     <div class="flex justify-center">
-      <div
-        class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center"
-      >
+      <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
         <i class="pi pi-bolt text-primary text-sm"></i>
       </div>
     </div>
@@ -272,16 +258,8 @@
   >
     <!-- Header -->
     <div class="flex items-center justify-between p-4 border-b border-white/10">
-      <a
-        routerLink="/"
-        class="flex items-center gap-2"
-        (click)="toggleMobileDrawer()"
-      >
-        <img
-          src="/assets/icons/logo_white.png"
-          alt="Lexi"
-          class="w-24 h-auto"
-        />
+      <a routerLink="/" class="flex items-center gap-2" (click)="toggleMobileDrawer()">
+        <img src="/assets/icons/logo_white.png" alt="Lexi" class="w-24 h-auto" />
         <app-beta-badge></app-beta-badge>
       </a>
       <button

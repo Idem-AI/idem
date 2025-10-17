@@ -8,9 +8,7 @@
 
   <!-- Error state -->
   @if (error()) {
-  <div
-    class="glass border border-red-400 text-red-400 px-4 py-3 rounded-lg relative mb-6"
-  >
+  <div class="glass border border-red-400 text-red-400 px-4 py-3 rounded-lg relative mb-6">
     <span>{{ error() }}</span>
   </div>
   }
@@ -30,14 +28,11 @@
         </div>
 
         <!-- Title -->
-        <h1 class="text-4xl font-bold text-white text-glow-primary mb-4">
-          Configuration Ready
-        </h1>
+        <h1 class="text-4xl font-bold text-white text-glow-primary mb-4">Configuration Ready</h1>
 
         <!-- Concise explanation -->
         <p class="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-          Your tech stack is configured. Launch the generation to create your
-          full application.
+          Your tech stack is configured. Launch the generation to create your full application.
         </p>
 
         <!-- Main CTA -->
@@ -51,9 +46,7 @@
         </button>
 
         <!-- Tech Stack Cards -->
-        <div
-          class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 max-w-4xl mx-auto"
-        >
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 max-w-4xl mx-auto">
           @if (frontend()?.framework) {
           <div class="glass-dark p-4 rounded-xl border border-blue-400/30">
             <div class="flex items-center justify-center mb-2">
@@ -118,9 +111,7 @@
           <i class="pi pi-list text-accent mr-3 text-xl"></i>
           <h2 class="text-xl font-semibold text-white">Technical Details</h2>
         </div>
-        <i
-          class="pi pi-chevron-down text-gray-400 transition-transform duration-300"
-        ></i>
+        <i class="pi pi-chevron-down text-gray-400 transition-transform duration-300"></i>
       </button>
     </div>
 
@@ -130,9 +121,7 @@
         <div
           class="glass-card md:p-6 transition-shadow hover:shadow-lg backdrop-blur-sm overflow-hidden relative"
         >
-          <div
-            class="flex items-center justify-between mb-6 border-b border-gray-700/30 pb-3"
-          >
+          <div class="flex items-center justify-between mb-6 border-b border-gray-700/30 pb-3">
             <div class="flex items-center">
               <i class="pi pi-desktop text-blue-400 mr-3 text-3xl"></i>
               <h2 class="text-xl font-semibold text-white">Frontend</h2>
@@ -148,20 +137,14 @@
               class="h-12 w-12 rounded-lg mr-3 object-contain bg-gray-800/50 p-1"
             />
             } @else {
-            <div
-              class="h-12 w-12 rounded-lg mr-3 bg-blue-500/20 flex items-center justify-center"
-            >
+            <div class="h-12 w-12 rounded-lg mr-3 bg-blue-500/20 flex items-center justify-center">
               <i class="pi pi-code text-blue-400 text-xl"></i>
             </div>
             }
             <div>
-              <h3 class="text-white font-medium text-lg">
-                {{ frontend()!.framework }}
-              </h3>
+              <h3 class="text-white font-medium text-lg">{{ frontend()!.framework }}</h3>
               @if (frontend()?.frameworkVersion) {
-              <span class="text-blue-300 text-sm"
-                >v{{ frontend()!.frameworkVersion }}</span
-              >
+              <span class="text-blue-300 text-sm">v{{ frontend()!.frameworkVersion }}</span>
               }
             </div>
           </div>
@@ -175,8 +158,8 @@
                 <h4 class="text-gray-300 text-sm">Styling</h4>
               </div>
               <p class="text-white text-sm">
-                {{ typeof frontend()!.styling === 'string' ? frontend()!.styling
-                : getFeaturesList(frontend()!.styling) }}
+                {{ typeof frontend()!.styling === 'string' ? frontend()!.styling :
+                getFeaturesList(frontend()!.styling) }}
               </p>
             </div>
 
@@ -187,9 +170,7 @@
                 <i class="pi pi-sync text-purple-400 mr-2"></i>
                 <h4 class="text-gray-300 text-sm">State Management</h4>
               </div>
-              <p class="text-white text-sm">
-                {{ frontend()!.stateManagement }}
-              </p>
+              <p class="text-white text-sm">{{ frontend()!.stateManagement }}</p>
             </div>
             }
           </div>
@@ -201,21 +182,15 @@
               <h4 class="text-gray-300">Features</h4>
             </div>
             <div class="flex flex-wrap gap-2">
-              @if (frontend()?.features) { @if (frontend()!.features && typeof
-              frontend()!.features === 'object') { @for (feature of
-              getObjectKeys(frontend()!.features); track feature) { @if
-              (isFeatureEnabled(frontend()!.features, feature)) {
-              <span
-                class="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs"
-              >
+              @if (frontend()?.features) { @if (frontend()!.features && typeof frontend()!.features
+              === 'object') { @for (feature of getObjectKeys(frontend()!.features); track feature) {
+              @if (isFeatureEnabled(frontend()!.features, feature)) {
+              <span class="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs">
                 {{ feature }}
               </span>
-              } } } @else if (frontend()!.features &&
-              isFeatureArray(frontend()!.features)) { @for (feature of
-              getFeatureArray(frontend()!.features); track feature) {
-              <span
-                class="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs"
-              >
+              } } } @else if (frontend()!.features && isFeatureArray(frontend()!.features)) { @for
+              (feature of getFeatureArray(frontend()!.features); track feature) {
+              <span class="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs">
                 {{ feature }}
               </span>
               } } } @else {
@@ -229,9 +204,7 @@
         <div
           class="glass-card p-6 transition-shadow hover:shadow-lg backdrop-blur-sm overflow-hidden relative"
         >
-          <div
-            class="flex items-center justify-between mb-6 border-b border-gray-700/30 pb-3"
-          >
+          <div class="flex items-center justify-between mb-6 border-b border-gray-700/30 pb-3">
             <div class="flex items-center">
               <i class="pi pi-server text-green-400 mr-3 text-3xl"></i>
               <h2 class="text-xl font-semibold text-white">Backend</h2>
@@ -256,13 +229,9 @@
                 <i class="pi pi-code text-green-400 text-lg"></i>
               </div>
               }
-              <span class="text-xs text-gray-300"
-                >{{ backend()!.language }}</span
-              >
+              <span class="text-xs text-gray-300">{{ backend()!.language }}</span>
               @if (backend()?.languageVersion) {
-              <span class="text-xs text-green-300"
-                >v{{ backend()!.languageVersion }}</span
-              >
+              <span class="text-xs text-green-300">v{{ backend()!.languageVersion }}</span>
               }
             </div>
             }
@@ -282,13 +251,9 @@
                 <i class="pi pi-box text-green-400 text-lg"></i>
               </div>
               }
-              <span class="text-xs text-gray-300"
-                >{{ backend()!.framework }}</span
-              >
+              <span class="text-xs text-gray-300">{{ backend()!.framework }}</span>
               @if (backend()?.frameworkVersion) {
-              <span class="text-xs text-green-300"
-                >v{{ backend()!.frameworkVersion }}</span
-              >
+              <span class="text-xs text-green-300">v{{ backend()!.frameworkVersion }}</span>
               }
             </div>
 
@@ -308,13 +273,9 @@
                 <i class="pi pi-globe text-green-400 text-lg"></i>
               </div>
               }
-              <span class="text-xs text-gray-300"
-                >{{ backend()!.apiType }}</span
-              >
+              <span class="text-xs text-gray-300">{{ backend()!.apiType }}</span>
               @if (backend()?.apiVersion) {
-              <span class="text-xs text-green-300"
-                >v{{ backend()!.apiVersion }}</span
-              >
+              <span class="text-xs text-green-300">v{{ backend()!.apiVersion }}</span>
               }
             </div>
             }
@@ -337,9 +298,7 @@
               }
               <span class="text-xs text-gray-300">{{ backend()!.orm }}</span>
               @if (backend()?.ormVersion) {
-              <span class="text-xs text-green-300"
-                >v{{ backend()!.ormVersion }}</span
-              >
+              <span class="text-xs text-green-300">v{{ backend()!.ormVersion }}</span>
               }
             </div>
             }
@@ -353,21 +312,15 @@
               <h4 class="text-gray-300">Features</h4>
             </div>
             <div class="flex flex-wrap gap-2">
-              @if (backend()!.features && typeof backend()!.features ===
-              'object') { @for (feature of getObjectKeys(backend()!.features);
-              track feature) { @if (isFeatureEnabled(backend()!.features,
-              feature)) {
-              <span
-                class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs"
-              >
+              @if (backend()!.features && typeof backend()!.features === 'object') { @for (feature
+              of getObjectKeys(backend()!.features); track feature) { @if
+              (isFeatureEnabled(backend()!.features, feature)) {
+              <span class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs">
                 {{ feature }}
               </span>
-              } } } @else if (backend()!.features &&
-              isFeatureArray(backend()!.features)) { @for (feature of
-              getFeatureArray(backend()!.features); track feature) {
-              <span
-                class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs"
-              >
+              } } } @else if (backend()!.features && isFeatureArray(backend()!.features)) { @for
+              (feature of getFeatureArray(backend()!.features); track feature) {
+              <span class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs">
                 {{ feature }}
               </span>
               } }
@@ -380,9 +333,7 @@
         <div
           class="glass-card p-6 transition-shadow hover:shadow-lg backdrop-blur-sm overflow-hidden relative"
         >
-          <div
-            class="flex items-center justify-between mb-6 border-b border-gray-700/30 pb-3"
-          >
+          <div class="flex items-center justify-between mb-6 border-b border-gray-700/30 pb-3">
             <div class="flex items-center">
               <i class="pi pi-database text-purple-400 mr-3 text-3xl"></i>
               <h2 class="text-xl font-semibold text-white">Database</h2>
@@ -405,13 +356,9 @@
             </div>
             }
             <div>
-              <h3 class="text-white font-medium text-lg">
-                {{ database()!.provider }}
-              </h3>
+              <h3 class="text-white font-medium text-lg">{{ database()!.provider }}</h3>
               @if (database()?.providerVersion) {
-              <span class="text-purple-300 text-sm"
-                >v{{ database()!.providerVersion }}</span
-              >
+              <span class="text-purple-300 text-sm">v{{ database()!.providerVersion }}</span>
               } @if (database()?.type) {
               <span class="text-gray-400 text-xs">{{ database()!.type }}</span>
               }
@@ -433,18 +380,14 @@
                 class="h-8 w-8 rounded-lg mr-3 object-contain bg-gray-800/50 p-1"
               />
               } @else {
-              <div
-                class="h-8 w-8 rounded bg-purple-500/20 flex items-center justify-center mr-3"
-              >
+              <div class="h-8 w-8 rounded bg-purple-500/20 flex items-center justify-center mr-3">
                 <i class="pi pi-code text-purple-400 text-sm"></i>
               </div>
               }
               <div>
                 <span class="text-white">{{ database()!.orm }}</span>
                 @if (database()?.ormVersion) {
-                <span class="text-purple-300 text-xs ml-2"
-                  >v{{ database()!.ormVersion }}</span
-                >
+                <span class="text-purple-300 text-xs ml-2">v{{ database()!.ormVersion }}</span>
                 }
               </div>
             </div>
@@ -458,21 +401,15 @@
               <h4 class="text-gray-300">Features</h4>
             </div>
             <div class="flex flex-wrap gap-2">
-              @if (database()?.features) { @if (database()!.features && typeof
-              database()!.features === 'object') { @for (feature of
-              getObjectKeys(database()!.features); track feature) { @if
-              (isFeatureEnabled(database()!.features, feature)) {
-              <span
-                class="bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs"
-              >
+              @if (database()?.features) { @if (database()!.features && typeof database()!.features
+              === 'object') { @for (feature of getObjectKeys(database()!.features); track feature) {
+              @if (isFeatureEnabled(database()!.features, feature)) {
+              <span class="bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs">
                 {{ feature }}
               </span>
-              } } } @else if (database()!.features &&
-              isFeatureArray(database()!.features)) { @for (feature of
-              getFeatureArray(database()!.features); track feature) {
-              <span
-                class="bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs"
-              >
+              } } } @else if (database()!.features && isFeatureArray(database()!.features)) { @for
+              (feature of getFeatureArray(database()!.features); track feature) {
+              <span class="bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs">
                 {{ feature }}
               </span>
               } } } @else {
@@ -488,19 +425,13 @@
         >
           <div class="flex items-center mb-6 border-b border-gray-700/30 pb-3">
             <i class="pi pi-cog text-yellow-400 mr-3 text-3xl"></i>
-            <h2 class="text-xl font-semibold text-white">
-              Project Configuration
-            </h2>
+            <h2 class="text-xl font-semibold text-white">Project Configuration</h2>
           </div>
 
           <!-- Features Cards -->
-          <div
-            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6"
-          >
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
             <!-- SEO -->
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -515,13 +446,11 @@
                 </h4>
                 <div class="mt-2">
                   @if (projectConfig()?.seoEnabled) {
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
                     >Enabled</span
                   >
                   } @else {
-                  <span
-                    class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >Disabled</span
                   >
                   }
@@ -530,9 +459,7 @@
             </div>
 
             <!-- Contact Form -->
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -547,13 +474,11 @@
                 </h4>
                 <div class="mt-2">
                   @if (projectConfig()?.contactFormEnabled) {
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
                     >Enabled</span
                   >
                   } @else {
-                  <span
-                    class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >Disabled</span
                   >
                   }
@@ -562,9 +487,7 @@
             </div>
 
             <!-- Analytics -->
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -579,13 +502,11 @@
                 </h4>
                 <div class="mt-2">
                   @if (projectConfig()?.analyticsEnabled) {
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
                     >Enabled</span
                   >
                   } @else {
-                  <span
-                    class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >Disabled</span
                   >
                   }
@@ -594,9 +515,7 @@
             </div>
 
             <!-- i18n -->
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -611,13 +530,11 @@
                 </h4>
                 <div class="mt-2">
                   @if (projectConfig()?.i18nEnabled) {
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
                     >Enabled</span
                   >
                   } @else {
-                  <span
-                    class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >Disabled</span
                   >
                   }
@@ -626,9 +543,7 @@
             </div>
 
             <!-- Performance -->
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -643,13 +558,11 @@
                 </h4>
                 <div class="mt-2">
                   @if (projectConfig()?.performanceOptimized) {
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
                     >Optimized</span
                   >
                   } @else {
-                  <span
-                    class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >Standard</span
                   >
                   }
@@ -658,9 +571,7 @@
             </div>
 
             <!-- Authentication -->
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -675,13 +586,11 @@
                 </h4>
                 <div class="mt-2">
                   @if (projectConfig()?.authentication) {
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
                     >Enabled</span
                   >
                   } @else {
-                  <span
-                    class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >Disabled</span
                   >
                   }
@@ -690,9 +599,7 @@
             </div>
 
             <!-- Authorization -->
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -707,13 +614,11 @@
                 </h4>
                 <div class="mt-2">
                   @if (projectConfig()?.authorization) {
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
                     >Enabled</span
                   >
                   } @else {
-                  <span
-                    class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >Disabled</span
                   >
                   }
@@ -722,9 +627,7 @@
             </div>
 
             <!-- UI Theme -->
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -732,9 +635,7 @@
                 <i class="pi pi-palette text-2xl mb-2 text-yellow-400"></i>
                 <h4 class="text-sm font-medium text-white">UI Theme</h4>
                 <div class="mt-2">
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
-                  >
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full">
                     Modern
                   </span>
                 </div>
@@ -743,9 +644,7 @@
 
             <!-- Payment Integration (if applicable) -->
             @if (projectConfig()?.paymentIntegration !== undefined) {
-            <div
-              class="glass-dark p-3 rounded-lg relative overflow-hidden group"
-            >
+            <div class="glass-dark p-3 rounded-lg relative overflow-hidden group">
               <div
                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-gradient-to-br from-yellow-400 to-yellow-600"
               ></div>
@@ -760,13 +659,11 @@
                 </h4>
                 <div class="mt-2">
                   @if (projectConfig()?.paymentIntegration) {
-                  <span
-                    class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full"
                     >Integrated</span
                   >
                   } @else {
-                  <span
-                    class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
+                  <span class="bg-gray-700/50 text-gray-400 text-xs px-2 py-0.5 rounded-full"
                     >Not Integrated</span
                   >
                   }
@@ -796,9 +693,7 @@
       <!-- Constraints Section -->
       @if (constraints() && constraints()!.length > 0) {
       <div class="mt-8 glass-card p-6">
-        <h2 class="text-xl font-semibold text-white mb-4 text-glow-primary">
-          Constraints
-        </h2>
+        <h2 class="text-xl font-semibold text-white mb-4 text-glow-primary">Constraints</h2>
         <ul class="list-disc list-inside space-y-1 pl-2">
           @for (constraint of constraints(); track constraint) {
           <li class="mb-2 text-gray-300">{{ constraint }}</li>

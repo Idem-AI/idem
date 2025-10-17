@@ -1,21 +1,20 @@
-import admin from "firebase-admin";
+import admin from 'firebase-admin';
 import {
   CollectionReference,
   DocumentReference,
   Timestamp,
   Firestore,
-} from "firebase-admin/firestore";
-import { IRepository } from "./IRepository";
-import logger from "../config/logger";
-import { cacheService } from "../services/cache.service";
+} from 'firebase-admin/firestore';
+import { IRepository } from './IRepository';
+import logger from '../config/logger';
+import { cacheService } from '../services/cache.service';
 
 /**
  * A generic Firestore repository implementation.
  * @template T The type of the document, must have an 'id' property and optionally 'createdAt', 'updatedAt' as Date.
  */
-export class FirestoreRepository<
-  T extends { id?: string; createdAt?: Date; updatedAt?: Date }
-> implements IRepository<T>
+export class FirestoreRepository<T extends { id?: string; createdAt?: Date; updatedAt?: Date }>
+  implements IRepository<T>
 {
   /**
    * Constructor for FirestoreRepository
@@ -34,7 +33,7 @@ export class FirestoreRepository<
     if (!FirestoreRepository.settingsApplied) {
       db.settings({ ignoreUndefinedProperties: true });
       FirestoreRepository.settingsApplied = true;
-      logger.info("Firestore settings applied: ignoreUndefinedProperties=true");
+      logger.info('Firestore settings applied: ignoreUndefinedProperties=true');
     }
 
     return db;
@@ -50,9 +49,7 @@ export class FirestoreRepository<
   }
 
   // Helper to convert Firestore Timestamps in data to Date objects
-  private fromFirestore(
-    data: admin.firestore.DocumentData | undefined
-  ): T | null {
+  private fromFirestore(data: admin.firestore.DocumentData | undefined): T | null {
     if (!data) return null;
     const entity = { ...data } as any; // Use 'any' for intermediate transformation
     if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -77,12 +74,12 @@ export class FirestoreRepository<
   }
 
   async create(
-    item: Omit<T, "id" | "createdAt" | "updatedAt">,
+    item: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
     collectionPath: string,
     id?: string
   ): Promise<T> {
     logger.info(
-      `FirestoreRepository.create called for collection path: ${collectionPath}, customId: ${id || "N/A"}`
+      `FirestoreRepository.create called for collection path: ${collectionPath}, customId: ${id || 'N/A'}`
     );
     try {
       const collectionRef = this.getCollection(collectionPath);
@@ -113,14 +110,15 @@ export class FirestoreRepository<
         ...item,
       } as T;
       logger.info(
-        `Document created successfully in ${collectionPath}, documentId: ${documentId}${id ? " (custom ID)" : " (generated ID)"}`
+        `Document created successfully in ${collectionPath}, documentId: ${documentId}${id ? ' (custom ID)' : ' (generated ID)'}`
       );
       return createdItem;
     } catch (error: any) {
-      logger.error(
-        `Error creating document in ${collectionPath}: ${error.message}`,
-        { stack: error.stack, item, customId: id }
-      );
+      logger.error(`Error creating document in ${collectionPath}: ${error.message}`, {
+        stack: error.stack,
+        item,
+        customId: id,
+      });
       throw error;
     }
   }
@@ -128,11 +126,11 @@ export class FirestoreRepository<
   async findById(id: string, collectionPath: string): Promise<T | null> {
     // Generate cache key for this specific document
     const cacheKey = cacheService.generateDBKey(collectionPath.replace(/\//g, ':'), 'system', id);
-    
+
     // Try to get from cache first
-    const cached = await cacheService.get<T>(cacheKey, { 
+    const cached = await cacheService.get<T>(cacheKey, {
       prefix: 'db',
-      ttl: 1800 // 30 minutes
+      ttl: 1800, // 30 minutes
     });
 
     if (cached) {
@@ -140,9 +138,7 @@ export class FirestoreRepository<
       return cached;
     }
 
-    logger.info(
-      `FirestoreRepository.findById called for ${collectionPath}, id: ${id}`
-    );
+    logger.info(`FirestoreRepository.findById called for ${collectionPath}, id: ${id}`);
 
     try {
       const docRef = this.getDocument(id, collectionPath);
@@ -160,18 +156,17 @@ export class FirestoreRepository<
       } as T;
 
       // Cache the result for future requests
-      await cacheService.set(cacheKey, entity, { 
+      await cacheService.set(cacheKey, entity, {
         prefix: 'db',
-        ttl: 1800 // 30 minutes
+        ttl: 1800, // 30 minutes
       });
 
       logger.info(`Document found in ${collectionPath} with id: ${id}`);
       return entity;
     } catch (error: any) {
-      logger.error(
-        `Error finding document in ${collectionPath} with id ${id}: ${error.message}`,
-        { stack: error.stack }
-      );
+      logger.error(`Error finding document in ${collectionPath} with id ${id}: ${error.message}`, {
+        stack: error.stack,
+      });
       throw error;
     }
   }
@@ -195,27 +190,22 @@ export class FirestoreRepository<
         } as T;
       });
 
-      logger.info(
-        `Found ${entities.length} documents in ${collectionPath}`
-      );
+      logger.info(`Found ${entities.length} documents in ${collectionPath}`);
       return entities;
     } catch (error: any) {
-      logger.error(
-        `Error finding documents in ${collectionPath}: ${error.message}`,
-        { stack: error.stack }
-      );
+      logger.error(`Error finding documents in ${collectionPath}: ${error.message}`, {
+        stack: error.stack,
+      });
       throw error;
     }
   }
 
   async update(
     id: string,
-    item: Partial<Omit<T, "id" | "createdAt" | "updatedAt">>,
+    item: Partial<Omit<T, 'id' | 'createdAt' | 'updatedAt'>>,
     collectionPath: string
   ): Promise<T | null> {
-    logger.info(
-      `FirestoreRepository.update called for ${collectionPath}, id: ${id}`
-    );
+    logger.info(`FirestoreRepository.update called for ${collectionPath}, id: ${id}`);
 
     try {
       // First check if document exists
@@ -251,28 +241,24 @@ export class FirestoreRepository<
       await cacheService.delete(cacheKey, { prefix: 'db' });
 
       // Cache the updated entity
-      await cacheService.set(cacheKey, updatedEntity, { 
+      await cacheService.set(cacheKey, updatedEntity, {
         prefix: 'db',
-        ttl: 1800 // 30 minutes
+        ttl: 1800, // 30 minutes
       });
 
       logger.info(`Document updated in ${collectionPath} with id: ${id}`);
       return updatedEntity;
     } catch (error: any) {
-      logger.error(
-        `Error updating document in ${collectionPath} with id ${id}: ${error.message}`,
-        { stack: error.stack, item }
-      );
+      logger.error(`Error updating document in ${collectionPath} with id ${id}: ${error.message}`, {
+        stack: error.stack,
+        item,
+      });
       throw error;
     }
   }
 
-
-
   async delete(id: string, collectionPath: string): Promise<boolean> {
-    logger.info(
-      `FirestoreRepository.delete called for ${collectionPath}, id: ${id}`
-    );
+    logger.info(`FirestoreRepository.delete called for ${collectionPath}, id: ${id}`);
 
     try {
       const docRef = this.getDocument(id, collectionPath);
@@ -287,10 +273,9 @@ export class FirestoreRepository<
       logger.info(`Document deleted in ${collectionPath} with id: ${id}`);
       return true;
     } catch (error: any) {
-      logger.error(
-        `Error deleting document in ${collectionPath} with id ${id}: ${error.message}`,
-        { stack: error.stack }
-      );
+      logger.error(`Error deleting document in ${collectionPath} with id ${id}: ${error.message}`, {
+        stack: error.stack,
+      });
       throw error;
     }
   }

@@ -1,6 +1,6 @@
 <!-- Initial Prompt State -->
 @if (shouldShowInitialPrompt()) {
-<div class=" flex items-center justify-center p-6 min-h-[78vh]">
+<div class="flex items-center justify-center p-6 min-h-[78vh]">
   <div class="max-w-2xl w-full text-center space-y-8">
     <!-- Header -->
     <div class="space-y-4">
@@ -10,9 +10,7 @@
         <i class="pi pi-palette text-3xl text-white"></i>
       </div>
 
-      <h1 class="text-4xl font-bold text-light-text text-glow-primary">
-        Logo variations
-      </h1>
+      <h1 class="text-4xl font-bold text-light-text text-glow-primary">Logo variations</h1>
 
       <p class="text-xl text-light-text/80 leading-relaxed">
         We will create several variations of your selected logo for different usage contexts.
@@ -24,17 +22,13 @@
       <div class="glass-card p-6 text-left">
         <div class="flex items-start space-x-4">
           <div
-            class="w-12 h-12  rounded-lg flex items-center justify-center flex-shrink-0 glow-primary"
+            class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 glow-primary"
           >
             <i class="pi pi-sun text-primary text-xl"></i>
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-light-text mb-2">
-              Light Background
-            </h3>
-            <p class="text-light-text/70 text-sm">
-              Optimized for white and light backgrounds
-            </p>
+            <h3 class="text-lg font-semibold text-light-text mb-2">Light Background</h3>
+            <p class="text-light-text/70 text-sm">Optimized for white and light backgrounds</p>
           </div>
         </div>
       </div>
@@ -47,12 +41,8 @@
             <i class="pi pi-moon text-accent text-xl"></i>
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-light-text mb-2">
-              Dark Background
-            </h3>
-            <p class="text-light-text/70 text-sm">
-              Optimized for dark and modern backgrounds
-            </p>
+            <h3 class="text-lg font-semibold text-light-text mb-2">Dark Background</h3>
+            <p class="text-light-text/70 text-sm">Optimized for dark and modern backgrounds</p>
           </div>
         </div>
       </div>
@@ -65,12 +55,8 @@
             <i class="pi pi-circle text-secondary text-xl"></i>
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-light-text mb-2">
-              Monochrome
-            </h3>
-            <p class="text-light-text/70 text-sm">
-              Version in black and white for all uses
-            </p>
+            <h3 class="text-lg font-semibold text-light-text mb-2">Monochrome</h3>
+            <p class="text-light-text/70 text-sm">Version in black and white for all uses</p>
           </div>
         </div>
       </div>
@@ -83,12 +69,8 @@
             <i class="pi pi-sparkles text-primary text-xl"></i>
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-light-text mb-2">
-              Multiple Formats
-            </h3>
-            <p class="text-light-text/70 text-sm">
-              With text and icon alone for all contexts
-            </p>
+            <h3 class="text-lg font-semibold text-light-text mb-2">Multiple Formats</h3>
+            <p class="text-light-text/70 text-sm">With text and icon alone for all contexts</p>
           </div>
         </div>
       </div>
@@ -96,10 +78,7 @@
 
     <!-- Action Button -->
     <div class="pt-8">
-      <button
-        (click)="startVariationGeneration()"
-        class="inner-button px-8 py-4"
-      >
+      <button (click)="startVariationGeneration()" class="inner-button px-8 py-4">
         <i class="pi pi-play mr-2"></i>
         Generate Variations
       </button>
@@ -116,9 +95,13 @@
 
 <!-- Loading State -->
 @if (shouldShowLoader()) {
-<section class="sm:min-h-[90vh] flex flex-col items-center justify-center w-full px-4 mt-[80px] sm:mt-0">
+<section
+  class="sm:min-h-[90vh] flex flex-col items-center justify-center w-full px-4 mt-[80px] sm:mt-0"
+>
   <div class="text-center mb-8">
-    <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl">
+    <h1
+      class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
+    >
       Generating Logo Variations...
     </h1>
     <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
@@ -128,7 +111,7 @@
 
   <div class="w-full max-w-7xl mx-auto">
     <!-- Loading Carousel -->
-    <app-carousel 
+    <app-carousel
       [items]="[1, 2, 3]"
       [selectedItem]="null"
       [trackByFn]="trackSkeleton"
@@ -161,52 +144,40 @@
         [style.width.%]="generationProgress()"
       ></div>
     </div>
+  </div>
+
+  <!-- Generation Steps -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+    <div class="glass-card p-6 text-center">
+      <div
+        class="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center mb-4 glow-primary"
+      >
+        <i class="pi pi-sun text-primary text-2xl"></i>
+      </div>
+      <h3 class="text-lg font-semibold text-light-text mb-2">Light Background</h3>
+      <p class="text-sm text-light-text/70">Optimized for white and light backgrounds</p>
     </div>
 
-    <!-- Generation Steps -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-      <div class="glass-card p-6 text-center">
-        <div
-          class="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center mb-4 glow-primary"
-        >
-          <i class="pi pi-sun text-primary text-2xl"></i>
-        </div>
-        <h3 class="text-lg font-semibold text-light-text mb-2">
-          Light Background
-        </h3>
-        <p class="text-sm text-light-text/70">
-          Optimized for white and light backgrounds
-        </p>
+    <div class="glass-card p-6 text-center">
+      <div
+        class="w-16 h-16 mx-auto bg-accent/20 rounded-full flex items-center justify-center mb-4 glow-accent"
+      >
+        <i class="pi pi-moon text-accent text-2xl"></i>
       </div>
-
-      <div class="glass-card p-6 text-center">
-        <div
-          class="w-16 h-16 mx-auto bg-accent/20 rounded-full flex items-center justify-center mb-4 glow-accent"
-        >
-          <i class="pi pi-moon text-accent text-2xl"></i>
-        </div>
-        <h3 class="text-lg font-semibold text-light-text mb-2">
-          Dark Background
-        </h3>
-        <p class="text-sm text-light-text/70">
-          Optimized for dark and modern backgrounds
-        </p>
-      </div>
-
-      <div class="glass-card p-6 text-center">
-        <div
-          class="w-16 h-16 mx-auto bg-secondary/20 rounded-full flex items-center justify-center mb-4 glow-secondary"
-        >
-          <i class="pi pi-circle text-secondary text-2xl"></i>
-        </div>
-        <h3 class="text-lg font-semibold text-light-text mb-2">
-          Monochrome
-        </h3>
-        <p class="text-sm text-light-text/70">
-          Universal black and white version
-        </p>
-      </div>
+      <h3 class="text-lg font-semibold text-light-text mb-2">Dark Background</h3>
+      <p class="text-sm text-light-text/70">Optimized for dark and modern backgrounds</p>
     </div>
+
+    <div class="glass-card p-6 text-center">
+      <div
+        class="w-16 h-16 mx-auto bg-secondary/20 rounded-full flex items-center justify-center mb-4 glow-secondary"
+      >
+        <i class="pi pi-circle text-secondary text-2xl"></i>
+      </div>
+      <h3 class="text-lg font-semibold text-light-text mb-2">Monochrome</h3>
+      <p class="text-sm text-light-text/70">Universal black and white version</p>
+    </div>
+  </div>
 </section>
 }
 
@@ -215,19 +186,13 @@
 <div class="flex items-center justify-center p-6 min-h-[78vh]">
   <div class="max-w-2xl w-full text-center space-y-8">
     <div class="space-y-4">
-      <div
-        class="w-20 h-20 mx-auto bg-danger/20 rounded-2xl flex items-center justify-center mb-6"
-      >
+      <div class="w-20 h-20 mx-auto bg-danger/20 rounded-2xl flex items-center justify-center mb-6">
         <i class="pi pi-exclamation-triangle text-3xl text-danger"></i>
       </div>
 
-      <h2 class="text-3xl font-bold text-light-text">
-        Generation Error
-      </h2>
+      <h2 class="text-3xl font-bold text-light-text">Generation Error</h2>
 
-      <p class="text-lg text-danger">
-        {{ error() }}
-      </p>
+      <p class="text-lg text-danger">{{ error() }}</p>
     </div>
 
     <!-- Retry Button -->
@@ -250,9 +215,7 @@
   <div class="max-w-6xl mx-auto space-y-8">
     <!-- Header -->
     <div class="text-center space-y-4">
-      <h2 class="text-3xl font-bold text-light-text text-glow-primary">
-        Logo Variations
-      </h2>
+      <h2 class="text-3xl font-bold text-light-text text-glow-primary">Logo Variations</h2>
       <p class="text-lg text-light-text/80">
         Select the variations you want to keep for your project.
       </p>
@@ -261,79 +224,78 @@
     <!-- Variations Display -->
     <div class="space-y-8">
       <!-- Group variations by category -->
-      @for (category of ['With Text', 'Icon Only']; track category) {
-        @if (hasVariationsForCategory(category)) {
-          <div class="space-y-4">
-            <h3 class="text-2xl font-bold text-light-text text-center">
-              {{ category }}
-            </h3>
-            
-            <!-- Responsive Carousel/Grid -->
-            <app-carousel 
-              [items]="getVariationsByCategory(category)"
-              [selectedItem]="null"
-              [trackByFn]="trackVariation"
-              [gridCols]="3"
-              [showDots]="true"
-              [showArrows]="true"
-              [infinite]="false"
+      @for (category of ['With Text', 'Icon Only']; track category) { @if
+      (hasVariationsForCategory(category)) {
+      <div class="space-y-4">
+        <h3 class="text-2xl font-bold text-light-text text-center">{{ category }}</h3>
+
+        <!-- Responsive Carousel/Grid -->
+        <app-carousel
+          [items]="getVariationsByCategory(category)"
+          [selectedItem]="null"
+          [trackByFn]="trackVariation"
+          [gridCols]="3"
+          [showDots]="true"
+          [showArrows]="true"
+          [infinite]="false"
+        >
+          <ng-template let-variation let-index="index" let-isSelected="isSelected">
+            <div
+              class="glass-card p-6 cursor-pointer transition-all duration-300 hover:-translate-y-1"
+              [class.ring-4]="isVariationSelected(variation.id)"
+              [class.ring-primary]="isVariationSelected(variation.id)"
+              [class.glow-primary]="isVariationSelected(variation.id)"
+              (click)="toggleVariationSelection(variation.id)"
             >
-              <ng-template let-variation let-index="index" let-isSelected="isSelected">
+              <!-- Variation Preview -->
+              <div
+                class="w-full h-48 rounded-lg flex items-center justify-center mb-4 border-2 border-glass-border"
+                [style.background-color]="variation.backgroundColor"
+              >
                 <div
-                  class="glass-card p-6 cursor-pointer transition-all duration-300 hover:-translate-y-1"
-                  [class.ring-4]="isVariationSelected(variation.id)"
-                  [class.ring-primary]="isVariationSelected(variation.id)"
-                  [class.glow-primary]="isVariationSelected(variation.id)"
-                  (click)="toggleVariationSelection(variation.id)"
-                >
-                  <!-- Variation Preview -->
+                  class="w-24 h-24 flex items-center justify-center"
+                  [innerHTML]="variation.svgContent | safeHtml"
+                ></div>
+              </div>
+
+              <!-- Variation Info -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-lg font-semibold text-light-text">{{ variation.label }}</h4>
+                  @if (isVariationSelected(variation.id)) {
                   <div
-                    class="w-full h-48 rounded-lg flex items-center justify-center mb-4 border-2 border-glass-border"
-                    [style.background-color]="variation.backgroundColor"
+                    class="w-6 h-6 bg-primary rounded-full flex items-center justify-center glow-primary"
                   >
-                    <div
-                      class="w-24 h-24 flex items-center justify-center"
-                      [innerHTML]="variation.svgContent | safeHtml"
-                    ></div>
+                    <i class="pi pi-check text-white text-sm"></i>
                   </div>
-
-                  <!-- Variation Info -->
-                  <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                      <h4 class="text-lg font-semibold text-light-text">
-                        {{ variation.label }}
-                      </h4>
-                      @if (isVariationSelected(variation.id)) {
-                        <div class="w-6 h-6 bg-primary rounded-full flex items-center justify-center glow-primary">
-                          <i class="pi pi-check text-white text-sm"></i>
-                        </div>
-                      }
-                    </div>
-
-                    <p class="text-sm text-light-text/70">
-                      {{ variation.description }}
-                    </p>
-
-                    <!-- Selection Indicator -->
-                    <div class="pt-2">
-                      @if (isVariationSelected(variation.id)) {
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary">
-                          <i class="pi pi-check mr-1"></i>
-                          Selected
-                        </span>
-                      } @else {
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-glass-bg text-light-text/60 border border-glass-border">
-                          Click to select
-                        </span>
-                      }
-                    </div>
-                  </div>
+                  }
                 </div>
-              </ng-template>
-            </app-carousel>
-          </div>
-        }
-      }
+
+                <p class="text-sm text-light-text/70">{{ variation.description }}</p>
+
+                <!-- Selection Indicator -->
+                <div class="pt-2">
+                  @if (isVariationSelected(variation.id)) {
+                  <span
+                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary"
+                  >
+                    <i class="pi pi-check mr-1"></i>
+                    Selected
+                  </span>
+                  } @else {
+                  <span
+                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-glass-bg text-light-text/60 border border-glass-border"
+                  >
+                    Click to select
+                  </span>
+                  }
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </app-carousel>
+      </div>
+      } }
     </div>
 
     <!-- Selection Summary -->

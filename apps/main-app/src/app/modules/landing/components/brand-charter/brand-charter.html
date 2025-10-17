@@ -1,9 +1,7 @@
 <!-- Brand Charter Section -->
 <section class="relative py-20 overflow-hidden">
   <!-- Background Elements -->
-  <div
-    class="absolute inset-0 bg-gradient-to-tr from-bg-dark via-bg-light to-bg-dark"
-  ></div>
+  <div class="absolute inset-0 bg-gradient-to-tr from-bg-dark via-bg-light to-bg-dark"></div>
   <div
     class="absolute top-1/4 right-0 w-[500px] h-[600px] rounded-full bg-gradient-to-bl from-primary/10 to-secondary/15 blur-[120px] opacity-60"
   ></div>
@@ -25,24 +23,21 @@
   <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Section Header -->
     <div class="text-center mb-16">
-      <div
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6"
-      >
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
         <i class="pi pi-bookmark text-primary"></i>
         <span class="text-sm font-medium text-white/80">Brand Guidelines</span>
       </div>
 
       <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
         Complete Brand
-        <span
-          class="text-gradient bg-gradient-to-r from-primary to-primary-glow text-white"
+        <span class="text-gradient bg-gradient-to-r from-primary to-primary-glow text-white"
           >Charter</span
         >
       </h2>
 
       <p class="text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
-        IDEM creates comprehensive brand guidelines that ensure consistency
-        across all your marketing materials and touchpoints.
+        IDEM creates comprehensive brand guidelines that ensure consistency across all your
+        marketing materials and touchpoints.
       </p>
     </div>
 
@@ -76,9 +71,7 @@
     @if (activeTab() === 'elements') {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
       @for (element of getVisibleElements(); track element.id) {
-      <div
-        class="glass-card rounded-2xl p-8 group hover:scale-[1.02] transition-all duration-500"
-      >
+      <div class="glass-card rounded-2xl p-8 group hover:scale-[1.02] transition-all duration-500">
         <!-- Element Header -->
         <div class="flex items-start gap-4 mb-6">
           <div
@@ -92,9 +85,7 @@
             >
               {{ element.title }}
             </h3>
-            <p class="text-white/70 text-sm leading-relaxed">
-              {{ element.description }}
-            </p>
+            <p class="text-white/70 text-sm leading-relaxed">{{ element.description }}</p>
           </div>
         </div>
 
@@ -113,18 +104,10 @@
         <!-- Visual Preview -->
         @switch (element.id) { @case ('colors') {
         <div class="mt-6 flex gap-2">
-          <div
-            class="w-8 h-8 rounded-lg bg-primary border border-white/20"
-          ></div>
-          <div
-            class="w-8 h-8 rounded-lg bg-secondary border border-white/20"
-          ></div>
-          <div
-            class="w-8 h-8 rounded-lg bg-accent border border-white/20"
-          ></div>
-          <div
-            class="w-8 h-8 rounded-lg bg-white/20 border border-white/20"
-          ></div>
+          <div class="w-8 h-8 rounded-lg bg-primary border border-white/20"></div>
+          <div class="w-8 h-8 rounded-lg bg-secondary border border-white/20"></div>
+          <div class="w-8 h-8 rounded-lg bg-accent border border-white/20"></div>
+          <div class="w-8 h-8 rounded-lg bg-white/20 border border-white/20"></div>
         </div>
         } @case ('typography') {
         <div class="mt-6 space-y-2">
@@ -133,14 +116,10 @@
         </div>
         } @case ('logo') {
         <div class="mt-6 flex gap-3">
-          <div
-            class="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center"
-          >
+          <div class="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
             <i class="pi pi-star text-primary"></i>
           </div>
-          <div
-            class="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center"
-          >
+          <div class="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center">
             <i class="pi pi-heart text-secondary"></i>
           </div>
         </div>
@@ -154,7 +133,10 @@
         (click)="toggleShowAllElements()"
         class="inline-flex items-center gap-3 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105 border border-white/20 hover:border-white/30"
       >
-        <i [class]="showAllElements() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="text-sm"></i>
+        <i
+          [class]="showAllElements() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+          class="text-sm"
+        ></i>
         <span>{{ showAllElements() ? 'Show Less' : 'Show More' }}</span>
       </button>
     </div>
@@ -193,9 +175,7 @@
         <div class="p-6 space-y-4">
           <!-- Color Palette -->
           <div>
-            <h4 class="text-sm font-semibold text-white/80 mb-2">
-              Color Palette
-            </h4>
+            <h4 class="text-sm font-semibold text-white/80 mb-2">Color Palette</h4>
             <div class="flex gap-2">
               <div
                 class="w-8 h-8 rounded-lg border border-white/20"
@@ -230,6 +210,5 @@
       }
     </div>
     }
-
   </div>
 </section>

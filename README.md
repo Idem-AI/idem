@@ -38,23 +38,27 @@ All features are powered by AI, generating the following software development li
 
 This monorepo contains four main applications:
 
-| Project | Framework | Description | Port |
-|---------|-----------|-------------|------|
-| **idem-ai** | Angular 20 | Main AI-powered SDLC generation application | 4200 |
-| **idem-ai-chart** | Svelte 5 | Interactive Mermaid diagram editor module | 5173 |
-| **idem-appgen** | React/Next.js | AI-powered application generator | 3000 |
-| **idem-api** | Express/TypeScript | Backend API for AI services and data management | 3001 |
+| Project           | Framework          | Description                                     | Port |
+| ----------------- | ------------------ | ----------------------------------------------- | ---- |
+| **idem-ai**       | Angular 20         | Main AI-powered SDLC generation application     | 4200 |
+| **idem-ai-chart** | Svelte 5           | Interactive Mermaid diagram editor module       | 5173 |
+| **idem-appgen**   | React/Next.js      | AI-powered application generator                | 3000 |
+| **idem-api**      | Express/TypeScript | Backend API for AI services and data management | 3001 |
 
 ### idem-ai (Angular)
+
 The main frontend application providing the complete AI-powered software development lifecycle experience. Built with Angular 20, it offers an intuitive interface for generating business plans, branding, UML diagrams, and complete project structures.
 
 ### idem-ai-chart (Svelte)
+
 A specialized diagram editor module built with Svelte 5 and Mermaid.js. Provides real-time editing, preview, and sharing capabilities for flowcharts, sequence diagrams, and other visual representations of software architecture.
 
 ### idem-appgen (React)
+
 An AI-powered application generator that supports browser-based debugging with WebContainer, high-fidelity design restoration (90% accuracy), and integration with WeChat Mini Program Developer Tools. Supports existing project imports for secondary editing.
 
 ### idem-api (Express)
+
 The backend API built with Express.js and TypeScript. Integrates with Firebase/Firestore for data storage, Google's Gemini and OpenAI for AI generation, and implements a flexible repository pattern for database abstraction.
 
 ## 🛠️ Tech Stack
@@ -260,14 +264,14 @@ git push origin feature/my-feature
 
 ## 🎯 NPM Scripts Reference
 
-| Script | Description |
-|--------|-------------|
-| `dev:*` | Launch a project in development mode |
-| `build:*` | Build a project |
-| `test:*` | Test one or multiple projects |
-| `lint:*` | Lint the code |
-| `format` | Format code with Prettier |
-| `clean` | Clean builds |
+| Script    | Description                          |
+| --------- | ------------------------------------ |
+| `dev:*`   | Launch a project in development mode |
+| `build:*` | Build a project                      |
+| `test:*`  | Test one or multiple projects        |
+| `lint:*`  | Lint the code                        |
+| `format`  | Format code with Prettier            |
+| `clean`   | Clean builds                         |
 
 ## 🔍 Useful npm Workspaces Commands
 
@@ -346,6 +350,7 @@ This project is licensed under the **Apache License 2.0 with Commons Clause** - 
 ### License Summary
 
 **✅ You CAN:**
+
 - Use Idem for internal purposes in your organization
 - Install Idem on your own servers
 - Create projects for your clients using Idem
@@ -353,6 +358,7 @@ This project is licensed under the **Apache License 2.0 with Commons Clause** - 
 - Study and learn from the source code
 
 **❌ You CANNOT:**
+
 - Sell Idem as a product or service
 - Offer Idem as a hosted SaaS service
 - Provide paid consulting/support services based on Idem

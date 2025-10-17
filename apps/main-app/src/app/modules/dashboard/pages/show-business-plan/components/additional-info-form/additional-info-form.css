@@ -102,7 +102,7 @@
 }
 
 ::ng-deep .p-inputtext::placeholder {
-  color: #9CA3AF !important;
+  color: #9ca3af !important;
 }
 
 /* Textarea Overrides */
@@ -189,7 +189,7 @@
     padding-left: 1rem;
     padding-right: 1rem;
   }
-  
+
   ::ng-deep .p-card .p-card-body {
     padding: 1.5rem !important;
   }

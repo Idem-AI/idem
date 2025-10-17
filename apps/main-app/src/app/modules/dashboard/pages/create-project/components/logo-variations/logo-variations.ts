@@ -70,11 +70,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   });
 
   protected readonly shouldShowInitialPrompt = computed(() => {
-    return (
-      !this.shouldShowLoader() &&
-      !this.shouldShowVariations() &&
-      !this.hasStartedGeneration()
-    );
+    return !this.shouldShowLoader() && !this.shouldShowVariations() && !this.hasStartedGeneration();
   });
 
   protected readonly canProceed = computed(() => {
@@ -94,15 +90,10 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Auto-start generation when component loads
     console.log(this.project().analysisResultModel.branding.logo.variations);
-    if (
-      this.selectedLogo() &&
-      !this.project().analysisResultModel.branding.logo.variations
-    ) {
+    if (this.selectedLogo() && !this.project().analysisResultModel.branding.logo.variations) {
       this.startVariationGeneration();
     } else {
-      this.variationsGenerated.emit(
-        this.project().analysisResultModel.branding.logo.variations!
-      );
+      this.variationsGenerated.emit(this.project().analysisResultModel.branding.logo.variations!);
     }
   }
 
@@ -147,8 +138,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 background: 'lightBackground',
                 label: 'Avec Texte - Fond Clair',
                 svgContent: withText.lightBackground,
-                description:
-                  'Logo complet optimisé pour les arrière-plans clairs',
+                description: 'Logo complet optimisé pour les arrière-plans clairs',
                 backgroundColor: '#ffffff',
                 category: 'Avec Texte',
               });
@@ -161,8 +151,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 background: 'darkBackground',
                 label: 'Avec Texte - Fond Sombre',
                 svgContent: withText.darkBackground,
-                description:
-                  'Logo complet optimisé pour les arrière-plans sombres',
+                description: 'Logo complet optimisé pour les arrière-plans sombres',
                 backgroundColor: '#1f2937',
                 category: 'Avec Texte',
               });
@@ -193,8 +182,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 background: 'lightBackground',
                 label: 'Icône Seule - Fond Clair',
                 svgContent: iconOnly.lightBackground,
-                description:
-                  'Icône seule optimisée pour les arrière-plans clairs',
+                description: 'Icône seule optimisée pour les arrière-plans clairs',
                 backgroundColor: '#ffffff',
                 category: 'Icône Seule',
               });
@@ -207,8 +195,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 background: 'darkBackground',
                 label: 'Icône Seule - Fond Sombre',
                 svgContent: iconOnly.darkBackground,
-                description:
-                  'Icône seule optimisée pour les arrière-plans sombres',
+                description: 'Icône seule optimisée pour les arrière-plans sombres',
                 backgroundColor: '#1f2937',
                 category: 'Icône Seule',
               });
@@ -242,9 +229,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error in logo variation generation:', error);
-          this.error.set(
-            'Failed to generate logo variations. Please try again.'
-          );
+          this.error.set('Failed to generate logo variations. Please try again.');
           this.isGenerating.set(false);
         },
       });
@@ -255,9 +240,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
 
     if (currentSelections.includes(variationType)) {
       // Remove from selection
-      this.selectedVariations.set(
-        currentSelections.filter((type) => type !== variationType)
-      );
+      this.selectedVariations.set(currentSelections.filter((type) => type !== variationType));
     } else {
       // Add to selection
       this.selectedVariations.set([...currentSelections, variationType]);

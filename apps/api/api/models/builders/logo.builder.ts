@@ -1,22 +1,21 @@
-import { LogoModel } from "../logo.model";
-import { v4 as uuidv4 } from "uuid";
+import { LogoModel } from '../logo.model';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Builder for LogoModel
  */
 export class LogoBuilder {
-  
   /**
    * Creates an empty LogoModel with all required properties
    */
   static createEmpty(): LogoModel {
     return {
       id: uuidv4(),
-      name: "",
-      svg: "",
-      concept: "",
+      name: '',
+      svg: '',
+      concept: '',
       colors: [],
-      fonts: []
+      fonts: [],
     };
   }
 

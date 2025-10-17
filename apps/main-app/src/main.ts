@@ -8,5 +8,4 @@ if (typeof window !== 'undefined') {
   (window as any).pdfWorkerSrc = '/assets/pdf.worker.min.js';
 }
 
-bootstrapApplication(App, appConfig)
-  .catch((err) => console.error(err));
+bootstrapApplication(App, appConfig).catch((err) => console.error(err));

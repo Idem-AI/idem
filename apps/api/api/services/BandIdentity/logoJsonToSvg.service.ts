@@ -1,12 +1,12 @@
-import logger from "../../config/logger";
+import logger from '../../config/logger';
 import {
   LogoJsonStructure,
   LogoShape,
   LogoTextElement,
   LogoVariationStructure,
   LogoVariationsJson,
-} from "./interfaces/logoJson.interface";
-import { LogoModel } from "../../models/logo.model";
+} from './interfaces/logoJson.interface';
+import { LogoModel } from '../../models/logo.model';
 
 /**
  * Service for converting compact JSON logo structures to optimized SVG
@@ -17,9 +17,7 @@ export class LogoJsonToSvgService {
    * Convert JSON logo structure to complete LogoModel with optimized SVGs
    */
   convertJsonToLogoModel(logoJson: LogoJsonStructure): LogoModel {
-    logger.info(
-      `Converting JSON logo structure to LogoModel - ID: ${logoJson.id}`
-    );
+    logger.info(`Converting JSON logo structure to LogoModel - ID: ${logoJson.id}`);
 
     try {
       // Generate main SVG (icon + text combined)
@@ -38,9 +36,7 @@ export class LogoJsonToSvgService {
         fonts: logoJson.fonts,
       };
 
-      logger.info(
-        `Successfully converted JSON to LogoModel - ID: ${logoJson.id}`
-      );
+      logger.info(`Successfully converted JSON to LogoModel - ID: ${logoJson.id}`);
       return logoModel;
     } catch (error) {
       logger.error(`Error converting JSON to LogoModel:`, error);
@@ -67,15 +63,9 @@ export class LogoJsonToSvgService {
 
     try {
       const iconOnly = {
-        lightBackground: this.generateVariationSvg(
-          variationsJson.variations.lightBackground
-        ),
-        darkBackground: this.generateVariationSvg(
-          variationsJson.variations.darkBackground
-        ),
-        monochrome: this.generateVariationSvg(
-          variationsJson.variations.monochrome
-        ),
+        lightBackground: this.generateVariationSvg(variationsJson.variations.lightBackground),
+        darkBackground: this.generateVariationSvg(variationsJson.variations.darkBackground),
+        monochrome: this.generateVariationSvg(variationsJson.variations.monochrome),
       };
 
       // For now, withText uses the same as iconOnly since we're focusing on icon variations
@@ -95,10 +85,10 @@ export class LogoJsonToSvgService {
    */
   private generateCombinedSvg(logoJson: LogoJsonStructure): string {
     const layout = logoJson.layout;
-    
+
     // Validate and potentially correct the layout choice
     const validatedLayout = this.validateAndCorrectLayout(logoJson);
-    
+
     const iconElements = this.generateShapeElements(logoJson.icon.shapes);
     const spacing = Math.max(4, Math.min(layout.spacing, 8)); // Force 4-8px spacing
 
@@ -106,7 +96,7 @@ export class LogoJsonToSvgService {
     let totalWidth: number;
     let totalHeight: number;
 
-    if (validatedLayout.textPosition === "bottom") {
+    if (validatedLayout.textPosition === 'bottom') {
       // Vertical layout: text below icon
       totalWidth = Math.max(logoJson.icon.size.w, logoJson.text.size.w);
       totalHeight = logoJson.icon.size.h + spacing + logoJson.text.size.h;
@@ -122,12 +112,8 @@ export class LogoJsonToSvgService {
         centeredIconElements = this.adjustIconPosition(logoJson.icon.shapes, iconOffsetX, 0);
       }
 
-      textElements = this.generateTextElements(
-        logoJson.text.elements,
-        textOffsetX,
-        textOffsetY
-      );
-      
+      textElements = this.generateTextElements(logoJson.text.elements, textOffsetX, textOffsetY);
+
       return this.wrapInSvg(centeredIconElements + textElements, totalWidth, totalHeight);
     } else {
       // Horizontal layout: text to the right of icon
@@ -141,11 +127,7 @@ export class LogoJsonToSvgService {
           ? (logoJson.icon.size.h - logoJson.text.size.h) / 2
           : 0;
 
-      textElements = this.generateTextElements(
-        logoJson.text.elements,
-        textOffsetX,
-        textOffsetY
-      );
+      textElements = this.generateTextElements(logoJson.text.elements, textOffsetX, textOffsetY);
     }
 
     return this.wrapInSvg(iconElements + textElements, totalWidth, totalHeight);
@@ -154,27 +136,34 @@ export class LogoJsonToSvgService {
   /**
    * Validate layout choice and correct if necessary to prevent text overlap
    */
-  private validateAndCorrectLayout(logoJson: LogoJsonStructure): { textPosition: 'right' | 'bottom'; spacing: number } {
+  private validateAndCorrectLayout(logoJson: LogoJsonStructure): {
+    textPosition: 'right' | 'bottom';
+    spacing: number;
+  } {
     const iconWidth = logoJson.icon.size.w;
     const iconHeight = logoJson.icon.size.h;
     const textWidth = logoJson.text.size.w;
     const textHeight = logoJson.text.size.h;
-    
+
     // Calculate aspect ratios
     const iconRatio = iconWidth / iconHeight;
     const textRatio = textWidth / textHeight;
-    
+
     // Determine optimal layout based on dimensions
     let optimalPosition: 'right' | 'bottom';
-    
+
     if (textWidth > iconWidth * 1.2) {
       // Text is significantly wider than icon -> use bottom layout
       optimalPosition = 'bottom';
-      logger.info(`Layout corrected to 'bottom': text width (${textWidth}) > icon width (${iconWidth})`);
+      logger.info(
+        `Layout corrected to 'bottom': text width (${textWidth}) > icon width (${iconWidth})`
+      );
     } else if (textHeight > iconHeight * 0.8) {
       // Text is relatively tall compared to icon -> use bottom layout
       optimalPosition = 'bottom';
-      logger.info(`Layout corrected to 'bottom': text height (${textHeight}) > 80% of icon height (${iconHeight})`);
+      logger.info(
+        `Layout corrected to 'bottom': text height (${textHeight}) > 80% of icon height (${iconHeight})`
+      );
     } else if (iconRatio < 0.7) {
       // Icon is very tall -> use right layout
       optimalPosition = 'right';
@@ -183,10 +172,10 @@ export class LogoJsonToSvgService {
       // Default to AI's choice if dimensions are reasonable
       optimalPosition = logoJson.layout.textPosition;
     }
-    
+
     return {
       textPosition: optimalPosition,
-      spacing: logoJson.layout.spacing
+      spacing: logoJson.layout.spacing,
     };
   }
 
@@ -213,16 +202,16 @@ export class LogoJsonToSvgService {
    * Generate SVG elements from shapes array
    */
   private generateShapeElements(shapes: LogoShape[]): string {
-    return shapes.map((shape) => this.generateShapeElement(shape)).join("");
+    return shapes.map((shape) => this.generateShapeElement(shape)).join('');
   }
 
   /**
    * Adjust icon position by adding offset to all shapes
    */
   private adjustIconPosition(shapes: LogoShape[], offsetX: number, offsetY: number): string {
-    const adjustedShapes = shapes.map(shape => {
+    const adjustedShapes = shapes.map((shape) => {
       const adjustedShape = { ...shape };
-      
+
       // Adjust coordinates based on shape type
       switch (shape.type) {
         case 'circle':
@@ -246,7 +235,7 @@ export class LogoJsonToSvgService {
         case 'polygon':
           // Adjust polygon points
           if (shape.points) {
-            const points = shape.points.split(' ').map(point => {
+            const points = shape.points.split(' ').map((point) => {
               const [x, y] = point.split(',').map(Number);
               return `${x + offsetX},${y + offsetY}`;
             });
@@ -258,10 +247,10 @@ export class LogoJsonToSvgService {
           // This is complex, so for now we'll leave paths unchanged
           break;
       }
-      
+
       return adjustedShape;
     });
-    
+
     return this.generateShapeElements(adjustedShapes);
   }
 
@@ -272,28 +261,28 @@ export class LogoJsonToSvgService {
     const commonAttrs = this.getCommonAttributes(shape);
 
     switch (shape.type) {
-      case "circle":
+      case 'circle':
         return `<circle cx="${shape.cx}" cy="${shape.cy}" r="${shape.r}"${commonAttrs}/>`;
 
-      case "rect":
-        const rectAttrs = shape.rx ? ` rx="${shape.rx}"` : "";
+      case 'rect':
+        const rectAttrs = shape.rx ? ` rx="${shape.rx}"` : '';
         return `<rect x="${shape.x}" y="${shape.y}" width="${shape.w}" height="${shape.h}"${rectAttrs}${commonAttrs}/>`;
 
-      case "ellipse":
+      case 'ellipse':
         return `<ellipse cx="${shape.cx}" cy="${shape.cy}" rx="${shape.rx_ellipse}" ry="${shape.ry_ellipse}"${commonAttrs}/>`;
 
-      case "line":
+      case 'line':
         return `<line x1="${shape.x1}" y1="${shape.y1}" x2="${shape.x2}" y2="${shape.y2}"${commonAttrs}/>`;
 
-      case "polygon":
+      case 'polygon':
         return `<polygon points="${shape.points}"${commonAttrs}/>`;
 
-      case "path":
+      case 'path':
         return `<path d="${shape.d}"${commonAttrs}/>`;
 
       default:
         logger.warn(`Unknown shape type: ${shape.type}`);
-        return "";
+        return '';
     }
   }
 
@@ -313,20 +302,18 @@ export class LogoJsonToSvgService {
           `x="${x}"`,
           `y="${y}"`,
           `font-size="${element.fontSize}"`,
-          element.fill ? `fill="${element.fill}"` : "",
-          element.fontFamily ? `font-family="${element.fontFamily}"` : "",
-          element.fontWeight ? `font-weight="${element.fontWeight}"` : "",
-          element.textAnchor ? `text-anchor="${element.textAnchor}"` : "",
-          element.dominantBaseline
-            ? `dominant-baseline="${element.dominantBaseline}"`
-            : "",
+          element.fill ? `fill="${element.fill}"` : '',
+          element.fontFamily ? `font-family="${element.fontFamily}"` : '',
+          element.fontWeight ? `font-weight="${element.fontWeight}"` : '',
+          element.textAnchor ? `text-anchor="${element.textAnchor}"` : '',
+          element.dominantBaseline ? `dominant-baseline="${element.dominantBaseline}"` : '',
         ]
           .filter((attr) => attr)
-          .join(" ");
+          .join(' ');
 
         return `<text ${attrs}>${element.text}</text>`;
       })
-      .join("");
+      .join('');
   }
 
   /**
@@ -340,7 +327,7 @@ export class LogoJsonToSvgService {
     if (shape.strokeWidth) attrs.push(`stroke-width="${shape.strokeWidth}"`);
     if (shape.opacity) attrs.push(`opacity="${shape.opacity}"`);
 
-    return attrs.length > 0 ? " " + attrs.join(" ") : "";
+    return attrs.length > 0 ? ' ' + attrs.join(' ') : '';
   }
 
   /**
@@ -356,9 +343,9 @@ export class LogoJsonToSvgService {
    */
   optimizeSvg(svg: string): string {
     return svg
-      .replace(/\s+/g, " ") // Replace multiple spaces with single space
-      .replace(/>\s+</g, "><") // Remove spaces between tags
-      .replace(/\s+\/>/g, "/>") // Clean self-closing tags
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/>\s+</g, '><') // Remove spaces between tags
+      .replace(/\s+\/>/g, '/>') // Clean self-closing tags
       .trim();
   }
 }

@@ -1,8 +1,8 @@
-import logger from "../config/logger";
-import { FinalizeProjectRequest } from "../models/policyAcceptance.model";
-import { ProjectModel, ProjectPolicyAcceptance } from "../models/project.model";
-import { projectService } from "./project.service";
-import { storageService } from "./storage.service";
+import logger from '../config/logger';
+import { FinalizeProjectRequest } from '../models/policyAcceptance.model';
+import { ProjectModel, ProjectPolicyAcceptance } from '../models/project.model';
+import { projectService } from './project.service';
+import { storageService } from './storage.service';
 
 export class PolicyAcceptanceService {
   constructor() {
@@ -18,33 +18,29 @@ export class PolicyAcceptanceService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<ProjectModel> {
-    logger.info(
-      `Finalizing project - UserId: ${userId}, ProjectId: ${projectId}`
-    );
+    logger.info(`Finalizing project - UserId: ${userId}, ProjectId: ${projectId}`);
 
     // Validation des acceptations obligatoires
     if (!acceptanceData.privacyPolicyAccepted) {
-      throw new Error("Privacy policy acceptance is required");
+      throw new Error('Privacy policy acceptance is required');
     }
     if (!acceptanceData.termsOfServiceAccepted) {
-      throw new Error("Terms of service acceptance is required");
+      throw new Error('Terms of service acceptance is required');
     }
     if (!acceptanceData.betaPolicyAccepted) {
-      throw new Error("Beta policy acceptance is required");
+      throw new Error('Beta policy acceptance is required');
     }
 
     // Récupérer le projet via ProjectService
     const project = await projectService.getUserProjectById(userId, projectId);
     if (!project) {
-      throw new Error("Project not found");
+      throw new Error('Project not found');
     }
 
     // Vérifier si le projet a déjà été finalisé
     if (project.policyAcceptance) {
-      logger.warn(
-        `Project already finalized - UserId: ${userId}, ProjectId: ${projectId}`
-      );
-      throw new Error("Project has already been finalized");
+      logger.warn(`Project already finalized - UserId: ${userId}, ProjectId: ${projectId}`);
+      throw new Error('Project has already been finalized');
     }
 
     // Créer l'objet d'acceptation des politiques
@@ -64,8 +60,7 @@ export class PolicyAcceptanceService {
     };
 
     // Vérifier et uploader les variations de logo si elles existent
-    const logoVariations =
-      project.analysisResultModel?.branding?.logo?.variations;
+    const logoVariations = project.analysisResultModel?.branding?.logo?.variations;
     const primaryLogo = project.analysisResultModel?.branding?.logo?.svg;
 
     if (
@@ -98,14 +93,12 @@ export class PolicyAcceptanceService {
         // Replace SVG content with download URLs
         const updatedVariations = {
           withText: {
-            lightBackground:
-              uploadResults.withText?.lightBackground?.downloadURL,
+            lightBackground: uploadResults.withText?.lightBackground?.downloadURL,
             darkBackground: uploadResults.withText?.darkBackground?.downloadURL,
             monochrome: uploadResults.withText?.monochrome?.downloadURL,
           },
           iconOnly: {
-            lightBackground:
-              uploadResults.iconOnly?.lightBackground?.downloadURL,
+            lightBackground: uploadResults.iconOnly?.lightBackground?.downloadURL,
             darkBackground: uploadResults.iconOnly?.darkBackground?.downloadURL,
             monochrome: uploadResults.iconOnly?.monochrome?.downloadURL,
           },
@@ -135,15 +128,12 @@ export class PolicyAcceptanceService {
           iconSvgUrl: uploadResults.iconSvg?.downloadURL,
         });
       } catch (error: any) {
-        logger.error(
-          `Error uploading logo variations during project finalization`,
-          {
-            userId,
-            projectId,
-            error: error.message,
-            stack: error.stack,
-          }
-        );
+        logger.error(`Error uploading logo variations during project finalization`, {
+          userId,
+          projectId,
+          error: error.message,
+          stack: error.stack,
+        });
         // Continue with project finalization even if logo upload fails
         logger.warn(`Continuing project finalization without logo upload`, {
           userId,
@@ -156,17 +146,12 @@ export class PolicyAcceptanceService {
     await projectService.editUserProject(userId, projectId, projectUpdateData);
 
     // Récupérer le projet mis à jour
-    const savedProject = await projectService.getUserProjectById(
-      userId,
-      projectId
-    );
+    const savedProject = await projectService.getUserProjectById(userId, projectId);
     if (!savedProject) {
-      throw new Error("Failed to retrieve updated project");
+      throw new Error('Failed to retrieve updated project');
     }
 
-    logger.info(
-      `Project finalized successfully - UserId: ${userId}, ProjectId: ${projectId}`
-    );
+    logger.info(`Project finalized successfully - UserId: ${userId}, ProjectId: ${projectId}`);
     return savedProject;
   }
 
@@ -175,10 +160,7 @@ export class PolicyAcceptanceService {
    */
   async isPolicyAccepted(userId: string, projectId: string): Promise<boolean> {
     try {
-      const project = await projectService.getUserProjectById(
-        userId,
-        projectId
-      );
+      const project = await projectService.getUserProjectById(userId, projectId);
       return project?.policyAcceptance !== undefined;
     } catch (error) {
       logger.error(
@@ -197,10 +179,7 @@ export class PolicyAcceptanceService {
     projectId: string
   ): Promise<ProjectPolicyAcceptance | null> {
     try {
-      const project = await projectService.getUserProjectById(
-        userId,
-        projectId
-      );
+      const project = await projectService.getUserProjectById(userId, projectId);
       return project?.policyAcceptance || null;
     } catch (error) {
       logger.error(
@@ -214,9 +193,7 @@ export class PolicyAcceptanceService {
   /**
    * Récupère toutes les acceptations de politiques pour un utilisateur
    */
-  async getUserPolicyAcceptances(
-    userId: string
-  ): Promise<ProjectPolicyAcceptance[]> {
+  async getUserPolicyAcceptances(userId: string): Promise<ProjectPolicyAcceptance[]> {
     try {
       logger.info(`Fetching all policy acceptances for userId: ${userId}`);
       const projects = await projectService.getAllUserProjects(userId);
@@ -225,10 +202,7 @@ export class PolicyAcceptanceService {
         .map((project) => project.policyAcceptance!);
       return acceptances;
     } catch (error) {
-      logger.error(
-        `Error fetching user policy acceptances - UserId: ${userId}`,
-        error
-      );
+      logger.error(`Error fetching user policy acceptances - UserId: ${userId}`, error);
       return [];
     }
   }

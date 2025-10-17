@@ -1,4 +1,4 @@
-import logger from "../../config/logger";
+import logger from '../../config/logger';
 
 /**
  * Service pour traiter les logos et variations SVG
@@ -13,7 +13,7 @@ export class SvgIconExtractorService {
     fullLogo: string;
     iconOnly: string;
   } {
-    logger.warn("extractIcon is deprecated - AI now generates icons directly");
+    logger.warn('extractIcon is deprecated - AI now generates icons directly');
     return {
       fullLogo: logoSvg,
       iconOnly: logoSvg,
@@ -25,7 +25,7 @@ export class SvgIconExtractorService {
    * Conservée pour compatibilité descendante
    */
   static extractIconsFromLogos(logos: any[]): any[] {
-    logger.warn("extractIconsFromLogos is deprecated - AI now generates icons directly");
+    logger.warn('extractIconsFromLogos is deprecated - AI now generates icons directly');
     return logos;
   }
 
@@ -54,7 +54,7 @@ export class SvgIconExtractorService {
       monochrome?: string;
     };
   } {
-    logger.info("Generating variations with and without text");
+    logger.info('Generating variations with and without text');
 
     const result = {
       withText: {} as any,
@@ -80,17 +80,14 @@ export class SvgIconExtractorService {
    * @param variationSvg - Variation avec les bonnes couleurs
    * @returns Logo complet avec les couleurs adaptées
    */
-  private static adaptLogoColors(
-    fullLogoSvg: string,
-    variationSvg: string
-  ): string {
+  private static adaptLogoColors(fullLogoSvg: string, variationSvg: string): string {
     try {
       // Extraire les couleurs de la variation
       const colors = this.extractColorsFromSvg(variationSvg);
-      
+
       // Appliquer ces couleurs au logo complet
       let adaptedLogo = fullLogoSvg;
-      
+
       // Remplacer les couleurs principales
       colors.forEach((color, index) => {
         // Remplacer les couleurs par ordre d'apparition
@@ -102,7 +99,7 @@ export class SvgIconExtractorService {
 
       return adaptedLogo;
     } catch (error) {
-      logger.error("Error adapting logo colors:", error);
+      logger.error('Error adapting logo colors:', error);
       return fullLogoSvg;
     }
   }
@@ -115,11 +112,11 @@ export class SvgIconExtractorService {
   private static extractColorsFromSvg(svgContent: string): string[] {
     const colors: string[] = [];
     const fillMatches = svgContent.match(/fill="([^"]*)"/g);
-    
+
     if (fillMatches) {
       fillMatches.forEach((match) => {
         const color = match.match(/fill="([^"]*)"/)?.[1];
-        if (color && color !== "none" && !colors.includes(color)) {
+        if (color && color !== 'none' && !colors.includes(color)) {
           colors.push(color);
         }
       });
@@ -133,7 +130,7 @@ export class SvgIconExtractorService {
    * @param svgElement - Élément SVG à nettoyer
    */
   private static removeEmptyElements(svgElement: SVGElement): void {
-    const emptyElements = svgElement.querySelectorAll("g:empty, defs:empty");
+    const emptyElements = svgElement.querySelectorAll('g:empty, defs:empty');
     emptyElements.forEach((element) => element.remove());
   }
 }

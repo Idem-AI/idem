@@ -8,12 +8,14 @@ interface UserProfileProps {
 export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
   // Function to get initials from name (display name or email)
   const getInitials = (name: string) => {
-    return name
-      ?.split(' ')
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || '?';
+    return (
+      name
+        ?.split(' ')
+        .map((word) => word[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || '?'
+    );
   };
 
   // Display name is preferred, fallback to email
@@ -44,9 +46,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
         <div className="dark:text-white text-[13px] font-medium truncate max-w-[100px]">
           {displayName}
         </div>
-        <div className="text-[11px] text-gray-400 uppercase">
-          {user.subscription} plan
-        </div>
+        <div className="text-[11px] text-gray-400 uppercase">{user.subscription} plan</div>
       </div>
     </div>
   );

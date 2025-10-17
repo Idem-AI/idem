@@ -1,12 +1,12 @@
-import { Router } from "express";
-import { 
+import { Router } from 'express';
+import {
   sessionLoginController,
   refreshTokenController,
   logoutController,
   logoutAllController,
-  getRefreshTokensController
-} from "../controllers/auth.controller";
-import { authenticate } from "../services/auth.service";
+  getRefreshTokensController,
+} from '../controllers/auth.controller';
+import { authenticate } from '../services/auth.service';
 
 export const authRoutes = Router();
 
@@ -63,7 +63,7 @@ export const authRoutes = Router();
  *       '500':
  *         description: Internal server error.
  */
-authRoutes.post("/sessionLogin", sessionLoginController);
+authRoutes.post('/sessionLogin', sessionLoginController);
 
 /**
  * @openapi
@@ -104,7 +104,7 @@ authRoutes.post("/sessionLogin", sessionLoginController);
  *       '401':
  *         description: Invalid or expired refresh token
  */
-authRoutes.post("/refresh", refreshTokenController);
+authRoutes.post('/refresh', refreshTokenController);
 
 /**
  * @openapi
@@ -143,7 +143,7 @@ authRoutes.post("/refresh", refreshTokenController);
  *       '401':
  *         description: User not authenticated
  */
-authRoutes.post("/logout", authenticate, logoutController);
+authRoutes.post('/logout', authenticate, logoutController);
 
 /**
  * @openapi
@@ -172,7 +172,7 @@ authRoutes.post("/logout", authenticate, logoutController);
  *       '401':
  *         description: User not authenticated
  */
-authRoutes.post("/logout-all", authenticate, logoutAllController);
+authRoutes.post('/logout-all', authenticate, logoutAllController);
 
 /**
  * @openapi
@@ -216,4 +216,4 @@ authRoutes.post("/logout-all", authenticate, logoutAllController);
  *       '401':
  *         description: User not authenticated
  */
-authRoutes.get("/refresh-tokens", authenticate, getRefreshTokensController);
+authRoutes.get('/refresh-tokens', authenticate, getRefreshTokensController);

@@ -1,4 +1,4 @@
-import { Message } from "ai/react";
+import { Message } from 'ai/react';
 
 interface ChatRecord {
   data: {
@@ -19,13 +19,15 @@ export class DBManager {
 
   constructor() {
     // Initialize IndexedDB for web environment
-    this.init().then(() => {
-      console.log('DBManager initialization completed');
-    }).catch((error) => {
-      console.error('DBManager initialization failed', error);
-      // Fallback to localStorage if IndexedDB fails
-      this.initLocalStorage();
-    });
+    this.init()
+      .then(() => {
+        console.log('DBManager initialization completed');
+      })
+      .catch((error) => {
+        console.error('DBManager initialization failed', error);
+        // Fallback to localStorage if IndexedDB fails
+        this.initLocalStorage();
+      });
   }
 
   // Application is now 100% web
@@ -62,7 +64,6 @@ export class DBManager {
           this.db = request.result;
           resolve();
         };
-
       } catch (error) {
         console.error('Database initialization error:', error);
         reject(error);
@@ -75,10 +76,9 @@ export class DBManager {
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
       const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
-      const uuids = Array.from(new Set(
-        records.sort((a, b) => b.time - a.time)
-          .map(record => record.uuid)
-      )).slice(0, 300);
+      const uuids = Array.from(
+        new Set(records.sort((a, b) => b.time - a.time).map((record) => record.uuid))
+      ).slice(0, 300);
 
       if (uuids.length === 300) {
         this.cleanOldRecords(uuids);
@@ -95,10 +95,9 @@ export class DBManager {
 
       request.onsuccess = () => {
         const records = request.result as ChatRecord[];
-        const uuids = Array.from(new Set(
-          records.sort((a, b) => b.time - a.time)
-            .map(record => record.uuid)
-        )).slice(0, 300);
+        const uuids = Array.from(
+          new Set(records.sort((a, b) => b.time - a.time).map((record) => record.uuid))
+        ).slice(0, 300);
 
         if (uuids.length === 300) {
           this.cleanOldRecords(uuids);
@@ -115,7 +114,7 @@ export class DBManager {
     const record: ChatRecord = {
       data,
       time: Date.now(),
-      uuid
+      uuid,
     };
 
     // Utilise le localStorage si IndexedDB n'est pas disponible
@@ -146,7 +145,7 @@ export class DBManager {
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
       const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
-      const filteredRecords = records.filter(record => record.uuid !== uuid);
+      const filteredRecords = records.filter((record) => record.uuid !== uuid);
       localStorage.setItem('chatRecords', JSON.stringify(filteredRecords));
       this.notify();
       return;
@@ -161,12 +160,13 @@ export class DBManager {
 
       request.onsuccess = () => {
         const records = request.result as ChatRecord[];
-        const deletePromises = records.map(record =>
-          new Promise<void>((res, rej) => {
-            const deleteReq = store.delete([record.uuid, record.time]);
-            deleteReq.onsuccess = () => res();
-            deleteReq.onerror = () => rej(deleteReq.error);
-          })
+        const deletePromises = records.map(
+          (record) =>
+            new Promise<void>((res, rej) => {
+              const deleteReq = store.delete([record.uuid, record.time]);
+              deleteReq.onsuccess = () => res();
+              deleteReq.onerror = () => rej(deleteReq.error);
+            })
         );
 
         Promise.all(deletePromises)
@@ -185,9 +185,7 @@ export class DBManager {
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
       const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
-      return records
-        .filter(record => record.uuid === uuid)
-        .sort((a, b) => b.time - a.time);
+      return records.filter((record) => record.uuid === uuid).sort((a, b) => b.time - a.time);
     }
 
     await this.ensureDB();
@@ -226,7 +224,7 @@ export class DBManager {
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
       const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
-      const filteredRecords = records.filter(record => activeUuids.includes(record.uuid));
+      const filteredRecords = records.filter((record) => activeUuids.includes(record.uuid));
       localStorage.setItem('chatRecords', JSON.stringify(filteredRecords));
       return;
     }
@@ -240,8 +238,8 @@ export class DBManager {
     request.onsuccess = () => {
       const records = request.result as ChatRecord[];
       records
-        .filter(record => !activeUuids.includes(record.uuid))
-        .forEach(record => {
+        .filter((record) => !activeUuids.includes(record.uuid))
+        .forEach((record) => {
           store.delete([record.uuid, record.time]);
         });
     };
@@ -253,7 +251,7 @@ export class DBManager {
   }
 
   private notify() {
-    this.listeners.forEach(listener => listener());
+    this.listeners.forEach((listener) => listener());
   }
 }
 

@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './beta-policy.html',
-  styleUrl: './beta-policy.css'
+  styleUrl: './beta-policy.css',
 })
-export class BetaPolicy {
-}
+export class BetaPolicy {}

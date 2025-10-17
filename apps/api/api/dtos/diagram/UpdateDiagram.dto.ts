@@ -1,4 +1,4 @@
-import { SectionModel } from "../../models/section.model";
+import { SectionModel } from '../../models/section.model';
 
 /**
  * @openapi
@@ -48,7 +48,16 @@ import { SectionModel } from "../../models/section.model";
 export class UpdateDiagramDto {
   name?: string;
   description?: string;
-  type?: 'architecture' | 'sequence' | 'class' | 'use_case' | 'entity_relationship' | 'network' | 'flowchart' | 'mind_map' | 'custom';
+  type?:
+    | 'architecture'
+    | 'sequence'
+    | 'class'
+    | 'use_case'
+    | 'entity_relationship'
+    | 'network'
+    | 'flowchart'
+    | 'mind_map'
+    | 'custom';
   format?: 'json' | 'xml' | 'plantuml' | 'mermaid' | 'drawio' | 'custom';
   content?: any; // Using 'any' as the structure is highly variable
   version?: number;

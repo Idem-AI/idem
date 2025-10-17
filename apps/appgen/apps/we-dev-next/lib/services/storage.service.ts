@@ -1,4 +1,4 @@
-import { bucket } from "../firebase-admin";
+import { bucket } from '../firebase-admin';
 
 export interface UploadResult {
   fileName: string;
@@ -37,7 +37,7 @@ export class StorageService {
       // Upload the file
       await file.save(fileContent, {
         metadata: {
-          contentType: "application/zip",
+          contentType: 'application/zip',
           metadata: {
             uploadedAt: new Date().toISOString(),
           },
@@ -143,13 +143,10 @@ export class StorageService {
    * @param filePath - Full path to the existing file
    * @returns Upload result with download URL
    */
-  async updateZipFile(
-    fileContent: Buffer,
-    filePath: string
-  ): Promise<UploadResult> {
+  async updateZipFile(fileContent: Buffer, filePath: string): Promise<UploadResult> {
     try {
       const file = bucket.file(filePath);
-      const fileName = filePath.split("/").pop() || "unknown.zip";
+      const fileName = filePath.split('/').pop() || 'unknown.zip';
 
       console.log(`Updating zip file in Firebase Storage`, {
         filePath,
@@ -167,10 +164,10 @@ export class StorageService {
       // Upload the new file
       await file.save(fileContent, {
         metadata: {
-          contentType: "application/zip",
+          contentType: 'application/zip',
           metadata: {
             uploadedAt: new Date().toISOString(),
-            updated: "true",
+            updated: 'true',
           },
         },
       });
@@ -243,9 +240,7 @@ export class StorageService {
         count: filePaths.length,
       });
 
-      const deletePromises = filePaths.map((filePath) =>
-        this.deleteZipFile(filePath)
-      );
+      const deletePromises = filePaths.map((filePath) => this.deleteZipFile(filePath));
 
       await Promise.all(deletePromises);
 
@@ -292,17 +287,12 @@ export class StorageService {
    * @param projectId - Project ID
    * @returns Array of file paths
    */
-  async listProjectZipFiles(
-    userId: string,
-    projectId: string
-  ): Promise<string[]> {
+  async listProjectZipFiles(userId: string, projectId: string): Promise<string[]> {
     try {
       const prefix = `users/${userId}/projects/${projectId}/generated-apps/`;
       const [files] = await bucket.getFiles({ prefix });
 
-      const filePaths = files
-        .filter((file) => file.name.endsWith(".zip"))
-        .map((file) => file.name);
+      const filePaths = files.filter((file) => file.name.endsWith('.zip')).map((file) => file.name);
 
       console.log(`Listed project zip files`, {
         userId,

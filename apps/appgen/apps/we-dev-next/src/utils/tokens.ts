@@ -23,9 +23,9 @@ export function estimateTokens(text: string) {
   // Estimate token count
   const tokenEstimate = Math.ceil(
     chineseChars * 1.5 + // Chinese characters
-    otherChars / 4 + // English characters
-    punctuationCount + // Punctuation marks
-    whitespaceCount // Whitespace
+      otherChars / 4 + // English characters
+      punctuationCount + // Punctuation marks
+      whitespaceCount // Whitespace
   );
 
   return tokenEstimate;

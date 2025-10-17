@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-  computed,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { TechCardModel } from '../shared/tech-card';

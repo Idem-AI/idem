@@ -1,6 +1,6 @@
 import { Component, signal, inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Cta } from "../cta/cta";
+import { Cta } from '../cta/cta';
 import { SeoService } from '../../../../shared/services/seo.service';
 
 interface Feature {
@@ -37,36 +37,36 @@ export class Features implements OnInit {
   // State properties
   protected readonly selectedCategory = signal<string>('business');
   protected readonly hoveredFeature = signal<string | null>(null);
-  
+
   protected readonly categories = signal<FeatureCategory[]>([
     {
       id: 'business',
       name: 'Business',
       description: 'Strategic planning',
       icon: 'pi-chart-line',
-      color: '#22c55e'
+      color: '#22c55e',
     },
     {
       id: 'branding',
       name: 'Branding',
       description: 'Visual identity',
       icon: 'pi-palette',
-      color: '#d11ec0'
+      color: '#d11ec0',
     },
     {
       id: 'development',
       name: 'Development',
       description: 'Code & architecture',
       icon: 'pi-code',
-      color: '#8b5cf6'
+      color: '#8b5cf6',
     },
     {
       id: 'deployment',
       name: 'Deployment',
       description: 'App deployment',
       icon: 'pi-rocket',
-      color: '#06b6d4'
-    }
+      color: '#06b6d4',
+    },
   ]);
 
   protected readonly features = signal<Feature[]>([
@@ -74,12 +74,13 @@ export class Features implements OnInit {
     {
       id: 'business-plans',
       title: 'Business Plans',
-      description: 'Generate comprehensive business plans with market analysis and financial projections',
+      description:
+        'Generate comprehensive business plans with market analysis and financial projections',
       icon: 'pi-chart-line',
       category: 'business',
       benefits: ['Market analysis', 'Financial projections', 'Investor-ready'],
       color: '#22c55e',
-      isPopular: true
+      isPopular: true,
     },
     {
       id: 'financial-modeling',
@@ -88,7 +89,7 @@ export class Features implements OnInit {
       icon: 'pi-dollar',
       category: 'business',
       benefits: ['Revenue forecasts', 'Cost breakdown', 'ROI calculations'],
-      color: '#22c55e'
+      color: '#22c55e',
     },
     {
       id: 'market-research',
@@ -97,7 +98,7 @@ export class Features implements OnInit {
       icon: 'pi-search',
       category: 'business',
       benefits: ['Competitor analysis', 'Market trends', 'Growth opportunities'],
-      color: '#22c55e'
+      color: '#22c55e',
     },
     {
       id: 'strategy-planning',
@@ -106,9 +107,9 @@ export class Features implements OnInit {
       icon: 'pi-map',
       category: 'business',
       benefits: ['Strategic roadmap', 'Clear objectives', 'Timeline planning'],
-      color: '#22c55e'
+      color: '#22c55e',
     },
-    
+
     // Branding Features (4)
     {
       id: 'ai-logos',
@@ -118,7 +119,7 @@ export class Features implements OnInit {
       category: 'branding',
       benefits: ['Instant creation', 'Vector format', 'Brand-specific'],
       color: '#d11ec0',
-      isPopular: true
+      isPopular: true,
     },
     {
       id: 'brand-charter',
@@ -127,7 +128,7 @@ export class Features implements OnInit {
       icon: 'pi-bookmark',
       category: 'branding',
       benefits: ['Brand guidelines', 'Usage standards', 'Consistency rules'],
-      color: '#d11ec0'
+      color: '#d11ec0',
     },
     {
       id: 'color-palettes',
@@ -136,7 +137,7 @@ export class Features implements OnInit {
       icon: 'pi-palette',
       category: 'branding',
       benefits: ['Color harmony', 'Brand alignment', 'Accessibility'],
-      color: '#d11ec0'
+      color: '#d11ec0',
     },
     {
       id: 'typography',
@@ -145,9 +146,9 @@ export class Features implements OnInit {
       icon: 'pi-font',
       category: 'branding',
       benefits: ['Font pairing', 'Brand consistency', 'Readability'],
-      color: '#d11ec0'
+      color: '#d11ec0',
     },
-    
+
     // Development Features (4)
     {
       id: 'architecture-diagrams',
@@ -157,7 +158,7 @@ export class Features implements OnInit {
       category: 'development',
       benefits: ['UML diagrams', 'Auto-generated', 'Documentation'],
       color: '#8b5cf6',
-      isPopular: true
+      isPopular: true,
     },
     {
       id: 'code-generation',
@@ -166,7 +167,7 @@ export class Features implements OnInit {
       icon: 'pi-code',
       category: 'development',
       benefits: ['Clean code', 'Documentation', 'Best practices'],
-      color: '#8b5cf6'
+      color: '#8b5cf6',
     },
     {
       id: 'api-design',
@@ -175,7 +176,7 @@ export class Features implements OnInit {
       icon: 'pi-link',
       category: 'development',
       benefits: ['RESTful design', 'Auto-documentation', 'Testing included'],
-      color: '#8b5cf6'
+      color: '#8b5cf6',
     },
     {
       id: 'database-design',
@@ -184,9 +185,9 @@ export class Features implements OnInit {
       icon: 'pi-database',
       category: 'development',
       benefits: ['Optimized schema', 'Performance tuned', 'Scalable design'],
-      color: '#8b5cf6'
+      color: '#8b5cf6',
     },
-    
+
     // Deployment Features (4)
     {
       id: 'one-click-deploy',
@@ -196,7 +197,7 @@ export class Features implements OnInit {
       category: 'deployment',
       benefits: ['Zero configuration', 'Instant deployment', 'Auto-scaling'],
       color: '#06b6d4',
-      isPopular: true
+      isPopular: true,
     },
     {
       id: 'ai-assistant',
@@ -205,7 +206,7 @@ export class Features implements OnInit {
       icon: 'pi-comments',
       category: 'deployment',
       benefits: ['Natural conversation', 'Step-by-step guide', 'Smart suggestions'],
-      color: '#06b6d4'
+      color: '#06b6d4',
     },
     {
       id: 'template-deploy',
@@ -214,7 +215,7 @@ export class Features implements OnInit {
       icon: 'pi-th-large',
       category: 'deployment',
       benefits: ['Pre-configured', 'Best practices', 'Quick setup'],
-      color: '#06b6d4'
+      color: '#06b6d4',
     },
     {
       id: 'expert-mode',
@@ -223,8 +224,8 @@ export class Features implements OnInit {
       icon: 'pi-cog',
       category: 'deployment',
       benefits: ['Full control', 'Advanced settings', 'Custom infrastructure'],
-      color: '#06b6d4'
-    }
+      color: '#06b6d4',
+    },
   ]);
 
   ngOnInit(): void {
@@ -234,22 +235,23 @@ export class Features implements OnInit {
   private setupSeoForFeaturesSection(): void {
     // Add structured data for features section
     const featuresStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      "name": "Idem Platform Features",
-      "description": "Comprehensive AI-powered features for business planning, branding, development, and deployment",
-      "numberOfItems": this.features().length,
-      "itemListElement": this.features().map((feature, index) => ({
-        "@type": "ListItem",
-        "position": index + 1,
-        "item": {
-          "@type": "SoftwareApplication",
-          "name": feature.title,
-          "description": feature.description,
-          "applicationCategory": this.getCategoryName(feature.category),
-          "featureList": feature.benefits
-        }
-      }))
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Idem Platform Features',
+      description:
+        'Comprehensive AI-powered features for business planning, branding, development, and deployment',
+      numberOfItems: this.features().length,
+      itemListElement: this.features().map((feature, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'SoftwareApplication',
+          name: feature.title,
+          description: feature.description,
+          applicationCategory: this.getCategoryName(feature.category),
+          featureList: feature.benefits,
+        },
+      })),
     };
 
     // Add structured data to page if not already present
@@ -264,10 +266,10 @@ export class Features implements OnInit {
 
   private getCategoryName(categoryId: string): string {
     const categoryMap: Record<string, string> = {
-      'business': 'Business Planning Software',
-      'branding': 'Design Software',
-      'development': 'Development Tools',
-      'deployment': 'Deployment Platform'
+      business: 'Business Planning Software',
+      branding: 'Design Software',
+      development: 'Development Tools',
+      deployment: 'Deployment Platform',
     };
     return categoryMap[categoryId] || 'Software Application';
   }
@@ -283,16 +285,13 @@ export class Features implements OnInit {
   protected getFilteredFeatures(): Feature[] {
     const features = this.features();
     const selectedCat = this.selectedCategory();
-    
-    
-    return features.filter(feature => feature.category === selectedCat);
+
+    return features.filter((feature) => feature.category === selectedCat);
   }
 
   protected getSelectedCategory(): FeatureCategory {
     const categories = this.categories();
     const selectedId = this.selectedCategory();
-    return categories.find(cat => cat.id === selectedId) || categories[0];
+    return categories.find((cat) => cat.id === selectedId) || categories[0];
   }
-
-
 }

@@ -1,22 +1,46 @@
 /* Essential animations and markdown styles only */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeSlideIn {
-  0% { opacity: 0; transform: translateX(20px) scale(0.98); }
-  100% { opacity: 1; transform: translateX(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateX(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 @keyframes scaleIn {
-  0% { opacity: 0; transform: scale(0.95); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
-.animate-fade-slide-in { animation: fadeSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-.animate-scale-in { animation: scaleIn 0.4s cubic-bezier(0.33, 1, 0.68, 1); }
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+.animate-fade-slide-in {
+  animation: fadeSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-scale-in {
+  animation: scaleIn 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+}
 
 /* Markdown Content Styles */
 .markdown-content {
@@ -25,19 +49,30 @@
   color: var(--color-light-text);
 }
 
-.markdown-content h1, .markdown-content h2, .markdown-content h3, 
-.markdown-content h4, .markdown-content h5, .markdown-content h6 {
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
   margin-top: 1.5em;
   margin-bottom: 0.75em;
   font-weight: 600;
   color: var(--color-accent);
 }
 
-.markdown-content h1 { font-size: 1.5rem; }
-.markdown-content h2 { font-size: 1.35rem; }
-.markdown-content h3 { font-size: 1.25rem; }
+.markdown-content h1 {
+  font-size: 1.5rem;
+}
+.markdown-content h2 {
+  font-size: 1.35rem;
+}
+.markdown-content h3 {
+  font-size: 1.25rem;
+}
 
-.markdown-content ul, .markdown-content ol {
+.markdown-content ul,
+.markdown-content ol {
   margin: 1em 0;
   padding-left: 2em;
 }
@@ -65,13 +100,13 @@
 }
 
 .markdown-content pre code {
-  font-family: "Fira Code", "Roboto Mono", monospace;
+  font-family: 'Fira Code', 'Roboto Mono', monospace;
   font-size: 0.9em;
   color: rgba(229, 231, 235, 0.9);
 }
 
 .markdown-content :not(pre) > code {
-  font-family: "Fira Code", "Roboto Mono", monospace;
+  font-family: 'Fira Code', 'Roboto Mono', monospace;
   font-size: 0.9em;
   background: var(--glass-bg-darker);
   color: var(--color-accent);

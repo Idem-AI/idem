@@ -19,9 +19,7 @@
 
   <!-- Hero Section -->
   <div class="glass-card p-8 mb-8 text-center">
-    <h1 class="text-4xl sm:text-5xl font-bold text-white mb-3">
-      {{ currentProject.name }}
-    </h1>
+    <h1 class="text-4xl sm:text-5xl font-bold text-white mb-3">{{ currentProject.name }}</h1>
     <p class="text-gray-300 text-lg max-w-2xl mx-auto mb-6">
       {{ currentProject.description || "Your AI-powered project workspace" }}
     </p>
@@ -39,19 +37,22 @@
 
   <!-- Main Workflow -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-    
     <!-- 1. Branding -->
     <div
       class="glass-card p-6 cursor-pointer transition-all duration-300 hover:scale-105 group relative overflow-hidden"
       [routerLink]="['/console/branding']"
     >
-      <div class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+      ></div>
       <div class="relative z-10 text-center">
-        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+        <div
+          class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center"
+        >
           <i class="pi pi-palette text-white text-lg"></i>
         </div>
         <h3 class="text-lg font-semibold text-white mb-2">Brand</h3>
-        
+
         @if (currentProject.analysisResultModel!.branding.sections.length > 0) {
         <div class="flex items-center justify-center space-x-1 text-green-400 text-xs">
           <i class="pi pi-check-circle"></i>
@@ -71,13 +72,17 @@
       class="glass-card p-6 cursor-pointer transition-all duration-300 hover:scale-105 group relative overflow-hidden"
       [routerLink]="['/console/business-plan']"
     >
-      <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+      ></div>
       <div class="relative z-10 text-center">
-        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+        <div
+          class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center"
+        >
           <i class="pi pi-chart-line text-white text-lg"></i>
         </div>
         <h3 class="text-lg font-semibold text-white mb-2">Business</h3>
-        
+
         @if (currentProject.analysisResultModel!.businessPlan) {
         <div class="flex items-center justify-center space-x-1 text-green-400 text-xs">
           <i class="pi pi-check-circle"></i>
@@ -97,13 +102,17 @@
       class="glass-card p-6 cursor-pointer transition-all duration-300 hover:scale-105 group relative overflow-hidden"
       [routerLink]="['/console/diagrams']"
     >
-      <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+      ></div>
       <div class="relative z-10 text-center">
-        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+        <div
+          class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center"
+        >
           <i class="pi pi-sitemap text-white text-lg"></i>
         </div>
         <h3 class="text-lg font-semibold text-white mb-2">Design</h3>
-        
+
         @if (currentProject.analysisResultModel!.design) {
         <div class="flex items-center justify-center space-x-1 text-green-400 text-xs">
           <i class="pi pi-check-circle"></i>
@@ -123,13 +132,17 @@
       class="glass-card p-6 cursor-pointer transition-all duration-300 hover:scale-105 group relative overflow-hidden"
       [routerLink]="['/console/development']"
     >
-      <div class="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+      ></div>
       <div class="relative z-10 text-center">
-        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+        <div
+          class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center"
+        >
           <i class="pi pi-code text-white text-lg"></i>
         </div>
         <h3 class="text-lg font-semibold text-white mb-2">Code</h3>
-        
+
         @if (currentProject.analysisResultModel!.development) {
         <div class="flex items-center justify-center space-x-1 text-green-400 text-xs">
           <i class="pi pi-check-circle"></i>
@@ -149,13 +162,17 @@
       class="glass-card p-6 cursor-pointer transition-all duration-300 hover:scale-105 group relative overflow-hidden"
       [routerLink]="['/console/deployment']"
     >
-      <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+      ></div>
       <div class="relative z-10 text-center">
-        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+        <div
+          class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center"
+        >
           <i class="pi pi-cloud-upload text-white text-lg"></i>
         </div>
         <h3 class="text-lg font-semibold text-white mb-2">Deploy</h3>
-        
+
         <div class="flex items-center justify-center space-x-1 text-gray-400 text-xs">
           <i class="pi pi-circle"></i>
           <span>Start</span>
@@ -166,11 +183,9 @@
 
   <!-- Quick Stats & Actions -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    
     <!-- Progress Overview -->
     <div class="glass-card p-6">
       <h3 class="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-
         <span>Progress</span>
       </h3>
       <div class="space-y-3">
@@ -179,7 +194,10 @@
           <span class="text-green-400 font-semibold">3/5</span>
         </div>
         <div class="w-full bg-gray-700 rounded-full h-2">
-          <div class="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full" style="width: 60%"></div>
+          <div
+            class="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full"
+            style="width: 60%"
+          ></div>
         </div>
         <p class="text-gray-400 text-xs">Keep going! You're making great progress.</p>
       </div>
@@ -197,7 +215,9 @@
         </div>
         <div class="flex justify-between">
           <span class="text-gray-400">Scope</span>
-          <span class="text-gray-300">{{ currentProject.scope.name.toString().toLowerCase() }}</span>
+          <span class="text-gray-300"
+            >{{ currentProject.scope.name.toString().toLowerCase() }}</span
+          >
         </div>
         <div class="flex justify-between">
           <span class="text-gray-400">Updated</span>

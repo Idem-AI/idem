@@ -6,30 +6,21 @@
   <div class="max-w-7xl mx-auto px-6 py-4">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-4">
-        <div
-          class="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center"
-        >
+        <div class="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center">
           <i class="pi pi-cog animate-spin text-xl text-white"></i>
         </div>
         <div>
           <h2 class="text-xl font-bold text-white">
-            @if(isPostProcessing()) {
-              Finalizing Brand Identity
-            } @else {
-              Generating Brand Identity
+            @if(isPostProcessing()) { Finalizing Brand Identity } @else { Generating Brand Identity
             }
           </h2>
           <p class="text-gray-300 text-sm">
-            @if(isPostProcessing()) {
-              {{ postProcessingMessage() }}
-            } @else {
-              Creating your comprehensive brand identity...
-            }
+            @if(isPostProcessing()) { {{ postProcessingMessage() }} } @else { Creating your
+            comprehensive brand identity... }
           </p>
           @if (generationState().stepsInProgress.length > 0) {
           <p class="text-xs text-blue-400 mt-1">
-            Currently processing: {{ generationState().stepsInProgress.join(',
-            ') }}
+            Currently processing: {{ generationState().stepsInProgress.join(', ') }}
           </p>
           }
         </div>
@@ -39,15 +30,13 @@
         <!-- Progress Stats -->
         <div class="text-right">
           <div class="text-2xl font-bold text-white">
-            {{ generationState().completedSteps.length }}/{{
-            generationState().totalSteps }}
+            {{ generationState().completedSteps.length }}/{{ generationState().totalSteps }}
           </div>
           <div class="text-sm text-gray-300">Steps Completed</div>
           @if (generationState().completedSteps.length > 0) {
           <div class="text-xs text-green-400 mt-1">
-            Last: {{
-            generationState().completedSteps[generationState().completedSteps.length
-            - 1] }}
+            Last: {{ generationState().completedSteps[generationState().completedSteps.length - 1]
+            }}
           </div>
           }
         </div>
@@ -101,9 +90,7 @@
               </div>
             </div>
             <div class="flex items-center space-x-2">
-              <div
-                class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-              ></div>
+              <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <div
                 class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
                 style="animation-delay: 0.2s"
@@ -144,9 +131,7 @@
               </div>
             </div>
             <div class="flex items-center space-x-2">
-              <div
-                class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"
-              ></div>
+              <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
               <div
                 class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"
                 style="animation-delay: 0.2s"
@@ -174,15 +159,11 @@
     <div class="space-y-6">
       <div class="grid gap-6">
         @for (step of completedSteps(); track step.name) {
-        <div
-          class="glass-card rounded-xl shadow-md border border-gray-800/30 overflow-hidden"
-        >
+        <div class="glass-card rounded-xl shadow-md border border-gray-800/30 overflow-hidden">
           <div class="px-6 py-4 border-b">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-3">
-                <div
-                  class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center"
-                >
+                <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                   <i class="pi pi-check text-white text-sm"></i>
                 </div>
                 <div>
@@ -217,12 +198,7 @@
       <div
         class="w-16 h-16 bg-red-100/5 rounded-full flex items-center justify-center mx-auto mb-4"
       >
-        <svg
-          class="w-8 h-8 text-red-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -233,9 +209,7 @@
       </div>
       <h3 class="text-xl font-bold text-white mb-2">Generation Failed</h3>
       <p class="text-gray-400 mb-6">{{ generationError() }}</p>
-      <button (click)="generateBranding()" class="w-full inner-button">
-        Try Again
-      </button>
+      <button (click)="generateBranding()" class="w-full inner-button">Try Again</button>
     </div>
   </div>
 </div>

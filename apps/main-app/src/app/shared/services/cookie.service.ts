@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CookieService {
   private readonly document = inject(DOCUMENT);
@@ -13,7 +13,7 @@ export class CookieService {
   get(name: string): string | null {
     const cookies = this.document.cookie.split(';');
     for (const cookie of cookies) {
-      const [cookieName, cookieValue] = cookie.split('=').map(c => c.trim());
+      const [cookieName, cookieValue] = cookie.split('=').map((c) => c.trim());
       if (cookieName === name) {
         return cookieValue;
       }
@@ -26,7 +26,7 @@ export class CookieService {
    */
   set(name: string, value: string, expirationDays = 30): void {
     const date = new Date();
-    date.setTime(date.getTime() + (expirationDays * 24 * 60 * 60 * 1000));
+    date.setTime(date.getTime() + expirationDays * 24 * 60 * 60 * 1000);
     const expires = `expires=${date.toUTCString()}`;
     this.document.cookie = `${name}=${value};${expires};path=/`;
   }

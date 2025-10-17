@@ -154,11 +154,7 @@ export interface ArchitectureComponent extends CloudComponentDetailed {
 /**
  * Deployment mode type for distinguishing between deployment types
  */
-export type DeploymentMode =
-  | 'beginner'
-  | 'template'
-  | 'ai-assistant'
-  | 'expert';
+export type DeploymentMode = 'beginner' | 'template' | 'ai-assistant' | 'expert';
 
 /**
  * Base deployment model with common properties shared across all deployment types

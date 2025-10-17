@@ -109,21 +109,15 @@ export class DeploymentService {
    * Create a new deployment
    * @param deployment The deployment configuration
    */
-  private createDeployment<T extends DeploymentModel>(
-    deployment: Partial<T>
-  ): Observable<T> {
+  private createDeployment<T extends DeploymentModel>(deployment: Partial<T>): Observable<T> {
     console.log('Creating deployment:', deployment);
-    return this.http
-      .post<T>(`${this.apiUrl}/deployments/create`, deployment)
-      .pipe(
-        tap((createdDeployment) =>
-          console.log('Created deployment', createdDeployment)
-        ),
-        catchError((error) => {
-          console.error('Error creating deployment', error);
-          return throwError(() => error);
-        })
-      );
+    return this.http.post<T>(`${this.apiUrl}/deployments/create`, deployment).pipe(
+      tap((createdDeployment) => console.log('Created deployment', createdDeployment)),
+      catchError((error) => {
+        console.error('Error creating deployment', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**
@@ -131,15 +125,13 @@ export class DeploymentService {
    * @param projectId The ID of the project
    */
   getProjectDeployments(projectId: string): Observable<DeploymentModel[]> {
-    return this.http
-      .get<DeploymentModel[]>(`${this.apiUrl}/deployments/${projectId}`)
-      .pipe(
-        tap((deployments) => console.log('Fetched deployments', deployments)),
-        catchError((error) => {
-          console.error('Error fetching deployments', error);
-          return throwError(() => error);
-        })
-      );
+    return this.http.get<DeploymentModel[]>(`${this.apiUrl}/deployments/${projectId}`).pipe(
+      tap((deployments) => console.log('Fetched deployments', deployments)),
+      catchError((error) => {
+        console.error('Error fetching deployments', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**
@@ -147,14 +139,9 @@ export class DeploymentService {
    * @param projectId The ID of the project
    * @param deploymentId The ID of the deployment
    */
-  getDeploymentById(
-    projectId: string,
-    deploymentId: string
-  ): Observable<DeploymentModel> {
+  getDeploymentById(projectId: string, deploymentId: string): Observable<DeploymentModel> {
     return this.http
-      .get<DeploymentModel>(
-        `${this.apiUrl}/deployments/${projectId}/${deploymentId}`
-      )
+      .get<DeploymentModel>(`${this.apiUrl}/deployments/${projectId}/${deploymentId}`)
       .pipe(
         tap((deployment) => console.log('Fetched deployment', deployment)),
         catchError((error) => {
@@ -166,10 +153,7 @@ export class DeploymentService {
 
   executeDeployment(deploymentId: string): Observable<DeploymentModel> {
     return this.http
-      .post<DeploymentModel>(
-        `${this.apiUrl}/deployments/execute/${deploymentId}`,
-        {}
-      )
+      .post<DeploymentModel>(`${this.apiUrl}/deployments/execute/${deploymentId}`, {})
       .pipe(
         tap((deployment) => console.log('Executed deployment', deployment)),
         catchError((error) => {
@@ -237,17 +221,10 @@ export class DeploymentService {
                   return;
                 }
 
-                const parsed = JSON.parse(
-                  anyEv.data
-                ) as DeploymentExecutionEvent;
+                const parsed = JSON.parse(anyEv.data) as DeploymentExecutionEvent;
 
                 // Ensure required fields are present
-                if (
-                  parsed.type &&
-                  parsed.message &&
-                  parsed.timestamp &&
-                  parsed.deploymentId
-                ) {
+                if (parsed.type && parsed.message && parsed.timestamp && parsed.deploymentId) {
                   observer.next(parsed);
                 } else {
                   console.warn('Invalid SSE event format:', parsed);
@@ -306,9 +283,7 @@ export class DeploymentService {
         updates
       )
       .pipe(
-        tap((updatedDeployment) =>
-          console.log('Updated deployment', updatedDeployment)
-        ),
+        tap((updatedDeployment) => console.log('Updated deployment', updatedDeployment)),
         catchError((error) => {
           console.error('Error updating deployment', error);
           return throwError(() => error);
@@ -321,10 +296,7 @@ export class DeploymentService {
    * @param projectId The ID of the project
    * @param deploymentId The ID of the deployment
    */
-  cancelDeployment(
-    projectId: string,
-    deploymentId: string
-  ): Observable<DeploymentModel> {
+  cancelDeployment(projectId: string, deploymentId: string): Observable<DeploymentModel> {
     return this.http
       .post<DeploymentModel>(
         `${this.apiUrl}/projects/${projectId}/deployments/${deploymentId}/cancel`,
@@ -344,10 +316,7 @@ export class DeploymentService {
    * @param projectId The ID of the project
    * @param deploymentId The ID of the deployment
    */
-  redeployDeployment(
-    projectId: string,
-    deploymentId: string
-  ): Observable<DeploymentModel> {
+  redeployDeployment(projectId: string, deploymentId: string): Observable<DeploymentModel> {
     return this.http
       .post<DeploymentModel>(
         `${this.apiUrl}/projects/${projectId}/deployments/${deploymentId}/redeploy`,
@@ -367,15 +336,11 @@ export class DeploymentService {
    * @param projectId The ID of the project
    * @param deploymentId The ID of the deployment
    */
-  getDeploymentLogs(
-    projectId: string,
-    deploymentId: string
-  ): Observable<string> {
+  getDeploymentLogs(projectId: string, deploymentId: string): Observable<string> {
     return this.http
-      .get(
-        `${this.apiUrl}/projects/${projectId}/deployments/${deploymentId}/logs`,
-        { responseType: 'text' }
-      )
+      .get(`${this.apiUrl}/projects/${projectId}/deployments/${deploymentId}/logs`, {
+        responseType: 'text',
+      })
       .pipe(
         tap((logs) => console.log('Fetched logs')),
         catchError((error) => {
@@ -390,24 +355,19 @@ export class DeploymentService {
    * @param repoUrl The repository URL
    * @param accessToken Optional access token for private repositories
    */
-  validateGitRepository(
-    repoUrl: string,
-    accessToken?: string
-  ): Observable<string[]> {
+  validateGitRepository(repoUrl: string, accessToken?: string): Observable<string[]> {
     const request: GitRepositoryValidationRequest = {
       repoUrl,
       accessToken,
     };
 
-    return this.http
-      .post<string[]>(`${this.apiUrl}/git/validate`, request)
-      .pipe(
-        tap((branches) => console.log('Fetched branches', branches)),
-        catchError((error) => {
-          console.error('Error validating repository', error);
-          return throwError(() => error);
-        })
-      );
+    return this.http.post<string[]>(`${this.apiUrl}/git/validate`, request).pipe(
+      tap((branches) => console.log('Fetched branches', branches)),
+      catchError((error) => {
+        console.error('Error validating repository', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**
@@ -418,9 +378,7 @@ export class DeploymentService {
     provider: 'aws' | 'gcp' | 'azure'
   ): Observable<{ id: string; name: string }[]> {
     return this.http
-      .get<{ id: string; name: string }[]>(
-        `${this.apiUrl}/cloud/${provider}/regions`
-      )
+      .get<{ id: string; name: string }[]>(`${this.apiUrl}/cloud/${provider}/regions`)
       .pipe(
         tap((regions) => console.log(`Fetched ${provider} regions`, regions)),
         catchError((error) => {
@@ -430,10 +388,7 @@ export class DeploymentService {
       );
   }
 
-  sendChatMessage(
-    message: ChatMessage,
-    projectId: string
-  ): Observable<ChatMessage> {
+  sendChatMessage(message: ChatMessage, projectId: string): Observable<ChatMessage> {
     return this.http
       .post<ChatMessage>(`${this.apiUrl}/deployments/chat`, {
         message,
@@ -444,11 +399,11 @@ export class DeploymentService {
         map((response) => {
           if (response.sender === 'ai') {
             console.log('Processing AI response for JSON parsing and formatting');
-            
+
             try {
               // Try to parse the response text as JSON
               const parsedResponse = JSON.parse(response.text);
-              
+
               // Handle different response types based on the JSON structure
               if (parsedResponse.isRequestingDetails) {
                 response.isRequestingDetails = true;
@@ -470,7 +425,7 @@ export class DeploymentService {
             } catch (e) {
               // If not JSON, treat as regular text and format markdown
               console.log('Response is not JSON, treating as regular text');
-              
+
               // Ensure code blocks are properly formatted with language identifiers
               response.text = response.text.replace(
                 /```(\s*)(\w+)?\s*([\s\S]*?)```/g,
@@ -481,12 +436,9 @@ export class DeploymentService {
               );
 
               // Ensure inline code is properly formatted
-              response.text = response.text.replace(
-                /`([^`]+)`/g,
-                (match, code) => {
-                  return `\`${code}\``;
-                }
-              );
+              response.text = response.text.replace(/`([^`]+)`/g, (match, code) => {
+                return `\`${code}\``;
+              });
             }
           }
           return response;
@@ -504,19 +456,11 @@ export class DeploymentService {
    * @param projectId The ID of the project
    * @param deploymentId The ID of the deployment
    */
-  generatePipeline(
-    projectId: string,
-    deploymentId: string
-  ): Observable<DeploymentModel> {
+  generatePipeline(projectId: string, deploymentId: string): Observable<DeploymentModel> {
     return this.http
-      .post<DeploymentModel>(
-        `${this.apiUrl}/deployments/startPipeline/${deploymentId}`,
-        {}
-      )
+      .post<DeploymentModel>(`${this.apiUrl}/deployments/startPipeline/${deploymentId}`, {})
       .pipe(
-        tap((deployment) =>
-          console.log('Generated pipeline for deployment', deployment)
-        ),
+        tap((deployment) => console.log('Generated pipeline for deployment', deployment)),
         catchError((error) => {
           console.error('Error generating pipeline', error);
           return throwError(() => error);
@@ -529,19 +473,14 @@ export class DeploymentService {
    * @param projectId The ID of the project
    * @param deploymentId The ID of the deployment
    */
-  generateTerraformFiles(
-    projectId: string,
-    deploymentId: string
-  ): Observable<DeploymentModel> {
+  generateTerraformFiles(projectId: string, deploymentId: string): Observable<DeploymentModel> {
     return this.http
       .post<DeploymentModel>(`${this.apiUrl}/deployments/generate`, {
         projectId,
         deploymentId,
       })
       .pipe(
-        tap((deployment) =>
-          console.log('Generated Terraform files for deployment', deployment)
-        ),
+        tap((deployment) => console.log('Generated Terraform files for deployment', deployment)),
         catchError((error) => {
           console.error('Error generating Terraform files', error);
           return throwError(() => error);
@@ -566,9 +505,7 @@ export class DeploymentService {
         request
       )
       .pipe(
-        tap((response) =>
-          console.log('Stored sensitive variables:', response)
-        ),
+        tap((response) => console.log('Stored sensitive variables:', response)),
         catchError((error) => {
           console.error('Error storing sensitive variables:', error);
           return throwError(() => error);

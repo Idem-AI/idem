@@ -7,13 +7,7 @@ import {
   signal,
   computed,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  Validators,
-  ReactiveFormsModule,
-  FormArray,
-} from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -65,9 +59,7 @@ export class AdditionalInfoFormComponent implements OnInit {
   protected readonly additionalInfoForm: FormGroup;
 
   // Computed properties
-  protected readonly isFormValid = computed(
-    () => this.additionalInfoForm?.valid || false
-  );
+  protected readonly isFormValid = computed(() => this.additionalInfoForm?.valid || false);
   protected readonly teamMembersArray = computed(
     () => this.additionalInfoForm?.get('teamMembers') as FormArray
   );
@@ -115,9 +107,7 @@ export class AdditionalInfoFormComponent implements OnInit {
 
     try {
       this.isLoading.set(true);
-      const project = await this.projectService
-        .getProjectById(projectId)
-        .toPromise();
+      const project = await this.projectService.getProjectById(projectId).toPromise();
 
       if (project?.additionalInfos) {
         this.populateForm(project.additionalInfos);
@@ -284,10 +274,7 @@ export class AdditionalInfoFormComponent implements OnInit {
     return 'Invalid field';
   }
 
-  protected getTeamMemberFieldError(
-    memberIndex: number,
-    fieldName: string
-  ): string | null {
+  protected getTeamMemberFieldError(memberIndex: number, fieldName: string): string | null {
     const field = this.teamMembersArray().at(memberIndex)?.get(fieldName);
     if (!field || !field.errors || !field.touched) return null;
 

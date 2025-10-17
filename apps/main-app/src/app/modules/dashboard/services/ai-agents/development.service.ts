@@ -93,8 +93,8 @@ export class DevelopmentService {
           generationType === 'landing'
             ? 'landing page'
             : generationType === 'app'
-            ? 'web application'
-            : 'landing page with web application'
+              ? 'web application'
+              : 'landing page with web application'
         }`,
         'Use modern development practices',
         'Implement responsive design',
@@ -197,9 +197,7 @@ export class DevelopmentService {
   // Create a new development item
   createDevelopmentItem(item: DevelopmentItem): Observable<DevelopmentItem> {
     return this.http.post<DevelopmentItem>(this.apiUrl, item).pipe(
-      tap((response) =>
-        console.log('createDevelopmentItem response:', response)
-      ),
+      tap((response) => console.log('createDevelopmentItem response:', response)),
       catchError((error) => {
         console.error('Error in saveDevelopmentConfigs:', error);
         throw error;
@@ -208,25 +206,19 @@ export class DevelopmentService {
   }
 
   // Get the development configurations for a specific project
-  getDevelopmentConfigs(
-    projectId: string
-  ): Observable<DevelopmentConfigsModel | null> {
-    return this.http
-      .get<DevelopmentConfigsModel>(`${this.apiUrl}/configs/${projectId}`)
-      .pipe(
-        catchError((error: HttpErrorResponse) => {
-          console.error('Error in getDevelopmentConfigs:', error);
-          throw error;
-        })
-      );
+  getDevelopmentConfigs(projectId: string): Observable<DevelopmentConfigsModel | null> {
+    return this.http.get<DevelopmentConfigsModel>(`${this.apiUrl}/configs/${projectId}`).pipe(
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error in getDevelopmentConfigs:', error);
+        throw error;
+      })
+    );
   }
 
   // Get a specific development item by ID
   getDevelopmentItemById(id: string): Observable<DevelopmentItem> {
     return this.http.get<DevelopmentItem>(`${this.apiUrl}/${id}`).pipe(
-      tap((response) =>
-        console.log('getDevelopmentItemById response:', response)
-      ),
+      tap((response) => console.log('getDevelopmentItemById response:', response)),
       catchError((error) => {
         console.error(`Error in getDevelopmentItemById for ID ${id}:`, error);
         throw error;
@@ -235,14 +227,9 @@ export class DevelopmentService {
   }
 
   // Update a specific development item
-  updateDevelopmentItem(
-    id: string,
-    item: Partial<DevelopmentItem>
-  ): Observable<DevelopmentItem> {
+  updateDevelopmentItem(id: string, item: Partial<DevelopmentItem>): Observable<DevelopmentItem> {
     return this.http.put<DevelopmentItem>(`${this.apiUrl}/${id}`, item).pipe(
-      tap((response) =>
-        console.log('updateDevelopmentItem response:', response)
-      ),
+      tap((response) => console.log('updateDevelopmentItem response:', response)),
       catchError((error) => {
         console.error(`Error in updateDevelopmentItem for ID ${id}:`, error);
         throw error;
@@ -253,9 +240,7 @@ export class DevelopmentService {
   // Delete a specific development item
   deleteDevelopmentItem(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
-      tap((response) =>
-        console.log(`deleteDevelopmentItem response for ID ${id}:`, response)
-      ),
+      tap((response) => console.log(`deleteDevelopmentItem response for ID ${id}:`, response)),
       catchError((error) => {
         console.error(`Error in deleteDevelopmentItem for ID ${id}:`, error);
         throw error;

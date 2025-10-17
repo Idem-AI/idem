@@ -16,14 +16,10 @@
 }
 
 .pricing-card::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at 50% 0%,
-    rgba(255, 255, 255, 0.12),
-    transparent 70%
-  );
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12), transparent 70%);
   z-index: 0;
   opacity: 0;
   transition: opacity 0.6s ease;
@@ -50,7 +46,7 @@
 }
 
 .pricing-popular::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -93,7 +89,9 @@
 .price-value {
   position: relative;
   display: inline-block;
-  transition: transform 0.3s, text-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    text-shadow 0.3s;
 }
 
 .pricing-card:hover .price-value {
@@ -105,7 +103,9 @@
 .feature-item {
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 0.5s, transform 0.5s;
+  transition:
+    opacity 0.5s,
+    transform 0.5s;
 }
 
 .animate-in .feature-item {
@@ -137,18 +137,13 @@
 }
 
 .pricing-button::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.7s;
   z-index: -1;
 }
@@ -158,11 +153,7 @@
 }
 
 .premium-button {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary),
-    var(--color-accent)
-  );
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
   background-size: 200% 100%;
   animation: gradient-shift 3s ease infinite;
   border: none;

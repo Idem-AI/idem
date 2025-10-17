@@ -60,9 +60,7 @@ export class TemplateDeployment implements OnInit {
 
   // Template mode state signals
   protected readonly availableTemplates = signal<ArchitectureTemplate[]>([]);
-  protected readonly selectedTemplate = signal<ArchitectureTemplate | null>(
-    null
-  );
+  protected readonly selectedTemplate = signal<ArchitectureTemplate | null>(null);
   protected readonly loadingDeployment = signal<boolean>(false);
   protected readonly projectId = signal<string | null>(null);
   protected readonly errorMessages = signal<string[]>([]);
@@ -92,15 +90,10 @@ export class TemplateDeployment implements OnInit {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
       console.error('No project ID found in cookies');
-      this.errorMessages.set([
-        'No project selected. Please select a project first.',
-      ]);
+      this.errorMessages.set(['No project selected. Please select a project first.']);
     } else {
       this.projectId.set(projectId);
-      console.log(
-        'Template deployment initialized with project ID:',
-        projectId
-      );
+      console.log('Template deployment initialized with project ID:', projectId);
     }
 
     // Load available templates
@@ -175,9 +168,7 @@ export class TemplateDeployment implements OnInit {
   protected createDeployment(): void {
     // Validate project ID
     if (!this.projectId()) {
-      this.errorMessages.set([
-        'No project selected. Please select a project first.',
-      ]);
+      this.errorMessages.set(['No project selected. Please select a project first.']);
       return;
     }
 
@@ -240,9 +231,7 @@ export class TemplateDeployment implements OnInit {
       error: (error) => {
         console.error('Error creating template deployment:', error);
         this.loadingDeployment.set(false);
-        this.errorMessages.set([
-          error.message || 'Failed to create template deployment',
-        ]);
+        this.errorMessages.set([error.message || 'Failed to create template deployment']);
       },
     });
   }

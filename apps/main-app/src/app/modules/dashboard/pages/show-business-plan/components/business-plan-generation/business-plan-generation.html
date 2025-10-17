@@ -1,38 +1,48 @@
 @if(showAdditionalInfoForm()) {
-  <!-- Additional Info Form -->
-  <app-additional-info-form 
-    (formSubmitted)="onAdditionalInfoSubmitted($event)"
-    (formCancelled)="onAdditionalInfoCancelled()"
-  ></app-additional-info-form>
+<!-- Additional Info Form -->
+<app-additional-info-form
+  (formSubmitted)="onAdditionalInfoSubmitted($event)"
+  (formCancelled)="onAdditionalInfoCancelled()"
+></app-additional-info-form>
 } @else if(isSavingAdditionalInfo()) {
-  <!-- Saving Additional Info Loading State -->
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-bg-dark via-bg-light to-bg-dark">
-    <div class="max-w-md mx-auto text-center">
-      <div class="glass-card rounded-xl shadow-lg p-8">
-        <div class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-          <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
-        </div>
-        <h3 class="text-xl font-bold text-white mb-2">Saving Additional Information</h3>
-        <p class="text-gray-400 mb-4">
-          We're securely saving your company details and team information...
-        </p>
-        
-        @if(additionalInfoError()) {
-        <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
-          <p class="text-red-400 text-sm">{{ additionalInfoError() }}</p>
-        </div>
-        }
-        
-        <div class="flex justify-center">
-          <div class="flex space-x-1">
-            <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-            <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-            <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-          </div>
+<!-- Saving Additional Info Loading State -->
+<div
+  class="min-h-screen flex items-center justify-center bg-gradient-to-br from-bg-dark via-bg-light to-bg-dark"
+>
+  <div class="max-w-md mx-auto text-center">
+    <div class="glass-card rounded-xl shadow-lg p-8">
+      <div
+        class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6"
+      >
+        <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
+      </div>
+      <h3 class="text-xl font-bold text-white mb-2">Saving Additional Information</h3>
+      <p class="text-gray-400 mb-4">
+        We're securely saving your company details and team information...
+      </p>
+
+      @if(additionalInfoError()) {
+      <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+        <p class="text-red-400 text-sm">{{ additionalInfoError() }}</p>
+      </div>
+      }
+
+      <div class="flex justify-center">
+        <div class="flex space-x-1">
+          <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+          <div
+            class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+            style="animation-delay: 0.1s"
+          ></div>
+          <div
+            class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+            style="animation-delay: 0.2s"
+          ></div>
         </div>
       </div>
     </div>
   </div>
+</div>
 } @else if(isGenerating() || isPostProcessing()) {
 <!-- Sticky Progress Header - Always Visible -->
 <div
@@ -41,25 +51,16 @@
   <div class="max-w-7xl mx-auto px-6 py-4">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-4">
-        <div
-          class="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center"
-        >
+        <div class="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center">
           <i class="pi pi-cog animate-spin text-xl text-white"></i>
         </div>
         <div>
           <h2 class="text-xl font-bold text-white">
-            @if(isPostProcessing()) {
-              Finalizing Business Plan
-            } @else {
-              Generating Business Plan
-            }
+            @if(isPostProcessing()) { Finalizing Business Plan } @else { Generating Business Plan }
           </h2>
           <p class="text-gray-300 text-sm">
-            @if(isPostProcessing()) {
-              {{ postProcessingMessage() }}
-            } @else {
-              Creating your comprehensive business plan...
-            }
+            @if(isPostProcessing()) { {{ postProcessingMessage() }} } @else { Creating your
+            comprehensive business plan... }
           </p>
           @if (generationState().stepsInProgress.length > 0) {
           <p class="text-xs text-blue-400 mt-1">
@@ -78,7 +79,8 @@
           <div class="text-sm text-gray-300">Steps Completed</div>
           @if (generationState().completedSteps.length > 0) {
           <div class="text-xs text-green-400 mt-1">
-            Last: {{ generationState().completedSteps[generationState().completedSteps.length - 1] }}
+            Last: {{ generationState().completedSteps[generationState().completedSteps.length - 1]
+            }}
           </div>
           }
         </div>
@@ -132,9 +134,7 @@
               </div>
             </div>
             <div class="flex items-center space-x-2">
-              <div
-                class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-              ></div>
+              <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <div
                 class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
                 style="animation-delay: 0.2s"
@@ -170,16 +170,20 @@
                 <i class="pi pi-cog animate-spin text-white"></i>
               </div>
               <div>
-                <h3 class="text-lg font-semibold text-white">
-                  {{ stepName }}
-                </h3>
+                <h3 class="text-lg font-semibold text-white">{{ stepName }}</h3>
                 <p class="text-gray-300 text-sm">In Progress...</p>
               </div>
             </div>
             <div class="flex items-center space-x-2">
               <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
-              <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+              <div
+                class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
+                style="animation-delay: 0.2s"
+              ></div>
+              <div
+                class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
+                style="animation-delay: 0.4s"
+              ></div>
             </div>
           </div>
         </div>
@@ -196,15 +200,11 @@
     <div class="space-y-6">
       <div class="grid gap-6">
         @for (step of completedSteps(); track step.name) {
-        <div
-          class="glass-card rounded-xl shadow-md border border-gray-800/30 overflow-hidden"
-        >
+        <div class="glass-card rounded-xl shadow-md border border-gray-800/30 overflow-hidden">
           <div class="px-6 py-4 border-b">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-3">
-                <div
-                  class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center"
-                >
+                <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                   <i class="pi pi-check text-white text-sm"></i>
                 </div>
                 <div>
@@ -239,12 +239,7 @@
       <div
         class="w-16 h-16 bg-red-100/5 rounded-full flex items-center justify-center mx-auto mb-4"
       >
-        <svg
-          class="w-8 h-8 text-red-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -255,12 +250,7 @@
       </div>
       <h3 class="text-xl font-bold text-white mb-2">Generation Failed</h3>
       <p class="text-gray-400 mb-6">{{ generationError() }}</p>
-      <button
-        (click)="generateBusinessPlan()"
-        class="w-full inner-button"
-      >
-        Try Again
-      </button>
+      <button (click)="generateBusinessPlan()" class="w-full inner-button">Try Again</button>
     </div>
   </div>
 </div>
@@ -273,12 +263,7 @@
       <div
         class="w-20 h-20 bg-blue-800/5 rounded-full flex items-center justify-center mx-auto mb-6"
       >
-        <svg
-          class="w-10 h-10 text-blue-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"

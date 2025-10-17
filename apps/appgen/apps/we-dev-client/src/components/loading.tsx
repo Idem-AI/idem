@@ -1,6 +1,6 @@
-import React from "react";
-import { create } from "zustand";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import { create } from 'zustand';
+import { cn } from '@/lib/utils';
 
 interface LoadingStore {
   isLoading: boolean;
@@ -25,8 +25,8 @@ export const Loading: React.FC = () => {
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center",
-        "bg-background/80 backdrop-blur-sm"
+        'fixed inset-0 z-50 flex items-center justify-center',
+        'bg-background/80 backdrop-blur-sm'
       )}
     >
       <div className="flex flex-col items-center space-y-4">
@@ -37,7 +37,6 @@ export const Loading: React.FC = () => {
           </div>
           <span className="text-sm text-muted-foreground">Loading...</span>
         </div>
-        
       </div>
     </div>
   );

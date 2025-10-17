@@ -54,10 +54,7 @@ async function convertSvgToBase64(svg: SVGSVGElement): Promise<string> {
   });
 }
 
-export async function generatePdf(
-  content: string,
-  isMarkdown: boolean = false
-): Promise<void> {
+export async function generatePdf(content: string, isMarkdown: boolean = false): Promise<void> {
   let htmlContent = isMarkdown ? await marked(content) : content;
 
   const tempDiv = document.createElement('div');

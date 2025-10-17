@@ -1,11 +1,4 @@
-import {
-  Component,
-  signal,
-  OnInit,
-  OnDestroy,
-  inject,
-  PLATFORM_ID,
-} from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { SeoService } from '../../../../shared/services/seo.service';
 
@@ -51,21 +44,15 @@ export class Diagrams implements OnInit, OnDestroy {
     {
       id: 'use-case',
       title: 'Use Case Diagrams',
-      description:
-        'Visual representation of system functionality and user interactions',
+      description: 'Visual representation of system functionality and user interactions',
       icon: 'pi-users',
       color: '#1447e6',
-      examples: [
-        'User Registration',
-        'Payment Processing',
-        'Content Management',
-      ],
+      examples: ['User Registration', 'Payment Processing', 'Content Management'],
     },
     {
       id: 'class',
       title: 'Class Diagrams',
-      description:
-        'Object-oriented system structure with classes, attributes, and relationships',
+      description: 'Object-oriented system structure with classes, attributes, and relationships',
       icon: 'pi-sitemap',
       color: '#22c55e',
       examples: ['User Management', 'Product Catalog', 'Order System'],
@@ -73,8 +60,7 @@ export class Diagrams implements OnInit, OnDestroy {
     {
       id: 'sequence',
       title: 'Sequence Diagrams',
-      description:
-        'Time-ordered interaction between system components and actors',
+      description: 'Time-ordered interaction between system components and actors',
       icon: 'pi-arrows-h',
       color: '#d11ec0',
       examples: ['Login Flow', 'API Calls', 'Data Processing'],
@@ -82,8 +68,7 @@ export class Diagrams implements OnInit, OnDestroy {
     {
       id: 'activity',
       title: 'Activity Diagrams',
-      description:
-        'Workflow and business process modeling with decision points',
+      description: 'Workflow and business process modeling with decision points',
       icon: 'pi-share-alt',
       color: '#f59e0b',
       examples: ['Order Processing', 'User Onboarding', 'Content Approval'],
@@ -91,8 +76,7 @@ export class Diagrams implements OnInit, OnDestroy {
     {
       id: 'component',
       title: 'Component Diagrams',
-      description:
-        'System architecture showing components and their dependencies',
+      description: 'System architecture showing components and their dependencies',
       icon: 'pi-th-large',
       color: '#8b5cf6',
       examples: ['Microservices', 'Frontend Architecture', 'Database Design'],
@@ -103,11 +87,7 @@ export class Diagrams implements OnInit, OnDestroy {
       description: 'Infrastructure and deployment architecture visualization',
       icon: 'pi-cloud',
       color: '#06b6d4',
-      examples: [
-        'Cloud Infrastructure',
-        'Server Architecture',
-        'Network Topology',
-      ],
+      examples: ['Cloud Infrastructure', 'Server Architecture', 'Network Topology'],
     },
   ]);
 
@@ -121,8 +101,7 @@ export class Diagrams implements OnInit, OnDestroy {
       description: 'User journey from registration to checkout',
       elements: 12,
       connections: 18,
-      previewData:
-        'User → Browse Products → Add to Cart → Checkout → Payment → Order Confirmation',
+      previewData: 'User → Browse Products → Add to Cart → Checkout → Payment → Order Confirmation',
     },
     {
       id: '2',
@@ -145,8 +124,7 @@ export class Diagrams implements OnInit, OnDestroy {
       description: 'JWT authentication flow',
       elements: 5,
       connections: 10,
-      previewData:
-        'Client → Auth Server → Database → Token Generation → Response',
+      previewData: 'Client → Auth Server → Database → Token Generation → Response',
     },
     {
       id: '4',
@@ -233,10 +211,7 @@ export class Diagrams implements OnInit, OnDestroy {
     };
 
     // Add structured data to page if not already present
-    if (
-      this.isBrowser() &&
-      !document.querySelector('script[data-diagrams-structured-data]')
-    ) {
+    if (this.isBrowser() && !document.querySelector('script[data-diagrams-structured-data]')) {
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.setAttribute('data-diagrams-structured-data', 'true');

@@ -1,14 +1,14 @@
 import React, { useState, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Tree, Button, Tooltip, Upload, message, Modal, Form, Input, Select } from 'antd';
-import { 
-  DownloadOutlined, 
-  UploadOutlined, 
+import {
+  DownloadOutlined,
+  UploadOutlined,
   FolderOutlined,
   ApiOutlined,
   PlusOutlined,
   FolderAddOutlined,
   DeleteOutlined,
-  EditOutlined
+  EditOutlined,
 } from '@ant-design/icons';
 import { DataNode } from 'antd/es/tree';
 import type { TreeProps } from 'antd/es/tree';
@@ -43,7 +43,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
   };
 
   useImperativeHandle(ref, () => ({
-    handleEdit
+    handleEdit,
   }));
 
   const handleDelete = (item: ApiItem | FolderItem, e: React.MouseEvent) => {
@@ -51,13 +51,16 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
 
     Modal.confirm({
       title: t(item.type === 'api' ? 'weapi.delete_api_title' : 'weapi.delete_folder_title'),
-      content: t(item.type === 'folder' ? 'weapi.delete_folder_confirm' : 'weapi.delete_api_confirm', { name: item.name }),
+      content: t(
+        item.type === 'folder' ? 'weapi.delete_folder_confirm' : 'weapi.delete_api_confirm',
+        { name: item.name }
+      ),
       okText: t('common.delete'),
       okType: 'danger',
       cancelText: t('common.cancel'),
       onOk: () => {
         const removeItem = (list: (ApiItem | FolderItem)[]): (ApiItem | FolderItem)[] => {
-          return list.filter(listItem => {
+          return list.filter((listItem) => {
             if (listItem.id === item.id) return false;
             if (listItem.type === 'folder') {
               listItem.children = removeItem(listItem.children);
@@ -74,11 +77,11 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
 
   const getMethodColor = (method: string): string => {
     const colors: Record<string, string> = {
-      GET: '#61affe',    // 蓝色
-      POST: '#49cc90',   // 绿色
-      PUT: '#fca130',    // 橙色
+      GET: '#61affe', // 蓝色
+      POST: '#49cc90', // 绿色
+      PUT: '#fca130', // 橙色
       DELETE: '#f93e3e', // 红色
-      PATCH: '#50e3c2',  // 青色
+      PATCH: '#50e3c2', // 青色
     };
     return colors[method] || '#999';
   };
@@ -89,64 +92,72 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
   };
 
   const convertToTreeData = (list: (ApiItem | FolderItem)[]): DataNode[] => {
-    return list.map(item => ({
+    return list.map((item) => ({
       key: item.id,
       title: (
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          width: '100%',
-          padding: '4px 0'
-        }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            flex: 1,
-            overflow: 'hidden'
-          }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            padding: '4px 0',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flex: 1,
+              overflow: 'hidden',
+            }}
+          >
             {item.type === 'folder' ? (
               <FolderOutlined style={{ fontSize: '16px', color: '#666' }} />
             ) : (
               <ApiOutlined style={{ fontSize: '16px', color: '#666' }} />
             )}
             <Tooltip title={item.name}>
-              <span style={{ 
-                flex: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}>
+              <span
+                style={{
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {truncateString(item.name)}
               </span>
             </Tooltip>
             {item.type === 'api' && (
-              <span style={{ 
-                fontSize: '11px',
-                padding: '1px 6px',
-                backgroundColor: getMethodColor(item.method),
-                color: '#fff',
-                borderRadius: '3px',
-                fontWeight: '600',
-                minWidth: '44px',
-                textAlign: 'center',
-                letterSpacing: '0.5px',
-                flexShrink: 0
-              }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  padding: '1px 6px',
+                  backgroundColor: getMethodColor(item.method),
+                  color: '#fff',
+                  borderRadius: '3px',
+                  fontWeight: '600',
+                  minWidth: '44px',
+                  textAlign: 'center',
+                  letterSpacing: '0.5px',
+                  flexShrink: 0,
+                }}
+              >
                 {item.method}
               </span>
             )}
           </div>
-          <div 
-            className="node-actions" 
-            style={{ 
+          <div
+            className="node-actions"
+            style={{
               opacity: 0,
               transition: 'opacity 0.2s',
               display: 'flex',
               gap: '4px',
               marginLeft: '8px',
-              flexShrink: 0
+              flexShrink: 0,
             }}
           >
             <Button
@@ -169,7 +180,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
         </div>
       ),
       children: item.type === 'folder' ? convertToTreeData(item.children) : undefined,
-      isLeaf: item.type === 'api'
+      isLeaf: item.type === 'api',
     }));
   };
 
@@ -203,12 +214,12 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
       cookies: [],
       pathParams: [],
       bodyType: 'none',
-      body: {}
+      body: {},
     };
     setEditingItem(null);
     form.setFieldsValue({
       ...newApi,
-      type: 'api'
+      type: 'api',
     });
     setEditModalVisible(true);
   };
@@ -218,12 +229,12 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
       id: uuidv4(),
       type: 'folder',
       name: t('weapi.new_folder'),
-      children: []
+      children: [],
     };
     setEditingItem(null);
     form.setFieldsValue({
       ...newFolder,
-      type: 'folder'
+      type: 'folder',
     });
     setEditModalVisible(true);
   };
@@ -232,7 +243,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
     try {
       const values = await form.validateFields();
       let updatedItem;
-      
+
       if (!editingItem) {
         const type = form.getFieldValue('type');
         if (type === 'api') {
@@ -247,26 +258,26 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
             cookies: [],
             pathParams: [],
             bodyType: 'none',
-            body: {}
+            body: {},
           } as ApiItem;
         } else {
           updatedItem = {
             id: uuidv4(),
             type: 'folder',
             name: values.name,
-            children: []
+            children: [],
           } as FolderItem;
         }
       } else {
         updatedItem = { ...editingItem, ...values };
       }
-      
+
       const updateList = (list: (ApiItem | FolderItem)[]): (ApiItem | FolderItem)[] => {
         if (!editingItem) {
           return [...list, updatedItem];
         }
-        
-        return list.map(item => {
+
+        return list.map((item) => {
           if (item.id === editingItem.id) {
             return updatedItem;
           }
@@ -324,9 +335,12 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
     const dropPos = info.node.pos.split('-');
     const dropPosition = info.dropPosition - Number(dropPos[dropPos.length - 1]);
 
-    const findAndRemoveItem = (items: (ApiItem | FolderItem)[], key: string): [ApiItem | FolderItem | null, (ApiItem | FolderItem)[]] => {
+    const findAndRemoveItem = (
+      items: (ApiItem | FolderItem)[],
+      key: string
+    ): [ApiItem | FolderItem | null, (ApiItem | FolderItem)[]] => {
       let removedItem = null;
-      const newItems = items.filter(item => {
+      const newItems = items.filter((item) => {
         if (item.id === key) {
           removedItem = item;
           return false;
@@ -387,14 +401,17 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
     props.onImport(dataWithoutDragItem);
   };
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    isResizing.current = true;
-    startX.current = e.clientX;
-    startWidth.current = width;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.body.style.userSelect = 'none';
-  }, [width]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      isResizing.current = true;
+      startX.current = e.clientX;
+      startWidth.current = width;
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = 'none';
+    },
+    [width]
+  );
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
@@ -411,8 +428,8 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
   }, []);
 
   return (
-    <div 
-      className="h-full flex flex-col border-r border-gray-200 dark:bg-[#131315] relative" 
+    <div
+      className="h-full flex flex-col border-r border-gray-200 dark:bg-[#131315] relative"
       style={{ width: `${width}px` }}
     >
       <div className="p-4 border-b border-gray-200 dark:border-[#1a1a1c]">
@@ -426,18 +443,14 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
           <Tooltip title={t('weapi.export')}>
             <Button icon={<DownloadOutlined />} onClick={handleExport} />
           </Tooltip>
-          <Upload
-            showUploadList={false}
-            beforeUpload={handleImport}
-            accept=".json"
-          >
+          <Upload showUploadList={false} beforeUpload={handleImport} accept=".json">
             <Tooltip title={t('weapi.import')}>
               <Button icon={<UploadOutlined />} />
             </Tooltip>
           </Upload>
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-auto p-4 text-sm">
         <Tree
           className="draggable-tree [&_.ant-tree-node-content-wrapper]:w-full [&_.ant-tree-node-content-wrapper:hover_.node-actions]:opacity-100 [&_.node-actions_.ant-btn]:p-1 [&_.node-actions_.ant-btn:hover]:bg-gray-100/50"
@@ -459,10 +472,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
         cancelText={t('common.cancel')}
       >
         <Form form={form} layout="vertical">
-          <Form.Item
-            name="type"
-            label={t('weapi.item_type')}
-          >
+          <Form.Item name="type" label={t('weapi.item_type')}>
             <Select disabled={!!editingItem}>
               <Select.Option value="api">{t('weapi.type_api')}</Select.Option>
               <Select.Option value="folder">{t('weapi.type_folder')}</Select.Option>
@@ -476,13 +486,10 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
           >
             <Input />
           </Form.Item>
-          
+
           {form.getFieldValue('type') === 'api' && (
             <>
-              <Form.Item
-                name="method"
-                label={t('weapi.method')}
-              >
+              <Form.Item name="method" label={t('weapi.method')}>
                 <Select>
                   <Select.Option value="GET">GET</Select.Option>
                   <Select.Option value="POST">POST</Select.Option>
@@ -493,7 +500,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
                   <Select.Option value="OPTIONS">OPTIONS</Select.Option>
                 </Select>
               </Form.Item>
-              
+
               <Form.Item
                 name="url"
                 label={t('weapi.url')}
@@ -516,4 +523,4 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
 
 ApiList.displayName = 'ApiList';
 
-export default ApiList; 
+export default ApiList;

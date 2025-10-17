@@ -1,11 +1,6 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import {
-  Analytics,
-  logEvent,
-  setUserId,
-  setUserProperties,
-} from '@angular/fire/analytics';
+import { Analytics, logEvent, setUserId, setUserProperties } from '@angular/fire/analytics';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';

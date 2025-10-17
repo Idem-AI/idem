@@ -26,7 +26,7 @@ interface BrandShowcase {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './brand-charter.html',
-  styleUrl: './brand-charter.css'
+  styleUrl: './brand-charter.css',
 })
 export class BrandCharter implements OnInit {
   // Angular-initialized properties
@@ -37,36 +37,36 @@ export class BrandCharter implements OnInit {
   protected readonly activeTab = signal<string>('elements');
   protected readonly showAll = signal<boolean>(false);
   protected readonly showAllElements = signal<boolean>(false);
-  
+
   protected readonly brandElements = signal<BrandElement[]>([
     {
       id: 'colors',
       title: 'Color Palette',
       description: 'Colors that reflect your brand personality',
       icon: 'pi-palette',
-      examples: ['Primary Colors', 'Secondary Colors', 'Accent Colors']
+      examples: ['Primary Colors', 'Secondary Colors', 'Accent Colors'],
     },
     {
       id: 'typography',
       title: 'Typography',
       description: 'Font families for consistent communication',
       icon: 'pi-font',
-      examples: ['Headings Font', 'Body Text Font', 'Display Font']
+      examples: ['Headings Font', 'Body Text Font', 'Display Font'],
     },
     {
       id: 'logo',
       title: 'Logo Variations',
       description: 'Logo formats for different use cases',
       icon: 'pi-star',
-      examples: ['Primary Logo', 'Secondary Mark', 'Icon Version']
+      examples: ['Primary Logo', 'Secondary Mark', 'Icon Version'],
     },
     {
       id: 'imagery',
       title: 'Visual Style',
       description: 'Visual elements that support your brand',
       icon: 'pi-image',
-      examples: ['Photography Style', 'Illustration Style', 'Icon Style']
-    }
+      examples: ['Photography Style', 'Illustration Style', 'Icon Style'],
+    },
   ]);
 
   protected readonly brandShowcases = signal<BrandShowcase[]>([
@@ -78,7 +78,7 @@ export class BrandCharter implements OnInit {
       secondaryColor: '#22d3ee',
       fontFamily: 'Inter',
       logoStyle: 'Modern Geometric',
-      description: 'Professional B2B SaaS brand identity'
+      description: 'Professional B2B SaaS brand identity',
     },
     {
       id: '2',
@@ -88,7 +88,7 @@ export class BrandCharter implements OnInit {
       secondaryColor: '#16a34a',
       fontFamily: 'Poppins',
       logoStyle: 'Organic Natural',
-      description: 'Eco-friendly brand for green products'
+      description: 'Eco-friendly brand for green products',
     },
     {
       id: '3',
@@ -98,8 +98,8 @@ export class BrandCharter implements OnInit {
       secondaryColor: '#9333ea',
       fontFamily: 'Montserrat',
       logoStyle: 'Artistic Bold',
-      description: 'Creative brand for design agency'
-    }
+      description: 'Creative brand for design agency',
+    },
   ]);
 
   ngOnInit(): void {
@@ -141,39 +141,40 @@ export class BrandCharter implements OnInit {
   private setupSeoForBrandCharter(): void {
     // Add structured data for brand charter
     const brandCharterStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "name": "AI Brand Identity Creation",
-      "description": "Comprehensive brand charter creation including color palettes, typography, logos, and visual style guidelines",
-      "provider": {
-        "@type": "Organization",
-        "name": "Idem"
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: 'AI Brand Identity Creation',
+      description:
+        'Comprehensive brand charter creation including color palettes, typography, logos, and visual style guidelines',
+      provider: {
+        '@type': 'Organization',
+        name: 'Idem',
       },
-      "serviceType": "Brand Design Service",
-      "areaServed": "Worldwide",
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "Brand Elements",
-        "itemListElement": this.brandElements().map((element, index) => ({
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "Service",
-            "name": element.title,
-            "description": element.description,
-            "category": "Brand Design"
-          }
-        }))
+      serviceType: 'Brand Design Service',
+      areaServed: 'Worldwide',
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Brand Elements',
+        itemListElement: this.brandElements().map((element, index) => ({
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: element.title,
+            description: element.description,
+            category: 'Brand Design',
+          },
+        })),
       },
-      "workExample": this.brandShowcases().map(showcase => ({
-        "@type": "CreativeWork",
-        "name": `${showcase.brandName} Brand Identity`,
-        "description": showcase.description,
-        "about": {
-          "@type": "Thing",
-          "name": showcase.industry,
-          "description": `Brand identity for ${showcase.industry} industry`
-        }
-      }))
+      workExample: this.brandShowcases().map((showcase) => ({
+        '@type': 'CreativeWork',
+        name: `${showcase.brandName} Brand Identity`,
+        description: showcase.description,
+        about: {
+          '@type': 'Thing',
+          name: showcase.industry,
+          description: `Brand identity for ${showcase.industry} industry`,
+        },
+      })),
     };
 
     // Add structured data to page if not already present

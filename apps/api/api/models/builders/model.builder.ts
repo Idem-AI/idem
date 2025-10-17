@@ -1,25 +1,18 @@
-import { AnalysisResultModel } from "../analysisResult.model";
-import { ArchetypeModel } from "../archetypes.model";
-import { ArchitectureModel } from "../architecture.model";
-import {
-  BrandIdentityModel,
-  ColorModel,
-  TypographyModel,
-} from "../brand-identity.model";
-import { BusinessPlanModel } from "../businessPlan.model";
-import { DeploymentModel } from "../deployment.model";
-import {
-  DevelopmentConfigsModel,
-  LandingPageConfig,
-} from "../development.model";
-import { DiagramModel } from "../diagram.model";
-import { LandingModel } from "../landing.model";
-import { LogoModel } from "../logo.model";
-import { ProjectModel } from "../project.model";
-import { SectionModel } from "../section.model";
-import { UserModel } from "../userModel";
-import { WebContainerModel } from "../webcontainer.model";
-import { v4 as uuidv4 } from "uuid";
+import { AnalysisResultModel } from '../analysisResult.model';
+import { ArchetypeModel } from '../archetypes.model';
+import { ArchitectureModel } from '../architecture.model';
+import { BrandIdentityModel, ColorModel, TypographyModel } from '../brand-identity.model';
+import { BusinessPlanModel } from '../businessPlan.model';
+import { DeploymentModel } from '../deployment.model';
+import { DevelopmentConfigsModel, LandingPageConfig } from '../development.model';
+import { DiagramModel } from '../diagram.model';
+import { LandingModel } from '../landing.model';
+import { LogoModel } from '../logo.model';
+import { ProjectModel } from '../project.model';
+import { SectionModel } from '../section.model';
+import { UserModel } from '../userModel';
+import { WebContainerModel } from '../webcontainer.model';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Builder pattern for creating empty/default instances of all models
@@ -36,8 +29,8 @@ export class ModelBuilder {
       development: { configs: this.createEmptyDevelopmentConfigs() },
       branding: this.createEmptyBrandIdentity(),
       landing: this.createEmptyLanding(),
-      testing: "",
-      generatedDeployment: [{ name: "", content: "" }],
+      testing: '',
+      generatedDeployment: [{ name: '', content: '' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -64,9 +57,9 @@ export class ModelBuilder {
   static createEmptyLogo(): LogoModel {
     return {
       id: uuidv4(),
-      name: "",
-      svg: "",
-      concept: "",
+      name: '',
+      svg: '',
+      concept: '',
       colors: [],
       fonts: [],
     };
@@ -78,14 +71,14 @@ export class ModelBuilder {
   static createEmptyColor(): ColorModel {
     return {
       id: uuidv4(),
-      name: "",
-      url: "",
+      name: '',
+      url: '',
       colors: {
-        primary: "#000000",
-        secondary: "#666666",
-        accent: "#0066cc",
-        background: "#ffffff",
-        text: "#333333",
+        primary: '#000000',
+        secondary: '#666666',
+        accent: '#0066cc',
+        background: '#ffffff',
+        text: '#333333',
       },
     };
   }
@@ -96,10 +89,10 @@ export class ModelBuilder {
   static createEmptyTypography(): TypographyModel {
     return {
       id: uuidv4(),
-      name: "",
-      url: "",
-      primaryFont: "",
-      secondaryFont: "",
+      name: '',
+      url: '',
+      primaryFont: '',
+      secondaryFont: '',
     };
   }
 
@@ -109,27 +102,27 @@ export class ModelBuilder {
   static createEmptyProject(): ProjectModel {
     return {
       project: undefined,
-      name: "",
-      description: "",
-      type: "web",
+      name: '',
+      description: '',
+      type: 'web',
       constraints: [],
-      teamSize: "",
-      scope: "",
-      targets: "",
+      teamSize: '',
+      scope: '',
+      targets: '',
       createdAt: new Date(),
       updatedAt: new Date(),
-      userId: "",
+      userId: '',
       selectedPhases: [],
       analysisResultModel: this.createEmptyAnalysisResult(),
       deployments: [],
       activeChatMessages: [],
       additionalInfos: {
-        email: "",
-        phone: "",
-        address: "",
-        city: "",
-        country: "",
-        zipCode: "",
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        country: '',
+        zipCode: '',
         teamMembers: [],
       },
     };
@@ -150,7 +143,7 @@ export class ModelBuilder {
   static createEmptyLanding(): LandingModel {
     return {
       selectedOptions: {
-        stack: "",
+        stack: '',
         seoEnabled: false,
         contactFormEnabled: false,
         analyticsEnabled: false,
@@ -175,11 +168,11 @@ export class ModelBuilder {
   static createEmptyDeployment(): DeploymentModel {
     return {
       id: uuidv4(),
-      name: "",
-      projectId: "",
-      status: "configuring",
-      environment: "development",
-      mode: "beginner",
+      name: '',
+      projectId: '',
+      status: 'configuring',
+      environment: 'development',
+      mode: 'beginner',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -190,9 +183,9 @@ export class ModelBuilder {
    */
   static createEmptyUser(): UserModel {
     return {
-      uid: "",
-      email: "",
-      subscription: "free",
+      uid: '',
+      email: '',
+      subscription: 'free',
       createdAt: new Date(),
       lastLogin: new Date(),
       quota: {
@@ -211,10 +204,10 @@ export class ModelBuilder {
    */
   static createEmptySection(): SectionModel {
     return {
-      name: "",
-      type: "",
+      name: '',
+      type: '',
       data: undefined,
-      summary: "",
+      summary: '',
     };
   }
 
@@ -223,9 +216,9 @@ export class ModelBuilder {
    */
   static createEmptyArchitecture(): ArchitectureModel {
     return {
-      content: "",
-      summary: "",
-      name: "",
+      content: '',
+      summary: '',
+      name: '',
     };
   }
 
@@ -234,14 +227,14 @@ export class ModelBuilder {
    */
   static createEmptyArchetype(): ArchetypeModel {
     return {
-      id: "",
-      name: "",
-      description: "",
-      provider: "aws",
-      category: "",
+      id: '',
+      name: '',
+      description: '',
+      provider: 'aws',
+      category: '',
       tags: [],
-      icon: "",
-      version: "",
+      icon: '',
+      version: '',
       terraformVariables: [],
       defaultValues: {},
       isActive: false,
@@ -257,10 +250,10 @@ export class ModelBuilder {
     return {
       constraints: [],
       frontend: {
-        framework: "",
+        framework: '',
         frameworkVersion: undefined,
         frameworkIconUrl: undefined,
-        styling: "",
+        styling: '',
         stateManagement: undefined,
         features: [],
       },
@@ -268,10 +261,10 @@ export class ModelBuilder {
         language: undefined,
         languageVersion: undefined,
         languageIconUrl: undefined,
-        framework: "",
+        framework: '',
         frameworkVersion: undefined,
         frameworkIconUrl: undefined,
-        apiType: "",
+        apiType: '',
         apiVersion: undefined,
         apiIconUrl: undefined,
         orm: undefined,
@@ -281,7 +274,7 @@ export class ModelBuilder {
       },
       database: {
         type: undefined,
-        provider: "",
+        provider: '',
         version: undefined,
         providerIconUrl: undefined,
         orm: undefined,

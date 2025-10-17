@@ -13,7 +13,7 @@ export interface UserModel {
   email: string;
   displayName?: string;
   photoURL?: string;
-  subscription: "free" | "pro" | "enterprise";
+  subscription: 'free' | 'pro' | 'enterprise';
   createdAt: Date;
   lastLogin: Date;
 

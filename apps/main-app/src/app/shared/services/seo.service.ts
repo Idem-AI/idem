@@ -23,9 +23,7 @@ export class SeoService {
   }
 
   setCanonicalUrl(path = ''): void {
-    const linkElement: HTMLLinkElement | null = document.querySelector(
-      'link[rel="canonical"]'
-    );
+    const linkElement: HTMLLinkElement | null = document.querySelector('link[rel="canonical"]');
     const canonicalUrl = `${this.domain}${path}`;
 
     if (linkElement) {

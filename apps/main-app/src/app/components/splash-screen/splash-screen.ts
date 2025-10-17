@@ -1,10 +1,4 @@
-import {
-  Component,
-  OnInit,
-  inject,
-  signal,
-  PLATFORM_ID,
-} from '@angular/core';
+import { Component, OnInit, inject, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 
@@ -35,7 +29,7 @@ export class SplashScreenComponent implements OnInit {
 
   private startProgressAnimation(): void {
     this.progress.set(0);
-    
+
     // Animation de progression simple
     this.progressInterval = window.setInterval(() => {
       const currentProgress = this.progress();

@@ -18,14 +18,14 @@ export class RepositoryFactory {
    */
   public static getRepository<T extends BaseEntity>(): IRepository<T> {
     logger.info(`RepositoryFactory.getRepository called, SGBD: ${activeSGBD}`);
-    
+
     switch (activeSGBD) {
       case SGBDType.FIRESTORE:
         logger.info(`Creating FirestoreRepository`);
         return new FirestoreRepository<T>();
       // case SGBDType.MONGODB:
       //   // Assuming you would have a MongoDBRepository that implements IRepository
-      //   // import { MongoDBRepository } from './MongoDBRepository'; 
+      //   // import { MongoDBRepository } from './MongoDBRepository';
       //   // return new MongoDBRepository<T>(collectionName, userSpecificCollection);
       // case SGBDType.POSTGRESQL:
       //   // Assuming you would have a PostgreSQLRepository that implements IRepository

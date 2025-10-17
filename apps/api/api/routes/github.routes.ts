@@ -1,6 +1,6 @@
-import { Router } from "express";
-import { GitHubController } from "../controllers/github.controller";
-import { authenticate } from "../services/auth.service";
+import { Router } from 'express';
+import { GitHubController } from '../controllers/github.controller';
+import { authenticate } from '../services/auth.service';
 
 const router = Router();
 const githubController = new GitHubController();
@@ -32,11 +32,7 @@ const githubController = new GitHubController();
  *       500:
  *         description: Internal server error
  */
-router.get(
-  "/auth/url",
-  authenticate,
-  githubController.getAuthUrlController.bind(githubController)
-);
+router.get('/auth/url', authenticate, githubController.getAuthUrlController.bind(githubController));
 
 /**
  * @openapi
@@ -68,10 +64,7 @@ router.get(
  *       500:
  *         description: Internal server error
  */
-router.get(
-  "/auth/callback",
-  githubController.handleOAuthCallbackController.bind(githubController)
-);
+router.get('/auth/callback', githubController.handleOAuthCallbackController.bind(githubController));
 
 /**
  * @openapi
@@ -109,7 +102,7 @@ router.get(
  *         description: Internal server error
  */
 router.post(
-  "/projects/:projectId/push",
+  '/projects/:projectId/push',
   authenticate,
   githubController.pushProjectToGitHubController.bind(githubController)
 );
@@ -144,7 +137,7 @@ router.post(
  *         description: Internal server error
  */
 router.get(
-  "/repositories",
+  '/repositories',
   authenticate,
   githubController.getUserRepositoriesController.bind(githubController)
 );
@@ -179,7 +172,7 @@ router.get(
  *         description: Internal server error
  */
 router.get(
-  "/user",
+  '/user',
   authenticate,
   githubController.getGitHubUserInfoController.bind(githubController)
 );
@@ -212,7 +205,7 @@ router.get(
  *         description: Internal server error
  */
 router.delete(
-  "/disconnect",
+  '/disconnect',
   authenticate,
   githubController.disconnectGitHubController.bind(githubController)
 );

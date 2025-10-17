@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  OnInit,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { ProjectService } from '../../services/project.service';
@@ -33,9 +27,7 @@ export class DashboardComponent implements OnInit {
     const projectId = this.cookieService.get('projectId');
     console.log('projectId', projectId);
     if (!projectId) {
-      this.error.set(
-        'No project selected. Please select a project to view the dashboard.'
-      );
+      this.error.set('No project selected. Please select a project to view the dashboard.');
       this.isLoading.set(false);
       this.router.navigate(['/console/projects']);
       return;

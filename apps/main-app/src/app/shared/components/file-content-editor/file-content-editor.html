@@ -20,9 +20,7 @@
 
   <!-- Single file header (when only one file) -->
   @if (!hasMultipleFiles() && activeFile()) {
-  <div
-    class="flex items-center justify-between mb-4 pb-2 border-b border-gray-700"
-  >
+  <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
     <div class="flex items-center gap-2">
       <span class="text-lg">{{ getFileTypeIcon(activeFile()!.type) }}</span>
       <h3 class="text-lg font-semibold text-white">{{ activeFile()!.name }}</h3>
@@ -89,7 +87,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
           <h4 class="text-white font-medium">Editing: {{ activeFile()!.name }}</h4>
-          
+
           <!-- Mode toggle for tfvars files -->
           @if (showModeToggle()) {
           <div class="flex items-center bg-gray-700 rounded-lg p-1">
@@ -100,8 +98,18 @@
               class="px-3 py-1 rounded text-sm font-medium transition-colors"
               (click)="switchEditMode('code')"
             >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+              <svg
+                class="w-4 h-4 inline mr-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                ></path>
               </svg>
               Code
             </button>
@@ -112,15 +120,25 @@
               class="px-3 py-1 rounded text-sm font-medium transition-colors"
               (click)="switchEditMode('form')"
             >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              <svg
+                class="w-4 h-4 inline mr-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                ></path>
               </svg>
               Form
             </button>
           </div>
           }
         </div>
-        
+
         <div class="flex items-center gap-2">
           <button
             (click)="saveEdit()"
@@ -167,29 +185,28 @@
 
       <!-- Editing content based on mode -->
       @if (currentEditMode() === 'form' && isTfVarsFile() && tfVarsFormDataSignal()) {
-        <!-- Form Mode for tfvars -->
-        <div class="bg-gray-900 rounded border border-gray-600 overflow-hidden">
-          <app-tfvars-form-editor
-            [formData]="tfVarsFormDataSignal()!"
-            [readonly]="false"
-            (formDataChanged)="onTfVarsFormDataChanged($event)"
-          ></app-tfvars-form-editor>
-        </div>
+      <!-- Form Mode for tfvars -->
+      <div class="bg-gray-900 rounded border border-gray-600 overflow-hidden">
+        <app-tfvars-form-editor
+          [formData]="tfVarsFormDataSignal()!"
+          [readonly]="false"
+          (formDataChanged)="onTfVarsFormDataChanged($event)"
+        ></app-tfvars-form-editor>
+      </div>
       } @else {
-        <!-- Code Mode -->
-        <textarea
-          [(ngModel)]="editContentSignal"
-          class="w-full h-96 bg-gray-900 text-gray-100 font-mono text-sm p-4 rounded border border-gray-600 focus:border-blue-500 focus:outline-none resize-none"
-          placeholder="Enter file content..."
-        ></textarea>
+      <!-- Code Mode -->
+      <textarea
+        [(ngModel)]="editContentSignal"
+        class="w-full h-96 bg-gray-900 text-gray-100 font-mono text-sm p-4 rounded border border-gray-600 focus:border-blue-500 focus:outline-none resize-none"
+        placeholder="Enter file content..."
+      ></textarea>
       }
     </div>
     } @else {
     <!-- View Mode -->
     <div class="bg-gray-900 rounded border border-gray-600 overflow-hidden">
-      <pre
-        class="text-gray-100 font-mono text-sm p-4 overflow-auto max-h-96 whitespace-pre-wrap"
-        >{{ displayContent() }}</pre
+      <pre class="text-gray-100 font-mono text-sm p-4 overflow-auto max-h-96 whitespace-pre-wrap">
+{{ displayContent() }}</pre
       >
     </div>
     }

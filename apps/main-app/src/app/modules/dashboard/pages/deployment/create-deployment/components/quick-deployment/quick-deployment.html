@@ -2,18 +2,12 @@
   class="backdrop-blur-xl bg-gray-900/30 rounded-xl border border-gray-700/30 p-8 shadow-2xl max-w-3xl mx-auto animate-fade-in relative overflow-hidden"
 >
   <!-- Decorative glass elements -->
-  <div
-    class="absolute -top-20 -right-20 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl"
-  ></div>
-  <div
-    class="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"
-  ></div>
+  <div class="absolute -top-20 -right-20 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl"></div>
+  <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
 
   <div class="relative z-10">
     <div class="flex items-center gap-4 mb-6">
-      <div
-        class="bg-gradient-to-br from-teal-400 to-teal-600 p-3 rounded-lg shadow-lg"
-      >
+      <div class="bg-gradient-to-br from-teal-400 to-teal-600 p-3 rounded-lg shadow-lg">
         <i class="pi pi-bolt text-xl text-white"></i>
       </div>
       <div>
@@ -38,9 +32,7 @@
         </div>
 
         <div>
-          <label
-            for="environment"
-            class="block text-sm font-medium text-gray-200 mb-2"
+          <label for="environment" class="block text-sm font-medium text-gray-200 mb-2"
             >Environment</label
           >
           <select
@@ -55,20 +47,14 @@
         </div>
       </div>
 
-      <div
-        class="p-4 backdrop-blur-md bg-teal-500/5 rounded-lg border border-teal-500/20"
-      >
-        <h4
-          class="text-sm font-medium text-teal-300 mb-4 flex items-center gap-2"
-        >
+      <div class="p-4 backdrop-blur-md bg-teal-500/5 rounded-lg border border-teal-500/20">
+        <h4 class="text-sm font-medium text-teal-300 mb-4 flex items-center gap-2">
           <i class="pi pi-code"></i> Git Repository (Optional)
         </h4>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label
-              for="repoUrl"
-              class="block text-xs font-medium text-gray-300 mb-1"
+            <label for="repoUrl" class="block text-xs font-medium text-gray-300 mb-1"
               >Repository URL</label
             >
             <div class="flex gap-2">
@@ -95,11 +81,7 @@
           </div>
 
           <div>
-            <label
-              for="branch"
-              class="block text-xs font-medium text-gray-300 mb-1"
-              >Branch</label
-            >
+            <label for="branch" class="block text-xs font-medium text-gray-300 mb-1">Branch</label>
             <select
               id="branch"
               formControlName="branch"

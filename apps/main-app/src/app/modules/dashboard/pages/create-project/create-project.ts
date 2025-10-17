@@ -49,9 +49,7 @@ export class CreateProjectComponent implements OnInit {
 
   // Core state
   protected readonly currentStepIndex = signal<number>(0);
-  protected readonly project = signal<ProjectModel>(
-    initEmptyObject<ProjectModel>()
-  );
+  protected readonly project = signal<ProjectModel>(initEmptyObject<ProjectModel>());
   protected readonly isLoading = signal<boolean>(false);
 
   // Step configuration
@@ -74,18 +72,10 @@ export class CreateProjectComponent implements OnInit {
   ];
 
   // Computed properties
-  protected readonly currentStep = computed(
-    () => this.steps[this.currentStepIndex()]
-  );
-  protected readonly canGoNext = computed(() =>
-    this.isStepValid(this.currentStepIndex())
-  );
-  protected readonly canGoPrevious = computed(
-    () => this.currentStepIndex() > 0
-  );
-  protected readonly isLastStep = computed(
-    () => this.currentStepIndex() === this.steps.length - 1
-  );
+  protected readonly currentStep = computed(() => this.steps[this.currentStepIndex()]);
+  protected readonly canGoNext = computed(() => this.isStepValid(this.currentStepIndex()));
+  protected readonly canGoPrevious = computed(() => this.currentStepIndex() > 0);
+  protected readonly isLastStep = computed(() => this.currentStepIndex() === this.steps.length - 1);
 
   // Form validation state
   protected readonly acceptances = signal({

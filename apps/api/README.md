@@ -23,7 +23,7 @@ IDEM helps you generate:
 - **Landing Page Creation**: AI designs responsive landing pages for your application
 - **Project Generation**: AI builds full software projects based on your specifications
 - **Documentation**: AI generates comprehensive technical documentation for your software
-- **Deployment Management**: AI streamlines the deployment process across different 
+- **Deployment Management**: AI streamlines the deployment process across different
 
 ## Architecture
 
@@ -46,6 +46,7 @@ This repository contains the backend for IDEM, built with Express.js. The system
 ### CRUD Operations
 
 The system implements a unified CRUD structure for:
+
 - Projects
 - Business Plans
 - Branding (Logos, Color Schemes)
@@ -56,6 +57,7 @@ The system implements a unified CRUD structure for:
 ### AI Generation
 
 The backend integrates with AI models to generate:
+
 - Business plans with multi-turn generation
 - Logos and brand identities
 - System architecture diagrams

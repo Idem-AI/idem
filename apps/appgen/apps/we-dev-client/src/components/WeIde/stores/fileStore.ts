@@ -1,11 +1,11 @@
-import { create } from "zustand";
-import { syncFileSystem } from "../services";
+import { create } from 'zustand';
+import { syncFileSystem } from '../services';
 
 export interface ErrorMessage {
   message: string;
   code: string;
   number: number;
-  severity: "error" | "warning" | "info";
+  severity: 'error' | 'warning' | 'info';
 }
 
 interface FileStore {
@@ -28,7 +28,12 @@ interface FileStore {
     number?: number
   ) => Promise<void>;
   getContent: (path: string) => string;
-  updateContent: (path: string, content: string, syncFileClose?: boolean, closeUpdate?: boolean) => Promise<void>;
+  updateContent: (
+    path: string,
+    content: string,
+    syncFileClose?: boolean,
+    closeUpdate?: boolean
+  ) => Promise<void>;
   renameFile: (oldPath: string, newPath: string) => Promise<void>;
   deleteFile: (path: string) => Promise<void>;
   createFolder: (path: string) => Promise<void>;
@@ -38,7 +43,6 @@ interface FileStore {
   projectRoot: string;
   setSelectedPath: (path: string) => void;
   setProjectRoot: (path: string) => void;
-
 }
 
 const initialFiles = {};
@@ -49,7 +53,7 @@ export const useFileStore = create<FileStore>((set, get) => ({
   oldFiles: initialFiles,
   setOldFiles: async (oldFiles: Record<string, string>) => {
     // 从错误信息来看，需要在 FileStore 接口中添加 oldFiles 属性和 setOldFiles 方法
-    set({ oldFiles })
+    set({ oldFiles });
   },
   addError: (error) => {
     if (window.isLoading) {
@@ -94,13 +98,14 @@ export const useFileStore = create<FileStore>((set, get) => ({
     set({ files: {} });
   },
 
-  getContent: (path) => get().files[path] || "",
-
+  getContent: (path) => get().files[path] || '',
 
   updateContent: async (path, content, syncFileClose?: boolean, closeUpdateChatLog?: boolean) => {
     set({
       files: { ...get().files, [path]: content },
-      isUpdateSend: closeUpdateChatLog ? {} : { ...get().isUpdateSend, [path]: !get().isFirstSend[path] },
+      isUpdateSend: closeUpdateChatLog
+        ? {}
+        : { ...get().isUpdateSend, [path]: !get().isFirstSend[path] },
     });
     await syncFileSystem(syncFileClose);
   },
@@ -119,7 +124,7 @@ export const useFileStore = create<FileStore>((set, get) => ({
   deleteFile: async (path) => {
     const files = { ...get().files };
     delete files[path];
-    const prefix = path.endsWith("/") ? path : `${path}/`;
+    const prefix = path.endsWith('/') ? path : `${path}/`;
     Object.keys(files).forEach((filePath) => {
       if (filePath.startsWith(prefix)) {
         delete files[filePath];
@@ -130,11 +135,11 @@ export const useFileStore = create<FileStore>((set, get) => ({
   },
 
   createFolder: async (path) => {
-    const folderPath = path.endsWith("/") ? path : `${path}/`;
+    const folderPath = path.endsWith('/') ? path : `${path}/`;
     if (Object.keys(get().files).some((file) => file.startsWith(folderPath))) {
       return;
     }
-    set({ files: { ...get().files, [`${folderPath}index.tsx`]: "" } });
+    set({ files: { ...get().files, [`${folderPath}index.tsx`]: '' } });
     await syncFileSystem();
   },
 
@@ -148,5 +153,4 @@ export const useFileStore = create<FileStore>((set, get) => ({
   projectRoot: '',
   setSelectedPath: (path: string) => set({ selectedPath: path }),
   setProjectRoot: (path: string) => set({ projectRoot: path }),
-
 }));

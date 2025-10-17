@@ -1,12 +1,4 @@
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  signal,
-  computed,
-  OnInit,
-} from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileContentEditor } from '../../../../../../../shared/components/file-content-editor/file-content-editor';
 import {
@@ -50,7 +42,7 @@ export class TerraformFiles implements OnInit {
   protected readonly showComponent = computed(() => this.hasFiles());
 
   ngOnInit(): void {
-    console.log("deployment tfvars",this.deployment?.generatedTerraformTfvarsFileContent)
+    console.log('deployment tfvars', this.deployment?.generatedTerraformTfvarsFileContent);
     this.checkForTerraformFiles();
   }
 
@@ -67,10 +59,7 @@ export class TerraformFiles implements OnInit {
     const files: FileContent[] = [];
 
     // Priority 1: Check new flexible fileContents structure
-    if (
-      this.deployment.fileContents &&
-      this.deployment.fileContents.length > 0
-    ) {
+    if (this.deployment.fileContents && this.deployment.fileContents.length > 0) {
       // Filter to show only terraform-tfvars files as requested
       const tfvarsFiles = this.deployment.fileContents.filter(
         (file: FileContent) => file.type === 'terraform-tfvars'
@@ -91,7 +80,10 @@ export class TerraformFiles implements OnInit {
     }
     // Fallback 2: Check generatedTerraformTfvarsFileContent
     else if (this.deployment.generatedTerraformTfvarsFileContent) {
-      console.log("==========deployment tfvars",this.deployment?.generatedTerraformTfvarsFileContent)
+      console.log(
+        '==========deployment tfvars',
+        this.deployment?.generatedTerraformTfvarsFileContent
+      );
       files.push({
         id: 'terraform-tfvars-content',
         name: 'terraform.tfvars',
@@ -115,10 +107,7 @@ export class TerraformFiles implements OnInit {
   /**
    * Handle file content changes from the editor
    */
-  protected onFileContentChanged(event: {
-    fileId: string;
-    newContent: string;
-  }): void {
+  protected onFileContentChanged(event: { fileId: string; newContent: string }): void {
     // Update local file content
     this.fileContents.update((files) =>
       files.map((file: FileContent) =>
@@ -135,11 +124,7 @@ export class TerraformFiles implements OnInit {
   /**
    * Handle file downloads from the editor
    */
-  protected onFileDownloaded(event: {
-    fileId: string;
-    fileName: string;
-    content: string;
-  }): void {
+  protected onFileDownloaded(event: { fileId: string; fileName: string; content: string }): void {
     this.terraformFileDownloaded.emit(event);
   }
 }

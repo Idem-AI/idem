@@ -1,22 +1,50 @@
 /* Essential animations only - use Tailwind for everything else */
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.3; }
-  25% { transform: translateY(-15px) translateX(10px) scale(1.02); opacity: 0.4; }
-  50% { transform: translateY(-30px) translateX(-5px) scale(1.05); opacity: 0.5; }
-  75% { transform: translateY(-10px) translateX(-15px) scale(1.02); opacity: 0.4; }
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) scale(1);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-15px) translateX(10px) scale(1.02);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-30px) translateX(-5px) scale(1.05);
+    opacity: 0.5;
+  }
+  75% {
+    transform: translateY(-10px) translateX(-15px) scale(1.02);
+    opacity: 0.4;
+  }
 }
 
-.animate-float-slow { animation: float-slow 12s ease-in-out infinite; }
-.animate-float-slow-delay { animation: float-slow 12s ease-in-out infinite; animation-delay: -6s; }
+.animate-float-slow {
+  animation: float-slow 12s ease-in-out infinite;
+}
+.animate-float-slow-delay {
+  animation: float-slow 12s ease-in-out infinite;
+  animation-delay: -6s;
+}
 
 @keyframes progress-fill {
-  0% { width: 0%; }
-  100% { width: 75%; }
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 75%;
+  }
 }
 
-.progress-bar { animation: progress-fill 2s ease-out; }
+.progress-bar {
+  animation: progress-fill 2s ease-out;
+}
 
 /* Accessibility - Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .animate-float-slow, .animate-float-slow-delay, .progress-bar { animation: none; }
+  .animate-float-slow,
+  .animate-float-slow-delay,
+  .progress-bar {
+    animation: none;
+  }
 }

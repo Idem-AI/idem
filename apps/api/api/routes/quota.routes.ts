@@ -1,6 +1,6 @@
-import { Router, Request, Response } from "express";
-import quotaController from "../controllers/quota.controller";
-import { authenticate } from "../services/auth.service";
+import { Router, Request, Response } from 'express';
+import quotaController from '../controllers/quota.controller';
+import { authenticate } from '../services/auth.service';
 
 const router = Router();
 
@@ -112,7 +112,7 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.get("/info", authenticate, (req: Request, res: Response) =>
+router.get('/info', authenticate, (req: Request, res: Response) =>
   quotaController.getQuotaInfo(req as any, res)
 );
 
@@ -155,7 +155,7 @@ router.get("/info", authenticate, (req: Request, res: Response) =>
  *       500:
  *         description: Internal server error
  */
-router.get("/check", authenticate, (req: Request, res: Response) =>
+router.get('/check', authenticate, (req: Request, res: Response) =>
   quotaController.checkQuota(req as any, res)
 );
 
@@ -180,7 +180,7 @@ router.get("/check", authenticate, (req: Request, res: Response) =>
  *       500:
  *         description: Internal server error
  */
-router.get("/beta", authenticate, (req: Request, res: Response) =>
+router.get('/beta', authenticate, (req: Request, res: Response) =>
   quotaController.getBetaInfo(req as any, res)
 );
 
@@ -235,11 +235,8 @@ router.get("/beta", authenticate, (req: Request, res: Response) =>
  *       500:
  *         description: Internal server error
  */
-router.get(
-  "/validate/:featureName",
-  authenticate,
-  (req: Request, res: Response) =>
-    quotaController.validateFeature(req as any, res)
+router.get('/validate/:featureName', authenticate, (req: Request, res: Response) =>
+  quotaController.validateFeature(req as any, res)
 );
 
 /**
@@ -267,7 +264,7 @@ router.get(
  *       500:
  *         description: Internal server error
  */
-router.get("/stats", authenticate, (req: Request, res: Response) =>
+router.get('/stats', authenticate, (req: Request, res: Response) =>
   quotaController.getUsageStats(req as any, res)
 );
 

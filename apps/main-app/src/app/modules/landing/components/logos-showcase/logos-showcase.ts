@@ -84,29 +84,32 @@ export class LogosShowcase implements OnInit {
   private setupSeoForLogosShowcase(): void {
     // Add structured data for logo showcase
     const logosStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "CreativeWork",
-      "name": "AI Logo Generation Examples",
-      "description": "Showcase of AI-generated logos across different industries and styles",
-      "creator": {
-        "@type": "Organization",
-        "name": "Idem"
+      '@context': 'https://schema.org',
+      '@type': 'CreativeWork',
+      name: 'AI Logo Generation Examples',
+      description: 'Showcase of AI-generated logos across different industries and styles',
+      creator: {
+        '@type': 'Organization',
+        name: 'Idem',
       },
-      "hasPart": this.logos().map(logo => ({
-        "@type": "ImageObject",
-        "name": `${logo.brandName} Logo`,
-        "description": logo.description,
-        "url": `${this.seoService.domain}${logo.logoUrl}`,
-        "about": {
-          "@type": "Thing",
-          "name": logo.industry,
-          "description": `${logo.style} style logo for ${logo.industry} industry`
-        }
-      }))
+      hasPart: this.logos().map((logo) => ({
+        '@type': 'ImageObject',
+        name: `${logo.brandName} Logo`,
+        description: logo.description,
+        url: `${this.seoService.domain}${logo.logoUrl}`,
+        about: {
+          '@type': 'Thing',
+          name: logo.industry,
+          description: `${logo.style} style logo for ${logo.industry} industry`,
+        },
+      })),
     };
 
     // Add structured data to page if not already present
-    if (this.isBrowser() && !document.querySelector('script[data-logos-showcase-structured-data]')) {
+    if (
+      this.isBrowser() &&
+      !document.querySelector('script[data-logos-showcase-structured-data]')
+    ) {
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.setAttribute('data-logos-showcase-structured-data', 'true');

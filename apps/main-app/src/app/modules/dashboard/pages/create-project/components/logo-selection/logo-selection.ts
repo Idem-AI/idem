@@ -61,9 +61,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   protected readonly error = signal<string | null>(null);
   protected readonly selectedLogoId = signal<string | null>(null);
   protected readonly showPreferences = signal(true);
-  protected readonly logoPreferences = signal<LogoPreferencesModel | null>(
-    null
-  );
+  protected readonly logoPreferences = signal<LogoPreferencesModel | null>(null);
 
   // Edit logo state - replaced by chat
   protected readonly showEditorChat = signal(false);
@@ -147,9 +145,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.logoSelected.emit(logoId);
 
     // Find the selected logo and update the project
-    const selectedLogo = this.displayedLogos().find(
-      (logo) => logo.id === logoId
-    );
+    const selectedLogo = this.displayedLogos().find((logo) => logo.id === logoId);
     if (selectedLogo) {
       const currentProject = this.project();
       const currentBranding = currentProject?.analysisResultModel?.branding;
@@ -210,13 +206,10 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
     const project = this.project();
     const selectedColor = project?.analysisResultModel?.branding?.colors;
-    const selectedTypography =
-      project?.analysisResultModel?.branding?.typography;
+    const selectedTypography = project?.analysisResultModel?.branding?.typography;
 
     if (!selectedColor || !selectedTypography) {
-      this.error.set(
-        'Color and typography must be selected before generating logos.'
-      );
+      this.error.set('Color and typography must be selected before generating logos.');
       this.isGenerating.set(false);
       return;
     }
@@ -233,14 +226,12 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
         next: (response) => {
           console.log('Logos generated successfully:', response.logos);
 
-          const logosWithUniqueIds = response.logos.map(
-            (logo: LogoModel, index: number) => ({
-              ...logo,
-              id: logo.id || `logo-${Date.now()}-${index}`,
-              type: preferences.type,
-              customDescription: preferences.customDescription,
-            })
-          );
+          const logosWithUniqueIds = response.logos.map((logo: LogoModel, index: number) => ({
+            ...logo,
+            id: logo.id || `logo-${Date.now()}-${index}`,
+            type: preferences.type,
+            customDescription: preferences.customDescription,
+          }));
 
           console.log('Logos with unique IDs:', logosWithUniqueIds);
 
@@ -333,9 +324,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     };
 
     // Update the logo in the list - replace the old one with the new one
-    const updatedLogos = this.generatedLogos().map((l) =>
-      l.id === logoId ? updatedLogo : l
-    );
+    const updatedLogos = this.generatedLogos().map((l) => (l.id === logoId ? updatedLogo : l));
     this.generatedLogos.set(updatedLogos);
 
     // Emit the updated logos to parent component
@@ -370,9 +359,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
     if (!preferences) {
       console.error('❌ No preferences found. Showing error message.');
-      this.error.set(
-        'Logo preferences not found. Please restart the generation process.'
-      );
+      this.error.set('Logo preferences not found. Please restart the generation process.');
       return;
     }
 

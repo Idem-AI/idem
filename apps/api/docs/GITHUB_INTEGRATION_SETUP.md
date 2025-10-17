@@ -5,6 +5,7 @@ This guide explains how to set up GitHub integration for pushing project files t
 ## Prerequisites
 
 1. **Install Required Dependencies**
+
    ```bash
    npm install @octokit/rest
    ```
@@ -32,12 +33,14 @@ GITHUB_REDIRECT_URI=https://your-domain.com/github/auth/callback
 ## API Endpoints
 
 ### 1. Get GitHub Authorization URL
+
 ```http
 GET /github/auth/url
 Authorization: Bearer <your-jwt-token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -47,11 +50,13 @@ Authorization: Bearer <your-jwt-token>
 ```
 
 ### 2. Handle OAuth Callback
+
 ```http
 GET /github/auth/callback?code=<auth-code>&state=<state>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -65,6 +70,7 @@ GET /github/auth/callback?code=<auth-code>&state=<state>
 ```
 
 ### 3. Push Project to GitHub
+
 ```http
 POST /github/projects/{projectId}/push
 Authorization: Bearer <your-jwt-token>
@@ -84,6 +90,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -96,18 +103,21 @@ Content-Type: application/json
 ```
 
 ### 4. Get User's GitHub Repositories
+
 ```http
 GET /github/repositories
 Authorization: Bearer <your-jwt-token>
 ```
 
 ### 5. Get GitHub User Info
+
 ```http
 GET /github/user
 Authorization: Bearer <your-jwt-token>
 ```
 
 ### 6. Disconnect GitHub Account
+
 ```http
 DELETE /github/disconnect
 Authorization: Bearer <your-jwt-token>
@@ -159,6 +169,7 @@ interface UserModel {
 ## Error Handling
 
 Common error scenarios:
+
 - User not authenticated: 401 Unauthorized
 - GitHub account not connected: 400 Bad Request
 - Repository creation failed: 400 Bad Request with error message
@@ -180,7 +191,7 @@ To test the integration:
 ```javascript
 // Get GitHub auth URL
 const authResponse = await fetch('/github/auth/url', {
-  headers: { 'Authorization': `Bearer ${userToken}` }
+  headers: { Authorization: `Bearer ${userToken}` },
 });
 const { authUrl } = await authResponse.json();
 
@@ -191,15 +202,15 @@ window.location.href = authUrl;
 const pushResponse = await fetch(`/github/projects/${projectId}/push`, {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${userToken}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${userToken}`,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
     repositoryName: 'my-project',
     description: 'Generated project',
     isPrivate: false,
-    files: projectFiles
-  })
+    files: projectFiles,
+  }),
 });
 
 const result = await pushResponse.json();

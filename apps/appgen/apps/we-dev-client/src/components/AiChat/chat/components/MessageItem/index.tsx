@@ -1,18 +1,18 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import { ArtifactView } from "../ArtifactView";
-import { ImageGrid } from "../ImageGrid";
-import { Message } from "ai";
-import { memo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { ArtifactView } from '../ArtifactView';
+import { ImageGrid } from '../ImageGrid';
+import { Message } from 'ai';
+import { memo } from 'react';
 
-import classNames from "classnames";
-import useUserStore from "../../../../../stores/userSlice";
-import useThemeStore from "@/stores/themeSlice";
-import hljs from "highlight.js";
-import remarkGfm from "remark-gfm";
-import "highlight.js/styles/github.css"; // Light theme
-import "highlight.js/styles/github-dark.css"; // Dark theme
-import { message } from "antd";
+import classNames from 'classnames';
+import useUserStore from '../../../../../stores/userSlice';
+import useThemeStore from '@/stores/themeSlice';
+import hljs from 'highlight.js';
+import remarkGfm from 'remark-gfm';
+import 'highlight.js/styles/github.css'; // Light theme
+import 'highlight.js/styles/github-dark.css'; // Dark theme
+import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 const codeStyles = `
@@ -50,30 +50,30 @@ const codeStyles = `
 `;
 
 function filterContent(message) {
-  let cloneMessage
+  let cloneMessage;
   if (message.role === 'user') {
-    cloneMessage = JSON.parse(JSON.stringify(message))
+    cloneMessage = JSON.parse(JSON.stringify(message));
     // Use regex to remove <weD2c> tags and their content, add s flag to match multiline content
     const weD2cRegex = /<weD2c>[\s\S]*?<\/weD2c>/g;
     cloneMessage.content = cloneMessage.content.replace(weD2cRegex, '');
-    cloneMessage.parts = cloneMessage.parts.map(item => {
-      if(item.type === 'text'){
-        item.text = item.text.replace(weD2cRegex, '')
-        return item
+    cloneMessage.parts = cloneMessage.parts.map((item) => {
+      if (item.type === 'text') {
+        item.text = item.text.replace(weD2cRegex, '');
+        return item;
       }
-      return item
-    })
+      return item;
+    });
   }
   return cloneMessage ? cloneMessage : message;
 }
 // Add function to handle streaming parts
-export const processStreamParts = (parts: Message["parts"]): string => {
-  let result = "";
-  let thinkContent = "";
+export const processStreamParts = (parts: Message['parts']): string => {
+  let result = '';
+  let thinkContent = '';
 
   // First process all reasoning type content
   parts?.forEach((part) => {
-    if (part.type === "reasoning") {
+    if (part.type === 'reasoning') {
       thinkContent += part.reasoning;
     }
   });
@@ -82,14 +82,14 @@ export const processStreamParts = (parts: Message["parts"]): string => {
   if (thinkContent) {
     result +=
       thinkContent
-        .split("\n")
+        .split('\n')
         .map((line) => `> ${line}`)
-        .join("\n") + "\n\n";
+        .join('\n') + '\n\n';
   }
 
   // Add other types of content
   parts?.forEach((part) => {
-    if (part.type === "text") {
+    if (part.type === 'text') {
       // Check if it contains think tags, if so, process them
       if (isThinkContent(part.text)) {
         result += processThinkContent(part.text);
@@ -99,9 +99,8 @@ export const processStreamParts = (parts: Message["parts"]): string => {
     }
   });
 
-  const artifactIndex = result.indexOf("<boltArtifact");
-  const preContent =
-    artifactIndex > 0 ? result.substring(0, artifactIndex) : result;
+  const artifactIndex = result.indexOf('<boltArtifact');
+  const preContent = artifactIndex > 0 ? result.substring(0, artifactIndex) : result;
   return preContent.trim();
 };
 
@@ -119,49 +118,39 @@ interface MessageItemProps {
   isLoading: boolean;
   isEndMessage: boolean;
   handleRetry: () => void;
-  onUpdateMessage?: (messageId: string, content: {
-    text: string;
-    type: string;
-  }[]) => void;
+  onUpdateMessage?: (
+    messageId: string,
+    content: {
+      text: string;
+      type: string;
+    }[]
+  ) => void;
 }
 
 const isArtifactContent = (content: string) => {
-  return content.includes("<boltArtifact");
+  return content.includes('<boltArtifact');
 };
 
 const getArtifactTitle = (content: string) => {
   const match = content.match(/title="([^"]+)"/);
-  return match ? match[1] : "Task";
+  return match ? match[1] : 'Task';
 };
 
 // If generation is finished and user is last, show retry
-const isShowRetry = (isUser: boolean, isLoading: boolean, isEndMessage:boolean) => {
-  return isUser && !isLoading && isEndMessage; 
+const isShowRetry = (isUser: boolean, isLoading: boolean, isEndMessage: boolean) => {
+  return isUser && !isLoading && isEndMessage;
 };
 
 // Add image preview component
-const ImagePreview = ({
-  src,
-  onClose,
-}: {
-  src: string;
-  onClose: () => void;
-}) => {
+const ImagePreview = ({ src, onClose }: { src: string; onClose: () => void }) => {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
       onClick={onClose}
     >
       <div className="relative max-w-[90vw] max-h-[90vh]">
-        <img
-          src={src}
-          alt="Preview"
-          className="object-contain max-w-full max-h-[90vh]"
-        />
-        <button
-          className="absolute text-white top-4 right-4 hover:text-gray-300"
-          onClick={onClose}
-        >
+        <img src={src} alt="Preview" className="object-contain max-w-full max-h-[90vh]" />
+        <button className="absolute text-white top-4 right-4 hover:text-gray-300" onClick={onClose}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="w-6 h-6"
@@ -184,7 +173,7 @@ const ImagePreview = ({
 
 // Add helper function to get initials
 const getInitial = (name: string | null | undefined): string => {
-  if (!name) return "U";
+  if (!name) return 'U';
 
   // Try to get the first English letter
   const englishMatch = name.match(/[a-zA-Z]/);
@@ -224,7 +213,7 @@ const customHighlight = (code: string, language: string) => {
 
     // 其他语言使用 highlight.js
     return hljs.highlight(code.trim(), {
-      language: language || "plaintext",
+      language: language || 'plaintext',
       ignoreIllegals: true,
     }).value;
   } catch (e) {
@@ -234,15 +223,7 @@ const customHighlight = (code: string, language: string) => {
 
 // 使用 memo 包裹 CodeBlock 组件以避免不必要的重渲染
 export const CodeBlock = memo(
-  ({
-    language,
-    filePath,
-    children,
-  }: {
-    language: string;
-    filePath?: string;
-    children: string;
-  }) => {
+  ({ language, filePath, children }: { language: string; filePath?: string; children: string }) => {
     const [copied, setCopied] = useState(false);
     const [isExpanded, setIsExpanded] = useState(true); // 添加展开/折叠状态
     const { isDarkMode } = useThemeStore();
@@ -257,7 +238,7 @@ export const CodeBlock = memo(
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error("Failed to copy:", err);
+        console.error('Failed to copy:', err);
       }
     }, [children]);
 
@@ -296,7 +277,7 @@ export const CodeBlock = memo(
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="flex items-center justify-center w-6 h-6 p-1 text-gray-500 transition-opacity opacity-0 group-hover:opacity-100 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                    title={isExpanded ? "折叠" : "展开"}
+                    title={isExpanded ? '折叠' : '展开'}
                   >
                     <svg
                       className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -305,11 +286,7 @@ export const CodeBlock = memo(
                       stroke="currentColor"
                       strokeWidth="2"
                     >
-                      <path
-                        d="M19 9l-7 7-7-7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
                 )}
@@ -325,11 +302,7 @@ export const CodeBlock = memo(
                       stroke="currentColor"
                       strokeWidth="2"
                     >
-                      <path
-                        d="M20 6L9 17l-5-5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   ) : (
                     <svg
@@ -349,15 +322,17 @@ export const CodeBlock = memo(
             <div className="overflow-hidden bg-[#FAFBFC] dark:bg-[#1E1E1E]">
               <div
                 className={`overflow-x-auto scrollbar-none px-3 py-1 ${
-                  isDarkMode ? "hljs-dark" : "hljs-light"
+                  isDarkMode ? 'hljs-dark' : 'hljs-light'
                 }`}
               >
-                <pre className={`!m-0 leading-[1.2] transition-all duration-200 ${
-                  isJson && !isExpanded ? 'max-h-0' : 'max-h-none'
-                }`}>
+                <pre
+                  className={`!m-0 leading-[1.2] transition-all duration-200 ${
+                    isJson && !isExpanded ? 'max-h-0' : 'max-h-none'
+                  }`}
+                >
                   <code
                     dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                    className={`language-${language || "plaintext"} text-xs text-[#1A1A1A] dark:text-[#D4D4D4]`}
+                    className={`language-${language || 'plaintext'} text-xs text-[#1A1A1A] dark:text-[#D4D4D4]`}
                   />
                 </pre>
                 {/* JSON 内容折叠时显示渐变遮罩 */}
@@ -380,42 +355,42 @@ export const CodeBlock = memo(
   }
 );
 
-CodeBlock.displayName = "CodeBlock";
+CodeBlock.displayName = 'CodeBlock';
 
 // 添加检查是否是 think 内容的函数
 export const isThinkContent = (content: string) => {
-  return content.includes("<think>") || content.includes("</think>");
+  return content.includes('<think>') || content.includes('</think>');
 };
 
 // 修改 processThinkContent 函数
 export const processThinkContent = (content: string) => {
   let isInThinkBlock = false;
-  let result = "";
+  let result = '';
 
   // 按行处理内容
-  const lines = content.split("\n");
+  const lines = content.split('\n');
   for (let line of lines) {
-    if (line.includes("<think>")) {
+    if (line.includes('<think>')) {
       isInThinkBlock = true;
-      line = line.replace(/<think>/g, "").trim();
+      line = line.replace(/<think>/g, '').trim();
       if (line) {
         result += `> ${line}\n`;
       }
       continue;
     }
 
-    if (line.includes("</think>")) {
+    if (line.includes('</think>')) {
       isInThinkBlock = false;
-      line = line.replace(/<\/think>/g, "").trim();
+      line = line.replace(/<\/think>/g, '').trim();
       if (line) {
         result += `> ${line}\n`;
       }
-      result += "\n"; // 在think块结束后添加空行
+      result += '\n'; // 在think块结束后添加空行
       continue;
     }
 
     if (isInThinkBlock) {
-      result += line.trim() ? `> ${line}\n` : ">\n";
+      result += line.trim() ? `> ${line}\n` : '>\n';
     } else {
       result += `${line}\n`;
     }
@@ -425,11 +400,11 @@ export const processThinkContent = (content: string) => {
 };
 
 // 修改 ToolInvocationCard 组件
-const ToolInvocationCard = ({ 
+const ToolInvocationCard = ({
   toolInvocation,
   messageId,
   onUpdateMessage,
-}: { 
+}: {
   toolInvocation: {
     args: any;
     state: string;
@@ -438,16 +413,19 @@ const ToolInvocationCard = ({
     toolName: string;
   };
   messageId: string;
-  onUpdateMessage?: (messageId: string, content: {
-    text: string;
-    type: string;
-  }[]) => void;
+  onUpdateMessage?: (
+    messageId: string,
+    content: {
+      text: string;
+      type: string;
+    }[]
+  ) => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [hasInvoked, setHasInvoked] = useState(false);  // 添加状态跟踪是否已调用
+  const [hasInvoked, setHasInvoked] = useState(false); // 添加状态跟踪是否已调用
   const { t } = useTranslation();
   const toolName = toolInvocation.toolName.split('.');
-  if (toolName.length > 2){
+  if (toolName.length > 2) {
     throw new Error(`Tool name: ${toolInvocation.toolName} must be 'string.string'`);
   }
   const handleRetry = async () => {
@@ -464,13 +442,15 @@ const ToolInvocationCard = ({
       }[] = res?.content || [];
       if (res?.content && onUpdateMessage) {
         // append 到 message 的 content 中
-        onUpdateMessage(messageId, contens.map(e => ({
-          text: `\`\`\`json\n${e.text}`,
-          type: e.type
-        })));
-        setHasInvoked(true);  // 调用成功后设置状态
+        onUpdateMessage(
+          messageId,
+          contens.map((e) => ({
+            text: `\`\`\`json\n${e.text}`,
+            type: e.type,
+          }))
+        );
+        setHasInvoked(true); // 调用成功后设置状态
       }
-
     } catch (error) {
       message.error(t('settings.mcp.addError'));
       console.error('工具调用错误:', error);
@@ -485,10 +465,16 @@ const ToolInvocationCard = ({
       <div className="text-xs text-gray-500 dark:text-gray-400">
         {toolName?.[1]} {t('chat.buttons.mcp_tools')}: {toolName?.[2]}
       </div>
-      
+
       <div className="relative rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-[#1e1e1e] overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2 border-b dark:border-gray-700 bg-white dark:bg-[#2d2d2d]">
-          <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            className="w-4 h-4 text-gray-500"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
           </svg>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -500,7 +486,7 @@ const ToolInvocationCard = ({
             {JSON.stringify(toolInvocation?.args, null, 2)}
           </pre>
         </div>
-        
+
         {/* 右下角按钮 - 只在未调用过时显示 */}
         {!hasInvoked && (
           <div className="absolute bottom-3 right-3">
@@ -508,14 +494,21 @@ const ToolInvocationCard = ({
               onClick={handleRetry}
               disabled={isLoading}
               className={classNames(
-                "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors",
-                "text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700",
-                "disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors',
+                'text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700',
+                'disabled:opacity-50 disabled:cursor-not-allowed shadow-sm'
               )}
             >
               {isLoading ? (
                 <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
                   <path
                     className="opacity-75"
                     fill="currentColor"
@@ -523,8 +516,18 @@ const ToolInvocationCard = ({
                   />
                 </svg>
               ) : (
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
+                <svg
+                  className="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               )}
               <span>
@@ -549,7 +552,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [copied, setCopied] = useState(false);
-  const isUser = message.role === "user";
+  const isUser = message.role === 'user';
   const handleCopyMessage = useCallback(async () => {
     try {
       const textContent = processStreamParts(message.parts);
@@ -557,30 +560,30 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("复制失败:", err);
+      console.error('复制失败:', err);
     }
   }, [message.parts]);
 
-  const initial = isUser ? getInitial(user?.username) : "AI";
+  const initial = isUser ? getInitial(user?.username) : 'AI';
   const avatarColor = isUser
-    ? "bg-purple-500 dark:bg-purple-600"
-    : "bg-gray-100 dark:bg-[rgba(45,45,45)]";
+    ? 'bg-purple-500 dark:bg-purple-600'
+    : 'bg-gray-100 dark:bg-[rgba(45,45,45)]';
   return (
     <div className="group relative">
       <div className="flex flex-col gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
         <div className="flex items-start gap-2">
           <div
             className={classNames(
-              "w-6 h-6 rounded-full flex items-center justify-center text-xs border border-gray-200 dark:border-gray-700/50 overflow-hidden",
+              'w-6 h-6 rounded-full flex items-center justify-center text-xs border border-gray-200 dark:border-gray-700/50 overflow-hidden',
               avatarColor,
-              isUser ? "text-white" : "text-gray-700 dark:text-gray-300"
+              isUser ? 'text-white' : 'text-gray-700 dark:text-gray-300'
             )}
           >
             {isUser ? (
               user?.avatar ? (
                 <img
                   src={user.avatar}
-                  alt={user.username || "User"}
+                  alt={user.username || 'User'}
                   className="object-cover w-full h-full"
                 />
               ) : (
@@ -603,10 +606,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 <div className="leading-relaxed prose-sm prose text-gray-900 dark:text-gray-100 dark:prose-invert max-w-none">
                   {/* 修改工具调用卡片的渲染 */}
                   {message.parts?.map((part, index) => {
-                    if (part.type === "tool-invocation") {
+                    if (part.type === 'tool-invocation') {
                       return (
-                        <ToolInvocationCard 
-                          key={index} 
+                        <ToolInvocationCard
+                          key={index}
                           toolInvocation={part.toolInvocation}
                           messageId={message.id}
                           onUpdateMessage={onUpdateMessage}
@@ -615,14 +618,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     }
                     return null;
                   })}
-                  
+
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
                       code({ node, className, children, ...props }) {
-                        const match = /language-(\w+)(?::(.+))?/.exec(
-                          className || ""
-                        );
+                        const match = /language-(\w+)(?::(.+))?/.exec(className || '');
                         const isInline = !match;
 
                         if (isInline) {
@@ -636,12 +637,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                           );
                         }
 
-                        const language = match?.[1] || "";
+                        const language = match?.[1] || '';
                         const filePath = match?.[2];
                         // 确保 children 是字符串类型
                         const content = Array.isArray(children)
-                          ? children.join("")
-                          : String(children).replace(/\n$/, "");
+                          ? children.join('')
+                          : String(children).replace(/\n$/, '');
 
                         return (
                           <CodeBlock language={language} filePath={filePath}>
@@ -657,25 +658,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                         return <p className="mb-2 last:mb-0">{children}</p>;
                       },
                       ul({ children }) {
-                        return (
-                          <ul className="pl-4 mb-2 space-y-1 list-disc">
-                            {children}
-                          </ul>
-                        );
+                        return <ul className="pl-4 mb-2 space-y-1 list-disc">{children}</ul>;
                       },
                       ol({ children }) {
-                        return (
-                          <ol className="pl-4 mb-2 space-y-1 list-decimal">
-                            {children}
-                          </ol>
-                        );
+                        return <ol className="pl-4 mb-2 space-y-1 list-decimal">{children}</ol>;
                       },
                       li({ children }) {
-                        return (
-                          <li className="text-gray-700 dark:text-gray-300">
-                            {children}
-                          </li>
-                        );
+                        return <li className="text-gray-700 dark:text-gray-300">{children}</li>;
                       },
                       a({ children, href }) {
                         return (
@@ -694,7 +683,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                           <blockquote className="relative py-2 pl-4 my-2 text-sm text-gray-600 border-l-4 border-purple-200 rounded dark:border-purple-800 dark:text-gray-400 bg-purple-50 dark:bg-purple-900/10 group">
                             <div
                               className={`overflow-hidden transition-all duration-200 ${
-                                isCollapsed ? "h-4" : "max-h-none"
+                                isCollapsed ? 'h-4' : 'max-h-none'
                               }`}
                             >
                               {children}
@@ -722,11 +711,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                                     strokeLinejoin="round"
                                   />
                                 ) : (
-                                  <path
-                                    d="M5 12h14"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
+                                  <path d="M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
                                 )}
                               </svg>
                             </button>
@@ -750,9 +735,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                       },
                       thead({ children }) {
                         return (
-                          <thead className="bg-purple-50 dark:bg-purple-900/20">
-                            {children}
-                          </thead>
+                          <thead className="bg-purple-50 dark:bg-purple-900/20">{children}</thead>
                         );
                       },
                       tbody({ children }) {
@@ -764,9 +747,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                       },
                       tr({ children }) {
                         return (
-                          <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                            {children}
-                          </tr>
+                          <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50">{children}</tr>
                         );
                       },
                       th({ children }) {
@@ -786,7 +767,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     }}
                   >
                     {(() => {
-                      const filterMessages = filterContent(message)
+                      const filterMessages = filterContent(message);
                       return processStreamParts(filterMessages.parts);
                     })()}
                   </ReactMarkdown>
@@ -794,24 +775,18 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               </div>
             )}
 
-            {message.experimental_attachments &&
-              message.experimental_attachments.length > 0 && (
-                <div className="mt-2">
-                  <ImageGrid
-                    images={message.experimental_attachments}
-                    onImageClick={(url) => setPreviewImage(url)}
-                  />
-                </div>
-              )}
+            {message.experimental_attachments && message.experimental_attachments.length > 0 && (
+              <div className="mt-2">
+                <ImageGrid
+                  images={message.experimental_attachments}
+                  onImageClick={(url) => setPreviewImage(url)}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
-      {previewImage && (
-        <ImagePreview
-          src={previewImage}
-          onClose={() => setPreviewImage(null)}
-        />
-      )}
+      {previewImage && <ImagePreview src={previewImage} onClose={() => setPreviewImage(null)} />}
       <>
         {!isArtifactContent(message.content) ? (
           <div className="flex items-center justify-end ">
@@ -827,11 +802,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                   stroke="currentColor"
                   strokeWidth="2"
                 >
-                  <path
-                    d="M20 6L9 17l-5-5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               ) : (
                 <svg
@@ -849,7 +820,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             {isShowRetry(isUser, isLoading, isEndMessage) ? (
               <button
                 onClick={() => {
-                  handleRetry?.()
+                  handleRetry?.();
                 }}
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                 title="重试"

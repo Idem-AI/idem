@@ -1,17 +1,6 @@
-import {
-  Component,
-  input,
-  output,
-  signal,
-  OnInit,
-  OnDestroy,
-  inject,
-} from '@angular/core';
+import { Component, input, output, signal, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  TypographyModel,
-  ColorModel,
-} from '../../../../models/brand-identity.model';
+import { TypographyModel, ColorModel } from '../../../../models/brand-identity.model';
 import { ProjectModel } from '../../../../models/project.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
@@ -51,12 +40,21 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       // Get typography from project data (already generated in color-selection)
       const generatedTypography = this.project().analysisResultModel?.branding?.generatedTypography;
-      if (generatedTypography && Array.isArray(generatedTypography) && generatedTypography.length > 0) {
+      if (
+        generatedTypography &&
+        Array.isArray(generatedTypography) &&
+        generatedTypography.length > 0
+      ) {
         this.typographyModels.set(generatedTypography);
         console.log('Typography options loaded:', generatedTypography);
       } else {
-        console.error('No typography options found in project data:', this.project().analysisResultModel?.branding);
-        this.error.set('No typography options available. Please go back to the color selection step.');
+        console.error(
+          'No typography options found in project data:',
+          this.project().analysisResultModel?.branding
+        );
+        this.error.set(
+          'No typography options available. Please go back to the color selection step.'
+        );
       }
       this.isLoading.set(false);
     }, 2000);
@@ -70,9 +68,9 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   protected selectTypography(typographyId: string): void {
     this.selectedTypographyId.set(typographyId);
     this.typographySelected.emit(typographyId);
-    
+
     // Find the selected typography and update the project
-    const selectedTypography = this.typographyModels().find(typo => typo.id === typographyId);
+    const selectedTypography = this.typographyModels().find((typo) => typo.id === typographyId);
     if (selectedTypography) {
       this.projectUpdate.emit({
         analysisResultModel: {
@@ -80,9 +78,9 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
           branding: {
             ...this.project().analysisResultModel?.branding,
             typography: selectedTypography, // Set the selected typography object
-            generatedTypography: this.typographyModels()
-          }
-        }
+            generatedTypography: this.typographyModels(),
+          },
+        },
       });
     }
   }

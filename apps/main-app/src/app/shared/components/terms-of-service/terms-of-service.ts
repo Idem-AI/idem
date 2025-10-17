@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './terms-of-service.html',
-  styleUrl: './terms-of-service.css'
+  styleUrl: './terms-of-service.css',
 })
-export class TermsOfService {
-}
+export class TermsOfService {}

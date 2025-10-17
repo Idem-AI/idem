@@ -1,5 +1,5 @@
-import { SectionModel } from "../section.model";
-import { v4 as uuidv4 } from "uuid";
+import { SectionModel } from '../section.model';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Builder for SectionModel
@@ -10,10 +10,10 @@ export class SectionBuilder {
    */
   static createEmpty(): SectionModel {
     return {
-      name: "",
-      type: "",
+      name: '',
+      type: '',
       data: undefined,
-      summary: "",
+      summary: '',
     };
   }
 

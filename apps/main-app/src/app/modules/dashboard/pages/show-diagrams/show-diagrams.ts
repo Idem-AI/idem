@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  OnInit,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -74,7 +68,7 @@ export class ShowDiagramsComponent implements OnInit {
           this.existingDiagram.set(null);
         }
 
-        this.isLoading.set(false); 
+        this.isLoading.set(false);
       },
       error: (err: any) => {
         console.error('Error loading diagram:', err);

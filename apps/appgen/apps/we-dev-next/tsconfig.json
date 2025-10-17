@@ -2,15 +2,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "allowJs": true,
     "skipLibCheck": true,
     // "strict": true,
@@ -29,9 +22,7 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "strict": false
   },
@@ -41,9 +32,9 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "./src/utils/messagepParseJson.ts",
-    "next.config.mjs"
-, "src/components/Postcard/postcard.jsx", "../we-dev-client/src/components/AiChat/chat/services/appGenService.ts"  ],
-  "exclude": [
-    "node_modules"
-  ]
+    "next.config.mjs",
+    "src/components/Postcard/postcard.jsx",
+    "../we-dev-client/src/components/AiChat/chat/services/appGenService.ts"
+  ],
+  "exclude": ["node_modules"]
 }

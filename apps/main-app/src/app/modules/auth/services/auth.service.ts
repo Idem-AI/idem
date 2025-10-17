@@ -32,11 +32,9 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<void> {
-    const promise = signInWithEmailAndPassword(this.auth, email, password).then(
-      async (cred) => {
-        await this.postLogin(cred.user);
-      }
-    );
+    const promise = signInWithEmailAndPassword(this.auth, email, password).then(async (cred) => {
+      await this.postLogin(cred.user);
+    });
     return from(promise);
   }
 
@@ -57,9 +55,7 @@ export class AuthService {
     const currentUser = this.auth.currentUser;
 
     // Le TokenService va automatiquement sauvegarder le token dans les cookies
-    const token = currentUser
-      ? await this.tokenService.refreshToken(currentUser)
-      : null;
+    const token = currentUser ? await this.tokenService.refreshToken(currentUser) : null;
 
     if (!token) {
       console.error('Aucun token disponible');
@@ -89,10 +85,7 @@ export class AuthService {
     try {
       console.log('Utilisateur ajouté à Firestore avec succès');
     } catch (error) {
-      console.error(
-        'Erreur lors de l’ajout de l’utilisateur à Firestore :',
-        error
-      );
+      console.error('Erreur lors de l’ajout de l’utilisateur à Firestore :', error);
     }
   }
 
@@ -138,11 +131,7 @@ export class AuthService {
       providerId: user.providerId,
     };
 
-    this.cookieService.set(
-      this.CURRENT_USER_COOKIE,
-      JSON.stringify(userData),
-      30
-    );
+    this.cookieService.set(this.CURRENT_USER_COOKIE, JSON.stringify(userData), 30);
   }
 
   /**
@@ -182,15 +171,12 @@ export class AuthService {
         tenantId: null,
         delete: async () => {},
         getIdToken: async () => '',
-        getIdTokenResult: async () => ({} as any),
+        getIdTokenResult: async () => ({}) as any,
         reload: async () => {},
         toJSON: () => ({}),
       } as User;
     } catch (error) {
-      console.error(
-        "Erreur lors de la récupération de l'utilisateur depuis les cookies:",
-        error
-      );
+      console.error("Erreur lors de la récupération de l'utilisateur depuis les cookies:", error);
       return null;
     }
   }

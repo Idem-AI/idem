@@ -1,17 +1,6 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  signal,
-  OnInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FrontendConfigComponent } from './components/frontend-config/frontend-config';
 import { BackendConfigComponent } from './components/backend-config/backend-config';
 import { DatabaseConfigComponent } from './components/database-config/database-config';
@@ -21,19 +10,19 @@ import { AuthService } from '../../../../auth/services/auth.service';
 import { ProjectModel } from '../../../models/project.model';
 import { ProjectService } from '../../../services/project.service';
 import { Loader } from '../../../../../components/loader/loader';
-import { 
-  DevelopmentConfigsModel, 
-  GenerationType, 
+import {
+  DevelopmentConfigsModel,
+  GenerationType,
   DevelopmentMode,
   QuickGenerationPreset,
-  LandingPageConfig 
+  LandingPageConfig,
 } from '../../../models/development.model';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { User } from '@angular/fire/auth';
 import { first } from 'rxjs/operators';
 import { DevelopmentService } from '../../../services/ai-agents/development.service';
 import { Router } from '@angular/router';
-import { DeploymentConfigComponent } from "./components/deployment-config/deployment-config";
+import { DeploymentConfigComponent } from './components/deployment-config/deployment-config';
 
 @Component({
   selector: 'app-show-development',
@@ -45,14 +34,14 @@ import { DeploymentConfigComponent } from "./components/deployment-config/deploy
     FrontendConfigComponent,
     BackendConfigComponent,
     DatabaseConfigComponent,
-    DeploymentConfigComponent
-],
+    DeploymentConfigComponent,
+  ],
   templateUrl: './create-development.html',
   styleUrl: './create-development.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateDevelopmentComponent implements OnInit {
-  protected readonly tabs = ['frontend', 'backend', 'database', 'deployment'] as const; 
+  protected readonly tabs = ['frontend', 'backend', 'database', 'deployment'] as const;
 
   // Injectable services - suivant le style guide Angular
   protected readonly auth = inject(AuthService);
@@ -66,9 +55,7 @@ export class CreateDevelopmentComponent implements OnInit {
   // - Project state
   protected readonly isLoaded = signal(true);
   protected readonly projectId = signal('');
-  protected readonly project = signal<ProjectModel>(
-    initEmptyObject<ProjectModel>()
-  );
+  protected readonly project = signal<ProjectModel>(initEmptyObject<ProjectModel>());
 
   // - UI state
   protected readonly selectedTab = signal<'frontend' | 'backend' | 'database' | 'deployment'>(
@@ -76,9 +63,11 @@ export class CreateDevelopmentComponent implements OnInit {
   );
   protected readonly showAdvancedOptions = signal<boolean>(false);
   protected readonly selectedStylingPreferences = signal<string[]>([]);
-  
+
   // - New generation mode state
-  protected readonly currentStep = signal<'mode-selection' | 'generation-type' | 'configuration'>('mode-selection');
+  protected readonly currentStep = signal<'mode-selection' | 'generation-type' | 'configuration'>(
+    'mode-selection'
+  );
   protected readonly selectedMode = signal<DevelopmentMode | null>(null);
   protected readonly selectedGenerationType = signal<GenerationType | null>(null);
   protected readonly quickPresets = signal<QuickGenerationPreset[]>([]);
@@ -164,7 +153,7 @@ export class CreateDevelopmentComponent implements OnInit {
     if (mode === 'quick') {
       return this.selectedGenerationType() !== null;
     }
-    
+
     // For advanced mode, validate the form groups
     return this.frontendForm.valid && this.backendForm.valid && this.databaseForm.valid;
   }
@@ -253,10 +242,12 @@ export class CreateDevelopmentComponent implements OnInit {
         },
       },
       landingPageConfig,
-      landingPage: hasLandingPage ? {
-        url: '',
-        codeUrl: ''
-      } : undefined,
+      landingPage: hasLandingPage
+        ? {
+            url: '',
+            codeUrl: '',
+          }
+        : undefined,
       projectConfig: {
         seoEnabled: true,
         contactFormEnabled: generationType !== 'app',
@@ -423,9 +414,9 @@ export class CreateDevelopmentComponent implements OnInit {
 
       const mode = this.selectedMode();
       const generationType = this.selectedGenerationType();
-      
+
       let developmentConfigs: DevelopmentConfigsModel;
-      
+
       if (mode === 'quick' && generationType) {
         // Generate quick configuration
         developmentConfigs = this.developmentService.generateQuickConfig(generationType);
@@ -448,7 +439,7 @@ export class CreateDevelopmentComponent implements OnInit {
         .toPromise();
 
       console.log('Development configuration saved successfully');
-      
+
       // Navigate to show-development page
       this.router.navigate(['/console/development']);
     } catch (error) {

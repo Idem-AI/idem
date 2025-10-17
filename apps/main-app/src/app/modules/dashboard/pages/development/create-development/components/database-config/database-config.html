@@ -24,8 +24,7 @@
           <ng-container techCardBadges>
             <div class="flex flex-wrap gap-2 mt-auto">
               @for (badge of db.badges; track badge) {
-              <span
-                class="text-xs px-2 py-1 rounded-md bg-gray-800/50 text-gray-300"
+              <span class="text-xs px-2 py-1 rounded-md bg-gray-800/50 text-gray-300"
                 >{{ badge }}</span
               >
               }
@@ -58,8 +57,12 @@
                 <span class="{{ feature.icon }}"></span>
               </div>
               <div class="min-w-0 flex-1">
-                <div class="text-white font-medium text-sm md:text-base truncate">{{ feature.name }}</div>
-                <p class="text-gray-400 text-xs md:text-sm hidden lg:block truncate">{{ feature.description }}</p>
+                <div class="text-white font-medium text-sm md:text-base truncate">
+                  {{ feature.name }}
+                </div>
+                <p class="text-gray-400 text-xs md:text-sm hidden lg:block truncate">
+                  {{ feature.description }}
+                </p>
               </div>
             </div>
             <div class="flex-shrink-0">

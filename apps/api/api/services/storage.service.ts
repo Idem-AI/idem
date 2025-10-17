@@ -1,5 +1,5 @@
-import admin from "firebase-admin";
-import logger from "../config/logger";
+import admin from 'firebase-admin';
+import logger from '../config/logger';
 
 export interface UploadResult {
   fileName: string;
@@ -27,7 +27,7 @@ export class StorageService {
   constructor() {
     this.storage = admin.storage();
     this.bucket = this.storage.bucket();
-    logger.info("StorageService initialized");
+    logger.info('StorageService initialized');
   }
 
   /**
@@ -42,7 +42,7 @@ export class StorageService {
     fileContent: string | Buffer,
     fileName: string,
     folderPath: string,
-    contentType: string = "image/svg+xml"
+    contentType: string = 'image/svg+xml'
   ): Promise<UploadResult> {
     try {
       const filePath = `${folderPath}/${fileName}`;
@@ -57,9 +57,7 @@ export class StorageService {
 
       // Convert string content to Buffer if needed
       const buffer =
-        typeof fileContent === "string"
-          ? Buffer.from(fileContent, "utf8")
-          : fileContent;
+        typeof fileContent === 'string' ? Buffer.from(fileContent, 'utf8') : fileContent;
 
       // Upload the file
       await file.save(buffer, {
@@ -138,49 +136,49 @@ export class StorageService {
       // Upload primary logo
       results.primaryLogo = await this.uploadFile(
         primaryLogo,
-        "logo-primary.svg",
+        'logo-primary.svg',
         folderPath,
-        "image/svg+xml"
+        'image/svg+xml'
       );
 
       // Upload icon SVG if provided
       if (iconSvg) {
         results.iconSvg = await this.uploadFile(
           iconSvg,
-          "logo-icon.svg",
+          'logo-icon.svg',
           folderPath,
-          "image/svg+xml"
+          'image/svg+xml'
         );
       }
 
       // Upload withText variations
       if (variations.withText) {
         results.withText = {};
-        
+
         if (variations.withText.lightBackground) {
           results.withText.lightBackground = await this.uploadFile(
             variations.withText.lightBackground,
-            "logo-with-text-light.svg",
+            'logo-with-text-light.svg',
             folderPath,
-            "image/svg+xml"
+            'image/svg+xml'
           );
         }
 
         if (variations.withText.darkBackground) {
           results.withText.darkBackground = await this.uploadFile(
             variations.withText.darkBackground,
-            "logo-with-text-dark.svg",
+            'logo-with-text-dark.svg',
             folderPath,
-            "image/svg+xml"
+            'image/svg+xml'
           );
         }
 
         if (variations.withText.monochrome) {
           results.withText.monochrome = await this.uploadFile(
             variations.withText.monochrome,
-            "logo-with-text-mono.svg",
+            'logo-with-text-mono.svg',
             folderPath,
-            "image/svg+xml"
+            'image/svg+xml'
           );
         }
       }
@@ -188,31 +186,31 @@ export class StorageService {
       // Upload iconOnly variations
       if (variations.iconOnly) {
         results.iconOnly = {};
-        
+
         if (variations.iconOnly.lightBackground) {
           results.iconOnly.lightBackground = await this.uploadFile(
             variations.iconOnly.lightBackground,
-            "logo-icon-light.svg",
+            'logo-icon-light.svg',
             folderPath,
-            "image/svg+xml"
+            'image/svg+xml'
           );
         }
 
         if (variations.iconOnly.darkBackground) {
           results.iconOnly.darkBackground = await this.uploadFile(
             variations.iconOnly.darkBackground,
-            "logo-icon-dark.svg",
+            'logo-icon-dark.svg',
             folderPath,
-            "image/svg+xml"
+            'image/svg+xml'
           );
         }
 
         if (variations.iconOnly.monochrome) {
           results.iconOnly.monochrome = await this.uploadFile(
             variations.iconOnly.monochrome,
-            "logo-icon-mono.svg",
+            'logo-icon-mono.svg',
             folderPath,
-            "image/svg+xml"
+            'image/svg+xml'
           );
         }
       }

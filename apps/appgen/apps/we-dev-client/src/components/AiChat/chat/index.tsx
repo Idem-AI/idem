@@ -1,38 +1,38 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Message, useChat } from "ai/react";
-import { toast } from "react-toastify";
-import { uploadImage } from "@/api/chat";
-import useChatStore from "../../../stores/chatSlice";
-import { useFileStore } from "../../WeIde/stores/fileStore";
-import { db } from "../../../utils/indexDB";
-import { v4 as uuidv4 } from "uuid";
-import { eventEmitter } from "../utils/EventEmitter";
-import { MessageItem } from "./components/MessageItem";
-import { ChatInput, ChatMode } from "./components/ChatInput";
-import Tips from "./components/Tips";
-import { parseMessage } from "../../../utils/messagepParseJson";
-import useUserStore from "../../../stores/userSlice";
-import { useLimitModalStore } from "../../UserModal";
-import { updateFileSystemNow } from "../../WeIde/services";
-import { parseMessages } from "../useMessageParser";
-import { createMpIcon } from "@/utils/createWtrite";
-import { useTranslation } from "react-i18next";
-import useChatModeStore from "../../../stores/chatModeSlice";
-import useTerminalStore from "@/stores/terminalSlice";
-import { checkExecList, checkFinish } from "../utils/checkFinish";
-import { useUrlData } from "@/hooks/useUrlData";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Message, useChat } from 'ai/react';
+import { toast } from 'react-toastify';
+import { uploadImage } from '@/api/chat';
+import useChatStore from '../../../stores/chatSlice';
+import { useFileStore } from '../../WeIde/stores/fileStore';
+import { db } from '../../../utils/indexDB';
+import { v4 as uuidv4 } from 'uuid';
+import { eventEmitter } from '../utils/EventEmitter';
+import { MessageItem } from './components/MessageItem';
+import { ChatInput, ChatMode } from './components/ChatInput';
+import Tips from './components/Tips';
+import { parseMessage } from '../../../utils/messagepParseJson';
+import useUserStore from '../../../stores/userSlice';
+import { useLimitModalStore } from '../../UserModal';
+import { updateFileSystemNow } from '../../WeIde/services';
+import { parseMessages } from '../useMessageParser';
+import { createMpIcon } from '@/utils/createWtrite';
+import { useTranslation } from 'react-i18next';
+import useChatModeStore from '../../../stores/chatModeSlice';
+import useTerminalStore from '@/stores/terminalSlice';
+import { checkExecList, checkFinish } from '../utils/checkFinish';
+import { useUrlData } from '@/hooks/useUrlData';
 import {
   getProjectById,
   getProjectGeneration,
   saveProjectGeneration,
   sendZipToBackend,
   sendToGitHub,
-} from "@/api/persistence/db";
-import { MCPTool } from "@/types/mcp";
-import useMCPTools from "@/hooks/useMCPTools";
-import { ProjectTutorial } from "../../Onboarding/ProjectTutorial";
-import { useLoading } from "../../loading";
-import { ProjectModel } from "@/api/persistence/models/project.model";
+} from '@/api/persistence/db';
+import { MCPTool } from '@/types/mcp';
+import useMCPTools from '@/hooks/useMCPTools';
+import { ProjectTutorial } from '../../Onboarding/ProjectTutorial';
+import { useLoading } from '../../loading';
+import { ProjectModel } from '@/api/persistence/models/project.model';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -45,7 +45,7 @@ type WeMessages = (Message & {
   }>;
 })[];
 type TextUIPart = {
-  type: "text";
+  type: 'text';
   /**
    * The text content.
    */
@@ -53,32 +53,32 @@ type TextUIPart = {
 };
 // Version web - pas d'ipcRenderer
 export const excludeFiles = [
-  "components/weicon/base64.js",
-  "components/weicon/icon.css",
-  "components/weicon/index.js",
-  "components/weicon/index.json",
-  "components/weicon/index.wxml",
-  "components/weicon/icondata.js",
-  "components/weicon/index.css",
-  "/miniprogram/components/weicon/base64.js",
-  "/miniprogram/components/weicon/icon.css",
-  "/miniprogram/components/weicon/index.js",
-  "/miniprogram/components/weicon/index.json",
-  "/miniprogram/components/weicon/index.wxml",
-  "/miniprogram/components/weicon/icondata.js",
-  "/miniprogram/components/weicon/index.css",
+  'components/weicon/base64.js',
+  'components/weicon/icon.css',
+  'components/weicon/index.js',
+  'components/weicon/index.json',
+  'components/weicon/index.wxml',
+  'components/weicon/icondata.js',
+  'components/weicon/index.css',
+  '/miniprogram/components/weicon/base64.js',
+  '/miniprogram/components/weicon/icon.css',
+  '/miniprogram/components/weicon/index.js',
+  '/miniprogram/components/weicon/index.json',
+  '/miniprogram/components/weicon/index.wxml',
+  '/miniprogram/components/weicon/icondata.js',
+  '/miniprogram/components/weicon/index.css',
 ];
 
 const API_BASE = process.env.REACT_APP_BASE_URL;
-console.log(API_BASE, "API_BASE");
+console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
-  Gemini25Flash = "gemini-2.5-flash",
-  Claude37sonnet = "claude-3-7-sonnet-20250219",
-  Claude35sonnet = "claude-3-5-sonnet-20240620",
-  gpt4oMini = "gpt-4o-mini",
-  DeepseekR1 = "DeepSeek-R1",
-  DeepseekV3 = "deepseek-chat",
+  Gemini25Flash = 'gemini-2.5-flash',
+  Claude37sonnet = 'claude-3-7-sonnet-20250219',
+  Claude35sonnet = 'claude-3-5-sonnet-20240620',
+  gpt4oMini = 'gpt-4o-mini',
+  DeepseekR1 = 'DeepSeek-R1',
+  DeepseekV3 = 'deepseek-chat',
 }
 
 export interface IModelOption {
@@ -99,7 +99,7 @@ function convertToBoltAction(obj: Record<string, string>): string {
       ([filePath, content]) =>
         `<boltAction type="file" filePath="${filePath}">\n${content}\n</boltAction>`
     )
-    .join("\n\n");
+    .join('\n\n');
 }
 
 export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
@@ -111,9 +111,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
     value: ModelTypes.Gemini25Flash,
-    label: "Gemini 2.5 Flash",
+    label: 'Gemini 2.5 Flash',
     useImage: true,
-    from: "default",
+    from: 'default',
     quota: 2,
     functionCall: true,
   });
@@ -132,13 +132,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   } = useFileStore();
   const { mode } = useChatModeStore();
   // use global state
-  const {
-    uploadedImages,
-    addImages,
-    removeImage,
-    clearImages,
-    setModelOptions,
-  } = useChatStore();
+  const { uploadedImages, addImages, removeImage, clearImages, setModelOptions } = useChatStore();
   const { resetTerminals } = useTerminalStore();
   const filesInitObj = {} as Record<string, string>;
   const filesUpdateObj = {} as Record<string, string>;
@@ -159,9 +153,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // use ollama model to get model list
   useEffect(() => {
     fetch(`${API_BASE}/api/model`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
     })
       .then((res) => res.json())
@@ -169,31 +163,29 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         setModelOptions(data);
       })
       .catch((error) => {
-        console.error("Failed to fetch model list:", error);
+        console.error('Failed to fetch model list:', error);
       });
   }, []);
 
   useEffect(() => {
     if (
-      (messages.length === 0 &&
-        initConvertToBoltAction &&
-        mode === ChatMode.Builder) ||
+      (messages.length === 0 && initConvertToBoltAction && mode === ChatMode.Builder) ||
       (messages.length === 1 &&
-        messages[0].id === "1" &&
+        messages[0].id === '1' &&
         initConvertToBoltAction &&
         mode === ChatMode.Builder)
     ) {
       setMessagesa([
         {
-          id: "1",
-          role: "user",
+          id: '1',
+          role: 'user',
           content: `<boltArtifact id="hello-js" title="the current file">\n${initConvertToBoltAction}\n</boltArtifact>\n\n`,
         },
       ]);
       setMessages([
         {
-          id: "1",
-          role: "user",
+          id: '1',
+          role: 'user',
           content: `<boltArtifact id="hello-js" title="the current file">\n${initConvertToBoltAction}\n</boltArtifact>\n\n`,
         },
       ]);
@@ -202,20 +194,16 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   }, [initConvertToBoltAction]);
 
   useEffect(() => {
-    if (
-      messages.length > 1 &&
-      updateConvertToBoltAction &&
-      mode === ChatMode.Builder
-    ) {
+    if (messages.length > 1 && updateConvertToBoltAction && mode === ChatMode.Builder) {
       setMessages((list) => {
         const newList = [...list];
-        if (newList[newList.length - 1].id !== "2") {
+        if (newList[newList.length - 1].id !== '2') {
           newList.push({
-            id: "2",
-            role: "user",
+            id: '2',
+            role: 'user',
             content: `<boltArtifact id="hello-js" title="Currently modified files">\n${updateConvertToBoltAction}\n</boltArtifact>\n\n`,
           });
-        } else if (newList[newList.length - 1].id === "2") {
+        } else if (newList[newList.length - 1].id === '2') {
           newList[newList.length - 1].content =
             `<boltArtifact id="hello-js" title="Currently modified files">\n${updateConvertToBoltAction}\n</boltArtifact>\n\n`;
         }
@@ -249,24 +237,22 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           const oldHistoryFiles = {};
           // setEmptyFiles();
           // Version web - pas de manipulation du chemin via ipcRenderer
-          console.log(latestRecord, "latestRecord");
+          console.log(latestRecord, 'latestRecord');
           latestRecord.data.messages.forEach((message) => {
             const { files: messageFiles } = parseMessage(message.content);
             Object.assign(historyFiles, messageFiles);
           });
-          const assistantRecord = latestRecord.data.messages.filter(
-            (e) => e.role === "assistant"
-          );
+          const assistantRecord = latestRecord.data.messages.filter((e) => e.role === 'assistant');
           if (assistantRecord.length > 1) {
             const oldRecords = assistantRecord[1];
-            console.log(oldRecords, "oldRecords");
+            console.log(oldRecords, 'oldRecords');
             const { files: messageFiles } = parseMessage(oldRecords.content);
             Object.assign(oldHistoryFiles, messageFiles);
           }
           if (mode === ChatMode.Builder) {
             latestRecord.data.messages.push({
               id: uuidv4(),
-              role: "user",
+              role: 'user',
               content: `<boltArtifact id="hello-js" title="the current file">\n${convertToBoltAction(historyFiles)}\n</boltArtifact>\n\n`,
             });
           }
@@ -287,14 +273,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         setIsUpdateSend();
       }
     } catch (error) {
-      console.error("Failed to load chat history:", error);
-      toast.error("Failed to load chat history");
+      console.error('Failed to load chat history:', error);
+      toast.error('Failed to load chat history');
     }
   };
 
   // listen to chat selection event
   useEffect(() => {
-    const unsubscribe = eventEmitter.on("chat:select", (uuid: string) => {
+    const unsubscribe = eventEmitter.on('chat:select', (uuid: string) => {
       if (uuid !== chatUuid) {
         refUuidMessages.current = [];
         setChatUuid(uuid || uuidv4());
@@ -392,7 +378,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           tools: mcpTools.map((tool) => ({
             id: tool.id,
             name: `${tool.serverName}.${tool.name}`,
-            description: tool.description || "",
+            description: tool.description || '',
             parameters: tool.inputSchema,
           })),
         }),
@@ -401,7 +387,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     },
     id: chatUuid,
     onResponse: async (response) => {
-      if (baseModal.from === "ollama") {
+      if (baseModal.from === 'ollama') {
         const reader = response.body?.getReader();
         if (!reader) return;
 
@@ -410,7 +396,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           if (done) break;
 
           const text = new TextDecoder().decode(value);
-          const lines = text.split("\n").filter((line) => line.trim());
+          const lines = text.split('\n').filter((line) => line.trim());
 
           for (const line of lines) {
             try {
@@ -418,7 +404,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               if (data.message?.content) {
                 setMessages((messages) => {
                   const lastMessage = messages[messages.length - 1];
-                  if (lastMessage && lastMessage.role === "assistant") {
+                  if (lastMessage && lastMessage.role === 'assistant') {
                     return [
                       ...messages.slice(0, -1),
                       {
@@ -431,14 +417,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                     ...messages,
                     {
                       id: uuidv4(),
-                      role: "assistant",
+                      role: 'assistant',
                       content: data.message.content,
                     },
                   ];
                 });
               }
             } catch (e) {
-              console.warn("Failed to parse Ollama response line:", e);
+              console.warn('Failed to parse Ollama response line:', e);
             }
           }
         }
@@ -474,7 +460,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         initMessage = [
           {
             id: uuidv4(),
-            role: "user",
+            role: 'user',
             content: input,
           },
         ];
@@ -482,13 +468,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           messages: [...messages, ...initMessage, message],
           title:
             [...initMessage, ...messages]
-              .find(
-                (m) => m.role === "user" && !m.content.includes("<boltArtifact")
-              )
-              ?.content?.slice(0, 50) || "New Chat",
+              .find((m) => m.role === 'user' && !m.content.includes('<boltArtifact'))
+              ?.content?.slice(0, 50) || 'New Chat',
         });
       } catch (error) {
-        console.error("Failed to save chat history:", error);
+        console.error('Failed to save chat history:', error);
       }
       setCheckCount((checkCount) => checkCount + 1);
 
@@ -503,31 +487,29 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           });
           setIsGenerationComplete(true);
           setShowGitHubButton(true);
-          console.log("Generation saved for project:", projectData.name);
+          console.log('Generation saved for project:', projectData.name);
         } catch (error) {
-          console.error("Error saving generation:", error);
+          console.error('Error saving generation:', error);
         }
       }
     },
     onError: (error: any) => {
       const msg = error?.errors?.[0]?.responseBody || String(error);
-      console.log("error", error, msg);
+      console.log('error', error, msg);
       toast.error(msg);
-      if (String(error).includes("Quota not enough")) {
-        openModal("limit");
+      if (String(error).includes('Quota not enough')) {
+        openModal('limit');
       }
-      if (String(error).includes("Authentication required")) {
-        openModal("login");
+      if (String(error).includes('Authentication required')) {
+        openModal('login');
       }
       // add Ollama error handling
-      if (baseModal.from === "ollama") {
-        toast.error(
-          "Ollama server connection failed, please check configuration"
-        );
+      if (baseModal.from === 'ollama') {
+        toast.error('Ollama server connection failed, please check configuration');
       }
     },
   });
-  
+
   // Get status and type from URL data (projectId already obtained above)
   const { status, type } = useUrlData({ append });
   const { setLoading } = useLoading();
@@ -537,20 +519,20 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     const colors = projectData?.analysisResultModel?.branding?.colors?.colors;
     if (colors) {
       return {
-        primary: colors.primary || "#3B82F6",
-        secondary: colors.secondary || "#8B5CF6",
-        accent: colors.accent || "#10B981",
-        background: colors.background || "#F3F4F6",
-        text: colors.text || "#1F2937",
+        primary: colors.primary || '#3B82F6',
+        secondary: colors.secondary || '#8B5CF6',
+        accent: colors.accent || '#10B981',
+        background: colors.background || '#F3F4F6',
+        text: colors.text || '#1F2937',
       };
     }
     // Fallback colors
     return {
-      primary: "#3B82F6",
-      secondary: "#8B5CF6",
-      accent: "#10B981",
-      background: "#F3F4F6",
-      text: "#1F2937",
+      primary: '#3B82F6',
+      secondary: '#8B5CF6',
+      accent: '#10B981',
+      background: '#F3F4F6',
+      text: '#1F2937',
     };
   }, [projectData]);
 
@@ -566,7 +548,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       setProjectLoadError(null);
 
       try {
-        console.log("Loading project data with ID:", projectId);
+        console.log('Loading project data with ID:', projectId);
 
         const project = await getProjectById(projectId);
         if (project) {
@@ -578,35 +560,26 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             setHasGeneration(true);
             setIsGenerationComplete(true);
             setShowGitHubButton(true);
-            console.log("Existing generation found for project:", project.name);
+            console.log('Existing generation found for project:', project.name);
           } else {
             setShowStartButton(true);
-            console.log(
-              "No generation found, showing start button for:",
-              project.name
-            );
+            console.log('No generation found, showing start button for:', project.name);
           }
         } else {
-          console.warn("Project not found with ID:", projectId);
-          setProjectLoadError(
-            "Project not found. Please check the project ID and try again."
-          );
+          console.warn('Project not found with ID:', projectId);
+          setProjectLoadError('Project not found. Please check the project ID and try again.');
         }
       } catch (error) {
-        console.error("Error loading project data:", error);
+        console.error('Error loading project data:', error);
         setProjectLoadError(
-          "Failed to load project data. Please check your connection and try again."
+          'Failed to load project data. Please check your connection and try again.'
         );
       } finally {
         setLoading(false);
         setIsProjectLoaded(true);
 
         // Check if tutorial should be shown (only if project loaded successfully)
-        if (
-          projectId &&
-          projectData &&
-          !localStorage.getItem(`tutorial_completed_${projectId}`)
-        ) {
+        if (projectId && projectData && !localStorage.getItem(`tutorial_completed_${projectId}`)) {
           setShowTutorial(true);
         }
       }
@@ -624,16 +597,16 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // No need to generate the full prompt on client side anymore
       append({
         id: uuidv4(),
-        role: "user",
-        content: "Start generation",
+        role: 'user',
+        content: 'Start generation',
       });
 
       setShowStartButton(false);
       setHasGeneration(true);
-      console.log("Generation started for project:", projectData.name);
+      console.log('Generation started for project:', projectData.name);
     } catch (error) {
-      console.error("Error starting generation:", error);
-      toast.error("Error starting generation");
+      console.error('Error starting generation:', error);
+      toast.error('Error starting generation');
     }
   };
 
@@ -643,7 +616,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
     try {
       // Create zip from files
-      const JSZip = (await import("jszip")).default;
+      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
       // Add files to zip
@@ -651,13 +624,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         zip.file(filePath, content);
       });
 
-      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
 
       await sendZipToBackend(projectId, zipBlob);
-      toast.success("Generation saved successfully!");
+      toast.success('Generation saved successfully!');
     } catch (error) {
-      console.error("Error sending zip:", error);
-      toast.error("Error saving generation");
+      console.error('Error sending zip:', error);
+      toast.error('Error saving generation');
     }
   };
 
@@ -668,22 +641,22 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     try {
       const githubData = {
         projectName: projectData.name,
-        description: projectData.description || "Generated project",
+        description: projectData.description || 'Generated project',
         files: files,
         isPublic: true, // You can make this configurable
       };
 
       await sendToGitHub(projectId, githubData);
-      toast.success("Project sent to GitHub successfully!");
+      toast.success('Project sent to GitHub successfully!');
     } catch (error) {
-      console.error("Error sending to GitHub:", error);
-      toast.error("Error sending to GitHub");
+      console.error('Error sending to GitHub:', error);
+      toast.error('Error sending to GitHub');
     }
   };
 
   // listen to url when official website jumps in
   useEffect(() => {
-    if (status && type === "sketch") {
+    if (status && type === 'sketch') {
       showGuide();
     }
   }, [status, type]);
@@ -699,9 +672,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         }, 600);
       }
     };
-    document.addEventListener("visibilitychange", visibleFun);
+    document.addEventListener('visibilitychange', visibleFun);
     return () => {
-      document.removeEventListener("visibilitychange", visibleFun);
+      document.removeEventListener('visibilitychange', visibleFun);
     };
   }, [isLoading, files]);
 
@@ -710,9 +683,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       setMessagesa(realMessages as WeMessages);
       parseTimeRef.current = Date.now();
 
-      const needParseMessages = messages.filter(
-        (m) => !refUuidMessages.current.includes(m.id)
-      );
+      const needParseMessages = messages.filter((m) => !refUuidMessages.current.includes(m.id));
       parseMessages(needParseMessages);
       scrollToBottom();
     }
@@ -732,8 +703,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     const isScrolledToBottom =
-      Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) <
-      10;
+      Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 10;
 
     if (!isScrolledToBottom) {
       // user is scrolling to view history messages
@@ -755,7 +725,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const scrollToBottom = () => {
     if (userScrolling) return; // if user is scrolling, do not execute auto scroll
 
-    const messageContainer = document.querySelector(".message-container");
+    const messageContainer = document.querySelector('.message-container');
     if (messageContainer) {
       messageContainer.scrollTop = messageContainer.scrollHeight;
     }
@@ -772,7 +742,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   // add upload status tracking
   const [isUploading, setIsUploading] = useState(false);
-  const filterMessages = messages.filter((e) => e.role !== "system");
+  const filterMessages = messages.filter((e) => e.role !== 'system');
   // modify upload handler
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length || isUploading) return;
@@ -783,7 +753,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
     const validFiles = selectedFiles.filter((file) => {
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(t("chat.errors.file_size_limit", { fileName: file.name }));
+        toast.error(t('chat.errors.file_size_limit', { fileName: file.name }));
         return false;
       }
       return true;
@@ -798,36 +768,33 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             file,
             url,
             localUrl: URL.createObjectURL(file),
-            status: "done" as const,
+            status: 'done' as const,
           };
         })
       );
 
       addImages(uploadResults);
       if (uploadResults.length === 1) {
-        toast.success(t("chat.success.images_uploaded"));
+        toast.success(t('chat.success.images_uploaded'));
       } else {
         toast.success(
-          t("chat.success.images_uploaded_multiple", {
+          t('chat.success.images_uploaded_multiple', {
             count: uploadResults.length,
           })
         );
       }
     } catch (error) {
-      console.error("Upload failed:", error);
-      toast.error(t("chat.errors.upload_failed"));
+      console.error('Upload failed:', error);
+      toast.error(t('chat.errors.upload_failed'));
     } finally {
       setIsUploading(false);
     }
 
-    e.target.value = "";
+    e.target.value = '';
   };
 
   // modify submit handler
-  const handleSubmitWithFiles = async (
-    _: React.KeyboardEvent,
-    text?: string
-  ) => {
+  const handleSubmitWithFiles = async (_: React.KeyboardEvent, text?: string) => {
     if (!text && !input.trim() && uploadedImages.length === 0) return;
 
     try {
@@ -847,33 +814,33 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       console.log(
         JSON.stringify(uploadedImages),
         JSON.stringify(currentAttachments),
-        "currentAttachments"
+        'currentAttachments'
       );
       // clear images state
       clearImages();
 
       append(
         {
-          role: "user",
+          role: 'user',
           content: text || input,
         },
         {
           experimental_attachments: currentAttachments,
         }
       );
-      setInput("");
+      setInput('');
       setTimeout(() => {
         scrollToBottom();
       }, 100);
     } catch (error) {
-      console.error("Upload failed:", error);
-      toast.error("Failed to upload files");
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload files');
     }
   };
 
   // modify keyboard submit handler
   const handleKeySubmit = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmitWithFiles(e);
     }
@@ -886,22 +853,18 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     const items = e.clipboardData?.items;
     if (!items) return;
 
-    const hasImages = Array.from(items).some(
-      (item) => item.type.indexOf("image") !== -1
-    );
+    const hasImages = Array.from(items).some((item) => item.type.indexOf('image') !== -1);
     if (hasImages) {
       e.preventDefault();
       setIsUploading(true);
 
-      const imageItems = Array.from(items).filter(
-        (item) => item.type.indexOf("image") !== -1
-      );
+      const imageItems = Array.from(items).filter((item) => item.type.indexOf('image') !== -1);
 
       try {
         const uploadResults = await Promise.all(
           imageItems.map(async (item) => {
             const file = item.getAsFile();
-            if (!file) throw new Error("Failed to get file from clipboard");
+            if (!file) throw new Error('Failed to get file from clipboard');
 
             const url = await uploadImage(file);
             return {
@@ -909,7 +872,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               file,
               url,
               localUrl: URL.createObjectURL(file),
-              status: "done" as const,
+              status: 'done' as const,
             };
           })
         );
@@ -917,17 +880,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         addImages(uploadResults);
 
         if (uploadResults.length === 1) {
-          toast.success(t("chat.success.image_pasted"));
+          toast.success(t('chat.success.image_pasted'));
         } else {
           toast.success(
-            t("chat.success.images_pasted_multiple", {
+            t('chat.success.images_pasted_multiple', {
               count: uploadResults.length,
             })
           );
         }
       } catch (error) {
-        console.error("Failed to upload pasted images:", error);
-        toast.error(t("chat.errors.paste_failed"));
+        console.error('Failed to upload pasted images:', error);
+        toast.error(t('chat.errors.paste_failed'));
       } finally {
         setIsUploading(false);
       }
@@ -939,9 +902,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    textarea.addEventListener("paste", handlePaste);
+    textarea.addEventListener('paste', handlePaste);
     return () => {
-      textarea.removeEventListener("paste", handlePaste);
+      textarea.removeEventListener('paste', handlePaste);
     };
   }, []);
 
@@ -960,12 +923,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
     try {
       const items = Array.from(e.dataTransfer.items);
-      const imageItems = items.filter((item) => item.type.startsWith("image/"));
+      const imageItems = items.filter((item) => item.type.startsWith('image/'));
 
       const uploadResults = await Promise.all(
         imageItems.map(async (item) => {
           const file = item.getAsFile();
-          if (!file) throw new Error("Failed to get file from drop");
+          if (!file) throw new Error('Failed to get file from drop');
 
           const url = await uploadImage(file);
           return {
@@ -973,7 +936,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             file,
             url,
             localUrl: URL.createObjectURL(file),
-            status: "done" as const,
+            status: 'done' as const,
           };
         })
       );
@@ -981,13 +944,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       addImages(uploadResults);
 
       if (uploadResults.length === 1) {
-        toast.success("Image added to input box");
+        toast.success('Image added to input box');
       } else {
         toast.success(`${uploadResults.length} images added to input box`);
       }
     } catch (error) {
-      console.error("Failed to process dropped images:", error);
-      toast.error("Failed to process dropped images");
+      console.error('Failed to process dropped images:', error);
+      toast.error('Failed to process dropped images');
     } finally {
       setIsUploading(false);
     }
@@ -1024,19 +987,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               <h3 className="text-lg font-semibold text-red-900 dark:text-red-100 mb-2">
                 Failed to Load Project
               </h3>
-              <p className="text-sm text-red-700 dark:text-red-300 mb-6">
-                {projectLoadError}
-              </p>
+              <p className="text-sm text-red-700 dark:text-red-300 mb-6">{projectLoadError}</p>
               <button
                 onClick={retryLoadProject}
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -1069,12 +1025,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             >
               <div className="text-center mb-4">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 bg-zinc-100">
-                  {projectData.analysisResultModel?.branding?.logo?.variations
-                    ?.iconOnly?.lightBackground ? (
+                  {projectData.analysisResultModel?.branding?.logo?.variations?.iconOnly
+                    ?.lightBackground ? (
                     <img
                       src={
-                        projectData.analysisResultModel.branding.logo.variations
-                          .iconOnly.lightBackground
+                        projectData.analysisResultModel.branding.logo.variations.iconOnly
+                          .lightBackground
                       }
                       alt="Project Logo"
                       className="w-10 h-10 rounded-full"
@@ -1095,25 +1051,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                     </svg>
                   )}
                 </div>
-                <h2
-                  className="text-2xl font-bold mb-2"
-                  style={{ color: projectColors.primary }}
-                >
+                <h2 className="text-2xl font-bold mb-2" style={{ color: projectColors.primary }}>
                   {projectData.name}
                 </h2>
-                <p
-                  className="mb-4"
-                  style={{ color: `${projectColors.text}CC` }}
-                >
-                  {projectData.description ||
-                    "Ready to generate your application"}
+                <p className="mb-4" style={{ color: `${projectColors.text}CC` }}>
+                  {projectData.description || 'Ready to generate your application'}
                 </p>
               </div>
               {showStartButton ? (
                 <div className="text-center">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Click the button below to start generating your application
-                    code
+                    Click the button below to start generating your application code
                   </p>
                   <button
                     onClick={handleStartGeneration}
@@ -1122,12 +1070,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                       background: `linear-gradient(135deg, ${projectColors.primary} 0%, ${projectColors.secondary} 100%)`,
                     }}
                   >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -1166,17 +1109,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         ></path>
                       </svg>
                     </div>
-                    <h3
-                      className="text-lg font-semibold"
-                      style={{ color: projectColors.accent }}
-                    >
+                    <h3 className="text-lg font-semibold" style={{ color: projectColors.accent }}>
                       Generation in Progress
                     </h3>
                   </div>
-                  <p
-                    className="text-sm"
-                    style={{ color: `${projectColors.accent}CC` }}
-                  >
+                  <p className="text-sm" style={{ color: `${projectColors.accent}CC` }}>
                     Your application is being generated. Please wait...
                   </p>
                 </div>
@@ -1201,19 +1138,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         />
                       </svg>
                     </div>
-                    <h3
-                      className="text-lg font-semibold"
-                      style={{ color: projectColors.accent }}
-                    >
+                    <h3 className="text-lg font-semibold" style={{ color: projectColors.accent }}>
                       Generation Complete
                     </h3>
                   </div>
-                  <p
-                    className="text-sm mb-4"
-                    style={{ color: `${projectColors.accent}CC` }}
-                  >
-                    Your application has been successfully generated and is
-                    ready for export.
+                  <p className="text-sm mb-4" style={{ color: `${projectColors.accent}CC` }}>
+                    Your application has been successfully generated and is ready for export.
                   </p>
                 </div>
               ) : null}
@@ -1223,11 +1153,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
         {/* Only show tips if no project data */}
         {!projectData && (
-          <Tips
-            append={append}
-            setInput={setInput}
-            handleFileSelect={handleFileSelect}
-          />
+          <Tips append={append} setInput={setInput} handleFileSelect={handleFileSelect} />
         )}
         <div className="max-w-[640px] w-full mx-auto space-y-3">
           {filterMessages.map((message, index) => (
@@ -1238,13 +1164,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               }}
               key={`${message.id}-${index}`}
               message={message}
-              isEndMessage={
-                filterMessages[filterMessages.length - 1].id === message.id
-              }
+              isEndMessage={filterMessages[filterMessages.length - 1].id === message.id}
               isLoading={isLoading}
               onUpdateMessage={(messageId, content) => {
                 append({
-                  role: "user",
+                  role: 'user',
                   content: ` ${content?.[0]?.text}`,
                 });
               }}
@@ -1308,10 +1232,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                   >
                     Export Your Application
                   </h3>
-                  <p
-                    className="text-sm"
-                    style={{ color: `${projectColors.text}CC` }}
-                  >
+                  <p className="text-sm" style={{ color: `${projectColors.text}CC` }}>
                     Choose how you'd like to export your generated code
                   </p>
                 </div>
@@ -1326,14 +1247,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                   >
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
-                      style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
                     >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="white"
-                        viewBox="0 0 24 24"
-                      >
+                      <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -1344,10 +1260,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                     </div>
                     <div className="text-left">
                       <div className="font-semibold">Download ZIP</div>
-                      <div
-                        className="text-xs"
-                        style={{ color: "rgba(255, 255, 255, 0.8)" }}
-                      >
+                      <div className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                         Get all files as archive
                       </div>
                     </div>
@@ -1362,7 +1275,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                   >
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
-                      style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
                     >
                       <svg className="w-5 h-5" fill="white" viewBox="0 0 24 24">
                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
@@ -1370,10 +1283,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                     </div>
                     <div className="text-left">
                       <div className="font-semibold">Push to GitHub</div>
-                      <div
-                        className="text-xs"
-                        style={{ color: "rgba(255, 255, 255, 0.8)" }}
-                      >
+                      <div className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                         Create repository
                       </div>
                     </div>
@@ -1406,7 +1316,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   // handle file selected
   const handleFileSelected = () => {
-    console.log("handleFileSelected");
+    console.log('handleFileSelected');
     // handle upload logic
     setVisible(false);
   };
@@ -1421,10 +1331,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
       {/* Tutorial Modal */}
       {showTutorial && projectData && (
-        <ProjectTutorial
-          projectData={projectData}
-          onClose={() => setShowTutorial(false)}
-        />
+        <ProjectTutorial projectData={projectData} onClose={() => setShowTutorial(false)} />
       )}
 
       <ChatInput

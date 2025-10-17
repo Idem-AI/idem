@@ -12,11 +12,11 @@ export class TerraformViewer {
   @Input({ required: true }) set mainFile(value: string) {
     this.mainFileContent.set(value || 'No main.tf file available');
   }
-  
+
   @Input({ required: true }) set variablesFile(value: string) {
     this.variablesFileContent.set(value || 'No variables.tf file available');
   }
-  
+
   @Input({ required: true }) set variablesMapFile(value: string) {
     this.variablesMapFileContent.set(value || 'No terraform.tfvars file available');
   }
@@ -44,7 +44,7 @@ export class TerraformViewer {
         return 'No content available';
     }
   }
-  
+
   protected getActiveFileName(): string {
     switch (this.activeTab()) {
       case 'main':
@@ -57,7 +57,7 @@ export class TerraformViewer {
         return 'terraform-file.txt';
     }
   }
-  
+
   protected getDownloadHref(): string {
     return 'data:text/plain;charset=utf-8,' + encodeURIComponent(this.getActiveFileContent());
   }

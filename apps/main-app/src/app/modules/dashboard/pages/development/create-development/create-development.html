@@ -8,9 +8,7 @@
 
     <!-- Error messages display -->
     @if (errorMessages().length > 0) {
-    <div
-      class="mb-6 p-4 glass border-l-4 border-red-500 rounded-lg backdrop-blur-sm"
-    >
+    <div class="mb-6 p-4 glass border-l-4 border-red-500 rounded-lg backdrop-blur-sm">
       <div class="flex items-center">
         <div class="flex-shrink-0 text-red-500">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -22,9 +20,7 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-400">
-            There were errors with your submission
-          </h3>
+          <h3 class="text-sm font-medium text-red-400">There were errors with your submission</h3>
           <div class="mt-2 text-sm text-red-300">
             <ul class="list-disc pl-5 space-y-1">
               @for (error of errorMessages(); track $index) {
@@ -39,24 +35,15 @@
 
     <!-- Header Section -->
     <section class="sm:mb-12">
-      <div
-        class="sm:flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 "
-      >
+      <div class="sm:flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div class="hidden sm:block mb-4">
-          <h1 class="text-4xl font-bold text-white text-glow-primary">
-            Development Configuration
-          </h1>
-          <p class="text-gray-400 mt-2">
-            Configure your application development settings
-          </p>
+          <h1 class="text-4xl font-bold text-white text-glow-primary">Development Configuration</h1>
+          <p class="text-gray-400 mt-2">Configure your application development settings</p>
         </div>
 
         <!-- Back Button (only show when not on mode selection) -->
         @if (currentStep() !== 'mode-selection') {
-        <button
-          class="outer-button w-[55px] sm:w-auto flex items-center gap-2"
-          (click)="goBack()"
-        >
+        <button class="outer-button w-[55px] sm:w-auto flex items-center gap-2" (click)="goBack()">
           <span class="pi pi-arrow-left"></span>
           <span class="hidden sm:block">Back</span>
         </button>
@@ -68,12 +55,8 @@
     @if (currentStep() === 'mode-selection') {
     <section class="md:glass-card md:p-8 sm:p-4 mb-8 backdrop-blur-sm">
       <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-white mb-4">
-          Choose Your Development Mode
-        </h2>
-        <p class="text-gray-400">
-          Select how you want to configure your application
-        </p>
+        <h2 class="text-2xl font-bold text-white mb-4">Choose Your Development Mode</h2>
+        <p class="text-gray-400">Select how you want to configure your application</p>
       </div>
 
       <div class="grid grid-cols-2 gap-3 md:gap-6">
@@ -88,12 +71,8 @@
             >
               <i class="pi pi-bolt text-lg md:text-2xl text-white"></i>
             </div>
-            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">
-              Quick
-            </h3>
-            <p
-              class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block"
-            >
+            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">Quick</h3>
+            <p class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block">
               Pre-configured setup with React, Express.js, and Supabase
             </p>
             <div class="text-xs md:text-sm text-gray-500 space-y-1">
@@ -101,9 +80,7 @@
                 <i class="pi pi-check text-green-400 text-xs"></i>
                 <span>React</span>
               </div>
-              <div
-                class="hidden md:flex items-center justify-center gap-1 md:gap-2"
-              >
+              <div class="hidden md:flex items-center justify-center gap-1 md:gap-2">
                 <i class="pi pi-check text-green-400 text-xs"></i>
                 <span>Express.js</span>
               </div>
@@ -122,12 +99,8 @@
             >
               <i class="pi pi-cog text-lg md:text-2xl text-white"></i>
             </div>
-            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">
-              Advanced
-            </h3>
-            <p
-              class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block"
-            >
+            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">Advanced</h3>
+            <p class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block">
               Full control over all technology choices and settings
             </p>
             <div class="text-xs md:text-sm text-gray-500 space-y-1">
@@ -135,9 +108,7 @@
                 <i class="pi pi-check text-blue-400 text-xs"></i>
                 <span>Custom</span>
               </div>
-              <div
-                class="hidden md:flex items-center justify-center gap-1 md:gap-2"
-              >
+              <div class="hidden md:flex items-center justify-center gap-1 md:gap-2">
                 <i class="pi pi-check text-blue-400 text-xs"></i>
                 <span>Full Control</span>
               </div>
@@ -152,12 +123,8 @@
     @if (currentStep() === 'generation-type') {
     <section class="sm:glass-card sm:p-8 mb-8 backdrop-blur-sm">
       <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-white mb-4">
-          What do you want to generate?
-        </h2>
-        <p class="text-gray-400">
-          Choose the type of application you want to create
-        </p>
+        <h2 class="text-2xl font-bold text-white mb-4">What do you want to generate?</h2>
+        <p class="text-gray-400">Choose the type of application you want to create</p>
       </div>
 
       <div class="grid grid-cols-2 gap-3 md:gap-6 max-w-4xl mx-auto">
@@ -172,14 +139,9 @@
             >
               <i class="pi pi-desktop text-lg md:text-2xl text-white"></i>
             </div>
-            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">
-              Landing
-            </h3>
-            <p
-              class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block"
-            >
-              A beautiful standalone marketing website to showcase your product
-              or service
+            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">Landing</h3>
+            <p class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block">
+              A beautiful standalone marketing website to showcase your product or service
             </p>
             <div class="flex items-center justify-center">
               <span
@@ -202,14 +164,9 @@
             >
               <i class="pi pi-mobile text-lg md:text-2xl text-white"></i>
             </div>
-            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">
-              Web App
-            </h3>
-            <p
-              class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block"
-            >
-              A full-featured web application with user authentication and
-              database
+            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">Web App</h3>
+            <p class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block">
+              A full-featured web application with user authentication and database
             </p>
             <div class="flex items-center justify-center">
               <span
@@ -232,14 +189,9 @@
             >
               <i class="pi pi-link text-lg md:text-2xl text-white"></i>
             </div>
-            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">
-              Integrated
-            </h3>
-            <p
-              class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block"
-            >
-              Landing page integrated within the web application for seamless
-              user experience
+            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">Integrated</h3>
+            <p class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block">
+              Landing page integrated within the web application for seamless user experience
             </p>
             <div class="flex items-center justify-center">
               <span
@@ -262,14 +214,9 @@
             >
               <i class="pi pi-th-large text-lg md:text-2xl text-white"></i>
             </div>
-            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">
-              Complete
-            </h3>
-            <p
-              class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block"
-            >
-              Separate landing page + web application for maximum flexibility
-              and scalability
+            <h3 class="text-sm md:text-xl font-bold text-white mb-2 md:mb-3">Complete</h3>
+            <p class="text-xs md:text-sm text-gray-400 mb-2 md:mb-4 hidden md:block">
+              Separate landing page + web application for maximum flexibility and scalability
             </p>
             <div class="flex items-center justify-center">
               <span
@@ -291,9 +238,7 @@
     @if (selectedMode() === 'quick') {
     <section class="glass-card p-8 mb-8 backdrop-blur-sm">
       <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-white mb-4">
-          Configuration Summary
-        </h2>
+        <h2 class="text-2xl font-bold text-white mb-4">Configuration Summary</h2>
         <p class="text-gray-400">Review your quick generation settings</p>
       </div>
 
@@ -302,16 +247,12 @@
           <h3 class="text-lg font-semibold text-white mb-3">Generation Type</h3>
           <div class="flex items-center gap-2">
             <i class="pi pi-check text-green-400"></i>
-            <span class="text-gray-300 capitalize"
-              >{{ selectedGenerationType() }}</span
-            >
+            <span class="text-gray-300 capitalize">{{ selectedGenerationType() }}</span>
           </div>
         </div>
 
         <div class="glass-card p-4">
-          <h3 class="text-lg font-semibold text-white mb-3">
-            Technology Stack
-          </h3>
+          <h3 class="text-lg font-semibold text-white mb-3">Technology Stack</h3>
           <div class="space-y-2 text-sm">
             <div class="flex items-center gap-2">
               <i class="pi pi-check text-green-400"></i>
@@ -345,17 +286,13 @@
     @if (selectedMode() === 'advanced') {
     <section class="sm:glass-card sm:p-6 mb-8 backdrop-blur-sm">
       <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-white mb-4">
-          Advanced Configuration
-        </h2>
+        <h2 class="text-2xl font-bold text-white mb-4">Advanced Configuration</h2>
         <p class="text-gray-400">Configure all aspects of your application</p>
       </div>
 
       <!-- Tab Navigation -->
       <div class="mb-8">
-        <div
-          class="glass p-2 rounded-2xl grid grid-cols-2 md:grid-cols-3 gap-1 backdrop-blur-sm"
-        >
+        <div class="glass p-2 rounded-2xl grid grid-cols-2 md:grid-cols-3 gap-1 backdrop-blur-sm">
           @for (tab of tabs; track tab) {
           <button
             class="py-4 text-white text-base font-medium flex items-center justify-center outer-button gap-3 transition-all duration-300 rounded-xl"
@@ -369,8 +306,6 @@
               [class.pi-server]="tab === 'backend'"
               [class.pi-database]="tab === 'database'"
               [class.pi-database]="tab === 'deployment'"
-              
-              
             ></span>
             <span>{{ tab | titlecase }}</span>
           </button>
@@ -397,15 +332,12 @@
       } @case ('database') {
       <app-database-config [databaseForm]="databaseForm"></app-database-config>
       } @case ('deployment') {
-      <app-deployment-config ></app-deployment-config>
+      <app-deployment-config></app-deployment-config>
       } }
 
       <!-- Action Buttons -->
       <div class="flex justify-end mt-8">
-        <button
-          class="inner-button flex items-center gap-2"
-          (click)="onSaveConfiguration()"
-        >
+        <button class="inner-button flex items-center gap-2" (click)="onSaveConfiguration()">
           <span>Save configs</span>
           <span class="pi pi-arrow-right"></span>
         </button>

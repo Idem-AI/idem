@@ -5,7 +5,7 @@ export interface ArchetypeModel {
   id: string;
   name: string;
   description: string;
-  provider: "aws" | "gcp" | "azure";
+  provider: 'aws' | 'gcp' | 'azure';
   category: string;
   tags: string[];
   icon: string;
@@ -22,7 +22,15 @@ export interface ArchetypeModel {
  */
 export interface TerraformVariable {
   name: string;
-  type: "string" | "number" | "bool" | "list(string)" | "list(number)" | "map(string)" | "map(number)" | "object";
+  type:
+    | 'string'
+    | 'number'
+    | 'bool'
+    | 'list(string)'
+    | 'list(number)'
+    | 'map(string)'
+    | 'map(number)'
+    | 'object';
   description?: string;
   default?: any;
   required: boolean;
@@ -66,7 +74,7 @@ export interface TemplateInput {
 export interface CreateArchetypePayload {
   name: string;
   description: string;
-  provider: "aws" | "gcp" | "azure";
+  provider: 'aws' | 'gcp' | 'azure';
   category: string;
   tags?: string[];
   icon?: string;
@@ -82,7 +90,7 @@ export interface CreateArchetypePayload {
 export interface UpdateArchetypePayload {
   name?: string;
   description?: string;
-  provider?: "aws" | "gcp" | "azure";
+  provider?: 'aws' | 'gcp' | 'azure';
   category?: string;
   tags?: string[];
   icon?: string;
@@ -100,23 +108,23 @@ export class ArchetypeValidators {
     const errors: string[] = [];
 
     if (!payload.name || payload.name.trim().length === 0) {
-      errors.push("Name is required");
+      errors.push('Name is required');
     }
 
     if (!payload.description || payload.description.trim().length === 0) {
-      errors.push("Description is required");
+      errors.push('Description is required');
     }
 
     if (!payload.provider) {
-      errors.push("Provider is required");
+      errors.push('Provider is required');
     }
 
     if (!payload.category || payload.category.trim().length === 0) {
-      errors.push("Category is required");
+      errors.push('Category is required');
     }
 
     if (!payload.terraformVariables || payload.terraformVariables.length === 0) {
-      errors.push("At least one Terraform variable is required");
+      errors.push('At least one Terraform variable is required');
     } else {
       payload.terraformVariables.forEach((variable, index) => {
         if (!variable.name || variable.name.trim().length === 0) {
@@ -135,19 +143,27 @@ export class ArchetypeValidators {
     const errors: string[] = [];
 
     if (!variable.name || variable.name.trim().length === 0) {
-      errors.push("Variable name is required");
+      errors.push('Variable name is required');
     }
 
-    const validTypes = ["string", "number", "bool", "list(string)", "list(number)", "map(string)", "map(number)", "object"];
+    const validTypes = [
+      'string',
+      'number',
+      'bool',
+      'list(string)',
+      'list(number)',
+      'map(string)',
+      'map(number)',
+      'object',
+    ];
     if (!variable.type || !validTypes.includes(variable.type)) {
-      errors.push(`Variable type must be one of: ${validTypes.join(", ")}`);
+      errors.push(`Variable type must be one of: ${validTypes.join(', ')}`);
     }
 
     if (!variable.description || variable.description.trim().length === 0) {
-      errors.push("Variable description is required");
+      errors.push('Variable description is required');
     }
 
     return errors;
   }
 }
-  

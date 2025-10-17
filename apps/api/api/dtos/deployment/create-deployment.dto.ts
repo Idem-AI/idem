@@ -1,4 +1,4 @@
-import { DeploymentModel } from "../../models/deployment.model";
+import { DeploymentModel } from '../../models/deployment.model';
 
 export interface CreateDeploymentDto {
   name: string;

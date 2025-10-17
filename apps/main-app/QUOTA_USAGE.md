@@ -1,6 +1,7 @@
 <!-- Vérification automatique des quotas -->
+
 <button appQuotaCheck="logo-generation" (click)="generateLogo()">
-  Générer un logo
+Générer un logo
 </button>
 
 <!-- Avec tooltip informatif -->

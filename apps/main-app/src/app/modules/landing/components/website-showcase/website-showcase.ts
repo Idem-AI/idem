@@ -38,8 +38,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       id: '1',
       title: 'TechFlow Solutions',
       category: 'SaaS Platform',
-      description:
-        'Modern B2B software solution with clean design and powerful features',
+      description: 'Modern B2B software solution with clean design and powerful features',
       imageUrl: '/assets/showcase/website-1.jpg',
       liveUrl: 'https://techflow-demo.idem-ai.com',
       technologies: ['Angular', 'Node.js', 'PostgreSQL'],
@@ -48,8 +47,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       id: '2',
       title: 'EcoGreen Marketplace',
       category: 'E-commerce',
-      description:
-        'Sustainable products marketplace with integrated payment system',
+      description: 'Sustainable products marketplace with integrated payment system',
       imageUrl: '/assets/showcase/website-2.jpg',
       liveUrl: 'https://ecogreen-demo.idem-ai.com',
       technologies: ['React', 'Express', 'MongoDB'],
@@ -67,8 +65,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       id: '4',
       title: 'EduLearn Platform',
       category: 'Education',
-      description:
-        'Interactive learning platform with video streaming and assessments',
+      description: 'Interactive learning platform with video streaming and assessments',
       imageUrl: '/assets/showcase/website-4.jpg',
       liveUrl: 'https://edulearn-demo.idem-ai.com',
       technologies: ['Angular', 'NestJS', 'PostgreSQL'],
@@ -86,8 +83,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       id: '6',
       title: 'Creative Portfolio',
       category: 'Portfolio',
-      description:
-        'Artist portfolio with interactive galleries and booking system',
+      description: 'Artist portfolio with interactive galleries and booking system',
       imageUrl: '/assets/showcase/website-6.jpg',
       liveUrl: 'https://portfolio-demo.idem-ai.com',
       technologies: ['Next.js', 'Strapi', 'PostgreSQL'],
@@ -158,8 +154,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       name: 'AI-Generated Website Examples',
-      description:
-        "Showcase of websites created using Idem's AI-powered development platform",
+      description: "Showcase of websites created using Idem's AI-powered development platform",
       numberOfItems: this.websites().length,
       itemListElement: this.websites().map((website, index) => ({
         '@type': 'ListItem',

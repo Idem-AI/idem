@@ -1,11 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { SseClient } from 'ngx-sse-client';
-import {
-  SSEStepEvent,
-  SSEServiceEventType,
-  SSEConnectionConfig,
-} from '../models/sse-step.model';
+import { SSEStepEvent, SSEServiceEventType, SSEConnectionConfig } from '../models/sse-step.model';
 
 @Injectable({
   providedIn: 'root',
@@ -43,7 +39,9 @@ export class SSEService {
 
               // Handle completion message first
               if (this.isCompletionMessage(messageEvent.data)) {
-                console.log(`${serviceType} generation completed - stepName: completion, data: all_steps_completed`);
+                console.log(
+                  `${serviceType} generation completed - stepName: completion, data: all_steps_completed`
+                );
                 observer.complete();
                 this.closeConnection(serviceType);
                 return;

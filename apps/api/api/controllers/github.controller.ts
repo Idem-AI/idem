@@ -1,12 +1,9 @@
-import { Request, Response } from "express";
-import logger from "../config/logger";
-import { DevelopmentService } from "../services/Development/development.service";
-import { PromptService } from "../services/prompt.service";
-import { CustomRequest } from "../interfaces/express.interface";
-import {
-  GitHubOAuthRequest,
-  PushToGitHubRequest,
-} from "../dtos/github/github.dto";
+import { Request, Response } from 'express';
+import logger from '../config/logger';
+import { DevelopmentService } from '../services/Development/development.service';
+import { PromptService } from '../services/prompt.service';
+import { CustomRequest } from '../interfaces/express.interface';
+import { GitHubOAuthRequest, PushToGitHubRequest } from '../dtos/github/github.dto';
 
 export class GitHubController {
   private developmentService: DevelopmentService;
@@ -14,7 +11,7 @@ export class GitHubController {
   constructor() {
     const promptService = new PromptService();
     this.developmentService = new DevelopmentService(promptService);
-    logger.info("GitHubController initialized.");
+    logger.info('GitHubController initialized.');
   }
 
   /**
@@ -23,35 +20,35 @@ export class GitHubController {
   async getAuthUrlController(req: CustomRequest, res: Response): Promise<void> {
     const userId = req.user?.uid;
 
-    logger.info("Getting GitHub auth URL", { userId });
+    logger.info('Getting GitHub auth URL', { userId });
 
     try {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
         return;
       }
 
       const authUrl = this.developmentService.getGitHubAuthUrl(userId);
 
-      logger.info("Successfully generated GitHub auth URL", { userId });
+      logger.info('Successfully generated GitHub auth URL', { userId });
 
       res.status(200).json({
         success: true,
         authUrl,
-        message: "GitHub authorization URL generated successfully",
+        message: 'GitHub authorization URL generated successfully',
       });
     } catch (error) {
-      logger.error("Failed to generate GitHub auth URL", {
+      logger.error('Failed to generate GitHub auth URL', {
         error: error instanceof Error ? error.message : error,
         userId,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to generate GitHub authorization URL",
+        message: 'Failed to generate GitHub authorization URL',
       });
     }
   }
@@ -62,13 +59,13 @@ export class GitHubController {
   async handleOAuthCallbackController(req: Request, res: Response): Promise<void> {
     const { code, state } = req.query as { code?: string; state?: string };
 
-    logger.info("Handling GitHub OAuth callback", { code: code?.substring(0, 10) + "..." });
+    logger.info('Handling GitHub OAuth callback', { code: code?.substring(0, 10) + '...' });
 
     try {
       if (!code) {
         res.status(400).json({
           success: false,
-          message: "Authorization code is required",
+          message: 'Authorization code is required',
         });
         return;
       }
@@ -79,20 +76,20 @@ export class GitHubController {
       });
 
       if (result.success) {
-        logger.info("GitHub OAuth successful", { username: result.user?.username });
+        logger.info('GitHub OAuth successful', { username: result.user?.username });
         res.status(200).json(result);
       } else {
-        logger.warn("GitHub OAuth failed", { message: result.message });
+        logger.warn('GitHub OAuth failed', { message: result.message });
         res.status(400).json(result);
       }
     } catch (error) {
-      logger.error("GitHub OAuth callback error", {
+      logger.error('GitHub OAuth callback error', {
         error: error instanceof Error ? error.message : error,
       });
 
       res.status(500).json({
         success: false,
-        message: "GitHub authentication failed",
+        message: 'GitHub authentication failed',
       });
     }
   }
@@ -105,13 +102,17 @@ export class GitHubController {
     const { projectId } = req.params;
     const pushRequest = req.body as PushToGitHubRequest;
 
-    logger.info("Pushing project to GitHub", { userId, projectId, repositoryName: pushRequest.repositoryName });
+    logger.info('Pushing project to GitHub', {
+      userId,
+      projectId,
+      repositoryName: pushRequest.repositoryName,
+    });
 
     try {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
         return;
       }
@@ -119,7 +120,7 @@ export class GitHubController {
       if (!projectId) {
         res.status(400).json({
           success: false,
-          message: "Project ID is required",
+          message: 'Project ID is required',
         });
         return;
       }
@@ -127,7 +128,7 @@ export class GitHubController {
       if (!pushRequest.repositoryName) {
         res.status(400).json({
           success: false,
-          message: "Repository name is required",
+          message: 'Repository name is required',
         });
         return;
       }
@@ -139,7 +140,7 @@ export class GitHubController {
       );
 
       if (result.success) {
-        logger.info("Successfully pushed project to GitHub", {
+        logger.info('Successfully pushed project to GitHub', {
           userId,
           projectId,
           repositoryUrl: result.repositoryUrl,
@@ -147,7 +148,7 @@ export class GitHubController {
         });
         res.status(200).json(result);
       } else {
-        logger.warn("Failed to push project to GitHub", {
+        logger.warn('Failed to push project to GitHub', {
           userId,
           projectId,
           message: result.message,
@@ -155,7 +156,7 @@ export class GitHubController {
         res.status(400).json(result);
       }
     } catch (error) {
-      logger.error("Push to GitHub error", {
+      logger.error('Push to GitHub error', {
         error: error instanceof Error ? error.message : error,
         userId,
         projectId,
@@ -164,7 +165,7 @@ export class GitHubController {
 
       res.status(500).json({
         success: false,
-        message: "Failed to push project to GitHub",
+        message: 'Failed to push project to GitHub',
       });
     }
   }
@@ -175,20 +176,20 @@ export class GitHubController {
   async getUserRepositoriesController(req: CustomRequest, res: Response): Promise<void> {
     const userId = req.user?.uid;
 
-    logger.info("Getting user GitHub repositories", { userId });
+    logger.info('Getting user GitHub repositories', { userId });
 
     try {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
         return;
       }
 
       const repositories = await this.developmentService.getUserGitHubRepositories(userId);
 
-      logger.info("Successfully retrieved GitHub repositories", {
+      logger.info('Successfully retrieved GitHub repositories', {
         userId,
         repositoryCount: repositories.length,
       });
@@ -196,17 +197,17 @@ export class GitHubController {
       res.status(200).json({
         success: true,
         repositories,
-        message: "GitHub repositories retrieved successfully",
+        message: 'GitHub repositories retrieved successfully',
       });
     } catch (error) {
-      logger.error("Failed to get GitHub repositories", {
+      logger.error('Failed to get GitHub repositories', {
         error: error instanceof Error ? error.message : error,
         userId,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to retrieve GitHub repositories",
+        message: 'Failed to retrieve GitHub repositories',
       });
     }
   }
@@ -217,13 +218,13 @@ export class GitHubController {
   async getGitHubUserInfoController(req: CustomRequest, res: Response): Promise<void> {
     const userId = req.user?.uid;
 
-    logger.info("Getting GitHub user info", { userId });
+    logger.info('Getting GitHub user info', { userId });
 
     try {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
         return;
       }
@@ -231,7 +232,7 @@ export class GitHubController {
       const userInfo = await this.developmentService.getGitHubUserInfo(userId);
 
       if (userInfo) {
-        logger.info("Successfully retrieved GitHub user info", {
+        logger.info('Successfully retrieved GitHub user info', {
           userId,
           githubUsername: userInfo.username,
         });
@@ -239,25 +240,25 @@ export class GitHubController {
         res.status(200).json({
           success: true,
           userInfo,
-          message: "GitHub user info retrieved successfully",
+          message: 'GitHub user info retrieved successfully',
         });
       } else {
-        logger.warn("GitHub account not connected", { userId });
+        logger.warn('GitHub account not connected', { userId });
 
         res.status(404).json({
           success: false,
-          message: "GitHub account not connected",
+          message: 'GitHub account not connected',
         });
       }
     } catch (error) {
-      logger.error("Failed to get GitHub user info", {
+      logger.error('Failed to get GitHub user info', {
         error: error instanceof Error ? error.message : error,
         userId,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to retrieve GitHub user info",
+        message: 'Failed to retrieve GitHub user info',
       });
     }
   }
@@ -268,13 +269,13 @@ export class GitHubController {
   async disconnectGitHubController(req: CustomRequest, res: Response): Promise<void> {
     const userId = req.user?.uid;
 
-    logger.info("Disconnecting GitHub account", { userId });
+    logger.info('Disconnecting GitHub account', { userId });
 
     try {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
         return;
       }
@@ -282,29 +283,29 @@ export class GitHubController {
       const success = await this.developmentService.disconnectGitHub(userId);
 
       if (success) {
-        logger.info("Successfully disconnected GitHub account", { userId });
+        logger.info('Successfully disconnected GitHub account', { userId });
 
         res.status(200).json({
           success: true,
-          message: "GitHub account disconnected successfully",
+          message: 'GitHub account disconnected successfully',
         });
       } else {
-        logger.warn("Failed to disconnect GitHub account", { userId });
+        logger.warn('Failed to disconnect GitHub account', { userId });
 
         res.status(400).json({
           success: false,
-          message: "Failed to disconnect GitHub account",
+          message: 'Failed to disconnect GitHub account',
         });
       }
     } catch (error) {
-      logger.error("Disconnect GitHub error", {
+      logger.error('Disconnect GitHub error', {
         error: error instanceof Error ? error.message : error,
         userId,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to disconnect GitHub account",
+        message: 'Failed to disconnect GitHub account',
       });
     }
   }

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { storageService } from "../../../../../lib/services/storage.service";
+import { NextRequest, NextResponse } from 'next/server';
+import { storageService } from '../../../../../lib/services/storage.service';
 import {
   verifyUserAuthentication,
   extractTokenFromHeader,
-} from "../../../../../lib/auth/verify-user";
+} from '../../../../../lib/auth/verify-user';
 
 /**
  * DELETE /api/storage/delete
@@ -12,12 +12,12 @@ import {
 export async function DELETE(request: NextRequest) {
   try {
     // Verify user authentication
-    const authHeader = request.headers.get("Authorization");
+    const authHeader = request.headers.get('Authorization');
     const token = extractTokenFromHeader(authHeader);
 
     if (!token) {
       return NextResponse.json(
-        { success: false, error: "Missing authentication token" },
+        { success: false, error: 'Missing authentication token' },
         { status: 401 }
       );
     }
@@ -28,7 +28,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: verificationResult.error || "Authentication failed",
+          error: verificationResult.error || 'Authentication failed',
         },
         { status: 401 }
       );
@@ -42,7 +42,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "filePaths array is required and must not be empty",
+          error: 'filePaths array is required and must not be empty',
         },
         { status: 400 }
       );
@@ -57,11 +57,11 @@ export async function DELETE(request: NextRequest) {
       deletedCount: filePaths.length,
     });
   } catch (error: any) {
-    console.error("Error in delete API:", error);
+    console.error('Error in delete API:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to delete zip files",
+        error: error.message || 'Failed to delete zip files',
       },
       { status: 500 }
     );

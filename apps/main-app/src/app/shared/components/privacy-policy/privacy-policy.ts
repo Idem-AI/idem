@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './privacy-policy.html',
-  styleUrl: './privacy-policy.css'
+  styleUrl: './privacy-policy.css',
 })
-export class PrivacyPolicy {
-}
+export class PrivacyPolicy {}

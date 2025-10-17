@@ -15,13 +15,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../auth/services/auth.service';
 import { CommonModule } from '@angular/common';
-import {
-  trigger,
-  transition,
-  style,
-  animate,
-  state,
-} from '@angular/animations';
+import { trigger, transition, style, animate, state } from '@angular/animations';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '../../models/project.model';
 import { SelectElement } from '../../pages/create-project/datas';
@@ -46,33 +40,29 @@ import {
   templateUrl: './sidebar-dashboard.html',
   styleUrls: ['./sidebar-dashboard.css'],
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterModule,
-    BetaBadgeComponent,
-    QuotaDisplayComponent,
-  ],
+  imports: [CommonModule, FormsModule, RouterModule, BetaBadgeComponent, QuotaDisplayComponent],
   animations: [
     trigger('slideInOut', [
       transition(':enter', [
         style({ transform: 'translateY(-100%)' }),
         animate('300ms ease-in', style({ transform: 'translateY(0%)' })),
       ]),
-      transition(':leave', [
-        animate('300ms ease-out', style({ transform: 'translateY(-100%)' })),
-      ]),
+      transition(':leave', [animate('300ms ease-out', style({ transform: 'translateY(-100%)' }))]),
     ]),
     trigger('mobileDrawerSlide', [
       transition(':enter', [
         style({ transform: 'translateX(-100%)', opacity: 0 }),
-        animate('350ms cubic-bezier(0.25, 0.8, 0.25, 1)', 
-          style({ transform: 'translateX(0%)', opacity: 1 })),
+        animate(
+          '350ms cubic-bezier(0.25, 0.8, 0.25, 1)',
+          style({ transform: 'translateX(0%)', opacity: 1 })
+        ),
       ]),
       transition(':leave', [
         style({ transform: 'translateX(0%)', opacity: 1 }),
-        animate('300ms cubic-bezier(0.4, 0.0, 0.2, 1)', 
-          style({ transform: 'translateX(-100%)', opacity: 0 })),
+        animate(
+          '300ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+          style({ transform: 'translateX(-100%)', opacity: 0 })
+        ),
       ]),
     ]),
     trigger('backdropFade', [
@@ -80,9 +70,7 @@ import {
         style({ opacity: 0 }),
         animate('250ms ease-out', style({ opacity: 1 })),
       ]),
-      transition(':leave', [
-        animate('200ms ease-in', style({ opacity: 0 })),
-      ]),
+      transition(':leave', [animate('200ms ease-in', style({ opacity: 0 }))]),
     ]),
     trigger('sidebarExpand', [
       state(
@@ -186,9 +174,7 @@ export class SidebarDashboard implements OnInit {
   // User and Project Data Signals
   protected readonly user = toSignal(this.auth.user$);
   private readonly _userProjects = signal<ProjectModel[]>([]);
-  protected readonly selectedProject = signal<SelectElement | undefined>(
-    undefined
-  );
+  protected readonly selectedProject = signal<SelectElement | undefined>(undefined);
   protected readonly projectIdFromCookie = signal<string | null>(null);
   protected readonly currentRoute = signal<string>('');
 
@@ -226,15 +212,13 @@ export class SidebarDashboard implements OnInit {
     }
 
     // Track current route for active menu highlighting
-    this.router.events
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((event) => {
-        if (event instanceof NavigationEnd) {
-          this.currentRoute.set(event.urlAfterRedirects);
-          // Update menu items to reflect active state
-          this.updateSidebarRoutes();
-        }
-      });
+    this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.currentRoute.set(event.urlAfterRedirects);
+        // Update menu items to reflect active state
+        this.updateSidebarRoutes();
+      }
+    });
 
     // Effect to update sidebar menu when selectedProject changes - REMOVED to prevent loops
     // The updateSidebarRoutes is now only called from router events
@@ -258,7 +242,7 @@ export class SidebarDashboard implements OnInit {
     }
 
     const cookieId = this.cookieService.get('projectId');
-    
+
     if (cookieId) {
       const projectFromCookie = projects.find((p) => p.id === cookieId);
       if (projectFromCookie) {
@@ -269,10 +253,12 @@ export class SidebarDashboard implements OnInit {
         });
         return;
       } else {
-        console.warn(`Project ID '${cookieId}' from cookie not found. Using first project instead.`);
+        console.warn(
+          `Project ID '${cookieId}' from cookie not found. Using first project instead.`
+        );
       }
     }
-    
+
     // Fallback to first project
     const firstProject = projects[0];
     this.selectedProject.set({
@@ -379,28 +365,23 @@ export class SidebarDashboard implements OnInit {
         next: (projects) => {
           this._userProjects.set(projects);
           this.loadQuotaInfo();
-          
+
           if (projects.length > 0) {
             // Initialize project selection immediately
             this.initializeProjectSelection(projects);
-            
+
             const initialCookieId = this.cookieService.get('projectId');
             if (!initialCookieId) {
               this.router.navigate([`/console/projects`], {
                 replaceUrl: true,
               });
             } else {
-              const projectExists = projects.find(
-                (p) => p.id === initialCookieId
-              );
+              const projectExists = projects.find((p) => p.id === initialCookieId);
               if (!projectExists) {
                 console.warn(
                   `Initial project ID '${initialCookieId}' not found. Navigating to dashboard.`
                 );
-                this.router.navigate(
-                  [`/console/dashboard`],
-                  { replaceUrl: true }
-                );
+                this.router.navigate([`/console/dashboard`], { replaceUrl: true });
               }
             }
           } else {
@@ -503,11 +484,7 @@ export class SidebarDashboard implements OnInit {
 
   @HostListener('document:click', ['$event'])
   onClickOutside(event: Event) {
-    if (
-      this.isMenuOpen() &&
-      this.menuRef &&
-      !this.menuRef.nativeElement.contains(event.target)
-    ) {
+    if (this.isMenuOpen() && this.menuRef && !this.menuRef.nativeElement.contains(event.target)) {
       this.isMenuOpen.set(false);
     }
   }

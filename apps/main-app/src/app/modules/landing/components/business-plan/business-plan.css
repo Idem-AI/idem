@@ -1,12 +1,22 @@
 /* Custom animations for business plan section */
 @keyframes float-up {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-15px) rotate(2deg); }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(2deg);
+  }
 }
 
 @keyframes float-down {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(15px) rotate(-2deg); }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(15px) rotate(-2deg);
+  }
 }
 
 .animate-float-up {

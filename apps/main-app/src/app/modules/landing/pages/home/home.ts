@@ -132,10 +132,7 @@ export class Home implements OnInit {
         name: 'Idem',
         url: this.seoService.domain,
         logo: `${this.seoService.domain}/assets/images/logo.png`,
-        sameAs: [
-          'https://twitter.com/IdemAfrica',
-          'https://linkedin.com/company/idem-africa',
-        ],
+        sameAs: ['https://twitter.com/IdemAfrica', 'https://linkedin.com/company/idem-africa'],
       },
       featureList: [
         'AI Brand Creation',
@@ -158,9 +155,7 @@ export class Home implements OnInit {
     };
 
     // Check if structured data already exists
-    const existingScript = document.querySelector(
-      'script[data-home-structured-data]'
-    );
+    const existingScript = document.querySelector('script[data-home-structured-data]');
     if (existingScript) {
       return;
     }

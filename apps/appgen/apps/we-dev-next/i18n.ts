@@ -8,7 +8,7 @@ const locales = Object.values(Language);
 export default getRequestConfig(async ({ locale: _locale, requestLocale }) => {
   // 获取请求的语言
   const locale = await requestLocale;
-  
+
   // 验证请求的语言是否受支持
   if (!locales.includes(locale as Language)) {
     notFound();
@@ -27,6 +27,6 @@ export default getRequestConfig(async ({ locale: _locale, requestLocale }) => {
         return null;
       }
       throw error;
-    }
+    },
   };
-}); 
+});

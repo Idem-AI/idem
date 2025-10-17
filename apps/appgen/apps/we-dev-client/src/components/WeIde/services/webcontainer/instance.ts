@@ -11,11 +11,11 @@ export async function getWebContainerInstance(): Promise<WebContainer | null> {
   try {
     bootPromise = WebContainer.boot();
     webcontainerInstance = await bootPromise;
-    
+
     if (webcontainerInstance) {
       // Initialize the root directory
       await webcontainerInstance.fs.mkdir('/', { recursive: true });
-      
+
       // Mount initial files
       const { files } = useFileStore.getState();
       for (const [path, contents] of Object.entries(files)) {

@@ -1,5 +1,5 @@
-import { AnalysisResultModel } from "./analysisResult.model";
-import { ChatMessage, DeploymentModel } from "./deployment.model";
+import { AnalysisResultModel } from './analysisResult.model';
+import { ChatMessage, DeploymentModel } from './deployment.model';
 
 /**
  * Modèle d'acceptation des politiques intégré au projet
@@ -122,7 +122,7 @@ export interface ProjectModel {
   id?: string;
   name: string;
   description: string;
-  type: "web" | "mobile" | "iot" | "desktop";
+  type: 'web' | 'mobile' | 'iot' | 'desktop';
   constraints: string[];
   teamSize: string;
   scope: string;

@@ -102,9 +102,7 @@
               class="dropdown-item p-3 hover:bg-primary rounded-2xl cursor-pointer"
               >Settings</a
             >
-            <a
-              (click)="logout()"
-              class="dropdown-item border-t p-3 hover:bg-primary cursor-pointer"
+            <a (click)="logout()" class="dropdown-item border-t p-3 hover:bg-primary cursor-pointer"
               >Logout</a
             >
           </div>
@@ -146,11 +144,7 @@
   </div>
 
   @if (isMenuOpen()) {
-  <div
-    class="md:hidden glass-mobile-menu"
-    #menu
-    [@slideInOut]="isMenuOpen() ? 'open' : 'closed'"
-  >
+  <div class="md:hidden glass-mobile-menu" #menu [@slideInOut]="isMenuOpen() ? 'open' : 'closed'">
     <div class="px-2 pt-3 pb-4 space-y-2 sm:px-3">
       <a
         routerLink="/home"

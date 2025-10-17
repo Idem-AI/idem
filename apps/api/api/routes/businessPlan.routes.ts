@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   getBusinessPlanByIdController,
   updateBusinessPlanController,
@@ -6,15 +6,15 @@ import {
   generateBusinessPlanStreamingController,
   generateBusinessPlanPdfController,
   setAdditionalInfoController,
-} from "../controllers/businessPlan.controller";
-import { authenticate } from "../services/auth.service";
-import { checkQuota } from "../middleware/quota.middleware";
-import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
-import multer from "multer";
+} from '../controllers/businessPlan.controller';
+import { authenticate } from '../services/auth.service';
+import { checkQuota } from '../middleware/quota.middleware';
+import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import multer from 'multer';
 
 export const businessPlanRoutes = Router();
 
-const resourceName = "businessPlans";
+const resourceName = 'businessPlans';
 
 // Configuration multer pour l'upload d'images des team members
 const storage = multer.memoryStorage();
@@ -138,11 +138,7 @@ businessPlanRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-businessPlanRoutes.get(
-  `/${resourceName}/:projectId`,
-  authenticate,
-  getBusinessPlanByIdController
-);
+businessPlanRoutes.get(`/${resourceName}/:projectId`, authenticate, getBusinessPlanByIdController);
 
 // Update a specific business plan by its project ID
 /**
@@ -183,11 +179,7 @@ businessPlanRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-businessPlanRoutes.put(
-  `/${resourceName}/:projectId`,
-  authenticate,
-  updateBusinessPlanController
-);
+businessPlanRoutes.put(`/${resourceName}/:projectId`, authenticate, updateBusinessPlanController);
 
 // Delete a specific business plan by its project ID
 /**
@@ -419,5 +411,3 @@ businessPlanRoutes.post(
   upload.any(), // Support multiple files with any field names
   setAdditionalInfoController
 );
-
-

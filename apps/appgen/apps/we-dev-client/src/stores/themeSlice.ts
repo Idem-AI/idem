@@ -12,4 +12,4 @@ const useThemeStore = create<ThemeState>((set) => ({
   setTheme: (isDark: boolean) => set({ isDarkMode: isDark }),
 }));
 
-export default useThemeStore; 
+export default useThemeStore;

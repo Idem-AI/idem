@@ -1,4 +1,4 @@
-import { SectionModel } from "./section.model";
+import { SectionModel } from './section.model';
 
 /**
  * @openapi

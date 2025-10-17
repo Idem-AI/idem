@@ -1,12 +1,9 @@
-export function stripIndents(
-  arg0: string | TemplateStringsArray,
-  ...values: any[]
-) {
-  if (typeof arg0 !== "string") {
+export function stripIndents(arg0: string | TemplateStringsArray, ...values: any[]) {
+  if (typeof arg0 !== 'string') {
     const processedString = arg0.reduce((acc, curr, i) => {
-      acc += curr + (values[i] ?? "");
+      acc += curr + (values[i] ?? '');
       return acc;
-    }, "");
+    }, '');
 
     return _stripIndents(processedString);
   }
@@ -15,9 +12,9 @@ export function stripIndents(
 }
 function _stripIndents(value: string) {
   return value
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
-    .join("\n")
+    .join('\n')
     .trimStart()
-    .replace(/[\r\n]$/, "");
+    .replace(/[\r\n]$/, '');
 }

@@ -11,14 +11,7 @@ import { SelectElement } from '../../datas';
 @Component({
   selector: 'app-project-details',
   standalone: true,
-  imports: [
-    FormsModule,
-    CommonModule,
-    InputTextModule,
-    FloatLabel,
-    Select,
-    MultiSelectModule,
-  ],
+  imports: [FormsModule, CommonModule, InputTextModule, FloatLabel, Select, MultiSelectModule],
   templateUrl: './project-details.html',
   styleUrl: './project-details.css',
 })

@@ -30,8 +30,7 @@ export class Login implements OnInit {
     if (this.isBeta()) {
       // SEO for the standard login page
       const title = 'Login - Idem';
-      const description =
-        'Access your Idem account to manage your AI-powered projects and brands.';
+      const description = 'Access your Idem account to manage your AI-powered projects and brands.';
       this.seoService.updateTitle(title);
       this.seoService.updateMetaTags([
         { name: 'description', content: description },
@@ -44,8 +43,7 @@ export class Login implements OnInit {
       this.seoService.setCanonicalUrl('/login');
     } else {
       // SEO for the waitlist page
-      const title =
-        'Join the Idem Waitlist - Early Access to AI Brand Creation';
+      const title = 'Join the Idem Waitlist - Early Access to AI Brand Creation';
       const description =
         'Get exclusive early access to Idem, the AI platform that builds your brand, creates technical specs, and deploys your app. Limited spots available!';
       this.seoService.updateTitle(title);
@@ -53,8 +51,7 @@ export class Login implements OnInit {
         { name: 'description', content: description },
         {
           name: 'keywords',
-          content:
-            'Idem, Waitlist, Early Access, Beta, AI Brand Creation, AI Deployment, SaaS',
+          content: 'Idem, Waitlist, Early Access, Beta, AI Brand Creation, AI Deployment, SaaS',
         },
         { name: 'robots', content: 'index, follow' },
       ]);

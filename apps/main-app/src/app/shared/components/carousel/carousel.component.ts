@@ -27,57 +27,55 @@ import { CommonModule } from '@angular/common';
           [style.transform]="'translateX(-' + currentIndex() * 100 + '%)'"
           #carouselTrack
         >
-          @for (item of safeItems; track trackByFn(index, item); let index =
-          $index) {
-          <div class="w-full flex-shrink-0 px-2">
-            <ng-container
-              [ngTemplateOutlet]="itemTemplate"
-              [ngTemplateOutletContext]="{
-                $implicit: item,
-                index: index,
-                isSelected: selectedItem === item
-              }"
-            ></ng-container>
-          </div>
+          @for (item of safeItems; track trackByFn(index, item); let index = $index) {
+            <div class="w-full flex-shrink-0 px-2">
+              <ng-container
+                [ngTemplateOutlet]="itemTemplate"
+                [ngTemplateOutletContext]="{
+                  $implicit: item,
+                  index: index,
+                  isSelected: selectedItem === item,
+                }"
+              ></ng-container>
+            </div>
           }
         </div>
 
         <!-- Navigation Dots -->
         @if (showDots && safeItems.length > 1) {
-        <div class="flex justify-center mt-6 space-x-2">
-          @for (item of safeItems; track trackByFn(index, item); let index =
-          $index) {
-          <button
-            (click)="goToSlide(index)"
-            class="w-2 h-2 rounded-full transition-all duration-200"
-            [class.bg-primary]="currentIndex() === index"
-            [class.bg-gray-400]="currentIndex() !== index"
-            [class.scale-125]="currentIndex() === index"
-            [attr.aria-label]="'Go to slide ' + (index + 1)"
-          ></button>
-          }
-        </div>
+          <div class="flex justify-center mt-6 space-x-2">
+            @for (item of safeItems; track trackByFn(index, item); let index = $index) {
+              <button
+                (click)="goToSlide(index)"
+                class="w-2 h-2 rounded-full transition-all duration-200"
+                [class.bg-primary]="currentIndex() === index"
+                [class.bg-gray-400]="currentIndex() !== index"
+                [class.scale-125]="currentIndex() === index"
+                [attr.aria-label]="'Go to slide ' + (index + 1)"
+              ></button>
+            }
+          </div>
         }
 
         <!-- Navigation Arrows -->
         @if (showArrows && safeItems.length > 1) {
-        <button
-          (click)="previousSlide()"
-          [disabled]="currentIndex() === 0 && !infinite"
-          class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 glass backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
-          [attr.aria-label]="'Previous slide'"
-        >
-          <i class="pi pi-chevron-left"></i>
-        </button>
+          <button
+            (click)="previousSlide()"
+            [disabled]="currentIndex() === 0 && !infinite"
+            class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 glass backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
+            [attr.aria-label]="'Previous slide'"
+          >
+            <i class="pi pi-chevron-left"></i>
+          </button>
 
-        <button
-          (click)="nextSlide()"
-          [disabled]="currentIndex() === safeItems.length - 1 && !infinite"
-          class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 glass backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
-          [attr.aria-label]="'Next slide'"
-        >
-          <i class="pi pi-chevron-right"></i>
-        </button>
+          <button
+            (click)="nextSlide()"
+            [disabled]="currentIndex() === safeItems.length - 1 && !infinite"
+            class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 glass backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
+            [attr.aria-label]="'Next slide'"
+          >
+            <i class="pi pi-chevron-right"></i>
+          </button>
         }
       </div>
 
@@ -89,16 +87,15 @@ import { CommonModule } from '@angular/common';
           [class.lg:grid-cols-3]="gridCols >= 3"
           [class.xl:grid-cols-4]="gridCols >= 4"
         >
-          @for (item of safeItems; track trackByFn(index, item); let index =
-          $index) {
-          <ng-container
-            [ngTemplateOutlet]="itemTemplate"
-            [ngTemplateOutletContext]="{
-              $implicit: item,
-              index: index,
-              isSelected: selectedItem === item
-            }"
-          ></ng-container>
+          @for (item of safeItems; track trackByFn(index, item); let index = $index) {
+            <ng-container
+              [ngTemplateOutlet]="itemTemplate"
+              [ngTemplateOutletContext]="{
+                $implicit: item,
+                index: index,
+                isSelected: selectedItem === item,
+              }"
+            ></ng-container>
           }
         </div>
       </div>
@@ -134,9 +131,7 @@ export class CarouselComponent<T> implements OnInit, OnDestroy {
   private touchStartX = 0;
   private touchEndX = 0;
 
-  protected readonly canGoPrevious = computed(
-    () => this.infinite || this.currentIndex() > 0
-  );
+  protected readonly canGoPrevious = computed(() => this.infinite || this.currentIndex() > 0);
 
   protected readonly canGoNext = computed(
     () => this.infinite || this.currentIndex() < this.items.length - 1

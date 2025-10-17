@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   createArchetypeController,
   getArchetypesController,
@@ -8,8 +8,8 @@ import {
   getArchetypesByProviderController,
   getArchetypesByCategoryController,
   generateTerraformTfvarsController,
-} from "../controllers/archetype.controller";
-import { authenticate } from "../services/auth.service";
+} from '../controllers/archetype.controller';
+import { authenticate } from '../services/auth.service';
 
 const router = Router();
 
@@ -90,7 +90,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized
  */
-router.post("/", createArchetypeController);
+router.post('/', createArchetypeController);
 
 /**
  * @swagger
@@ -106,7 +106,7 @@ router.post("/", createArchetypeController);
  *       401:
  *         description: Unauthorized
  */
-router.get("/", getArchetypesController);
+router.get('/', getArchetypesController);
 
 /**
  * @swagger
@@ -131,7 +131,7 @@ router.get("/", getArchetypesController);
  *       401:
  *         description: Unauthorized
  */
-router.get("/:archetypeId", authenticate, getArchetypeByIdController);
+router.get('/:archetypeId', authenticate, getArchetypeByIdController);
 
 /**
  * @swagger
@@ -190,7 +190,7 @@ router.get("/:archetypeId", authenticate, getArchetypeByIdController);
  *       401:
  *         description: Unauthorized
  */
-router.put("/:archetypeId", authenticate, updateArchetypeController);
+router.put('/:archetypeId', authenticate, updateArchetypeController);
 
 /**
  * @swagger
@@ -215,7 +215,7 @@ router.put("/:archetypeId", authenticate, updateArchetypeController);
  *       401:
  *         description: Unauthorized
  */
-router.delete("/:archetypeId", authenticate, deleteArchetypeController);
+router.delete('/:archetypeId', authenticate, deleteArchetypeController);
 
 /**
  * @swagger
@@ -239,11 +239,7 @@ router.delete("/:archetypeId", authenticate, deleteArchetypeController);
  *       401:
  *         description: Unauthorized
  */
-router.get(
-  "/provider/:provider",
-  authenticate,
-  getArchetypesByProviderController
-);
+router.get('/provider/:provider', authenticate, getArchetypesByProviderController);
 
 /**
  * @swagger
@@ -266,11 +262,7 @@ router.get(
  *       401:
  *         description: Unauthorized
  */
-router.get(
-  "/category/:category",
-  authenticate,
-  getArchetypesByCategoryController
-);
+router.get('/category/:category', authenticate, getArchetypesByCategoryController);
 
 /**
  * @swagger
@@ -325,10 +317,6 @@ router.get(
  *       401:
  *         description: Unauthorized
  */
-router.post(
-  "/:archetypeId/terraform/tfvars",
-  authenticate,
-  generateTerraformTfvarsController
-);
+router.post('/:archetypeId/terraform/tfvars', authenticate, generateTerraformTfvarsController);
 
 export default router;

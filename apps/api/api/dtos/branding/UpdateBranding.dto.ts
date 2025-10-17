@@ -1,7 +1,7 @@
-import { LogoModel } from "../../models/logo.model";
-import { ColorModel } from "../../models/brand-identity.model"; // ColorModel is in brand-identity.model.ts
-import { TypographyModel } from "../../models/brand-identity.model"; // TypographyModel is in brand-identity.model.ts
-import { SectionModel } from "../../models/section.model";
+import { LogoModel } from '../../models/logo.model';
+import { ColorModel } from '../../models/brand-identity.model'; // ColorModel is in brand-identity.model.ts
+import { TypographyModel } from '../../models/brand-identity.model'; // TypographyModel is in brand-identity.model.ts
+import { SectionModel } from '../../models/section.model';
 
 /**
  * @openapi

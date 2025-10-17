@@ -32,8 +32,8 @@ const envDir = path.join(__dirname, './src/environments');
 
 // Vérifier et créer le dossier s'il n'existe pas
 if (!fs.existsSync(envDir)) {
-    fs.mkdirSync(envDir, { recursive: true });
-    console.log(`📁 Created directory: ${envDir}`);
+  fs.mkdirSync(envDir, { recursive: true });
+  console.log(`📁 Created directory: ${envDir}`);
 }
 
 // Définir les chemins des fichiers
@@ -41,12 +41,12 @@ const targetPath = path.join(envDir, 'environment.ts');
 const targetDevPath = path.join(envDir, 'environment.development.ts');
 
 function createFileIfNotExists(filePath, content) {
-    if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, content);
-        console.log(`✅ Successfully created: ${filePath}`);
-    } else {
-        console.log(`⚠️ File already exists: ${filePath}`);
-    }
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, content);
+    console.log(`✅ Successfully created: ${filePath}`);
+  } else {
+    console.log(`⚠️ File already exists: ${filePath}`);
+  }
 }
 
 // Créer les fichiers uniquement s'ils n'existent pas

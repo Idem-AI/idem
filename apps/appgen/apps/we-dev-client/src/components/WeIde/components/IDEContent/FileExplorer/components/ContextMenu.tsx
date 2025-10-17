@@ -18,7 +18,7 @@ export function ContextMenu({ x, y, item, onClose, onRename, onDelete }: Context
     {
       label: 'Rename',
       icon: Pencil,
-      onClick: () => onRename(item.path)
+      onClick: () => onRename(item.path),
     },
     {
       label: 'Delete',
@@ -27,8 +27,8 @@ export function ContextMenu({ x, y, item, onClose, onRename, onDelete }: Context
         if (confirm(`Are you sure you want to delete ${item.name}?`)) {
           onDelete(item.path);
         }
-      }
-    }
+      },
+    },
   ];
 
   return (

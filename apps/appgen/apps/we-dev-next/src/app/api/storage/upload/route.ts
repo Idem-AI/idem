@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { storageService } from "../../../../../lib/services/storage.service";
+import { NextRequest, NextResponse } from 'next/server';
+import { storageService } from '../../../../../lib/services/storage.service';
 import {
   verifyUserAuthentication,
   extractTokenFromHeader,
-} from "../../../../../lib/auth/verify-user";
+} from '../../../../../lib/auth/verify-user';
 
 /**
  * POST /api/storage/upload
@@ -12,12 +12,12 @@ import {
 export async function POST(request: NextRequest) {
   try {
     // Verify user authentication
-    const authHeader = request.headers.get("Authorization");
+    const authHeader = request.headers.get('Authorization');
     const token = extractTokenFromHeader(authHeader);
 
     if (!token) {
       return NextResponse.json(
-        { success: false, error: "Missing authentication token" },
+        { success: false, error: 'Missing authentication token' },
         { status: 401 }
       );
     }
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: verificationResult.error || "Authentication failed",
+          error: verificationResult.error || 'Authentication failed',
         },
         { status: 401 }
       );
@@ -38,38 +38,35 @@ export async function POST(request: NextRequest) {
 
     // Parse form data
     const formData = await request.formData();
-    const projectId = formData.get("projectId") as string;
-    const frontendZip = formData.get("frontend") as File | null;
-    const backendZip = formData.get("backend") as File | null;
+    const projectId = formData.get('projectId') as string;
+    const frontendZip = formData.get('frontend') as File | null;
+    const backendZip = formData.get('backend') as File | null;
 
     if (!projectId) {
-      return NextResponse.json(
-        { success: false, error: "Missing projectId" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Missing projectId' }, { status: 400 });
     }
 
     if (!frontendZip && !backendZip) {
       return NextResponse.json(
         {
           success: false,
-          error: "At least one zip file (frontend or backend) is required",
+          error: 'At least one zip file (frontend or backend) is required',
         },
         { status: 400 }
       );
     }
 
     // Validate file types
-    if (frontendZip && frontendZip.type !== "application/zip") {
+    if (frontendZip && frontendZip.type !== 'application/zip') {
       return NextResponse.json(
-        { success: false, error: "Frontend file must be a zip file" },
+        { success: false, error: 'Frontend file must be a zip file' },
         { status: 400 }
       );
     }
 
-    if (backendZip && backendZip.type !== "application/zip") {
+    if (backendZip && backendZip.type !== 'application/zip') {
       return NextResponse.json(
-        { success: false, error: "Backend file must be a zip file" },
+        { success: false, error: 'Backend file must be a zip file' },
         { status: 400 }
       );
     }
@@ -88,11 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload to Firebase Storage
-    const uploadResults = await storageService.uploadGeneratedAppZips(
-      files,
-      userId,
-      projectId
-    );
+    const uploadResults = await storageService.uploadGeneratedAppZips(files, userId, projectId);
 
     return NextResponse.json({
       success: true,
@@ -115,11 +108,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Error in upload API:", error);
+    console.error('Error in upload API:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to upload zip files",
+        error: error.message || 'Failed to upload zip files',
       },
       { status: 500 }
     );
