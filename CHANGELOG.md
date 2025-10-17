@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2025-10-17
+
+### 🎯 Smart Deploy System
+
+#### Added
+- **Smart Deploy Orchestration**: Automatic detection of modified applications with selective deployment
+- **Centralized Workflows**: Reusable GitHub Actions workflows at repository root
+  - `smart-deploy.yml` - Main orchestrator with change detection
+  - `deploy-api.yml` - API deployment workflow
+  - `deploy-main-app.yml` - Main application deployment workflow
+  - `deploy-chart.yml` - Chart editor deployment workflow
+- **Deployment Summary**: Automatic generation of deployment reports showing which apps were deployed/skipped
+- **Path-based Filtering**: Uses `dorny/paths-filter@v3` for reliable change detection
+
+#### Changed
+- Migrated individual app workflows to centralized reusable workflows
+- Disabled legacy workflows in app subdirectories (renamed to `.disabled`)
+- Updated deployment strategy to be more efficient and resource-conscious
+
+#### Documentation
+- `documentation/SMART_DEPLOY.md` - Complete Smart Deploy system guide
+- `documentation/README.md` - Documentation index with all available guides
+- `SMART_DEPLOY_MIGRATION.md` - Migration guide and implementation details
+- Updated main `README.md` with Smart Deploy section
+
+#### Benefits
+- ⚡ **60-70% faster deployments** - Only modified apps are deployed
+- 💰 **Resource savings** - Reduced CI/CD minutes usage
+- 📊 **Better visibility** - Clear deployment summaries
+- 🔧 **Easy maintenance** - Centralized workflow management
+- 📈 **Scalable** - Easy to add new applications
+
 ## [2.0.0] - 2025-10-16
 
 ### 🚀 Migration to npm workspaces

@@ -190,6 +190,30 @@ idem/
 └── .prettierrc               # Prettier configuration
 ```
 
+## 🎯 Smart Deploy System
+
+Idem uses an intelligent deployment system that automatically detects which applications have been modified and deploys only those applications. This saves time and resources by avoiding unnecessary deployments.
+
+### How It Works
+
+When you push to `main`, `dev`, or `master` branches:
+
+1. **🔍 Detection**: The system automatically detects which apps in `/apps` have changes
+2. **🚀 Selective Deploy**: Only modified applications are deployed
+3. **📊 Summary**: A deployment summary shows which apps were deployed and which were skipped
+
+### Example
+
+```bash
+# Only modify the API
+git add apps/api/src/
+git commit -m "feat: add new endpoint"
+git push origin dev
+# Result: Only the API is deployed ✅
+```
+
+For more details, see [documentation/SMART_DEPLOY.md](./documentation/SMART_DEPLOY.md)
+
 ## 🔄 Development Workflow
 
 ### 1. Clone and Install
@@ -264,7 +288,8 @@ npm ls --workspaces
 ## 📚 Documentation
 
 - **[QUICKSTART.md](./QUICKSTART.md)** - Quick start guide
-- **[documentation/INSTALLATION.md](./documentation/INSTALLATION.md)** - Detailed installation guide
+- **[documentation/README.md](./documentation/README.md)** - Documentation index
+- **[documentation/SMART_DEPLOY.md](./documentation/SMART_DEPLOY.md)** - Smart Deploy system guide
 - **[documentation/NPM_WORKSPACES_GUIDE.md](./documentation/NPM_WORKSPACES_GUIDE.md)** - npm workspaces guide
 - **[apps/idem-ai/README.md](./apps/idem-ai/README.md)** - idem-ai documentation
 - **[apps/idem-ai-chart/README.md](./apps/idem-ai-chart/README.md)** - idem-ai-chart documentation

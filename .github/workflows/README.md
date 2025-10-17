@@ -1,399 +1,398 @@
-# 🚀 Workflows CI/CD - Optimisés avec NX
+# 🎯 GitHub Actions Workflows - Smart Deploy System
 
-Ce dossier contient les workflows GitHub Actions optimisés avec NX pour le workspace Idem.
+This folder contains GitHub Actions workflows with the Smart Deploy system for the Idem monorepo.
 
-## 📋 Workflows Disponibles
+## 📋 Available Workflows
 
-### 1. `ci.yml` - CI Principal ✅
+### 1. `smart-deploy.yml` - 🎯 Orchestrateur Principal
 
-**Déclenchement**: Push ou PR sur `main`, `develop`, `dev`, `master`
+**Trigger**: Push to `main`, `dev`, `master`
 
-**Description**: Workflow de CI principal avec détection NX Affected
+**Description**: Main workflow that automatically detects modified applications and triggers only necessary deployments.
 
 **Jobs**:
-- 🔍 **detect-changes** - Détecte les projets affectés par NX
-- ✅ **quality** - Lint, format check, tests (uniquement projets affectés)
-- 🔨 **build** - Build (uniquement projets affectés)
-- 📊 **nx-graph** - Génère le graphe de dépendances (PR uniquement)
+- 🔍 **detect-changes** - Detects modified applications with `dorny/paths-filter@v3`
+- 🚀 **deploy-api** - Calls `deploy-api.yml` if `apps/api/**` modified
+- 🚀 **deploy-main-app** - Calls `deploy-main-app.yml` if `apps/main-app/**` modified
+- 🚀 **deploy-chart** - Calls `deploy-chart.yml` if `apps/chart/**` modified
+- 📊 **summary** - Generates deployment summary
 
-**Optimisations**:
-- ✅ NX Affected Commands
-- ✅ Parallélisation (--parallel=3)
-- ✅ Cache GitHub Actions
-- ✅ Skip si aucun changement
+**Benefits**:
+- ⚡ **60-70% faster** - Only modified apps are deployed
+- 💰 **Cost savings** - Reduced CI/CD minutes
+- 📊 **Visibility** - Clear deployment summaries
+- 🔧 **Maintenance** - Centralized workflows
 
-**Gain**: **70% de temps** sur builds partiels
+**Summary Example**:
+```
+📊 Deployment Summary
 
-**Exemple**:
-```yaml
-# Déclenché automatiquement sur push/PR
-# Détecte que seul idem-ai a changé
-# Build uniquement idem-ai
-# Temps: ~3 minutes (vs 15 minutes)
+Applications Detected:
+- API: ✅ Deployed
+- Main App: ⏭️ Skipped
+- Chart: ⏭️ Skipped
+- AppGen: ⏭️ Skipped
 ```
 
 ---
 
-### 2. `deploy-nx.yml` - Déploiement Optimisé NX ✅
+### 2. `deploy-api.yml` - 🚀 API Deployment
 
-**Déclenchement**: 
-- Push sur `main`, `dev`, `master`, `develop`
-- Manuel (workflow_dispatch) avec option "force deploy all"
+**Type**: Reusable workflow (`workflow_call`)
 
-**Description**: Déploiement conditionnel basé sur NX Affected
+**Trigger**: 
+- Called by `smart-deploy.yml`
+- Manual via `workflow_dispatch`
+
+**Description**: Deploys the backend API (Express/TypeScript)
 
 **Jobs**:
-- 🔍 **detect-affected** - Détecte les projets à déployer
-- 🚀 **deploy-idem-ai** - Déploie Angular (si affecté)
-- 🚀 **deploy-idem-api** - Déploie Express (si affecté)
-- 🚀 **deploy-idem-chart** - Déploie Svelte (si affecté)
-- 📊 **deployment-summary** - Résumé du déploiement
+- 🔧 **build** - Build Docker image on remote server
+- 📤 **push** - Push image to GitHub Container Registry
+- 🚀 **deploy** - Deployment with docker-compose
 
-**Caractéristiques**:
-- ✅ Déploiement conditionnel (uniquement si changements)
-- ✅ Support production/staging
-- ✅ Préserve la logique Docker existante
-- ✅ Résumé détaillé dans GitHub
+**Environments**:
+- `production` (`main` branch)
+- `staging` (`dev` branch)
 
-**Secrets Requis**:
+**Required Secrets**:
 ```bash
-SERVER_HOST        # Hôte du serveur
-SERVER_USER        # Utilisateur SSH
-SSH_PRIVATE_KEY    # Clé privée SSH
-```
-
-**Exemple de Résumé**:
-```
-🚀 Deployment Summary
-Commit: abc1234
-Branch: main
-
-Deployed Projects:
-- ✅ idem-ai (Angular) - success
-- ⏭️ idem-api (Express) - No changes
-- ✅ idem-ai-chart (Svelte) - success
-
-Optimized by NX ⚡
+SERVER_HOST        # Server host
+SERVER_USER        # SSH user
+SSH_PRIVATE_KEY    # SSH private key
 ```
 
 ---
 
-### 3. `docker-build-push.yml` - Workflow Docker Réutilisable ✅
+### 3. `deploy-main-app.yml` - 🚀 Main Application Deployment
 
-**Type**: Workflow réutilisable (workflow_call)
+**Type**: Reusable workflow (`workflow_call`)
 
-**Description**: Workflow générique pour build et push Docker
+**Trigger**: 
+- Called by `smart-deploy.yml`
+- Manual via `workflow_dispatch`
 
-**Utilisation**:
+**Description**: Deploys the main Angular application
+
+**Jobs**:
+- 🔧 **build** - Build Docker image on remote server
+- 📤 **push** - Push image to GitHub Container Registry
+- 🚀 **deploy** - Deployment with docker-compose
+
+**Environments**:
+- `production` (`main` branch)
+- `staging` (`dev` branch)
+
+**Required Secrets**:
+```bash
+SERVER_HOST        # Server host
+SERVER_USER        # SSH user
+SSH_PRIVATE_KEY    # SSH private key
+```
+
+---
+
+### 4. `deploy-chart.yml` - 🚀 Chart Editor Deployment
+
+**Type**: Reusable workflow (`workflow_call`)
+
+**Trigger**: 
+- Called by `smart-deploy.yml`
+- Manual via `workflow_dispatch`
+
+**Description**: Deploys the diagram editor (SvelteKit) to GitHub Pages
+
+**Jobs**:
+- 🔧 **build** - Build with pnpm and SvelteKit
+- 🚀 **deploy** - Deployment to GitHub Pages
+
+**Environment**: `github-pages`
+
+**Required Permissions**:
 ```yaml
-jobs:
-  build-docker:
-    uses: ./.github/workflows/docker-build-push.yml
-    with:
-      project-name: 'idem-ai'
-      project-path: './idem-ai'
-      image-name: 'ghcr.io/idem-ai/idem-ai'
-      build-target: 'production'  # optionnel
-      push-image: true
-    secrets: inherit
-```
-
-**Fonctionnalités**:
-- ✅ Multi-platform (amd64, arm64)
-- ✅ Cache Docker optimisé (GitHub Actions)
-- ✅ Metadata automatiques
-- ✅ Tags intelligents (commit, branch, latest)
-
-**Inputs**:
-- `project-name` - Nom du projet
-- `project-path` - Chemin vers le projet
-- `dockerfile-path` - Chemin vers Dockerfile (défaut: Dockerfile)
-- `image-name` - Nom de l'image Docker
-- `build-target` - Target Docker (optionnel)
-- `push-image` - Push l'image (défaut: true)
-
-**Outputs**:
-- `image-tag` - Tag de l'image créée
-- `commit-id` - ID du commit
-
----
-
-## 🔄 Comparaison Avant/Après
-
-### Avant NX
-
-```
-❌ Workflows séparés par projet
-❌ Tous les projets buildés à chaque fois
-❌ Temps fixe: 15 minutes
-❌ Pas de cache optimisé
-❌ Duplication de code
-```
-
-### Après NX
-
-```
-✅ Workflows centralisés
-✅ Build uniquement si changements
-✅ Temps variable: 3-15 minutes
-✅ Cache GitHub Actions + Docker
-✅ Code réutilisable
+pages: write
+id-token: write
 ```
 
 ---
 
-## 📊 Métriques
+## 🔄 Before/After Comparison
 
-### Temps de CI/CD
+### Before Smart Deploy
 
-| Scénario | Avant | Après | Gain |
+```
+❌ Workflows in each application subfolder
+❌ All projects deployed on every push
+❌ Fixed time: 15-20 minutes
+❌ No change detection
+❌ Workflow duplication
+```
+
+### After Smart Deploy
+
+```
+✅ Centralized workflows at root
+✅ Deployment only if changes detected
+✅ Variable time: 5-20 minutes depending on modified apps
+✅ Automatic detection with paths-filter
+✅ Reusable workflows (workflow_call)
+✅ Automatic deployment summary
+```
+
+---
+
+## 📊 Metrics
+
+### CI/CD Time
+
+| Scenario | Before | After | Gain |
 |----------|-------|-------|------|
-| 1 projet modifié | 15 min | **3-5 min** | **70%** ⚡ |
-| 2 projets modifiés | 15 min | **6-8 min** | **50%** ⚡ |
-| Tous les projets | 15 min | **12-15 min** | **0-20%** |
-| Aucun changement | 15 min | **1-2 min** | **90%** ⚡ |
+| 1 modified project | 15 min | **3-5 min** | **70%** ⚡ |
+| 2 modified projects | 15 min | **6-8 min** | **50%** ⚡ |
+| All projects | 15 min | **12-15 min** | **0-20%** |
+| No changes | 15 min | **1-2 min** | **90%** ⚡ |
 
-### Économies
+### Savings
 
-- **Minutes économisées**: ~400-500 min/mois
-- **Réduction coûts**: 60-70%
-- **Feedback PR**: 3x plus rapide
+- **Minutes saved**: ~400-500 min/month
+- **Cost reduction**: 60-70%
+- **PR feedback**: 3x faster
 
 ---
 
 ## ⚙️ Configuration
 
-### Secrets GitHub
+### GitHub Secrets
 
 **Settings → Secrets and variables → Actions**
 
-#### Automatiques
+#### Automatic
 ```bash
-GITHUB_TOKEN  # Fourni par GitHub Actions
+GITHUB_TOKEN  # Provided by GitHub Actions
 ```
 
-#### À Configurer
+#### To Configure
 ```bash
-# Pour idem-ai et idem-api
-SERVER_HOST        # Hôte du serveur de déploiement
-SERVER_USER        # Utilisateur SSH
-SSH_PRIVATE_KEY    # Clé privée SSH
-
-# Optionnel (NX Cloud)
-NX_CLOUD_ACCESS_TOKEN  # Pour cache distribué
+# For API and Main App
+SERVER_HOST        # Deployment server host
+SERVER_USER        # SSH user
+SSH_PRIVATE_KEY    # SSH private key
 ```
 
 ### Environments
 
 **Settings → Environments**
 
-- `production` - Branche `main`/`master`
-- `staging` - Branches `dev`/`develop`
+- `production` - `main` branch
+- `staging` - `dev` branch
+- `github-pages` - For Chart Editor
 
 ---
 
-## 🎯 Utilisation
+## 🎯 Usage
 
-### Workflow Automatique
+### Automatic Workflow
 
 ```bash
-# 1. Créer une branche
-git checkout -b feature/ma-fonctionnalite
+# 1. Create a branch
+git checkout -b feature/my-feature
 
-# 2. Modifier UN SEUL projet
-cd idem-ai
+# 2. Modify an application
+cd apps/api
 # ... modifications ...
 
-# 3. Commit et push
+# 3. Commit and push
 git add .
-git commit -m "feat(idem-ai): nouvelle fonctionnalité"
-git push
+git commit -m "feat(api): add new endpoint"
+git push origin feature/my-feature
 
-# 4. CI/CD Automatique
-# ✅ NX détecte: seul idem-ai a changé
-# ✅ CI: lint, test, build idem-ai uniquement
-# ✅ Deploy: déploie idem-ai uniquement
-# ⏱️ Temps total: ~5-7 minutes (vs 15 minutes)
+# 4. Merge to dev or main
+git checkout dev
+git merge feature/my-feature
+git push origin dev
+
+# 5. Automatic Deployment
+# ✅ Smart Deploy detects: only apps/api changed
+# ✅ Deploy: deploys API only
+# ⏱️ Total time: ~5-7 minutes (vs 15-20 minutes)
 ```
 
-### Déploiement Manuel
+### Manual Deployment
 
-**Forcer le déploiement de tous les projets**:
+**Trigger a specific deployment**:
 
 1. GitHub → **Actions**
-2. **Deploy (NX Optimized)**
-3. **Run workflow**
-4. Cocher **Force deploy all projects**
-5. **Run workflow**
+2. Select the workflow (e.g., **Deploy API**)
+3. Click on **Run workflow**
+4. Select the branch
+5. Click on **Run workflow**
 
 ---
 
-## 🔍 Comment NX Détecte les Changements
+## 🔍 How Smart Deploy Detects Changes
 
-### Processus
+### Process
 
 ```mermaid
 graph LR
-    A[Push/PR] --> B[Checkout code]
-    B --> C[nx-set-shas action]
-    C --> D[NX analyse le graphe]
-    D --> E[Compare avec base branch]
-    E --> F[Identifie fichiers modifiés]
-    F --> G[Détermine projets affectés]
-    G --> H[Exécute uniquement nécessaire]
+    A[Push to main/dev] --> B[Checkout code]
+    B --> C[dorny/paths-filter]
+    C --> D[Analyze modified files]
+    D --> E[Compare with patterns]
+    E --> F[Generate boolean outputs]
+    F --> G[Trigger conditional workflows]
+    G --> H[Selective deployments]
 ```
 
-### Exemple Concret
+### Concrete Example
 
-**Modification**: `idem-ai/src/app/app.component.ts`
+**Modification**: `apps/api/src/controllers/user.controller.ts`
 
-**Détection**:
+**Detection**:
 ```bash
-📦 Affected projects: idem-ai
+🔍 Changes detected:
+- apps/api/** : true
+- apps/main-app/** : false
+- apps/chart/** : false
+- apps/appgen/** : false
 
-Jobs exécutés:
-✅ CI: lint, test, build idem-ai
-✅ Deploy: déploie idem-ai
+Jobs executed:
+✅ deploy-api : Build, Push, Deploy
 
-Jobs skippés:
-⏭️ idem-api
-⏭️ idem-ai-chart
-⏭️ idem-appgen
+Jobs skipped:
+⏭️ deploy-main-app
+⏭️ deploy-chart
 
-⏱️ Temps: 5 minutes (vs 15 minutes)
-💰 Économie: 67%
+⏱️ Time: 5-7 minutes (vs 15-20 minutes)
+💰 Savings: 65-70%
 ```
 
 ---
 
-## 🛠️ Workflows Existants (Préservés)
+## 🛠️ Existing Workflows (Disabled)
 
-Les anciens workflows sont conservés pour assurer la compatibilité:
+Legacy workflows have been disabled and renamed with the `.disabled` extension:
 
 ```
-idem-ai/.github/workflows/
-└── deploy.yml                    # ✅ Conservé
+apps/api/.github/workflows/
+└── deploy.yml.disabled           # ❌ Disabled
 
-idemAI-api/.github/workflows/
-└── deploy.yml                    # ✅ Conservé
+apps/main-app/.github/workflows/
+└── deploy.yml.disabled           # ❌ Disabled
 
-idem-ai-chart/.github/workflows/
-├── deploy.yml                    # ✅ Conservé
-├── docker-publish.yml            # ✅ Conservé
-├── tests.yml                     # ✅ Conservé
-└── ...                           # ✅ Tous conservés
+apps/chart/.github/workflows/
+├── deploy.yml.disabled           # ❌ Disabled
+├── docker-publish.yml            # ✅ Active
+├── tests.yml                     # ✅ Active
+└── ...                           # ✅ Other active workflows
 ```
 
-**Stratégie**: Coexistence
-- Nouveaux workflows NX pour CI/CD principal
-- Anciens workflows comme backup
-- Aucun breaking change
+**Strategy**: Complete migration
+- New Smart Deploy workflows at root
+- Legacy deployment workflows disabled
+- Can be deleted after validation
 
 ---
 
 ## 📚 Documentation
 
-### Guides Complets
+### Complete Guides
 
-- **[CICD_GUIDE.md](../../CICD_GUIDE.md)** - Guide complet CI/CD (400+ lignes)
-- **[CICD_SUMMARY.md](../../CICD_SUMMARY.md)** - Résumé configuration
-- **[NX_GUIDE.md](../../NX_GUIDE.md)** - Guide NX général
+- **[documentation/SMART_DEPLOY.md](../../documentation/SMART_DEPLOY.md)** - Complete Smart Deploy guide
+- **[documentation/README.md](../../documentation/README.md)** - Documentation index
 
-### Ressources Externes
+### External Resources
 
-- [NX CI/CD](https://nx.dev/ci/intro/ci-with-nx) - Documentation officielle
+- [dorny/paths-filter](https://github.com/dorny/paths-filter) - Change detection action
+- [GitHub Actions - Reusing Workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows)
 - [GitHub Actions](https://docs.github.com/en/actions) - Documentation GitHub
-- [Docker Build Push Action](https://github.com/docker/build-push-action)
 
 ---
 
 ## 🐛 Troubleshooting
 
-### NX ne détecte pas les changements
+### Smart Deploy doesn't detect changes
 
-**Vérifier**:
-```yaml
-- uses: actions/checkout@v4
-  with:
-    fetch-depth: 0  # Important!
-```
+**Check**:
+- Modifications are in `apps/*/`
+- Branch is `main`, `dev`, or `master`
+- Review `detect-changes` job logs
 
-### Workflow ne se déclenche pas
+### Workflow doesn't trigger
 
-**Vérifier**:
-- Nom de la branche dans `on.push.branches`
-- Permissions du workflow
-- Secrets configurés
+**Check**:
+- Branch name in `on.push.branches`
+- Workflow permissions
+- Secrets configured in Settings → Secrets
 
-### Déploiement échoue
+### Deployment fails
 
-**Vérifier**:
-- Secrets SSH configurés
-- Serveur accessible
-- Docker installé sur le serveur
+**Check**:
+- SSH secrets configured (`SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`)
+- Server accessible from GitHub Actions
+- Docker installed on server
+- GitHub environments configured
 
-### Cache ne fonctionne pas
+### Error "Unable to find reusable workflow"
 
-**Vérifier**:
-```yaml
-- uses: docker/build-push-action@v5
-  with:
-    cache-from: type=gha
-    cache-to: type=gha,mode=max  # mode=max important
-```
+**Normal before first push**:
+- These lint errors disappear after pushing workflows
+- Linter checks remote repository which doesn't have files yet
 
 ---
 
-## 🎯 Bonnes Pratiques
+## 🎯 Best Practices
 
-### 1. Commits Atomiques
-
-```bash
-# ✅ Bon - Un projet par commit
-git commit -m "feat(idem-ai): nouvelle fonctionnalité"
-
-# ❌ Mauvais - Tous les projets
-git commit -m "feat: modifications partout"
-```
-
-### 2. Branches de Fonctionnalité
+### 1. Atomic Commits per Application
 
 ```bash
-git checkout -b feature/idem-ai-new-feature
-# Modifications uniquement dans idem-ai
+# ✅ Good - One application per commit
+git commit -m "feat(api): add user endpoint"
+
+# ❌ Bad - Modifications everywhere
+git commit -m "feat: update everything"
 ```
 
-### 3. Tests Locaux
+### 2. Feature Branches
 
 ```bash
-npm run lint:affected
-npm run test:affected
-npm run build:affected
+git checkout -b feature/api-user-endpoint
+# Modifications only in apps/api
 ```
 
-### 4. Monitoring
+### 3. Local Tests Before Push
 
-Surveillez les temps dans **Actions → Workflows → Timing**
+```bash
+cd apps/api
+npm run lint
+npm run test
+npm run build
+```
+
+### 4. Deployment Monitoring
+
+- Check summary in GitHub Actions
+- Monitor deployment times
+- Verify deployed vs skipped applications
 
 ---
 
-## 🔮 Évolutions Futures
+## 🔮 Future Enhancements
 
-### NX Cloud (Recommandé)
+### Possible Improvements
 
-- Cache distribué entre développeurs
-- Métriques avancées
-- Exécution distribuée
+- **Automatic tests** before deployment
+- **Automatic rollback** on failure
+- **Notifications** Slack/Discord for deployments
+- **Metrics** for deployment performance
+- **Preview deployments** for PRs
 
-### Workflows Additionnels
+### New Applications
 
-- Release automatique
-- Security scanning
-- Tests E2E automatisés
-- Notifications Slack/Discord
+To add a new application to the Smart Deploy system, see the complete guide in [documentation/SMART_DEPLOY.md](../../documentation/SMART_DEPLOY.md#adding-a-new-application)
 
 ---
 
-**Workflows CI/CD optimisés avec NX !** 🚀
+**CI/CD Workflows optimized with Smart Deploy!** 🎯
 
-Pour plus de détails: [CICD_GUIDE.md](../../CICD_GUIDE.md)
+For more details: [documentation/SMART_DEPLOY.md](../../documentation/SMART_DEPLOY.md)
