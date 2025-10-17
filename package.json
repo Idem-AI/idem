@@ -4,10 +4,10 @@
   "private": true,
   "description": "Idem monorepo workspace",
   "workspaces": [
-    "apps/idem-ai",
-    "apps/idem-ai-chart",
-    "apps/idem-appgen",
-    "apps/idemAI-api"
+    "apps/main-app",
+    "apps/chart",
+    "apps/appgen",
+    "apps/api"
   ],
   "scripts": {
     "postinstall": "husky install || true",
@@ -21,8 +21,8 @@
     "build:api": "npm run build --workspace=idem-api",
     "build:all": "npm run build --workspaces --if-present",
     "test:all": "npm run test --workspaces --if-present",
-    "lint:all": "npm run lint --workspaces --if-present",
-    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "lint:all": "npm run lint --workspace=idem --workspace=idem-api --workspace=we-dev --if-present",
+    "lint:fix": "npm run lint:fix --workspace=idem --workspace=idem-api --workspace=we-dev --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "npm run clean --workspaces --if-present"
