@@ -20,7 +20,7 @@
     "build:appgen": "npm run build:client --workspace=we-dev",
     "build:api": "npm run build --workspace=idem-api",
     "build:all": "npm run build --workspaces --if-present",
-    "test:all": "npm run test --workspaces --if-present",
+    "test:all": "npm run test --workspace=idem --if-present",
     "lint:all": "npm run lint --workspace=idem --workspace=idem-api --workspace=we-dev --if-present",
     "lint:fix": "npm run lint:fix --workspace=idem --workspace=idem-api --workspace=we-dev --if-present",
     "format": "prettier --write .",

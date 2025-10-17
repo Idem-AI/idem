@@ -20,7 +20,9 @@
             "outputPath": "dist/idem",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -34,8 +36,12 @@
                 "output": "/assets/"
               }
             ],
-            "styles": ["src/styles.css"],
-            "scripts": ["node_modules/mermaid/dist/mermaid.min.js"],
+            "styles": [
+              "src/styles.css"
+            ],
+            "scripts": [
+              "node_modules/mermaid/dist/mermaid.min.js"
+            ],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "ssr": {
@@ -121,7 +127,11 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": ["zone.js", "zone.js/testing"],
+            "karmaConfig": "karma.conf.js",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
             "tsConfig": "tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -135,8 +145,19 @@
                 "output": "/assets/"
               }
             ],
-            "styles": ["src/styles.css"],
-            "scripts": ["node_modules/mermaid/dist/mermaid.min.js"]
+            "styles": [
+              "src/styles.css"
+            ],
+            "scripts": [
+              "node_modules/mermaid/dist/mermaid.min.js"
+            ]
+          },
+          "configurations": {
+            "ci": {
+              "browsers": "ChromeHeadlessCI",
+              "watch": false,
+              "codeCoverage": true
+            }
           }
         }
       }
