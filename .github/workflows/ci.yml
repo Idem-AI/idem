@@ -61,7 +61,7 @@ jobs:
       - name: Lint all projects
         run: npm run lint:all
 
-      # TODO: Fix test configuration (ChromeHeadless setup)
+      # TODO: Enable tests after fixing Chrome setup and test configuration
       # - name: Test all projects
       #   run: npm run test:all
       #
