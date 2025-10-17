@@ -1,0 +1,72 @@
+name: 🎯 Smart Deploy - Auto-detect Changes
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - master
+
+jobs:
+  detect-changes:
+    name: 🔍 Detect Changed Applications
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      main-app: ${{ steps.filter.outputs.main-app }}
+      chart: ${{ steps.filter.outputs.chart }}
+      appgen: ${{ steps.filter.outputs.appgen }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changes in applications
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            main-app:
+              - 'apps/main-app/**'
+            chart:
+              - 'apps/chart/**'
+            appgen:
+              - 'apps/appgen/**'
+
+  deploy-api:
+    name: 🚀 Deploy API
+    needs: detect-changes
+    if: needs.detect-changes.outputs.api == 'true'
+    uses: ./.github/workflows/deploy-api.yml
+    secrets: inherit
+
+  deploy-main-app:
+    name: 🚀 Deploy Main App
+    needs: detect-changes
+    if: needs.detect-changes.outputs.main-app == 'true'
+    uses: ./.github/workflows/deploy-main-app.yml
+    secrets: inherit
+
+  deploy-chart:
+    name: 🚀 Deploy Chart
+    needs: detect-changes
+    if: needs.detect-changes.outputs.chart == 'true'
+    uses: ./.github/workflows/deploy-chart.yml
+    secrets: inherit
+
+  summary:
+    name: 📊 Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes]
+    if: always()
+    steps:
+      - name: Display deployment summary
+        run: |
+          echo "## 📊 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Applications Detected:" >> $GITHUB_STEP_SUMMARY
+          echo "- **API**: ${{ needs.detect-changes.outputs.api == 'true' && '✅ Deployed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Main App**: ${{ needs.detect-changes.outputs.main-app == 'true' && '✅ Deployed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Chart**: ${{ needs.detect-changes.outputs.chart == 'true' && '✅ Deployed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AppGen**: ${{ needs.detect-changes.outputs.appgen == 'true' && '⚠️ No deployment configured' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY

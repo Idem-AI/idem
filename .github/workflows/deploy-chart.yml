@@ -1,0 +1,61 @@
+name: Deploy Chart (Live Editor)
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: 'apps/chart/.node-version'
+          cache: pnpm
+          cache-dependency-path: 'apps/chart/pnpm-lock.yaml'
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          static_site_generator: sveltekit
+
+      - name: Build & Deploy
+        working-directory: apps/chart
+        env:
+          MERMAID_DOMAIN: 'mermaid.live'
+          MERMAID_ANALYTICS_URL: 'https://p.mermaid.live'
+          MERMAID_RENDERER_URL: 'https://mermaid.ink'
+          MERMAID_KROKI_RENDERER_URL: 'https://kroki.io'
+          MERMAID_IS_ENABLED_MERMAID_CHART_LINKS: 'true'
+        run: |
+          export DEPLOY=true
+          [ "$GITHUB_EVENT_NAME" != "pull_request" ] && rm -rf docs/_app/
+          pnpm install
+          pnpm build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./apps/chart/docs
+
+  deploy:
+    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
