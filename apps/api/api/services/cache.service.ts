@@ -1,7 +1,7 @@
-import Redis from "ioredis";
-import RedisConnection from "../config/redis.config";
-import logger from "../config/logger";
-import crypto from "crypto";
+import Redis from 'ioredis';
+import RedisConnection from '../config/redis.config';
+import logger from '../config/logger';
+import crypto from 'crypto';
 
 /**
  * Options pour le cache
@@ -30,7 +30,7 @@ export interface CacheStats {
 export class CacheService {
   private redis: Redis;
   private defaultTTL: number = 3600; // 1 heure par défaut
-  private keyPrefix: string = "idem:";
+  private keyPrefix: string = 'idem:';
   private stats = {
     hits: 0,
     misses: 0,
@@ -46,9 +46,9 @@ export class CacheService {
   private generateCacheKey(key: string, data?: any): string {
     if (data) {
       const hash = crypto
-        .createHash("sha256")
+        .createHash('sha256')
         .update(JSON.stringify(data))
-        .digest("hex")
+        .digest('hex')
         .substring(0, 16);
       return `${this.keyPrefix}${key}:${hash}`;
     }
@@ -69,7 +69,7 @@ export class CacheService {
     try {
       return JSON.parse(data);
     } catch (error) {
-      logger.error("Error decompressing cache data:", { error });
+      logger.error('Error decompressing cache data:', { error });
       return null;
     }
   }
@@ -77,15 +77,9 @@ export class CacheService {
   /**
    * Met en cache une valeur
    */
-  async set(
-    key: string,
-    value: any,
-    options: CacheOptions = {}
-  ): Promise<boolean> {
+  async set(key: string, value: any, options: CacheOptions = {}): Promise<boolean> {
     try {
-      const cacheKey = this.generateCacheKey(
-        options.prefix ? `${options.prefix}:${key}` : key
-      );
+      const cacheKey = this.generateCacheKey(options.prefix ? `${options.prefix}:${key}` : key);
       const serializedValue = this.compressData(value);
       const ttl = options.ttl || this.defaultTTL;
 
@@ -99,7 +93,7 @@ export class CacheService {
 
       return true;
     } catch (error: any) {
-      logger.error("Cache set error:", {
+      logger.error('Cache set error:', {
         key,
         error: error.message,
         stack: error.stack,
@@ -111,14 +105,9 @@ export class CacheService {
   /**
    * Récupère une valeur du cache
    */
-  async get<T = any>(
-    key: string,
-    options: CacheOptions = {}
-  ): Promise<T | null> {
+  async get<T = any>(key: string, options: CacheOptions = {}): Promise<T | null> {
     try {
-      const cacheKey = this.generateCacheKey(
-        options.prefix ? `${options.prefix}:${key}` : key
-      );
+      const cacheKey = this.generateCacheKey(options.prefix ? `${options.prefix}:${key}` : key);
       const cachedValue = await this.redis.get(cacheKey);
 
       if (cachedValue === null) {
@@ -137,7 +126,7 @@ export class CacheService {
 
       return decompressedValue;
     } catch (error: any) {
-      logger.error("Cache get error:", {
+      logger.error('Cache get error:', {
         key,
         error: error.message,
         stack: error.stack,
@@ -152,9 +141,7 @@ export class CacheService {
    */
   async delete(key: string, options: CacheOptions = {}): Promise<boolean> {
     try {
-      const cacheKey = this.generateCacheKey(
-        options.prefix ? `${options.prefix}:${key}` : key
-      );
+      const cacheKey = this.generateCacheKey(options.prefix ? `${options.prefix}:${key}` : key);
       const result = await this.redis.del(cacheKey);
 
       logger.debug(`Cache delete`, {
@@ -164,7 +151,7 @@ export class CacheService {
 
       return result > 0;
     } catch (error: any) {
-      logger.error("Cache delete error:", {
+      logger.error('Cache delete error:', {
         key,
         error: error.message,
         stack: error.stack,
@@ -195,7 +182,7 @@ export class CacheService {
 
       return result;
     } catch (error: any) {
-      logger.error("Cache pattern delete error:", {
+      logger.error('Cache pattern delete error:', {
         pattern,
         error: error.message,
         stack: error.stack,
@@ -209,13 +196,11 @@ export class CacheService {
    */
   async exists(key: string, options: CacheOptions = {}): Promise<boolean> {
     try {
-      const cacheKey = this.generateCacheKey(
-        options.prefix ? `${options.prefix}:${key}` : key
-      );
+      const cacheKey = this.generateCacheKey(options.prefix ? `${options.prefix}:${key}` : key);
       const result = await this.redis.exists(cacheKey);
       return result === 1;
     } catch (error: any) {
-      logger.error("Cache exists error:", {
+      logger.error('Cache exists error:', {
         key,
         error: error.message,
         stack: error.stack,
@@ -227,19 +212,13 @@ export class CacheService {
   /**
    * Définit le TTL d'une clé existante
    */
-  async expire(
-    key: string,
-    ttl: number,
-    options: CacheOptions = {}
-  ): Promise<boolean> {
+  async expire(key: string, ttl: number, options: CacheOptions = {}): Promise<boolean> {
     try {
-      const cacheKey = this.generateCacheKey(
-        options.prefix ? `${options.prefix}:${key}` : key
-      );
+      const cacheKey = this.generateCacheKey(options.prefix ? `${options.prefix}:${key}` : key);
       const result = await this.redis.expire(cacheKey, ttl);
       return result === 1;
     } catch (error: any) {
-      logger.error("Cache expire error:", {
+      logger.error('Cache expire error:', {
         key,
         ttl,
         error: error.message,
@@ -254,12 +233,10 @@ export class CacheService {
    */
   async getTTL(key: string, options: CacheOptions = {}): Promise<number> {
     try {
-      const cacheKey = this.generateCacheKey(
-        options.prefix ? `${options.prefix}:${key}` : key
-      );
+      const cacheKey = this.generateCacheKey(options.prefix ? `${options.prefix}:${key}` : key);
       return await this.redis.ttl(cacheKey);
     } catch (error: any) {
-      logger.error("Cache getTTL error:", {
+      logger.error('Cache getTTL error:', {
         key,
         error: error.message,
         stack: error.stack,
@@ -276,7 +253,7 @@ export class CacheService {
       const keys = await this.redis.keys(`${this.keyPrefix}*`);
 
       if (keys.length === 0) {
-        logger.info("Cache clear: no keys to delete");
+        logger.info('Cache clear: no keys to delete');
         return true;
       }
 
@@ -293,7 +270,7 @@ export class CacheService {
 
       return result > 0;
     } catch (error: any) {
-      logger.error("Cache clear error:", {
+      logger.error('Cache clear error:', {
         error: error.message,
         stack: error.stack,
       });
@@ -306,17 +283,15 @@ export class CacheService {
    */
   async getStats(): Promise<CacheStats> {
     try {
-      const info = await this.redis.info("memory");
+      const info = await this.redis.info('memory');
       const keys = await this.redis.keys(`${this.keyPrefix}*`);
 
       const memoryMatch = info.match(/used_memory_human:(.+)/);
-      const memoryUsage = memoryMatch ? memoryMatch[1].trim() : "Unknown";
+      const memoryUsage = memoryMatch ? memoryMatch[1].trim() : 'Unknown';
 
       const totalRequests = this.stats.hits + this.stats.misses;
-      const hitRate =
-        totalRequests > 0 ? (this.stats.hits / totalRequests) * 100 : 0;
-      const missRate =
-        totalRequests > 0 ? (this.stats.misses / totalRequests) * 100 : 0;
+      const hitRate = totalRequests > 0 ? (this.stats.hits / totalRequests) * 100 : 0;
+      const missRate = totalRequests > 0 ? (this.stats.misses / totalRequests) * 100 : 0;
 
       return {
         totalKeys: keys.length,
@@ -327,13 +302,13 @@ export class CacheService {
         totalMisses: this.stats.misses,
       };
     } catch (error: any) {
-      logger.error("Cache stats error:", {
+      logger.error('Cache stats error:', {
         error: error.message,
         stack: error.stack,
       });
       return {
         totalKeys: 0,
-        memoryUsage: "Unknown",
+        memoryUsage: 'Unknown',
         hitRate: 0,
         missRate: 0,
         totalHits: this.stats.hits,
@@ -365,7 +340,7 @@ export class CacheService {
 
       return result;
     } catch (error: any) {
-      logger.error("Cache getOrSet fallback error:", {
+      logger.error('Cache getOrSet fallback error:', {
         key,
         error: error.message,
         stack: error.stack,
@@ -391,12 +366,7 @@ export class CacheService {
   /**
    * Génère une clé de cache pour les générations AI
    */
-  generateAIKey(
-    type: string,
-    userId: string,
-    projectId: string,
-    contentHash?: string
-  ): string {
+  generateAIKey(type: string, userId: string, projectId: string, contentHash?: string): string {
     const baseKey = `ai:${type}:${userId}:${projectId}`;
     return contentHash ? `${baseKey}:${contentHash}` : baseKey;
   }

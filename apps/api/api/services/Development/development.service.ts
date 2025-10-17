@@ -1,16 +1,10 @@
-import logger from "../../config/logger";
-import { GenericService } from "../common/generic.service";
-import { PromptService } from "../prompt.service";
-import {
-  DevelopmentConfigsModel,
-  LandingPageConfig,
-} from "../../models/development.model";
-import { ProjectModel } from "../../models/project.model";
-import { GitHubService } from "../github.service";
-import {
-  PushToGitHubRequest,
-  PushToGitHubResponse,
-} from "../../dtos/github/github.dto";
+import logger from '../../config/logger';
+import { GenericService } from '../common/generic.service';
+import { PromptService } from '../prompt.service';
+import { DevelopmentConfigsModel, LandingPageConfig } from '../../models/development.model';
+import { ProjectModel } from '../../models/project.model';
+import { GitHubService } from '../github.service';
+import { PushToGitHubRequest, PushToGitHubResponse } from '../../dtos/github/github.dto';
 
 export class DevelopmentService extends GenericService {
   private githubService: GitHubService;
@@ -18,7 +12,7 @@ export class DevelopmentService extends GenericService {
   constructor(promptService: PromptService) {
     super(promptService);
     this.githubService = new GitHubService();
-    logger.info("DevelopmentService initialized.");
+    logger.info('DevelopmentService initialized.');
   }
 
   /**
@@ -29,29 +23,21 @@ export class DevelopmentService extends GenericService {
     projectId: string,
     developmentConfigs: DevelopmentConfigsModel
   ): Promise<ProjectModel> {
-    logger.info(
-      `Saving development configs for projectId: ${projectId}, userId: ${userId}`
-    );
+    logger.info(`Saving development configs for projectId: ${projectId}, userId: ${userId}`);
 
     const project = await this.getProject(projectId, userId);
     if (!project) {
-      logger.warn(
-        `Project not found with ID: ${projectId} for user: ${userId}`
-      );
-      throw new Error("Project not found");
+      logger.warn(`Project not found with ID: ${projectId} for user: ${userId}`);
+      throw new Error('Project not found');
     }
 
     if (!project.analysisResultModel.development) {
-      logger.info(
-        `Creating new development section for projectId: ${projectId}`
-      );
+      logger.info(`Creating new development section for projectId: ${projectId}`);
       project.analysisResultModel.development = {
         configs: developmentConfigs,
       };
     } else {
-      logger.info(
-        `Updating existing development section for projectId: ${projectId}`
-      );
+      logger.info(`Updating existing development section for projectId: ${projectId}`);
     }
 
     // Adjust configs based on landingPageConfig in payload
@@ -78,7 +64,7 @@ export class DevelopmentService extends GenericService {
       // INTEGRATED or undefined -> keep provided configs and default to INTEGRATED
       logger.info(
         `landingPageConfig=${
-          lp ?? "INTEGRATED (default)"
+          lp ?? 'INTEGRATED (default)'
         }: keeping provided configs for projectId: ${projectId}`
       );
       if (!developmentConfigs.landingPageConfig) {
@@ -88,14 +74,8 @@ export class DevelopmentService extends GenericService {
 
     project.analysisResultModel.development.configs = developmentConfigs;
 
-    await this.projectRepository.update(
-      projectId,
-      project,
-      `users/${userId}/projects`
-    );
-    logger.info(
-      `Successfully saved development configs for projectId: ${projectId}`
-    );
+    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
+    logger.info(`Successfully saved development configs for projectId: ${projectId}`);
     return project;
   }
 
@@ -103,15 +83,11 @@ export class DevelopmentService extends GenericService {
     userId: string,
     projectId: string
   ): Promise<DevelopmentConfigsModel | null> {
-    logger.info(
-      `Fetching development configs for projectId: ${projectId}, userId: ${userId}`
-    );
+    logger.info(`Fetching development configs for projectId: ${projectId}, userId: ${userId}`);
 
     const project = await this.getProject(projectId, userId);
     if (!project) {
-      logger.warn(
-        `Project not found with ID: ${projectId} for user: ${userId}`
-      );
+      logger.warn(`Project not found with ID: ${projectId} for user: ${userId}`);
       return null;
     }
 
@@ -139,10 +115,8 @@ export class DevelopmentService extends GenericService {
       // Get the project
       const project = await this.getProject(projectId, userId);
       if (!project) {
-        logger.warn(
-          `Project not found with ID: ${projectId} for user: ${userId}`
-        );
-        throw new Error("Project not found");
+        logger.warn(`Project not found with ID: ${projectId} for user: ${userId}`);
+        throw new Error('Project not found');
       }
 
       // Extract files from the request data (like the example you provided)
@@ -151,9 +125,7 @@ export class DevelopmentService extends GenericService {
       // If files are provided in the request, use them
       if (request.files && Object.keys(request.files).length > 0) {
         filesToPush = request.files;
-        logger.info(
-          `Using ${Object.keys(filesToPush).length} files from request`
-        );
+        logger.info(`Using ${Object.keys(filesToPush).length} files from request`);
       } else {
         // If no files in request, check if project has development files
         // This could be from WebContainer or other sources
@@ -163,24 +135,16 @@ export class DevelopmentService extends GenericService {
 
           // If development is an array (WebContainerModel[])
           if (Array.isArray(development)) {
-            const webContainer = development.find(
-              (wc) => wc.metadata?.fileContents
-            );
+            const webContainer = development.find((wc) => wc.metadata?.fileContents);
             if (webContainer?.metadata?.fileContents) {
               filesToPush = webContainer.metadata.fileContents;
-              logger.info(
-                `Using ${
-                  Object.keys(filesToPush).length
-                } files from WebContainer`
-              );
+              logger.info(`Using ${Object.keys(filesToPush).length} files from WebContainer`);
             }
           }
           // If development has configs with files
           else if (development.configs) {
             // You might want to generate files based on configs here
-            logger.info(
-              "Development configs found but no direct files available"
-            );
+            logger.info('Development configs found but no direct files available');
           }
         }
 
@@ -188,19 +152,13 @@ export class DevelopmentService extends GenericService {
         if (Object.keys(filesToPush).length === 0) {
           filesToPush = this.generateBasicProjectStructure(project);
           logger.info(
-            `Generated basic project structure with ${
-              Object.keys(filesToPush).length
-            } files`
+            `Generated basic project structure with ${Object.keys(filesToPush).length} files`
           );
         }
       }
 
       // Use the GitHub service to push files
-      const result = await this.githubService.pushToGitHub(
-        userId,
-        request,
-        filesToPush
-      );
+      const result = await this.githubService.pushToGitHub(userId, request, filesToPush);
 
       // If successful, update project with GitHub URL
       if (result.success && result.repositoryUrl) {
@@ -218,24 +176,16 @@ export class DevelopmentService extends GenericService {
           }
         }
 
-        await this.projectRepository.update(
-          projectId,
-          project,
-          `users/${userId}/projects`
-        );
+        await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
 
-        logger.info(
-          `Successfully updated project with GitHub URL: ${result.repositoryUrl}`
-        );
+        logger.info(`Successfully updated project with GitHub URL: ${result.repositoryUrl}`);
       }
 
-      logger.info(
-        `GitHub push completed for projectId: ${projectId}, success: ${result.success}`
-      );
+      logger.info(`GitHub push completed for projectId: ${projectId}, success: ${result.success}`);
 
       return result;
     } catch (error) {
-      logger.error("Failed to push project to GitHub", {
+      logger.error('Failed to push project to GitHub', {
         error: error instanceof Error ? error.message : error,
         userId,
         projectId,
@@ -245,7 +195,7 @@ export class DevelopmentService extends GenericService {
       return {
         success: false,
         message: `Failed to push to GitHub: ${
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : 'Unknown error'
         }`,
       };
     }
@@ -254,18 +204,16 @@ export class DevelopmentService extends GenericService {
   /**
    * Generate basic project structure when no files are available
    */
-  private generateBasicProjectStructure(
-    project: ProjectModel
-  ): Record<string, string> {
+  private generateBasicProjectStructure(project: ProjectModel): Record<string, string> {
     const files: Record<string, string> = {};
 
     // Create README.md
-    files["README.md"] = `# ${project.name || "Project"}
+    files['README.md'] = `# ${project.name || 'Project'}
 
-${project.description || "A project generated from Idem API"}
+${project.description || 'A project generated from Idem API'}
 
 ## Description
-${project.description || "No description available"}
+${project.description || 'No description available'}
 
 ## Getting Started
 This project was generated automatically. Please refer to the documentation for setup instructions.
@@ -277,21 +225,20 @@ ${new Date().toISOString()}
     // Create package.json if it's a web project
     if (project.analysisResultModel?.development?.configs?.frontend) {
       const frontend = project.analysisResultModel.development.configs.frontend;
-      files["package.json"] = JSON.stringify(
+      files['package.json'] = JSON.stringify(
         {
-          name:
-            project.name?.toLowerCase().replace(/\s+/g, "-") || "idem-project",
-          version: "1.0.0",
-          description: project.description || "Generated project",
-          main: "index.js",
+          name: project.name?.toLowerCase().replace(/\s+/g, '-') || 'idem-project',
+          version: '1.0.0',
+          description: project.description || 'Generated project',
+          main: 'index.js',
           scripts: {
-            dev: "vite",
-            build: "vite build",
-            preview: "vite preview",
+            dev: 'vite',
+            build: 'vite build',
+            preview: 'vite preview',
           },
           dependencies: {},
           devDependencies: {
-            vite: "^4.5.0",
+            vite: '^4.5.0',
           },
         },
         null,
@@ -300,16 +247,16 @@ ${new Date().toISOString()}
     }
 
     // Create basic HTML file
-    files["index.html"] = `<!DOCTYPE html>
+    files['index.html'] = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${project.name || "Project"}</title>
+    <title>${project.name || 'Project'}</title>
 </head>
 <body>
-    <h1>${project.name || "Welcome to your project"}</h1>
-    <p>${project.description || "This project was generated from Idem API"}</p>
+    <h1>${project.name || 'Welcome to your project'}</h1>
+    <p>${project.description || 'This project was generated from Idem API'}</p>
 </body>
 </html>`;
 
@@ -328,7 +275,7 @@ ${new Date().toISOString()}
    * Handle GitHub OAuth callback
    */
   async handleGitHubOAuth(request: { code: string; state?: string }) {
-    logger.info("Handling GitHub OAuth callback");
+    logger.info('Handling GitHub OAuth callback');
     return await this.githubService.handleOAuthCallback(request);
   }
 

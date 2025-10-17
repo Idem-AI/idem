@@ -41,7 +41,7 @@ export class BrandingDisplayComponent implements OnInit {
       try {
         // Wait for auth to be ready before making API calls
         await this.tokenService.waitForAuthReady();
-        
+
         // Fallback: load PDF from backend if no blob provided
         await this.loadPdfFromBackend();
       } catch (error: any) {
@@ -91,9 +91,7 @@ export class BrandingDisplayComponent implements OnInit {
       }
 
       // Download PDF blob from backend
-      const pdfBlob = await this.brandingService
-        .downloadBrandingPdf(projectId)
-        .toPromise();
+      const pdfBlob = await this.brandingService.downloadBrandingPdf(projectId).toPromise();
 
       if (pdfBlob) {
         // Create object URL for PDF viewer
@@ -103,11 +101,15 @@ export class BrandingDisplayComponent implements OnInit {
       }
     } catch (error: any) {
       console.error('Error loading PDF from backend:', error);
-      
+
       // Handle specific error types
       let errorMessage = 'Failed to load PDF. Please try again.';
-      
-      if (error.status === 401 || error.message.includes('Authentication') || error.message.includes('not authenticated')) {
+
+      if (
+        error.status === 401 ||
+        error.message.includes('Authentication') ||
+        error.message.includes('not authenticated')
+      ) {
         errorMessage = 'Authentication failed. Please refresh the page and login again.';
       } else if (error.status === 404) {
         errorMessage = 'PDF not found. The branding document may not have been generated yet.';
@@ -116,7 +118,7 @@ export class BrandingDisplayComponent implements OnInit {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       this.pdfError.set(errorMessage);
     } finally {
       this.isDownloadingPdf.set(false);
@@ -130,7 +132,9 @@ export class BrandingDisplayComponent implements OnInit {
       await this.loadPdfFromBackend();
     } catch (error: any) {
       console.error('Error in regeneratePdf:', error);
-      this.pdfError.set('Failed to regenerate PDF. Please check your authentication and try again.');
+      this.pdfError.set(
+        'Failed to regenerate PDF. Please check your authentication and try again.'
+      );
     }
   }
 

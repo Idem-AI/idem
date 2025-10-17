@@ -1,5 +1,4 @@
-[![English](https://img.shields.io/badge/README-English-494cad.svg)](https://github.com/idem appgen-dev/idem appgen/blob/main/README.md) [![中文](https://img.shields.io/badge/README-中文-494cad.svg)](https://github.com/idem appgen-dev/idem appgen/blob/main/docs/README.zh.md) 
-
+[![English](https://img.shields.io/badge/README-English-494cad.svg)](https://github.com/idem appgen-dev/idem appgen/blob/main/README.md) [![中文](https://img.shields.io/badge/README-中文-494cad.svg)](https://github.com/idem appgen-dev/idem appgen/blob/main/docs/README.zh.md)
 
 # idem appgen
 
@@ -19,13 +18,13 @@
 - 多端支持 支持了 windows,mac 操作系统客户端下载，以及 web 容器运行场景，可以根据使用场景选用不同的终端
 
 | 功能                   | idem appgen | v0  | bolt.new |
-| ---------------------- | --- | --- | -------- |
-| 代码生成和预览         | ✅  | ✅  | ✅       |
-| 设计稿转代码           | ✅  | ✅  | ❌       |
-| 开源                   | ✅  | ❌  | ✅       |
-| 支持微信小程序工具预览 | ✅  | ❌  | ❌       |
-| 是否支持已经存在的项目 | ✅  | ❌  | ❌       |
-| 是否支持 deepseek      | ✅  | ❌  | ❌       |
+| ---------------------- | ----------- | --- | -------- |
+| 代码生成和预览         | ✅          | ✅  | ✅       |
+| 设计稿转代码           | ✅          | ✅  | ❌       |
+| 开源                   | ✅          | ❌  | ✅       |
+| 支持微信小程序工具预览 | ✅          | ❌  | ❌       |
+| 是否支持已经存在的项目 | ✅          | ❌  | ❌       |
+| 是否支持 deepseek      | ✅          | ❌  | ❌       |
 
 ## Get Started
 
@@ -55,6 +54,7 @@ pnpm install
 .env.example 改名并且写入到 .env
 
 前端 apps/we-dev-client/.env
+
 ```shell
 # 服务端地址 必填 例如 http://localhost:3000
 REACT_REACT_APP_BASE_URL=
@@ -62,6 +62,7 @@ REACT_REACT_APP_BASE_URL=
 # jwt 密钥 选填
 JWT_SECRET=
 ```
+
 后端服务 apps/we-dev-next/.env
 
 ```shell
@@ -88,20 +89,21 @@ chmod +x scripts/wedev-build.sh
 
 ./scripts/wedev-build.sh
 ```
+
 ## 如何安装使用
 
 客户端版本如何使用？
-  1. 进入到https://idem appgen.ai/ 页面
-  2. 选择 Download for Mac  或 Windows下载二进制包
-  3. 开始使用
 
-
+1. 进入到https://idem appgen.ai/ 页面
+2. 选择 Download for Mac 或 Windows下载二进制包
+3. 开始使用
 
 ## 联系我们
 
 发送邮件到 <a href="mailto:enzuo@wegc.cn">enzuo@wegc.cn</a>
 
 ## 微信群交流群
+
 <img src="./img/code.png" alt="alt text" width="200"/>
 
 如果无法加入微信群，可以加

@@ -37,7 +37,7 @@
 
 //   private checkQuotaAndProceed(originalEvent: Event): void {
 //     const quotaDisplay = this.quotaService.quotaDisplay();
-    
+
 //     // Check if quota is available
 //     if (!quotaDisplay?.canUseFeature) {
 //       this.showQuotaExceededMessage();
@@ -84,10 +84,10 @@
 
 //     // Temporarily disable quota check to avoid infinite loop
 //     this.quotaCheckDisabled = true;
-    
+
 //     // Dispatch the new event
 //     this.elementRef.nativeElement.dispatchEvent(newEvent);
-    
+
 //     // Re-enable quota check after a short delay
 //     setTimeout(() => {
 //       this.quotaCheckDisabled = false;
@@ -96,7 +96,7 @@
 
 //   private showQuotaExceededMessage(): void {
 //     const quotaInfo = this.quotaService.quotaInfo();
-//     const message = quotaInfo 
+//     const message = quotaInfo
 //       ? `Quota dépassé. Quotidien: ${quotaInfo.remainingDaily}/${quotaInfo.dailyLimit}, Hebdomadaire: ${quotaInfo.remainingWeekly}/${quotaInfo.weeklyLimit}`
 //       : 'Quota dépassé. Veuillez attendre avant de réessayer.';
 
@@ -115,7 +115,7 @@
 
 //   private showBetaRestrictionMessage(): void {
 //     const message = this.quotaService.getBetaRestrictionMessage(this.featureName);
-    
+
 //     this.notificationService.showWarning({
 //       title: 'Fonctionnalité limitée',
 //       message: message || 'Cette fonctionnalité n\'est pas disponible en version bêta.',
@@ -137,7 +137,7 @@
 //   public checkQuota(): Promise<boolean> {
 //     return new Promise((resolve) => {
 //       const quotaDisplay = this.quotaService.quotaDisplay();
-      
+
 //       if (!quotaDisplay?.canUseFeature) {
 //         resolve(false);
 //         return;

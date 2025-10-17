@@ -1,5 +1,5 @@
-import { refreshTokenService } from "../services/refreshToken.service";
-import logger from "../config/logger";
+import { refreshTokenService } from '../services/refreshToken.service';
+import logger from '../config/logger';
 
 /**
  * Script de nettoyage périodique des refresh tokens expirés
@@ -7,13 +7,13 @@ import logger from "../config/logger";
  */
 async function cleanupExpiredTokens(): Promise<void> {
   try {
-    logger.info("Starting periodic cleanup of expired refresh tokens");
-    
+    logger.info('Starting periodic cleanup of expired refresh tokens');
+
     await refreshTokenService.cleanupAllExpiredTokens();
-    
-    logger.info("Periodic cleanup completed successfully");
+
+    logger.info('Periodic cleanup completed successfully');
   } catch (error) {
-    logger.error("Error during periodic cleanup:", {
+    logger.error('Error during periodic cleanup:', {
       error: (error as Error).message,
       stack: (error as Error).stack,
     });
@@ -25,11 +25,11 @@ async function cleanupExpiredTokens(): Promise<void> {
 if (require.main === module) {
   cleanupExpiredTokens()
     .then(() => {
-      logger.info("Cleanup script finished");
+      logger.info('Cleanup script finished');
       process.exit(0);
     })
     .catch((error) => {
-      logger.error("Cleanup script failed:", error);
+      logger.error('Cleanup script failed:', error);
       process.exit(1);
     });
 }

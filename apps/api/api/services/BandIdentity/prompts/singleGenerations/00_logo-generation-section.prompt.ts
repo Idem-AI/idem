@@ -277,4 +277,3 @@ If ANY answer is "no", SIMPLIFY and REDESIGN.
 
 GOAL: Generate CLEAN, PROFESSIONAL, MEANINGFUL logos that work at all sizes, communicate the brand clearly, and look like they were designed by a world-class agency. Prioritize SIMPLICITY, COHERENCE, and PROFESSIONALISM above all else.
 `;
-

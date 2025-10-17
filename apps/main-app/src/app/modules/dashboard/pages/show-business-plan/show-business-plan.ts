@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  OnInit,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -29,9 +23,7 @@ export class ShowBusinessPlan implements OnInit {
 
   // Signals for state management
   protected readonly isLoading = signal<boolean>(true);
-  protected readonly existingBusinessPlan = signal<BusinessPlanModel | null>(
-    null
-  );
+  protected readonly existingBusinessPlan = signal<BusinessPlanModel | null>(null);
   protected readonly projectIdFromCookie = signal<string | null>(null);
   protected readonly hasError = signal<boolean>(false);
   protected readonly errorMessage = signal<string>('');
@@ -61,15 +53,17 @@ export class ShowBusinessPlan implements OnInit {
           const businessPlanWithPdf: BusinessPlanModel = {
             id: `business-plan-${projectId}`,
             projectId: projectId,
-            sections: [{ 
-              name: 'Business Plan', 
-              type: 'pdf',
-              data: 'PDF Available',
-              summary: 'Business plan PDF document'
-            }],
+            sections: [
+              {
+                name: 'Business Plan',
+                type: 'pdf',
+                data: 'PDF Available',
+                summary: 'Business plan PDF document',
+              },
+            ],
             createdAt: new Date(),
             updatedAt: new Date(),
-            pdfBlob: pdfBlob // Add the PDF blob to the model
+            pdfBlob: pdfBlob, // Add the PDF blob to the model
           };
           this.existingBusinessPlan.set(businessPlanWithPdf);
           console.log('Business plan PDF found, showing display component');
@@ -82,9 +76,9 @@ export class ShowBusinessPlan implements OnInit {
       },
       error: (err: any) => {
         console.error('Error loading business plan PDF:', err);
-        
+
         // Check if this is a retryable error (other errors except 404)
-        if (err.message === 'DOWNLOAD_ERROR' || (err.isRetryable === true)) {
+        if (err.message === 'DOWNLOAD_ERROR' || err.isRetryable === true) {
           this.hasError.set(true);
           this.isRetryable.set(true);
           this.errorMessage.set('Une erreur est survenue lors du téléchargement.');
@@ -94,7 +88,7 @@ export class ShowBusinessPlan implements OnInit {
           console.log('PDF not found (404) or non-retryable error, showing generate button');
           this.hasError.set(false);
         }
-        
+
         this.existingBusinessPlan.set(null);
         this.isLoading.set(false);
       },

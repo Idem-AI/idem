@@ -9,10 +9,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { providePrimeNG } from 'primeng/config';
 import { provideAnimations } from '@angular/platform-browser/animations';
 
-import {
-  provideClientHydration,
-  withEventReplay,
-} from '@angular/platform-browser';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { getAuth, provideAuth } from '@angular/fire/auth';
 import {
@@ -27,11 +24,7 @@ import { getPerformance, providePerformance } from '@angular/fire/performance';
 import { getStorage, provideStorage } from '@angular/fire/storage';
 
 import { environment } from '../environments/environment';
-import {
-  provideHttpClient,
-  withFetch,
-  withInterceptors,
-} from '@angular/common/http';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 // import { quotaInterceptor } from './shared/interceptors/quota.interceptor';
 import { authInterceptor } from './shared/interceptors/auth.interceptor';
 import { MERMAID_OPTIONS, provideMarkdown, MARKED_OPTIONS } from 'ngx-markdown';

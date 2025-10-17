@@ -1,27 +1,23 @@
-import { LLMProvider, PromptConfig, PromptService } from "../prompt.service";
-import { ProjectModel } from "../../models/project.model";
-import logger from "../../config/logger";
-import { BusinessPlanModel } from "../../models/businessPlan.model";
-import {
-  GenericService,
-  IPromptStep,
-  ISectionResult,
-} from "../common/generic.service";
-import { SectionModel } from "../../models/section.model";
-import { PdfService } from "../pdf.service";
-import { cacheService, CacheOptions } from "../cache.service";
-import crypto from "crypto";
-import { AGENT_COVER_PROMPT } from "./prompts/agent-cover.prompt";
-import { AGENT_COMPANY_SUMMARY_PROMPT } from "./prompts/agent-company-summary.prompt";
-import { AGENT_OPPORTUNITY_PROMPT } from "./prompts/agent-opportunity.prompt";
-import { AGENT_TARGET_AUDIENCE_PROMPT } from "./prompts/agent-target-audience.prompt";
-import { AGENT_PRODUCTS_SERVICES_PROMPT } from "./prompts/agent-products-services.prompt";
-import { AGENT_MARKETING_SALES_PROMPT } from "./prompts/agent-marketing-sales.prompt";
-import { AGENT_FINANCIAL_PLAN_PROMPT } from "./prompts/agent-financial-plan.prompt";
-import { AGENT_GOAL_PLANNING_PROMPT } from "./prompts/agent-goal-planning.prompt";
-import { AGENT_APPENDIX_PROMPT } from "./prompts/agent-appendix.prompt";
-import { TeamMember } from "../../models/project.model";
-import { storageService } from "../storage.service";
+import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { ProjectModel } from '../../models/project.model';
+import logger from '../../config/logger';
+import { BusinessPlanModel } from '../../models/businessPlan.model';
+import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
+import { SectionModel } from '../../models/section.model';
+import { PdfService } from '../pdf.service';
+import { cacheService, CacheOptions } from '../cache.service';
+import crypto from 'crypto';
+import { AGENT_COVER_PROMPT } from './prompts/agent-cover.prompt';
+import { AGENT_COMPANY_SUMMARY_PROMPT } from './prompts/agent-company-summary.prompt';
+import { AGENT_OPPORTUNITY_PROMPT } from './prompts/agent-opportunity.prompt';
+import { AGENT_TARGET_AUDIENCE_PROMPT } from './prompts/agent-target-audience.prompt';
+import { AGENT_PRODUCTS_SERVICES_PROMPT } from './prompts/agent-products-services.prompt';
+import { AGENT_MARKETING_SALES_PROMPT } from './prompts/agent-marketing-sales.prompt';
+import { AGENT_FINANCIAL_PLAN_PROMPT } from './prompts/agent-financial-plan.prompt';
+import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
+import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
+import { TeamMember } from '../../models/project.model';
+import { storageService } from '../storage.service';
 
 export class BusinessPlanService extends GenericService {
   private pdfService: PdfService;
@@ -29,7 +25,7 @@ export class BusinessPlanService extends GenericService {
   constructor(promptService: PromptService) {
     super(promptService);
     this.pdfService = new PdfService();
-    logger.info("BusinessPlanService initialized.");
+    logger.info('BusinessPlanService initialized.');
   }
 
   async generateBusinessPlanWithStreaming(
@@ -49,11 +45,11 @@ export class BusinessPlanService extends GenericService {
 
     const projectDescription =
       this.extractProjectDescription(project) +
-      "\n" +
-      "Additional infos: " +
+      '\n' +
+      'Additional infos: ' +
       JSON.stringify(project.additionalInfos);
     const contentHash = crypto
-      .createHash("sha256")
+      .createHash('sha256')
       .update(
         JSON.stringify({
           name: project.name,
@@ -62,19 +58,14 @@ export class BusinessPlanService extends GenericService {
           projectDescription,
         })
       )
-      .digest("hex")
+      .digest('hex')
       .substring(0, 16);
 
-    const cacheKey = cacheService.generateAIKey(
-      "business-plan",
-      userId,
-      projectId,
-      contentHash
-    );
+    const cacheKey = cacheService.generateAIKey('business-plan', userId, projectId, contentHash);
 
     // Check cache first
     const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: "ai",
+      prefix: 'ai',
       ttl: 7200, // 2 hours
     });
 
@@ -83,21 +74,19 @@ export class BusinessPlanService extends GenericService {
       return cachedResult;
     }
 
-    logger.info(
-      `Business plan cache miss, generating new content for projectId: ${projectId}`
-    );
+    logger.info(`Business plan cache miss, generating new content for projectId: ${projectId}`);
 
     // Extract branding information
-    const brandName = project.name || "Startup";
-    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || "";
+    const brandName = project.name || 'Startup';
+    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
     const brandColors = project.analysisResultModel?.branding?.colors || {
-      primary: "#007bff",
-      secondary: "#6c757d",
+      primary: '#007bff',
+      secondary: '#6c757d',
     };
     const typography = project.analysisResultModel?.branding?.typography || {
-      primary: "Arial, sans-serif",
+      primary: 'Arial, sans-serif',
     };
-    const language = "fr";
+    const language = 'fr';
 
     // Create brand context for all agents
     const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
@@ -108,53 +97,53 @@ export class BusinessPlanService extends GenericService {
       const steps: IPromptStep[] = [
         {
           promptConstant: `${projectDescription}\n${AGENT_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Cover Page",
+          stepName: 'Cover Page',
           hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Company Summary",
+          stepName: 'Company Summary',
           hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Opportunity",
+          stepName: 'Opportunity',
           hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Target Audience",
+          stepName: 'Target Audience',
           hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Products & Services",
+          stepName: 'Products & Services',
           hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Marketing & Sales",
+          stepName: 'Marketing & Sales',
           hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Financial Plan",
+          stepName: 'Financial Plan',
           hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Goal Planning",
+          stepName: 'Goal Planning',
           hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Appendix",
+          stepName: 'Appendix',
           hasDependencies: false,
         },
       ];
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
-        modelName: "gemini-2.5-flash",
+        modelName: 'gemini-2.5-flash',
       };
 
       // Initialize empty sections array to collect results as they come in
@@ -169,10 +158,7 @@ export class BusinessPlanService extends GenericService {
             logger.info(`Received streamed result for step: ${result.name}`);
 
             // Skip progress and completion events - handle only actual step results
-            if (
-              result.data === "steps_in_progress" ||
-              result.data === "all_steps_completed"
-            ) {
+            if (result.data === 'steps_in_progress' || result.data === 'all_steps_completed') {
               await streamCallback(result);
               return;
             }
@@ -189,9 +175,7 @@ export class BusinessPlanService extends GenericService {
             sectionResults.push(section);
 
             // Update project immediately after each step
-            logger.info(
-              `Updating project after step: ${result.name} - projectId: ${projectId}`
-            );
+            logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
 
             // Get the current project
             const currentProject = await this.projectRepository.findById(
@@ -230,7 +214,7 @@ export class BusinessPlanService extends GenericService {
 
               // Update cache with latest project state
               await cacheService.set(cacheKey, updatedProject, {
-                prefix: "ai",
+                prefix: 'ai',
                 ttl: 7200, // 2 hours
               });
               logger.info(
@@ -243,13 +227,11 @@ export class BusinessPlanService extends GenericService {
               logger.error(
                 `Failed to update project after step: ${result.name} - projectId: ${projectId}`
               );
-              throw new Error(
-                `Failed to update project after step: ${result.name}`
-              );
+              throw new Error(`Failed to update project after step: ${result.name}`);
             }
           },
           promptConfig,
-          "business_plan",
+          'business_plan',
           userId
         );
 
@@ -261,11 +243,7 @@ export class BusinessPlanService extends GenericService {
         return finalProject;
       } else {
         // Fallback to non-streaming processing
-        const stepResults = await this.processSteps(
-          steps,
-          project,
-          promptConfig
-        );
+        const stepResults = await this.processSteps(steps, project, promptConfig);
         sectionResults = stepResults.map((result) => ({
           name: result.name,
           type: result.type,
@@ -304,13 +282,11 @@ export class BusinessPlanService extends GenericService {
         );
 
         if (updatedProject) {
-          logger.info(
-            `Successfully updated project with ID: ${projectId} with business plan`
-          );
+          logger.info(`Successfully updated project with ID: ${projectId} with business plan`);
 
           // Cache the result for future requests
           await cacheService.set(cacheKey, updatedProject, {
-            prefix: "ai",
+            prefix: 'ai',
             ttl: 7200, // 2 hours
           });
           logger.info(`Business plan cached for projectId: ${projectId}`);
@@ -318,15 +294,10 @@ export class BusinessPlanService extends GenericService {
         return updatedProject;
       }
     } catch (error) {
-      logger.error(
-        `Error generating business plan for projectId ${projectId}:`,
-        error
-      );
+      logger.error(`Error generating business plan for projectId ${projectId}:`, error);
       throw error;
     } finally {
-      logger.info(
-        `Completed business plan generation for projectId ${projectId}`
-      );
+      logger.info(`Completed business plan generation for projectId ${projectId}`);
     }
   }
 
@@ -334,23 +305,16 @@ export class BusinessPlanService extends GenericService {
     userId: string,
     projectId: string
   ): Promise<BusinessPlanModel | null> {
-    logger.info(
-      `Fetching business plan for projectId: ${projectId}, userId: ${userId}`
-    );
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
-    console.log("project", project);
+    logger.info(`Fetching business plan for projectId: ${projectId}, userId: ${userId}`);
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    console.log('project', project);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when fetching business plan.`
       );
       return null;
     }
-    logger.info(
-      `Successfully fetched business plan for projectId: ${projectId}`
-    );
+    logger.info(`Successfully fetched business plan for projectId: ${projectId}`);
 
     return project.analysisResultModel.businessPlan!;
   }
@@ -358,18 +322,11 @@ export class BusinessPlanService extends GenericService {
   async updateBusinessPlan(
     userId: string,
     itemId: string,
-    data: Partial<
-      Omit<ProjectModel, "id" | "projectId" | "createdAt" | "updatedAt">
-    >
+    data: Partial<Omit<ProjectModel, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>>
   ): Promise<BusinessPlanModel | null> {
-    logger.info(
-      `Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`
-    );
+    logger.info(`Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`);
     try {
-      const project = await this.projectRepository.findById(
-        itemId,
-        `users/${userId}/projects`
-      );
+      const project = await this.projectRepository.findById(itemId, `users/${userId}/projects`);
       if (!project) {
         logger.warn(
           `Project not found with ID: ${itemId} for user: ${userId} when attempting to update business plan.`
@@ -377,37 +334,26 @@ export class BusinessPlanService extends GenericService {
         return null;
       }
 
-      const updatedProject = await this.projectRepository.update(
-        itemId,
-        data,
-        userId
-      );
+      const updatedProject = await this.projectRepository.update(itemId, data, userId);
       if (!updatedProject) {
-        logger.warn(
-          `Failed to update project or extract business plan for itemId: ${itemId}`
-        );
+        logger.warn(`Failed to update project or extract business plan for itemId: ${itemId}`);
         return null;
       }
       logger.info(`Successfully updated business plan for itemId: ${itemId}`);
       return updatedProject.analysisResultModel.businessPlan!;
     } catch (error: any) {
-      logger.error(
-        `Error updating business plan for itemId ${itemId}: ${error.message}`,
-        { stack: error.stack, userId }
-      );
+      logger.error(`Error updating business plan for itemId ${itemId}: ${error.message}`, {
+        stack: error.stack,
+        userId,
+      });
       throw error; // Or return null depending on desired error handling
     }
   }
 
   async deleteBusinessPlan(userId: string, itemId: string): Promise<void> {
-    logger.info(
-      `Attempting to delete business plan for itemId: ${itemId}, userId: ${userId}`
-    );
+    logger.info(`Attempting to delete business plan for itemId: ${itemId}, userId: ${userId}`);
     try {
-      const project = await this.projectRepository.findById(
-        itemId,
-        `users/${userId}/projects`
-      );
+      const project = await this.projectRepository.findById(itemId, `users/${userId}/projects`);
       if (!project) {
         logger.warn(
           `Project not found with ID: ${itemId} for user: ${userId} when attempting to delete business plan.`
@@ -418,10 +364,10 @@ export class BusinessPlanService extends GenericService {
       await this.projectRepository.update(itemId, project, userId);
       logger.info(`Successfully deleted business plan for itemId: ${itemId}`);
     } catch (error: any) {
-      logger.error(
-        `Error deleting business plan for itemId ${itemId}: ${error.message}`,
-        { stack: error.stack, userId }
-      );
+      logger.error(`Error deleting business plan for itemId ${itemId}: ${error.message}`, {
+        stack: error.stack,
+        userId,
+      });
       throw error; // Or return depending on desired error handling
     }
   }
@@ -432,18 +378,12 @@ export class BusinessPlanService extends GenericService {
    * @param projectId - ID du projet
    * @returns Chemin vers le fichier PDF temporaire généré
    */
-  async generateBusinessPlanPdf(
-    userId: string,
-    projectId: string
-  ): Promise<string> {
+  async generateBusinessPlanPdf(userId: string, projectId: string): Promise<string> {
     logger.info(
       `Generating PDF for business plan sections - projectId: ${projectId}, userId: ${userId}`
     );
     // Récupérer le projet et ses données de business plan
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
 
     if (!project) {
       logger.warn(
@@ -453,27 +393,17 @@ export class BusinessPlanService extends GenericService {
     }
 
     const businessPlan = project.analysisResultModel.businessPlan;
-    if (
-      !businessPlan ||
-      !businessPlan.sections ||
-      businessPlan.sections.length === 0
-    ) {
-      logger.warn(
-        `No business plan sections found for project ${projectId} when generating PDF.`
-      );
-      return "";
+    if (!businessPlan || !businessPlan.sections || businessPlan.sections.length === 0) {
+      logger.warn(`No business plan sections found for project ${projectId} when generating PDF.`);
+      return '';
     }
 
     // Generate cache key for PDF
-    const pdfCacheKey = cacheService.generateAIKey(
-      "business-plan-pdf",
-      userId,
-      projectId
-    );
+    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
 
     // Check if PDF is already cached
     const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
-      prefix: "pdf",
+      prefix: 'pdf',
       ttl: 3600, // 1 hour
     });
 
@@ -482,33 +412,31 @@ export class BusinessPlanService extends GenericService {
       return cachedPdfPath;
     }
 
-    logger.info(
-      `Business plan PDF cache miss, generating new PDF for projectId: ${projectId}`
-    );
+    logger.info(`Business plan PDF cache miss, generating new PDF for projectId: ${projectId}`);
 
     // Utiliser le PdfService pour générer le PDF
     const pdfPath = await this.pdfService.generatePdf({
-      title: "Business Plan",
-      projectName: project.name || "Projet Sans Nom",
-      projectDescription: project.description || "",
+      title: 'Business Plan',
+      projectName: project.name || 'Projet Sans Nom',
+      projectDescription: project.description || '',
       sections: businessPlan.sections,
       sectionDisplayOrder: [
-        "Cover Page",
-        "Company Summary",
-        "Opportunity",
-        "Target Audience",
-        "Products Services",
-        "Marketing Sales",
-        "Financial Plan",
-        "Goal Planning",
-        "Appendix",
+        'Cover Page',
+        'Company Summary',
+        'Opportunity',
+        'Target Audience',
+        'Products Services',
+        'Marketing Sales',
+        'Financial Plan',
+        'Goal Planning',
+        'Appendix',
       ],
-      footerText: "Generated by Idem",
+      footerText: 'Generated by Idem',
     });
 
     // Cache the PDF path for future requests
     await cacheService.set(pdfCacheKey, pdfPath, {
-      prefix: "pdf",
+      prefix: 'pdf',
       ttl: 3600, // 1 hour
     });
     logger.info(`Business plan PDF cached for projectId: ${projectId}`);
@@ -541,16 +469,13 @@ export class BusinessPlanService extends GenericService {
     project: ProjectModel | null;
     uploadedImages?: { [memberIndex: number]: any };
   }> {
-    logger.info(
-      `Setting additional infos for userId: ${userId}, projectId: ${projectId}`,
-      {
-        additionalInfos: {
-          email: additionalInfos.email,
-          teamMembersCount: additionalInfos.teamMembers.length,
-          hasImages: !!teamMemberImages && teamMemberImages.length > 0,
-        },
-      }
-    );
+    logger.info(`Setting additional infos for userId: ${userId}, projectId: ${projectId}`, {
+      additionalInfos: {
+        email: additionalInfos.email,
+        teamMembersCount: additionalInfos.teamMembers.length,
+        hasImages: !!teamMemberImages && teamMemberImages.length > 0,
+      },
+    });
 
     // Upload team member images if provided
     let uploadedImages: { [memberIndex: number]: any } = {};
@@ -561,9 +486,7 @@ export class BusinessPlanService extends GenericService {
           userId,
           projectId
         );
-        logger.info(
-          `Uploaded ${Object.keys(uploadedImages).length} team member images`
-        );
+        logger.info(`Uploaded ${Object.keys(uploadedImages).length} team member images`);
       } catch (error: any) {
         logger.error(`Error uploading team member images: ${error.message}`, {
           stack: error.stack,
@@ -573,12 +496,10 @@ export class BusinessPlanService extends GenericService {
     }
 
     // Update team members with uploaded image URLs
-    const updatedTeamMembers = additionalInfos.teamMembers.map(
-      (member, index) => ({
-        ...member,
-        pictureUrl: uploadedImages[index]?.downloadURL || member.pictureUrl,
-      })
-    );
+    const updatedTeamMembers = additionalInfos.teamMembers.map((member, index) => ({
+      ...member,
+      pictureUrl: uploadedImages[index]?.downloadURL || member.pictureUrl,
+    }));
 
     // Get current project to update with additional infos
     const project = await this.getProject(projectId, userId);
@@ -592,11 +513,11 @@ export class BusinessPlanService extends GenericService {
       ...project,
       additionalInfos: {
         email: additionalInfos.email,
-        phone: additionalInfos.phone || "",
-        address: additionalInfos.address || "",
-        city: additionalInfos.city || "",
-        country: additionalInfos.country || "",
-        zipCode: additionalInfos.zipCode || "",
+        phone: additionalInfos.phone || '',
+        address: additionalInfos.address || '',
+        city: additionalInfos.city || '',
+        country: additionalInfos.country || '',
+        zipCode: additionalInfos.zipCode || '',
         teamMembers: updatedTeamMembers,
       },
       updatedAt: new Date(), // Update timestamp
@@ -610,20 +531,15 @@ export class BusinessPlanService extends GenericService {
     );
 
     if (!savedProject) {
-      logger.error(
-        `Failed to update project with additional infos: ${projectId}`
-      );
+      logger.error(`Failed to update project with additional infos: ${projectId}`);
       return { project: null };
     }
 
-    logger.info(
-      `Additional infos updated successfully for project: ${projectId}`
-    );
+    logger.info(`Additional infos updated successfully for project: ${projectId}`);
 
     return {
       project: savedProject,
-      uploadedImages:
-        Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
+      uploadedImages: Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
     };
   }
 }

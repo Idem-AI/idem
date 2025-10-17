@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { useUrlData } from "../../hooks/useUrlData";
-import { getProjectById, getProjectGeneration } from "../../api/persistence/db";
-import { useTranslation } from "react-i18next";
-import { toast } from "react-toastify";
-import { LandingPageConfig } from "../../api/persistence/models/development.model";
+import React, { useState, useEffect } from 'react';
+import { useUrlData } from '../../hooks/useUrlData';
+import { getProjectById, getProjectGeneration } from '../../api/persistence/db';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
+import { LandingPageConfig } from '../../api/persistence/models/development.model';
 
 export enum ChatType {
-  APPLICATION = "APPLICATION",
-  LANDING_PAGE = "LANDING_PAGE",
+  APPLICATION = 'APPLICATION',
+  LANDING_PAGE = 'LANDING_PAGE',
 }
 
 interface ProjectSidebarProps {
@@ -51,22 +51,20 @@ export function ProjectSidebar({
 
           // Get landing page config from project analysis
           const config =
-            project.analysisResultModel?.development?.configs
-              ?.landingPageConfig || LandingPageConfig.NONE;
+            project.analysisResultModel?.development?.configs?.landingPageConfig ||
+            LandingPageConfig.NONE;
           setLandingPageConfig(config);
 
           // Check if generations exist for different chat types
           const appGeneration = await getProjectGeneration(`${projectId}_app`);
-          const landingGeneration = await getProjectGeneration(
-            `${projectId}_landing`
-          );
+          const landingGeneration = await getProjectGeneration(`${projectId}_landing`);
 
           setHasAppGeneration(!!appGeneration);
           setHasLandingGeneration(!!landingGeneration);
         }
       } catch (error) {
-        console.error("Error loading project data:", error);
-        toast.error("Erreur lors du chargement du projet");
+        console.error('Error loading project data:', error);
+        toast.error('Erreur lors du chargement du projet');
       } finally {
         setIsLoading(false);
       }
@@ -83,26 +81,26 @@ export function ProjectSidebar({
         return {
           showLandingChat: true,
           showAppChat: true,
-          description: "Two separate chats: Landing Page and Application",
+          description: 'Two separate chats: Landing Page and Application',
         };
       case LandingPageConfig.INTEGRATED:
         return {
           showLandingChat: false,
           showAppChat: true,
-          description: "Single chat for application (with integrated landing page)",
+          description: 'Single chat for application (with integrated landing page)',
         };
       case LandingPageConfig.ONLY_LANDING:
         return {
           showLandingChat: true,
           showAppChat: false,
-          description: "Single chat for landing page only",
+          description: 'Single chat for landing page only',
         };
       case LandingPageConfig.NONE:
       default:
         return {
           showLandingChat: false,
           showAppChat: true,
-          description: "Single chat for application only",
+          description: 'Single chat for application only',
         };
     }
   };
@@ -116,10 +114,7 @@ export function ProjectSidebar({
       onMouseLeave={onMouseLeave}
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black "
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black " onClick={onClose} />
 
       {/* Sidebar */}
       <div className="absolute left-0 top-0 h-full w-96 bg-white dark:bg-gray-900 shadow-xl border-r border-gray-200 dark:border-gray-700">
@@ -127,19 +122,12 @@ export function ProjectSidebar({
           {/* Header */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Project Chats
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Project Chats</h2>
               <button
                 onClick={onClose}
                 className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -165,7 +153,7 @@ export function ProjectSidebar({
                     {projectData.name}
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    {projectData.description || "No description"}
+                    {projectData.description || 'No description'}
                   </p>
                 </div>
 
@@ -186,17 +174,15 @@ export function ProjectSidebar({
 
                 {/* Chat Sections */}
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Available Chats
-                  </h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white">Available Chats</h4>
 
                   {/* Application Chat */}
                   {chatConfig.showAppChat && (
                     <div
                       className={`rounded-lg p-4 cursor-pointer transition-all duration-200 border-2 ${
                         activeChatType === ChatType.APPLICATION
-                          ? "bg-blue-100 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400"
-                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400'
+                          : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                       onClick={() => onChatSelect(ChatType.APPLICATION)}
                     >
@@ -222,21 +208,20 @@ export function ProjectSidebar({
                               Application
                             </h5>
                             <p className="text-xs text-gray-600 dark:text-gray-400">
-                              {landingPageConfig ===
-                              LandingPageConfig.INTEGRATED
-                                ? "App + Landing Page"
-                                : "Application only"}
+                              {landingPageConfig === LandingPageConfig.INTEGRATED
+                                ? 'App + Landing Page'
+                                : 'Application only'}
                             </p>
                           </div>
                         </div>
                         <div
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             hasAppGeneration
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
                           }`}
                         >
-                          {hasAppGeneration ? "Ready" : "To generate"}
+                          {hasAppGeneration ? 'Ready' : 'To generate'}
                         </div>
                       </div>
                       {activeChatType === ChatType.APPLICATION && (
@@ -265,8 +250,8 @@ export function ProjectSidebar({
                     <div
                       className={`rounded-lg p-4 cursor-pointer transition-all duration-200 border-2 ${
                         activeChatType === ChatType.LANDING_PAGE
-                          ? "bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-400"
-                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          ? 'bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-400'
+                          : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                       onClick={() => onChatSelect(ChatType.LANDING_PAGE)}
                     >
@@ -299,11 +284,11 @@ export function ProjectSidebar({
                         <div
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             hasLandingGeneration
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
                           }`}
                         >
-                          {hasLandingGeneration ? "Ready" : "To generate"}
+                          {hasLandingGeneration ? 'Ready' : 'To generate'}
                         </div>
                       </div>
                       {activeChatType === ChatType.LANDING_PAGE && (

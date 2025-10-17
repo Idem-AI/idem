@@ -1,9 +1,6 @@
 <!-- Mobile Drawer Backdrop -->
 @if (isMobileDrawerOpen()) {
-<div
-  class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-  (click)="toggleMobileDrawer()"
-></div>
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" (click)="toggleMobileDrawer()"></div>
 }
 
 <!-- Top Navigation Bar -->
@@ -19,11 +16,7 @@
           routerLink="/"
           class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
         >
-          <img
-            src="/assets/icons/logo_white.png"
-            alt="Lexi"
-            class="sm:w-[120px] w-[50px] h-auto"
-          />
+          <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto" />
           <app-beta-badge></app-beta-badge>
         </a>
       </div>
@@ -62,9 +55,7 @@
           class="absolute right-0 mt-2 w-56 bg-bg-dark border border-white/10 rounded-xl shadow-xl z-50 py-2"
         >
           <div class="px-4 py-3 border-b border-white/10">
-            <p class="text-white font-medium truncate">
-              {{ user()!.displayName }}
-            </p>
+            <p class="text-white font-medium truncate">{{ user()!.displayName }}</p>
             <p class="text-gray-400 text-sm truncate">{{ user()!.email }}</p>
           </div>
 
@@ -107,9 +98,7 @@
         </div>
         }
       </div>
-      } @else {
-      
-      }
+      } @else { }
     </div>
   </div>
 </nav>

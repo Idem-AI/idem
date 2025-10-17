@@ -1,13 +1,13 @@
-import puppeteer, { Browser, Page } from "puppeteer";
-import * as fs from "fs-extra";
-import * as path from "path";
-import * as os from "os";
-import * as crypto from "crypto";
-import logger from "../config/logger";
-import { SectionModel } from "../models/section.model";
-import { TypographyModel } from "../models/brand-identity.model";
-import { cacheService } from "./cache.service";
-import axios from "axios";
+import puppeteer, { Browser, Page } from 'puppeteer';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import * as os from 'os';
+import * as crypto from 'crypto';
+import logger from '../config/logger';
+import { SectionModel } from '../models/section.model';
+import { TypographyModel } from '../models/brand-identity.model';
+import { cacheService } from './cache.service';
+import axios from 'axios';
 
 export interface PdfGenerationOptions {
   title?: string;
@@ -16,7 +16,7 @@ export interface PdfGenerationOptions {
   sections: SectionModel[];
   sectionDisplayOrder?: string[];
   footerText?: string;
-  format?: "A4" | "Letter";
+  format?: 'A4' | 'Letter';
   margins?: {
     top?: string;
     right?: string;
@@ -56,19 +56,19 @@ export class PdfService {
       return;
     }
 
-    logger.info("Initializing Puppeteer browser instance at startup");
+    logger.info('Initializing Puppeteer browser instance at startup');
     this.browserInstance = await puppeteer.launch({
       headless: true,
       args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--no-first-run",
-        "--disable-default-apps",
-        "--disable-features=TranslateUI",
-        "--disable-web-security",
-        "--disable-features=VizDisplayCompositor",
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--disable-default-apps',
+        '--disable-features=TranslateUI',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
       ],
       timeout: 30000,
     });
@@ -81,15 +81,13 @@ export class PdfService {
 
     this.isInitialized = true;
 
-    logger.info("Browser and resources initialized successfully at startup");
+    logger.info('Browser and resources initialized successfully at startup');
   }
 
   // Obtenir l'instance du browser (déjà initialisée)
   private static getBrowser(): Browser {
     if (!this.browserInstance || !this.browserInstance.isConnected()) {
-      throw new Error(
-        "Browser not initialized. Call PdfService.initialize() first."
-      );
+      throw new Error('Browser not initialized. Call PdfService.initialize() first.');
     }
     return this.browserInstance;
   }
@@ -98,23 +96,23 @@ export class PdfService {
   private static async preloadResources(): Promise<void> {
     const resources = [
       {
-        key: "primeicons",
-        path: path.join(process.cwd(), "public", "css", "primeicons.css"),
+        key: 'primeicons',
+        path: path.join(process.cwd(), 'public', 'css', 'primeicons.css'),
       },
       {
-        key: "tailwind",
-        path: path.join(process.cwd(), "public", "scripts", "tailwind.js"),
+        key: 'tailwind',
+        path: path.join(process.cwd(), 'public', 'scripts', 'tailwind.js'),
       },
       {
-        key: "chartjs",
-        path: path.join(process.cwd(), "public", "scripts", "chart.js"),
+        key: 'chartjs',
+        path: path.join(process.cwd(), 'public', 'scripts', 'chart.js'),
       },
     ];
 
     for (const resource of resources) {
       try {
         if (await fs.pathExists(resource.path)) {
-          const content = await fs.readFile(resource.path, "utf8");
+          const content = await fs.readFile(resource.path, 'utf8');
           this.resourcesCache.set(resource.key, content);
           logger.info(`Cached resource: ${resource.key}`);
         } else {
@@ -132,17 +130,17 @@ export class PdfService {
     const page = await browser.newPage();
 
     // Injecter les ressources depuis le cache
-    const primeiconsContent = this.resourcesCache.get("primeicons");
+    const primeiconsContent = this.resourcesCache.get('primeicons');
     if (primeiconsContent) {
       await page.addStyleTag({ content: primeiconsContent });
     }
 
-    const tailwindContent = this.resourcesCache.get("tailwind");
+    const tailwindContent = this.resourcesCache.get('tailwind');
     if (tailwindContent) {
       await page.addScriptTag({ content: tailwindContent });
     }
 
-    const chartjsContent = this.resourcesCache.get("chartjs");
+    const chartjsContent = this.resourcesCache.get('chartjs');
     if (chartjsContent) {
       await page.addScriptTag({ content: chartjsContent });
     }
@@ -175,10 +173,7 @@ export class PdfService {
       if (now - entry.timestamp > entry.ttl) {
         // Supprimer le fichier PDF
         fs.unlink(entry.filePath).catch((err) =>
-          logger.warn(
-            `Failed to delete cached PDF file: ${entry.filePath}`,
-            err
-          )
+          logger.warn(`Failed to delete cached PDF file: ${entry.filePath}`, err)
         );
         this.pdfCache.delete(key);
         pdfCleaned++;
@@ -186,9 +181,7 @@ export class PdfService {
     }
 
     if (htmlCleaned > 0 || pdfCleaned > 0) {
-      logger.info(
-        `Cache cleanup: ${htmlCleaned} HTML entries, ${pdfCleaned} PDF entries removed`
-      );
+      logger.info(`Cache cleanup: ${htmlCleaned} HTML entries, ${pdfCleaned} PDF entries removed`);
     }
   }
 
@@ -206,10 +199,7 @@ export class PdfService {
       typography: options.typography,
     };
 
-    return crypto
-      .createHash("sha256")
-      .update(JSON.stringify(cacheData))
-      .digest("hex");
+    return crypto.createHash('sha256').update(JSON.stringify(cacheData)).digest('hex');
   }
 
   // Récupérer HTML depuis le cache
@@ -288,7 +278,7 @@ export class PdfService {
 
     // Calculer la taille approximative du cache HTML
     for (const [, entry] of this.htmlCache.entries()) {
-      totalSize += Buffer.byteLength(entry.data, "utf8");
+      totalSize += Buffer.byteLength(entry.data, 'utf8');
 
       if (oldestTimestamp === null || entry.timestamp < oldestTimestamp) {
         oldestTimestamp = entry.timestamp;
@@ -306,10 +296,7 @@ export class PdfService {
           diskUsage += stats.size;
         }
       } catch (error) {
-        logger.warn(
-          `Failed to get stats for PDF file: ${entry.filePath}`,
-          error
-        );
+        logger.warn(`Failed to get stats for PDF file: ${entry.filePath}`, error);
       }
 
       if (oldestTimestamp === null || entry.timestamp < oldestTimestamp) {
@@ -334,10 +321,7 @@ export class PdfService {
     // Nettoyer les fichiers PDF locaux
     for (const [, entry] of this.pdfCache.entries()) {
       fs.unlink(entry.filePath).catch((err) =>
-        logger.warn(
-          `Failed to delete PDF file during cache clear: ${entry.filePath}`,
-          err
-        )
+        logger.warn(`Failed to delete PDF file during cache clear: ${entry.filePath}`, err)
       );
     }
 
@@ -347,13 +331,13 @@ export class PdfService {
 
     // Vider aussi les cachedPdfPath dans Redis (préfixe "pdf")
     try {
-      const deletedRedisKeys = await cacheService.deletePattern("pdf:*");
+      const deletedRedisKeys = await cacheService.deletePattern('pdf:*');
       logger.info(`Cleared ${deletedRedisKeys} PDF entries from Redis cache`);
     } catch (error) {
-      logger.warn("Failed to clear PDF entries from Redis cache:", error);
+      logger.warn('Failed to clear PDF entries from Redis cache:', error);
     }
 
-    logger.info("All caches (local + Redis) cleared manually");
+    logger.info('All caches (local + Redis) cleared manually');
   }
 
   static invalidateCacheByProject(projectName: string): number {
@@ -371,9 +355,7 @@ export class PdfService {
     // On pourrait améliorer en stockant des métadonnées
 
     if (invalidated > 0) {
-      logger.info(
-        `Invalidated ${invalidated} cache entries for project: ${projectName}`
-      );
+      logger.info(`Invalidated ${invalidated} cache entries for project: ${projectName}`);
     }
 
     return invalidated;
@@ -403,18 +385,11 @@ export class PdfService {
 
     // Invalider aussi les entrées Redis pour ce projet
     try {
-      const deletedRedisKeys = await cacheService.invalidateProjectCache(
-        projectId
-      );
-      logger.info(
-        `Invalidated ${deletedRedisKeys} Redis cache entries for project: ${projectId}`
-      );
+      const deletedRedisKeys = await cacheService.invalidateProjectCache(projectId);
+      logger.info(`Invalidated ${deletedRedisKeys} Redis cache entries for project: ${projectId}`);
       invalidated += deletedRedisKeys;
     } catch (error) {
-      logger.warn(
-        `Failed to invalidate Redis cache for project ${projectId}:`,
-        error
-      );
+      logger.warn(`Failed to invalidate Redis cache for project ${projectId}:`, error);
     }
 
     invalidated += htmlEntries + pdfEntries;
@@ -454,15 +429,10 @@ export class PdfService {
     // Invalider aussi les entrées Redis pour cet utilisateur
     try {
       const deletedRedisKeys = await cacheService.invalidateUserCache(userId);
-      logger.info(
-        `Invalidated ${deletedRedisKeys} Redis cache entries for user: ${userId}`
-      );
+      logger.info(`Invalidated ${deletedRedisKeys} Redis cache entries for user: ${userId}`);
       invalidated += deletedRedisKeys;
     } catch (error) {
-      logger.warn(
-        `Failed to invalidate Redis cache for user ${userId}:`,
-        error
-      );
+      logger.warn(`Failed to invalidate Redis cache for user ${userId}:`, error);
     }
 
     invalidated += htmlEntries + pdfEntries;
@@ -479,21 +449,19 @@ export class PdfService {
   /**
    * Vide sélectivement le cache PDF (HTML seulement, PDF seulement, ou tout)
    */
-  static async clearCacheSelective(
-    type: "html" | "pdf" | "all" = "all"
-  ): Promise<{
+  static async clearCacheSelective(type: 'html' | 'pdf' | 'all' = 'all'): Promise<{
     htmlCleared: number;
     pdfCleared: number;
   }> {
     let htmlCleared = 0;
     let pdfCleared = 0;
 
-    if (type === "html" || type === "all") {
+    if (type === 'html' || type === 'all') {
       htmlCleared = this.htmlCache.size;
       this.htmlCache.clear();
     }
 
-    if (type === "pdf" || type === "all") {
+    if (type === 'pdf' || type === 'all') {
       pdfCleared = this.pdfCache.size;
 
       // Supprimer les fichiers PDF locaux
@@ -501,27 +469,19 @@ export class PdfService {
         try {
           await fs.unlink(entry.filePath);
         } catch (error) {
-          logger.warn(
-            `Failed to delete PDF file during selective clear: ${entry.filePath}`,
-            error
-          );
+          logger.warn(`Failed to delete PDF file during selective clear: ${entry.filePath}`, error);
         }
       }
       this.pdfCache.clear();
     }
 
     // Nettoyer aussi le cache Redis si on nettoie tout
-    if (type === "all") {
+    if (type === 'all') {
       try {
-        const deletedRedisKeys = await cacheService.deletePattern("pdf:*");
-        logger.info(
-          `Cleared ${deletedRedisKeys} Redis PDF cache entries during selective clear`
-        );
+        const deletedRedisKeys = await cacheService.deletePattern('pdf:*');
+        logger.info(`Cleared ${deletedRedisKeys} Redis PDF cache entries during selective clear`);
       } catch (error) {
-        logger.warn(
-          "Failed to clear Redis PDF cache during selective clear:",
-          error
-        );
+        logger.warn('Failed to clear Redis PDF cache during selective clear:', error);
       }
     }
 
@@ -558,10 +518,7 @@ export class PdfService {
         try {
           await fs.unlink(entry.filePath);
         } catch (error) {
-          logger.warn(
-            `Failed to delete aged PDF file: ${entry.filePath}`,
-            error
-          );
+          logger.warn(`Failed to delete aged PDF file: ${entry.filePath}`, error);
         }
         this.pdfCache.delete(key);
         pdfCleared++;
@@ -583,7 +540,7 @@ export class PdfService {
       await this.browserInstance.close();
       this.browserInstance = null;
       this.isInitialized = false;
-      logger.info("Browser instance closed");
+      logger.info('Browser instance closed');
     }
 
     // Nettoyer tous les fichiers PDF en cache
@@ -600,18 +557,18 @@ export class PdfService {
 
   async generatePdf(options: PdfGenerationOptions): Promise<string> {
     const {
-      title = "Document",
+      title = 'Document',
       projectName,
-      projectDescription = "",
+      projectDescription = '',
       sections,
       sectionDisplayOrder = options.sectionDisplayOrder,
-      footerText = "Generated by Idem",
-      format = "A4",
+      footerText = 'Generated by Idem',
+      format = 'A4',
       margins = {
-        top: "20mm",
-        right: "15mm",
-        bottom: "20mm",
-        left: "15mm",
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm',
       },
     } = options;
 
@@ -619,8 +576,8 @@ export class PdfService {
     let cleanedSections = sections.map((section) => {
       if (
         section.data &&
-        typeof section.data === "string" &&
-        section.data.toLowerCase().startsWith("html")
+        typeof section.data === 'string' &&
+        section.data.toLowerCase().startsWith('html')
       ) {
         return {
           ...section,
@@ -649,30 +606,21 @@ export class PdfService {
     // Vérifier le cache PDF d'abord
     const cachedPdfPath = PdfService.getCachedPdf(cacheKey);
     if (cachedPdfPath) {
-      logger.info(
-        `🚀 CACHE HIT - Returning cached PDF for project: ${projectName} (saved ~5-8s)`
-      );
+      logger.info(`🚀 CACHE HIT - Returning cached PDF for project: ${projectName} (saved ~5-8s)`);
       return cachedPdfPath;
     }
 
-    logger.info(
-      `❌ CACHE MISS - Generating new PDF for project: ${projectName}`
-    );
+    logger.info(`❌ CACHE MISS - Generating new PDF for project: ${projectName}`);
 
     try {
       // Trier les sections selon l'ordre spécifié
-      const sortedSections = this.sortSectionsByOrder(
-        cleanedSections,
-        sectionDisplayOrder
-      );
+      const sortedSections = this.sortSectionsByOrder(cleanedSections, sectionDisplayOrder);
 
       // Vérifier le cache HTML
       let htmlContent = PdfService.getCachedHtml(cacheKey);
 
       if (!htmlContent) {
-        logger.info(
-          `⚡ Generating new HTML content for project: ${projectName}`
-        );
+        logger.info(`⚡ Generating new HTML content for project: ${projectName}`);
         // Créer le contenu HTML à partir des sections (optimisé)
         htmlContent = this.generateOptimizedHtmlFromSections({
           title,
@@ -696,7 +644,7 @@ export class PdfService {
 
       // Définir le contenu HTML (ressources déjà injectées)
       await page.setContent(htmlContent, {
-        waitUntil: "domcontentloaded", // Plus rapide que networkidle0
+        waitUntil: 'domcontentloaded', // Plus rapide que networkidle0
         timeout: 15000, // Réduit de 60s à 15s
       });
 
@@ -708,7 +656,7 @@ export class PdfService {
 
       // Configuration rapide des scripts
       await page.evaluate(() => {
-        if (typeof (window as any).tailwind !== "undefined") {
+        if (typeof (window as any).tailwind !== 'undefined') {
           const tailwindInstance = (window as any).tailwind;
           if (tailwindInstance.refresh) tailwindInstance.refresh();
         }
@@ -719,9 +667,7 @@ export class PdfService {
 
       // Créer un fichier temporaire pour le PDF
       const tempDir = os.tmpdir();
-      const pdfFileName = `pdf-${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(7)}.pdf`;
+      const pdfFileName = `pdf-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
       const pdfPath = path.join(tempDir, pdfFileName);
 
       // Générer le PDF avec timeout optimisé
@@ -741,9 +687,7 @@ export class PdfService {
       // Mettre en cache le PDF généré
       PdfService.setCachedPdf(cacheKey, pdfPath);
 
-      logger.info(
-        `Successfully generated PDF for project ${projectName} at ${pdfPath}`
-      );
+      logger.info(`Successfully generated PDF for project ${projectName} at ${pdfPath}`);
       return pdfPath;
     } catch (error) {
       logger.error(`Error generating PDF for project ${projectName}:`, error);
@@ -791,14 +735,7 @@ export class PdfService {
     footerText: string;
     typography?: TypographyModel;
   }): string {
-    const {
-      title,
-      projectName,
-      projectDescription,
-      sections,
-      footerText,
-      typography,
-    } = options;
+    const { title, projectName, projectDescription, sections, footerText, typography } = options;
 
     let htmlContent = `
       <!DOCTYPE html>
@@ -807,23 +744,15 @@ export class PdfService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title} - ${projectName}</title>
-        ${
-          typography?.url
-            ? `<link href="${typography.url}" rel="stylesheet">`
-            : ""
-        }
+        ${typography?.url ? `<link href="${typography.url}" rel="stylesheet">` : ''}
         <script>
           // Configuration optimisée des scripts avec typographie du projet
           function setupScripts() {
             const primaryFont = ${
-              typography?.primaryFont
-                ? `'${typography.primaryFont}'`
-                : "'Inter'"
+              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Inter'"
             };
             const secondaryFont = ${
-              typography?.secondaryFont
-                ? `'${typography.secondaryFont}'`
-                : "'Inter'"
+              typography?.secondaryFont ? `'${typography.secondaryFont}'` : "'Inter'"
             };
             
             if (typeof window.tailwind !== 'undefined') {
@@ -862,25 +791,19 @@ export class PdfService {
           
           body {
             font-family: ${
-              typography?.primaryFont
-                ? `'${typography.primaryFont}'`
-                : "'Inter'"
+              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Inter'"
             }, system-ui, sans-serif;
           }
           
           h1, h2, h3, h4, h5, h6 {
             font-family: ${
-              typography?.primaryFont
-                ? `'${typography.primaryFont}'`
-                : "'Inter'"
+              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Inter'"
             }, system-ui, sans-serif;
           }
           
           p, div, span, li, td, th {
             font-family: ${
-              typography?.secondaryFont
-                ? `'${typography.secondaryFont}'`
-                : "'Inter'"
+              typography?.secondaryFont ? `'${typography.secondaryFont}'` : "'Inter'"
             }, system-ui, sans-serif;
           }
           
@@ -955,12 +878,10 @@ export class PdfService {
     // Ajouter chaque section
     sections.forEach((section, index) => {
       const sectionData =
-        typeof section.data === "string"
-          ? section.data
-          : JSON.stringify(section.data, null, 2);
+        typeof section.data === 'string' ? section.data : JSON.stringify(section.data, null, 2);
 
       // Première section (page de couverture) sans marges, autres sections avec marges
-      const marginClass = index === 0 ? "" : "mb-8";
+      const marginClass = index === 0 ? '' : 'mb-8';
 
       htmlContent += `
         <div class="section ${marginClass} break-inside-avoid">
@@ -976,8 +897,8 @@ export class PdfService {
               <p class="text-sm text-gray-700">Project: <span class="font-medium">${projectName}</span></p>
               <p class="text-sm text-gray-700">|</p>
               <p class="text-sm text-gray-700"> generated on <span class="font-medium">${new Date().toLocaleDateString(
-                "fr-FR",
-                { year: "numeric", month: "long", day: "numeric" }
+                'fr-FR',
+                { year: 'numeric', month: 'long', day: 'numeric' }
               )}</span></p>
             </div>
           </footer>
@@ -1001,14 +922,12 @@ export class PdfService {
    * Convertit les URLs d'images dans les sections en data URIs
    * pour que Puppeteer puisse les charger sans problème de CORS/authentification
    */
-  private async convertImageUrlsToDataUris(
-    sections: SectionModel[]
-  ): Promise<SectionModel[]> {
-    logger.info("Converting image URLs to data URIs for PDF generation");
+  private async convertImageUrlsToDataUris(sections: SectionModel[]): Promise<SectionModel[]> {
+    logger.info('Converting image URLs to data URIs for PDF generation');
 
     const convertedSections = await Promise.all(
       sections.map(async (section) => {
-        if (!section.data || typeof section.data !== "string") {
+        if (!section.data || typeof section.data !== 'string') {
           return section;
         }
 
@@ -1022,9 +941,7 @@ export class PdfService {
           return section;
         }
 
-        logger.info(
-          `Found ${matches.length} images in section: ${section.name}`
-        );
+        logger.info(`Found ${matches.length} images in section: ${section.name}`);
 
         // Convertir chaque URL en data URI
         for (const match of matches) {
@@ -1033,7 +950,7 @@ export class PdfService {
 
           try {
             // Vérifier si c'est déjà un data URI
-            if (imageUrl.startsWith("data:")) {
+            if (imageUrl.startsWith('data:')) {
               continue;
             }
 
@@ -1044,15 +961,10 @@ export class PdfService {
               // Remplacer l'URL par le data URI dans la balise img
               const newImgTag = fullImgTag.replace(imageUrl, dataUri);
               htmlContent = htmlContent.replace(fullImgTag, newImgTag);
-              logger.info(
-                `Converted image URL to data URI in section: ${section.name}`
-              );
+              logger.info(`Converted image URL to data URI in section: ${section.name}`);
             }
           } catch (error) {
-            logger.warn(
-              `Failed to convert image URL to data URI: ${imageUrl}`,
-              error
-            );
+            logger.warn(`Failed to convert image URL to data URI: ${imageUrl}`, error);
             // Continue avec les autres images même si une échoue
           }
         }
@@ -1064,7 +976,7 @@ export class PdfService {
       })
     );
 
-    logger.info("Finished converting image URLs to data URIs");
+    logger.info('Finished converting image URLs to data URIs');
     return convertedSections;
   }
 
@@ -1077,28 +989,30 @@ export class PdfService {
 
       // Télécharger l'image
       const response = await axios.get(imageUrl, {
-        responseType: "arraybuffer",
+        responseType: 'arraybuffer',
         timeout: 10000, // 10 secondes timeout
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; PdfService/1.0)",
+          'User-Agent': 'Mozilla/5.0 (compatible; PdfService/1.0)',
         },
       });
 
       // Déterminer le type MIME depuis les headers ou l'URL
-      let mimeType =
-        response.headers["content-type"] || "image/svg+xml";
+      let mimeType = response.headers['content-type'] || 'image/svg+xml';
 
       // Si c'est un SVG, s'assurer que le MIME type est correct
-      if (imageUrl.toLowerCase().endsWith(".svg")) {
-        mimeType = "image/svg+xml";
-      } else if (imageUrl.toLowerCase().endsWith(".png")) {
-        mimeType = "image/png";
-      } else if (imageUrl.toLowerCase().endsWith(".jpg") || imageUrl.toLowerCase().endsWith(".jpeg")) {
-        mimeType = "image/jpeg";
+      if (imageUrl.toLowerCase().endsWith('.svg')) {
+        mimeType = 'image/svg+xml';
+      } else if (imageUrl.toLowerCase().endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (
+        imageUrl.toLowerCase().endsWith('.jpg') ||
+        imageUrl.toLowerCase().endsWith('.jpeg')
+      ) {
+        mimeType = 'image/jpeg';
       }
 
       // Convertir en base64
-      const base64 = Buffer.from(response.data).toString("base64");
+      const base64 = Buffer.from(response.data).toString('base64');
       const dataUri = `data:${mimeType};base64,${base64}`;
 
       logger.info(

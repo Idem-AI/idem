@@ -1,5 +1,5 @@
-import { BusinessPlanModel } from "../businessPlan.model";
-import { v4 as uuidv4 } from "uuid";
+import { BusinessPlanModel } from '../businessPlan.model';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Builder for BusinessPlanModel

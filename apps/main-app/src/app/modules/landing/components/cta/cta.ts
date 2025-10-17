@@ -1,4 +1,14 @@
-import { Component, HostBinding, ElementRef, inject, signal, AfterViewInit, OnDestroy, PLATFORM_ID, OnInit } from '@angular/core';
+import {
+  Component,
+  HostBinding,
+  ElementRef,
+  inject,
+  signal,
+  AfterViewInit,
+  OnDestroy,
+  PLATFORM_ID,
+  OnInit,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { SeoService } from '../../../../shared/services/seo.service';
@@ -15,37 +25,37 @@ export class Cta implements OnInit, AfterViewInit, OnDestroy {
   protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
   private readonly elementRef = inject(ElementRef);
   private readonly seoService = inject(SeoService);
-  
+
   // Apply animation class binding
   @HostBinding('class.animate-in')
   protected readonly animateIn = signal(false);
-  
+
   // State properties
   protected observer: IntersectionObserver | null = null;
-  
+
   ngOnInit(): void {
     this.setupSeoForCtaSection();
   }
-  
+
   ngAfterViewInit(): void {
     if (this.isBrowser()) {
       this.setupIntersectionObserver();
       this.initHoverEffects();
     }
   }
-  
+
   ngOnDestroy(): void {
     this.destroyIntersectionObserver();
   }
-  
+
   private initHoverEffects(): void {
     // Add any additional hover effect initializations if needed
   }
-  
+
   private setupIntersectionObserver(): void {
     this.observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
           if (entry.isIntersecting) {
             // Trigger animation when component becomes visible
             this.animateIn.set(true);
@@ -55,7 +65,7 @@ export class Cta implements OnInit, AfterViewInit, OnDestroy {
       },
       { threshold: 0.2 }
     );
-    
+
     // Observe the CTA section
     const ctaSection = this.elementRef.nativeElement.querySelector('.cta-section');
     if (ctaSection) {
@@ -65,26 +75,26 @@ export class Cta implements OnInit, AfterViewInit, OnDestroy {
       this.observer.observe(this.elementRef.nativeElement);
     }
   }
-  
+
   private setupSeoForCtaSection(): void {
     // Add structured data for CTA section
     const ctaStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "WebPageElement",
-      "name": "Call to Action",
-      "description": "Get started with Idem platform for AI-powered brand creation and deployment",
-      "potentialAction": {
-        "@type": "Action",
-        "name": "Sign Up",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": `${this.seoService.domain}/auth/login`,
-          "actionPlatform": [
-            "http://schema.org/DesktopWebPlatform",
-            "http://schema.org/MobileWebPlatform"
-          ]
-        }
-      }
+      '@context': 'https://schema.org',
+      '@type': 'WebPageElement',
+      name: 'Call to Action',
+      description: 'Get started with Idem platform for AI-powered brand creation and deployment',
+      potentialAction: {
+        '@type': 'Action',
+        name: 'Sign Up',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${this.seoService.domain}/auth/login`,
+          actionPlatform: [
+            'http://schema.org/DesktopWebPlatform',
+            'http://schema.org/MobileWebPlatform',
+          ],
+        },
+      },
     };
 
     // Add structured data to page if not already present

@@ -1,9 +1,9 @@
-import puppeteer, { Browser, Page } from "puppeteer";
-import * as fs from "fs-extra";
-import * as path from "path";
-import * as os from "os";
-import logger from "../config/logger";
-import { writePsd, Layer, LayerAdditionalInfo, Psd } from "ag-psd";
+import puppeteer, { Browser, Page } from 'puppeteer';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import * as os from 'os';
+import logger from '../config/logger';
+import { writePsd, Layer, LayerAdditionalInfo, Psd } from 'ag-psd';
 
 // Polyfill pour ImageData dans Node.js
 class ImageDataPolyfill {
@@ -35,7 +35,7 @@ class CanvasPolyfill {
       return {
         getImageData: (x: number, y: number, width: number, height: number) => {
           return this.imageData;
-        }
+        },
       };
     }
     return null;
@@ -70,30 +70,30 @@ export class SvgToPsdService {
    */
   private static async getBrowser(): Promise<Browser> {
     if (!this.browserInstance || !this.browserInstance.isConnected()) {
-      logger.info("Initializing optimized Puppeteer browser for parallel SVG to PSD conversion");
+      logger.info('Initializing optimized Puppeteer browser for parallel SVG to PSD conversion');
       this.browserInstance = await puppeteer.launch({
         headless: true,
         args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-          "--no-first-run",
-          "--disable-default-apps",
-          "--disable-features=TranslateUI",
-          "--disable-web-security",
-          "--disable-features=VizDisplayCompositor",
-          "--disable-background-timer-throttling",
-          "--disable-backgrounding-occluded-windows",
-          "--disable-renderer-backgrounding",
-          "--disable-features=ScriptStreaming",
-          "--disable-ipc-flooding-protection",
-          "--max_old_space_size=4096", // Augmenter la mémoire disponible
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run',
+          '--disable-default-apps',
+          '--disable-features=TranslateUI',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=ScriptStreaming',
+          '--disable-ipc-flooding-protection',
+          '--max_old_space_size=4096', // Augmenter la mémoire disponible
         ],
         timeout: 15000, // Timeout réduit pour démarrage plus rapide
         pipe: true, // Utiliser pipe au lieu de websocket pour de meilleures performances
       });
-      
+
       // Pré-créer un pool de pages pour éviter la création/destruction répétée
       await this.initializePagePool();
     }
@@ -105,30 +105,32 @@ export class SvgToPsdService {
    */
   private static async initializePagePool(): Promise<void> {
     if (!this.browserInstance) return;
-    
+
     logger.info(`Initializing page pool with ${this.MAX_CONCURRENT_PAGES} pages`);
-    
-    const pagePromises = Array(this.MAX_CONCURRENT_PAGES).fill(null).map(async () => {
-      const page = await this.browserInstance!.newPage();
-      
-      // Optimisations de performance par page
-      await page.setDefaultTimeout(5000); // Timeout réduit
-      await page.setDefaultNavigationTimeout(5000);
-      
-      // Désactiver les ressources inutiles
-      await page.setRequestInterception(true);
-      page.on('request', (req) => {
-        const resourceType = req.resourceType();
-        if (['stylesheet', 'font', 'image', 'media'].includes(resourceType)) {
-          req.abort();
-        } else {
-          req.continue();
-        }
+
+    const pagePromises = Array(this.MAX_CONCURRENT_PAGES)
+      .fill(null)
+      .map(async () => {
+        const page = await this.browserInstance!.newPage();
+
+        // Optimisations de performance par page
+        await page.setDefaultTimeout(5000); // Timeout réduit
+        await page.setDefaultNavigationTimeout(5000);
+
+        // Désactiver les ressources inutiles
+        await page.setRequestInterception(true);
+        page.on('request', (req) => {
+          const resourceType = req.resourceType();
+          if (['stylesheet', 'font', 'image', 'media'].includes(resourceType)) {
+            req.abort();
+          } else {
+            req.continue();
+          }
+        });
+
+        return page;
       });
-      
-      return page;
-    });
-    
+
     this.pagePool = await Promise.all(pagePromises);
     logger.info(`Page pool initialized with ${this.pagePool.length} pages`);
   }
@@ -141,11 +143,11 @@ export class SvgToPsdService {
       const page = this.pagePool.pop()!;
       return page;
     }
-    
+
     // Si le pool est vide, créer une nouvelle page temporaire
     const browser = await this.getBrowser();
     const page = await browser.newPage();
-    
+
     // Appliquer les mêmes optimisations
     await page.setDefaultTimeout(5000);
     await page.setDefaultNavigationTimeout(5000);
@@ -158,7 +160,7 @@ export class SvgToPsdService {
         req.continue();
       }
     });
-    
+
     return page;
   }
 
@@ -169,7 +171,7 @@ export class SvgToPsdService {
     try {
       // Nettoyer la page avant de la remettre dans le pool
       await page.goto('about:blank');
-      
+
       if (this.pagePool.length < this.MAX_CONCURRENT_PAGES) {
         this.pagePool.push(page);
       } else {
@@ -193,9 +195,7 @@ export class SvgToPsdService {
     // Fermer toutes les pages du pool
     if (this.pagePool.length > 0) {
       logger.info(`Closing ${this.pagePool.length} pages from pool`);
-      await Promise.all(
-        this.pagePool.map(page => page.close().catch(() => {}))
-      );
+      await Promise.all(this.pagePool.map((page) => page.close().catch(() => {})));
       this.pagePool = [];
     }
 
@@ -203,7 +203,7 @@ export class SvgToPsdService {
     if (this.browserInstance) {
       await this.browserInstance.close();
       this.browserInstance = null;
-      logger.info("SVG to PSD browser instance closed");
+      logger.info('SVG to PSD browser instance closed');
     }
   }
 
@@ -211,21 +211,22 @@ export class SvgToPsdService {
    * Parse un SVG et extrait tous les éléments individuels
    */
   private static parseSvgElements(svgContent: string): SvgLayer[] {
-    logger.info("Parsing SVG elements for layer separation");
-    
+    logger.info('Parsing SVG elements for layer separation');
+
     const layers: SvgLayer[] = [];
-    
+
     // Extraire les dimensions du SVG principal
     const svgMatch = svgContent.match(/<svg[^>]*>/);
     const svgTag = svgMatch ? svgMatch[0] : '';
-    
+
     // Extraire viewBox ou width/height
     const viewBoxMatch = svgTag.match(/viewBox=["']([^"']+)["']/);
     const widthMatch = svgTag.match(/width=["']([^"']+)["']/);
     const heightMatch = svgTag.match(/height=["']([^"']+)["']/);
-    
-    let svgWidth = 300, svgHeight = 300; // valeurs par défaut
-    
+
+    let svgWidth = 300,
+      svgHeight = 300; // valeurs par défaut
+
     if (viewBoxMatch) {
       const viewBox = viewBoxMatch[1].split(/\s+/);
       svgWidth = parseFloat(viewBox[2]) || 300;
@@ -237,7 +238,7 @@ export class SvgToPsdService {
 
     // D'abord, essayer d'extraire les éléments individuels à l'intérieur des groupes
     let elementsFound = false;
-    
+
     // Chercher les groupes et extraire leurs contenus
     const groupMatches = svgContent.match(/<g[^>]*>[\s\S]*?<\/g>/gi);
     if (groupMatches) {
@@ -253,7 +254,7 @@ export class SvgToPsdService {
             elementsFound = true;
           });
         }
-        
+
         // Autres éléments dans le groupe
         const otherElements = [
           { pattern: /<rect[^>]*\/?>(?:<\/rect>)?/gi, type: 'rect' },
@@ -264,7 +265,7 @@ export class SvgToPsdService {
           { pattern: /<polygon[^>]*\/?>(?:<\/polygon>)?/gi, type: 'polygon' },
           { pattern: /<text[^>]*>[\s\S]*?<\/text>/gi, type: 'text' },
         ];
-        
+
         otherElements.forEach(({ pattern, type }) => {
           const matches = group.match(pattern);
           if (matches) {
@@ -313,7 +314,7 @@ export class SvgToPsdService {
           const element = match[0];
           const id = match[1] || match[2];
           const name = id || `Layer_${patternIndex}_${layerIndex++}`;
-          
+
           layers.push({
             name: name,
             element: element,
@@ -323,8 +324,8 @@ export class SvgToPsdService {
 
       // Si aucun élément identifié n'est trouvé, essayer de séparer par éléments de base
       if (layers.length === 0) {
-        logger.info("No identified elements found, attempting basic element separation");
-        
+        logger.info('No identified elements found, attempting basic element separation');
+
         const basicPatterns = [
           /<path[^>]*\/?>(?:<\/path>)?/gi,
           /<rect[^>]*\/?>(?:<\/rect>)?/gi,
@@ -342,7 +343,7 @@ export class SvgToPsdService {
           while ((match = pattern.exec(svgContent)) !== null) {
             const element = match[0];
             const elementType = element.match(/<(\w+)/)?.[1] || 'element';
-            
+
             layers.push({
               name: `${elementType}_${elementIndex++}`,
               element: element,
@@ -354,9 +355,9 @@ export class SvgToPsdService {
 
     // Si toujours aucun élément, créer un calque unique avec tout le contenu
     if (layers.length === 0) {
-      logger.warn("No individual elements found, creating single layer with full SVG");
+      logger.warn('No individual elements found, creating single layer with full SVG');
       layers.push({
-        name: "full_svg",
+        name: 'full_svg',
         element: svgContent,
       });
     }
@@ -383,7 +384,7 @@ export class SvgToPsdService {
       // Extraire les dimensions et styles du SVG original
       const svgMatch = originalSvg.match(/<svg[^>]*>/);
       const svgTag = svgMatch ? svgMatch[0] : '<svg>';
-      
+
       // Créer un SVG temporaire avec seulement cet élément
       const isolatedSvg = `
         ${svgTag.replace(/width=["'][^"']*["']/, `width="${width}"`).replace(/height=["'][^"']*["']/, `height="${height}"`)}
@@ -419,9 +420,9 @@ export class SvgToPsdService {
 
       // Optimisations de performance
       await page.setViewport({ width, height, deviceScaleFactor: 1 });
-      await page.setContent(html, { 
+      await page.setContent(html, {
         waitUntil: 'domcontentloaded', // Plus rapide que networkidle0
-        timeout: 3000 
+        timeout: 3000,
       });
 
       // Attendre que le SVG soit rendu (timeout réduit)
@@ -437,7 +438,6 @@ export class SvgToPsdService {
 
       logger.info(`Rendered layer "${svgLayer.name}" to canvas`);
       return screenshot as Buffer;
-
     } catch (error) {
       logger.error(`Error rendering SVG layer "${svgLayer.name}":`, error);
       throw error;
@@ -459,19 +459,16 @@ export class SvgToPsdService {
    * Pré-initialise le browser et le pool de pages pour les conversions parallèles
    */
   static async initializeForParallelConversion(): Promise<void> {
-    logger.info("Pre-initializing browser for parallel conversions");
+    logger.info('Pre-initializing browser for parallel conversions');
     await this.getBrowser(); // Cela va initialiser le browser et le pool de pages
-    logger.info("Browser and page pool ready for parallel conversions");
+    logger.info('Browser and page pool ready for parallel conversions');
   }
 
   /**
    * Convertit un SVG en fichier PSD avec des calques séparés
    */
-  static async convertSvgToPsd(
-    svgContent: string,
-    options: SvgToPsdOptions = {}
-  ): Promise<string> {
-    logger.info("Starting SVG to PSD conversion");
+  static async convertSvgToPsd(svgContent: string, options: SvgToPsdOptions = {}): Promise<string> {
+    logger.info('Starting SVG to PSD conversion');
 
     try {
       const width = options.width || 800;
@@ -479,9 +476,9 @@ export class SvgToPsdService {
 
       // Parser les éléments SVG
       const svgLayers = this.parseSvgElements(svgContent);
-      
+
       if (svgLayers.length === 0) {
-        throw new Error("No SVG elements found to convert");
+        throw new Error('No SVG elements found to convert');
       }
 
       // Créer les calques PSD
@@ -493,7 +490,9 @@ export class SvgToPsdService {
 
       for (let i = 0; i < svgLayers.length; i += BATCH_SIZE) {
         const batch = svgLayers.slice(i, i + BATCH_SIZE);
-        logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(svgLayers.length / BATCH_SIZE)} (${batch.length} layers)`);
+        logger.info(
+          `Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(svgLayers.length / BATCH_SIZE)} (${batch.length} layers)`
+        );
 
         const batchPromises = batch.map(async (svgLayer, batchIndex) => {
           const layerIndex = i + batchIndex + 1;
@@ -501,11 +500,7 @@ export class SvgToPsdService {
 
           try {
             // Rendre l'élément SVG en image
-            const imageBuffer = await this.renderSvgElementToCanvas(
-              svgLayer,
-              svgContent,
-              options
-            );
+            const imageBuffer = await this.renderSvgElementToCanvas(svgLayer, svgContent, options);
 
             // Créer le calque PSD
             const canvas = await this.bufferToCanvas(imageBuffer, width, height);
@@ -517,7 +512,6 @@ export class SvgToPsdService {
             };
 
             return layer;
-
           } catch (error) {
             logger.warn(`Failed to process layer "${svgLayer.name}":`, error);
             return null; // Retourner null pour les calques échoués
@@ -526,19 +520,21 @@ export class SvgToPsdService {
 
         // Attendre que le batch se termine
         const batchResults = await Promise.all(batchPromises);
-        
+
         // Ajouter les calques réussis
-        batchResults.forEach(layer => {
+        batchResults.forEach((layer) => {
           if (layer) {
             psdLayers.push(layer);
           }
         });
 
-        logger.info(`Completed batch ${Math.floor(i / BATCH_SIZE) + 1}, ${psdLayers.length} layers processed so far`);
+        logger.info(
+          `Completed batch ${Math.floor(i / BATCH_SIZE) + 1}, ${psdLayers.length} layers processed so far`
+        );
       }
 
       if (psdLayers.length === 0) {
-        throw new Error("No layers could be processed successfully");
+        throw new Error('No layers could be processed successfully');
       }
 
       // Créer le document PSD
@@ -553,27 +549,22 @@ export class SvgToPsdService {
 
       // Générer le fichier PSD
       const psdArrayBuffer = writePsd(psd);
-      
+
       // Convertir ArrayBuffer en Buffer pour fs.writeFile
       const psdBuffer = Buffer.from(psdArrayBuffer);
 
       // Sauvegarder dans un fichier temporaire
       const tempDir = os.tmpdir();
-      const psdFileName = `svg-to-psd-${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(7)}.psd`;
+      const psdFileName = `svg-to-psd-${Date.now()}-${Math.random().toString(36).substring(7)}.psd`;
       const psdPath = path.join(tempDir, psdFileName);
 
       await fs.writeFile(psdPath, psdBuffer);
 
-      logger.info(
-        `Successfully converted SVG to PSD with ${psdLayers.length} layers: ${psdPath}`
-      );
+      logger.info(`Successfully converted SVG to PSD with ${psdLayers.length} layers: ${psdPath}`);
 
       return psdPath;
-
     } catch (error) {
-      logger.error("Error converting SVG to PSD:", error);
+      logger.error('Error converting SVG to PSD:', error);
       throw error;
     }
   }
@@ -588,7 +579,7 @@ export class SvgToPsdService {
   ): Promise<CanvasPolyfill> {
     // Utiliser sharp pour convertir le buffer PNG en données RGBA
     const sharp = require('sharp');
-    
+
     const { data } = await sharp(buffer)
       .resize(width, height, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .ensureAlpha()
@@ -597,10 +588,10 @@ export class SvgToPsdService {
 
     // Créer ImageData polyfill
     const imageData = new ImageDataPolyfill(new Uint8ClampedArray(data), width, height);
-    
+
     // Créer Canvas polyfill
     const canvas = new CanvasPolyfill(width, height, imageData);
-    
+
     return canvas;
   }
 
@@ -619,10 +610,7 @@ export class SvgToPsdService {
   /**
    * Convertit une URL SVG en PSD
    */
-  static async convertSvgUrlToPsd(
-    svgUrl: string,
-    options: SvgToPsdOptions = {}
-  ): Promise<string> {
+  static async convertSvgUrlToPsd(svgUrl: string, options: SvgToPsdOptions = {}): Promise<string> {
     logger.info(`Converting SVG from URL to PSD: ${svgUrl}`);
 
     try {
@@ -633,14 +621,13 @@ export class SvgToPsdService {
       }
 
       const svgContent = await response.text();
-      
+
       if (!svgContent.includes('<svg')) {
         throw new Error('URL does not contain valid SVG content');
       }
 
       // Convertir le SVG en PSD
       return await this.convertSvgToPsd(svgContent, options);
-
     } catch (error) {
       logger.error(`Error converting SVG URL to PSD: ${svgUrl}`, error);
       throw error;

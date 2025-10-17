@@ -1,5 +1,5 @@
-import { ArchitectureModel } from "../architecture.model";
-import { v4 as uuidv4 } from "uuid";
+import { ArchitectureModel } from '../architecture.model';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Builder for ArchitectureModel
@@ -10,9 +10,9 @@ export class ArchitectureBuilder {
    */
   static createEmpty(): ArchitectureModel {
     return {
-      content: "",
-      summary: "",
-      name: "",
+      content: '',
+      summary: '',
+      name: '',
     };
   }
 

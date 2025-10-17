@@ -1,8 +1,8 @@
-import { Response } from "express";
-import { userService } from "../services/user.service";
-import betaRestrictionsService from "../services/betaRestrictions.service";
-import logger from "../config/logger";
-import { CustomRequest } from "../interfaces/express.interface";
+import { Response } from 'express';
+import { userService } from '../services/user.service';
+import betaRestrictionsService from '../services/betaRestrictions.service';
+import logger from '../config/logger';
+import { CustomRequest } from '../interfaces/express.interface';
 
 export class QuotaController {
   /**
@@ -33,13 +33,10 @@ export class QuotaController {
         remainingWeekly: quotaInfo.remainingWeekly,
       });
     } catch (error) {
-      logger.error(
-        `Error getting quota info for user ${req.user?.uid}:`,
-        error
-      );
+      logger.error(`Error getting quota info for user ${req.user?.uid}:`, error);
       res.status(500).json({
-        error: "Internal server error",
-        message: "Failed to retrieve quota information",
+        error: 'Internal server error',
+        message: 'Failed to retrieve quota information',
       });
     }
   }
@@ -54,9 +51,7 @@ export class QuotaController {
 
       const quotaCheck = await userService.checkQuota(userId!);
 
-      logger.info(
-        `Quota check completed for user ${userId}: allowed=${quotaCheck.allowed}`
-      );
+      logger.info(`Quota check completed for user ${userId}: allowed=${quotaCheck.allowed}`);
 
       res.json({
         allowed: quotaCheck.allowed,
@@ -69,8 +64,8 @@ export class QuotaController {
     } catch (error) {
       logger.error(`Error checking quota for user ${req.user?.uid}:`, error);
       res.status(500).json({
-        error: "Internal server error",
-        message: "Failed to check quota",
+        error: 'Internal server error',
+        message: 'Failed to check quota',
       });
     }
   }
@@ -80,7 +75,7 @@ export class QuotaController {
    */
   async getBetaInfo(req: CustomRequest, res: Response): Promise<void> {
     try {
-      logger.info("Getting beta information");
+      logger.info('Getting beta information');
 
       const betaInfo = {
         isBeta: betaRestrictionsService.isBetaMode(),
@@ -94,10 +89,10 @@ export class QuotaController {
         data: betaInfo,
       });
     } catch (error) {
-      logger.error("Error getting beta info:", error);
+      logger.error('Error getting beta info:', error);
       res.status(500).json({
-        error: "Internal server error",
-        message: "Failed to retrieve beta information",
+        error: 'Internal server error',
+        message: 'Failed to retrieve beta information',
       });
     }
   }
@@ -114,14 +109,13 @@ export class QuotaController {
 
       if (!featureName) {
         res.status(400).json({
-          error: "Bad request",
-          message: "Feature name is required",
+          error: 'Bad request',
+          message: 'Feature name is required',
         });
         return;
       }
 
-      const featureValidation =
-        betaRestrictionsService.validateFeature(featureName);
+      const featureValidation = betaRestrictionsService.validateFeature(featureName);
       const quotaCheck = await userService.checkQuota(userId!);
 
       res.json({
@@ -137,13 +131,10 @@ export class QuotaController {
         },
       });
     } catch (error) {
-      logger.error(
-        `Error validating feature for user ${req.user?.uid}:`,
-        error
-      );
+      logger.error(`Error validating feature for user ${req.user?.uid}:`, error);
       res.status(500).json({
-        error: "Internal server error",
-        message: "Failed to validate feature",
+        error: 'Internal server error',
+        message: 'Failed to validate feature',
       });
     }
   }
@@ -185,13 +176,10 @@ export class QuotaController {
         data: stats,
       });
     } catch (error) {
-      logger.error(
-        `Error getting usage stats for user ${req.user?.uid}:`,
-        error
-      );
+      logger.error(`Error getting usage stats for user ${req.user?.uid}:`, error);
       res.status(500).json({
-        error: "Internal server error",
-        message: "Failed to retrieve usage statistics",
+        error: 'Internal server error',
+        message: 'Failed to retrieve usage statistics',
       });
     }
   }

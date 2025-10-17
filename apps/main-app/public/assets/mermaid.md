@@ -27,6 +27,6 @@
     }
     Utilisateur <|-- Eleve : est un
     Utilisateur <|-- Formateur : est un
-    Formation *-- Cours : contient 
+    Formation *-- Cours : contient
 
 ```

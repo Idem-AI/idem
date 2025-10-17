@@ -3,15 +3,19 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, EMPTY } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { QuotaInfoResponse, QuotaStatus, QuotaDisplayData, BetaRestrictions } from '../models/quota.model';
+import {
+  QuotaInfoResponse,
+  QuotaStatus,
+  QuotaDisplayData,
+  BetaRestrictions,
+} from '../models/quota.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class QuotaService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl =
-    environment.services?.api?.url || 'http://localhost:3000/api';
+  private readonly apiUrl = environment.services?.api?.url || 'http://localhost:3000/api';
 
   // Signals for reactive state management
   public readonly quotaInfo = signal<QuotaInfoResponse | null>(null);

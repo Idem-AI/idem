@@ -52,7 +52,13 @@ export interface SSEConnectionConfig {
 /**
  * SSE Event types
  */
-export type SSEEventType = 'progress' | 'completed' | 'completion' | 'steps_list' | 'started' | 'error';
+export type SSEEventType =
+  | 'progress'
+  | 'completed'
+  | 'completion'
+  | 'steps_list'
+  | 'started'
+  | 'error';
 
 /**
  * SSE Service Event Types

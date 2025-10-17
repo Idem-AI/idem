@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   generateDiagramController,
   generateDiagramStreamingController,
@@ -6,14 +6,14 @@ import {
   getDiagramByIdController,
   updateDiagramController,
   deleteDiagramController,
-} from "../controllers/diagram.controller";
-import { authenticate } from "../services/auth.service"; // Updated import path
-import { checkQuota } from "../middleware/quota.middleware";
-import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
+} from '../controllers/diagram.controller';
+import { authenticate } from '../services/auth.service'; // Updated import path
+import { checkQuota } from '../middleware/quota.middleware';
+import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 
 export const diagramRoutes = Router();
 
-const resourceName = "diagrams";
+const resourceName = 'diagrams';
 
 // All routes are protected and project-specific where applicable
 
@@ -188,11 +188,7 @@ diagramRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-diagramRoutes.get(
-  `/${resourceName}/get/:diagramId`,
-  authenticate,
-  getDiagramByIdController
-);
+diagramRoutes.get(`/${resourceName}/get/:diagramId`, authenticate, getDiagramByIdController);
 
 // Update a specific diagram by its ID
 /**
@@ -233,11 +229,7 @@ diagramRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-diagramRoutes.put(
-  `/${resourceName}/update/:diagramId`,
-  authenticate,
-  updateDiagramController
-);
+diagramRoutes.put(`/${resourceName}/update/:diagramId`, authenticate, updateDiagramController);
 
 // Delete a specific diagram by its ID
 /**
@@ -274,8 +266,4 @@ diagramRoutes.put(
  *       '500':
  *         description: Internal server error.
  */
-diagramRoutes.delete(
-  `/${resourceName}/delete/:diagramId`,
-  authenticate,
-  deleteDiagramController
-);
+diagramRoutes.delete(`/${resourceName}/delete/:diagramId`, authenticate, deleteDiagramController);

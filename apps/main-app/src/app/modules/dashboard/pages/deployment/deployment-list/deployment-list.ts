@@ -106,8 +106,7 @@ export class DeploymentList implements OnInit {
   }
 
   protected getStatusClass(status: string): string {
-    const base =
-      'inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm whitespace-nowrap';
+    const base = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm whitespace-nowrap';
     switch (status) {
       case 'deployed':
         return `${base} bg-green-500/15 text-green-400`;
@@ -167,10 +166,7 @@ export class DeploymentList implements OnInit {
   /**
    * Navigates to the deployment details page for the selected deployment
    */
-  protected viewDeploymentDetails(
-    deploymentId: string,
-    event: MouseEvent
-  ): void {
+  protected viewDeploymentDetails(deploymentId: string, event: MouseEvent): void {
     // Don't trigger if clicking on an interactive element (links, buttons)
     const target = event.target as HTMLElement;
     if (

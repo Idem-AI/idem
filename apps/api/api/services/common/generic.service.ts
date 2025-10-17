@@ -1,17 +1,17 @@
-import { IRepository } from "../../repository/IRepository";
-import { RepositoryFactory } from "../../repository/RepositoryFactory";
+import { IRepository } from '../../repository/IRepository';
+import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import {
   PromptService,
   LLMProvider,
   PromptRequest,
   PromptConfig,
   AIChatMessage,
-} from "../prompt.service";
-import { ProjectModel } from "../../models/project.model";
-import { SectionModel } from "../../models/section.model";
+} from '../prompt.service';
+import { ProjectModel } from '../../models/project.model';
+import { SectionModel } from '../../models/section.model';
 // File operations have been removed - using in-memory context
 
-import logger from "../../config/logger";
+import logger from '../../config/logger';
 
 // Define interface for prompt step
 export interface IPromptStep {
@@ -44,7 +44,7 @@ export class GenericService {
   // tempFilePath property removed - using in-memory context instead
 
   constructor(protected promptService: PromptService) {
-    logger.info("GenericService initialized");
+    logger.info('GenericService initialized');
     this.projectRepository = RepositoryFactory.getRepository<ProjectModel>();
   }
 
@@ -54,22 +54,12 @@ export class GenericService {
    * @param userId User ID
    * @returns Project model or null if not found
    */
-  protected async getProject(
-    projectId: string,
-    userId: string
-  ): Promise<ProjectModel | null> {
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
-    logger.debug(
-      `Project data fetched: ${project ? JSON.stringify(project.id) : "null"}`
-    );
+  protected async getProject(projectId: string, userId: string): Promise<ProjectModel | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    logger.debug(`Project data fetched: ${project ? JSON.stringify(project.id) : 'null'}`);
 
     if (!project) {
-      logger.warn(
-        `Project not found with ID: ${projectId} for user: ${userId}`
-      );
+      logger.warn(`Project not found with ID: ${projectId} for user: ${userId}`);
       return null;
     }
     return project;
@@ -81,11 +71,11 @@ export class GenericService {
    * @returns Project description or empty string if not found
    */
   protected extractProjectDescription(project: ProjectModel): string {
-    const projectName = project.name || "Startup";
-    const projectDescription = project.description || "";
-    const projectType = project.type || "";
-    const projectScope = project.scope || "";
-    const projectTargets = project.targets || "";
+    const projectName = project.name || 'Startup';
+    const projectDescription = project.description || '';
+    const projectType = project.type || '';
+    const projectScope = project.scope || '';
+    const projectTargets = project.targets || '';
 
     return `Project Name: ${projectName}\nProject Description: ${projectDescription}\nProject Type: ${projectType}\nProject Scope: ${projectScope}\nProject Targets: ${projectTargets}`;
   }
@@ -106,29 +96,24 @@ export class GenericService {
     messages: AIChatMessage[],
     userId?: string,
     promptType?: string,
-    contextFromPreviousSteps: string = "",
+    contextFromPreviousSteps: string = '',
     promptConfig: PromptConfig = {
       provider: LLMProvider.GEMINI,
-      modelName: "gemini-2.5-flash",
+      modelName: 'gemini-2.5-flash',
       userId,
       promptType: promptType || step.stepName,
     }
   ): Promise<string> {
-    logger.info(
-      `Generating section: '${step.stepName}' for projectId: ${project.id}`
-    );
+    logger.info(`Generating section: '${step.stepName}' for projectId: ${project.id}`);
 
     // Construire le prompt avec ou sans contexte des étapes précédentes
-    const hasDependencies =
-      step.hasDependencies !== undefined ? step.hasDependencies : true;
+    const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
 
     let currentStepPrompt: string;
 
     if (!hasDependencies || !contextFromPreviousSteps) {
       // Prompt sans contexte des étapes précédentes
-      currentStepPrompt = `CURRENT TASK: Generate the '${
-        step.stepName
-      }' section.
+      currentStepPrompt = `CURRENT TASK: Generate the '${step.stepName}' section.
 
 ${
   includeProjectInfo
@@ -143,7 +128,7 @@ ${JSON.stringify(
   null,
   2
 )}`
-    : ""
+    : ''
 }
 
 SPECIFIC INSTRUCTIONS FOR '${step.stepName}':
@@ -174,7 +159,7 @@ ${JSON.stringify(
   null,
   2
 )}`
-    : ""
+    : ''
 }
 
 SPECIFIC INSTRUCTIONS FOR '${step.stepName}':
@@ -194,9 +179,7 @@ Please generate *only* the content for the '${
     );
 
     // In-memory context handling - no file operations needed
-    logger.info(
-      `Successfully processed section '${step.stepName}' for in-memory context`
-    );
+    logger.info(`Successfully processed section '${step.stepName}' for in-memory context`);
 
     return stepSpecificContent;
   }
@@ -221,20 +204,19 @@ Please generate *only* the content for the '${
     userId?: string,
     finalizationCallback?: () => Promise<void>
   ): Promise<void> {
-    const completedSteps: Map<string, { name: string; content: string }> =
-      new Map();
+    const completedSteps: Map<string, { name: string; content: string }> = new Map();
     const runningSteps: Set<string> = new Set();
     const stepPromises: Map<string, Promise<void>> = new Map();
 
     // Helper function to send progress updates
     const sendProgressUpdate = async () => {
       const progressResult: ISectionResult = {
-        name: "progress",
-        type: "event",
-        data: "steps_in_progress",
-        summary: `Steps in progress: ${Array.from(runningSteps).join(", ")}`,
+        name: 'progress',
+        type: 'event',
+        data: 'steps_in_progress',
+        summary: `Steps in progress: ${Array.from(runningSteps).join(', ')}`,
         parsedData: {
-          status: "progress",
+          status: 'progress',
           stepsInProgress: Array.from(runningSteps),
           completedSteps: Array.from(completedSteps.keys()),
         },
@@ -250,56 +232,46 @@ Please generate *only* the content for the '${
 
         logger.info(`Starting execution of step: ${step.stepName}`);
 
-        const hasDependencies =
-          step.hasDependencies !== undefined ? step.hasDependencies : true;
+        const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
 
         // Build context from previous steps if necessary
-        let contextFromPreviousSteps = "";
+        let contextFromPreviousSteps = '';
 
-        if (
-          hasDependencies &&
-          step.requiresSteps &&
-          step.requiresSteps.length > 0
-        ) {
+        if (hasDependencies && step.requiresSteps && step.requiresSteps.length > 0) {
           // Filter and concatenate only the specified steps
-          const requiredSteps = Array.from(completedSteps.values()).filter(
-            (s) => step.requiresSteps!.includes(s.name)
+          const requiredSteps = Array.from(completedSteps.values()).filter((s) =>
+            step.requiresSteps!.includes(s.name)
           );
 
           contextFromPreviousSteps = requiredSteps
             .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
-            .join("\n");
+            .join('\n');
 
           logger.info(
             `Built context for step '${step.stepName}' from ${
               requiredSteps.length
-            } required steps: [${requiredSteps.map((s) => s.name).join(", ")}]`
+            } required steps: [${requiredSteps.map((s) => s.name).join(', ')}]`
           );
-        } else if (
-          hasDependencies &&
-          (!step.requiresSteps || step.requiresSteps.length === 0)
-        ) {
+        } else if (hasDependencies && (!step.requiresSteps || step.requiresSteps.length === 0)) {
           // Include all previous steps if hasDependencies=true but requiresSteps not specified
           contextFromPreviousSteps = Array.from(completedSteps.values())
             .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
-            .join("\n");
+            .join('\n');
 
           logger.info(
             `Built context for step '${step.stepName}' from all ${completedSteps.size} previous steps`
           );
         } else {
-          logger.info(
-            `No context needed for step '${step.stepName}' (no dependencies)`
-          );
+          logger.info(`No context needed for step '${step.stepName}' (no dependencies)`);
         }
 
         const messages: AIChatMessage[] = [
           {
-            role: "system",
+            role: 'system',
             content: contextFromPreviousSteps,
           },
           {
-            role: "user",
+            role: 'user',
             content: step.promptConstant,
           },
         ];
@@ -326,26 +298,21 @@ Please generate *only* the content for the '${
         if (step.modelParser) {
           try {
             parsedData = step.modelParser(content);
-            logger.info(
-              `Successfully parsed ${step.stepName} for projectId: ${project.id}`
-            );
+            logger.info(`Successfully parsed ${step.stepName} for projectId: ${project.id}`);
           } catch (error) {
-            logger.error(
-              `Error parsing ${step.stepName} for project ${project.id}:`,
-              error
-            );
-            parsedData = { error: "Parsing error", content };
+            logger.error(`Error parsing ${step.stepName} for project ${project.id}:`, error);
+            parsedData = { error: 'Parsing error', content };
           }
         }
 
         const sectionResult: ISectionResult = {
           name: step.stepName,
-          type: "text/markdown",
+          type: 'text/markdown',
           data: content,
           summary: `${step.stepName} for Project ${project.id}`,
           parsedData: {
             ...parsedData,
-            status: "completed",
+            status: 'completed',
             stepName: step.stepName,
           },
         };
@@ -367,8 +334,7 @@ Please generate *only* the content for the '${
 
     // Helper function to check if all dependencies are satisfied
     const areDependenciesSatisfied = (step: IPromptStep): boolean => {
-      const hasDependencies =
-        step.hasDependencies !== undefined ? step.hasDependencies : true;
+      const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
 
       if (!hasDependencies) {
         return true; // No dependencies required
@@ -376,9 +342,7 @@ Please generate *only* the content for the '${
 
       if (step.requiresSteps && step.requiresSteps.length > 0) {
         // Check if all required steps are completed
-        return step.requiresSteps.every((requiredStep) =>
-          completedSteps.has(requiredStep)
-        );
+        return step.requiresSteps.every((requiredStep) => completedSteps.has(requiredStep));
       }
 
       // If hasDependencies=true but no specific requiresSteps,
@@ -386,9 +350,7 @@ Please generate *only* the content for the '${
       const currentIndex = steps.findIndex((s) => s.stepName === step.stepName);
       const previousSteps = steps.slice(0, currentIndex);
 
-      return previousSteps.every((prevStep) =>
-        completedSteps.has(prevStep.stepName)
-      );
+      return previousSteps.every((prevStep) => completedSteps.has(prevStep.stepName));
     };
 
     // Main execution loop
@@ -409,9 +371,7 @@ Please generate *only* the content for the '${
         stepPromises.set(step.stepName, stepPromise);
 
         // Remove from pending steps
-        const index = pendingSteps.findIndex(
-          (s) => s.stepName === step.stepName
-        );
+        const index = pendingSteps.findIndex((s) => s.stepName === step.stepName);
         if (index !== -1) {
           pendingSteps.splice(index, 1);
         }
@@ -427,14 +387,12 @@ Please generate *only* the content for the '${
             // Check if promise is resolved by trying to get its value with a 0 timeout
             await Promise.race([
               promise,
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("timeout")), 0)
-              ),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 0)),
             ]);
             // If we reach here, the promise is resolved
             stepPromises.delete(stepName);
           } catch (error) {
-            if ((error as Error).message !== "timeout") {
+            if ((error as Error).message !== 'timeout') {
               // Real error, remove the promise and re-throw
               stepPromises.delete(stepName);
               throw error;
@@ -447,25 +405,17 @@ Please generate *only* the content for the '${
       // Prevent infinite loop if no progress can be made
       if (readySteps.length === 0 && pendingSteps.length > 0) {
         const pendingStepNames = pendingSteps.map((s) => s.stepName);
-        logger.warn(
-          `No steps can be started. Pending steps: ${pendingStepNames.join(
-            ", "
-          )}`
-        );
+        logger.warn(`No steps can be started. Pending steps: ${pendingStepNames.join(', ')}`);
 
         // Check for circular dependencies or missing dependencies
         for (const step of pendingSteps) {
           if (step.requiresSteps) {
             const missingDeps = step.requiresSteps.filter(
-              (dep) =>
-                !completedSteps.has(dep) &&
-                !steps.some((s) => s.stepName === dep)
+              (dep) => !completedSteps.has(dep) && !steps.some((s) => s.stepName === dep)
             );
             if (missingDeps.length > 0) {
               throw new Error(
-                `Step '${
-                  step.stepName
-                }' has missing dependencies: ${missingDeps.join(", ")}`
+                `Step '${step.stepName}' has missing dependencies: ${missingDeps.join(', ')}`
               );
             }
           }
@@ -490,13 +440,13 @@ Please generate *only* the content for the '${
 
     // Send final completion message to frontend
     const completionResult: ISectionResult = {
-      name: "completion",
-      type: "event",
-      data: "all_steps_completed",
+      name: 'completion',
+      type: 'event',
+      data: 'all_steps_completed',
       summary: `All steps completed successfully for project ${project.id}`,
       parsedData: {
-        status: "completed",
-        message: "All generation steps have been completed successfully",
+        status: 'completed',
+        message: 'All generation steps have been completed successfully',
         totalSteps: steps.length,
         completedSteps: Array.from(completedSteps.keys()),
         projectId: project.id,
@@ -527,29 +477,20 @@ Please generate *only* the content for the '${
     const stepPromises = new Map<string, Promise<ISectionResult>>();
     const pendingSteps = [...steps];
 
-    logger.info(
-      `Starting processSteps for ${steps.length} steps in project ${project.id}`
-    );
+    logger.info(`Starting processSteps for ${steps.length} steps in project ${project.id}`);
 
     // Helper function to execute a single step
     const executeStep = async (step: IPromptStep): Promise<ISectionResult> => {
       logger.info(`Starting execution of step: ${step.stepName}`);
 
-      const hasDependencies =
-        step.hasDependencies !== undefined ? step.hasDependencies : true;
-      let contextFromPreviousSteps = "";
+      const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
+      let contextFromPreviousSteps = '';
 
-      if (
-        hasDependencies &&
-        step.requiresSteps &&
-        step.requiresSteps.length > 0
-      ) {
+      if (hasDependencies && step.requiresSteps && step.requiresSteps.length > 0) {
         // Wait for specific required steps to complete
         const requiredPromises = step.requiresSteps
           .map((stepName) => stepPromises.get(stepName))
-          .filter(
-            (promise) => promise !== undefined
-          ) as Promise<ISectionResult>[];
+          .filter((promise) => promise !== undefined) as Promise<ISectionResult>[];
 
         if (requiredPromises.length > 0) {
           await Promise.all(requiredPromises);
@@ -565,17 +506,14 @@ Please generate *only* the content for the '${
 
         contextFromPreviousSteps = requiredSteps
           .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
-          .join("\n");
+          .join('\n');
 
         logger.info(
           `Built context for step '${step.stepName}' from ${
             requiredSteps.length
-          } required steps: [${requiredSteps.map((s) => s.name).join(", ")}]`
+          } required steps: [${requiredSteps.map((s) => s.name).join(', ')}]`
         );
-      } else if (
-        hasDependencies &&
-        (!step.requiresSteps || step.requiresSteps.length === 0)
-      ) {
+      } else if (hasDependencies && (!step.requiresSteps || step.requiresSteps.length === 0)) {
         // Wait for all previous steps to complete (sequential behavior)
         const allPreviousPromises = Array.from(stepPromises.values());
         if (allPreviousPromises.length > 0) {
@@ -586,24 +524,22 @@ Please generate *only* the content for the '${
         const allCompletedSteps = Array.from(completedSteps.values());
         contextFromPreviousSteps = allCompletedSteps
           .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
-          .join("\n");
+          .join('\n');
 
         logger.info(
           `Built context for step '${step.stepName}' from all ${allCompletedSteps.length} previous steps`
         );
       } else {
-        logger.info(
-          `No context needed for step '${step.stepName}' (no dependencies)`
-        );
+        logger.info(`No context needed for step '${step.stepName}' (no dependencies)`);
       }
 
       const messages: AIChatMessage[] = [
         {
-          role: "system",
+          role: 'system',
           content: contextFromPreviousSteps,
         },
         {
-          role: "user",
+          role: 'user',
           content: step.promptConstant,
         },
       ];
@@ -632,21 +568,16 @@ Please generate *only* the content for the '${
         if (step.modelParser) {
           try {
             parsedData = step.modelParser(content);
-            logger.info(
-              `Successfully parsed ${step.stepName} for projectId: ${project.id}`
-            );
+            logger.info(`Successfully parsed ${step.stepName} for projectId: ${project.id}`);
           } catch (error) {
-            logger.error(
-              `Error parsing ${step.stepName} for project ${project.id}:`,
-              error
-            );
-            parsedData = { error: "Parsing error", content };
+            logger.error(`Error parsing ${step.stepName} for project ${project.id}:`, error);
+            parsedData = { error: 'Parsing error', content };
           }
         }
 
         const result: ISectionResult = {
           name: step.stepName,
-          type: "text/markdown",
+          type: 'text/markdown',
           data: content,
           summary: `${step.stepName} for Project ${project.id}`,
           parsedData: parsedData,
@@ -661,8 +592,7 @@ Please generate *only* the content for the '${
     };
 
     const areDependenciesSatisfied = (step: IPromptStep): boolean => {
-      const hasDependencies =
-        step.hasDependencies !== undefined ? step.hasDependencies : true;
+      const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
 
       if (!hasDependencies) {
         return true;
@@ -670,9 +600,7 @@ Please generate *only* the content for the '${
 
       if (step.requiresSteps && step.requiresSteps.length > 0) {
         // Check if all required steps are completed
-        return step.requiresSteps.every((stepName) =>
-          completedSteps.has(stepName)
-        );
+        return step.requiresSteps.every((stepName) => completedSteps.has(stepName));
       }
 
       return true;
@@ -682,8 +610,7 @@ Please generate *only* the content for the '${
     while (pendingSteps.length > 0) {
       // Find steps that can be started now
       const readySteps = pendingSteps.filter((step) => {
-        const hasDependencies =
-          step.hasDependencies !== undefined ? step.hasDependencies : true;
+        const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
 
         // Steps without dependencies can start immediately
         if (!hasDependencies) {
@@ -722,9 +649,7 @@ Please generate *only* the content for the '${
           await Promise.race(Array.from(stepPromises.values()));
         } else {
           // This shouldn't happen, but prevent infinite loop
-          logger.error(
-            "No steps can be started and no steps are running. Breaking loop."
-          );
+          logger.error('No steps can be started and no steps are running. Breaking loop.');
           break;
         }
       }
@@ -732,9 +657,7 @@ Please generate *only* the content for the '${
 
     // Wait for all steps to complete
     logger.info(`Waiting for all ${stepPromises.size} steps to complete`);
-    const completedResults = await Promise.all(
-      Array.from(stepPromises.values())
-    );
+    const completedResults = await Promise.all(Array.from(stepPromises.values()));
 
     // Sort results to match the original step order
     const stepOrder = steps.map((step) => step.stepName);
@@ -755,22 +678,13 @@ Please generate *only* the content for the '${
    * @param projectId Project ID for logging
    * @returns Parsed JSON or fallback object
    */
-  protected parseSection(
-    content: string,
-    sectionName: string,
-    projectId: string
-  ): any {
+  protected parseSection(content: string, sectionName: string, projectId: string): any {
     try {
       const parsed = JSON.parse(content);
-      logger.info(
-        `Successfully parsed ${sectionName} for projectId: ${projectId}`
-      );
+      logger.info(`Successfully parsed ${sectionName} for projectId: ${projectId}`);
       return parsed;
     } catch (error) {
-      logger.error(
-        `Error parsing ${sectionName} for project ${projectId}:`,
-        error
-      );
+      logger.error(`Error parsing ${sectionName} for project ${projectId}:`, error);
       // Return a fallback structure with the raw content
       return {
         content: content,
@@ -799,9 +713,7 @@ Please generate *only* the content for the '${
         `users/${userId}/projects`
       );
       if (!oldProject) {
-        logger.warn(
-          `Original project not found with ID: ${projectId} for user: ${userId}`
-        );
+        logger.warn(`Original project not found with ID: ${projectId} for user: ${userId}`);
         return null;
       }
 
@@ -826,10 +738,7 @@ Please generate *only* the content for the '${
 
       return updatedProject;
     } catch (error) {
-      logger.error(
-        `Error updating project with ${modelProperty} sections:`,
-        error
-      );
+      logger.error(`Error updating project with ${modelProperty} sections:`, error);
       return null;
     }
   }

@@ -1,9 +1,7 @@
 <!-- Website Showcase Section -->
 <section class="relative py-12 sm:py-16 lg:py-20 overflow-hidden">
   <!-- Background Elements -->
-  <div
-    class="absolute inset-0 bg-gradient-to-br from-bg-dark via-bg-light to-bg-dark"
-  ></div>
+  <div class="absolute inset-0 bg-gradient-to-br from-bg-dark via-bg-light to-bg-dark"></div>
   <div
     class="absolute top-0 left-1/4 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full bg-gradient-to-br from-primary/20 to-secondary/10 blur-[80px] sm:blur-[100px] lg:blur-[120px] opacity-60"
   ></div>
@@ -22,35 +20,34 @@
   <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Section Header -->
     <div class="text-center mb-8 sm:mb-12 lg:mb-16">
-      <div
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6"
-      >
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
         <i class="pi pi-globe text-primary"></i>
         <span class="text-sm font-medium text-white/80">Live Websites</span>
       </div>
 
       <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6">
         Projects Built with
-        <span
-          class="text-gradient bg-gradient-to-r from-primary to-primary-glow text-white"
+        <span class="text-gradient bg-gradient-to-r from-primary to-primary-glow text-white"
           >IDEM</span
         >
       </h2>
 
-      <p class="text-base sm:text-lg lg:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
-        Discover real websites created by our AI platform. From e-commerce to
-        SaaS platforms, each site showcases the power of AI-driven development.
+      <p
+        class="text-base sm:text-lg lg:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0"
+      >
+        Discover real websites created by our AI platform. From e-commerce to SaaS platforms, each
+        site showcases the power of AI-driven development.
       </p>
     </div>
 
     <!-- Main Showcase Container -->
     <div class="relative">
       <!-- Showcase Cards -->
-      <div 
+      <div
         class="gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12"
-        [class]="isMobile() ? 'flex justify-center' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'">
-        @for (website of getVisibleWebsites(); track website.id; let i = $index)
-        {
+        [class]="isMobile() ? 'flex justify-center' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'"
+      >
+        @for (website of getVisibleWebsites(); track website.id; let i = $index) {
         <div
           class="group relative overflow-hidden rounded-xl sm:rounded-2xl glass-card hover:scale-[1.02] transition-all duration-500"
           [class]="isMobile() ? 'w-full max-w-sm mx-auto' : ''"
@@ -71,7 +68,9 @@
               class="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center"
             >
               <div class="text-center">
-                <i class="pi pi-image text-2xl sm:text-3xl lg:text-4xl text-white/40 mb-1 sm:mb-2"></i>
+                <i
+                  class="pi pi-image text-2xl sm:text-3xl lg:text-4xl text-white/40 mb-1 sm:mb-2"
+                ></i>
                 <p class="text-white/60 text-xs sm:text-sm">{{ website.title }}</p>
               </div>
             </div>

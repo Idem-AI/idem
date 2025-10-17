@@ -24,14 +24,14 @@ export interface NotificationOptions {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class NotificationService {
   private readonly notifications$ = new BehaviorSubject<Notification[]>([]);
   public readonly notifications = signal<Notification[]>([]);
 
   constructor() {
-    this.notifications$.subscribe(notifications => {
+    this.notifications$.subscribe((notifications) => {
       this.notifications.set(notifications);
     });
   }
@@ -50,7 +50,7 @@ export class NotificationService {
 
   public removeNotification(id: string): void {
     const current = this.notifications$.value;
-    const filtered = current.filter(n => n.id !== id);
+    const filtered = current.filter((n) => n.id !== id);
     this.notifications$.next(filtered);
   }
 
@@ -65,9 +65,9 @@ export class NotificationService {
       type: 'success',
       timestamp: new Date(),
       duration: options.duration || 3000,
-      ...options
+      ...options,
     };
-    
+
     this.addNotification(notification);
     return id;
   }
@@ -79,9 +79,9 @@ export class NotificationService {
       type: 'error',
       timestamp: new Date(),
       duration: options.duration || 5000,
-      ...options
+      ...options,
     };
-    
+
     this.addNotification(notification);
     return id;
   }
@@ -93,9 +93,9 @@ export class NotificationService {
       type: 'warning',
       timestamp: new Date(),
       duration: options.duration || 4000,
-      ...options
+      ...options,
     };
-    
+
     this.addNotification(notification);
     return id;
   }
@@ -107,9 +107,9 @@ export class NotificationService {
       type: 'info',
       timestamp: new Date(),
       duration: options.duration || 3000,
-      ...options
+      ...options,
     };
-    
+
     this.addNotification(notification);
     return id;
   }

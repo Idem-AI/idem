@@ -12,10 +12,12 @@ import { signal } from '@angular/core';
 })
 export class PremiumBetaAccess {
   // Services
-  
+
   // State signals
-  protected readonly waitlistFormUrl = signal(environment.waitlistUrl || 'https://forms.gle/YourGoogleFormUrlHere');
-  
+  protected readonly waitlistFormUrl = signal(
+    environment.waitlistUrl || 'https://forms.gle/YourGoogleFormUrlHere'
+  );
+
   // Methods
   protected openWaitlistForm(): void {
     window.open(this.waitlistFormUrl(), '_blank');

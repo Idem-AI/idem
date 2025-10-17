@@ -1,20 +1,20 @@
-import { create } from "zustand";
-import { X } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { useState } from "react";
-import { Settings } from "../Settings";
+import { create } from 'zustand';
+import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
+import { Settings } from '../Settings';
 
 interface LimitModalStore {
   isVisible: boolean;
-  type: "login" | "limit";
-  openModal: (type: "login" | "limit") => void;
+  type: 'login' | 'limit';
+  openModal: (type: 'login' | 'limit') => void;
   closeModal: () => void;
 }
 
 // Create global state management
 export const useLimitModalStore = create<LimitModalStore>((set) => ({
   isVisible: false,
-  type: "login",
+  type: 'login',
   openModal: (type) => set({ isVisible: true, type }),
   closeModal: () => set({ isVisible: false }),
 }));
@@ -37,7 +37,7 @@ export const GlobalLimitModal = ({ onLogin }: { onLogin: () => void }) => {
           closeModal();
           setOpenSetting(false);
         }}
-        initialTab={"Quota"}
+        initialTab={'Quota'}
       />
       {!openSetting && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
@@ -51,25 +51,23 @@ export const GlobalLimitModal = ({ onLogin }: { onLogin: () => void }) => {
 
             <div className="p-6">
               <h3 className="text-xl font-medium text-white mb-2">
-                {type === "login"
-                  ? t("login.chat_limit_reached")
-                  : t("login.usage_limit_reached")}
+                {type === 'login' ? t('login.chat_limit_reached') : t('login.usage_limit_reached')}
               </h3>
               <p className="text-gray-400 text-sm mb-6">
-                {type === "login"
-                  ? t("login.chat_limit_reached_tips")
-                  : t("login.usage_limit_reached_tips")}
+                {type === 'login'
+                  ? t('login.chat_limit_reached_tips')
+                  : t('login.usage_limit_reached_tips')}
               </p>
 
               <div className="flex gap-3">
-                {type === "limit" ? (
+                {type === 'limit' ? (
                   <button
                     onClick={() => {
                       setOpenSetting(true);
                     }}
                     className="flex-1 inner-button text-sm font-medium"
                   >
-                    {t("common.open_directory_quota")}
+                    {t('common.open_directory_quota')}
                   </button>
                 ) : (
                   <button
@@ -79,14 +77,14 @@ export const GlobalLimitModal = ({ onLogin }: { onLogin: () => void }) => {
                     }}
                     className="flex-1 inner-button text-sm font-medium"
                   >
-                    {t("common.login")}
+                    {t('common.login')}
                   </button>
                 )}
                 <button
                   onClick={closeModal}
                   className="flex-1 bg-[#333] hover:bg-[#444] text-white rounded-lg py-2 text-sm font-medium transition-colors"
                 >
-                  {t("common.close")}
+                  {t('common.close')}
                 </button>
               </div>
             </div>

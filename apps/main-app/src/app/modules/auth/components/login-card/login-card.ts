@@ -1,7 +1,7 @@
 import { Component, inject, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
-import { Loader } from "../../../../components/loader/loader";
+import { Loader } from '../../../../components/loader/loader';
 
 @Component({
   selector: 'app-login-card',
@@ -13,7 +13,7 @@ import { Loader } from "../../../../components/loader/loader";
 export class LoginCardComponent {
   protected readonly authService = inject(AuthService);
   protected isLoading = signal<boolean>(false);
-  
+
   // Output to notify parent when login is successful
   readonly loginSuccess = output<void>();
 

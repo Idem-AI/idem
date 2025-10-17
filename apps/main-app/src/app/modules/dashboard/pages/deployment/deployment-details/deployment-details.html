@@ -14,12 +14,7 @@
         [routerLink]="['/console/deployments']"
         class="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/10 backdrop-blur-sm border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all duration-300"
       >
-        <svg
-          class="w-4 h-4 mr-1"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -43,12 +38,7 @@
     class="bg-red-600/10 backdrop-blur-md border border-red-500/30 text-red-200 rounded-xl p-4 mb-6 shadow-lg shadow-red-900/10"
   >
     <div class="flex">
-      <svg
-        class="w-5 h-5 mr-3"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
+      <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -70,9 +60,7 @@
     >
       <div class="flex justify-between items-start mb-4">
         <div>
-          <h2 class="text-xl font-semibold text-white">
-            {{ deployment()?.name }}
-          </h2>
+          <h2 class="text-xl font-semibold text-white">{{ deployment()?.name }}</h2>
           <div class="flex items-center mt-1">
             <span
               [class.bg-green-600]="deployment()?.status === 'deployed'"
@@ -83,24 +71,16 @@
               class="inline-block w-2 h-2 rounded-full mr-2"
             >
             </span>
-            <span class="text-gray-300 capitalize"
-              >{{ deployment()?.status }}</span
-            >
+            <span class="text-gray-300 capitalize">{{ deployment()?.status }}</span>
           </div>
         </div>
         <div class="flex gap-2">
           @if (!isCompleted()) {
-          <button
-            (click)="cancelDeployment()"
-            class="px-4 py-2 outer-button bg-red-500"
-          >
+          <button (click)="cancelDeployment()" class="px-4 py-2 outer-button bg-red-500">
             Cancel
           </button>
           } @if (isCompleted() && deployment()?.status !== 'cancelled') {
-          <button
-            (click)="redeployDeployment()"
-            class="px-4 py-2 outer-button bg-blue-500"
-          >
+          <button (click)="redeployDeployment()" class="px-4 py-2 outer-button bg-blue-500">
             Redeploy
           </button>
           }
@@ -109,7 +89,12 @@
             class="px-4 py-2 outer-button bg-green-500 flex items-center gap-2"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h1m4 0h1M9 6h1m4 0h1M9 2h1m4 0h1"></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h1m4 0h1M9 6h1m4 0h1M9 2h1m4 0h1"
+              ></path>
             </svg>
             Execute Deployment
           </button>
@@ -172,17 +157,13 @@
       <!-- Git Repository -->
       @if (deployment()?.gitRepository) {
       <div class="mt-6 border-t border-gray-700/30 pt-5">
-        <h3
-          class="text-md font-medium text-gray-200 mb-3 border-b border-gray-700/30 pb-2"
-        >
+        <h3 class="text-md font-medium text-gray-200 mb-3 border-b border-gray-700/30 pb-2">
           Git Repository
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h3 class="text-gray-400 text-sm mb-1">Provider</h3>
-            <p class="text-white capitalize">
-              {{ deployment()?.gitRepository?.provider }}
-            </p>
+            <p class="text-white capitalize">{{ deployment()?.gitRepository?.provider }}</p>
           </div>
           <div>
             <h3 class="text-gray-400 text-sm mb-1">Branch</h3>
@@ -190,21 +171,16 @@
           </div>
           <div class="md:col-span-2">
             <h3 class="text-gray-400 text-sm mb-1">Repository URL</h3>
-            <p class="text-white break-all">
-              {{ deployment()?.gitRepository?.url }}
-            </p>
+            <p class="text-white break-all">{{ deployment()?.gitRepository?.url }}</p>
           </div>
         </div>
       </div>
       }
 
       <!-- Environment Variables -->
-      @if (deployment()?.environmentVariables &&
-      deployment()?.environmentVariables!.length > 0) {
+      @if (deployment()?.environmentVariables && deployment()?.environmentVariables!.length > 0) {
       <div class="mt-6 border-t border-gray-700/30 pt-5">
-        <h3
-          class="text-md font-medium text-gray-200 mb-3 border-b border-gray-700/30 pb-2"
-        >
+        <h3 class="text-md font-medium text-gray-200 mb-3 border-b border-gray-700/30 pb-2">
           Environment Variables
         </h3>
         <div class="overflow-x-auto">
@@ -269,9 +245,7 @@
       <div
         class="bg-gray-800/30 backdrop-blur-xl rounded-2xl shadow-sm shadow-blue-900/10 border border-gray-700/30 p-6 transition-all duration-300 hover:shadow-blue-900/15"
       >
-        <h3
-          class="text-md font-medium text-gray-200 mb-3 border-b border-gray-700/30 pb-2"
-        >
+        <h3 class="text-md font-medium text-gray-200 mb-3 border-b border-gray-700/30 pb-2">
           Status
         </h3>
 
@@ -279,12 +253,7 @@
         <div
           class="flex items-center mb-4 text-green-400 bg-green-500/10 backdrop-blur-sm rounded-lg p-2 border border-green-500/20"
         >
-          <svg
-            class="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -309,12 +278,7 @@
         <div
           class="flex items-center mb-4 text-red-400 bg-red-500/10 backdrop-blur-sm rounded-lg p-2 border border-red-500/20"
         >
-          <svg
-            class="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -328,12 +292,7 @@
         <div
           class="flex items-center mb-4 text-gray-400 bg-gray-500/10 backdrop-blur-sm rounded-lg p-2 border border-gray-500/20"
         >
-          <svg
-            class="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -348,9 +307,7 @@
         <div
           class="flex items-center mb-4 text-yellow-400 bg-yellow-500/10 backdrop-blur-sm rounded-lg p-2 border border-yellow-500/20"
         >
-          <div
-            class="animate-spin rounded-full h-4 w-4 border-2 border-current mr-2"
-          ></div>
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-current mr-2"></div>
           <span>Deployment in Progress</span>
         </div>
         } @if (deployment()?.logs) {
@@ -360,12 +317,7 @@
             target="_blank"
             class="text-blue-400 hover:text-blue-300 text-sm flex items-center bg-blue-500/10 backdrop-blur-sm rounded-lg p-2 border border-blue-500/20 transition-all duration-200 hover:bg-blue-500/20"
           >
-            <svg
-              class="w-4 h-4 mr-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -384,9 +336,7 @@
       <div
         class="bg-gray-800/30 backdrop-blur-xl rounded-2xl shadow-sm shadow-blue-900/10 border border-gray-700/30 p-6 transition-all duration-300 hover:shadow-blue-900/15"
       >
-        <h3
-          class="text-md font-medium text-gray-200 mb-3 border-b border-gray-700/30 pb-2"
-        >
+        <h3 class="text-md font-medium text-gray-200 mb-3 border-b border-gray-700/30 pb-2">
           Cost Estimation
         </h3>
         <div class="space-y-2">
@@ -429,10 +379,7 @@
     @if (deployment()?.pipelines && deployment()?.pipelines!.length > 0) {
     <div class="space-y-8">
       <div class="flex justify-end">
-        <button
-          (click)="generatePipeline()"
-          class="mt-2 px-6 py-2 inner-button"
-        >
+        <button (click)="generatePipeline()" class="mt-2 px-6 py-2 inner-button">
           New Pipeline
         </button>
       </div>
@@ -449,9 +396,7 @@
           <ng-template pTemplate="header">
             <div class="flex justify-between items-center w-full">
               <div>
-                <h3 class="text-lg font-semibold text-white">
-                  Pipeline #{{ $index + 1 }}
-                </h3>
+                <h3 class="text-lg font-semibold text-white">Pipeline #{{ $index + 1 }}</h3>
                 <p class="text-gray-400 text-sm mt-1">
                   Current Stage:
                   <span class="text-blue-300">{{ pipeline.id }}</span>
@@ -464,8 +409,7 @@
                 >
                 } @if (pipeline.estimatedCompletionTime) {
                 <span class="text-sm text-gray-400 mt-1"
-                  >Est. Completion: {{
-                  formatDate(pipeline.estimatedCompletionTime) }}</span
+                  >Est. Completion: {{ formatDate(pipeline.estimatedCompletionTime) }}</span
                 >
                 }
               </div>
@@ -547,9 +491,7 @@
                     }
                   </div>
                   @if (i < pipeline.steps.length - 1) {
-                  <div
-                    class="absolute top-8 left-4 -ml-px h-full w-0.5 bg-gray-600"
-                  ></div>
+                  <div class="absolute top-8 left-4 -ml-px h-full w-0.5 bg-gray-600"></div>
                   }
                 </div>
                 <div class="ml-4 min-w-0 flex-1 pt-1.5">
@@ -592,17 +534,12 @@
         >
           <i class="pi pi-building text-blue-400 text-2xl"></i>
         </div>
-        <h3 class="text-lg font-medium text-gray-200">
-          No Deployment Pipelines Available
-        </h3>
+        <h3 class="text-lg font-medium text-gray-200">No Deployment Pipelines Available</h3>
         <p class="text-gray-400 max-w-md mx-auto">
-          This deployment doesn't have any configured pipelines yet. Generate a
-          pipeline to automate your deployment process.
+          This deployment doesn't have any configured pipelines yet. Generate a pipeline to automate
+          your deployment process.
         </p>
-        <button
-          (click)="generatePipeline()"
-          class="mt-2 px-6 py-2 inner-button"
-        >
+        <button (click)="generatePipeline()" class="mt-2 px-6 py-2 inner-button">
           New Pipeline
         </button>
       </div>
@@ -620,10 +557,7 @@
     @if (showTerraformFiles()) {
     <div>
       <div class="flex justify-end mb-4">
-        <button
-          (click)="generateTerraformFiles()"
-          class="px-6 py-2 inner-button"
-        >
+        <button (click)="generateTerraformFiles()" class="px-6 py-2 inner-button">
           Add Terraform Files
         </button>
       </div>
@@ -651,17 +585,12 @@
             ></path>
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-200">
-          No Terraform Files Available
-        </h3>
+        <h3 class="text-lg font-medium text-gray-200">No Terraform Files Available</h3>
         <p class="text-gray-400 max-w-md mx-auto">
-          This deployment doesn't have any Terraform infrastructure files yet.
-          Generate Terraform files to define your infrastructure as code.
+          This deployment doesn't have any Terraform infrastructure files yet. Generate Terraform
+          files to define your infrastructure as code.
         </p>
-        <button
-          (click)="generateTerraformFiles()"
-          class="mt-2 px-6 py-2 inner-button"
-        >
+        <button (click)="generateTerraformFiles()" class="mt-2 px-6 py-2 inner-button">
           Generate Terraform Files
         </button>
       </div>
@@ -676,7 +605,6 @@
     [closable]="!isExecuting()"
     header="Deployment Execution"
     (onHide)="closeExecutionModal()"
-  
   >
     <!-- Modal Header with Cancel Button -->
     <ng-template pTemplate="header">
@@ -696,24 +624,43 @@
     <!-- Modal Content -->
     <div class="h-full flex flex-col">
       <!-- Execution Status -->
-      <div class="mb-4 p-3 rounded-lg" 
-           [class.bg-blue-500]="executionStatus() === 'executing'"
-           [class.bg-green-500]="executionStatus() === 'completed'"
-           [class.bg-red-500]="executionStatus() === 'error'"
-           [class.bg-gray-500]="executionStatus() === 'idle'">
+      <div
+        class="mb-4 p-3 rounded-lg"
+        [class.bg-blue-500]="executionStatus() === 'executing'"
+        [class.bg-green-500]="executionStatus() === 'completed'"
+        [class.bg-red-500]="executionStatus() === 'error'"
+        [class.bg-gray-500]="executionStatus() === 'idle'"
+      >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             @if (executionStatus() === 'executing') {
-            <div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <div
+              class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"
+            ></div>
             <span class="text-blue-400 font-medium">Executing...</span>
             } @else if (executionStatus() === 'completed') {
-            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            <svg
+              class="w-4 h-4 text-green-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              ></path>
             </svg>
             <span class="text-green-400 font-medium">Completed</span>
             } @else if (executionStatus() === 'error') {
             <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
             </svg>
             <span class="text-red-400 font-medium">Error/Cancelled</span>
             } @else {
@@ -721,9 +668,7 @@
             }
           </div>
           @if (executionStartTime()) {
-          <span class="text-sm text-gray-400">
-            Started: {{ formatExecutionStartTime() }}
-          </span>
+          <span class="text-sm text-gray-400"> Started: {{ formatExecutionStartTime() }} </span>
           }
         </div>
       </div>
@@ -740,8 +685,11 @@
             Clear
           </button>
         </div>
-        
-        <p-scrollPanel [style]="{width: '100%', height: 'calc(70vh - 200px)'}" styleClass="custom-scrollbar">
+
+        <p-scrollPanel
+          [style]="{width: '100%', height: 'calc(70vh - 200px)'}"
+          styleClass="custom-scrollbar"
+        >
           <div class="p-3 space-y-2">
             @if (executionLogs().length === 0) {
             <div class="flex items-center justify-center h-32 text-gray-500">
@@ -756,29 +704,40 @@
               <div class="flex items-center justify-between text-xs">
                 <span class="text-gray-400">Log Statistics</span>
                 <div class="flex gap-4">
-                  <span class="text-blue-400"><i class="pi pi-chart-bar mr-1"></i>Total: {{ getLogStats().total }}</span>
+                  <span class="text-blue-400"
+                    ><i class="pi pi-chart-bar mr-1"></i>Total: {{ getLogStats().total }}</span
+                  >
                   @if (getLogStats().errors > 0) {
-                  <span class="text-red-400"><i class="pi pi-times-circle mr-1"></i>Errors: {{ getLogStats().errors }}</span>
-                  }
-                  @if (getLogStats().warnings > 0) {
-                  <span class="text-yellow-400"><i class="pi pi-exclamation-triangle mr-1"></i>Warnings: {{ getLogStats().warnings }}</span>
-                  }
-                  @if (getLogStats().success > 0) {
-                  <span class="text-green-400"><i class="pi pi-check-circle mr-1"></i>Success: {{ getLogStats().success }}</span>
+                  <span class="text-red-400"
+                    ><i class="pi pi-times-circle mr-1"></i>Errors: {{ getLogStats().errors }}</span
+                  >
+                  } @if (getLogStats().warnings > 0) {
+                  <span class="text-yellow-400"
+                    ><i class="pi pi-exclamation-triangle mr-1"></i>Warnings: {{
+                    getLogStats().warnings }}</span
+                  >
+                  } @if (getLogStats().success > 0) {
+                  <span class="text-green-400"
+                    ><i class="pi pi-check-circle mr-1"></i>Success: {{ getLogStats().success
+                    }}</span
+                  >
                   }
                 </div>
               </div>
             </div>
-            
+
             <!-- Modern Log Entries -->
-            @for (logString of executionLogs(); track $index) {
-            @let logEntry = parseLogEntry(logString);
-            <div class="group hover:bg-gray-800/30 rounded-lg p-3 border border-transparent hover:border-gray-700/30 transition-all duration-200"
-                 [ngClass]="getLogClass(logEntry.type)">
+            @for (logString of executionLogs(); track $index) { @let logEntry =
+            parseLogEntry(logString);
+            <div
+              class="group hover:bg-gray-800/30 rounded-lg p-3 border border-transparent hover:border-gray-700/30 transition-all duration-200"
+              [ngClass]="getLogClass(logEntry.type)"
+            >
               <div class="flex items-start gap-3">
                 <!-- Log Icon -->
-                <div class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-sm"
-                     [ngClass]="{
+                <div
+                  class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-sm"
+                  [ngClass]="{
                        'bg-blue-500/20 text-blue-400': logEntry.type === 'info',
                        'bg-purple-500/20 text-purple-400': logEntry.type === 'status',
                        'bg-cyan-500/20 text-cyan-400': logEntry.type === 'stdout',
@@ -786,15 +745,17 @@
                        'bg-red-500/20 text-red-400': logEntry.type === 'error',
                        'bg-green-500/20 text-green-400': logEntry.type === 'success' || logEntry.type === 'completed',
                        'bg-gray-500/20 text-gray-400': !['info', 'status', 'stdout', 'stderr', 'error', 'success', 'completed'].includes(logEntry.type)
-                     }">
+                     }"
+                >
                   <i [class]="getLogIcon(logEntry.type)"></i>
                 </div>
-                
+
                 <!-- Log Content -->
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs font-medium uppercase tracking-wide"
-                          [ngClass]="{
+                    <span
+                      class="text-xs font-medium uppercase tracking-wide"
+                      [ngClass]="{
                             'text-blue-400': logEntry.type === 'info',
                             'text-purple-400': logEntry.type === 'status',
                             'text-cyan-400': logEntry.type === 'stdout',
@@ -802,19 +763,23 @@
                             'text-red-400': logEntry.type === 'error',
                             'text-green-400': logEntry.type === 'success' || logEntry.type === 'completed',
                             'text-gray-400': !['info', 'status', 'stdout', 'stderr', 'error', 'success', 'completed'].includes(logEntry.type)
-                          }">
+                          }"
+                    >
                       {{ logEntry.type }}
                     </span>
-                    <span class="text-xs text-gray-500">{{ formatLogTime(logEntry.timestamp) }}</span>
+                    <span class="text-xs text-gray-500"
+                      >{{ formatLogTime(logEntry.timestamp) }}</span
+                    >
                   </div>
-                  <div class="text-sm text-gray-300 whitespace-pre-wrap break-words font-mono leading-relaxed">
+                  <div
+                    class="text-sm text-gray-300 whitespace-pre-wrap break-words font-mono leading-relaxed"
+                  >
                     {{ logEntry.message }}
                   </div>
                 </div>
               </div>
             </div>
-            }
-            }
+            } }
           </div>
         </p-scrollPanel>
       </div>

@@ -52,24 +52,16 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
   });
 
   // Computed properties using the new generation state
-  protected readonly isGenerating = computed(
-    () => this.generationState().isGenerating
-  );
-  protected readonly generationError = computed(
-    () => this.generationState().error
-  );
+  protected readonly isGenerating = computed(() => this.generationState().isGenerating);
+  protected readonly generationError = computed(() => this.generationState().error);
   protected readonly completedSteps = computed(() =>
     this.generationState().steps.filter((step) => step.status === 'completed')
   );
   protected readonly hasCompletedSteps = computed(() =>
     this.generationService.hasCompletedSteps(this.generationState())
   );
-  protected readonly totalSteps = computed(
-    () => this.generationState().totalSteps
-  );
-  protected readonly completedCount = computed(
-    () => this.generationState().completedSteps
-  );
+  protected readonly totalSteps = computed(() => this.generationState().totalSteps);
+  protected readonly completedCount = computed(() => this.generationState().completedSteps);
   protected readonly progressPercentage = computed(() =>
     this.generationService.calculateProgress(this.generationState())
   );
@@ -98,9 +90,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
     console.log('Starting branding generation with SSE...');
 
     // Create SSE connection for branding generation
-    const sseConnection = this.brandingService.createBrandIdentityModel(
-      this.projectId()!
-    );
+    const sseConnection = this.brandingService.createBrandIdentityModel(this.projectId()!);
 
     this.generationService
       .startGeneration('branding', sseConnection)
@@ -116,10 +106,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          console.error(
-            `Error generating branding for project ID: ${this.projectId()}:`,
-            err
-          );
+          console.error(`Error generating branding for project ID: ${this.projectId()}:`, err);
           this.generationState.update((state) => ({
             ...state,
             error: 'Failed to generate branding',
@@ -164,11 +151,11 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
    */
   private handleGenerationComplete(state: SSEGenerationState): void {
     console.log('Branding generation completed:', state);
-    
+
     // Start post-processing phase with loading
     this.isPostProcessing.set(true);
     this.postProcessingMessage.set('Saving branding data...');
-    
+
     // Wait 4 seconds to allow backend to complete saving
     setTimeout(() => {
       console.log('Post-processing complete, redirecting to branding display');

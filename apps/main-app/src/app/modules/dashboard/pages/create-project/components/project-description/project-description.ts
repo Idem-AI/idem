@@ -1,12 +1,4 @@
-import {
-  Component,
-  input,
-  output,
-  signal,
-  computed,
-  OnInit,
-  inject,
-} from '@angular/core';
+import { Component, input, output, signal, computed, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ProjectModel } from '../../../../models/project.model';
@@ -99,10 +91,7 @@ export class ProjectDescriptionComponent implements OnInit {
     const maxHeight = isMobile ? 200 : 400; // Smaller max height on mobile
     const minHeight = isMobile ? 120 : 140; // Match CSS min-height
 
-    const newHeight = Math.max(
-      Math.min(textarea.scrollHeight, maxHeight),
-      minHeight
-    );
+    const newHeight = Math.max(Math.min(textarea.scrollHeight, maxHeight), minHeight);
     textarea.style.height = newHeight + 'px';
   }
 
@@ -161,9 +150,7 @@ export class ProjectDescriptionComponent implements OnInit {
             const nameWords = displayName.trim().split(' ');
             const firstName = nameWords[0] || '';
             const secondName = nameWords[1] || '';
-            const shortName = secondName
-              ? `${firstName} ${secondName}`
-              : firstName;
+            const shortName = secondName ? `${firstName} ${secondName}` : firstName;
             this.userName.set(shortName);
           } else if (email) {
             const emailName = email.split('@')[0];
@@ -186,8 +173,7 @@ export class ProjectDescriptionComponent implements OnInit {
   protected readonly africanProjectExamples = [
     {
       name: 'M-Pesa Clone',
-      description:
-        'A mobile money transfer and microfinancing service for African markets',
+      description: 'A mobile money transfer and microfinancing service for African markets',
       icon: 'pi pi-wallet',
       prompt:
         'A mobile money platform like M-Pesa with secure transactions, agent network management, and financial inclusion features for rural communities in Africa',
@@ -234,9 +220,7 @@ export class ProjectDescriptionComponent implements OnInit {
     if (currentProject) {
       // Truncate example if it exceeds character limit
       const truncatedExample =
-        example.length > this.maxCharacters
-          ? example.substring(0, this.maxCharacters)
-          : example;
+        example.length > this.maxCharacters ? example.substring(0, this.maxCharacters) : example;
 
       // Update project description
       currentProject.description = truncatedExample;
@@ -245,9 +229,7 @@ export class ProjectDescriptionComponent implements OnInit {
 
       // Update the textarea value in the DOM and trigger change detection
       setTimeout(() => {
-        const textarea = document.getElementById(
-          'projectDescription'
-        ) as HTMLTextAreaElement;
+        const textarea = document.getElementById('projectDescription') as HTMLTextAreaElement;
         if (textarea) {
           // Set the textarea value
           textarea.value = truncatedExample;

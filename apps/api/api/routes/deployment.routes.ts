@@ -1,6 +1,6 @@
-import { Router } from "express";
-import { authenticate } from "../services/auth.service";
-import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
+import { Router } from 'express';
+import { authenticate } from '../services/auth.service';
+import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import {
   CreateDeploymentController,
   GetDeploymentsByProjectController,
@@ -15,10 +15,10 @@ import {
   ExecuteDeploymentController,
   ExecuteDeploymentStreamingController,
   storeSensitiveVariablesController,
-} from "../controllers/deployment.controller";
+} from '../controllers/deployment.controller';
 
 export const deploymentRoutes = Router();
-const resourceName = "/deployments";
+const resourceName = '/deployments';
 
 // Core CRUD Routes
 /**
@@ -72,7 +72,12 @@ const resourceName = "/deployments";
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.post(`${resourceName}/generate`, authenticate, checkPolicyAcceptance, generateDeploymentController);
+deploymentRoutes.post(
+  `${resourceName}/generate`,
+  authenticate,
+  checkPolicyAcceptance,
+  generateDeploymentController
+);
 
 /**
  * @openapi
@@ -106,11 +111,7 @@ deploymentRoutes.post(`${resourceName}/generate`, authenticate, checkPolicyAccep
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.get(
-  `${resourceName}/:projectId`,
-  authenticate,
-  GetDeploymentsByProjectController
-);
+deploymentRoutes.get(`${resourceName}/:projectId`, authenticate, GetDeploymentsByProjectController);
 
 /**
  * @openapi
@@ -300,11 +301,7 @@ deploymentRoutes.delete(
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.post(
-  `${resourceName}/chat`,
-  authenticate,
-  AddChatMessageController
-);
+deploymentRoutes.post(`${resourceName}/chat`, authenticate, AddChatMessageController);
 
 // Pipeline Management
 /**
@@ -461,11 +458,7 @@ deploymentRoutes.get(
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.post(
-  `${resourceName}/create`,
-  authenticate,
-  CreateDeploymentController
-);
+deploymentRoutes.post(`${resourceName}/create`, authenticate, CreateDeploymentController);
 
 /**
  * @openapi
@@ -911,9 +904,9 @@ deploymentRoutes.post(
  *               description: Server-Sent Events stream with deployment logs
  *               example: |
  *                 data: {"type":"info","message":"Starting deployment execution...","timestamp":"2024-01-15T10:00:00.000Z","step":"initialization","deploymentId":"deployment_123"}
- *                 
+ *
  *                 data: {"type":"stdout","message":"Docker container starting...","timestamp":"2024-01-15T10:00:05.000Z","step":"docker-execution","deploymentId":"deployment_123"}
- *                 
+ *
  *                 data: {"type":"complete","message":"Deployment execution completed successfully","timestamp":"2024-01-15T10:05:00.000Z","deploymentId":"deployment_123"}
  *       401:
  *         description: Unauthorized

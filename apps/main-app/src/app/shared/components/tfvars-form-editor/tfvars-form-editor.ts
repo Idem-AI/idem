@@ -30,11 +30,7 @@ import { FloatLabelModule } from 'primeng/floatlabel';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageModule } from 'primeng/message';
-import {
-  TfVarsFormData,
-  TfVarFormSection,
-  TfVarFormField,
-} from '../../models/tfvars-parser.model';
+import { TfVarsFormData, TfVarFormSection, TfVarFormField } from '../../models/tfvars-parser.model';
 
 @Component({
   selector: 'app-tfvars-form-editor',
@@ -85,9 +81,7 @@ export class TfVarsFormEditor implements OnInit {
   protected readonly mainForm = signal<FormGroup>(this.formBuilder.group({}));
   protected readonly expandedSections = signal<Set<string>>(new Set());
   protected readonly isAddingCustomField = signal<boolean>(false);
-  protected readonly customFieldForm = signal<FormGroup>(
-    this.createCustomFieldForm()
-  );
+  protected readonly customFieldForm = signal<FormGroup>(this.createCustomFieldForm());
 
   // Computed properties
   protected readonly hasData = computed(() => {
@@ -240,10 +234,7 @@ export class TfVarsFormEditor implements OnInit {
   /**
    * Get form control for a field
    */
-  protected getFieldControl(
-    sectionName: string,
-    fieldKey: string
-  ): FormControl | null {
+  protected getFieldControl(sectionName: string, fieldKey: string): FormControl | null {
     const form = this.mainForm();
     return (form.get(`${sectionName}.${fieldKey}`) as FormControl) || null;
   }
@@ -273,8 +264,7 @@ export class TfVarsFormEditor implements OnInit {
           ...section,
           fields: section.fields.map((field) => ({
             ...field,
-            value:
-              form.get(`${section.name}.${field.key}`)?.value || field.value,
+            value: form.get(`${section.name}.${field.key}`)?.value || field.value,
           })),
         })),
         customFields: data.customFields.map((field) => ({
@@ -291,10 +281,7 @@ export class TfVarsFormEditor implements OnInit {
   /**
    * Get field error message
    */
-  protected getFieldError(
-    sectionName: string,
-    fieldKey: string
-  ): string | null {
+  protected getFieldError(sectionName: string, fieldKey: string): string | null {
     const control = this.getFieldControl(sectionName, fieldKey);
 
     if (!control || !control.errors || !control.touched) {
@@ -386,10 +373,7 @@ export class TfVarsFormEditor implements OnInit {
   /**
    * Remove field from section
    */
-  protected removeFieldFromSection(
-    sectionName: string,
-    fieldKey: string
-  ): void {
+  protected removeFieldFromSection(sectionName: string, fieldKey: string): void {
     const data = this.formDataSignal();
     if (!data) return;
 
@@ -419,10 +403,7 @@ export class TfVarsFormEditor implements OnInit {
    */
   protected createCustomFieldForm(): FormGroup {
     return this.formBuilder.group({
-      key: [
-        '',
-        [Validators.required, Validators.pattern(/^[a-zA-Z_][a-zA-Z0-9_]*$/)],
-      ],
+      key: ['', [Validators.required, Validators.pattern(/^[a-zA-Z_][a-zA-Z0-9_]*$/)]],
       label: [''],
       type: ['text', Validators.required],
       description: [''],
@@ -465,11 +446,7 @@ export class TfVarsFormEditor implements OnInit {
   /**
    * Handle array field changes
    */
-  protected onArrayFieldChange(
-    sectionName: string,
-    fieldKey: string,
-    newValue: string[]
-  ): void {
+  protected onArrayFieldChange(sectionName: string, fieldKey: string, newValue: string[]): void {
     const control = this.getFieldControl(sectionName, fieldKey);
     if (control) {
       control.setValue(newValue);
@@ -480,11 +457,7 @@ export class TfVarsFormEditor implements OnInit {
    * Handle input changes for object fields from textarea.
    * This method parses the string input into a JSON object.
    */
-  protected onObjectInputChange(
-    sectionName: string,
-    fieldKey: string,
-    value: string
-  ): void {
+  protected onObjectInputChange(sectionName: string, fieldKey: string, value: string): void {
     const control = this.getFieldControl(sectionName, fieldKey);
     if (!control) return;
 
@@ -533,11 +506,7 @@ export class TfVarsFormEditor implements OnInit {
   /**
    * Remove item from array field
    */
-  protected removeArrayItem(
-    sectionName: string,
-    fieldKey: string,
-    index: number
-  ): void {
+  protected removeArrayItem(sectionName: string, fieldKey: string, index: number): void {
     const control = this.getFieldControl(sectionName, fieldKey);
     if (control) {
       const currentValue = control.value || [];

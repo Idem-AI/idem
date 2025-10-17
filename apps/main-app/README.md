@@ -44,17 +44,20 @@ Each step is accompanied by AI guidance to ensure optimal results throughout the
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/yourusername/idem.git
    cd idem
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Start the development server:
+
    ```bash
    ng serve
    ```

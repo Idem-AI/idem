@@ -2,7 +2,7 @@
  * Common interfaces used across all deployment types
  */
 export interface GitRepository {
-  provider: "github" | "gitlab" | "bitbucket" | "azure-repos";
+  provider: 'github' | 'gitlab' | 'bitbucket' | 'azure-repos';
   url: string;
   branch: string;
   accessToken?: string; // PAT or OAuth token (stored encrypted)
@@ -18,7 +18,7 @@ export interface EnvironmentVariable {
 
 export interface PipelineStep {
   name: string;
-  status: "pending" | "in-progress" | "succeeded" | "failed" | "skipped";
+  status: 'pending' | 'in-progress' | 'succeeded' | 'failed' | 'skipped';
   startedAt?: Date;
   finishedAt?: Date;
   logs?: string;
@@ -43,7 +43,7 @@ export interface CostEstimation {
 export interface SensitiveVariable {
   name: string;
   label: string;
-  type: "string" | "number" | "boolean";
+  type: 'string' | 'number' | 'boolean';
   required: boolean;
   sensitive: boolean;
   description?: string;
@@ -51,7 +51,7 @@ export interface SensitiveVariable {
 }
 
 export interface ChatMessage {
-  sender: "user" | "ai";
+  sender: 'user' | 'ai';
   text: string;
   timestamp?: Date;
   isRequestingDetails?: boolean;
@@ -66,7 +66,7 @@ export interface ChatMessage {
 export interface ArchitectureTemplate {
   id: string;
   archetype_id: string;
-  provider: "aws" | "gcp" | "azure";
+  provider: 'aws' | 'gcp' | 'azure';
   category: string;
   name: string;
   description: string;
@@ -78,7 +78,7 @@ export interface ArchitectureTemplate {
 export interface FormOption {
   name: string;
   label: string;
-  type: "text" | "number" | "select" | "toggle";
+  type: 'text' | 'number' | 'select' | 'toggle';
   required?: boolean;
   defaultValue?: any;
   placeholder?: string;
@@ -91,7 +91,7 @@ export interface CloudComponentDetailed {
   name: string;
   description: string;
   category: string;
-  provider: "aws" | "gcp" | "azure";
+  provider: 'aws' | 'gcp' | 'azure';
   icon: string;
   pricing?: string;
   options?: FormOption[];
@@ -107,11 +107,7 @@ export interface ArchitectureComponent extends CloudComponentDetailed {
 /**
  * Deployment mode type for distinguishing between deployment types
  */
-export type DeploymentMode =
-  | "beginner"
-  | "template"
-  | "ai-assistant"
-  | "expert";
+export type DeploymentMode = 'beginner' | 'template' | 'ai-assistant' | 'expert';
 
 /**
  * Base deployment model with common properties shared across all deployment types
@@ -122,17 +118,17 @@ export interface BaseDeploymentModel {
   projectId: string;
   name: string; // Friendly name for the deployment
   mode: DeploymentMode; // Type of deployment
-  environment: "development" | "staging" | "production";
+  environment: 'development' | 'staging' | 'production';
   status:
-    | "configuring"
-    | "pending"
-    | "building"
-    | "infrastructure-provisioning"
-    | "deploying"
-    | "deployed"
-    | "rollback"
-    | "failed"
-    | "cancelled";
+    | 'configuring'
+    | 'pending'
+    | 'building'
+    | 'infrastructure-provisioning'
+    | 'deploying'
+    | 'deployed'
+    | 'rollback'
+    | 'failed'
+    | 'cancelled';
 
   // Configuration
   gitRepository?: GitRepository;
@@ -178,7 +174,7 @@ export interface BaseDeploymentModel {
  * beginner deployment model - simplest form with minimal configuration
  */
 export interface QuickDeploymentModel extends BaseDeploymentModel {
-  readonly mode: "beginner";
+  readonly mode: 'beginner';
   // beginner deployment specific fields
   frameworkType?: string;
   buildCommand?: string;
@@ -189,7 +185,7 @@ export interface QuickDeploymentModel extends BaseDeploymentModel {
  * Template deployment model - based on predefined architecture templates
  */
 export interface TemplateDeploymentModel extends BaseDeploymentModel {
-  readonly mode: "template";
+  readonly mode: 'template';
   // Template specific fields
   templateId: string;
   templateName: string;
@@ -201,7 +197,7 @@ export interface TemplateDeploymentModel extends BaseDeploymentModel {
  * AI Assistant deployment model - created through conversation with AI
  */
 export interface AiAssistantDeploymentModel extends BaseDeploymentModel {
-  readonly mode: "ai-assistant";
+  readonly mode: 'ai-assistant';
   // AI Assistant specific fields
   chatMessages: ChatMessage[];
   aiGeneratedArchitecture?: boolean;
@@ -212,7 +208,7 @@ export interface AiAssistantDeploymentModel extends BaseDeploymentModel {
  * Expert deployment model - custom architecture with full configuration
  */
 export interface ExpertDeploymentModel extends BaseDeploymentModel {
-  readonly mode: "expert";
+  readonly mode: 'expert';
   // Expert specific fields
   cloudComponents: CloudComponentDetailed[];
   customInfrastructureCode?: boolean;
@@ -231,7 +227,7 @@ export type DeploymentModel =
 // Deployment creation payload for API calls
 export interface CreateDeploymentPayload {
   name: string;
-  environment: "development" | "staging" | "production";
+  environment: 'development' | 'staging' | 'production';
   description?: string;
   gitRepository?: GitRepository;
   environmentVariables?: EnvironmentVariable[];
@@ -258,16 +254,16 @@ export interface UpdateDeploymentPayload {
   name?: string;
   description?: string;
   status?:
-    | "pending"
-    | "failed"
-    | "configuring"
-    | "building"
-    | "infrastructure-provisioning"
-    | "deploying"
-    | "deployed"
-    | "rollback"
-    | "cancelled";
-  environment?: "development" | "staging" | "production";
+    | 'pending'
+    | 'failed'
+    | 'configuring'
+    | 'building'
+    | 'infrastructure-provisioning'
+    | 'deploying'
+    | 'deployed'
+    | 'rollback'
+    | 'cancelled';
+  environment?: 'development' | 'staging' | 'production';
   gitRepository?: GitRepository;
   environmentVariables?: EnvironmentVariable[];
   architectureComponents?: ArchitectureComponent[];
@@ -287,7 +283,7 @@ export interface UpdateDeploymentPayload {
 export interface DeploymentFormData {
   mode: DeploymentMode;
   name: string;
-  environment: "development" | "staging" | "production";
+  environment: 'development' | 'staging' | 'production';
   repoUrl?: string;
   branch?: string;
   templateId?: string;
@@ -302,11 +298,11 @@ export class DeploymentValidators {
     const errors: string[] = [];
 
     if (!data.name?.trim()) {
-      errors.push("Deployment name is required");
+      errors.push('Deployment name is required');
     }
 
     if (!data.environment) {
-      errors.push("Environment is required");
+      errors.push('Environment is required');
     }
 
     return errors;
@@ -317,36 +313,33 @@ export class DeploymentValidators {
 
     if (repo) {
       if (!repo.url?.trim()) {
-        errors.push("Repository URL is required");
+        errors.push('Repository URL is required');
       }
 
       if (!repo.branch?.trim()) {
-        errors.push("Branch is required");
+        errors.push('Branch is required');
       }
 
       if (repo.url && !this.isValidGitUrl(repo.url)) {
-        errors.push("Invalid Git repository URL");
+        errors.push('Invalid Git repository URL');
       }
     }
 
     return errors;
   }
 
-  static validateArchitectureComponents(
-    components?: ArchitectureComponent[]
-  ): string[] {
+  static validateArchitectureComponents(components?: ArchitectureComponent[]): string[] {
     const errors: string[] = [];
 
     if (components && components.length === 0) {
-      errors.push("At least one architecture component is required");
+      errors.push('At least one architecture component is required');
     }
 
     return errors;
   }
 
   private static isValidGitUrl(url: string): boolean {
-    const gitUrlPattern =
-      /^https?:\/\/(?:[\w.-]+@)?[\w.-]+(?:\.[\w.-]+)*\/?[\w./-]+$/;
+    const gitUrlPattern = /^https?:\/\/(?:[\w.-]+@)?[\w.-]+(?:\.[\w.-]+)*\/?[\w./-]+$/;
     return gitUrlPattern.test(url);
   }
 }

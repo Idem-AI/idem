@@ -3,7 +3,7 @@ import { QuotaService } from '../services/quota.service';
 
 @Directive({
   selector: '[appBetaFeature]',
-  standalone: true
+  standalone: true,
 })
 export class BetaFeatureDirective implements OnInit {
   @Input('appBetaFeature') featureName: string = '';
@@ -74,8 +74,16 @@ export class BetaFeatureDirective implements OnInit {
       this.renderer.addClass(this.placeholderElement, 'beta-feature-placeholder');
       this.renderer.setStyle(this.placeholderElement, 'padding', '8px');
       this.renderer.setStyle(this.placeholderElement, 'margin', '4px');
-      this.renderer.setStyle(this.placeholderElement, 'background-color', 'rgba(249, 115, 22, 0.1)');
-      this.renderer.setStyle(this.placeholderElement, 'border', '1px dashed rgba(249, 115, 22, 0.3)');
+      this.renderer.setStyle(
+        this.placeholderElement,
+        'background-color',
+        'rgba(249, 115, 22, 0.1)'
+      );
+      this.renderer.setStyle(
+        this.placeholderElement,
+        'border',
+        '1px dashed rgba(249, 115, 22, 0.3)'
+      );
       this.renderer.setStyle(this.placeholderElement, 'border-radius', '6px');
       this.renderer.setStyle(this.placeholderElement, 'text-align', 'center');
       this.renderer.setStyle(this.placeholderElement, 'color', 'rgba(249, 115, 22, 0.8)');
@@ -107,8 +115,11 @@ export class BetaFeatureDirective implements OnInit {
 
     // Ajouter un tooltip explicatif si demandé
     if (this.betaShowMessage) {
-      this.renderer.setAttribute(this.originalElement, 'title', 
-        'Cette fonctionnalité n\'est pas disponible en version bêta');
+      this.renderer.setAttribute(
+        this.originalElement,
+        'title',
+        "Cette fonctionnalité n'est pas disponible en version bêta"
+      );
     }
   }
 
@@ -118,8 +129,11 @@ export class BetaFeatureDirective implements OnInit {
     this.renderer.addClass(this.originalElement, 'beta-opacity');
 
     if (this.betaShowMessage) {
-      this.renderer.setAttribute(this.originalElement, 'title', 
-        'Cette fonctionnalité n\'est pas disponible en version bêta');
+      this.renderer.setAttribute(
+        this.originalElement,
+        'title',
+        "Cette fonctionnalité n'est pas disponible en version bêta"
+      );
     }
   }
 
@@ -140,7 +154,7 @@ export class BetaFeatureDirective implements OnInit {
     this.renderer.removeStyle(this.originalElement, 'opacity');
     this.renderer.removeStyle(this.originalElement, 'cursor');
     this.renderer.removeAttribute(this.originalElement, 'title');
-    
+
     // Supprimer les classes ajoutées
     this.renderer.removeClass(this.originalElement, 'beta-disabled');
     this.renderer.removeClass(this.originalElement, 'beta-opacity');

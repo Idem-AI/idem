@@ -1,18 +1,18 @@
-import useUserStore from "./stores/userSlice";
-import useChatModeStore from "./stores/chatModeSlice";
-import { GlobalLimitModal } from "./components/UserModal";
-import Header from "./components/Header";
-import AiChat from "./components/AiChat";
-import EditorPreviewTabs from "./components/EditorPreviewTabs";
-import "./utils/i18";
-import classNames from "classnames";
-import { ChatMode } from "./types/chat";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { UpdateTip } from "./components/UpdateTip";
-import useInit from "./hooks/useInit";
-import { Loading } from "./components/loading";
-import TopViewContainer from "./components/TopView";
+import useUserStore from './stores/userSlice';
+import useChatModeStore from './stores/chatModeSlice';
+import { GlobalLimitModal } from './components/UserModal';
+import Header from './components/Header';
+import AiChat from './components/AiChat';
+import EditorPreviewTabs from './components/EditorPreviewTabs';
+import './utils/i18';
+import classNames from 'classnames';
+import { ChatMode } from './types/chat';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { UpdateTip } from './components/UpdateTip';
+import useInit from './hooks/useInit';
+import { Loading } from './components/loading';
+import TopViewContainer from './components/TopView';
 
 function App() {
   const { mode, initOpen } = useChatModeStore();
@@ -25,12 +25,9 @@ function App() {
     <TopViewContainer>
       <GlobalLimitModal onLogin={openLoginModal} />
       <div
-        className={classNames(
-          "h-screen w-screen flex flex-col ",
-          {
-            dark: isDarkMode,
-          }
-        )}
+        className={classNames('h-screen w-screen flex flex-col ', {
+          dark: isDarkMode,
+        })}
       >
         <Header />
         <div className="flex flex-row w-full h-full max-h-[calc(100%-48px)] bg-white dark:bg-[#111]">

@@ -1,5 +1,5 @@
-import { storageService } from "../services/storage.service";
-import { createGeneratedAppZips } from "./zip-generator";
+import { storageService } from '../services/storage.service';
+import { createGeneratedAppZips } from './zip-generator';
 
 export interface GeneratedAppCode {
   frontend?: Record<string, any>;
@@ -34,7 +34,7 @@ export async function generateAndUploadAppZips(
   projectId: string
 ): Promise<StorageUploadResult> {
   try {
-    console.log("Starting app generation and upload process", {
+    console.log('Starting app generation and upload process', {
       userId,
       projectId,
       hasFrontend: !!generatedCode.frontend,
@@ -45,7 +45,7 @@ export async function generateAndUploadAppZips(
     const zipBuffers = await createGeneratedAppZips(generatedCode);
 
     if (!zipBuffers.frontend && !zipBuffers.backend) {
-      throw new Error("No zip files were generated");
+      throw new Error('No zip files were generated');
     }
 
     // Step 2: Upload to Firebase Storage
@@ -76,7 +76,7 @@ export async function generateAndUploadAppZips(
       };
     }
 
-    console.log("App generation and upload completed successfully", {
+    console.log('App generation and upload completed successfully', {
       userId,
       projectId,
       result,
@@ -84,10 +84,8 @@ export async function generateAndUploadAppZips(
 
     return result;
   } catch (error: any) {
-    console.error("Error in generateAndUploadAppZips:", error);
-    throw new Error(
-      `Failed to generate and upload app zips: ${error.message}`
-    );
+    console.error('Error in generateAndUploadAppZips:', error);
+    throw new Error(`Failed to generate and upload app zips: ${error.message}`);
   }
 }
 
@@ -106,7 +104,7 @@ export async function updateAppZips(
   }
 ): Promise<StorageUploadResult> {
   try {
-    console.log("Starting app update process", {
+    console.log('Starting app update process', {
       hasFrontend: !!generatedCode.frontend,
       hasBackend: !!generatedCode.backend,
       frontendPath: existingPaths.frontendFilePath,
@@ -147,13 +145,13 @@ export async function updateAppZips(
       };
     }
 
-    console.log("App update completed successfully", {
+    console.log('App update completed successfully', {
       result,
     });
 
     return result;
   } catch (error: any) {
-    console.error("Error in updateAppZips:", error);
+    console.error('Error in updateAppZips:', error);
     throw new Error(`Failed to update app zips: ${error.message}`);
   }
 }

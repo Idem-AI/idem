@@ -1,10 +1,10 @@
-import { Response } from "express";
-import { CustomRequest } from "../interfaces/express.interface";
-import { BusinessPlanService } from "../services/BusinessPlan/businessPlan.service";
-import { PromptService } from "../services/prompt.service";
-import logger from "../config/logger";
-import { userService } from "../services/user.service";
-import { ISectionResult } from "../services/common/generic.service";
+import { Response } from 'express';
+import { CustomRequest } from '../interfaces/express.interface';
+import { BusinessPlanService } from '../services/BusinessPlan/businessPlan.service';
+import { PromptService } from '../services/prompt.service';
+import logger from '../config/logger';
+import { userService } from '../services/user.service';
+import { ISectionResult } from '../services/common/generic.service';
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -24,23 +24,16 @@ export const getBusinessPlansByProjectController = async (
   );
   try {
     if (!userId) {
-      logger.warn(
-        "User not authenticated for getBusinessPlansByProjectController"
-      );
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn('User not authenticated for getBusinessPlansByProjectController');
+      res.status(401).json({ message: 'User not authenticated' });
       return;
     }
     if (!projectId) {
-      logger.warn(
-        "Project ID is required for getBusinessPlansByProjectController"
-      );
-      res.status(400).json({ message: "Project ID is required" });
+      logger.warn('Project ID is required for getBusinessPlansByProjectController');
+      res.status(400).json({ message: 'Project ID is required' });
       return;
     }
-    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(
-      userId,
-      projectId
-    );
+    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId);
     if (businessPlan) {
       logger.info(
         `Business plan fetched successfully for project - UserId: ${userId}, ProjectId: ${projectId}`
@@ -50,9 +43,7 @@ export const getBusinessPlansByProjectController = async (
       logger.warn(
         `Business plan not found for project - UserId: ${userId}, ProjectId: ${projectId}`
       );
-      res
-        .status(404)
-        .json({ message: "Business plan not found for the project" });
+      res.status(404).json({ message: 'Business plan not found for the project' });
     }
   } catch (error: any) {
     logger.error(
@@ -60,7 +51,7 @@ export const getBusinessPlansByProjectController = async (
       { stack: error.stack, params: req.params }
     );
     res.status(500).json({
-      message: error.message || "Failed to retrieve business plan items",
+      message: error.message || 'Failed to retrieve business plan items',
     });
   }
 };
@@ -80,43 +71,33 @@ export const generateBusinessPlanPdfController = async (
 
   try {
     if (!userId) {
-      logger.warn(
-        "User not authenticated for generateBusinessPlanPdfController"
-      );
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn('User not authenticated for generateBusinessPlanPdfController');
+      res.status(401).json({ message: 'User not authenticated' });
       return;
     }
 
     if (!projectId) {
-      logger.warn(
-        "Project ID is required for generateBusinessPlanPdfController"
-      );
-      res.status(400).json({ message: "Project ID is required" });
+      logger.warn('Project ID is required for generateBusinessPlanPdfController');
+      res.status(400).json({ message: 'Project ID is required' });
       return;
     }
 
     // Générer le PDF à partir des sections du business plan
-    const pdfPath = await businessPlanService.generateBusinessPlanPdf(
-      userId,
-      projectId
-    );
+    const pdfPath = await businessPlanService.generateBusinessPlanPdf(userId, projectId);
 
-    if (pdfPath === "") {
-      res.status(404).json({ message: "No business plan found" });
+    if (pdfPath === '') {
+      res.status(404).json({ message: 'No business plan found' });
       return;
     }
 
     // Lire le fichier PDF généré
-    const fs = require("fs-extra");
+    const fs = require('fs-extra');
     const pdfBuffer = await fs.readFile(pdfPath);
 
     // Configurer les headers pour le téléchargement du PDF
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="business-plan-${projectId}.pdf"`
-    );
-    res.setHeader("Content-Length", pdfBuffer.length);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="business-plan-${projectId}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
 
     // Envoyer le PDF
     res.send(pdfBuffer);
@@ -134,7 +115,7 @@ export const generateBusinessPlanPdfController = async (
     );
 
     res.status(500).json({
-      message: "Error generating business plan PDF",
+      message: 'Error generating business plan PDF',
       error: error.message,
     });
   }
@@ -151,24 +132,19 @@ export const getBusinessPlanByIdController = async (
   );
   try {
     if (!userId) {
-      logger.warn("User not authenticated for getBusinessPlanByIdController");
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn('User not authenticated for getBusinessPlanByIdController');
+      res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(
-      userId,
-      projectId
-    );
+    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId);
     if (businessPlan) {
       logger.info(
         `Business plan fetched successfully - UserId: ${userId}, ProjectId: ${projectId}`
       );
       res.status(200).json(businessPlan);
     } else {
-      logger.warn(
-        `Business plan not found - UserId: ${userId}, ProjectId: ${projectId}`
-      );
-      res.status(404).json({ message: "Business plan not found" });
+      logger.warn(`Business plan not found - UserId: ${userId}, ProjectId: ${projectId}`);
+      res.status(404).json({ message: 'Business plan not found' });
     }
   } catch (error: any) {
     logger.error(
@@ -176,7 +152,7 @@ export const getBusinessPlanByIdController = async (
       { stack: error.stack, params: req.params }
     );
     res.status(500).json({
-      message: error.message || "Failed to retrieve business plan item",
+      message: error.message || 'Failed to retrieve business plan item',
     });
   }
 };
@@ -187,31 +163,22 @@ export const updateBusinessPlanController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { itemId } = req.params;
-  logger.info(
-    `updateBusinessPlanController called - UserId: ${userId}, ItemId: ${itemId}`,
-    { body: req.body }
-  );
+  logger.info(`updateBusinessPlanController called - UserId: ${userId}, ItemId: ${itemId}`, {
+    body: req.body,
+  });
   try {
     if (!userId) {
-      logger.warn("User not authenticated for updateBusinessPlanController");
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn('User not authenticated for updateBusinessPlanController');
+      res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    const item = await businessPlanService.updateBusinessPlan(
-      userId,
-      itemId,
-      req.body
-    );
+    const item = await businessPlanService.updateBusinessPlan(userId, itemId, req.body);
     if (item) {
-      logger.info(
-        `Business plan updated successfully - UserId: ${userId}, ItemId: ${itemId}`
-      );
+      logger.info(`Business plan updated successfully - UserId: ${userId}, ItemId: ${itemId}`);
       res.status(200).json(item);
     } else {
-      logger.warn(
-        `Business plan item not found for update - UserId: ${userId}, ItemId: ${itemId}`
-      );
-      res.status(404).json({ message: "Business plan item not found" });
+      logger.warn(`Business plan item not found for update - UserId: ${userId}, ItemId: ${itemId}`);
+      res.status(404).json({ message: 'Business plan item not found' });
     }
   } catch (error: any) {
     logger.error(
@@ -219,7 +186,7 @@ export const updateBusinessPlanController = async (
       { stack: error.stack, body: req.body, params: req.params }
     );
     res.status(500).json({
-      message: error.message || "Failed to update business plan item",
+      message: error.message || 'Failed to update business plan item',
     });
   }
 };
@@ -230,19 +197,15 @@ export const deleteBusinessPlanController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { itemId } = req.params;
-  logger.info(
-    `deleteBusinessPlanController called - UserId: ${userId}, ItemId: ${itemId}`
-  );
+  logger.info(`deleteBusinessPlanController called - UserId: ${userId}, ItemId: ${itemId}`);
   try {
     if (!userId) {
-      logger.warn("User not authenticated for deleteBusinessPlanController");
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn('User not authenticated for deleteBusinessPlanController');
+      res.status(401).json({ message: 'User not authenticated' });
       return;
     }
     await businessPlanService.deleteBusinessPlan(userId, itemId);
-    logger.info(
-      `Business plan deleted successfully - UserId: ${userId}, ItemId: ${itemId}`
-    );
+    logger.info(`Business plan deleted successfully - UserId: ${userId}, ItemId: ${itemId}`);
     res.status(204).send();
   } catch (error: any) {
     logger.error(
@@ -250,7 +213,7 @@ export const deleteBusinessPlanController = async (
       { stack: error.stack, params: req.params }
     );
     res.status(500).json({
-      message: error.message || "Failed to delete business plan item",
+      message: error.message || 'Failed to delete business plan item',
     });
   }
 };
@@ -267,32 +230,28 @@ export const generateBusinessPlanStreamingController = async (
 
   try {
     if (!userId) {
-      logger.warn(
-        "User not authenticated for generateBusinessPlanStreamingController"
-      );
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn('User not authenticated for generateBusinessPlanStreamingController');
+      res.status(401).json({ message: 'User not authenticated' });
       return;
     }
 
     if (!projectId) {
-      logger.warn(
-        "Project ID is required for generateBusinessPlanStreamingController"
-      );
-      res.status(400).json({ message: "Project ID is required" });
+      logger.warn('Project ID is required for generateBusinessPlanStreamingController');
+      res.status(400).json({ message: 'Project ID is required' });
       return;
     }
 
     // Configuration pour SSE (Server-Sent Events)
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no"); // Pour Nginx
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Pour Nginx
 
     // Fonction de callback pour envoyer chaque résultat d'étape
     const streamCallback = async (stepResult: ISectionResult) => {
       try {
         // Déterminer le type d'événement
-        const eventType = stepResult.parsedData?.status || "progress";
+        const eventType = stepResult.parsedData?.status || 'progress';
 
         // Créer un message structuré pour le frontend
         const message = {
@@ -321,20 +280,17 @@ export const generateBusinessPlanStreamingController = async (
     };
 
     // Appel au service avec le callback de streaming
-    const updatedProject =
-      await businessPlanService.generateBusinessPlanWithStreaming(
-        userId,
-        projectId,
-        streamCallback // Passer le callback de streaming
-      );
+    const updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
+      userId,
+      projectId,
+      streamCallback // Passer le callback de streaming
+    );
 
     if (!updatedProject) {
-      logger.warn(
-        `Failed to generate business plan - UserId: ${userId}, ProjectId: ${projectId}`
-      );
+      logger.warn(`Failed to generate business plan - UserId: ${userId}, ProjectId: ${projectId}`);
       res.write(
         `data: ${JSON.stringify({
-          error: "Failed to generate business plan",
+          error: 'Failed to generate business plan',
         })}\n\n`
       );
       res.end();
@@ -344,15 +300,13 @@ export const generateBusinessPlanStreamingController = async (
     // Obtenir le business plan du projet mis à jour
     const newBusinessPlan = updatedProject.analysisResultModel?.businessPlan;
 
-    logger.info(
-      `Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}`
-    );
+    logger.info(`Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}`);
     userService.incrementUsage(userId, 5);
 
     // Envoyer un événement de fin
     res.write(
       `data: ${JSON.stringify({
-        type: "complete",
+        type: 'complete',
         businessPlan: newBusinessPlan,
       })}\n\n`
     );
@@ -381,19 +335,17 @@ export const setAdditionalInfoController = async (
     const userId = req.user?.uid;
     const { projectId } = req.params;
 
-    logger.info(
-      `Set additional info request from userId: ${userId}, projectId: ${projectId}`
-    );
+    logger.info(`Set additional info request from userId: ${userId}, projectId: ${projectId}`);
 
     if (!userId) {
-      logger.warn("Unauthorized set additional info request - no userId");
-      res.status(401).json({ message: "Non autorisé" });
+      logger.warn('Unauthorized set additional info request - no userId');
+      res.status(401).json({ message: 'Non autorisé' });
       return;
     }
 
     if (!projectId) {
-      logger.warn("Missing projectId for set additional info");
-      res.status(400).json({ message: "Project ID requis" });
+      logger.warn('Missing projectId for set additional info');
+      res.status(400).json({ message: 'Project ID requis' });
       return;
     }
 
@@ -401,35 +353,28 @@ export const setAdditionalInfoController = async (
     let additionalInfos;
     try {
       // Check if additionalInfos is a string (from multipart) or already an object
-      if (typeof req.body.additionalInfos === "string") {
+      if (typeof req.body.additionalInfos === 'string') {
         additionalInfos = JSON.parse(req.body.additionalInfos);
       } else {
         additionalInfos = req.body;
       }
     } catch (parseError: any) {
       logger.error(`Error parsing additional infos: ${parseError.message}`);
-      res
-        .status(400)
-        .json({ message: "Format des informations additionnelles invalide" });
+      res.status(400).json({ message: 'Format des informations additionnelles invalide' });
       return;
     }
 
     // Validate required fields
     if (!additionalInfos.email) {
-      logger.warn("Missing required email in additional infos");
-      res
-        .status(400)
-        .json({ message: "Email requis dans les informations additionnelles" });
+      logger.warn('Missing required email in additional infos');
+      res.status(400).json({ message: 'Email requis dans les informations additionnelles' });
       return;
     }
 
-    if (
-      !additionalInfos.teamMembers ||
-      !Array.isArray(additionalInfos.teamMembers)
-    ) {
-      logger.warn("Missing or invalid teamMembers in additional infos");
+    if (!additionalInfos.teamMembers || !Array.isArray(additionalInfos.teamMembers)) {
+      logger.warn('Missing or invalid teamMembers in additional infos');
       res.status(400).json({
-        message: "Team members requis dans les informations additionnelles",
+        message: 'Team members requis dans les informations additionnelles',
       });
       return;
     }
@@ -452,15 +397,13 @@ export const setAdditionalInfoController = async (
 
     if (!result.project) {
       logger.warn(`Failed to set additional infos for project: ${projectId}`);
-      res
-        .status(404)
-        .json({ message: "Projet non trouvé ou échec de la mise à jour" });
+      res.status(404).json({ message: 'Projet non trouvé ou échec de la mise à jour' });
       return;
     }
 
     logger.info(`Additional infos set successfully for project: ${projectId}`);
     res.json({
-      message: "Informations additionnelles mises à jour avec succès",
+      message: 'Informations additionnelles mises à jour avec succès',
       project: result.project,
       uploadedImages: result.uploadedImages,
     });
@@ -469,6 +412,6 @@ export const setAdditionalInfoController = async (
       stack: error.stack,
       body: req.body,
     });
-    res.status(500).json({ message: "Erreur interne du serveur" });
+    res.status(500).json({ message: 'Erreur interne du serveur' });
   }
 };

@@ -21,8 +21,7 @@ export class ShowDevelopment implements OnInit {
   private readonly cookieService = inject(CookieService);
 
   // State management using signals
-  protected readonly developmentConfigs =
-    signal<DevelopmentConfigsModel | null>(null);
+  protected readonly developmentConfigs = signal<DevelopmentConfigsModel | null>(null);
   protected readonly loading = signal<boolean>(false);
   protected readonly error = signal<string | null>(null);
   protected readonly projectId = signal<string>('');
@@ -76,17 +75,13 @@ export class ShowDevelopment implements OnInit {
           if (configs !== null) {
             this.developmentConfigs.set(configs);
           } else {
-            this.error.set(
-              'No development configurations found for this project.'
-            );
+            this.error.set('No development configurations found for this project.');
             this.router.navigate(['/console/development/create']);
           }
         }),
         catchError((err) => {
           console.error('Error fetching development configs:', err);
-          this.error.set(
-            'Failed to load development configurations. Please try again.'
-          );
+          this.error.set('Failed to load development configurations. Please try again.');
           return of(null);
         }),
         finalize(() => {

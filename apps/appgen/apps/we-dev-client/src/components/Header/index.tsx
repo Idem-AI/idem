@@ -1,5 +1,5 @@
-import { ProjectTitle } from "./ProjectTitle";
-import { HeaderActions } from "./HeaderActions";
+import { ProjectTitle } from './ProjectTitle';
+import { HeaderActions } from './HeaderActions';
 
 function Header() {
   return (
@@ -7,13 +7,13 @@ function Header() {
       <div className="flex-1">
         <ProjectTitle />
       </div>
-      
+
       {/* Logo and Brand */}
       <div className="flex items-center space-x-2">
         <img className="w-20 h-auto" src="public/assets/icons/logo_white.png" alt="logo" />
         <h1 className="opacity-90 text-[18px] font-bold text-gray-900 dark:text-white">APPGEN</h1>
       </div>
-      
+
       <div className="flex-1 flex justify-end">
         <HeaderActions />
       </div>

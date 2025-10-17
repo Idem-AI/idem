@@ -23,6 +23,6 @@ export default getRequestConfig(async ({ locale }) => {
         return null;
       }
       throw error;
-    }
+    },
   };
-}); 
+});

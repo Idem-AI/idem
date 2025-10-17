@@ -13,7 +13,7 @@ export function CreateFileDialog({ path, onSubmit, onCancel }: CreateFileDialogP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isValidFileName(fileName)) {
       setError('Invalid file name. Please avoid special characters.');
       return;
@@ -24,11 +24,13 @@ export function CreateFileDialog({ path, onSubmit, onCancel }: CreateFileDialogP
 
   return (
     <div className="fixed inset-0 bg-black/20 dark:bg-black/50 flex items-center justify-center z-50">
-      <form 
+      <form
         onSubmit={handleSubmit}
         className="bg-white dark:bg-[#1a1a1c] rounded-lg shadow-xl w-[400px] p-4 border border-[#e4e4e4] dark:border-[#454545]"
       >
-        <h2 className="text-sm font-semibold mb-4 text-[#444444] dark:text-white">Create New File</h2>
+        <h2 className="text-sm font-semibold mb-4 text-[#444444] dark:text-white">
+          Create New File
+        </h2>
         <div className="mb-4">
           <input
             type="text"

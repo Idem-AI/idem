@@ -75,18 +75,12 @@ export class DiagramGeneration implements OnInit, OnDestroy {
   protected readonly diagenUrl = environment.services.diagen.url;
 
   // Computed properties using the new generation state
-  protected readonly isGenerating = computed(
-    () => this.generationState().isGenerating
-  );
-  protected readonly generationError = computed(
-    () => this.generationState().error
-  );
+  protected readonly isGenerating = computed(() => this.generationState().isGenerating);
+  protected readonly generationError = computed(() => this.generationState().error);
   protected readonly completedSteps = computed(() =>
     this.generationState().steps.filter((step) => step.status === 'completed')
   );
-  protected readonly isCompleted = computed(
-    () => this.generationState().completed
-  );
+  protected readonly isCompleted = computed(() => this.generationState().completed);
   protected readonly progressPercentage = computed(() =>
     this.generationService.calculateProgress(this.generationState())
   );
@@ -124,9 +118,7 @@ export class DiagramGeneration implements OnInit, OnDestroy {
     this.resetGenerationState();
     console.log('Starting diagram generation with SSE...');
 
-    const sseConnection = this.diagramsService.createDiagramModel(
-      this.projectId()
-    );
+    const sseConnection = this.diagramsService.createDiagramModel(this.projectId());
 
     this.generationService
       .startGeneration('diagram', sseConnection)

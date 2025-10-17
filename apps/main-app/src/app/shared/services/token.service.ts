@@ -16,20 +16,20 @@ export class TokenService {
   private cookieService = inject(CookieService);
   private tokenSubject = new BehaviorSubject<string | null>(null);
   private authReadySubject = new BehaviorSubject<boolean>(false);
-  
+
   private readonly TOKEN_COOKIE = 'authToken';
   private readonly TOKEN_EXPIRY_COOKIE = 'authTokenExpiry';
 
   // Observable that emits the current token
   public token$ = this.tokenSubject.asObservable();
-  
+
   // Observable that emits when auth is ready (true when initialized)
   public authReady$ = this.authReadySubject.asObservable();
 
   constructor() {
     // Initialize token from cookies first
     this.loadTokenFromCookies();
-    
+
     // Listen for auth state changes and update token accordingly
     onAuthStateChanged(this.auth, (user) => {
       if (user) {
@@ -42,12 +42,10 @@ export class TokenService {
           console.log('Using valid cached token');
         }
       } else {
-        console.log(
-          'Auth state changed: User not authenticated, clearing token'
-        );
+        console.log('Auth state changed: User not authenticated, clearing token');
         this.clearToken();
       }
-      
+
       // Mark auth as ready after first state change
       if (!this.authReadySubject.value) {
         console.log('Auth initialization complete');
@@ -124,12 +122,12 @@ export class TokenService {
         console.log('TokenService: Using valid cached token');
         return cachedToken;
       }
-      
+
       if (!this.auth.currentUser) {
         console.log('TokenService: No current user available');
         return null;
       }
-      
+
       // Only refresh from Firebase if cached token is invalid/expired
       console.log('TokenService: Cached token invalid, refreshing from Firebase');
       const token = await this.auth.currentUser.getIdToken(true);
@@ -166,10 +164,13 @@ export class TokenService {
    * Returns a Promise that resolves when Firebase Auth has initialized
    */
   public waitForAuthReady(): Promise<void> {
-    return this.authReady$.pipe(
-      filter(ready => ready === true),
-      take(1)
-    ).toPromise().then(() => void 0);
+    return this.authReady$
+      .pipe(
+        filter((ready) => ready === true),
+        take(1)
+      )
+      .toPromise()
+      .then(() => void 0);
   }
 
   /**
@@ -196,11 +197,11 @@ export class TokenService {
   private saveTokenToCookies(token: string): void {
     try {
       // JWT tokens are typically valid for 1 hour
-      const expirationTime = Date.now() + (55 * 60 * 1000); // 55 minutes to be safe
-      
+      const expirationTime = Date.now() + 55 * 60 * 1000; // 55 minutes to be safe
+
       this.cookieService.set(this.TOKEN_COOKIE, token, 1); // 1 day cookie expiry
       this.cookieService.set(this.TOKEN_EXPIRY_COOKIE, expirationTime.toString(), 1);
-      
+
       console.log('TokenService: Token saved to cookies with expiration');
     } catch (error) {
       console.error('Error saving token to cookies:', error);
@@ -214,14 +215,14 @@ export class TokenService {
     try {
       const token = this.cookieService.get(this.TOKEN_COOKIE);
       const expiryStr = this.cookieService.get(this.TOKEN_EXPIRY_COOKIE);
-      
+
       if (!token || !expiryStr) {
         return false;
       }
-      
+
       const expiry = parseInt(expiryStr, 10);
       const now = Date.now();
-      
+
       return now < expiry;
     } catch (error) {
       console.error('Error checking token validity:', error);

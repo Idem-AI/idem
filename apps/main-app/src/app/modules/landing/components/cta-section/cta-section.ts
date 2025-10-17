@@ -13,9 +13,9 @@ interface CtaFeature {
 @Component({
   selector: 'app-cta-section',
   standalone: true,
-  imports: [CommonModule,RouterLink],
+  imports: [CommonModule, RouterLink],
   templateUrl: './cta-section.html',
-  styleUrl: './cta-section.css'
+  styleUrl: './cta-section.css',
 })
 export class CtaSection implements OnInit {
   // Angular-initialized properties
@@ -28,20 +28,20 @@ export class CtaSection implements OnInit {
       id: 'launch-minutes',
       icon: 'pi-bolt',
       title: 'Launch in Minutes',
-      description: 'From idea to deployed application in under 10 minutes'
+      description: 'From idea to deployed application in under 10 minutes',
     },
     {
       id: 'enterprise-ready',
       icon: 'pi-shield',
       title: 'Enterprise Ready',
-      description: 'Production-grade security and scalability built-in'
+      description: 'Production-grade security and scalability built-in',
     },
     {
       id: 'free-forever',
       icon: 'pi-heart',
       title: 'Free Forever',
-      description: 'Core features always free, no hidden costs or limits'
-    }
+      description: 'Core features always free, no hidden costs or limits',
+    },
   ]);
 
   protected readonly isHovered = signal<boolean>(false);
@@ -74,23 +74,23 @@ export class CtaSection implements OnInit {
   private setupSeoForCtaSectionComponent(): void {
     // Add structured data for CTA section features
     const ctaSectionStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "WebPageElement",
-      "name": "Platform Benefits",
-      "description": "Key benefits of using Idem platform for rapid application development",
-      "mainEntity": {
-        "@type": "ItemList",
-        "name": "Platform Features",
-        "itemListElement": this.features().map((feature, index) => ({
-          "@type": "ListItem",
-          "position": index + 1,
-          "item": {
-            "@type": "Thing",
-            "name": feature.title,
-            "description": feature.description
-          }
-        }))
-      }
+      '@context': 'https://schema.org',
+      '@type': 'WebPageElement',
+      name: 'Platform Benefits',
+      description: 'Key benefits of using Idem platform for rapid application development',
+      mainEntity: {
+        '@type': 'ItemList',
+        name: 'Platform Features',
+        itemListElement: this.features().map((feature, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          item: {
+            '@type': 'Thing',
+            name: feature.title,
+            description: feature.description,
+          },
+        })),
+      },
     };
 
     // Add structured data to page if not already present

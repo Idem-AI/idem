@@ -5,12 +5,12 @@ export interface LogoShape {
   stroke?: string;
   strokeWidth?: number;
   opacity?: number;
-  
+
   // Circle properties
   cx?: number;
   cy?: number;
   r?: number;
-  
+
   // Rectangle properties
   x?: number;
   y?: number;
@@ -18,19 +18,19 @@ export interface LogoShape {
   h?: number;
   rx?: number; // border radius
   ry?: number;
-  
+
   // Path properties
   d?: string;
-  
+
   // Polygon properties
   points?: string;
-  
+
   // Line properties
   x1?: number;
   y1?: number;
   x2?: number;
   y2?: number;
-  
+
   // Ellipse properties
   rx_ellipse?: number;
   ry_ellipse?: number;

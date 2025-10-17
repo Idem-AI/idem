@@ -1,9 +1,4 @@
-import {
-  HttpEvent,
-  HttpHandlerFn,
-  HttpInterceptorFn,
-  HttpRequest,
-} from '@angular/common/http';
+import { HttpEvent, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { PLATFORM_ID, inject } from '@angular/core';
 import { TokenService } from '../services/token.service';
 import { isPlatformServer } from '@angular/common';
@@ -48,13 +43,13 @@ export const authInterceptor: HttpInterceptorFn = (
     switchMap(() => {
       // First try to get cached token (fast path)
       const cachedToken = tokenService.getToken();
-      
+
       if (cachedToken) {
         console.log('Auth Interceptor: Using cached token for request:', req.url);
         const authReq = req.clone({
           headers: req.headers.set('Authorization', `Bearer ${cachedToken}`),
         });
-        
+
         return next(authReq).pipe(
           catchError((error) => {
             // If we get 401/403, the cached token might be expired
@@ -66,12 +61,12 @@ export const authInterceptor: HttpInterceptorFn = (
                     console.error('Auth Interceptor: Token refresh failed');
                     throw error;
                   }
-                  
+
                   console.log('Auth Interceptor: Retrying request with refreshed token');
                   const retryReq = req.clone({
                     headers: req.headers.set('Authorization', `Bearer ${refreshedToken}`),
                   });
-                  
+
                   return next(retryReq);
                 }),
                 catchError(() => {
@@ -84,20 +79,23 @@ export const authInterceptor: HttpInterceptorFn = (
           })
         );
       }
-      
+
       // No cached token, try to get one from Firebase (slow path)
       console.log('Auth Interceptor: No cached token, getting from Firebase for request:', req.url);
       return from(tokenService.getTokenAsync()).pipe(
         switchMap((token: string | null) => {
           if (!token) {
-            console.warn('Auth Interceptor: No authentication token available for request:', req.url);
+            console.warn(
+              'Auth Interceptor: No authentication token available for request:',
+              req.url
+            );
             return next(req);
           }
-          
+
           const authReq = req.clone({
             headers: req.headers.set('Authorization', `Bearer ${token}`),
           });
-          
+
           return next(authReq);
         }),
         catchError((error) => {

@@ -1,14 +1,8 @@
-import {
-  Component,
-  inject,
-  signal,
-  OnInit,
-  DestroyRef,
-} from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
 import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { BetaBadgeComponent } from "../../shared/components/beta-badge/beta-badge";
-import { QuotaDisplayComponent } from "../../shared/components/quota-display/quota-display";
+import { BetaBadgeComponent } from '../../shared/components/beta-badge/beta-badge';
+import { QuotaDisplayComponent } from '../../shared/components/quota-display/quota-display';
 import { AuthService } from '../../modules/auth/services/auth.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

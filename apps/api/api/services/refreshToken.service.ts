@@ -1,8 +1,8 @@
-import crypto from "crypto";
-import logger from "../config/logger";
-import { RefreshTokenData, UserModel } from "../models/userModel";
-import { IRepository } from "../repository/IRepository";
-import { RepositoryFactory } from "../repository/RepositoryFactory";
+import crypto from 'crypto';
+import logger from '../config/logger';
+import { RefreshTokenData, UserModel } from '../models/userModel';
+import { IRepository } from '../repository/IRepository';
+import { RepositoryFactory } from '../repository/RepositoryFactory';
 
 export interface RefreshTokenResult {
   refreshToken: string;
@@ -22,7 +22,7 @@ class RefreshTokenService {
 
   constructor() {
     this.userRepository = RepositoryFactory.getRepository<UserModel>();
-    logger.info("RefreshTokenService initialized");
+    logger.info('RefreshTokenService initialized');
   }
 
   /**
@@ -50,7 +50,7 @@ class RefreshTokenService {
       };
 
       // Récupérer l'utilisateur
-      const user = await this.userRepository.findById(userId, "users");
+      const user = await this.userRepository.findById(userId, 'users');
       if (!user) {
         throw new Error(`User ${userId} not found`);
       }
@@ -75,11 +75,7 @@ class RefreshTokenService {
       user.refreshTokens.push(refreshTokenData);
 
       // Mettre à jour l'utilisateur
-      await this.userRepository.update(
-        userId,
-        { refreshTokens: user.refreshTokens },
-        "users"
-      );
+      await this.userRepository.update(userId, { refreshTokens: user.refreshTokens }, 'users');
 
       logger.info(`Refresh token generated successfully for user: ${userId}`);
       return { refreshToken: token, expiresAt };
@@ -97,15 +93,15 @@ class RefreshTokenService {
    */
   async validateRefreshToken(token: string): Promise<TokenValidationResult> {
     try {
-      logger.info("Validating refresh token");
+      logger.info('Validating refresh token');
 
       // Rechercher l'utilisateur avec ce token
-      const users = await this.userRepository.findAll("users");
-      
+      const users = await this.userRepository.findAll('users');
+
       for (const user of users) {
         if (!user.refreshTokens) continue;
 
-        const tokenData = user.refreshTokens.find(rt => rt.token === token);
+        const tokenData = user.refreshTokens.find((rt) => rt.token === token);
         if (tokenData) {
           // Vérifier si le token n'est pas expiré
           if (new Date() > tokenData.expiresAt) {
@@ -120,7 +116,7 @@ class RefreshTokenService {
           await this.userRepository.update(
             user.uid,
             { refreshTokens: user.refreshTokens },
-            "users"
+            'users'
           );
 
           logger.info(`Valid refresh token found for user: ${user.uid}`);
@@ -132,10 +128,10 @@ class RefreshTokenService {
         }
       }
 
-      logger.warn("Invalid refresh token provided");
+      logger.warn('Invalid refresh token provided');
       return { isValid: false };
     } catch (error) {
-      logger.error("Error validating refresh token:", {
+      logger.error('Error validating refresh token:', {
         error: (error as Error).message,
         stack: (error as Error).stack,
       });
@@ -150,21 +146,17 @@ class RefreshTokenService {
     try {
       logger.info(`Revoking refresh token for user: ${userId}`);
 
-      const user = await this.userRepository.findById(userId, "users");
+      const user = await this.userRepository.findById(userId, 'users');
       if (!user || !user.refreshTokens) {
         logger.warn(`User ${userId} not found or has no refresh tokens`);
         return false;
       }
 
       const initialLength = user.refreshTokens.length;
-      user.refreshTokens = user.refreshTokens.filter(rt => rt.token !== token);
+      user.refreshTokens = user.refreshTokens.filter((rt) => rt.token !== token);
 
       if (user.refreshTokens.length < initialLength) {
-        await this.userRepository.update(
-          userId,
-          { refreshTokens: user.refreshTokens },
-          "users"
-        );
+        await this.userRepository.update(userId, { refreshTokens: user.refreshTokens }, 'users');
         logger.info(`Refresh token revoked successfully for user: ${userId}`);
         return true;
       }
@@ -187,11 +179,7 @@ class RefreshTokenService {
     try {
       logger.info(`Revoking all refresh tokens for user: ${userId}`);
 
-      await this.userRepository.update(
-        userId,
-        { refreshTokens: [] },
-        "users"
-      );
+      await this.userRepository.update(userId, { refreshTokens: [] }, 'users');
 
       logger.info(`All refresh tokens revoked successfully for user: ${userId}`);
       return true;
@@ -209,22 +197,20 @@ class RefreshTokenService {
    */
   async cleanupExpiredTokens(userId: string): Promise<void> {
     try {
-      const user = await this.userRepository.findById(userId, "users");
+      const user = await this.userRepository.findById(userId, 'users');
       if (!user || !user.refreshTokens) {
         return;
       }
 
       const now = new Date();
       const initialLength = user.refreshTokens.length;
-      user.refreshTokens = user.refreshTokens.filter(rt => rt.expiresAt > now);
+      user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > now);
 
       if (user.refreshTokens.length < initialLength) {
-        await this.userRepository.update(
-          userId,
-          { refreshTokens: user.refreshTokens },
-          "users"
+        await this.userRepository.update(userId, { refreshTokens: user.refreshTokens }, 'users');
+        logger.info(
+          `Cleaned up ${initialLength - user.refreshTokens.length} expired tokens for user: ${userId}`
         );
-        logger.info(`Cleaned up ${initialLength - user.refreshTokens.length} expired tokens for user: ${userId}`);
       }
     } catch (error) {
       logger.error(`Error cleaning up expired tokens for user ${userId}:`, {
@@ -239,7 +225,7 @@ class RefreshTokenService {
    */
   async getUserRefreshTokens(userId: string): Promise<Omit<RefreshTokenData, 'token'>[]> {
     try {
-      const user = await this.userRepository.findById(userId, "users");
+      const user = await this.userRepository.findById(userId, 'users');
       if (!user || !user.refreshTokens) {
         return [];
       }
@@ -270,9 +256,9 @@ class RefreshTokenService {
    */
   async cleanupAllExpiredTokens(): Promise<void> {
     try {
-      logger.info("Starting cleanup of all expired refresh tokens");
+      logger.info('Starting cleanup of all expired refresh tokens');
 
-      const users = await this.userRepository.findAll("users");
+      const users = await this.userRepository.findAll('users');
       let totalCleaned = 0;
 
       for (const user of users) {
@@ -282,21 +268,21 @@ class RefreshTokenService {
 
         const now = new Date();
         const initialLength = user.refreshTokens.length;
-        user.refreshTokens = user.refreshTokens.filter(rt => rt.expiresAt > now);
+        user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > now);
 
         if (user.refreshTokens.length < initialLength) {
           await this.userRepository.update(
             user.uid,
             { refreshTokens: user.refreshTokens },
-            "users"
+            'users'
           );
-          totalCleaned += (initialLength - user.refreshTokens.length);
+          totalCleaned += initialLength - user.refreshTokens.length;
         }
       }
 
       logger.info(`Cleanup completed. Removed ${totalCleaned} expired refresh tokens`);
     } catch (error) {
-      logger.error("Error during global refresh token cleanup:", {
+      logger.error('Error during global refresh token cleanup:', {
         error: (error as Error).message,
         stack: (error as Error).stack,
       });

@@ -27,6 +27,7 @@ export interface UserModel {
 ### 2. Service RefreshToken (`api/services/refreshToken.service.ts`)
 
 **Fonctionnalités principales :**
+
 - `generateRefreshToken()` : Génère un nouveau refresh token
 - `validateRefreshToken()` : Valide un refresh token existant
 - `revokeRefreshToken()` : Révoque un token spécifique
@@ -34,6 +35,7 @@ export interface UserModel {
 - `cleanupExpiredTokens()` : Nettoie les tokens expirés
 
 **Configuration :**
+
 - Durée de vie : 30 jours
 - Maximum 5 tokens par utilisateur
 - Tokens sécurisés de 128 caractères (64 bytes hex)
@@ -41,6 +43,7 @@ export interface UserModel {
 ### 3. Contrôleurs d'authentification (`api/controllers/auth.controller.ts`)
 
 **Nouveaux endpoints :**
+
 - `refreshTokenController` : Rafraîchit un token d'accès
 - `logoutController` : Déconnexion avec révocation du token
 - `logoutAllController` : Déconnexion de tous les appareils
@@ -53,25 +56,30 @@ export interface UserModel {
 ## API Endpoints
 
 ### POST /auth/sessionLogin
+
 - **Fonction :** Connexion avec génération de session cookie et refresh token
 - **Réponse :** Session cookie + refresh token (cookie + body)
 
 ### POST /auth/refresh
+
 - **Fonction :** Rafraîchit le token d'accès
 - **Input :** Refresh token (cookie ou body)
 - **Réponse :** Nouveau session cookie
 
 ### POST /auth/logout
+
 - **Fonction :** Déconnexion avec révocation du refresh token
 - **Auth :** Requise
 - **Action :** Supprime les cookies et révoque le token
 
 ### POST /auth/logout-all
+
 - **Fonction :** Déconnexion de tous les appareils
 - **Auth :** Requise
 - **Action :** Révoque tous les refresh tokens
 
 ### GET /auth/refresh-tokens
+
 - **Fonction :** Liste les refresh tokens actifs
 - **Auth :** Requise
 - **Réponse :** Informations des tokens (sans les tokens eux-mêmes)
@@ -79,6 +87,7 @@ export interface UserModel {
 ## Sécurité
 
 ### Mesures de sécurité implémentées :
+
 1. **Tokens sécurisés :** Génération cryptographique avec `crypto.randomBytes(64)`
 2. **Limitation :** Maximum 5 tokens par utilisateur
 3. **Expiration :** Tokens automatiquement expirés après 30 jours
@@ -88,6 +97,7 @@ export interface UserModel {
 7. **Secure cookies :** HTTPS en production
 
 ### Rotation des tokens :
+
 - Les refresh tokens sont mis à jour à chaque utilisation (`lastUsed`)
 - Nettoyage automatique des tokens expirés
 - Suppression des plus anciens tokens si limite atteinte
@@ -95,25 +105,30 @@ export interface UserModel {
 ## Maintenance
 
 ### Script de nettoyage (`api/scripts/cleanupExpiredTokens.ts`)
+
 - Supprime tous les refresh tokens expirés du système
 - Peut être exécuté manuellement ou via cron job
 
 ### Tâches programmées (`api/config/scheduler.ts`)
+
 - Nettoyage automatique quotidien à 2h du matin UTC
 - Configuration via `node-cron`
 
 ## Configuration requise
 
 ### Variables d'environnement :
+
 - `NODE_ENV` : Détermine les paramètres de cookies (secure, sameSite)
 
 ### Dépendances :
+
 - `crypto` : Génération de tokens sécurisés
 - `node-cron` : Tâches programmées (optionnel)
 
 ## Utilisation côté client
 
 ### Flux d'authentification :
+
 1. **Login :** Appeler `/sessionLogin` avec token Firebase
 2. **Stockage :** Les cookies sont automatiquement gérés
 3. **Refresh automatique :** Le middleware gère le renouvellement
@@ -121,12 +136,14 @@ export interface UserModel {
 5. **Logout :** Appeler `/logout` ou `/logout-all`
 
 ### Gestion des erreurs :
+
 - **403 :** Token expiré, utiliser le refresh token
 - **401 :** Refresh token invalide, nouvelle authentification requise
 
 ## Monitoring et logs
 
 Tous les événements sont loggés avec Winston :
+
 - Génération de tokens
 - Validation et utilisation
 - Révocations

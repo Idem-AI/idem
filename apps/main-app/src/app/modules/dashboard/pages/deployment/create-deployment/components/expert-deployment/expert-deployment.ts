@@ -43,13 +43,10 @@ import { ALL_COMPONENTS_LIST } from './datas';
 })
 export class ExpertDeployment {
   // Expert mode state
-  protected readonly expertSelectedProvider = signal<'aws' | 'gcp' | 'azure'>(
-    'aws'
-  );
+  protected readonly expertSelectedProvider = signal<'aws' | 'gcp' | 'azure'>('aws');
   protected readonly expertSearchTerm = signal<string>('');
   protected readonly expertArchitecture = signal<ArchitectureComponent[]>([]);
-  protected readonly activeExpertComponent =
-    signal<ArchitectureComponent | null>(null);
+  protected readonly activeExpertComponent = signal<ArchitectureComponent | null>(null);
   private readonly formBuilder = inject(FormBuilder);
   // Forms
   protected deploymentConfigForm: FormGroup;
@@ -95,9 +92,7 @@ export class ExpertDeployment {
   }
 
   // Computed properties
-  protected readonly filteredCatalogue = computed(() =>
-    this.getComponentCatalogue()
-  );
+  protected readonly filteredCatalogue = computed(() => this.getComponentCatalogue());
   // Utility method for template
   objectKeys = Object.keys;
   protected readonly cookiesService = inject(CookieService);
@@ -166,9 +161,7 @@ export class ExpertDeployment {
       error: (error) => {
         console.error('Error creating deployment:', error);
         this.loadingDeployment.set(false);
-        this.errorMessages.set([
-          error.message || 'Failed to create deployment',
-        ]);
+        this.errorMessages.set([error.message || 'Failed to create deployment']);
       },
     });
   }
@@ -217,9 +210,7 @@ export class ExpertDeployment {
   }
 
   protected removeComponentFromArchitecture(instanceId: string): void {
-    this.expertArchitecture.update((arch) =>
-      arch.filter((comp) => comp.instanceId !== instanceId)
-    );
+    this.expertArchitecture.update((arch) => arch.filter((comp) => comp.instanceId !== instanceId));
     this.expertForm.removeControl(instanceId);
 
     // Clear active component if it was the one being removed
@@ -229,21 +220,15 @@ export class ExpertDeployment {
   }
   protected getActiveComponentForm(): FormGroup | null {
     const activeComponent = this.activeExpertComponent();
-    return activeComponent
-      ? (this.expertForm.get(activeComponent.instanceId) as FormGroup)
-      : null;
+    return activeComponent ? (this.expertForm.get(activeComponent.instanceId) as FormGroup) : null;
   }
 
   protected getActiveComponentModel(): CloudComponentDetailed | null {
     const activeComponent = this.activeExpertComponent();
-    return activeComponent
-      ? this.getComponentById(activeComponent.id) || null
-      : null;
+    return activeComponent ? this.getComponentById(activeComponent.id) || null : null;
   }
 
-  protected selectComponentForConfiguration(
-    component: ArchitectureComponent
-  ): void {
+  protected selectComponentForConfiguration(component: ArchitectureComponent): void {
     this.activeExpertComponent.set(component);
   }
 
@@ -268,9 +253,12 @@ export class ExpertDeployment {
           c.category.toLowerCase().includes(term))
     );
 
-    return filteredComponents.reduce((acc, comp) => {
-      (acc[comp.category] = acc[comp.category] || []).push(comp);
-      return acc;
-    }, {} as { [cat: string]: CloudComponentDetailed[] });
+    return filteredComponents.reduce(
+      (acc, comp) => {
+        (acc[comp.category] = acc[comp.category] || []).push(comp);
+        return acc;
+      },
+      {} as { [cat: string]: CloudComponentDetailed[] }
+    );
   }
 }

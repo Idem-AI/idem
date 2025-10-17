@@ -9,28 +9,20 @@
   </div>
 </div>
 } @else {
-<section
-  class="flex flex-col items-center min-h-[78vh] justify-center text-gray-100 w-full"
->
-  <h1
-    class="text-2xl md:text-5xl text-center font-bold text-gray-100 mb-8 pb-2 sm:w-[60%]"
-  >
+<section class="flex flex-col items-center min-h-[78vh] justify-center text-gray-100 w-full">
+  <h1 class="text-2xl md:text-5xl text-center font-bold text-gray-100 mb-8 pb-2 sm:w-[60%]">
     Check all your choices and finalize your project
   </h1>
   <div class="card flex justify-center w-full">
     <div class="max-w-4xl mx-auto p-6 w-full">
       <!-- Project Information Summary -->
       <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
-        <h2
-          class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2"
-        >
+        <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
           Project Information
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 class="text-lg font-semibold text-gray-300 mb-2">
-              Project Details
-            </h3>
+            <h3 class="text-lg font-semibold text-gray-300 mb-2">Project Details</h3>
             <div class="space-y-2">
               <p class="text-gray-300">
                 <span class="text-gray-400">Name:</span> {{ project().name }}
@@ -41,24 +33,19 @@
             </div>
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-gray-300 mb-2">
-              Business Informations
-            </h3>
+            <h3 class="text-lg font-semibold text-gray-300 mb-2">Business Informations</h3>
             <div class="space-y-2">
               <p class="text-gray-300">
-                <span class="text-gray-400">Team Size:</span> {{
-                project().teamSize }}
+                <span class="text-gray-400">Team Size:</span> {{ project().teamSize }}
               </p>
               <p class="text-gray-300">
                 <span class="text-gray-400">Scope:</span> {{ project().scope }}
               </p>
               <p class="text-gray-300">
-                <span class="text-gray-400">Budget:</span> {{
-                project().budgetIntervals }}
+                <span class="text-gray-400">Budget:</span> {{ project().budgetIntervals }}
               </p>
               <p class="text-gray-300">
-                <span class="text-gray-400">Target:</span> {{ project().targets
-                }}
+                <span class="text-gray-400">Target:</span> {{ project().targets }}
               </p>
             </div>
           </div>
@@ -67,9 +54,7 @@
 
       <!-- Visual Identity Summary -->
       <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
-        <h2
-          class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2"
-        >
+        <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
           Visual Identity
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -89,9 +74,7 @@
 
           <!-- Color Palette Preview -->
           <div class="bg-gray-700/30 p-4 rounded-lg">
-            <h3 class="text-lg font-semibold text-gray-300 mb-4">
-              Color Palette
-            </h3>
+            <h3 class="text-lg font-semibold text-gray-300 mb-4">Color Palette</h3>
             @if (getSelectedColor()) {
             <div class="space-y-3">
               <p class="text-gray-300">{{ getSelectedColor()?.name }}</p>
@@ -139,9 +122,7 @@
 
       <!-- Privacy Policy and Terms -->
       <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
-        <h2
-          class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2"
-        >
+        <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
           Legal & Privacy
         </h2>
         <div class="space-y-4">
@@ -157,10 +138,7 @@
             />
             <label for="privacyPolicy" class="text-sm text-gray-300">
               <span class="text-red-400">*</span> I agree to the
-              <a
-                routerLink="/privacy-policy"
-                class="text-blue-400 hover:underline"
-                target="_blank"
+              <a routerLink="/privacy-policy" class="text-blue-400 hover:underline" target="_blank"
                 >Privacy Policy</a
               >
             </label>
@@ -200,10 +178,7 @@
             />
             <label for="betaPolicy" class="text-sm text-gray-300">
               <span class="text-red-400">*</span> I agree to the
-              <a
-                routerLink="/beta-policy"
-                class="text-yellow-400 hover:underline"
-                target="_blank"
+              <a routerLink="/beta-policy" class="text-yellow-400 hover:underline" target="_blank"
                 >Beta Program Terms</a
               >
               <span
@@ -225,19 +200,15 @@
               class="mt-1 accent-green-500"
             />
             <label for="marketingConsent" class="text-sm text-gray-300">
-              I agree to receive marketing communications about products,
-              services, and promotions
+              I agree to receive marketing communications about products, services, and promotions
               <span class="text-gray-500">(optional)</span>
             </label>
           </div>
 
           <!-- Required fields notice -->
-          <div
-            class="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded-lg"
-          >
+          <div class="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded-lg">
             <p class="text-sm text-blue-200">
-              <span class="text-red-400">*</span> Required fields must be
-              accepted to continue
+              <span class="text-red-400">*</span> Required fields must be accepted to continue
             </p>
           </div>
         </div>
@@ -248,8 +219,7 @@
             [class]="canSubmit() ? 'inner-button text-white' : 'inner-button text-gray-400 cursor-not-allowed'"
             class="px-8 py-3 rounded-lg font-semibold transition-all duration-200 min-w-[200px]"
           >
-            @if (canSubmit()) { Create Project } @else { Accept Required
-            Policies }
+            @if (canSubmit()) { Create Project } @else { Accept Required Policies }
           </button>
         </div>
       </div>

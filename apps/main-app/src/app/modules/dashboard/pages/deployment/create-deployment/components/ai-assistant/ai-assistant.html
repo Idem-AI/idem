@@ -1,15 +1,11 @@
-<div
-  class="glass-card p-4 sm:p-5 md:p-6 animate-fade-in relative overflow-hidden"
->
+<div class="glass-card p-4 sm:p-5 md:p-6 animate-fade-in relative overflow-hidden">
   <div class="relative z-10">
     <!-- Chat Interface -->
-    <div
-      class="sm:glass rounded-xl sm:p-4 md:p-6 flex flex-col h-[63vh] md:h-[75vh] relative"
-    >
+    <div class="sm:glass rounded-xl sm:p-4 md:p-6 flex flex-col h-[63vh] md:h-[75vh] relative">
       <!-- Chat Messages Display -->
       <div
         #chatContainer
-        class="flex-grow overflow-y-auto  sm:pr-4 space-y-4 sm:space-y-6 custom-scrollbar"
+        class="flex-grow overflow-y-auto sm:pr-4 space-y-4 sm:space-y-6 custom-scrollbar"
       >
         @for (message of chatMessages(); track $index) {
         <div
@@ -38,8 +34,7 @@
             ></markdown>
 
             <!-- Sensitive variables request section -->
-            @if (message.isRequestingSensitiveVariables &&
-            message.requestedSensitiveVariables &&
+            @if (message.isRequestingSensitiveVariables && message.requestedSensitiveVariables &&
             message.requestedSensitiveVariables.length > 0) {
             <div class="mt-4 animate-fade-in">
               <div class="flex items-center gap-2 mb-3 text-yellow-400">
@@ -47,37 +42,24 @@
                 <h4 class="font-medium">Sensitive Variables Required</h4>
               </div>
 
-              <div
-                class="glass-dark border border-secondary/30 rounded-lg p-4 mb-4"
-              >
+              <div class="glass-dark border border-secondary/30 rounded-lg p-4 mb-4">
                 <p class="text-sm text-yellow-200 mb-3">
                   <i class="pi pi-info-circle mr-2"></i>
-                  The AI needs some sensitive information to complete your
-                  deployment configuration. These values will be stored securely
-                  and encrypted.
+                  The AI needs some sensitive information to complete your deployment configuration.
+                  These values will be stored securely and encrypted.
                 </p>
 
                 <div class="space-y-2">
-                  @for (variable of message.requestedSensitiveVariables; track
-                  variable.name) {
-                  <div
-                    class="flex items-center justify-between bg-yellow-900/10 rounded p-2"
-                  >
+                  @for (variable of message.requestedSensitiveVariables; track variable.name) {
+                  <div class="flex items-center justify-between bg-yellow-900/10 rounded p-2">
                     <div>
-                      <span class="text-sm font-medium text-yellow-100"
-                        >{{ variable.label }}</span
-                      >
+                      <span class="text-sm font-medium text-yellow-100">{{ variable.label }}</span>
                       @if (variable.description) {
-                      <p class="text-xs text-yellow-300 mt-1">
-                        {{ variable.description }}
-                      </p>
+                      <p class="text-xs text-yellow-300 mt-1">{{ variable.description }}</p>
                       }
                     </div>
-                    <span
-                      class="text-xs bg-yellow-500/20 text-yellow-200 px-2 py-1 rounded"
-                    >
-                      {{ variable.type | titlecase }} @if (variable.required) {
-                      • Required }
+                    <span class="text-xs bg-yellow-500/20 text-yellow-200 px-2 py-1 rounded">
+                      {{ variable.type | titlecase }} @if (variable.required) { • Required }
                     </span>
                   </div>
                   }
@@ -112,8 +94,8 @@
             }
 
             <!-- Architecture proposal section -->
-            @if (message.isProposingArchitecture && message.proposedComponents
-            && message.proposedComponents.length > 0) {
+            @if (message.isProposingArchitecture && message.proposedComponents &&
+            message.proposedComponents.length > 0) {
             <div class="mt-4 animate-fade-in">
               <div class="flex items-center gap-2 mb-3 text-primary">
                 <i class="pi pi-sitemap"></i>
@@ -138,11 +120,8 @@
               }
 
               <!-- Architecture components grid -->
-              <div
-                class="grid grid-cols-1 gap-3 sm:gap-4 mt-3"
-              >
-                @for (component of message.proposedComponents; track
-                component.instanceId) {
+              <div class="grid grid-cols-1 gap-3 sm:gap-4 mt-3">
+                @for (component of message.proposedComponents; track component.instanceId) {
                 <div
                   class="glass-card p-4 cursor-pointer transition-all"
                   [class.border-primary]="activeProposedComponent()?.instanceId === component.instanceId"
@@ -157,14 +136,11 @@
                         <i class="{{component.icon}}"></i>
                       </div>
                       <div>
-                        <h5
-                          class="font-medium text-sm sm:text-base text-gray-200"
-                        >
+                        <h5 class="font-medium text-sm sm:text-base text-gray-200">
                           {{ component.name }}
                         </h5>
                         <p class="text-xs text-gray-400">
-                          {{ component.provider | uppercase }} | {{
-                          component.type }}
+                          {{ component.provider | uppercase }} | {{ component.type }}
                         </p>
                       </div>
                     </div>
@@ -221,9 +197,7 @@
       </div>
 
       <!-- Input Area -->
-      <div
-        class="mt-4 sm:mt-6 flex gap-2 sm:gap-4 border-t border-gray-700/50 pt-3 sm:pt-4"
-      >
+      <div class="mt-4 sm:mt-6 flex gap-2 sm:gap-4 border-t border-gray-700/50 pt-3 sm:pt-4">
         <input
           [value]="aiPrompt()"
           (input)="updatePrompt($any($event.target).value)"
@@ -270,17 +244,10 @@
   <div [formGroup]="getActiveComponentForm()!" class="space-y-6">
     @for (option of getActiveComponentOptions(); track option.name) {
     <div class="space-y-2">
-      <label
-        [for]="option.name"
-        class="text-sm font-medium flex items-center gap-2 text-gray-200"
-      >
-        {{ option.label }} @if (option.required) {<span class="text-red-400"
-          >*</span
-        >} @if (option.description) {
-        <i
-          class="pi pi-info-circle text-gray-500"
-          [title]="option.description"
-        ></i>
+      <label [for]="option.name" class="text-sm font-medium flex items-center gap-2 text-gray-200">
+        {{ option.label }} @if (option.required) {<span class="text-red-400">*</span>} @if
+        (option.description) {
+        <i class="pi pi-info-circle text-gray-500" [title]="option.description"></i>
         }
       </label>
 
@@ -311,11 +278,7 @@
       </select>
       } @case ('toggle') {
       <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          [formControlName]="option.name"
-          class="sr-only peer"
-        />
+        <input type="checkbox" [formControlName]="option.name" class="sr-only peer" />
         <div
           class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
         ></div>
@@ -365,9 +328,7 @@
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="pi pi-cog text-primary"></i>
-      <span class="text-xl font-semibold text-white"
-        >Deployment Configuration</span
-      >
+      <span class="text-xl font-semibold text-white">Deployment Configuration</span>
     </div>
   </ng-template>
 
@@ -387,10 +348,7 @@
       </div>
 
       <div>
-        <label
-          for="environment"
-          class="block text-sm font-medium text-gray-200 mb-2"
-        >
+        <label for="environment" class="block text-sm font-medium text-gray-200 mb-2">
           Environment
         </label>
         <select
@@ -405,18 +363,13 @@
       </div>
 
       <div class="p-4 glass-dark rounded-lg border border-primary/20">
-        <h4
-          class="text-sm font-medium text-primary-300 mb-4 flex items-center gap-2"
-        >
+        <h4 class="text-sm font-medium text-primary-300 mb-4 flex items-center gap-2">
           <i class="pi pi-code"></i> Git Repository (Optional)
         </h4>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label
-              for="repoUrl"
-              class="block font-medium text-gray-300 mb-1 text-sm"
-            >
+            <label for="repoUrl" class="block font-medium text-gray-300 mb-1 text-sm">
               Repository URL
             </label>
             <input
@@ -429,10 +382,7 @@
           </div>
 
           <div>
-            <label
-              for="branch"
-              class="block font-medium text-gray-300 mb-1 text-sm"
-            >
+            <label for="branch" class="block font-medium text-gray-300 mb-1 text-sm">
               Branch
             </label>
             <input
@@ -502,9 +452,7 @@
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="pi pi-shield text-yellow-400"></i>
-      <span class="text-xl font-semibold text-white"
-        >Secure Variables Configuration</span
-      >
+      <span class="text-xl font-semibold text-white">Secure Variables Configuration</span>
     </div>
   </ng-template>
 
@@ -512,13 +460,10 @@
     <div class="flex items-start gap-3">
       <i class="pi pi-shield text-yellow-400 mt-1"></i>
       <div>
-        <h4 class="text-sm font-medium text-yellow-200 mb-2">
-          Security Notice
-        </h4>
+        <h4 class="text-sm font-medium text-yellow-200 mb-2">Security Notice</h4>
         <p class="text-xs text-yellow-300">
-          These sensitive values will be encrypted and stored securely. They
-          will only be used for your deployment configuration and will never be
-          logged or exposed.
+          These sensitive values will be encrypted and stored securely. They will only be used for
+          your deployment configuration and will never be logged or exposed.
         </p>
       </div>
     </div>
@@ -559,11 +504,7 @@
       />
       } @case ('boolean') {
       <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          [formControlName]="variable.name"
-          class="sr-only peer"
-        />
+        <input type="checkbox" [formControlName]="variable.name" class="sr-only peer" />
         <div
           class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"
         ></div>
@@ -571,9 +512,8 @@
       } } @if (sensitiveVariablesForm()?.get(variable.name)?.invalid &&
       sensitiveVariablesForm()?.get(variable.name)?.touched) {
       <p class="text-red-400 text-xs mt-1">
-        @if (sensitiveVariablesForm()?.get(variable.name)?.errors?.['required'])
-        { This field is required. } @if
-        (sensitiveVariablesForm()?.get(variable.name)?.errors?.['minlength']) {
+        @if (sensitiveVariablesForm()?.get(variable.name)?.errors?.['required']) { This field is
+        required. } @if (sensitiveVariablesForm()?.get(variable.name)?.errors?.['minlength']) {
         Password must be at least 8 characters long. }
       </p>
       }

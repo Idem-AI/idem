@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  input,
-  signal,
-  OnInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal, OnInit } from '@angular/core';
 import { BusinessPlanModel } from '../../../../models/businessPlan.model';
 import { BusinessPlanService } from '../../../../services/ai-agents/business-plan.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
@@ -38,7 +31,7 @@ export class BusinessPlanDisplayComponent implements OnInit {
     } else if (this.businessPlan()?.sections) {
       // Wait for auth to be ready before making API calls
       await this.tokenService.waitForAuthReady();
-      
+
       // Fallback: load PDF from backend if no blob provided
       await this.loadPdfFromBackend();
     }
@@ -78,9 +71,7 @@ export class BusinessPlanDisplayComponent implements OnInit {
       }
 
       // Download PDF blob from backend
-      const pdfBlob = await this.businessPlanService
-        .downloadBusinessPlanPdf(projectId)
-        .toPromise();
+      const pdfBlob = await this.businessPlanService.downloadBusinessPlanPdf(projectId).toPromise();
 
       if (pdfBlob) {
         // Create object URL for PDF viewer
@@ -90,9 +81,7 @@ export class BusinessPlanDisplayComponent implements OnInit {
       }
     } catch (error: any) {
       console.error('Error loading PDF from backend:', error);
-      this.pdfError.set(
-        error.message || 'Failed to load PDF. Please try again.'
-      );
+      this.pdfError.set(error.message || 'Failed to load PDF. Please try again.');
     } finally {
       this.isDownloadingPdf.set(false);
     }

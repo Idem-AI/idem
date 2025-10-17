@@ -43,13 +43,7 @@ import 'prismjs';
 @Component({
   selector: 'app-ai-assistant',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MarkdownModule,
-    DialogModule,
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MarkdownModule, DialogModule],
   templateUrl: './ai-assistant.html',
   styleUrl: './ai-assistant.css',
 })
@@ -67,18 +61,13 @@ export class AiAssistant implements OnInit, AfterViewInit {
   protected readonly errorMessages = signal<string[]>([]);
   protected readonly validationErrors = signal<string[]>([]);
   protected readonly generatedArchitecture = signal<boolean>(false);
-  protected readonly generatedComponents = signal<
-    ArchitectureComponent[] | null
-  >(null);
+  protected readonly generatedComponents = signal<ArchitectureComponent[] | null>(null);
 
   // Architecture proposal signals
-  protected readonly activeProposedComponent =
-    signal<ArchitectureComponent | null>(null);
+  protected readonly activeProposedComponent = signal<ArchitectureComponent | null>(null);
   protected readonly configurationDialogVisible = signal<boolean>(false);
   protected readonly currentProposalMessage = signal<ChatMessage | null>(null);
-  protected readonly configuredComponents = signal<Set<string>>(
-    new Set<string>()
-  );
+  protected readonly configuredComponents = signal<Set<string>>(new Set<string>());
 
   // Architecture component forms
   private readonly componentForms = new Map<string, FormGroup>();
@@ -89,9 +78,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
 
   // Sensitive variables handling
   protected readonly showSensitiveVariablesDialog = signal<boolean>(false);
-  protected readonly currentSensitiveVariables = signal<SensitiveVariable[]>(
-    []
-  );
+  protected readonly currentSensitiveVariables = signal<SensitiveVariable[]>([]);
   protected readonly sensitiveVariablesForm = signal<FormGroup | null>(null);
   protected readonly storingSensitiveVariables = signal<boolean>(false);
   protected readonly currentDeploymentId = signal<string | null>(null);
@@ -102,9 +89,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
     return (
       this.chatMessages().some(
         (msg) =>
-          msg.isProposingArchitecture &&
-          msg.proposedComponents &&
-          msg.proposedComponents.length > 0
+          msg.isProposingArchitecture && msg.proposedComponents && msg.proposedComponents.length > 0
       ) && !this.generatedArchitecture()
     );
   });
@@ -137,21 +122,17 @@ export class AiAssistant implements OnInit, AfterViewInit {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
       console.error('No project ID found in cookies');
-      this.errorMessages.set([
-        'No project selected. Please select a project first.',
-      ]);
+      this.errorMessages.set(['No project selected. Please select a project first.']);
     } else {
       this.projectId.set(projectId);
       console.log('AI Assistant initialized with project ID:', projectId);
-      
+
       // Add initial greeting message
       this.addInitialGreeting();
     }
 
     // Try to restore deployment ID from cookie if it exists
-    const savedDeploymentId = this.cookieService.get(
-      `deploymentId_${projectId}`
-    );
+    const savedDeploymentId = this.cookieService.get(`deploymentId_${projectId}`);
     if (savedDeploymentId) {
       this.currentDeploymentId.set(savedDeploymentId);
       console.log('Restored deployment ID from cookie:', savedDeploymentId);
@@ -210,10 +191,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
   /**
    * Selects a component from the proposed architecture for configuration
    */
-  protected selectProposedComponent(
-    component: ArchitectureComponent,
-    message: ChatMessage
-  ): void {
+  protected selectProposedComponent(component: ArchitectureComponent, message: ChatMessage): void {
     this.activeProposedComponent.set(component);
     this.currentProposalMessage.set(message);
     this.configurationDialogVisible.set(true);
@@ -401,50 +379,48 @@ export class AiAssistant implements OnInit, AfterViewInit {
     this.aiIsThinking.set(true);
 
     // Send message to backend using DeploymentService
-    this.deploymentService
-      .sendChatMessage(userMessage, this.projectId()!)
-      .subscribe({
-        next: (response) => {
-          // Add AI response to chat
-          this.chatMessages.update((messages) => [...messages, response]);
+    this.deploymentService.sendChatMessage(userMessage, this.projectId()!).subscribe({
+      next: (response) => {
+        // Add AI response to chat
+        this.chatMessages.update((messages) => [...messages, response]);
 
-          // Note: Sensitive variables are now only handled after architecture acceptance
-          // This section intentionally left empty - sensitive variables logic moved to requestSensitiveVariablesFromAI()
+        // Note: Sensitive variables are now only handled after architecture acceptance
+        // This section intentionally left empty - sensitive variables logic moved to requestSensitiveVariablesFromAI()
 
-          // Set architecture as generated if this is the first user message
-          if (!this.generatedArchitecture()) {
-            this.generatedArchitecture.set(true);
-          }
+        // Set architecture as generated if this is the first user message
+        if (!this.generatedArchitecture()) {
+          this.generatedArchitecture.set(true);
+        }
 
-          // Stop thinking state
-          this.aiIsThinking.set(false);
+        // Stop thinking state
+        this.aiIsThinking.set(false);
 
-          // Validate form after AI response
-          this.validateCurrentForm();
-        },
-        error: (error) => {
-          console.error('Error getting AI response:', error);
+        // Validate form after AI response
+        this.validateCurrentForm();
+      },
+      error: (error) => {
+        console.error('Error getting AI response:', error);
 
-          // Add error message to chat
-          this.chatMessages.update((messages) => [
-            ...messages,
-            {
-              sender: 'ai',
-              text: 'Sorry, I encountered an error processing your request. Please try again.',
-              timestamp: new Date(),
-            },
-          ]);
+        // Add error message to chat
+        this.chatMessages.update((messages) => [
+          ...messages,
+          {
+            sender: 'ai',
+            text: 'Sorry, I encountered an error processing your request. Please try again.',
+            timestamp: new Date(),
+          },
+        ]);
 
-          // Stop thinking state
-          this.aiIsThinking.set(false);
+        // Stop thinking state
+        this.aiIsThinking.set(false);
 
-          // Add to error messages
-          this.errorMessages.update((msgs) => [
-            ...msgs,
-            error.message || 'Failed to get AI response',
-          ]);
-        },
-      });
+        // Add to error messages
+        this.errorMessages.update((msgs) => [
+          ...msgs,
+          error.message || 'Failed to get AI response',
+        ]);
+      },
+    });
   }
 
   // No longer needed as we're using the real API
@@ -490,9 +466,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
     // AI-specific validation
     if (this.chatMessages().length <= 1) {
       // Only the welcome message
-      errors.push(
-        'Please interact with the AI assistant before creating a deployment'
-      );
+      errors.push('Please interact with the AI assistant before creating a deployment');
     }
 
     this.validationErrors.set(errors);
@@ -511,9 +485,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
   /**
    * Creates a form for sensitive variables input
    */
-  private createSensitiveVariablesForm(
-    sensitiveVariables: SensitiveVariable[]
-  ): void {
+  private createSensitiveVariablesForm(sensitiveVariables: SensitiveVariable[]): void {
     const formGroup = this.formBuilder.group({});
 
     sensitiveVariables.forEach((variable) => {
@@ -524,10 +496,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
         validators.push(Validators.minLength(8));
       }
 
-      formGroup.addControl(
-        variable.name,
-        this.formBuilder.control('', validators)
-      );
+      formGroup.addControl(variable.name, this.formBuilder.control('', validators));
     });
 
     this.sensitiveVariablesForm.set(formGroup);
@@ -581,8 +550,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
       let errorMsg = 'Validation failed: ';
       if (!form) errorMsg += 'Form not initialized. ';
       if (form && !form.valid) errorMsg += 'Form has validation errors. ';
-      if (!this.sensitiveVariablesReady())
-        errorMsg += 'Variables not validated. ';
+      if (!this.sensitiveVariablesReady()) errorMsg += 'Variables not validated. ';
 
       this.errorMessages.set([errorMsg]);
       return;
@@ -645,35 +613,27 @@ export class AiAssistant implements OnInit, AfterViewInit {
     console.log('Creating deployment with config:', deploymentData);
 
     // Create deployment
-    this.deploymentService
-      .createAiAssistantDeployment(deploymentData)
-      .subscribe({
-        next: (deployment) => {
-          console.log('Deployment created successfully:', deployment);
+    this.deploymentService.createAiAssistantDeployment(deploymentData).subscribe({
+      next: (deployment) => {
+        console.log('Deployment created successfully:', deployment);
 
-          // Store deployment ID
-          this.currentDeploymentId.set(deployment.id);
-          this.cookieService.set(
-            `deploymentId_${this.projectId()}`,
-            deployment.id,
-            1
-          );
+        // Store deployment ID
+        this.currentDeploymentId.set(deployment.id);
+        this.cookieService.set(`deploymentId_${this.projectId()}`, deployment.id, 1);
 
-          // Close deployment config modal
-          this.showDeploymentConfigDialog.set(false);
-          this.creatingDeployment.set(false);
+        // Close deployment config modal
+        this.showDeploymentConfigDialog.set(false);
+        this.creatingDeployment.set(false);
 
-          // Now store sensitive variables
-          this.storeSensitiveVariablesAfterDeployment(deployment.id);
-        },
-        error: (error) => {
-          console.error('Error creating deployment:', error);
-          this.creatingDeployment.set(false);
-          this.errorMessages.set([
-            error.message || 'Failed to create deployment',
-          ]);
-        },
-      });
+        // Now store sensitive variables
+        this.storeSensitiveVariablesAfterDeployment(deployment.id);
+      },
+      error: (error) => {
+        console.error('Error creating deployment:', error);
+        this.creatingDeployment.set(false);
+        this.errorMessages.set([error.message || 'Failed to create deployment']);
+      },
+    });
   }
 
   /**
@@ -694,12 +654,13 @@ export class AiAssistant implements OnInit, AfterViewInit {
     this.clearErrors();
 
     // Convert form values to SensitiveVariableValue format
-    const sensitiveVariables: SensitiveVariableValue[] =
-      this.currentSensitiveVariables().map((variable) => ({
+    const sensitiveVariables: SensitiveVariableValue[] = this.currentSensitiveVariables().map(
+      (variable) => ({
         key: variable.name,
         value: form.value[variable.name] || '',
         isSecret: variable.sensitive,
-      }));
+      })
+    );
 
     const request: StoreSensitiveVariablesRequest = {
       sensitiveVariables,
@@ -738,9 +699,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
         error: (error) => {
           console.error('Error storing sensitive variables:', error);
           this.storingSensitiveVariables.set(false);
-          this.errorMessages.set([
-            error.message || 'Failed to store sensitive variables securely',
-          ]);
+          this.errorMessages.set([error.message || 'Failed to store sensitive variables securely']);
         },
       });
   }
@@ -749,9 +708,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
    * Requests sensitive variables from AI after architecture acceptance
    */
   private requestSensitiveVariablesFromAI(): void {
-    console.log(
-      'Requesting sensitive variables from AI after architecture acceptance...'
-    );
+    console.log('Requesting sensitive variables from AI after architecture acceptance...');
 
     const messageText =
       'The architecture has been accepted. Please analyze the components and let me know if any sensitive variables (API keys, passwords, database credentials, etc.) are needed for this deployment.';
@@ -770,39 +727,28 @@ export class AiAssistant implements OnInit, AfterViewInit {
     this.aiIsThinking.set(true);
 
     // Send message to backend using DeploymentService
-    this.deploymentService
-      .sendChatMessage(chatMessage, this.projectId()!)
-      .subscribe({
-        next: (response) => {
-          // Stop thinking state
-          this.aiIsThinking.set(false);
-          
-          // Add AI response to chat
-          this.chatMessages.update((messages) => [...messages, response]);
+    this.deploymentService.sendChatMessage(chatMessage, this.projectId()!).subscribe({
+      next: (response) => {
+        // Stop thinking state
+        this.aiIsThinking.set(false);
 
-          // Handle sensitive variables request
-          if (
-            response.isRequestingSensitiveVariables &&
-            response.requestedSensitiveVariables
-          ) {
-            this.currentSensitiveVariables.set(
-              response.requestedSensitiveVariables
-            );
-            this.createSensitiveVariablesForm(
-              response.requestedSensitiveVariables
-            );
-          }
-        },
-        error: (error) => {
-          // Stop thinking state on error
-          this.aiIsThinking.set(false);
-          
-          console.error('Error sending message to AI:', error);
-          this.errorMessages.set([
-            error.message || 'Failed to communicate with AI assistant',
-          ]);
-        },
-      });
+        // Add AI response to chat
+        this.chatMessages.update((messages) => [...messages, response]);
+
+        // Handle sensitive variables request
+        if (response.isRequestingSensitiveVariables && response.requestedSensitiveVariables) {
+          this.currentSensitiveVariables.set(response.requestedSensitiveVariables);
+          this.createSensitiveVariablesForm(response.requestedSensitiveVariables);
+        }
+      },
+      error: (error) => {
+        // Stop thinking state on error
+        this.aiIsThinking.set(false);
+
+        console.error('Error sending message to AI:', error);
+        this.errorMessages.set([error.message || 'Failed to communicate with AI assistant']);
+      },
+    });
   }
 
   /**
@@ -849,7 +795,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
           text: `Hello! ${userName}, I'm IDEM DevOps Assistant. I can generate and deploy your project or infrastructure for you, and manage responsive deployments. How can I help you today?`,
           timestamp: new Date(),
         };
-        
+
         this.chatMessages.set([greetingMessage]);
       }
     });

@@ -28,9 +28,7 @@
         </button>
       </div>
       <div class="relative">
-        <i
-          class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-        ></i
+        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i
         ><input
           [(ngModel)]="expertSearchTerm"
           type="text"
@@ -42,14 +40,11 @@
     <div class="overflow-y-auto p-4 flex-grow custom-scrollbar">
       @for (category of objectKeys(filteredCatalogue()); track category) {
       <div class="mb-4">
-        <h4
-          class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2"
-        >
+        <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
           {{ category }}
         </h4>
         <div class="space-y-2">
-          @for (component of filteredCatalogue()[category]; track component.id)
-          {
+          @for (component of filteredCatalogue()[category]; track component.id) {
           <div
             class="bg-gray-800/70 p-3 rounded-lg flex justify-between items-center border border-transparent hover:border-gray-600"
           >
@@ -82,8 +77,7 @@
         [disabled]="expertArchitecture().length === 0 || loadingDeployment()"
         (click)="openDeploymentNameDialog()"
       >
-        <i class="pi pi-rocket"></i>{{ loadingDeployment() ? 'Saving configs...'
-        : 'Save configs' }}
+        <i class="pi pi-rocket"></i>{{ loadingDeployment() ? 'Saving configs...' : 'Save configs' }}
       </button>
     </div>
     <div class="overflow-y-auto p-4 flex-grow space-y-3 custom-scrollbar">
@@ -99,8 +93,7 @@
           ><span class="font-medium">{{ component.name }}</span> @if
           (expertForm.get(component.instanceId)?.invalid) {<span
             class="text-xs text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded-full flex items-center gap-1"
-            ><i class="pi pi-exclamation-triangle text-xs"></i> Not
-            configured</span
+            ><i class="pi pi-exclamation-triangle text-xs"></i> Not configured</span
           >} @else {<span
             class="text-xs text-green-400 bg-green-900/50 px-2 py-0.5 rounded-full flex items-center gap-1"
             ><i class="pi pi-check-circle text-xs"></i> Ready</span
@@ -132,8 +125,7 @@
     @if (activeExpertComponent(); as activeComponent) {
     <div class="p-4 border-b border-gray-700">
       <h3 class="text-lg font-semibold flex items-center gap-3">
-        <i class="{{activeComponent.icon}}"></i> Configuration: {{
-        activeComponent.name }}
+        <i class="{{activeComponent.icon}}"></i> Configuration: {{ activeComponent.name }}
       </h3>
     </div>
     <div
@@ -142,12 +134,9 @@
     >
       @for (option of getActiveComponentModel()?.options; track option.name) {
       <div class="mb-4">
-        <label
-          [for]="option.name"
-          class="text-sm font-medium mb-2 flex items-center gap-2"
-          >{{ option.label }} @if (option.required) {<span class="text-red-400"
-            >*</span
-          >} @if (option.description) {<i
+        <label [for]="option.name" class="text-sm font-medium mb-2 flex items-center gap-2"
+          >{{ option.label }} @if (option.required) {<span class="text-red-400">*</span>} @if
+          (option.description) {<i
             class="pi pi-info-circle text-gray-500"
             [title]="option.description"
           ></i
@@ -176,12 +165,8 @@
           @for (opt of option.options; track opt.value) {
           <option [value]="opt.value">{{ opt.label }}</option>
           }</select
-        >} @case ('toggle') {<label
-          class="relative inline-flex items-center cursor-pointer"
-          ><input
-            type="checkbox"
-            [formControlName]="option.name"
-            class="sr-only peer" />
+        >} @case ('toggle') {<label class="relative inline-flex items-center cursor-pointer"
+          ><input type="checkbox" [formControlName]="option.name" class="sr-only peer" />
           <div
             class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"
           ></div></label
@@ -193,9 +178,7 @@
       }
     </div>
     } @else {
-    <div
-      class="h-full flex flex-col items-center justify-center text-center text-gray-500 p-8"
-    >
+    <div class="h-full flex flex-col items-center justify-center text-center text-gray-500 p-8">
       <i class="pi pi-sliders-h text-4xl mb-4"></i>
       <h4 class="font-semibold text-lg text-gray-400">Properties</h4>
       <p>Select a component to configure it.</p>
@@ -221,10 +204,7 @@
     <div [formGroup]="deploymentConfigForm" class="space-y-4">
       <!-- Deployment Name Field -->
       <div>
-        <label
-          for="name"
-          class="text-sm font-medium mb-2 flex items-center gap-1"
-        >
+        <label for="name" class="text-sm font-medium mb-2 flex items-center gap-1">
           Deployment Name <span class="text-red-400">*</span>
         </label>
         <div class="relative">
@@ -251,10 +231,7 @@
 
       <!-- Git Repository URL Field -->
       <div>
-        <label
-          for="repoUrl"
-          class="text-sm font-medium mb-2 flex items-center gap-1"
-        >
+        <label for="repoUrl" class="text-sm font-medium mb-2 flex items-center gap-1">
           Git Repository URL
           <i
             class="pi pi-info-circle text-gray-500 text-xs"
@@ -273,28 +250,18 @@
               placeholder="https://github.com/username/repository.git"
               (blur)="fetchGitBranches()"
             />
-            <i
-              *ngIf="loadingGitInfo()"
-              class="pi pi-spin pi-spinner text-blue-500"
-            ></i>
+            <i *ngIf="loadingGitInfo()" class="pi pi-spin pi-spinner text-blue-500"></i>
           </span>
         </div>
-        <div
-          class="mt-1 flex items-center gap-1"
-          *ngIf="gitBranches().length > 0"
-        >
+        <div class="mt-1 flex items-center gap-1" *ngIf="gitBranches().length > 0">
           <i class="pi pi-check-circle text-green-500 text-xs"></i>
-          <small class="text-green-500"
-            >Repository validated successfully</small
-          >
+          <small class="text-green-500">Repository validated successfully</small>
         </div>
       </div>
 
       <!-- Branch Selection Field -->
       <div>
-        <label for="branch" class="block text-sm font-medium mb-2">
-          Branch
-        </label>
+        <label for="branch" class="block text-sm font-medium mb-2"> Branch </label>
         <p-select
           id="branch"
           formControlName="branch"

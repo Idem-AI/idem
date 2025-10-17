@@ -1,6 +1,6 @@
-import { Response } from "express";
-import { CustomRequest } from "../interfaces/express.interface";
-import { PromptRequest, PromptService } from "../services/prompt.service";
+import { Response } from 'express';
+import { CustomRequest } from '../interfaces/express.interface';
+import { PromptRequest, PromptService } from '../services/prompt.service';
 
 class PromptController {
   constructor(private readonly promptService: PromptService) {}
@@ -10,8 +10,7 @@ class PromptController {
 
       if (!requestBody.messages || requestBody.messages.length === 0) {
         res.status(400).json({
-          error:
-            "Missing required fields: provider, modelName, or non-empty messages array",
+          error: 'Missing required fields: provider, modelName, or non-empty messages array',
         });
         return;
       }
@@ -22,10 +21,9 @@ class PromptController {
       const jsonResponse = await this.promptService.runPrompt(config, messages);
       res.status(200).json(jsonResponse);
     } catch (error: any) {
-      console.error("Error in PromptController:", error);
+      console.error('Error in PromptController:', error);
       // Check if the error has a message property, otherwise send a generic error
-      const errorMessage =
-        error.message || "Something broke during prompt processing!";
+      const errorMessage = error.message || 'Something broke during prompt processing!';
       res.status(500).send({ error: errorMessage });
     }
   }

@@ -1,7 +1,7 @@
-import { BrandIdentityModel } from "../brand-identity.model";
-import { ColorBuilder } from "./color.builder";
-import { LogoBuilder } from "./logo.builder";
-import { TypographyBuilder } from "./typography.builder";
+import { BrandIdentityModel } from '../brand-identity.model';
+import { ColorBuilder } from './color.builder';
+import { LogoBuilder } from './logo.builder';
+import { TypographyBuilder } from './typography.builder';
 
 /**
  * Builder for BrandIdentityModel

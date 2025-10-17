@@ -10,10 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  FileContent,
-  FileContentConfig,
-} from '../../../modules/dashboard/models/deployment.model';
+import { FileContent, FileContentConfig } from '../../../modules/dashboard/models/deployment.model';
 import { TfVarsFormEditor } from '../tfvars-form-editor/tfvars-form-editor';
 import { TfVarsParserService } from '../../services/tfvars-parser.service';
 import { TfVarsFormData, TfVarsEditMode } from '../../models/tfvars-parser.model';
@@ -33,7 +30,7 @@ export class FileContentEditor implements OnInit {
       this.activeFileIdSignal.set(this.fileContentsSignal()[0].id);
     }
   }
-  
+
   // Angular-specific properties
   @Input({ required: true }) set fileContents(value: FileContent[]) {
     this.fileContentsSignal.set(value || []);
@@ -56,7 +53,7 @@ export class FileContentEditor implements OnInit {
     fileId: string;
     newContent: string;
   }>();
-  
+
   @Output() readonly fileDownloaded = new EventEmitter<{
     fileId: string;
     fileName: string;
@@ -76,7 +73,7 @@ export class FileContentEditor implements OnInit {
   protected readonly activeFile = computed(() => {
     const files = this.fileContentsSignal();
     const activeId = this.activeFileIdSignal();
-    return files.find(f => f.id === activeId) || null;
+    return files.find((f) => f.id === activeId) || null;
   });
 
   protected readonly hasMultipleFiles = computed(() => {
@@ -137,7 +134,7 @@ export class FileContentEditor implements OnInit {
     if (activeFile) {
       this.editingSignal.set(true);
       this.editContentSignal.set(activeFile.content);
-      
+
       // If it's a tfvars file, parse it for form mode
       if (this.isTfVarsFile()) {
         try {
@@ -222,7 +219,7 @@ export class FileContentEditor implements OnInit {
           this.editContentSignal.set(content);
         }
       }
-      
+
       this.tfVarsEditModeSignal.set(mode);
     } catch (error) {
       console.error('Error switching edit mode:', error);
@@ -235,7 +232,7 @@ export class FileContentEditor implements OnInit {
    */
   protected onTfVarsFormDataChanged(formData: TfVarsFormData): void {
     this.tfVarsFormDataSignal.set(formData);
-    
+
     // Also update the code content for consistency
     try {
       const content = this.tfVarsParser.convertFormDataToTfVars(formData);

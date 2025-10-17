@@ -54,10 +54,7 @@ export class LandingService {
   }
 
   // Update a specific landing item
-  updateLandingModel(
-    id: string,
-    item: Partial<LandingModel>
-  ): Observable<LandingModel> {
+  updateLandingModel(id: string, item: Partial<LandingModel>): Observable<LandingModel> {
     return this.http.put<LandingModel>(`${this.apiUrl}/${id}`, item).pipe(
       tap((response) => console.log('updateLandingModel response:', response)),
       catchError((error) => {
@@ -70,9 +67,7 @@ export class LandingService {
   // Delete a specific landing item
   deleteLandingModel(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
-      tap((response) =>
-        console.log(`deleteLandingModel response for ID ${id}:`, response)
-      ),
+      tap((response) => console.log(`deleteLandingModel response for ID ${id}:`, response)),
       catchError((error) => {
         console.error(`Error in deleteLandingModel for ID ${id}:`, error);
         throw error;

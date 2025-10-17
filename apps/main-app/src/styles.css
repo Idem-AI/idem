@@ -1,8 +1,8 @@
 /* Google Fonts - moved to index.html to avoid inlining issues */
 
-@import "tailwindcss";
+@import 'tailwindcss';
 
-@import "primeicons/primeicons.css";
+@import 'primeicons/primeicons.css';
 
 /* Force dark mode only */
 html {
@@ -10,7 +10,7 @@ html {
 }
 
 * {
-  font-family: "Jura", sans-serif;
+  font-family: 'Jura', sans-serif;
   font-optical-sizing: auto;
   font-weight: normal;
   font-style: normal;
@@ -19,17 +19,13 @@ html {
 
 body {
   background-size: 50px 50px;
-  background-image: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px
-    ),
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   overflow-x: hidden;
   min-height: 100vh;
   background-color: #06080d;
 }
-
 
 /* Modern Theme Configuration */
 @theme {
@@ -136,11 +132,7 @@ body {
 }
 
 .inner-button {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary),
-    var(--color-primary-glow)
-  );
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-glow));
   background-size: 200% 100%;
   animation: gradient-shift 3s ease infinite;
   color: white;
@@ -173,18 +165,13 @@ body {
 
 .outer-button::before,
 .inner-button::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.7s;
 }
 
@@ -265,18 +252,13 @@ body {
 }
 
 .bg-gradient-glow::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at center,
-    var(--color-primary-glow) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle at center, var(--color-primary-glow) 0%, transparent 70%);
   opacity: 0.3;
 }
 
 .container {
   background: rgba(15, 20, 27, 0.7);
 }
-

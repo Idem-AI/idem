@@ -25,9 +25,7 @@ const firebaseConfig = {
 };
 const serverConfig: ApplicationConfig = {
   providers: [
-    provideServerRendering(
-      withRoutes(serverRoutes),
-    ),
+    provideServerRendering(withRoutes(serverRoutes)),
     provideFirebaseApp(() => {
       if (isPlatformBrowser(inject(PLATFORM_ID))) {
         return initializeApp(firebaseConfig);

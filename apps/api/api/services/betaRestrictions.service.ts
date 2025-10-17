@@ -1,4 +1,4 @@
-import logger from "../config/logger";
+import logger from '../config/logger';
 
 export interface BetaRestrictions {
   maxStyles: number;
@@ -19,20 +19,18 @@ export class BetaRestrictionsService {
   private restrictions: BetaRestrictions;
 
   constructor() {
-    logger.info("Initializing BetaRestrictionsService...");
-    this.isBeta = process.env.IS_BETA === "true";
+    logger.info('Initializing BetaRestrictionsService...');
+    this.isBeta = process.env.IS_BETA === 'true';
 
     // Configure beta restrictions
     this.restrictions = {
-      maxStyles: parseInt(process.env.BETA_MAX_STYLES || "3"),
-      maxResolution: process.env.BETA_MAX_RESOLUTION || "medium",
-      allowedFeatures: (
-        process.env.BETA_ALLOWED_FEATURES || "logo,colors,typography"
-      ).split(","),
-      maxOutputTokens: parseInt(process.env.BETA_MAX_OUTPUT_TOKENS || "1000"),
+      maxStyles: parseInt(process.env.BETA_MAX_STYLES || '3'),
+      maxResolution: process.env.BETA_MAX_RESOLUTION || 'medium',
+      allowedFeatures: (process.env.BETA_ALLOWED_FEATURES || 'logo,colors,typography').split(','),
+      maxOutputTokens: parseInt(process.env.BETA_MAX_OUTPUT_TOKENS || '1000'),
       restrictedPrompts: (
-        process.env.BETA_RESTRICTED_PROMPTS || "complex-branding,full-charter"
-      ).split(","),
+        process.env.BETA_RESTRICTED_PROMPTS || 'complex-branding,full-charter'
+      ).split(','),
     };
 
     logger.info(
@@ -53,7 +51,7 @@ export class BetaRestrictionsService {
 
     if (!this.restrictions.allowedFeatures.includes(featureName)) {
       const message = `Feature '${featureName}' is not available in beta version. Available features: ${this.restrictions.allowedFeatures.join(
-        ", "
+        ', '
       )}`;
       logger.warn(message);
       return {
@@ -68,10 +66,7 @@ export class BetaRestrictionsService {
   /**
    * Validate and adjust prompt parameters for beta restrictions
    */
-  validatePromptParams(
-    promptType: string,
-    params: any
-  ): FeatureValidationResult {
+  validatePromptParams(promptType: string, params: any): FeatureValidationResult {
     if (!this.isBeta) {
       return { allowed: true, adjustedParams: params };
     }
@@ -105,31 +100,20 @@ export class BetaRestrictionsService {
     // Limit styles if applicable
     if (adjustedParams.styles && Array.isArray(adjustedParams.styles)) {
       if (adjustedParams.styles.length > this.restrictions.maxStyles) {
-        adjustedParams.styles = adjustedParams.styles.slice(
-          0,
-          this.restrictions.maxStyles
-        );
-        logger.info(
-          `Limited styles to ${this.restrictions.maxStyles} for beta`
-        );
+        adjustedParams.styles = adjustedParams.styles.slice(0, this.restrictions.maxStyles);
+        logger.info(`Limited styles to ${this.restrictions.maxStyles} for beta`);
       }
     }
 
     // Set resolution limit
     if (adjustedParams.resolution) {
-      const resolutionHierarchy = ["low", "medium", "high", "ultra"];
-      const maxResolutionIndex = resolutionHierarchy.indexOf(
-        this.restrictions.maxResolution
-      );
-      const requestedResolutionIndex = resolutionHierarchy.indexOf(
-        adjustedParams.resolution
-      );
+      const resolutionHierarchy = ['low', 'medium', 'high', 'ultra'];
+      const maxResolutionIndex = resolutionHierarchy.indexOf(this.restrictions.maxResolution);
+      const requestedResolutionIndex = resolutionHierarchy.indexOf(adjustedParams.resolution);
 
       if (requestedResolutionIndex > maxResolutionIndex) {
         adjustedParams.resolution = this.restrictions.maxResolution;
-        logger.info(
-          `Adjusted resolution to ${this.restrictions.maxResolution} for beta`
-        );
+        logger.info(`Adjusted resolution to ${this.restrictions.maxResolution} for beta`);
       }
     }
 
@@ -144,14 +128,14 @@ export class BetaRestrictionsService {
    */
   getBetaLimitationsMessage(): string {
     if (!this.isBeta) {
-      return "";
+      return '';
     }
 
     return `
 🧪 Beta Version Limitations:
 • Maximum ${this.restrictions.maxStyles} style options per generation
 • Maximum resolution: ${this.restrictions.maxResolution}
-• Available features: ${this.restrictions.allowedFeatures.join(", ")}
+• Available features: ${this.restrictions.allowedFeatures.join(', ')}
 • Reduced token output for faster responses
 • Some advanced features are disabled
 
@@ -163,11 +147,11 @@ Thank you for testing our beta version! 🚀
    * Validate input to prevent abusive requests
    */
   validateInput(input: string): FeatureValidationResult {
-    logger.info("Validating user input for potential abuse");
+    logger.info('Validating user input for potential abuse');
 
     // Check for empty or whitespace-only input
     if (!input || input.trim().length === 0) {
-      const message = "Input cannot be empty";
+      const message = 'Input cannot be empty';
       logger.warn(message);
       return {
         allowed: false,
@@ -176,7 +160,7 @@ Thank you for testing our beta version! 🚀
     }
 
     // Check minimum length
-    const minLength = parseInt(process.env.MIN_INPUT_LENGTH || "3");
+    const minLength = parseInt(process.env.MIN_INPUT_LENGTH || '3');
     if (input.trim().length < minLength) {
       const message = `Input must be at least ${minLength} characters long`;
       logger.warn(message);
@@ -187,7 +171,7 @@ Thank you for testing our beta version! 🚀
     }
 
     // Check maximum length
-    const maxLength = parseInt(process.env.MAX_INPUT_LENGTH || "500");
+    const maxLength = parseInt(process.env.MAX_INPUT_LENGTH || '500');
     if (input.length > maxLength) {
       const message = `Input must not exceed ${maxLength} characters`;
       logger.warn(message);
@@ -206,7 +190,7 @@ Thank you for testing our beta version! 🚀
 
     for (const pattern of suspiciousPatterns) {
       if (pattern.test(input)) {
-        const message = "Input contains invalid or suspicious content";
+        const message = 'Input contains invalid or suspicious content';
         logger.warn(`Suspicious input detected: ${input.substring(0, 50)}...`);
         return {
           allowed: false,
@@ -221,10 +205,8 @@ Thank you for testing our beta version! 🚀
     const repetitionRatio = uniqueWords.size / words.length;
 
     if (words.length > 10 && repetitionRatio < 0.3) {
-      const message = "Input appears to be repetitive or spam-like";
-      logger.warn(
-        `High repetition detected in input: ratio=${repetitionRatio}`
-      );
+      const message = 'Input appears to be repetitive or spam-like';
+      logger.warn(`High repetition detected in input: ratio=${repetitionRatio}`);
       return {
         allowed: false,
         message,

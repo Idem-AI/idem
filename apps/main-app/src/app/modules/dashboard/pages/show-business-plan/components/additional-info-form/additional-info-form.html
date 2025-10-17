@@ -23,21 +23,15 @@
       <p-skeleton height="1.5rem"></p-skeleton>
     </div>
     } @else {
-    <form
-      [formGroup]="additionalInfoForm"
-      (ngSubmit)="submitForm()"
-      class="sm:space-y-8"
-    >
+    <form [formGroup]="additionalInfoForm" (ngSubmit)="submitForm()" class="sm:space-y-8">
       <!-- Company Information Card -->
       <div class="sm:glass sm:p-8">
-        <h2
-          class="text-2xl font-semibold text-light-text mb-6 flex items-center gap-3"
-        >
+        <h2 class="text-2xl font-semibold text-light-text mb-6 flex items-center gap-3">
           <i class="pi pi-building text-accent"></i>
           Company Information
         </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 sm:gap-6 ">
+        <div class="grid grid-cols-1 md:grid-cols-2 sm:gap-6">
           <!-- Email -->
           <div class="form-field">
             <label for="email" class="form-label">Business email *</label>
@@ -139,9 +133,7 @@
       <!-- Team Members Card -->
       <div class="glass-card p-8" formArrayName="teamMembers">
         <div class="flex items-center justify-between mb-6">
-          <h2
-            class="text-2xl font-semibold text-light-text flex items-center gap-3"
-          >
+          <h2 class="text-2xl font-semibold text-light-text flex items-center gap-3">
             <i class="pi pi-users text-accent"></i>
             Team Members
           </h2>
@@ -157,16 +149,13 @@
         </div>
 
         <div class="space-y-8">
-          @for (memberForm of teamMembersArray().controls; track $index; let i =
-          $index) {
+          @for (memberForm of teamMembersArray().controls; track $index; let i = $index) {
           <div
             [formGroupName]="i"
             class="team-member-card glass-dark p-6 rounded-xl border border-glass-border"
           >
             <div class="flex items-center justify-between mb-4">
-              <h3
-                class="text-lg font-medium text-light-text flex items-center gap-2"
-              >
+              <h3 class="text-lg font-medium text-light-text flex items-center gap-2">
                 <i class="pi pi-user text-primary"></i>
                 Member {{ i + 1 }}
               </h3>
@@ -185,9 +174,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Name -->
               <div class="form-field">
-                <label [for]="'name-' + i" class="form-label"
-                  >Full name *</label
-                >
+                <label [for]="'name-' + i" class="form-label">Full name *</label>
                 <input
                   pInputText
                   [id]="'name-' + i"
@@ -197,9 +184,7 @@
                   [class.error]="getTeamMemberFieldError(i, 'name')"
                 />
                 @if (getTeamMemberFieldError(i, 'name')) {
-                <small class="error-message"
-                  >{{ getTeamMemberFieldError(i, 'name') }}</small
-                >
+                <small class="error-message">{{ getTeamMemberFieldError(i, 'name') }}</small>
                 }
               </div>
 
@@ -215,17 +200,13 @@
                   [class.error]="getTeamMemberFieldError(i, 'role')"
                 />
                 @if (getTeamMemberFieldError(i, 'role')) {
-                <small class="error-message"
-                  >{{ getTeamMemberFieldError(i, 'role') }}</small
-                >
+                <small class="error-message">{{ getTeamMemberFieldError(i, 'role') }}</small>
                 }
               </div>
 
               <!-- Email -->
               <div class="form-field">
-                <label [for]="'member-email-' + i" class="form-label"
-                  >Email *</label
-                >
+                <label [for]="'member-email-' + i" class="form-label">Email *</label>
                 <input
                   pInputText
                   [id]="'member-email-' + i"
@@ -235,9 +216,7 @@
                   [class.error]="getTeamMemberFieldError(i, 'email')"
                 />
                 @if (getTeamMemberFieldError(i, 'email')) {
-                <small class="error-message"
-                  >{{ getTeamMemberFieldError(i, 'email') }}</small
-                >
+                <small class="error-message">{{ getTeamMemberFieldError(i, 'email') }}</small>
                 }
               </div>
 
@@ -290,26 +269,20 @@
                 [class.error]="getTeamMemberFieldError(i, 'bio')"
               ></textarea>
               @if (getTeamMemberFieldError(i, 'bio')) {
-              <small class="error-message"
-                >{{ getTeamMemberFieldError(i, 'bio') }}</small
-              >
+              <small class="error-message">{{ getTeamMemberFieldError(i, 'bio') }}</small>
               }
             </div>
 
             <!-- Social Links -->
             <div class="mt-6" formGroupName="socialLinks">
-              <h4
-                class="text-md font-medium text-light-text mb-3 flex items-center gap-2"
-              >
+              <h4 class="text-md font-medium text-light-text mb-3 flex items-center gap-2">
                 <i class="pi pi-share-alt text-secondary"></i>
                 Social links (optional)
               </h4>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- LinkedIn -->
                 <div class="form-field">
-                  <label [for]="'linkedin-' + i" class="form-label"
-                    >LinkedIn</label
-                  >
+                  <label [for]="'linkedin-' + i" class="form-label">LinkedIn</label>
                   <div class="relative">
                     <i
                       class="pi pi-linkedin absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -343,9 +316,7 @@
 
                 <!-- Twitter -->
                 <div class="form-field">
-                  <label [for]="'twitter-' + i" class="form-label"
-                    >Twitter</label
-                  >
+                  <label [for]="'twitter-' + i" class="form-label">Twitter</label>
                   <div class="relative">
                     <i
                       class="pi pi-twitter absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"

@@ -69,18 +69,13 @@ export class CreateDeployment implements OnInit {
 
   // Template mode state
   protected readonly availableTemplates = signal<ArchitectureTemplate[]>([]);
-  protected readonly selectedTemplate = signal<ArchitectureTemplate | null>(
-    null
-  );
+  protected readonly selectedTemplate = signal<ArchitectureTemplate | null>(null);
 
   // Expert mode state
-  protected readonly expertSelectedProvider = signal<'aws' | 'gcp' | 'azure'>(
-    'aws'
-  );
+  protected readonly expertSelectedProvider = signal<'aws' | 'gcp' | 'azure'>('aws');
   protected readonly expertSearchTerm = signal<string>('');
   protected readonly expertArchitecture = signal<ArchitectureComponent[]>([]);
-  protected readonly activeExpertComponent =
-    signal<ArchitectureComponent | null>(null);
+  protected readonly activeExpertComponent = signal<ArchitectureComponent | null>(null);
 
   // Forms
   protected deploymentConfigForm: FormGroup;
@@ -100,9 +95,7 @@ export class CreateDeployment implements OnInit {
         return this.deploymentConfigForm.valid;
 
       case 'ai-assistant':
-        return (
-          this.deploymentConfigForm.valid && this.aiPrompt().trim().length > 0
-        );
+        return this.deploymentConfigForm.valid && this.aiPrompt().trim().length > 0;
 
       case 'expert':
         return this.deploymentConfigForm.valid;
@@ -132,9 +125,7 @@ export class CreateDeployment implements OnInit {
     // Get project ID from cookies
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
-      this.errorMessages.set([
-        'No active project found. Please select a project first.',
-      ]);
+      this.errorMessages.set(['No active project found. Please select a project first.']);
       this.router.navigate(['/projects']);
       return;
     }
@@ -200,10 +191,7 @@ export class CreateDeployment implements OnInit {
     this.aiIsThinking.set(true);
 
     // Add user message
-    this.chatMessages.update((messages) => [
-      ...messages,
-      { sender: 'user', text: prompt },
-    ]);
+    this.chatMessages.update((messages) => [...messages, { sender: 'user', text: prompt }]);
 
     // Mock AI response - replace with actual service
     setTimeout(() => {
@@ -219,9 +207,7 @@ export class CreateDeployment implements OnInit {
     }, 2000);
   }
 
-  protected selectComponentForConfiguration(
-    component: ArchitectureComponent
-  ): void {
+  protected selectComponentForConfiguration(component: ArchitectureComponent): void {
     this.activeExpertComponent.set(component);
   }
 

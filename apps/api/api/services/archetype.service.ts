@@ -3,60 +3,50 @@ import {
   CreateArchetypePayload,
   UpdateArchetypePayload,
   ArchetypeValidators,
-} from "../models/archetypes.model";
-import { RepositoryFactory } from "../repository/RepositoryFactory";
-import { IRepository } from "../repository/IRepository";
-import logger from "../config/logger";
+} from '../models/archetypes.model';
+import { RepositoryFactory } from '../repository/RepositoryFactory';
+import { IRepository } from '../repository/IRepository';
+import logger from '../config/logger';
 
 export class ArchetypeService {
   private archetypeRepository: IRepository<ArchetypeModel>;
 
   constructor() {
-    this.archetypeRepository =
-      RepositoryFactory.getRepository<ArchetypeModel>();
-    logger.info("ArchetypeService initialized.");
+    this.archetypeRepository = RepositoryFactory.getRepository<ArchetypeModel>();
+    logger.info('ArchetypeService initialized.');
   }
 
   /**
    * Create a new archetype
    */
-  async createArchetype(
-    payload: CreateArchetypePayload
-  ): Promise<ArchetypeModel> {
+  async createArchetype(payload: CreateArchetypePayload): Promise<ArchetypeModel> {
     logger.info(`Creating archetype`, { payload });
 
     try {
       // Validate payload
-      const validationErrors =
-        ArchetypeValidators.validateCreatePayload(payload);
+      const validationErrors = ArchetypeValidators.validateCreatePayload(payload);
       if (validationErrors.length > 0) {
         logger.warn(`Validation errors for archetype creation:`, {
           validationErrors,
         });
-        throw new Error(`Validation failed: ${validationErrors.join(", ")}`);
+        throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
       }
 
       // Create archetype model
-      const archetypeData: Omit<
-        ArchetypeModel,
-        "id" | "createdAt" | "updatedAt"
-      > = {
+      const archetypeData: Omit<ArchetypeModel, 'id' | 'createdAt' | 'updatedAt'> = {
         name: payload.name,
         description: payload.description,
         provider: payload.provider,
         category: payload.category,
         tags: payload.tags || [],
-        icon: payload.icon || "",
-        version: payload.version || "1.0.0",
+        icon: payload.icon || '',
+        version: payload.version || '1.0.0',
         terraformVariables: payload.terraformVariables,
         defaultValues: payload.defaultValues || {},
         isActive: payload.isActive !== undefined ? payload.isActive : true,
       };
 
-      const createdArchetype = await this.archetypeRepository.create(
-        archetypeData,
-        `archetypes`
-      );
+      const createdArchetype = await this.archetypeRepository.create(archetypeData, `archetypes`);
 
       logger.info(`Archetype created successfully:`, {
         archetypeId: createdArchetype.id,
@@ -101,10 +91,7 @@ export class ArchetypeService {
     logger.info(`Retrieving archetype: ${archetypeId}`);
 
     try {
-      const archetype = await this.archetypeRepository.findById(
-        archetypeId,
-        `archetypes`
-      );
+      const archetype = await this.archetypeRepository.findById(archetypeId, `archetypes`);
 
       if (archetype) {
         logger.info(`Archetype found:`, {
@@ -139,10 +126,7 @@ export class ArchetypeService {
 
     try {
       // Check if archetype exists
-      const existingArchetype = await this.archetypeRepository.findById(
-        archetypeId,
-        `archetypes`
-      );
+      const existingArchetype = await this.archetypeRepository.findById(archetypeId, `archetypes`);
       if (!existingArchetype) {
         logger.warn(`Archetype not found for update:`, { archetypeId });
         return null;
@@ -151,18 +135,13 @@ export class ArchetypeService {
       // Validate terraform variables if provided
       if (payload.terraformVariables) {
         for (const variable of payload.terraformVariables) {
-          const validationErrors =
-            ArchetypeValidators.validateTerraformVariable(variable);
+          const validationErrors = ArchetypeValidators.validateTerraformVariable(variable);
           if (validationErrors.length > 0) {
             logger.warn(`Validation errors for terraform variable:`, {
               validationErrors,
               variable,
             });
-            throw new Error(
-              `Terraform variable validation failed: ${validationErrors.join(
-                ", "
-              )}`
-            );
+            throw new Error(`Terraform variable validation failed: ${validationErrors.join(', ')}`);
           }
         }
       }
@@ -201,10 +180,7 @@ export class ArchetypeService {
 
     try {
       // Check if archetype exists
-      const existingArchetype = await this.archetypeRepository.findById(
-        archetypeId,
-        `archetypes`
-      );
+      const existingArchetype = await this.archetypeRepository.findById(archetypeId, `archetypes`);
       if (!existingArchetype) {
         logger.warn(`Archetype not found for deletion:`, {
           archetypeId,
@@ -213,10 +189,7 @@ export class ArchetypeService {
       }
 
       // Delete archetype
-      const deleted = await this.archetypeRepository.delete(
-        archetypeId,
-        `archetypes`
-      );
+      const deleted = await this.archetypeRepository.delete(archetypeId, `archetypes`);
 
       if (deleted) {
         logger.info(`Archetype deleted successfully:`, {
@@ -239,22 +212,16 @@ export class ArchetypeService {
   /**
    * Get archetypes by provider
    */
-  async getArchetypesByProvider(
-    provider: "aws" | "gcp" | "azure"
-  ): Promise<ArchetypeModel[]> {
+  async getArchetypesByProvider(provider: 'aws' | 'gcp' | 'azure'): Promise<ArchetypeModel[]> {
     logger.info(`Retrieving archetypes by provider: ${provider}`);
 
     try {
-      const allArchetypes = await this.archetypeRepository.findAll(
-        `archetypes`
-      );
+      const allArchetypes = await this.archetypeRepository.findAll(`archetypes`);
       const filteredArchetypes = allArchetypes.filter(
         (archetype) => archetype.provider === provider && archetype.isActive
       );
 
-      logger.info(
-        `Retrieved ${filteredArchetypes.length} archetypes for provider ${provider}`
-      );
+      logger.info(`Retrieved ${filteredArchetypes.length} archetypes for provider ${provider}`);
       return filteredArchetypes;
     } catch (error) {
       logger.error(`Error retrieving archetypes by provider ${provider}:`, {
@@ -273,16 +240,12 @@ export class ArchetypeService {
     logger.info(`Retrieving archetypes by category: ${category}`);
 
     try {
-      const allArchetypes = await this.archetypeRepository.findAll(
-        `archetypes`
-      );
+      const allArchetypes = await this.archetypeRepository.findAll(`archetypes`);
       const filteredArchetypes = allArchetypes.filter(
         (archetype) => archetype.category === category && archetype.isActive
       );
 
-      logger.info(
-        `Retrieved ${filteredArchetypes.length} archetypes for category ${category}`
-      );
+      logger.info(`Retrieved ${filteredArchetypes.length} archetypes for category ${category}`);
       return filteredArchetypes;
     } catch (error) {
       logger.error(`Error retrieving archetypes by category ${category}:`, {
@@ -331,19 +294,14 @@ export class ArchetypeService {
         tfvarsContent += `${variable.name} = ${formattedValue}\n\n`;
       }
 
-      logger.info(
-        `Generated Terraform tfvars content for archetype: ${archetype.id}`
-      );
+      logger.info(`Generated Terraform tfvars content for archetype: ${archetype.id}`);
       return tfvarsContent;
     } catch (error) {
-      logger.error(
-        `Error generating Terraform tfvars for archetype ${archetype.id}:`,
-        {
-          error: error instanceof Error ? error.message : error,
-          stack: error instanceof Error ? error.stack : undefined,
-          archetypeId: archetype.id,
-        }
-      );
+      logger.error(`Error generating Terraform tfvars for archetype ${archetype.id}:`, {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        archetypeId: archetype.id,
+      });
       throw error;
     }
   }
@@ -353,47 +311,43 @@ export class ArchetypeService {
    */
   private formatTerraformValue(value: any, type: string): string {
     if (value === null || value === undefined) {
-      return "null";
+      return 'null';
     }
 
     switch (type) {
-      case "string":
+      case 'string':
         return `"${value}"`;
-      case "number":
+      case 'number':
         return String(value);
-      case "bool":
+      case 'bool':
         return String(value);
-      case "list(string)":
+      case 'list(string)':
         if (Array.isArray(value)) {
-          return `[${value.map((v) => `"${v}"`).join(", ")}]`;
+          return `[${value.map((v) => `"${v}"`).join(', ')}]`;
         }
-        return "[]";
-      case "list(number)":
+        return '[]';
+      case 'list(number)':
         if (Array.isArray(value)) {
-          return `[${value.join(", ")}]`;
+          return `[${value.join(', ')}]`;
         }
-        return "[]";
-      case "map(string)":
-        if (typeof value === "object" && value !== null) {
-          const entries = Object.entries(value).map(
-            ([k, v]) => `"${k}" = "${v}"`
-          );
-          return `{\n  ${entries.join(",\n  ")}\n}`;
+        return '[]';
+      case 'map(string)':
+        if (typeof value === 'object' && value !== null) {
+          const entries = Object.entries(value).map(([k, v]) => `"${k}" = "${v}"`);
+          return `{\n  ${entries.join(',\n  ')}\n}`;
         }
-        return "{}";
-      case "map(number)":
-        if (typeof value === "object" && value !== null) {
-          const entries = Object.entries(value).map(
-            ([k, v]) => `"${k}" = ${v}`
-          );
-          return `{\n  ${entries.join(",\n  ")}\n}`;
+        return '{}';
+      case 'map(number)':
+        if (typeof value === 'object' && value !== null) {
+          const entries = Object.entries(value).map(([k, v]) => `"${k}" = ${v}`);
+          return `{\n  ${entries.join(',\n  ')}\n}`;
         }
-        return "{}";
-      case "object":
-        if (typeof value === "object" && value !== null) {
+        return '{}';
+      case 'object':
+        if (typeof value === 'object' && value !== null) {
           return JSON.stringify(value, null, 2);
         }
-        return "{}";
+        return '{}';
       default:
         return `"${value}"`;
     }

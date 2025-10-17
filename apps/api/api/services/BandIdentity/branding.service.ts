@@ -1,41 +1,33 @@
-import logger from "../../config/logger";
-import { ProjectModel } from "../../models/project.model";
-import { LLMProvider, PromptService } from "../prompt.service";
-import { SvgToPsdService } from "../svgToPsd.service";
-import * as fs from "fs-extra";
+import logger from '../../config/logger';
+import { ProjectModel } from '../../models/project.model';
+import { LLMProvider, PromptService } from '../prompt.service';
+import { SvgToPsdService } from '../svgToPsd.service';
+import * as fs from 'fs-extra';
 
-import {
-  BrandIdentityModel,
-  ColorModel,
-  TypographyModel,
-} from "../../models/brand-identity.model";
-import { LOGO_GENERATION_PROMPT } from "./prompts/singleGenerations/00_logo-generation-section.prompt";
-import { LOGO_VARIATION_LIGHT_PROMPT } from "./prompts/singleGenerations/logo-variation-light.prompt";
-import { LOGO_VARIATION_DARK_PROMPT } from "./prompts/singleGenerations/logo-variation-dark.prompt";
-import { LOGO_VARIATION_MONOCHROME_PROMPT } from "./prompts/singleGenerations/logo-variation-monochrome.prompt";
-import { LOGO_EDIT_PROMPT } from "./prompts/singleGenerations/logo-edit.prompt";
+import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
+import { LOGO_GENERATION_PROMPT } from './prompts/singleGenerations/00_logo-generation-section.prompt';
+import { LOGO_VARIATION_LIGHT_PROMPT } from './prompts/singleGenerations/logo-variation-light.prompt';
+import { LOGO_VARIATION_DARK_PROMPT } from './prompts/singleGenerations/logo-variation-dark.prompt';
+import { LOGO_VARIATION_MONOCHROME_PROMPT } from './prompts/singleGenerations/logo-variation-monochrome.prompt';
+import { LOGO_EDIT_PROMPT } from './prompts/singleGenerations/logo-edit.prompt';
 
-import { BRAND_HEADER_SECTION_PROMPT } from "./prompts/00_brand-header-section.prompt";
-import { LOGO_SYSTEM_SECTION_PROMPT } from "./prompts/01_logo-system-section.prompt";
-import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section.prompt";
-import { TYPOGRAPHY_SECTION_PROMPT } from "./prompts/03_typography-section.prompt";
-import { BRAND_FOOTER_SECTION_PROMPT } from "./prompts/07_brand-footer-section.prompt";
-import { SectionModel } from "../../models/section.model";
-import { BrandIdentityBuilder } from "../../models/builders/brandIdentity.builder";
-import {
-  GenericService,
-  IPromptStep,
-  ISectionResult,
-} from "../common/generic.service";
-import { LogoModel, LogoPreferences } from "../../models/logo.model";
-import { COLORS_GENERATION_PROMPT } from "./prompts/singleGenerations/colors-generation.prompt";
-import { TYPOGRAPHY_GENERATION_PROMPT } from "./prompts/singleGenerations/typography-generation.prompt";
-import { PdfService } from "../pdf.service";
-import { cacheService } from "../cache.service";
-import crypto from "crypto";
-import { projectService } from "../project.service";
-import { LogoJsonToSvgService } from "./logoJsonToSvg.service";
-import { SvgOptimizerService } from "./svgOptimizer.service";
+import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.prompt';
+import { LOGO_SYSTEM_SECTION_PROMPT } from './prompts/01_logo-system-section.prompt';
+import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
+import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
+import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
+import { SectionModel } from '../../models/section.model';
+import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
+import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
+import { LogoModel, LogoPreferences } from '../../models/logo.model';
+import { COLORS_GENERATION_PROMPT } from './prompts/singleGenerations/colors-generation.prompt';
+import { TYPOGRAPHY_GENERATION_PROMPT } from './prompts/singleGenerations/typography-generation.prompt';
+import { PdfService } from '../pdf.service';
+import { cacheService } from '../cache.service';
+import crypto from 'crypto';
+import { projectService } from '../project.service';
+import { LogoJsonToSvgService } from './logoJsonToSvg.service';
+import { SvgOptimizerService } from './svgOptimizer.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
@@ -45,7 +37,7 @@ export class BrandingService extends GenericService {
   // Temperature modérée pour équilibrer créativité et cohérence
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: "gemini-2.0-flash",
+    modelName: 'gemini-2.0-flash',
     llmOptions: {
       maxOutputTokens: 3500,
       temperature: 0.4, // Équilibre entre créativité et cohérence
@@ -57,7 +49,7 @@ export class BrandingService extends GenericService {
   // Configuration LLM pour la génération de couleurs
   private static readonly COLORS_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: "gemini-2.0-flash",
+    modelName: 'gemini-2.0-flash',
     llmOptions: {
       maxOutputTokens: 3500,
       temperature: 0.1,
@@ -69,7 +61,7 @@ export class BrandingService extends GenericService {
   // Configuration LLM pour la génération de typographies
   private static readonly TYPOGRAPHY_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: "gemini-2.0-flash",
+    modelName: 'gemini-2.0-flash',
     llmOptions: {
       maxOutputTokens: 5000,
       temperature: 0.7,
@@ -82,7 +74,7 @@ export class BrandingService extends GenericService {
     super(promptService);
     this.pdfService = new PdfService();
     this.logoJsonToSvgService = new LogoJsonToSvgService();
-    logger.info("BrandingService initialized with optimized logo generation");
+    logger.info('BrandingService initialized with optimized logo generation');
   }
 
   /**
@@ -96,7 +88,7 @@ export class BrandingService extends GenericService {
 
     // Tentative de récupération depuis le cache
     let project = await cacheService.get<ProjectModel>(projectCacheKey, {
-      prefix: "project",
+      prefix: 'project',
     });
 
     if (project) {
@@ -105,19 +97,14 @@ export class BrandingService extends GenericService {
     }
 
     // Fallback vers la base de données
-    logger.info(
-      `Project cache miss, fetching from database - ProjectId: ${projectId}`
-    );
-    project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
+    logger.info(`Project cache miss, fetching from database - ProjectId: ${projectId}`);
+    project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
 
     if (project) {
       // Cache asynchrone (non-bloquant)
       cacheService
         .set(projectCacheKey, project, {
-          prefix: "project",
+          prefix: 'project',
           ttl: 3600,
         })
         .catch((error) => logger.error(`Error caching project:`, error));
@@ -138,10 +125,8 @@ export class BrandingService extends GenericService {
       return nameMatch[1].trim();
     }
     // Fallback: première ligne non vide
-    const firstLine = projectDescription
-      .split("\n")
-      .find((line) => line.trim());
-    return firstLine?.trim() || "Brand";
+    const firstLine = projectDescription.split('\n').find((line) => line.trim());
+    return firstLine?.trim() || 'Brand';
   }
 
   /**
@@ -150,18 +135,18 @@ export class BrandingService extends GenericService {
   private generateInitials(projectName: string): string {
     // Nettoyer et diviser le nom
     const words = projectName
-      .replace(/[^\w\s]/g, "") // Enlever la ponctuation
+      .replace(/[^\w\s]/g, '') // Enlever la ponctuation
       .split(/\s+/)
       .filter((word) => word.length > 0);
 
-    if (words.length === 0) return "BR";
+    if (words.length === 0) return 'BR';
     if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
 
     // Prendre la première lettre de chaque mot (max 3)
     return words
       .slice(0, 3)
       .map((word) => word[0].toUpperCase())
-      .join("");
+      .join('');
   }
 
   /**
@@ -177,110 +162,99 @@ export class BrandingService extends GenericService {
     const lowerDesc = projectDescription.toLowerCase();
 
     // Détecter l'industrie
-    let industry = "Technology";
+    let industry = 'Technology';
     if (
-      lowerDesc.includes("food") ||
-      lowerDesc.includes("restaurant") ||
-      lowerDesc.includes("cuisine")
+      lowerDesc.includes('food') ||
+      lowerDesc.includes('restaurant') ||
+      lowerDesc.includes('cuisine')
     ) {
-      industry = "Food & Beverage";
+      industry = 'Food & Beverage';
     } else if (
-      lowerDesc.includes("fashion") ||
-      lowerDesc.includes("clothing") ||
-      lowerDesc.includes("apparel")
+      lowerDesc.includes('fashion') ||
+      lowerDesc.includes('clothing') ||
+      lowerDesc.includes('apparel')
     ) {
-      industry = "Fashion";
+      industry = 'Fashion';
     } else if (
-      lowerDesc.includes("health") ||
-      lowerDesc.includes("medical") ||
-      lowerDesc.includes("wellness")
+      lowerDesc.includes('health') ||
+      lowerDesc.includes('medical') ||
+      lowerDesc.includes('wellness')
     ) {
-      industry = "Healthcare";
+      industry = 'Healthcare';
     } else if (
-      lowerDesc.includes("finance") ||
-      lowerDesc.includes("bank") ||
-      lowerDesc.includes("investment")
+      lowerDesc.includes('finance') ||
+      lowerDesc.includes('bank') ||
+      lowerDesc.includes('investment')
     ) {
-      industry = "Finance";
+      industry = 'Finance';
     } else if (
-      lowerDesc.includes("education") ||
-      lowerDesc.includes("learning") ||
-      lowerDesc.includes("school")
+      lowerDesc.includes('education') ||
+      lowerDesc.includes('learning') ||
+      lowerDesc.includes('school')
     ) {
-      industry = "Education";
+      industry = 'Education';
     } else if (
-      lowerDesc.includes("sport") ||
-      lowerDesc.includes("fitness") ||
-      lowerDesc.includes("gym")
+      lowerDesc.includes('sport') ||
+      lowerDesc.includes('fitness') ||
+      lowerDesc.includes('gym')
     ) {
-      industry = "Sports & Fitness";
+      industry = 'Sports & Fitness';
     } else if (
-      lowerDesc.includes("travel") ||
-      lowerDesc.includes("tourism") ||
-      lowerDesc.includes("hotel")
+      lowerDesc.includes('travel') ||
+      lowerDesc.includes('tourism') ||
+      lowerDesc.includes('hotel')
     ) {
-      industry = "Travel & Hospitality";
+      industry = 'Travel & Hospitality';
     } else if (
-      lowerDesc.includes("eco") ||
-      lowerDesc.includes("green") ||
-      lowerDesc.includes("sustainable")
+      lowerDesc.includes('eco') ||
+      lowerDesc.includes('green') ||
+      lowerDesc.includes('sustainable')
     ) {
-      industry = "Sustainability";
+      industry = 'Sustainability';
     }
 
     // Extraire les valeurs
     const values: string[] = [];
-    if (lowerDesc.includes("innovation") || lowerDesc.includes("innovative"))
-      values.push("Innovation");
-    if (lowerDesc.includes("trust") || lowerDesc.includes("reliable"))
-      values.push("Trust");
-    if (lowerDesc.includes("quality") || lowerDesc.includes("premium"))
-      values.push("Quality");
+    if (lowerDesc.includes('innovation') || lowerDesc.includes('innovative'))
+      values.push('Innovation');
+    if (lowerDesc.includes('trust') || lowerDesc.includes('reliable')) values.push('Trust');
+    if (lowerDesc.includes('quality') || lowerDesc.includes('premium')) values.push('Quality');
+    if (lowerDesc.includes('speed') || lowerDesc.includes('fast') || lowerDesc.includes('quick'))
+      values.push('Speed');
     if (
-      lowerDesc.includes("speed") ||
-      lowerDesc.includes("fast") ||
-      lowerDesc.includes("quick")
+      lowerDesc.includes('simple') ||
+      lowerDesc.includes('easy') ||
+      lowerDesc.includes('intuitive')
     )
-      values.push("Speed");
-    if (
-      lowerDesc.includes("simple") ||
-      lowerDesc.includes("easy") ||
-      lowerDesc.includes("intuitive")
-    )
-      values.push("Simplicity");
-    if (lowerDesc.includes("creative") || lowerDesc.includes("artistic"))
-      values.push("Creativity");
-    if (lowerDesc.includes("professional") || lowerDesc.includes("business"))
-      values.push("Professionalism");
-    if (
-      lowerDesc.includes("fun") ||
-      lowerDesc.includes("playful") ||
-      lowerDesc.includes("joy")
-    )
-      values.push("Playfulness");
+      values.push('Simplicity');
+    if (lowerDesc.includes('creative') || lowerDesc.includes('artistic')) values.push('Creativity');
+    if (lowerDesc.includes('professional') || lowerDesc.includes('business'))
+      values.push('Professionalism');
+    if (lowerDesc.includes('fun') || lowerDesc.includes('playful') || lowerDesc.includes('joy'))
+      values.push('Playfulness');
 
     // Audience cible
-    let targetAudience = "General Public";
+    let targetAudience = 'General Public';
     if (
-      lowerDesc.includes("young") ||
-      lowerDesc.includes("youth") ||
-      lowerDesc.includes("millennial")
+      lowerDesc.includes('young') ||
+      lowerDesc.includes('youth') ||
+      lowerDesc.includes('millennial')
     ) {
-      targetAudience = "Young Adults (18-35)";
+      targetAudience = 'Young Adults (18-35)';
     } else if (
-      lowerDesc.includes("professional") ||
-      lowerDesc.includes("business") ||
-      lowerDesc.includes("corporate")
+      lowerDesc.includes('professional') ||
+      lowerDesc.includes('business') ||
+      lowerDesc.includes('corporate')
     ) {
-      targetAudience = "Business Professionals";
+      targetAudience = 'Business Professionals';
     } else if (
-      lowerDesc.includes("luxury") ||
-      lowerDesc.includes("premium") ||
-      lowerDesc.includes("high-end")
+      lowerDesc.includes('luxury') ||
+      lowerDesc.includes('premium') ||
+      lowerDesc.includes('high-end')
     ) {
-      targetAudience = "Luxury Market";
-    } else if (lowerDesc.includes("family") || lowerDesc.includes("parent")) {
-      targetAudience = "Families";
+      targetAudience = 'Luxury Market';
+    } else if (lowerDesc.includes('family') || lowerDesc.includes('parent')) {
+      targetAudience = 'Families';
     }
 
     // Point de différenciation
@@ -309,38 +283,37 @@ export class BrandingService extends GenericService {
     contextPrompt += `- Industry: ${projectContext.industry}\n`;
     contextPrompt += `- Core Values: ${
       projectContext.values.length > 0
-        ? projectContext.values.join(", ")
-        : "Innovation, Quality, Trust"
+        ? projectContext.values.join(', ')
+        : 'Innovation, Quality, Trust'
     }\n`;
     contextPrompt += `- Target Audience: ${projectContext.targetAudience}\n`;
     contextPrompt += `- Project Description: ${projectContext.uniqueSellingPoint}\n`;
 
     // Informations de design
     const colorInfo = `Primary: ${
-      colors.colors?.primary || "N/A"
-    }, Secondary: ${colors.colors?.secondary || "N/A"}`;
-    const fontInfo = `Primary: ${typography.primaryFont || "N/A"}, Secondary: ${
-      typography.secondaryFont || "N/A"
+      colors.colors?.primary || 'N/A'
+    }, Secondary: ${colors.colors?.secondary || 'N/A'}`;
+    const fontInfo = `Primary: ${typography.primaryFont || 'N/A'}, Secondary: ${
+      typography.secondaryFont || 'N/A'
     }`;
     contextPrompt += `\n**DESIGN PALETTE:**\n`;
     contextPrompt += `- Colors: ${colorInfo}\n`;
     contextPrompt += `- Typography: ${fontInfo}\n`;
 
     // Ajouter les préférences utilisateur au contexte avec instructions détaillées
-    let preferenceContext = "";
+    let preferenceContext = '';
     if (preferences) {
       const typeDescriptions = {
-        icon: "Icon Based - Create a memorable icon/symbol + full brand name (like Apple, Nike, Twitter)",
-        name: "Name Based - Typography IS the logo, NO separate icon (like Coca-Cola, Google, FedEx)",
-        initial:
-          "Initial Based - Stylized initials as main element (like IBM, HP, CNN)",
+        icon: 'Icon Based - Create a memorable icon/symbol + full brand name (like Apple, Nike, Twitter)',
+        name: 'Name Based - Typography IS the logo, NO separate icon (like Coca-Cola, Google, FedEx)',
+        initial: 'Initial Based - Stylized initials as main element (like IBM, HP, CNN)',
       };
 
       preferenceContext = `\n**USER PREFERENCES:**\n- Logo Type: ${
         preferences.type
       } - ${typeDescriptions[preferences.type]}\n`;
 
-      if (preferences.type === "initial") {
+      if (preferences.type === 'initial') {
         preferenceContext += `- Initials to use: "${projectInitials}" (from "${projectName}")\n`;
       }
 
@@ -351,31 +324,29 @@ export class BrandingService extends GenericService {
       preferenceContext += `\n**DESIGN DIRECTION FOR ${preferences.type.toUpperCase()} TYPE:**\n`;
       preferenceContext += `Based on the project context (${
         projectContext.industry
-      }, values: ${projectContext.values.join(", ")}), create a logo that:\n`;
+      }, values: ${projectContext.values.join(', ')}), create a logo that:\n`;
 
       switch (preferences.type) {
-        case "icon":
+        case 'icon':
           preferenceContext += `- Creates an icon that visually represents the ${projectContext.industry} industry\n`;
-          preferenceContext += `- Embodies the values: ${projectContext.values.join(
-            ", "
-          )}\n`;
+          preferenceContext += `- Embodies the values: ${projectContext.values.join(', ')}\n`;
           preferenceContext += `- Appeals to ${projectContext.targetAudience}\n`;
           preferenceContext += `- Includes the FULL brand name "${projectName}" as text\n`;
           preferenceContext += `- Makes the icon memorable and instantly recognizable\n`;
           break;
-        case "name":
+        case 'name':
           preferenceContext += `- Uses ONLY the brand name "${projectName}" with typography that reflects ${projectContext.industry}\n`;
           preferenceContext += `- Conveys ${projectContext.values.join(
-            " and "
+            ' and '
           )} through font styling\n`;
           preferenceContext += `- Resonates with ${projectContext.targetAudience}\n`;
           preferenceContext += `- NO separate icon - typography IS the complete logo\n`;
           preferenceContext += `- Creates visual impact through creative letterforms\n`;
           break;
-        case "initial":
+        case 'initial':
           preferenceContext += `- Uses ONLY the initials "${projectInitials}" in a way that suggests ${projectContext.industry}\n`;
           preferenceContext += `- Stylizes the letters to communicate ${projectContext.values.join(
-            " and "
+            ' and '
           )}\n`;
           preferenceContext += `- Creates appeal for ${projectContext.targetAudience}\n`;
           preferenceContext += `- NO full brand name - initials ARE the complete logo\n`;
@@ -407,15 +378,15 @@ export class BrandingService extends GenericService {
     // Generate cache key based on project content
     const projectDescription =
       this.extractProjectDescription(project) +
-      "\n\nHere is the project branding colors: " +
+      '\n\nHere is the project branding colors: ' +
       JSON.stringify(project.analysisResultModel.branding.colors) +
-      "\n\nHere is the project branding typography: " +
+      '\n\nHere is the project branding typography: ' +
       JSON.stringify(project.analysisResultModel.branding.typography) +
-      "\n\nHere is the project branding logo: " +
+      '\n\nHere is the project branding logo: ' +
       JSON.stringify(project.analysisResultModel.branding.logo);
 
     const contentHash = crypto
-      .createHash("sha256")
+      .createHash('sha256')
       .update(
         JSON.stringify({
           name: project.name,
@@ -424,19 +395,14 @@ export class BrandingService extends GenericService {
           projectDescription,
         })
       )
-      .digest("hex")
+      .digest('hex')
       .substring(0, 16);
 
-    const cacheKey = cacheService.generateAIKey(
-      "branding",
-      userId,
-      projectId,
-      contentHash
-    );
+    const cacheKey = cacheService.generateAIKey('branding', userId, projectId, contentHash);
 
     // Check cache first
     const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: "ai",
+      prefix: 'ai',
       ttl: 7200, // 2 hours
     });
 
@@ -445,31 +411,29 @@ export class BrandingService extends GenericService {
       return cachedResult;
     }
 
-    logger.info(
-      `Branding cache miss, generating new content for projectId: ${projectId}`
-    );
+    logger.info(`Branding cache miss, generating new content for projectId: ${projectId}`);
 
     try {
       // Define branding steps
       const steps: IPromptStep[] = [
         {
           promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
-          stepName: "Brand Header",
+          stepName: 'Brand Header',
           hasDependencies: false,
         },
         {
           promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
-          stepName: "Logo System",
+          stepName: 'Logo System',
           hasDependencies: false,
         },
         {
           promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
-          stepName: "Color Palette",
+          stepName: 'Color Palette',
           hasDependencies: false,
         },
         {
           promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
-          stepName: "Typography",
+          stepName: 'Typography',
           hasDependencies: false,
         },
         // {
@@ -484,7 +448,7 @@ export class BrandingService extends GenericService {
         // },
         {
           promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
-          stepName: "Brand Footer",
+          stepName: 'Brand Footer',
           hasDependencies: false,
         },
       ];
@@ -501,10 +465,7 @@ export class BrandingService extends GenericService {
             logger.info(`Received streamed result for step: ${result.name}`);
 
             // Skip progress and completion events - handle only actual step results
-            if (
-              result.data === "steps_in_progress" ||
-              result.data === "all_steps_completed"
-            ) {
+            if (result.data === 'steps_in_progress' || result.data === 'all_steps_completed') {
               await streamCallback(result);
               return;
             }
@@ -521,9 +482,7 @@ export class BrandingService extends GenericService {
             sections.push(section);
 
             // Update project immediately after each step
-            logger.info(
-              `Updating project after step: ${result.name} - projectId: ${projectId}`
-            );
+            logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
 
             // Get the current project
             const currentProject = await this.projectRepository.findById(
@@ -545,18 +504,13 @@ export class BrandingService extends GenericService {
                 branding: {
                   sections: sections,
                   colors: currentProject.analysisResultModel.branding.colors,
-                  typography:
-                    currentProject.analysisResultModel.branding.typography,
+                  typography: currentProject.analysisResultModel.branding.typography,
                   logo: currentProject.analysisResultModel.branding.logo,
-                  generatedLogos:
-                    currentProject.analysisResultModel.branding
-                      .generatedLogos || [],
+                  generatedLogos: currentProject.analysisResultModel.branding.generatedLogos || [],
                   generatedColors:
-                    currentProject.analysisResultModel.branding
-                      .generatedColors || [],
+                    currentProject.analysisResultModel.branding.generatedColors || [],
                   generatedTypography:
-                    currentProject.analysisResultModel.branding
-                      .generatedTypography || [],
+                    currentProject.analysisResultModel.branding.generatedTypography || [],
                   createdAt: new Date(),
                   updatedAt: new Date(),
                 },
@@ -577,12 +531,10 @@ export class BrandingService extends GenericService {
 
               // Update cache with latest project state
               await cacheService.set(cacheKey, updatedProject, {
-                prefix: "ai",
+                prefix: 'ai',
                 ttl: 7200, // 2 hours
               });
-              logger.info(
-                `Branding cached after step: ${result.name} - projectId: ${projectId}`
-              );
+              logger.info(`Branding cached after step: ${result.name} - projectId: ${projectId}`);
 
               // Only send to frontend after successful database update
               await streamCallback(result);
@@ -590,13 +542,11 @@ export class BrandingService extends GenericService {
               logger.error(
                 `Failed to update project after step: ${result.name} - projectId: ${projectId}`
               );
-              throw new Error(
-                `Failed to update project after step: ${result.name}`
-              );
+              throw new Error(`Failed to update project after step: ${result.name}`);
             }
           },
           undefined, // promptConfig
-          "branding", // promptType
+          'branding', // promptType
           userId
         );
 
@@ -638,13 +588,10 @@ export class BrandingService extends GenericService {
               colors: oldProject.analysisResultModel.branding.colors,
               typography: oldProject.analysisResultModel.branding.typography,
               logo: oldProject.analysisResultModel.branding.logo,
-              generatedLogos:
-                oldProject.analysisResultModel.branding.generatedLogos || [],
-              generatedColors:
-                oldProject.analysisResultModel.branding.generatedColors || [],
+              generatedLogos: oldProject.analysisResultModel.branding.generatedLogos || [],
+              generatedColors: oldProject.analysisResultModel.branding.generatedColors || [],
               generatedTypography:
-                oldProject.analysisResultModel.branding.generatedTypography ||
-                [],
+                oldProject.analysisResultModel.branding.generatedTypography || [],
               createdAt: new Date(),
               updatedAt: new Date(),
             },
@@ -659,13 +606,11 @@ export class BrandingService extends GenericService {
         );
 
         if (updatedProject) {
-          logger.info(
-            `Successfully updated project with ID: ${projectId} with branding`
-          );
+          logger.info(`Successfully updated project with ID: ${projectId} with branding`);
 
           // Cache the result for future requests
           await cacheService.set(cacheKey, updatedProject, {
-            prefix: "ai",
+            prefix: 'ai',
             ttl: 7200, // 2 hours
           });
           logger.info(`Branding cached for projectId: ${projectId}`);
@@ -673,10 +618,7 @@ export class BrandingService extends GenericService {
         return updatedProject;
       }
     } catch (error) {
-      logger.error(
-        `Error generating branding for projectId ${projectId}:`,
-        error
-      );
+      logger.error(`Error generating branding for projectId ${projectId}:`, error);
       throw error;
     } finally {
       logger.info(`Completed branding generation for projectId ${projectId}`);
@@ -695,7 +637,7 @@ export class BrandingService extends GenericService {
     const steps: IPromptStep[] = [
       {
         promptConstant: projectDescription + COLORS_GENERATION_PROMPT,
-        stepName: "Colors Generation",
+        stepName: 'Colors Generation',
         modelParser: (content) => {
           try {
             const parsedColors = JSON.parse(content);
@@ -732,7 +674,7 @@ export class BrandingService extends GenericService {
     const steps: IPromptStep[] = [
       {
         promptConstant: projectDescription + TYPOGRAPHY_GENERATION_PROMPT,
-        stepName: "Typography Generation",
+        stepName: 'Typography Generation',
         modelParser: (content) => {
           try {
             const parsedTypography = JSON.parse(content);
@@ -765,9 +707,7 @@ export class BrandingService extends GenericService {
     typography: TypographyModel[];
     project: ProjectModel;
   }> {
-    logger.info(
-      `Generating colors and typography in parallel for userId: ${userId}`
-    );
+    logger.info(`Generating colors and typography in parallel for userId: ${userId}`);
 
     // Créer le projet
     project = {
@@ -777,10 +717,7 @@ export class BrandingService extends GenericService {
         branding: BrandIdentityBuilder.createEmpty(),
       },
     };
-    const createdProject = await projectService.createUserProject(
-      userId,
-      project
-    );
+    const createdProject = await projectService.createUserProject(userId, project);
 
     if (!createdProject.id) {
       throw new Error(`Failed to create project`);
@@ -790,12 +727,10 @@ export class BrandingService extends GenericService {
     try {
       const projectCacheKey = `project_${userId}_${createdProject.id}`;
       await cacheService.set(projectCacheKey, createdProject, {
-        prefix: "project",
+        prefix: 'project',
         ttl: 3600, // 1 heure
       });
-      logger.info(
-        `Project cached with ID: ${createdProject.id} for userId: ${userId}`
-      );
+      logger.info(`Project cached with ID: ${createdProject.id} for userId: ${userId}`);
     } catch (error) {
       logger.error(`Error caching project for userId: ${userId}`, error);
       // Continue without failing - cache is not critical
@@ -813,9 +748,7 @@ export class BrandingService extends GenericService {
     ]);
 
     const generationTime = Date.now() - startTime;
-    logger.info(
-      `Parallel colors and typography generation completed in ${generationTime}ms`
-    );
+    logger.info(`Parallel colors and typography generation completed in ${generationTime}ms`);
 
     // Mettre à jour le projet avec les couleurs et typographies générées
     const updatedProjectData = {
@@ -846,7 +779,7 @@ export class BrandingService extends GenericService {
       // Mise à jour du cache projet
       const projectCacheKey = `project_${userId}_${createdProject.id}`;
       await cacheService.set(projectCacheKey, updatedProject, {
-        prefix: "project",
+        prefix: 'project',
         ttl: 3600,
       });
 
@@ -877,7 +810,7 @@ export class BrandingService extends GenericService {
     logger.info(
       `Generating professional logo concept ${
         conceptIndex + 1
-      } with direct SVG generation - Type: ${preferences?.type || "name"}`
+      } with direct SVG generation - Type: ${preferences?.type || 'name'}`
     );
 
     // Build optimized prompt for direct SVG generation with user preferences
@@ -901,40 +834,28 @@ export class BrandingService extends GenericService {
 
             // Ensure unique ID for each concept
             if (!logoData.id) {
-              logoData.id = `concept${String(conceptIndex + 1).padStart(
-                2,
-                "0"
-              )}`;
+              logoData.id = `concept${String(conceptIndex + 1).padStart(2, '0')}`;
             }
 
             return logoData;
           } catch (error) {
-            logger.error(
-              `Error parsing logo data concept ${conceptIndex + 1}:`,
-              error
-            );
-            throw new Error(
-              `Failed to parse logo data concept ${conceptIndex + 1}`
-            );
+            logger.error(`Error parsing logo data concept ${conceptIndex + 1}:`, error);
+            throw new Error(`Failed to parse logo data concept ${conceptIndex + 1}`);
           }
         },
         hasDependencies: false,
       },
     ];
 
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      BrandingService.LOGO_LLM_CONFIG
-    );
+    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
     // Create LogoModel directly from SVG data
     const logoModel: LogoModel = {
-      id: `concept${String(conceptIndex + 1).padStart(2, "0")}`,
+      id: `concept${String(conceptIndex + 1).padStart(2, '0')}`,
       name: logoData.name || `Logo Concept ${conceptIndex + 1}`,
-      concept: logoData.concept || "Professional logo design",
+      concept: logoData.concept || 'Professional logo design',
       colors: logoData.colors || [],
       fonts: logoData.fonts || [],
       svg: logoData.svg, // Direct SVG from AI
@@ -946,11 +867,7 @@ export class BrandingService extends GenericService {
     // Apply SVG optimization
     const optimizedLogo = this.optimizeLogoSvgs(logoModel);
 
-    logger.info(
-      `Professional logo concept ${
-        conceptIndex + 1
-      } generated with direct SVG content`
-    );
+    logger.info(`Professional logo concept ${conceptIndex + 1} generated with direct SVG content`);
     return optimizedLogo;
   }
 
@@ -969,10 +886,10 @@ export class BrandingService extends GenericService {
       }
 
       // Fallback: return a simplified version of the full SVG
-      logger.warn("Could not extract icon from SVG, using fallback");
-      return fullSvg.replace(/<g id="text"[^>]*>[\s\S]*?<\/g>/, "");
+      logger.warn('Could not extract icon from SVG, using fallback');
+      return fullSvg.replace(/<g id="text"[^>]*>[\s\S]*?<\/g>/, '');
     } catch (error) {
-      logger.error("Error extracting icon from SVG:", error);
+      logger.error('Error extracting icon from SVG:', error);
       return fullSvg; // Return original if extraction fails
     }
   }
@@ -1027,7 +944,7 @@ export class BrandingService extends GenericService {
     const optimized = { ...variationSet };
 
     Object.keys(optimized).forEach((key) => {
-      if (typeof optimized[key] === "string") {
+      if (typeof optimized[key] === 'string') {
         optimized[key] = SvgOptimizerService.optimizeSvg(optimized[key]);
       }
     });
@@ -1049,7 +966,7 @@ export class BrandingService extends GenericService {
   }> {
     logger.info(
       `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
-        preferences?.type || "name"
+        preferences?.type || 'name'
       }`
     );
 
@@ -1081,8 +998,7 @@ export class BrandingService extends GenericService {
     const optimizedLogos = await Promise.all(logoPromises);
 
     // Apply batch SVG optimization
-    const finalOptimizedLogos =
-      SvgOptimizerService.optimizeLogos(optimizedLogos);
+    const finalOptimizedLogos = SvgOptimizerService.optimizeLogos(optimizedLogos);
 
     const aiGenerationTime = Date.now() - startTime;
     logger.info(
@@ -1119,7 +1035,7 @@ export class BrandingService extends GenericService {
       // Mise à jour du cache projet
       const projectCacheKey = `project_${userId}_${projectId}`;
       await cacheService.set(projectCacheKey, updatedProject, {
-        prefix: "project",
+        prefix: 'project',
         ttl: 3600,
       });
 
@@ -1127,9 +1043,7 @@ export class BrandingService extends GenericService {
     }
 
     const totalTime = Date.now() - startTime;
-    logger.info(
-      `Parallel logo generation completed in ${totalTime}ms for 3 concepts`
-    );
+    logger.info(`Parallel logo generation completed in ${totalTime}ms for 3 concepts`);
 
     return {
       logos: finalOptimizedLogos as LogoModel[],
@@ -1150,26 +1064,22 @@ export class BrandingService extends GenericService {
     const steps: IPromptStep[] = [
       {
         promptConstant: prompt,
-        stepName: "Light Background Variation",
+        stepName: 'Light Background Variation',
         maxOutputTokens: 1000,
         modelParser: (content) => {
           try {
             const parsed = JSON.parse(content);
             return parsed.variation;
           } catch (error) {
-            logger.error("Error parsing light variation JSON:", error);
-            throw new Error("Failed to parse light variation JSON");
+            logger.error('Error parsing light variation JSON:', error);
+            throw new Error('Failed to parse light variation JSON');
           }
         },
         hasDependencies: false,
       },
     ];
 
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      BrandingService.LOGO_LLM_CONFIG
-    );
+    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
     return sectionResults[0].parsedData;
   }
 
@@ -1187,26 +1097,22 @@ export class BrandingService extends GenericService {
     const steps: IPromptStep[] = [
       {
         promptConstant: prompt,
-        stepName: "Dark Background Variation",
+        stepName: 'Dark Background Variation',
         maxOutputTokens: 1000,
         modelParser: (content) => {
           try {
             const parsed = JSON.parse(content);
             return parsed.variation;
           } catch (error) {
-            logger.error("Error parsing dark variation JSON:", error);
-            throw new Error("Failed to parse dark variation JSON");
+            logger.error('Error parsing dark variation JSON:', error);
+            throw new Error('Failed to parse dark variation JSON');
           }
         },
         hasDependencies: false,
       },
     ];
 
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      BrandingService.LOGO_LLM_CONFIG
-    );
+    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
     return sectionResults[0].parsedData;
   }
 
@@ -1224,26 +1130,22 @@ export class BrandingService extends GenericService {
     const steps: IPromptStep[] = [
       {
         promptConstant: prompt,
-        stepName: "Monochrome Variation",
+        stepName: 'Monochrome Variation',
         maxOutputTokens: 1000,
         modelParser: (content) => {
           try {
             const parsed = JSON.parse(content);
             return parsed.variation;
           } catch (error) {
-            logger.error("Error parsing monochrome variation JSON:", error);
-            throw new Error("Failed to parse monochrome variation JSON");
+            logger.error('Error parsing monochrome variation JSON:', error);
+            throw new Error('Failed to parse monochrome variation JSON');
           }
         },
         hasDependencies: false,
       },
     ];
 
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      BrandingService.LOGO_LLM_CONFIG
-    );
+    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
     return sectionResults[0].parsedData;
   }
 
@@ -1267,9 +1169,7 @@ export class BrandingService extends GenericService {
       monochrome?: string;
     };
   }> {
-    logger.info(
-      `Generating logo variations using parallel execution for logo: ${selectedLogo.id}`
-    );
+    logger.info(`Generating logo variations using parallel execution for logo: ${selectedLogo.id}`);
 
     const project = await this.getProjectOptimized(userId, projectId);
     if (!project) {
@@ -1287,12 +1187,11 @@ export class BrandingService extends GenericService {
 
     // Execute all three variations in parallel
     logger.info(`Starting parallel generation of 3 logo variations`);
-    const [lightVariation, darkVariation, monochromeVariation] =
-      await Promise.all([
-        this.generateSingleLightVariation(logoStructure, project),
-        this.generateSingleDarkVariation(logoStructure, project),
-        this.generateSingleMonochromeVariation(logoStructure, project),
-      ]);
+    const [lightVariation, darkVariation, monochromeVariation] = await Promise.all([
+      this.generateSingleLightVariation(logoStructure, project),
+      this.generateSingleDarkVariation(logoStructure, project),
+      this.generateSingleMonochromeVariation(logoStructure, project),
+    ]);
 
     logger.info(`Successfully generated all 3 variations in parallel`);
 
@@ -1347,30 +1246,30 @@ export class BrandingService extends GenericService {
       // Update project cache
       const projectCacheKey = `project_${userId}_${projectId}`;
       await cacheService.set(projectCacheKey, updatedProject, {
-        prefix: "project",
+        prefix: 'project',
         ttl: 3600,
       });
 
       // Cache AI variations with 2h TTL
       const variationsCacheKey = cacheService.generateAIKey(
-        "logo_variations",
+        'logo_variations',
         userId,
         projectId,
         crypto
-          .createHash("sha256")
+          .createHash('sha256')
           .update(JSON.stringify(selectedLogo))
-          .digest("hex")
+          .digest('hex')
           .substring(0, 16)
       );
       await cacheService.set(variationsCacheKey, optimizedVariations, {
-        prefix: "ai",
+        prefix: 'ai',
         ttl: 7200,
       });
 
       logger.info(
         `Optimized logo variations cached - ProjectId: ${projectId}, Variations: ${Object.keys(
           optimizedVariations.iconOnly
-        ).join("/")}`
+        ).join('/')}`
       );
     }
 
@@ -1381,13 +1280,8 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string
   ): Promise<BrandIdentityModel | null> {
-    logger.info(
-      `Fetching branding for projectId: ${projectId}, userId: ${userId}`
-    );
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
+    logger.info(`Fetching branding for projectId: ${projectId}, userId: ${userId}`);
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when fetching branding.`
@@ -1399,16 +1293,11 @@ export class BrandingService extends GenericService {
     return project.analysisResultModel.branding;
   }
 
-  async getBrandingById(
-    userId: string,
-    brandingId: string
-  ): Promise<BrandIdentityModel | null> {
+  async getBrandingById(userId: string, brandingId: string): Promise<BrandIdentityModel | null> {
     logger.info(`Getting branding by ID: ${brandingId} for userId: ${userId}`);
     // In current implementation, branding is nested in project, so we don't have direct access by brandingId
     // This method would need to be implemented differently if we had a separate branding repository
-    logger.warn(
-      `Direct access to branding by ID is not supported in the current implementation`
-    );
+    logger.warn(`Direct access to branding by ID is not supported in the current implementation`);
     return null;
   }
 
@@ -1417,14 +1306,9 @@ export class BrandingService extends GenericService {
     projectId: string,
     data: Partial<BrandIdentityModel>
   ): Promise<ProjectModel | null> {
-    logger.info(
-      `Updating branding for userId: ${userId}, projectId: ${projectId}`
-    );
+    logger.info(`Updating branding for userId: ${userId}, projectId: ${projectId}`);
 
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when updating branding.`
@@ -1453,14 +1337,9 @@ export class BrandingService extends GenericService {
   }
 
   async deleteBranding(userId: string, projectId: string): Promise<boolean> {
-    logger.info(
-      `Removing branding for userId: ${userId}, projectId: ${projectId}`
-    );
+    logger.info(`Removing branding for userId: ${userId}, projectId: ${projectId}`);
 
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when deleting branding.`
@@ -1471,43 +1350,39 @@ export class BrandingService extends GenericService {
     // Reset branding to empty state rather than removing it completely
     project.analysisResultModel.branding = {
       logo: {
-        svg: "",
-        concept: "",
+        svg: '',
+        concept: '',
         colors: [],
         fonts: [],
-        id: "1",
-        name: "",
+        id: '1',
+        name: '',
       },
       generatedLogos: [],
       typography: {
-        id: "",
-        name: "",
-        url: "",
-        primaryFont: "",
-        secondaryFont: "",
+        id: '',
+        name: '',
+        url: '',
+        primaryFont: '',
+        secondaryFont: '',
       },
       generatedTypography: [],
       generatedColors: [],
       colors: {
-        id: "",
-        name: "",
-        url: "",
+        id: '',
+        name: '',
+        url: '',
         colors: {
-          primary: "",
-          secondary: "",
-          accent: "",
-          background: "",
-          text: "",
+          primary: '',
+          secondary: '',
+          accent: '',
+          background: '',
+          text: '',
         },
       },
       sections: [],
     };
 
-    await this.projectRepository.update(
-      projectId,
-      project,
-      `users/${userId}/projects`
-    );
+    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
     logger.info(`Successfully reset branding for projectId: ${projectId}`);
     return true;
   }
@@ -1518,18 +1393,12 @@ export class BrandingService extends GenericService {
    * @param projectId - ID du projet
    * @returns Chemin vers le fichier PDF temporaire généré
    */
-  async generateBrandingPdf(
-    userId: string,
-    projectId: string
-  ): Promise<string> {
+  async generateBrandingPdf(userId: string, projectId: string): Promise<string> {
     logger.info(
       `Generating PDF for branding sections - projectId: ${projectId}, userId: ${userId}`
     );
     // Récupérer le projet et ses données de branding
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
 
     if (!project) {
       logger.warn(
@@ -1539,23 +1408,17 @@ export class BrandingService extends GenericService {
     }
     const branding = project.analysisResultModel.branding;
     if (!branding || !branding.sections || branding.sections.length === 0) {
-      logger.warn(
-        `No branding sections found for project ${projectId} when generating PDF.`
-      );
-      return "";
+      logger.warn(`No branding sections found for project ${projectId} when generating PDF.`);
+      return '';
     }
 
     try {
       // Generate cache key for PDF
-      const pdfCacheKey = cacheService.generateAIKey(
-        "branding-pdf",
-        userId,
-        projectId
-      );
+      const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId);
 
       // Check if PDF is already cached
       const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
-        prefix: "pdf",
+        prefix: 'pdf',
         ttl: 3600, // 1 hour
       });
 
@@ -1564,41 +1427,36 @@ export class BrandingService extends GenericService {
         return cachedPdfPath;
       }
 
-      logger.info(
-        `Branding PDF cache miss, generating new PDF for projectId: ${projectId}`
-      );
+      logger.info(`Branding PDF cache miss, generating new PDF for projectId: ${projectId}`);
 
       // Utiliser le PdfService pour générer le PDF
       const pdfPath = await this.pdfService.generatePdf({
-        title: "Branding",
-        projectName: project.name || "Projet Sans Nom",
-        projectDescription: project.description || "",
+        title: 'Branding',
+        projectName: project.name || 'Projet Sans Nom',
+        projectDescription: project.description || '',
         sections: branding.sections,
         sectionDisplayOrder: [
-          "Brand Header",
-          "Logo System",
-          "Color Palette",
-          "Typography",
-          "Usage Guidelines",
+          'Brand Header',
+          'Logo System',
+          'Color Palette',
+          'Typography',
+          'Usage Guidelines',
           // "Visual Examples",
-          "Brand Footer",
+          'Brand Footer',
         ],
-        footerText: "Generated by Idem",
+        footerText: 'Generated by Idem',
       });
 
       // Cache the PDF path for future requests
       await cacheService.set(pdfCacheKey, pdfPath, {
-        prefix: "pdf",
+        prefix: 'pdf',
         ttl: 3600, // 1 hour
       });
       logger.info(`Branding PDF cached for projectId: ${projectId}`);
 
       return pdfPath;
     } catch (error) {
-      logger.error(
-        `Error generating branding PDF for projectId: ${projectId}`,
-        error
-      );
+      logger.error(`Error generating branding PDF for projectId: ${projectId}`, error);
       throw error;
     }
   }
@@ -1613,17 +1471,14 @@ export class BrandingService extends GenericService {
   async generateLogosZip(
     userId: string,
     projectId: string,
-    extension: "svg" | "png" | "psd"
+    extension: 'svg' | 'png' | 'psd'
   ): Promise<Buffer> {
     logger.info(
       `Generating logos ZIP for projectId: ${projectId}, userId: ${userId}, extension: ${extension}`
     );
 
     // Récupérer le projet et ses données de branding
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
 
     if (!project) {
       logger.warn(
@@ -1634,13 +1489,11 @@ export class BrandingService extends GenericService {
 
     const branding = project.analysisResultModel.branding;
     if (!branding || !branding.logo) {
-      logger.warn(
-        `No logo found for project ${projectId} when generating logos ZIP.`
-      );
+      logger.warn(`No logo found for project ${projectId} when generating logos ZIP.`);
       throw new Error(`No logo found for project ${projectId}`);
     }
 
-    const JSZip = require("jszip");
+    const JSZip = require('jszip');
     const zip = new JSZip();
 
     try {
@@ -1653,7 +1506,7 @@ export class BrandingService extends GenericService {
         const content = await this.fetchContentFromUrl(branding.logo.svg);
         if (content) {
           logoFiles.push({
-            name: "logo-main",
+            name: 'logo-main',
             content: content,
           });
         }
@@ -1664,7 +1517,7 @@ export class BrandingService extends GenericService {
         const content = await this.fetchContentFromUrl(branding.logo.iconSvg);
         if (content) {
           logoFiles.push({
-            name: "logo-icon",
+            name: 'logo-icon',
             content: content,
           });
         }
@@ -1673,34 +1526,28 @@ export class BrandingService extends GenericService {
       // Variations avec texte
       if (logoVariations?.withText) {
         if (logoVariations.withText.lightBackground) {
-          const content = await this.fetchContentFromUrl(
-            logoVariations.withText.lightBackground
-          );
+          const content = await this.fetchContentFromUrl(logoVariations.withText.lightBackground);
           if (content) {
             logoFiles.push({
-              name: "logo-with-text-light-background",
+              name: 'logo-with-text-light-background',
               content: content,
             });
           }
         }
         if (logoVariations.withText.darkBackground) {
-          const content = await this.fetchContentFromUrl(
-            logoVariations.withText.darkBackground
-          );
+          const content = await this.fetchContentFromUrl(logoVariations.withText.darkBackground);
           if (content) {
             logoFiles.push({
-              name: "logo-with-text-dark-background",
+              name: 'logo-with-text-dark-background',
               content: content,
             });
           }
         }
         if (logoVariations.withText.monochrome) {
-          const content = await this.fetchContentFromUrl(
-            logoVariations.withText.monochrome
-          );
+          const content = await this.fetchContentFromUrl(logoVariations.withText.monochrome);
           if (content) {
             logoFiles.push({
-              name: "logo-with-text-monochrome",
+              name: 'logo-with-text-monochrome',
               content: content,
             });
           }
@@ -1710,34 +1557,28 @@ export class BrandingService extends GenericService {
       // Variations icône seulement
       if (logoVariations?.iconOnly) {
         if (logoVariations.iconOnly.lightBackground) {
-          const content = await this.fetchContentFromUrl(
-            logoVariations.iconOnly.lightBackground
-          );
+          const content = await this.fetchContentFromUrl(logoVariations.iconOnly.lightBackground);
           if (content) {
             logoFiles.push({
-              name: "logo-icon-only-light-background",
+              name: 'logo-icon-only-light-background',
               content: content,
             });
           }
         }
         if (logoVariations.iconOnly.darkBackground) {
-          const content = await this.fetchContentFromUrl(
-            logoVariations.iconOnly.darkBackground
-          );
+          const content = await this.fetchContentFromUrl(logoVariations.iconOnly.darkBackground);
           if (content) {
             logoFiles.push({
-              name: "logo-icon-only-dark-background",
+              name: 'logo-icon-only-dark-background',
               content: content,
             });
           }
         }
         if (logoVariations.iconOnly.monochrome) {
-          const content = await this.fetchContentFromUrl(
-            logoVariations.iconOnly.monochrome
-          );
+          const content = await this.fetchContentFromUrl(logoVariations.iconOnly.monochrome);
           if (content) {
             logoFiles.push({
-              name: "logo-icon-only-monochrome",
+              name: 'logo-icon-only-monochrome',
               content: content,
             });
           }
@@ -1745,23 +1586,19 @@ export class BrandingService extends GenericService {
       }
 
       if (logoFiles.length === 0) {
-        throw new Error("No logo variations found to include in ZIP");
+        throw new Error('No logo variations found to include in ZIP');
       }
 
-      logger.info(
-        `Found ${logoFiles.length} logo variations to include in ZIP`
-      );
+      logger.info(`Found ${logoFiles.length} logo variations to include in ZIP`);
 
       // Traitement en parallèle selon l'extension demandée
       logger.info(
-        `Starting parallel conversion of ${
-          logoFiles.length
-        } logos to ${extension.toUpperCase()}`
+        `Starting parallel conversion of ${logoFiles.length} logos to ${extension.toUpperCase()}`
       );
 
       // Pré-initialiser le browser pour les conversions PSD si nécessaire
-      if (extension === "psd") {
-        logger.info("Pre-initializing browser for parallel PSD conversions");
+      if (extension === 'psd') {
+        logger.info('Pre-initializing browser for parallel PSD conversions');
         await SvgToPsdService.initializeForParallelConversion();
       }
 
@@ -1769,29 +1606,23 @@ export class BrandingService extends GenericService {
         const fileName = `${logoFile.name}.${extension}`;
 
         try {
-          if (extension === "svg") {
+          if (extension === 'svg') {
             // Pour SVG, pas de conversion nécessaire
             return { fileName, content: logoFile.content };
-          } else if (extension === "png") {
+          } else if (extension === 'png') {
             // Pour PNG, convertir le SVG
             const pngBuffer = await this.convertSvgToPng(logoFile.content);
             return { fileName, content: pngBuffer };
-          } else if (extension === "psd") {
+          } else if (extension === 'psd') {
             // Pour PSD, convertir le SVG en vrai fichier PSD
-            const psdBuffer = await this.convertSvgToPsd(
-              logoFile.name,
-              logoFile.content
-            );
+            const psdBuffer = await this.convertSvgToPsd(logoFile.name, logoFile.content);
             return { fileName, content: psdBuffer };
           }
 
           // Fallback pour extensions non supportées
           return { fileName, content: logoFile.content };
         } catch (error) {
-          logger.error(
-            `Error converting ${logoFile.name} to ${extension}:`,
-            error
-          );
+          logger.error(`Error converting ${logoFile.name} to ${extension}:`, error);
           // En cas d'erreur, retourner le contenu SVG original
           return {
             fileName: `${logoFile.name}.svg`,
@@ -1803,9 +1634,7 @@ export class BrandingService extends GenericService {
       // Attendre que toutes les conversions se terminent
       const convertedFiles = await Promise.all(conversionPromises);
 
-      logger.info(
-        `Completed parallel conversion of ${convertedFiles.length} logos`
-      );
+      logger.info(`Completed parallel conversion of ${convertedFiles.length} logos`);
 
       // Ajouter tous les fichiers convertis au ZIP
       convertedFiles.forEach(({ fileName, content }) => {
@@ -1813,15 +1642,11 @@ export class BrandingService extends GenericService {
       });
 
       // Ajouter un fichier README avec les informations du projet
-      const readmeContent = this.generateReadmeContent(
-        project,
-        extension,
-        logoFiles.length
-      );
-      zip.file("README.txt", readmeContent);
+      const readmeContent = this.generateReadmeContent(project, extension, logoFiles.length);
+      zip.file('README.txt', readmeContent);
 
       // Générer le ZIP
-      const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
 
       logger.info(
         `Successfully generated logos ZIP for projectId: ${projectId}, extension: ${extension}, files: ${logoFiles.length}`
@@ -1842,12 +1667,12 @@ export class BrandingService extends GenericService {
    */
   private async convertSvgToPng(svgContent: string): Promise<Buffer> {
     try {
-      const sharp = require("sharp");
+      const sharp = require('sharp');
 
       // Convertir le SVG en PNG avec une résolution de 512x512
       const pngBuffer = await sharp(Buffer.from(svgContent))
         .resize(512, 512, {
-          fit: "contain",
+          fit: 'contain',
           background: { r: 255, g: 255, b: 255, alpha: 0 }, // Fond transparent
         })
         .png()
@@ -1855,9 +1680,9 @@ export class BrandingService extends GenericService {
 
       return pngBuffer;
     } catch (error) {
-      logger.error("Error converting SVG to PNG:", error);
+      logger.error('Error converting SVG to PNG:', error);
       // Fallback: retourner le contenu SVG comme texte
-      return Buffer.from(svgContent, "utf-8");
+      return Buffer.from(svgContent, 'utf-8');
     }
   }
 
@@ -1865,10 +1690,7 @@ export class BrandingService extends GenericService {
    * Convertit un SVG en fichier PSD réel avec calques éditables
    * Utilise le SvgToPsdService pour créer un vrai fichier PSD avec des calques séparés
    */
-  private async convertSvgToPsd(
-    logoName: string,
-    svgContent: string
-  ): Promise<Buffer> {
+  private async convertSvgToPsd(logoName: string, svgContent: string): Promise<Buffer> {
     try {
       logger.info(`Converting SVG to PSD with editable layers: ${logoName}`);
 
@@ -1876,7 +1698,7 @@ export class BrandingService extends GenericService {
       const psdPath = await SvgToPsdService.convertSvgToPsd(svgContent, {
         width: 1024,
         height: 1024,
-        backgroundColor: "transparent",
+        backgroundColor: 'transparent',
         quality: 100,
       });
 
@@ -1888,9 +1710,8 @@ export class BrandingService extends GenericService {
 
       logger.info(
         `Successfully converted ${logoName} to PSD with ${
-          svgContent.match(
-            /<(path|rect|circle|ellipse|line|polyline|polygon|text|g)[^>]*>/gi
-          )?.length || 0
+          svgContent.match(/<(path|rect|circle|ellipse|line|polyline|polygon|text|g)[^>]*>/gi)
+            ?.length || 0
         } potential layers`
       );
 
@@ -1901,10 +1722,10 @@ export class BrandingService extends GenericService {
       // Fallback: créer un PNG haute qualité avec extension .psd
       logger.warn(`Falling back to PNG conversion for ${logoName}`);
       try {
-        const sharp = require("sharp");
+        const sharp = require('sharp');
         const pngBuffer = await sharp(Buffer.from(svgContent))
           .resize(1024, 1024, {
-            fit: "contain",
+            fit: 'contain',
             background: { r: 255, g: 255, b: 255, alpha: 0 },
           })
           .png()
@@ -1912,11 +1733,8 @@ export class BrandingService extends GenericService {
 
         return pngBuffer;
       } catch (fallbackError) {
-        logger.error(
-          `Fallback PNG conversion also failed for ${logoName}:`,
-          fallbackError
-        );
-        return Buffer.from(svgContent, "utf-8");
+        logger.error(`Fallback PNG conversion also failed for ${logoName}:`, fallbackError);
+        return Buffer.from(svgContent, 'utf-8');
       }
     }
   }
@@ -1924,21 +1742,17 @@ export class BrandingService extends GenericService {
   /**
    * Génère le contenu du fichier README
    */
-  private generateReadmeContent(
-    project: any,
-    extension: string,
-    fileCount: number
-  ): string {
+  private generateReadmeContent(project: any, extension: string, fileCount: number): string {
     return `Logo Package - ${project.name}
     
 Project: ${project.name}
-Description: ${project.description || "No description available"}
+Description: ${project.description || 'No description available'}
 Format: ${extension.toUpperCase()}
 Files included: ${fileCount}
 Generated on: ${new Date().toISOString()}
 
 ${
-  extension.toLowerCase() === "psd"
+  extension.toLowerCase() === 'psd'
     ? `
 ✅ PSD FORMAT WITH EDITABLE LAYERS:
 These are genuine PSD files with separated, editable layers created from your SVG logos.
@@ -1952,7 +1766,7 @@ Features:
 - Preserves original SVG structure as separate layers
 
 `
-    : ""
+    : ''
 }File naming convention:
 - logo-main: Main logo with text
 - logo-icon: Icon-only version
@@ -1965,19 +1779,19 @@ Variations:
 - monochrome: Single color version
 
 ${
-  extension.toLowerCase() === "svg"
-    ? "SVG files are vector-based and can be scaled to any size without quality loss."
-    : ""
+  extension.toLowerCase() === 'svg'
+    ? 'SVG files are vector-based and can be scaled to any size without quality loss.'
+    : ''
 }
 ${
-  extension.toLowerCase() === "png"
-    ? "PNG files are high-quality raster images with transparent backgrounds."
-    : ""
+  extension.toLowerCase() === 'png'
+    ? 'PNG files are high-quality raster images with transparent backgrounds.'
+    : ''
 }
 ${
-  extension.toLowerCase() === "psd"
-    ? "Files are provided as high-quality PNG format due to technical limitations."
-    : ""
+  extension.toLowerCase() === 'psd'
+    ? 'Files are provided as high-quality PNG format due to technical limitations.'
+    : ''
 }
 
 Generated by Lexis API - Brand Identity System
@@ -1994,10 +1808,10 @@ Generated by Lexis API - Brand Identity System
       logger.info(`Fetching content from URL: ${url}`);
 
       // Vérifier si c'est une URL valide
-      if (!url || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+      if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
         logger.warn(`Invalid URL format: ${url}`);
         // Si ce n'est pas une URL, c'est peut-être déjà le contenu SVG
-        if (url && url.includes("<svg")) {
+        if (url && url.includes('<svg')) {
           return url;
         }
         return null;
@@ -2007,16 +1821,14 @@ Generated by Lexis API - Brand Identity System
       const response = await fetch(url);
 
       if (!response.ok) {
-        logger.error(
-          `Failed to fetch content from URL: ${url}, status: ${response.status}`
-        );
+        logger.error(`Failed to fetch content from URL: ${url}, status: ${response.status}`);
         return null;
       }
 
       const content = await response.text();
 
       // Vérifier que le contenu semble être du SVG
-      if (!content.includes("<svg")) {
+      if (!content.includes('<svg')) {
         logger.warn(`Content from URL ${url} does not appear to be SVG`);
       }
 
@@ -2069,15 +1881,15 @@ ${LOGO_EDIT_PROMPT}`;
       const steps: IPromptStep[] = [
         {
           promptConstant: editPrompt,
-          stepName: "Logo Edit",
+          stepName: 'Logo Edit',
           maxOutputTokens: 3000,
           modelParser: (content) => {
             try {
               const parsed = JSON.parse(content);
               return parsed;
             } catch (error) {
-              logger.error("Error parsing edited logo JSON:", error);
-              throw new Error("Failed to parse edited logo JSON");
+              logger.error('Error parsing edited logo JSON:', error);
+              throw new Error('Failed to parse edited logo JSON');
             }
           },
           hasDependencies: false,
@@ -2095,8 +1907,8 @@ ${LOGO_EDIT_PROMPT}`;
       // Create the edited logo model
       const editedLogo: LogoModel = {
         id: `edited-${Date.now()}`,
-        name: "Edited Logo",
-        concept: editedLogoData.changesSummary || "User-modified logo",
+        name: 'Edited Logo',
+        concept: editedLogoData.changesSummary || 'User-modified logo',
         colors: [],
         fonts: [],
         svg: editedLogoData.svg,

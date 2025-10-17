@@ -1,5 +1,5 @@
-import { DiagramModel } from "../diagram.model";
-import { v4 as uuidv4 } from "uuid";
+import { DiagramModel } from '../diagram.model';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Builder for DiagramModel

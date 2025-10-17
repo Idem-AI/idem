@@ -5,7 +5,7 @@ services:
     image: ghcr.io/idem-ia/idem:cd72d89
     container_name: idem
     ports:
-      - "4200:4200"
+      - '4200:4200'
     restart: always
     networks:
       - idem
@@ -14,32 +14,32 @@ services:
     image: idem-api:latest
     container_name: idem-api
     environment:
-      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
-      GEMINI_API_KEY: "${GEMINI_API_KEY}"
-      PORT: "${PORT}"
-      FIREBASE_API_KEY: "${FIREBASE_API_KEY}"
-      FIREBASE_AUTH_DOMAIN: "${FIREBASE_AUTH_DOMAIN}"
-      FIREBASE_PROJECT_ID: "${FIREBASE_PROJECT_ID}"
-      FIREBASE_STORAGE_BUCKET: "${FIREBASE_STORAGE_BUCKET}"
-      FIREBASE_MESSAGING_SENDER_ID: "${FIREBASE_MESSAGING_SENDER_ID}"
-      FIREBASE_APP_ID: "${FIREBASE_APP_ID}"
-      FIREBASE_PRIVATE_KEY: "${FIREBASE_PRIVATE_KEY}"
-      FIREBASE_CLIENT_EMAIL: "${FIREBASE_CLIENT_EMAIL}"
+      DEEPSEEK_API_KEY: '${DEEPSEEK_API_KEY}'
+      GEMINI_API_KEY: '${GEMINI_API_KEY}'
+      PORT: '${PORT}'
+      FIREBASE_API_KEY: '${FIREBASE_API_KEY}'
+      FIREBASE_AUTH_DOMAIN: '${FIREBASE_AUTH_DOMAIN}'
+      FIREBASE_PROJECT_ID: '${FIREBASE_PROJECT_ID}'
+      FIREBASE_STORAGE_BUCKET: '${FIREBASE_STORAGE_BUCKET}'
+      FIREBASE_MESSAGING_SENDER_ID: '${FIREBASE_MESSAGING_SENDER_ID}'
+      FIREBASE_APP_ID: '${FIREBASE_APP_ID}'
+      FIREBASE_PRIVATE_KEY: '${FIREBASE_PRIVATE_KEY}'
+      FIREBASE_CLIENT_EMAIL: '${FIREBASE_CLIENT_EMAIL}'
     ports:
-      - "${PORT}:${PORT}"
+      - '${PORT}:${PORT}'
     restart: unless-stopped
     networks:
       - idem
 
   idem-webgen:
-    image: webgen:v1 
+    image: webgen:v1
     container_name: idem-webgen
     ports:
       - '5173:5173'
     environment:
-      VITE_LOG_LEVEL: "${VITE_LOG_LEVEL}"
-      VITE_API_BASE_URL: "${VITE_API_BASE_URL}"
-      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+      VITE_LOG_LEVEL: '${VITE_LOG_LEVEL}'
+      VITE_API_BASE_URL: '${VITE_API_BASE_URL}'
+      GEMINI_API_KEY: '${GEMINI_API_KEY}'
     networks:
       - idem
 
@@ -47,7 +47,7 @@ services:
     image: ghcr.io/mermaid-js/mermaid-live-editor
     container_name: idem-chart
     ports:
-      - "8040:8080"
+      - '8040:8080'
     platform: linux/amd64
     restart: unless-stopped
     networks:

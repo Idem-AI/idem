@@ -13,10 +13,7 @@ import { SSEService } from './sse.service';
   providedIn: 'root',
 })
 export class GenerationService {
-  private generationStates = new Map<
-    SSEServiceEventType,
-    BehaviorSubject<SSEGenerationState>
-  >();
+  private generationStates = new Map<SSEServiceEventType, BehaviorSubject<SSEGenerationState>>();
   private destroy$ = new Subject<void>();
 
   constructor(private sseService: SSEService) {}
@@ -44,10 +41,7 @@ export class GenerationService {
         completed: false,
         error: null,
       };
-      this.generationStates.set(
-        serviceType,
-        new BehaviorSubject<SSEGenerationState>(initialState)
-      );
+      this.generationStates.set(serviceType, new BehaviorSubject<SSEGenerationState>(initialState));
     }
 
     const stateSubject = this.generationStates.get(serviceType)!;
@@ -94,10 +88,7 @@ export class GenerationService {
    * @param serviceType Service type
    * @param event SSE event
    */
-  private processSSEEvent(
-    serviceType: SSEServiceEventType,
-    event: SSEStepEvent
-  ): void {
+  private processSSEEvent(serviceType: SSEServiceEventType, event: SSEStepEvent): void {
     const currentState = this.generationStates.get(serviceType)?.value;
     if (!currentState) return;
 
@@ -126,9 +117,7 @@ export class GenerationService {
         // Handle individual step completion
         if (event.stepName && event.data) {
           // Find or create step
-          let existingStep = newState.steps.find(
-            (step) => step.name === event.stepName
-          );
+          let existingStep = newState.steps.find((step) => step.name === event.stepName);
 
           if (existingStep) {
             existingStep.status = 'completed';
@@ -185,9 +174,7 @@ export class GenerationService {
    * @param serviceType Service type
    * @returns Current state or null
    */
-  getGenerationState(
-    serviceType: SSEServiceEventType
-  ): SSEGenerationState | null {
+  getGenerationState(serviceType: SSEServiceEventType): SSEGenerationState | null {
     return this.generationStates.get(serviceType)?.value || null;
   }
 

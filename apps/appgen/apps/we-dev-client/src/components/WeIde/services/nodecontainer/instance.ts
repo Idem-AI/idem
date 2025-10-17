@@ -12,11 +12,11 @@ export async function getProjectRoot() {
 }
 
 async function initNodeContainer(): Promise<NodeContainer> {
-  console.warn('NodeContainer n\'est pas pleinement fonctionnel en mode web');
-  
+  console.warn("NodeContainer n'est pas pleinement fonctionnel en mode web");
+
   try {
     const projectRoot = '/web-project';
-    
+
     const instance = new EventEmitter() as any;
 
     instance.fs = {
@@ -35,18 +35,20 @@ async function initNodeContainer(): Promise<NodeContainer> {
       readdir: async (path: string, options?: { withFileTypes?: boolean }) => {
         console.warn('readdir non disponible en mode web');
         return Promise.resolve([]);
-      }
+      },
     };
 
     instance.spawn = async (command: string, args: string[], options?: { cwd?: string }) => {
       console.warn('spawn non disponible en mode web', { command, args, options });
-      
+
       // Créer un stream vide qui se termine immédiatement
       const stream = new ReadableStream({
         start(controller) {
-          controller.enqueue(new TextEncoder().encode(`La commande '${command}' n'est pas disponible en mode web\n`));
+          controller.enqueue(
+            new TextEncoder().encode(`La commande '${command}' n'est pas disponible en mode web\n`)
+          );
           controller.close();
-        }
+        },
       });
 
       // Promise qui se résout immédiatement
@@ -54,7 +56,7 @@ async function initNodeContainer(): Promise<NodeContainer> {
 
       return {
         output: stream,
-        exit
+        exit,
       };
     };
 
@@ -92,4 +94,4 @@ export async function getNodeContainerInstance(): Promise<NodeContainer | null> 
   } finally {
     bootPromise = null;
   }
-} 
+}

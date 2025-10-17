@@ -1,13 +1,9 @@
 <!-- Loading State -->
 @if (isGenerating()) {
-<div
-  class="w-full min-h-[78vh] flex flex-col items-center justify-center sm:mt-0"
->
+<div class="w-full min-h-[78vh] flex flex-col items-center justify-center sm:mt-0">
   <!-- Header Section -->
   <div class="text-center mb-12">
-    <h1 class="sm:text-4xl text-2xl font-bold text-white mb-4">
-      Generating Color Palettes...
-    </h1>
+    <h1 class="sm:text-4xl text-2xl font-bold text-white mb-4">Generating Color Palettes...</h1>
   </div>
 
   <div class="w-full max-w-7xl mx-auto">
@@ -26,9 +22,7 @@
           <div class="h-6 bg-gray-700/50 rounded-lg animate-pulse mb-3"></div>
           <div class="flex gap-2 mb-4">
             @for (color of [1,2,3,4]; track color) {
-            <div
-              class="w-8 h-8 bg-gray-700/50 rounded-full animate-pulse"
-            ></div>
+            <div class="w-8 h-8 bg-gray-700/50 rounded-full animate-pulse"></div>
             }
           </div>
           <div class="p-3 rounded-lg bg-gray-800/30">
@@ -50,10 +44,9 @@
     >
       <h3 class="text-lg font-semibold text-white mb-3">While you wait...</h3>
       <p class="text-gray-300 text-sm leading-relaxed">
-        Our AI is analyzing your project requirements to create harmonious color
-        palettes that reflect your brand's personality and target audience. This
-        process ensures each palette is optimized for accessibility and visual
-        impact.
+        Our AI is analyzing your project requirements to create harmonious color palettes that
+        reflect your brand's personality and target audience. This process ensures each palette is
+        optimized for accessibility and visual impact.
       </p>
     </div>
   </div>
@@ -62,20 +55,13 @@
 
 <!-- Error State -->
 @if (error()) {
-<div
-  class="flex flex-col items-center justify-center min-h-[60vh] w-full px-4 sm:px-6 lg:px-8"
->
+<div class="flex flex-col items-center justify-center min-h-[60vh] w-full px-4 sm:px-6 lg:px-8">
   <div class="text-center max-w-md mx-auto">
     <div class="mb-6">
       <div
         class="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4"
       >
-        <svg
-          class="w-8 h-8 text-red-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -93,12 +79,7 @@
         (click)="retryGeneration()"
         class="flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
       >
-        <svg
-          class="w-4 h-4 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -113,12 +94,7 @@
         (click)="goToPreviousStep()"
         class="flex items-center justify-center px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
       >
-        <svg
-          class="w-4 h-4 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -154,8 +130,7 @@
       Select Your Brand Colors
     </h1>
     <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto mb-4">
-      Choose the color palette that best represents your brand's personality and
-      values.
+      Choose the color palette that best represents your brand's personality and values.
     </p>
 
     <!-- Customize Colors Button -->
@@ -165,12 +140,7 @@
         (click)="openColorCustomizer()"
         class="inner-button inline-flex items-center px-6 py-3"
       >
-        <svg
-          class="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -212,9 +182,7 @@
           ></div>
 
           <div class="relative z-10">
-            <h3 class="text-white text-lg font-medium mb-3">
-              {{ color.name }}
-            </h3>
+            <h3 class="text-white text-lg font-medium mb-3">{{ color.name }}</h3>
 
             <div class="flex flex-wrap gap-2 sm:gap-3 mb-4">
               <div
@@ -243,10 +211,7 @@
               class="mt-3 p-3 sm:p-4 rounded-lg border border-gray-600/30"
               [style.backgroundColor]="color.colors.background"
             >
-              <p
-                [style.color]="color.colors.text"
-                class="font-medium text-sm sm:text-base mb-2"
-              >
+              <p [style.color]="color.colors.text" class="font-medium text-sm sm:text-base mb-2">
                 Sample Text
               </p>
               <div class="flex flex-wrap gap-2">
@@ -269,9 +234,7 @@
 
             @if (selectedColorId() === color.id) {
             <div class="absolute top-2 right-2">
-              <div
-                class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
-              >
+              <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                 <svg
                   class="w-4 h-4 text-white"
                   fill="none"
@@ -296,9 +259,7 @@
     <!-- Navigation Hint -->
     @if (selectedColorId()) {
     <div class="text-center mt-8">
-      <p class="text-gray-400 text-sm">
-        Great choice! Click Next to continue to the next step.
-      </p>
+      <p class="text-gray-400 text-sm">Great choice! Click Next to continue to the next step.</p>
     </div>
     }
   </div>
@@ -317,15 +278,8 @@
   (onHide)="closeLoginModal()"
 >
   <div class="text-center mb-6">
-    <div
-      class="inline-flex items-center justify-center w-16 h-16 bg-primary/20 rounded-full mb-4"
-    >
-      <svg
-        class="w-8 h-8 text-primary"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-primary/20 rounded-full mb-4">
+      <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -336,8 +290,7 @@
     </div>
     <h3 class="text-xl font-semibold text-white mb-2">Please Sign In</h3>
     <p class="text-gray-400 text-sm">
-      You need to be authenticated to generate color palettes. Please sign in to
-      continue.
+      You need to be authenticated to generate color palettes. Please sign in to continue.
     </p>
   </div>
 

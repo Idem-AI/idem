@@ -1,5 +1,5 @@
-import { LandingModel } from "../landing.model";
-import { v4 as uuidv4 } from "uuid";
+import { LandingModel } from '../landing.model';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Builder for LandingModel
@@ -11,7 +11,7 @@ export class LandingBuilder {
   static createEmpty(): LandingModel {
     return {
       selectedOptions: {
-        stack: "",
+        stack: '',
         seoEnabled: false,
         contactFormEnabled: false,
         analyticsEnabled: false,

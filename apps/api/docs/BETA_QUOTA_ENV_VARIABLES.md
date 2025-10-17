@@ -5,12 +5,14 @@ This document describes the environment variables needed to configure the beta q
 ## Required Environment Variables
 
 ### Beta Mode Configuration
+
 ```bash
 # Enable/disable beta mode
 IS_BETA=true
 ```
 
 ### Quota Limits Configuration
+
 ```bash
 # Production quota limits (when IS_BETA=false)
 DAILY_QUOTA_LIMIT=50
@@ -22,6 +24,7 @@ BETA_WEEKLY_QUOTA_LIMIT=20
 ```
 
 ### Beta Feature Restrictions
+
 ```bash
 # Maximum number of style options in beta
 BETA_MAX_STYLES=3
@@ -40,6 +43,7 @@ BETA_RESTRICTED_PROMPTS=complex-branding,full-charter
 ```
 
 ### Input Validation Configuration
+
 ```bash
 # Minimum input length for user requests
 MIN_INPUT_LENGTH=3
@@ -80,23 +84,27 @@ FIREBASE_PROJECT_ID=your_firebase_project_id
 ## How It Works
 
 ### Beta Mode Detection
+
 - When `IS_BETA=true`, the system automatically applies beta restrictions
 - All quota limits switch to beta values
 - Feature restrictions are enforced
 - Input validation is applied
 
 ### Quota Management
+
 - **Daily Quota**: Resets every day at midnight
 - **Weekly Quota**: Resets every Monday
 - Users are blocked when either daily or weekly limit is reached
 - Quota usage is tracked per user in Firestore
 
 ### Feature Restrictions
+
 - Only allowed features can be accessed in beta mode
 - Prompt parameters are automatically adjusted (tokens, styles, resolution)
 - Restricted prompt types are blocked entirely
 
 ### Input Validation
+
 - Prevents empty or too short inputs
 - Blocks excessively long inputs
 - Detects suspicious patterns (repeated characters, spam-like content)
@@ -123,7 +131,12 @@ The quota system is automatically integrated with:
 ## Middleware Usage
 
 ```typescript
-import { checkQuota, checkFeatureAccess, validateInput, addBetaInfo } from '../middleware/quota.middleware';
+import {
+  checkQuota,
+  checkFeatureAccess,
+  validateInput,
+  addBetaInfo,
+} from '../middleware/quota.middleware';
 
 // Apply quota checking
 router.post('/generate', authenticate, checkQuota, controller.generate);

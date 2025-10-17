@@ -4,4 +4,4 @@ import { App } from './app/app';
 
 const bootstrap = () => bootstrapApplication(App, config);
 
-export default bootstrap; 
+export default bootstrap;

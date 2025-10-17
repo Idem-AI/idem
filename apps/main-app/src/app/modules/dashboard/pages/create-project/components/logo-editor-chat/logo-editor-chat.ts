@@ -1,12 +1,4 @@
-import {
-  Component,
-  input,
-  output,
-  signal,
-  computed,
-  inject,
-  OnDestroy,
-} from '@angular/core';
+import { Component, input, output, signal, computed, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
@@ -132,9 +124,7 @@ export class LogoEditorChat implements OnDestroy {
       .subscribe({
         next: (response) => {
           // Remove loading message
-          this.messages.update((msgs) =>
-            msgs.filter((msg) => msg.id !== loadingMessage.id)
-          );
+          this.messages.update((msgs) => msgs.filter((msg) => msg.id !== loadingMessage.id));
 
           // Add success message
           const successMessage: ChatMessage = {
@@ -160,9 +150,7 @@ export class LogoEditorChat implements OnDestroy {
           console.error('Error editing logo:', error);
 
           // Remove loading message
-          this.messages.update((msgs) =>
-            msgs.filter((msg) => msg.id !== loadingMessage.id)
-          );
+          this.messages.update((msgs) => msgs.filter((msg) => msg.id !== loadingMessage.id));
 
           // Add error message
           const errorMessage: ChatMessage = {

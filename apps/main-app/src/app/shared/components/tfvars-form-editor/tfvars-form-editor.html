@@ -3,9 +3,7 @@
   <!-- Form Header -->
   <div class="flex-shrink-0 glass-card p-4 mb-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-white text-glow-primary">
-        Terraform Variables
-      </h3>
+      <h3 class="text-lg font-semibold text-white text-glow-primary">Terraform Variables</h3>
       <p-button
         label="Add Variable"
         icon="pi pi-plus"
@@ -23,20 +21,13 @@
     <form [formGroup]="mainForm()" class="space-y-6">
       <!-- Sections using PrimeNG Accordion -->
       <p-accordion [multiple]="true" [className]="'bg-red-500'">
-        @for (section of sectionsWithData(); track trackSection($index,
-        section)) {
+        @for (section of sectionsWithData(); track trackSection($index, section)) {
         <p-accordion-panel [value]="$index.toString()">
           <p-accordion-header>
             <div class="flex items-center">
-              <h4 class="text-lg font-medium text-white text-glow-primary">
-                {{ section.name }}
-              </h4>
+              <h4 class="text-lg font-medium text-white text-glow-primary">{{ section.name }}</h4>
               @if (section.description) {
-              <p-tag
-                [value]="section.description"
-                severity="info"
-                class="ml-3"
-              ></p-tag>
+              <p-tag [value]="section.description" severity="info" class="ml-3"></p-tag>
               }
             </div>
           </p-accordion-header>
@@ -56,9 +47,7 @@
                       [readonly]="readonlySignal()"
                       class="input w-full"
                     />
-                    <label [for]="section.name + '_' + field.key">
-                      {{ field.label }}
-                    </label>
+                    <label [for]="section.name + '_' + field.key"> {{ field.label }} </label>
                   </p-floatlabel>
                   } @case ('textarea') {
                   <p-floatlabel>
@@ -70,9 +59,7 @@
                       rows="3"
                       class="input w-full"
                     ></textarea>
-                    <label [for]="section.name + '_' + field.key">
-                      {{ field.label }}
-                    </label>
+                    <label [for]="section.name + '_' + field.key"> {{ field.label }} </label>
                   </p-floatlabel>
                   } @case ('number') {
                   <p-floatlabel>
@@ -82,9 +69,7 @@
                       [readonly]="readonlySignal()"
                       class="input w-full"
                     ></p-inputnumber>
-                    <label [for]="section.name + '_' + field.key">
-                      {{ field.label }}
-                    </label>
+                    <label [for]="section.name + '_' + field.key"> {{ field.label }} </label>
                   </p-floatlabel>
                   } @case ('boolean') {
                   <div class="flex items-center space-x-3">
@@ -93,18 +78,14 @@
                       [formControlName]="field.key"
                       [disabled]="readonlySignal()"
                     ></p-toggleswitch>
-                    <label
-                      [for]="section.name + '_' + field.key"
-                      class="text-sm text-white"
-                    >
+                    <label [for]="section.name + '_' + field.key" class="text-sm text-white">
                       {{ field.label }}
                     </label>
                   </div>
                   } @case ('array') {
                   <div class="space-y-2">
-                    @for (item of getFieldControl(section.name,
-                    field.key)?.value || []; track trackArrayItem($index, item))
-                    {
+                    @for (item of getFieldControl(section.name, field.key)?.value || []; track
+                    trackArrayItem($index, item)) {
                     <div class="flex items-center space-x-2">
                       <input
                         pInputText
@@ -146,9 +127,7 @@
                       rows="4"
                       class="input w-full font-mono"
                     ></textarea>
-                    <label [for]="section.name + '_' + field.key">
-                      {{ field.label }} (JSON)
-                    </label>
+                    <label [for]="section.name + '_' + field.key"> {{ field.label }} (JSON) </label>
                   </p-floatlabel>
                   } }
 
@@ -170,15 +149,12 @@
       </p-accordion>
 
       <!-- Custom Fields Section -->
-      @if (formDataSignal()?.customFields &&
-      formDataSignal()!.customFields.length > 0) {
+      @if (formDataSignal()?.customFields && formDataSignal()!.customFields.length > 0) {
       <p-accordion [multiple]="true" class="glass-card">
         <p-accordion-panel value="custom">
           <p-accordion-header>
             <div class="flex items-center">
-              <h4 class="text-lg font-medium text-white text-glow-primary">
-                Custom Variables
-              </h4>
+              <h4 class="text-lg font-medium text-white text-glow-primary">Custom Variables</h4>
               <p-tag
                 [value]="(formDataSignal()!.customFields.length || 0) + ' variables'"
                 severity="info"
@@ -189,8 +165,7 @@
 
           <p-accordion-content>
             <div class="space-y-4 p-4" formGroupName="custom">
-              @for (field of formDataSignal()!.customFields; track
-              trackField($index, field)) {
+              @for (field of formDataSignal()!.customFields; track trackField($index, field)) {
               <div class="space-y-2">
                 <div class="flex items-center justify-between mb-2">
                   <label class="block text-sm font-medium text-white">
@@ -211,9 +186,7 @@
                 </div>
 
                 @if (field.description) {
-                <p class="text-xs text-gray-400 mb-2">
-                  {{ field.description }}
-                </p>
+                <p class="text-xs text-gray-400 mb-2">{{ field.description }}</p>
                 }
 
                 <div class="space-y-2">
@@ -226,9 +199,7 @@
                       [readonly]="readonlySignal()"
                       class="input w-full"
                     />
-                    <label [for]="'custom_' + field.key"
-                      >{{ field.label }}</label
-                    >
+                    <label [for]="'custom_' + field.key">{{ field.label }}</label>
                   </p-floatlabel>
                   } @case ('textarea') {
                   <p-floatlabel>
@@ -240,9 +211,7 @@
                       rows="3"
                       class="input w-full"
                     ></textarea>
-                    <label [for]="'custom_' + field.key"
-                      >{{ field.label }}</label
-                    >
+                    <label [for]="'custom_' + field.key">{{ field.label }}</label>
                   </p-floatlabel>
                   } @case ('number') {
                   <p-floatlabel>
@@ -252,9 +221,7 @@
                       [readonly]="readonlySignal()"
                       class="input w-full"
                     ></p-inputnumber>
-                    <label [for]="'custom_' + field.key"
-                      >{{ field.label }}</label
-                    >
+                    <label [for]="'custom_' + field.key">{{ field.label }}</label>
                   </p-floatlabel>
                   } @case ('boolean') {
                   <div class="flex items-center space-x-3">
@@ -263,17 +230,14 @@
                       [formControlName]="field.key"
                       [disabled]="readonlySignal()"
                     ></p-toggleswitch>
-                    <label
-                      [for]="'custom_' + field.key"
-                      class="text-sm text-white"
-                    >
+                    <label [for]="'custom_' + field.key" class="text-sm text-white">
                       {{ field.label }}
                     </label>
                   </div>
                   } @case ('array') {
                   <div class="space-y-2">
-                    @for (item of getFieldControl('custom', field.key)?.value ||
-                    []; track trackArrayItem($index, item)) {
+                    @for (item of getFieldControl('custom', field.key)?.value || []; track
+                    trackArrayItem($index, item)) {
                     <div class="flex items-center space-x-2">
                       <input
                         pInputText
@@ -315,9 +279,7 @@
                       rows="4"
                       class="input w-full font-mono"
                     ></textarea>
-                    <label [for]="'custom_' + field.key"
-                      >{{ field.label }} (JSON)</label
-                    >
+                    <label [for]="'custom_' + field.key">{{ field.label }} (JSON)</label>
                   </p-floatlabel>
                   } } @if (getFieldError('custom', field.key)) {
                   <p-message
@@ -362,9 +324,7 @@
               />
               @if (customFieldForm().get('key')?.errors?.['required'] &&
               customFieldForm().get('key')?.touched) {
-              <p class="mt-1 text-sm text-red-600 dark:text-red-400">
-                Key is required
-              </p>
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">Key is required</p>
               } @if (customFieldForm().get('key')?.errors?.['pattern'] &&
               customFieldForm().get('key')?.touched) {
               <p class="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -481,9 +441,7 @@
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
         ></path>
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-        No variables found
-      </h3>
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No variables found</h3>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         No Terraform variables are available for editing.
       </p>

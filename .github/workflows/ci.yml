@@ -17,18 +17,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 8
-      
+
       - name: Install dependencies
         run: npm ci
 
@@ -40,30 +40,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 8
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Format check
         run: npm run format:check
-      
+
       - name: Lint all projects
         run: npm run lint:all
-      
+
       - name: Test all projects
         run: npm run test:all
-      
+
       - name: Upload test coverage
         uses: actions/upload-artifact@v4
         if: always()
@@ -80,24 +80,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 8
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build all projects
         run: npm run build:all
-      
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: success()
@@ -109,4 +109,3 @@ jobs:
             apps/idemAI-api/dist
             apps/idem-appgen/apps/*/dist
           retention-days: 7
-

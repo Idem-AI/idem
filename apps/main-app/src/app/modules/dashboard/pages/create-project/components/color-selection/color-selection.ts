@@ -1,17 +1,6 @@
-import {
-  Component,
-  input,
-  output,
-  signal,
-  OnInit,
-  OnDestroy,
-  inject,
-} from '@angular/core';
+import { Component, input, output, signal, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  ColorModel,
-  TypographyModel,
-} from '../../../../models/brand-identity.model';
+import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
 import { ProjectModel } from '../../../../models/project.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
@@ -76,8 +65,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     console.log(this.project());
-    const generatedColors =
-      this.project().analysisResultModel?.branding?.generatedColors;
+    const generatedColors = this.project().analysisResultModel?.branding?.generatedColors;
 
     if (!generatedColors || generatedColors.length === 0) {
       this.checkAuthAndGenerate();
@@ -87,19 +75,12 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
       );
       this.colorsAndTypographyGenerated.emit({
         colors: this.project().analysisResultModel?.branding?.generatedColors,
-        typography:
-          this.project().analysisResultModel?.branding?.generatedTypography,
+        typography: this.project().analysisResultModel?.branding?.generatedTypography,
         project: this.project(),
       });
-      this.colorPalettes.set(
-        this.project().analysisResultModel?.branding?.generatedColors
-      );
-      this.typographyOptions.set(
-        this.project().analysisResultModel?.branding?.generatedTypography
-      );
-      this.colorsGenerated.emit(
-        this.project().analysisResultModel?.branding?.generatedColors
-      );
+      this.colorPalettes.set(this.project().analysisResultModel?.branding?.generatedColors);
+      this.typographyOptions.set(this.project().analysisResultModel?.branding?.generatedTypography);
+      this.colorsGenerated.emit(this.project().analysisResultModel?.branding?.generatedColors);
       this.typographyGenerated.emit(
         this.project().analysisResultModel?.branding?.generatedTypography
       );
@@ -159,9 +140,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Error generating colors and typography:', error);
-            this.error.set(
-              'Failed to generate color palettes. Please try again.'
-            );
+            this.error.set('Failed to generate color palettes. Please try again.');
             this.isGenerating.set(false);
           },
         });
@@ -177,9 +156,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
     this.colorSelected.emit(colorId);
 
     // Find the selected color and update the project
-    const selectedColor = this.colorPalettes().find(
-      (color) => color.id === colorId
-    );
+    const selectedColor = this.colorPalettes().find((color) => color.id === colorId);
     if (selectedColor) {
       // Save the selected color for potential customization
       this.customizedColor.set(null); // Reset customization when selecting new color
@@ -199,9 +176,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   }
 
   protected openColorCustomizer(): void {
-    const selectedColor = this.colorPalettes().find(
-      (color) => color.id === this.selectedColorId()
-    );
+    const selectedColor = this.colorPalettes().find((color) => color.id === this.selectedColorId());
     if (selectedColor) {
       this.showColorCustomizer.set(true);
     }
@@ -237,9 +212,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   }
 
   protected getSelectedColor(): ColorModel | undefined {
-    return this.colorPalettes().find(
-      (color) => color.id === this.selectedColorId()
-    );
+    return this.colorPalettes().find((color) => color.id === this.selectedColorId());
   }
 
   protected async retryGeneration(): Promise<void> {
@@ -289,10 +262,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   }
 
   // Track function for carousel
-  protected readonly trackColor = (
-    index: number,
-    color: ColorModel
-  ): string => {
+  protected readonly trackColor = (index: number, color: ColorModel): string => {
     return color.id || `color-${index}`;
   };
 

@@ -26,7 +26,7 @@ interface BusinessPlanExample {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './business-plan.html',
-  styleUrl: './business-plan.css'
+  styleUrl: './business-plan.css',
 })
 export class BusinessPlan implements OnInit {
   // Angular-initialized properties
@@ -39,50 +39,60 @@ export class BusinessPlan implements OnInit {
   protected readonly showAll = signal<boolean>(false);
   protected readonly showAllSections = signal<boolean>(false);
   private intervalId?: number;
-  
+
   protected readonly planSections = signal<BusinessPlanSection[]>([
     {
       id: 'executive',
       title: 'Executive Summary',
       description: 'Compelling overview of your business concept, mission, and key success factors',
       icon: 'pi-crown',
-      keyPoints: ['Business Concept', 'Mission Statement', 'Success Factors', 'Financial Summary']
+      keyPoints: ['Business Concept', 'Mission Statement', 'Success Factors', 'Financial Summary'],
     },
     {
       id: 'market',
       title: 'Market Analysis',
       description: 'In-depth research of your target market, competition, and industry trends',
       icon: 'pi-chart-line',
-      keyPoints: ['Market Size', 'Target Audience', 'Competitive Analysis', 'Market Trends']
+      keyPoints: ['Market Size', 'Target Audience', 'Competitive Analysis', 'Market Trends'],
     },
     {
       id: 'strategy',
       title: 'Business Strategy',
       description: 'AI fitness app with personalized workouts, approach to market entry',
       icon: 'pi-sitemap',
-      keyPoints: ['Value Proposition', 'Business Model', 'Go-to-Market Strategy', 'Competitive Advantage']
+      keyPoints: [
+        'Value Proposition',
+        'Business Model',
+        'Go-to-Market Strategy',
+        'Competitive Advantage',
+      ],
     },
     {
       id: 'operations',
       title: 'Operations Plan',
       description: 'Detailed operational structure, processes, and resource requirements',
       icon: 'pi-cog',
-      keyPoints: ['Operational Structure', 'Key Processes', 'Resource Requirements', 'Quality Control']
+      keyPoints: [
+        'Operational Structure',
+        'Key Processes',
+        'Resource Requirements',
+        'Quality Control',
+      ],
     },
     {
       id: 'marketing',
       title: 'Marketing Strategy',
       description: 'Comprehensive marketing and sales approach to reach your target customers',
       icon: 'pi-megaphone',
-      keyPoints: ['Marketing Mix', 'Sales Strategy', 'Customer Acquisition', 'Brand Positioning']
+      keyPoints: ['Marketing Mix', 'Sales Strategy', 'Customer Acquisition', 'Brand Positioning'],
     },
     {
       id: 'financial',
       title: 'Financial Projections',
       description: 'Detailed financial forecasts, funding requirements, and return projections',
       icon: 'pi-dollar',
-      keyPoints: ['Revenue Projections', 'Cost Structure', 'Funding Requirements', 'ROI Analysis']
-    }
+      keyPoints: ['Revenue Projections', 'Cost Structure', 'Funding Requirements', 'ROI Analysis'],
+    },
   ]);
 
   protected readonly businessExamples = signal<BusinessPlanExample[]>([
@@ -96,9 +106,9 @@ export class BusinessPlan implements OnInit {
       highlights: [
         '5-year revenue projection: $50M',
         'Target market: 500M+ mobile users',
-        'AI-powered personalization'
+        'AI-powered personalization',
       ],
-      color: '#1447e6'
+      color: '#1447e6',
     },
     {
       id: '2',
@@ -110,9 +120,9 @@ export class BusinessPlan implements OnInit {
       highlights: [
         '5-year revenue projection: $25M',
         'Target market: 10M+ eco-consumers',
-        'Verified sustainability focus'
+        'Verified sustainability focus',
       ],
-      color: '#22c55e'
+      color: '#22c55e',
     },
     {
       id: '3',
@@ -124,10 +134,10 @@ export class BusinessPlan implements OnInit {
       highlights: [
         '5-year revenue projection: $100M',
         'Target market: 50M+ patients',
-        'Rural healthcare focus'
+        'Rural healthcare focus',
       ],
-      color: '#3b82f6'
-    }
+      color: '#3b82f6',
+    },
   ]);
 
   ngOnInit(): void {
@@ -169,28 +179,29 @@ export class BusinessPlan implements OnInit {
   private setupSeoForBusinessPlanSection(): void {
     // Add structured data for business plan section
     const businessPlanStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "name": "AI Business Plan Generation",
-      "description": "Comprehensive business plan creation with AI-powered market analysis, financial projections, and strategic planning",
-      "provider": {
-        "@type": "Organization",
-        "name": "Idem"
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: 'AI Business Plan Generation',
+      description:
+        'Comprehensive business plan creation with AI-powered market analysis, financial projections, and strategic planning',
+      provider: {
+        '@type': 'Organization',
+        name: 'Idem',
       },
-      "serviceType": "Business Planning Software",
-      "areaServed": "Worldwide",
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "Business Plan Components",
-        "itemListElement": this.planSections().map((section, index) => ({
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "Service",
-            "name": section.title,
-            "description": section.description
-          }
-        }))
-      }
+      serviceType: 'Business Planning Software',
+      areaServed: 'Worldwide',
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Business Plan Components',
+        itemListElement: this.planSections().map((section, index) => ({
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: section.title,
+            description: section.description,
+          },
+        })),
+      },
     };
 
     // Add structured data to page if not already present

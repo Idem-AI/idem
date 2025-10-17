@@ -15,7 +15,14 @@ import { TechCardComponent, TechCardModel } from '../shared/tech-card';
 @Component({
   selector: 'app-frontend-config',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, ButtonModule, ToggleSwitchModule, TechCardComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    ButtonModule,
+    ToggleSwitchModule,
+    TechCardComponent,
+  ],
   templateUrl: './frontend-config.html',
   styleUrls: ['./frontend-config.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -102,7 +109,6 @@ export class FrontendConfigComponent {
       isAvailable: false,
     },
   ];
-
 
   protected readonly frameworkUiLibraries: { [key: string]: TechCardModel[] } = {
     angular: [
@@ -313,13 +319,13 @@ export class FrontendConfigComponent {
   protected toggleStylingPreference(styleName: string): void {
     const currentStyles = [...this.selectedStylingPreferences()];
     const index = currentStyles.indexOf(styleName);
-    
+
     if (index === -1) {
       currentStyles.push(styleName);
     } else {
       currentStyles.splice(index, 1);
     }
-    
+
     this.stylingPreferencesChange.emit(currentStyles);
     this.frontendForm().get('styling')?.setValue(currentStyles);
   }
@@ -366,43 +372,43 @@ export class FrontendConfigComponent {
       name: 'Routing',
       description: 'Navigation management',
       icon: 'pi pi-compass',
-      formControlName: 'features.routing'
+      formControlName: 'features.routing',
     },
     {
       id: 'componentLibrary',
       name: 'Component Library',
       description: 'Pre-built UI components',
       icon: 'pi pi-box',
-      formControlName: 'features.componentLibrary'
+      formControlName: 'features.componentLibrary',
     },
     {
       id: 'testing',
       name: 'Testing',
       description: 'Unit & component tests',
       icon: 'pi pi-check-square',
-      formControlName: 'features.testing'
+      formControlName: 'features.testing',
     },
     {
       id: 'pwa',
       name: 'PWA',
       description: 'Progressive Web App',
       icon: 'pi pi-mobile',
-      formControlName: 'features.pwa'
+      formControlName: 'features.pwa',
     },
     {
       id: 'seo',
       name: 'SEO',
       description: 'Search engine optimization',
       icon: 'pi pi-search',
-      formControlName: 'features.seo'
+      formControlName: 'features.seo',
     },
     {
       id: 'i18n',
       name: 'Internationalization',
       description: 'Multi-language support',
       icon: 'pi pi-globe',
-      formControlName: 'features.i18n'
-    }
+      formControlName: 'features.i18n',
+    },
   ];
 
   /**
@@ -428,13 +434,13 @@ export class FrontendConfigComponent {
   protected toggleStylingWithSwitch(styleName: string, event: any): void {
     const currentStyles = [...this.selectedStylingPreferences()];
     const index = currentStyles.indexOf(styleName);
-    
+
     if (event.checked && index === -1) {
       currentStyles.push(styleName);
     } else if (!event.checked && index !== -1) {
       currentStyles.splice(index, 1);
     }
-    
+
     this.stylingPreferencesChange.emit(currentStyles);
     this.frontendForm().get('styling')?.setValue(currentStyles);
   }
@@ -449,9 +455,7 @@ export class FrontendConfigComponent {
       // Get versions from the first category key or return default
       const categories = Object.keys(this.versionOptions()[selectedFramework]);
       if (categories.length > 0) {
-        return (
-          this.versionOptions()[selectedFramework][categories[0]] || ['latest']
-        );
+        return this.versionOptions()[selectedFramework][categories[0]] || ['latest'];
       }
     }
     return ['latest'];

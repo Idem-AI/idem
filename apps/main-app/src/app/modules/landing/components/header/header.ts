@@ -40,9 +40,7 @@ import { ButtonModule } from 'primeng/button';
         style({ transform: 'translateY(-100%)' }),
         animate('300ms ease-in', style({ transform: 'translateY(0%)' })),
       ]),
-      transition(':leave', [
-        animate('300ms ease-out', style({ transform: 'translateY(-100%)' })),
-      ]),
+      transition(':leave', [animate('300ms ease-out', style({ transform: 'translateY(-100%)' }))]),
     ]),
   ],
 })
@@ -96,10 +94,7 @@ export class Header implements OnInit {
   ngOnInit(): void {
     // Check authentication status when component initializes
     this.auth.user$.pipe(first()).subscribe((user) => {
-      console.log(
-        'Header authentication status:',
-        user ? 'Logged in' : 'Not logged in'
-      );
+      console.log('Header authentication status:', user ? 'Logged in' : 'Not logged in');
     });
   }
 
@@ -137,11 +132,7 @@ export class Header implements OnInit {
 
   @HostListener('document:click', ['$event'])
   protected onClickOutside(event: Event): void {
-    if (
-      this.isMenuOpen() &&
-      this.menuRef &&
-      !this.menuRef.nativeElement.contains(event.target)
-    ) {
+    if (this.isMenuOpen() && this.menuRef && !this.menuRef.nativeElement.contains(event.target)) {
       this.isMenuOpen.set(false);
     }
   }

@@ -1,11 +1,8 @@
-import { Response } from "express";
-import { ArchetypeService } from "../services/archetype.service";
-import {
-  CreateArchetypePayload,
-  UpdateArchetypePayload,
-} from "../models/archetypes.model";
-import { CustomRequest } from "../interfaces/express.interface";
-import logger from "../config/logger";
+import { Response } from 'express';
+import { ArchetypeService } from '../services/archetype.service';
+import { CreateArchetypePayload, UpdateArchetypePayload } from '../models/archetypes.model';
+import { CustomRequest } from '../interfaces/express.interface';
+import logger from '../config/logger';
 
 const archetypeService = new ArchetypeService();
 
@@ -41,7 +38,7 @@ export const createArchetypeController = async (
 
     res.status(201).json({
       success: true,
-      message: "Archetype created successfully",
+      message: 'Archetype created successfully',
       data: archetype,
     });
     return;
@@ -55,8 +52,7 @@ export const createArchetypeController = async (
 
     res.status(400).json({
       success: false,
-      message:
-        error instanceof Error ? error.message : "Failed to create archetype",
+      message: error instanceof Error ? error.message : 'Failed to create archetype',
     });
     return;
   }
@@ -65,10 +61,7 @@ export const createArchetypeController = async (
 /**
  * Get all archetypes for a user
  */
-export const getArchetypesController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
+export const getArchetypesController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
 
   // if (!userId) {
@@ -88,7 +81,7 @@ export const getArchetypesController = async (
 
     res.status(200).json({
       success: true,
-      message: "Archetypes retrieved successfully",
+      message: 'Archetypes retrieved successfully',
       data: archetypes,
     });
     return;
@@ -100,7 +93,7 @@ export const getArchetypesController = async (
 
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve archetypes",
+      message: 'Failed to retrieve archetypes',
     });
     return;
   }
@@ -118,7 +111,7 @@ export const getArchetypeByIdController = async (
   if (!userId) {
     res.status(401).json({
       success: false,
-      message: "Unauthorized",
+      message: 'Unauthorized',
     });
     return;
   }
@@ -133,7 +126,7 @@ export const getArchetypeByIdController = async (
       logger.warn(`Archetype not found: ${archetypeId}`);
       res.status(404).json({
         success: false,
-        message: "Archetype not found",
+        message: 'Archetype not found',
       });
       return;
     }
@@ -145,7 +138,7 @@ export const getArchetypeByIdController = async (
 
     res.status(200).json({
       success: true,
-      message: "Archetype retrieved successfully",
+      message: 'Archetype retrieved successfully',
       data: archetype,
     });
     return;
@@ -159,7 +152,7 @@ export const getArchetypeByIdController = async (
 
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve archetype",
+      message: 'Failed to retrieve archetype',
     });
     return;
   }
@@ -177,7 +170,7 @@ export const updateArchetypeController = async (
   if (!userId) {
     res.status(401).json({
       success: false,
-      message: "Unauthorized",
+      message: 'Unauthorized',
     });
     return;
   }
@@ -187,16 +180,13 @@ export const updateArchetypeController = async (
   logger.info(`Updating archetype: ${archetypeId}`);
 
   try {
-    const archetype = await archetypeService.updateArchetype(
-      archetypeId,
-      payload
-    );
+    const archetype = await archetypeService.updateArchetype(archetypeId, payload);
 
     if (!archetype) {
       logger.warn(`Archetype not found for update: ${archetypeId}`);
       res.status(404).json({
         success: false,
-        message: "Archetype not found",
+        message: 'Archetype not found',
       });
       return;
     }
@@ -208,7 +198,7 @@ export const updateArchetypeController = async (
 
     res.status(200).json({
       success: true,
-      message: "Archetype updated successfully",
+      message: 'Archetype updated successfully',
       data: archetype,
     });
     return;
@@ -223,8 +213,7 @@ export const updateArchetypeController = async (
 
     res.status(400).json({
       success: false,
-      message:
-        error instanceof Error ? error.message : "Failed to update archetype",
+      message: error instanceof Error ? error.message : 'Failed to update archetype',
     });
     return;
   }
@@ -242,7 +231,7 @@ export const deleteArchetypeController = async (
   if (!userId) {
     res.status(401).json({
       success: false,
-      message: "Unauthorized",
+      message: 'Unauthorized',
     });
     return;
   }
@@ -257,7 +246,7 @@ export const deleteArchetypeController = async (
       logger.warn(`Archetype not found for deletion: ${archetypeId}`);
       res.status(404).json({
         success: false,
-        message: "Archetype not found",
+        message: 'Archetype not found',
       });
       return;
     }
@@ -268,7 +257,7 @@ export const deleteArchetypeController = async (
 
     res.status(200).json({
       success: true,
-      message: "Archetype deleted successfully",
+      message: 'Archetype deleted successfully',
     });
     return;
   } catch (error) {
@@ -281,7 +270,7 @@ export const deleteArchetypeController = async (
 
     res.status(500).json({
       success: false,
-      message: "Failed to delete archetype",
+      message: 'Failed to delete archetype',
     });
     return;
   }
@@ -299,24 +288,22 @@ export const getArchetypesByProviderController = async (
   if (!userId) {
     res.status(401).json({
       success: false,
-      message: "Unauthorized",
+      message: 'Unauthorized',
     });
     return;
   }
-  const provider = req.params.provider as "aws" | "gcp" | "azure";
+  const provider = req.params.provider as 'aws' | 'gcp' | 'azure';
 
   logger.info(`Retrieving archetypes by provider: ${provider}`);
 
   try {
     const archetypes = await archetypeService.getArchetypesByProvider(provider);
 
-    logger.info(
-      `Retrieved ${archetypes.length} archetypes for provider ${provider}`
-    );
+    logger.info(`Retrieved ${archetypes.length} archetypes for provider ${provider}`);
 
     res.status(200).json({
       success: true,
-      message: "Archetypes retrieved successfully",
+      message: 'Archetypes retrieved successfully',
       data: archetypes,
     });
     return;
@@ -330,7 +317,7 @@ export const getArchetypesByProviderController = async (
 
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve archetypes",
+      message: 'Failed to retrieve archetypes',
     });
     return;
   }
@@ -348,7 +335,7 @@ export const getArchetypesByCategoryController = async (
   if (!userId) {
     res.status(401).json({
       success: false,
-      message: "Unauthorized",
+      message: 'Unauthorized',
     });
     return;
   }
@@ -359,13 +346,11 @@ export const getArchetypesByCategoryController = async (
   try {
     const archetypes = await archetypeService.getArchetypesByCategory(category);
 
-    logger.info(
-      `Retrieved ${archetypes.length} archetypes for category ${category}`
-    );
+    logger.info(`Retrieved ${archetypes.length} archetypes for category ${category}`);
 
     res.status(200).json({
       success: true,
-      message: "Archetypes retrieved successfully",
+      message: 'Archetypes retrieved successfully',
       data: archetypes,
     });
     return;
@@ -379,7 +364,7 @@ export const getArchetypesByCategoryController = async (
 
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve archetypes",
+      message: 'Failed to retrieve archetypes',
     });
     return;
   }
@@ -397,7 +382,7 @@ export const generateTerraformTfvarsController = async (
   if (!userId) {
     res.status(401).json({
       success: false,
-      message: "Unauthorized",
+      message: 'Unauthorized',
     });
     return;
   }
@@ -416,28 +401,22 @@ export const generateTerraformTfvarsController = async (
       });
       res.status(404).json({
         success: false,
-        message: "Archetype not found",
+        message: 'Archetype not found',
       });
       return;
     }
 
     // Generate tfvars content
-    const tfvarsContent = archetypeService.generateTerraformTfvars(
-      archetype,
-      customValues
-    );
+    const tfvarsContent = archetypeService.generateTerraformTfvars(archetype, customValues);
 
-    logger.info(
-      `Terraform tfvars generated successfully for archetype: ${archetypeId}`,
-      {
-        archetypeId,
-        contentLength: tfvarsContent.length,
-      }
-    );
+    logger.info(`Terraform tfvars generated successfully for archetype: ${archetypeId}`, {
+      archetypeId,
+      contentLength: tfvarsContent.length,
+    });
 
     res.status(200).json({
       success: true,
-      message: "Terraform tfvars generated successfully",
+      message: 'Terraform tfvars generated successfully',
       data: {
         archetypeId,
         archetypeName: archetype.name,
@@ -447,19 +426,16 @@ export const generateTerraformTfvarsController = async (
     });
     return;
   } catch (error) {
-    logger.error(
-      `Error generating Terraform tfvars for archetype ${archetypeId}:`,
-      {
-        error: error instanceof Error ? error.message : error,
-        stack: error instanceof Error ? error.stack : undefined,
+    logger.error(`Error generating Terraform tfvars for archetype ${archetypeId}:`, {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
 
-        archetypeId,
-      }
-    );
+      archetypeId,
+    });
 
     res.status(500).json({
       success: false,
-      message: "Failed to generate Terraform tfvars",
+      message: 'Failed to generate Terraform tfvars',
     });
     return;
   }

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### 🎯 Smart Deploy System
 
 #### Added
+
 - **Smart Deploy Orchestration**: Automatic detection of modified applications with selective deployment
 - **Centralized Workflows**: Reusable GitHub Actions workflows at repository root
   - `smart-deploy.yml` - Main orchestrator with change detection
@@ -20,17 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Path-based Filtering**: Uses `dorny/paths-filter@v3` for reliable change detection
 
 #### Changed
+
 - Migrated individual app workflows to centralized reusable workflows
 - Disabled legacy workflows in app subdirectories (renamed to `.disabled`)
 - Updated deployment strategy to be more efficient and resource-conscious
 
 #### Documentation
+
 - `documentation/SMART_DEPLOY.md` - Complete Smart Deploy system guide
 - `documentation/README.md` - Documentation index with all available guides
 - `SMART_DEPLOY_MIGRATION.md` - Migration guide and implementation details
 - Updated main `README.md` with Smart Deploy section
 
 #### Benefits
+
 - ⚡ **60-70% faster deployments** - Only modified apps are deployed
 - 💰 **Resource savings** - Reduced CI/CD minutes usage
 - 📊 **Better visibility** - Clear deployment summaries
@@ -42,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### 🚀 Migration to npm workspaces
 
 #### Major Changes
+
 - Migration from NX to native npm workspaces
 - Simplified monorepo management
 - Removed all NX dependencies
@@ -53,11 +58,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### 🎉 Added
 
 #### npm workspaces Configuration
+
 - Complete monorepo configuration with npm workspaces
 - Centralized dependency management
 - Unified npm scripts for all projects
 
 #### Configuration Files
+
 - `package.json` - npm workspaces configuration
 - `tsconfig.base.json` - Shared TypeScript configuration
 - `.eslintrc.json` - Shared ESLint configuration
@@ -69,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `.gitignore` - Files to ignore by Git (improved)
 
 #### Documentation
+
 - `README.md` - Main workspace documentation
 - `NPM_WORKSPACES_GUIDE.md` - Complete npm workspaces guide
 - `MIGRATION.md` - Migration guide
@@ -76,24 +84,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `CHANGELOG.md` - This file
 
 #### Scripts
+
 - `scripts/setup.sh` - Automatic installation script
 - `scripts/clean.sh` - Workspace cleanup script
 - `scripts/clean-nx.sh` - Post-NX migration cleanup script
 
 #### CI/CD
+
 - `.github/workflows/ci.yml` - GitHub Actions workflow with npm workspaces
 
 #### VSCode
+
 - `.vscode/settings.json` - Improved settings (format on save, ESLint auto-fix)
 - `.vscode/extensions.json` - Recommended extensions
 
 #### Git Hooks
+
 - `.husky/pre-commit` - Pre-commit hook with lint-staged
 - `.lintstagedrc.json` - lint-staged configuration
 
 ### 🔄 Modified
 
 #### package.json (root)
+
 - npm workspaces configuration
 - Unified scripts for all projects
 - Formatting and linting scripts
@@ -102,12 +115,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### 📦 Configured Projects
 
 #### idem-ai (Angular 20)
+
 - Build configuration with production/development modes
 - Tests with coverage
 - Linting with ESLint
 - Scripts: start, build, test, lint
 
 #### idem-ai-chart (Svelte 5)
+
 - Optimized Vite configuration
 - Unit and E2E tests
 - Linting and formatting
@@ -115,12 +130,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Scripts: dev, build, test:unit, test:e2e, lint, lint:fix, format, preview
 
 #### idem-appgen (React/Next.js)
+
 - Multi-app support (next, admin, client)
 - Parallel development mode
 - Optimized build
 - Scripts: dev:next, dev:admin, dev:client, build:client
 
 #### idem-api (Express/TypeScript)
+
 - TypeScript configuration
 - Development mode with nodemon
 - Build with tsc
@@ -196,6 +213,7 @@ npm run clean           # Clean
 ### Breaking Changes
 
 **Version 2.0.0** - Migration to npm workspaces:
+
 - Removed NX and all its dependencies
 - Removed `project.json` and `nx.json` files
 - Changed commands (see documentation)
@@ -208,6 +226,7 @@ To migrate to this configuration, follow the [MIGRATION.md](./MIGRATION.md) guid
 ### Support
 
 For any questions or issues, consult:
+
 1. [NPM_WORKSPACES_GUIDE.md](./documentation/NPM_WORKSPACES_GUIDE.md) - Complete guide
 2. [MIGRATION_NX_TO_NPM_WORKSPACES.md](./MIGRATION_NX_TO_NPM_WORKSPACES.md) - Migration guide
 3. [npm workspaces Documentation](https://docs.npmjs.com/cli/v8/using-npm/workspaces) - Official documentation

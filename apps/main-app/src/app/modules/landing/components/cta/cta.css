@@ -16,7 +16,8 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   overflow: hidden;
-  transition: transform 0.4s cubic-bezier(0.2, 1, 0.3, 1),
+  transition:
+    transform 0.4s cubic-bezier(0.2, 1, 0.3, 1),
     box-shadow 0.4s cubic-bezier(0.2, 1, 0.3, 1);
 }
 
@@ -27,7 +28,7 @@
 
 /* Animated gradient border */
 .cta-glass-card::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   border-radius: 20px;
@@ -39,9 +40,13 @@
     var(--color-primary-glow),
     var(--color-accent)
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   background-size: 300% 300%;
   animation: gradient-border 4s linear infinite;
@@ -69,19 +74,25 @@
 .reveal-up {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
+  transition:
+    opacity 0.7s ease-out,
+    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
 }
 
 .reveal-left {
   opacity: 0;
   transform: translateX(-30px);
-  transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
+  transition:
+    opacity 0.7s ease-out,
+    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
 }
 
 .reveal-right {
   opacity: 0;
   transform: translateX(30px);
-  transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
+  transition:
+    opacity 0.7s ease-out,
+    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
 }
 
 :host(.animate-in) .reveal-up,
@@ -113,7 +124,6 @@
 .floating-enhanced {
   animation: float-enhanced 7s ease-in-out infinite;
 }
-
 
 @keyframes gradient-shift {
   0% {

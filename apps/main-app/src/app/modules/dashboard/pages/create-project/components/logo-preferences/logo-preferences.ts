@@ -18,9 +18,7 @@ export class LogoPreferences {
   protected readonly selectedType = signal<LogoType | null>(null);
   protected readonly generationMode = signal<'ai' | 'custom' | null>(null);
   protected readonly customDescription = signal<string>('');
-  protected readonly currentStep = signal<'type' | 'mode' | 'description'>(
-    'type'
-  );
+  protected readonly currentStep = signal<'type' | 'mode' | 'description'>('type');
 
   // Computed
   protected readonly canProceed = computed(() => {
@@ -28,10 +26,7 @@ export class LogoPreferences {
     if (step === 'type') return this.selectedType() !== null;
     if (step === 'mode') return this.generationMode() !== null;
     if (step === 'description') {
-      return (
-        this.generationMode() === 'ai' ||
-        this.customDescription().trim().length > 10
-      );
+      return this.generationMode() === 'ai' || this.customDescription().trim().length > 10;
     }
     return false;
   });
@@ -41,8 +36,7 @@ export class LogoPreferences {
     {
       type: 'icon' as LogoType,
       title: 'Icon Based',
-      description:
-        'An easy to remember shape in the center of your logo design',
+      description: 'An easy to remember shape in the center of your logo design',
       example: 'Apple, Nike, Twitter',
     },
     {
@@ -93,8 +87,7 @@ export class LogoPreferences {
     const preferences: LogoPreferencesModel = {
       type,
       useAIGeneration: mode === 'ai',
-      customDescription:
-        mode === 'custom' ? this.customDescription() : undefined,
+      customDescription: mode === 'custom' ? this.customDescription() : undefined,
     };
 
     this.preferencesSelected.emit(preferences);

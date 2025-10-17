@@ -109,15 +109,12 @@ export class DeploymentValidators {
    * @param components Les composants d'architecture à valider
    * @returns Tableau des messages d'erreur (vide si aucune erreur)
    */
-  static validateArchitectureComponents(
-    components?: ArchitectureComponent[]
-  ): string[] {
+  static validateArchitectureComponents(components?: ArchitectureComponent[]): string[] {
     const errors: string[] = [];
     if (!components || components.length === 0) return errors;
 
     components.forEach((comp, index) => {
-      if (!comp.instanceId)
-        errors.push(`Component ${index + 1} is missing an instance ID`);
+      if (!comp.instanceId) errors.push(`Component ${index + 1} is missing an instance ID`);
       if (!comp.type) errors.push(`Component ${index + 1} is missing a type`);
     });
 

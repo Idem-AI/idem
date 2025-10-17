@@ -57,9 +57,7 @@ export class QuickDeployment implements OnInit {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
       console.error('No project ID found in cookies');
-      this.errorMessages.set([
-        'No project selected. Please select a project first.',
-      ]);
+      this.errorMessages.set(['No project selected. Please select a project first.']);
     } else {
       this.projectId.set(projectId);
       console.log('Quick deployment initialized with project ID:', projectId);
@@ -95,12 +93,7 @@ export class QuickDeployment implements OnInit {
     // For now, we're simulating the API call with a timeout
     setTimeout(() => {
       // Mock data for branches
-      this.gitBranches.set([
-        'main',
-        'develop',
-        'feature/auth',
-        'feature/dashboard',
-      ]);
+      this.gitBranches.set(['main', 'develop', 'feature/auth', 'feature/dashboard']);
       this.loadingGitInfo.set(false);
     }, 1000);
   }
@@ -140,9 +133,7 @@ export class QuickDeployment implements OnInit {
   protected createDeployment(): void {
     // Validate project ID
     if (!this.projectId()) {
-      this.errorMessages.set([
-        'No project selected. Please select a project first.',
-      ]);
+      this.errorMessages.set(['No project selected. Please select a project first.']);
       return;
     }
 
@@ -190,9 +181,7 @@ export class QuickDeployment implements OnInit {
       error: (error: any) => {
         console.error('Error creating quick deployment:', error);
         this.loadingDeployment.set(false);
-        this.errorMessages.set([
-          error.message || 'Failed to create quick deployment',
-        ]);
+        this.errorMessages.set([error.message || 'Failed to create quick deployment']);
       },
     });
   }

@@ -71,18 +71,18 @@ All deployment workflows use `workflow_call` to be reusable:
 
 ```yaml
 on:
-  workflow_call:      # Called by smart-deploy.yml
-  workflow_dispatch:  # Manual triggering possible
+  workflow_call: # Called by smart-deploy.yml
+  workflow_dispatch: # Manual triggering possible
 ```
 
 ## Supported Applications
 
-| Application | Path | Workflow | Branches | Environments |
-|------------|--------|----------|----------|----------------|
-| **API** | `apps/api/` | `deploy-api.yml` | `main`, `dev` | Production, Staging |
-| **Main App** | `apps/main-app/` | `deploy-main-app.yml` | `main`, `dev` | Production, Staging |
-| **Chart** | `apps/chart/` | `deploy-chart.yml` | `master`, `main` | GitHub Pages |
-| **AppGen** | `apps/appgen/` | ❌ Not configured | - | - |
+| Application  | Path             | Workflow              | Branches         | Environments        |
+| ------------ | ---------------- | --------------------- | ---------------- | ------------------- |
+| **API**      | `apps/api/`      | `deploy-api.yml`      | `main`, `dev`    | Production, Staging |
+| **Main App** | `apps/main-app/` | `deploy-main-app.yml` | `main`, `dev`    | Production, Staging |
+| **Chart**    | `apps/chart/`    | `deploy-chart.yml`    | `master`, `main` | GitHub Pages        |
+| **AppGen**   | `apps/appgen/`   | ❌ Not configured     | -                | -                   |
 
 ## Usage Examples
 
@@ -147,11 +147,13 @@ Applications Detected:
 The following secrets must be configured in GitHub:
 
 ### For API and Main App
+
 - `SERVER_HOST`: Deployment server address
 - `SERVER_USER`: SSH user
 - `SSH_PRIVATE_KEY`: SSH private key for authentication
 
 ### For Chart
+
 - No secrets required (GitHub Pages deployment)
 
 ## GitHub Environments
@@ -168,7 +170,7 @@ The following environments are configured:
 ✅ **Resource savings**: Fewer unnecessary builds and deployments  
 ✅ **Traceability**: Clear summary of deployed applications  
 ✅ **Flexibility**: Manual triggering possible for each application  
-✅ **Scalability**: Easy to add new applications  
+✅ **Scalability**: Easy to add new applications
 
 ## Adding a New Application
 
@@ -192,7 +194,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       # Add your build steps here
 ```
 

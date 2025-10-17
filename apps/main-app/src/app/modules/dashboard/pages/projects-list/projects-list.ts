@@ -67,7 +67,7 @@ export class ProjectsList implements OnInit {
                 console.log('Authentication error, redirecting to login');
                 this.router.navigate(['/login']);
               }
-            }
+            },
           });
         } else {
           console.log('User not authenticated, redirecting to login');

@@ -35,9 +35,7 @@
           {{ tech()!.name }}
         </h4>
         @if (!tech().isAvailable) {
-        <span class="text-xs text-orange-400 font-medium mt-1"
-          >Available Soon</span
-        >
+        <span class="text-xs text-orange-400 font-medium mt-1">Available Soon</span>
         }
       </div>
     </div>
@@ -90,14 +88,11 @@
   </div>
 
   <!-- Advanced Options Button -->
-  @if (showAdvancedOptions() && tech()!.versions && tech()!.versions!.length >
-  0) {
+  @if (showAdvancedOptions() && tech()!.versions && tech()!.versions!.length > 0) {
   <div class="mt-2 md:mt-4 pt-2 md:pt-3 border-t border-gray-800/30">
     @if (isAdvancedOptionsVisible()) {
     <div class="mb-2 md:mb-3 animate-fade-in">
-      <p class="text-xs md:text-sm font-medium text-gray-300 mb-1 md:mb-2">
-        Version:
-      </p>
+      <p class="text-xs md:text-sm font-medium text-gray-300 mb-1 md:mb-2">Version:</p>
       <p-select
         [options]="tech()!.versions"
         placeholder="Select version"
@@ -113,12 +108,8 @@
       class="sm:outer-button w-full text-xs md:text-sm flex items-center justify-center gap-1 md:gap-2 py-1 md:py-2 px-2 md:px-3"
       (click)="toggleAdvancedOptions()"
     >
-      <span class="hidden md:inline"
-        >{{ isAdvancedOptionsVisible() ? 'Hide' : 'Advanced' }}</span
-      >
-      <span class="md:hidden"
-        >{{ isAdvancedOptionsVisible() ? 'Hide' : 'Opt' }}</span
-      >
+      <span class="hidden md:inline">{{ isAdvancedOptionsVisible() ? 'Hide' : 'Advanced' }}</span>
+      <span class="md:hidden">{{ isAdvancedOptionsVisible() ? 'Hide' : 'Opt' }}</span>
       <span
         class="pi text-xs md:text-sm"
         [class.pi-angle-up]="isAdvancedOptionsVisible()"

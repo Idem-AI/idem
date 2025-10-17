@@ -1,7 +1,4 @@
-import {
-  DevelopmentConfigsModel,
-  LandingPageConfig,
-} from "../development.model";
+import { DevelopmentConfigsModel, LandingPageConfig } from '../development.model';
 
 /**
  * Builder for DevelopmentConfigsModel
@@ -14,10 +11,10 @@ export class DevelopmentConfigsBuilder {
     return {
       constraints: [],
       frontend: {
-        framework: "",
+        framework: '',
         frameworkVersion: undefined,
         frameworkIconUrl: undefined,
-        styling: "",
+        styling: '',
         stateManagement: undefined,
         features: [],
       },
@@ -25,10 +22,10 @@ export class DevelopmentConfigsBuilder {
         language: undefined,
         languageVersion: undefined,
         languageIconUrl: undefined,
-        framework: "",
+        framework: '',
         frameworkVersion: undefined,
         frameworkIconUrl: undefined,
-        apiType: "",
+        apiType: '',
         apiVersion: undefined,
         apiIconUrl: undefined,
         orm: undefined,
@@ -38,7 +35,7 @@ export class DevelopmentConfigsBuilder {
       },
       database: {
         type: undefined,
-        provider: "",
+        provider: '',
         version: undefined,
         providerIconUrl: undefined,
         orm: undefined,
@@ -64,9 +61,7 @@ export class DevelopmentConfigsBuilder {
   /**
    * Creates a partial DevelopmentConfigsModel with specified properties
    */
-  static createPartial(
-    data: Partial<DevelopmentConfigsModel>
-  ): DevelopmentConfigsModel {
+  static createPartial(data: Partial<DevelopmentConfigsModel>): DevelopmentConfigsModel {
     return { ...this.createEmpty(), ...data };
   }
 }

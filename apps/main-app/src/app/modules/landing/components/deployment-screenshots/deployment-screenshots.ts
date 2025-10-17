@@ -17,7 +17,7 @@ interface DeploymentScreenshot {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './deployment-screenshots.html',
-  styleUrl: './deployment-screenshots.css'
+  styleUrl: './deployment-screenshots.css',
 })
 export class DeploymentScreenshots implements OnInit, OnDestroy {
   // Angular-initialized properties
@@ -33,15 +33,16 @@ export class DeploymentScreenshots implements OnInit, OnDestroy {
       id: 'conversational-ui',
       mode: 'AI Assistant',
       title: 'Conversational Interface',
-      description: 'Natural language interaction with AI-powered architecture suggestions and real-time guidance.',
+      description:
+        'Natural language interaction with AI-powered architecture suggestions and real-time guidance.',
       imageUrl: '/assets/screenshots/conversational-mode.png',
       features: [
         'Chat-based interface',
         'Real-time AI responses',
         'Architecture visualization',
-        'Step-by-step guidance'
+        'Step-by-step guidance',
       ],
-      color: '#1447e6'
+      color: '#1447e6',
     },
     {
       id: 'quick-deploy-ui',
@@ -53,38 +54,40 @@ export class DeploymentScreenshots implements OnInit, OnDestroy {
         'Single-click deployment',
         'Progress indicators',
         'Automatic configuration',
-        'Instant results'
+        'Instant results',
       ],
-      color: '#22c55e'
+      color: '#22c55e',
     },
     {
       id: 'templates-ui',
       mode: 'Architecture Templates',
       title: 'Template Selection',
-      description: 'Gallery of pre-built architecture templates with customization options and preview capabilities.',
+      description:
+        'Gallery of pre-built architecture templates with customization options and preview capabilities.',
       imageUrl: '/assets/screenshots/templates-mode.png',
       features: [
         'Template gallery',
         'Live preview',
         'Customization panel',
-        'Architecture diagrams'
+        'Architecture diagrams',
       ],
-      color: '#d11ec0'
+      color: '#d11ec0',
     },
     {
       id: 'expert-ui',
       mode: 'Component Catalog',
       title: 'Advanced Configuration',
-      description: 'Comprehensive component catalog with detailed configuration options and dependency management.',
+      description:
+        'Comprehensive component catalog with detailed configuration options and dependency management.',
       imageUrl: '/assets/screenshots/expert-mode.png',
       features: [
         'Component library',
         'Advanced settings',
         'Dependency graph',
-        'Custom configurations'
+        'Custom configurations',
       ],
-      color: '#f59e0b'
-    }
+      color: '#f59e0b',
+    },
   ]);
 
   ngOnInit(): void {
@@ -119,23 +122,27 @@ export class DeploymentScreenshots implements OnInit, OnDestroy {
   private setupSeoForDeploymentScreenshots(): void {
     // Add structured data for deployment screenshots
     const deploymentStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Idem Deployment Interface",
-      "description": "Multiple deployment modes including AI assistant, quick deploy, templates, and expert configuration",
-      "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "Web Browser",
-      "featureList": this.screenshots().map(screenshot => screenshot.title),
-      "screenshot": this.screenshots().map(screenshot => ({
-        "@type": "ImageObject",
-        "name": screenshot.title,
-        "description": screenshot.description,
-        "url": `${this.seoService.domain}${screenshot.imageUrl}`
-      }))
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'Idem Deployment Interface',
+      description:
+        'Multiple deployment modes including AI assistant, quick deploy, templates, and expert configuration',
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Web Browser',
+      featureList: this.screenshots().map((screenshot) => screenshot.title),
+      screenshot: this.screenshots().map((screenshot) => ({
+        '@type': 'ImageObject',
+        name: screenshot.title,
+        description: screenshot.description,
+        url: `${this.seoService.domain}${screenshot.imageUrl}`,
+      })),
     };
 
     // Add structured data to page if not already present
-    if (this.isBrowser() && !document.querySelector('script[data-deployment-screenshots-structured-data]')) {
+    if (
+      this.isBrowser() &&
+      !document.querySelector('script[data-deployment-screenshots-structured-data]')
+    ) {
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.setAttribute('data-deployment-screenshots-structured-data', 'true');

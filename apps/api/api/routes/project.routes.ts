@@ -1,7 +1,7 @@
-import { Router } from "express";
-import { projectController } from "../controllers/project.controller";
-import { authenticate } from "../services/auth.service";
-import { checkQuota } from "../middleware/quota.middleware";
+import { Router } from 'express';
+import { projectController } from '../controllers/project.controller';
+import { authenticate } from '../services/auth.service';
+import { checkQuota } from '../middleware/quota.middleware';
 
 export const projectRoutes = Router();
 
@@ -29,7 +29,7 @@ export const projectRoutes = Router();
  *           application/json:
  *             schema:
  *               # You might want to define a ProjectResponseDto or reference ProjectModel here
- *               type: object 
+ *               type: object
  *               properties:
  *                 id:
  *                   type: string
@@ -47,10 +47,7 @@ export const projectRoutes = Router();
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.post("/create", authenticate, projectController.createProject);
-
-
-
+projectRoutes.post('/create', authenticate, projectController.createProject);
 
 // Get all projects for the authenticated user
 /**
@@ -76,7 +73,7 @@ projectRoutes.post("/create", authenticate, projectController.createProject);
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.get('/', authenticate,  projectController.getAllProjects);
+projectRoutes.get('/', authenticate, projectController.getAllProjects);
 
 // Get a specific project by ID
 /**
@@ -109,11 +106,7 @@ projectRoutes.get('/', authenticate,  projectController.getAllProjects);
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.get(
-  "/:projectId",
-  authenticate,
-  projectController.getProjectById
-);
+projectRoutes.get('/:projectId', authenticate, projectController.getProjectById);
 
 // Update a specific project by ID
 /**
@@ -191,8 +184,4 @@ projectRoutes.put('/:projectId', authenticate, projectController.updateProject);
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.delete(
-  "/delete/:projectId",
-  authenticate,
-  projectController.deleteProject
-);
+projectRoutes.delete('/delete/:projectId', authenticate, projectController.deleteProject);

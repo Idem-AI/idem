@@ -1,20 +1,10 @@
-import {
-  Component,
-  input,
-  output,
-  computed,
-  signal,
-  inject,
-} from '@angular/core';
+import { Component, input, output, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectModel } from '../../../../models/project.model';
 import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
-import {
-  ColorModel,
-  TypographyModel,
-} from '../../../../models/brand-identity.model';
+import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
 import { LogoModel } from '../../../../models/logo.model';
 import { environment } from '../../../../../../../environments/environment';
 import { ProjectService } from '../../../../services/project.service';
@@ -58,8 +48,7 @@ export class ProjectSummaryComponent {
   protected readonly isSubmitting = signal(false);
 
   protected readonly canSubmit = computed(() => {
-    const requiredPolicies =
-      this.privacyPolicyAccepted() && this.termsOfServiceAccepted();
+    const requiredPolicies = this.privacyPolicyAccepted() && this.termsOfServiceAccepted();
     const betaRequired = this.isBeta() ? this.betaPolicyAccepted() : true;
     return requiredPolicies && betaRequired;
   });
@@ -71,9 +60,7 @@ export class ProjectSummaryComponent {
   }
 
   protected getSelectedColor(): ColorModel | undefined {
-    const color = this.colorPalettes().find(
-      (color) => color.id === this.selectedColor()
-    );
+    const color = this.colorPalettes().find((color) => color.id === this.selectedColor());
     console.log('Selected color', color);
     return color;
   }
@@ -117,20 +104,18 @@ export class ProjectSummaryComponent {
         marketingAccepted: this.marketingConsentAccepted(),
       };
 
-      this.projectService
-        .finalizeProjectCreation(this.project().id!, acceptanceData)
-        .subscribe({
-          next: (response) => {
-            this.clearProjectCookies();
+      this.projectService.finalizeProjectCreation(this.project().id!, acceptanceData).subscribe({
+        next: (response) => {
+          this.clearProjectCookies();
 
-            this.isSubmitting.set(false);
-            this.finalizeProject.emit();
-          },
-          error: (error) => {
-            console.error('Error finalizing project:', error);
-            this.isSubmitting.set(false);
-          },
-        });
+          this.isSubmitting.set(false);
+          this.finalizeProject.emit();
+        },
+        error: (error) => {
+          console.error('Error finalizing project:', error);
+          this.isSubmitting.set(false);
+        },
+      });
     }
   }
 

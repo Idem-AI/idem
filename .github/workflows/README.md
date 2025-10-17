@@ -11,6 +11,7 @@ This folder contains GitHub Actions workflows with the Smart Deploy system for t
 **Description**: Main workflow that automatically detects modified applications and triggers only necessary deployments.
 
 **Jobs**:
+
 - 🔍 **detect-changes** - Detects modified applications with `dorny/paths-filter@v3`
 - 🚀 **deploy-api** - Calls `deploy-api.yml` if `apps/api/**` modified
 - 🚀 **deploy-main-app** - Calls `deploy-main-app.yml` if `apps/main-app/**` modified
@@ -18,12 +19,14 @@ This folder contains GitHub Actions workflows with the Smart Deploy system for t
 - 📊 **summary** - Generates deployment summary
 
 **Benefits**:
+
 - ⚡ **60-70% faster** - Only modified apps are deployed
 - 💰 **Cost savings** - Reduced CI/CD minutes
 - 📊 **Visibility** - Clear deployment summaries
 - 🔧 **Maintenance** - Centralized workflows
 
 **Summary Example**:
+
 ```
 📊 Deployment Summary
 
@@ -40,22 +43,26 @@ Applications Detected:
 
 **Type**: Reusable workflow (`workflow_call`)
 
-**Trigger**: 
+**Trigger**:
+
 - Called by `smart-deploy.yml`
 - Manual via `workflow_dispatch`
 
 **Description**: Deploys the backend API (Express/TypeScript)
 
 **Jobs**:
+
 - 🔧 **build** - Build Docker image on remote server
 - 📤 **push** - Push image to GitHub Container Registry
 - 🚀 **deploy** - Deployment with docker-compose
 
 **Environments**:
+
 - `production` (`main` branch)
 - `staging` (`dev` branch)
 
 **Required Secrets**:
+
 ```bash
 SERVER_HOST        # Server host
 SERVER_USER        # SSH user
@@ -68,22 +75,26 @@ SSH_PRIVATE_KEY    # SSH private key
 
 **Type**: Reusable workflow (`workflow_call`)
 
-**Trigger**: 
+**Trigger**:
+
 - Called by `smart-deploy.yml`
 - Manual via `workflow_dispatch`
 
 **Description**: Deploys the main Angular application
 
 **Jobs**:
+
 - 🔧 **build** - Build Docker image on remote server
 - 📤 **push** - Push image to GitHub Container Registry
 - 🚀 **deploy** - Deployment with docker-compose
 
 **Environments**:
+
 - `production` (`main` branch)
 - `staging` (`dev` branch)
 
 **Required Secrets**:
+
 ```bash
 SERVER_HOST        # Server host
 SERVER_USER        # SSH user
@@ -96,19 +107,22 @@ SSH_PRIVATE_KEY    # SSH private key
 
 **Type**: Reusable workflow (`workflow_call`)
 
-**Trigger**: 
+**Trigger**:
+
 - Called by `smart-deploy.yml`
 - Manual via `workflow_dispatch`
 
 **Description**: Deploys the diagram editor (SvelteKit) to GitHub Pages
 
 **Jobs**:
+
 - 🔧 **build** - Build with pnpm and SvelteKit
 - 🚀 **deploy** - Deployment to GitHub Pages
 
 **Environment**: `github-pages`
 
 **Required Permissions**:
+
 ```yaml
 pages: write
 id-token: write
@@ -145,12 +159,12 @@ id-token: write
 
 ### CI/CD Time
 
-| Scenario | Before | After | Gain |
-|----------|-------|-------|------|
-| 1 modified project | 15 min | **3-5 min** | **70%** ⚡ |
-| 2 modified projects | 15 min | **6-8 min** | **50%** ⚡ |
-| All projects | 15 min | **12-15 min** | **0-20%** |
-| No changes | 15 min | **1-2 min** | **90%** ⚡ |
+| Scenario            | Before | After         | Gain       |
+| ------------------- | ------ | ------------- | ---------- |
+| 1 modified project  | 15 min | **3-5 min**   | **70%** ⚡ |
+| 2 modified projects | 15 min | **6-8 min**   | **50%** ⚡ |
+| All projects        | 15 min | **12-15 min** | **0-20%**  |
+| No changes          | 15 min | **1-2 min**   | **90%** ⚡ |
 
 ### Savings
 
@@ -167,11 +181,13 @@ id-token: write
 **Settings → Secrets and variables → Actions**
 
 #### Automatic
+
 ```bash
 GITHUB_TOKEN  # Provided by GitHub Actions
 ```
 
 #### To Configure
+
 ```bash
 # For API and Main App
 SERVER_HOST        # Deployment server host
@@ -249,6 +265,7 @@ graph LR
 **Modification**: `apps/api/src/controllers/user.controller.ts`
 
 **Detection**:
+
 ```bash
 🔍 Changes detected:
 - apps/api/** : true
@@ -288,6 +305,7 @@ apps/chart/.github/workflows/
 ```
 
 **Strategy**: Complete migration
+
 - New Smart Deploy workflows at root
 - Legacy deployment workflows disabled
 - Can be deleted after validation
@@ -314,6 +332,7 @@ apps/chart/.github/workflows/
 ### Smart Deploy doesn't detect changes
 
 **Check**:
+
 - Modifications are in `apps/*/`
 - Branch is `main`, `dev`, or `master`
 - Review `detect-changes` job logs
@@ -321,6 +340,7 @@ apps/chart/.github/workflows/
 ### Workflow doesn't trigger
 
 **Check**:
+
 - Branch name in `on.push.branches`
 - Workflow permissions
 - Secrets configured in Settings → Secrets
@@ -328,6 +348,7 @@ apps/chart/.github/workflows/
 ### Deployment fails
 
 **Check**:
+
 - SSH secrets configured (`SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`)
 - Server accessible from GitHub Actions
 - Docker installed on server
@@ -336,6 +357,7 @@ apps/chart/.github/workflows/
 ### Error "Unable to find reusable workflow"
 
 **Normal before first push**:
+
 - These lint errors disappear after pushing workflows
 - Linter checks remote repository which doesn't have files yet
 

@@ -1,6 +1,6 @@
-import { Router } from "express";
-import { CacheController } from "../controllers/cache.controller";
-import { authenticate } from "../services/auth.service";
+import { Router } from 'express';
+import { CacheController } from '../controllers/cache.controller';
+import { authenticate } from '../services/auth.service';
 
 const router = Router();
 
@@ -67,7 +67,7 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.get("/stats", CacheController.getCacheStats);
+router.get('/stats', CacheController.getCacheStats);
 
 /**
  * @swagger
@@ -92,7 +92,7 @@ router.get("/stats", CacheController.getCacheStats);
  *       500:
  *         description: Server error
  */
-router.delete("/clear", authenticate, CacheController.clearCache);
+router.delete('/clear', authenticate, CacheController.clearCache);
 
 /**
  * @swagger
@@ -131,11 +131,7 @@ router.delete("/clear", authenticate, CacheController.clearCache);
  *       500:
  *         description: Server error
  */
-router.delete(
-  "/user/:userId?",
-  authenticate,
-  CacheController.invalidateUserCache
-);
+router.delete('/user/:userId?', authenticate, CacheController.invalidateUserCache);
 
 /**
  * @swagger
@@ -174,11 +170,7 @@ router.delete(
  *       500:
  *         description: Server error
  */
-router.delete(
-  "/project/:projectId",
-  authenticate,
-  CacheController.invalidateProjectCache
-);
+router.delete('/project/:projectId', authenticate, CacheController.invalidateProjectCache);
 
 /**
  * @swagger
@@ -222,11 +214,7 @@ router.delete(
  *       500:
  *         description: Server error
  */
-router.delete(
-  "/pattern",
-  authenticate,
-  CacheController.invalidateCacheByPattern
-);
+router.delete('/pattern', authenticate, CacheController.invalidateCacheByPattern);
 
 /**
  * @swagger
@@ -266,7 +254,7 @@ router.delete(
  *       500:
  *         description: Server error
  */
-router.get("/key", CacheController.checkCacheKey);
+router.get('/key', CacheController.checkCacheKey);
 
 /**
  * @swagger
@@ -321,7 +309,7 @@ router.get("/key", CacheController.checkCacheKey);
  *       500:
  *         description: Server error
  */
-router.put("/ttl", authenticate, CacheController.updateCacheTTL);
+router.put('/ttl', authenticate, CacheController.updateCacheTTL);
 
 // ==========================================
 // PDF CACHE MANAGEMENT ROUTES
@@ -396,7 +384,7 @@ router.put("/ttl", authenticate, CacheController.updateCacheTTL);
  *       500:
  *         description: Server error
  */
-router.get("/pdf/stats", CacheController.getPdfCacheStats);
+router.get('/pdf/stats', CacheController.getPdfCacheStats);
 
 /**
  * @swagger
@@ -429,7 +417,7 @@ router.get("/pdf/stats", CacheController.getPdfCacheStats);
  *       500:
  *         description: Server error
  */
-router.delete("/pdf/clear", CacheController.clearPdfCache);
+router.delete('/pdf/clear', CacheController.clearPdfCache);
 
 /**
  * @swagger
@@ -452,7 +440,7 @@ router.delete("/pdf/clear", CacheController.clearPdfCache);
  *       500:
  *         description: Server error
  */
-router.delete("/pdf/clear-all", CacheController.clearAllPdfCache);
+router.delete('/pdf/clear-all', CacheController.clearAllPdfCache);
 
 /**
  * @swagger
@@ -495,11 +483,7 @@ router.delete("/pdf/clear-all", CacheController.clearAllPdfCache);
  *       500:
  *         description: Server error
  */
-router.delete(
-  "/pdf/project/:projectId",
-  authenticate,
-  CacheController.invalidatePdfCacheByProject
-);
+router.delete('/pdf/project/:projectId', authenticate, CacheController.invalidatePdfCacheByProject);
 
 /**
  * @swagger
@@ -542,11 +526,7 @@ router.delete(
  *       500:
  *         description: Server error
  */
-router.delete(
-  "/pdf/user/:userId?",
-  authenticate,
-  CacheController.invalidatePdfCacheByUser
-);
+router.delete('/pdf/user/:userId?', authenticate, CacheController.invalidatePdfCacheByUser);
 
 /**
  * @swagger
@@ -587,6 +567,6 @@ router.delete(
  *       500:
  *         description: Server error
  */
-router.delete("/pdf/age", CacheController.clearPdfCacheByAge);
+router.delete('/pdf/age', CacheController.clearPdfCacheByAge);
 
 export default router;

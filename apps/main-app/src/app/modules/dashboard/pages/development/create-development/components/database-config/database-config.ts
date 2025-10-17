@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-  computed,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
@@ -98,8 +93,6 @@ export class DatabaseConfigComponent {
       versions: ['3.41', '3.39', '3.37', '3.35'],
       isAvailable: true,
     },
-
-
   ];
 
   // La logique ORM a été déplacée vers le composant backend-config
@@ -122,9 +115,7 @@ export class DatabaseConfigComponent {
       // Handle nested structure of versionOptions
       const categories = Object.keys(this.versionOptions()![selectedDatabase]);
       if (categories.length > 0) {
-        return (
-          this.versionOptions()![selectedDatabase][categories[0]] || ['latest']
-        );
+        return this.versionOptions()![selectedDatabase][categories[0]] || ['latest'];
       }
     }
     return ['latest'];
@@ -139,43 +130,43 @@ export class DatabaseConfigComponent {
       name: 'Migrations',
       description: 'Schema version control',
       icon: 'pi pi-history',
-      formControlName: 'features.migrations'
+      formControlName: 'features.migrations',
     },
     {
       id: 'seeding',
       name: 'Seeding',
       description: 'Initial data population',
       icon: 'pi pi-plus-circle',
-      formControlName: 'features.seeding'
+      formControlName: 'features.seeding',
     },
     {
       id: 'caching',
       name: 'Caching',
       description: 'Performance optimization',
       icon: 'pi pi-bolt',
-      formControlName: 'features.caching'
+      formControlName: 'features.caching',
     },
     {
       id: 'replication',
       name: 'Replication',
       description: 'Data redundancy',
       icon: 'pi pi-copy',
-      formControlName: 'features.replication'
+      formControlName: 'features.replication',
     },
     {
       id: 'backup',
       name: 'Backup',
       description: 'Automated data backup',
       icon: 'pi pi-save',
-      formControlName: 'features.backup'
+      formControlName: 'features.backup',
     },
     {
       id: 'monitoring',
       name: 'Monitoring',
       description: 'Database performance monitoring',
       icon: 'pi pi-chart-line',
-      formControlName: 'features.monitoring'
-    }
+      formControlName: 'features.monitoring',
+    },
   ];
 
   /**

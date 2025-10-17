@@ -12,9 +12,7 @@
   </div>
   } @else if(showBrandingGuide() && existingBranding()) {
   <!-- Display PDF Branding Guide -->
-  <app-branding-display 
-    [branding]="existingBranding()!" 
-    (generateRequested)="generateBranding()">
+  <app-branding-display [branding]="existingBranding()!" (generateRequested)="generateBranding()">
   </app-branding-display>
   <div class="fixed top-4 left-4 z-50">
     <button
@@ -57,9 +55,7 @@
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-3xl font-bold text-white mb-2">Brand Identity</h1>
-          <p class="text-gray-300">
-            @if(currentProject()) { {{ currentProject()!.name }} }
-          </p>
+          <p class="text-gray-300">@if(currentProject()) { {{ currentProject()!.name }} }</p>
         </div>
         @if(hasBrandingGuide()) {
         <button (click)="viewBrandingGuide()" class="inner-button">
@@ -104,9 +100,7 @@
             >
               <img [src]="existingBranding()!.logo.svg" class="w-full h-full" />
             </div>
-            <p class="text-white font-medium">
-              {{ existingBranding()!.logo.name || 'Main Logo' }}
-            </p>
+            <p class="text-white font-medium">{{ existingBranding()!.logo.name || 'Main Logo' }}</p>
             <p class="text-gray-400 text-sm">Selected version</p>
           </div>
           }
@@ -114,8 +108,7 @@
           <!-- Logo Variations -->
           @if(existingBranding()!.logo!.variations) {
           <div class="grid grid-cols-2 gap-3">
-            @if(existingBranding()!.logo!.variations!.withText!.lightBackground)
-            {
+            @if(existingBranding()!.logo!.variations!.withText!.lightBackground) {
             <div class="glass-card p-3 text-center">
               <div
                 class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1"
@@ -127,8 +120,7 @@
               </div>
               <p class="text-white text-xs">Light background</p>
             </div>
-            } @if(existingBranding()!.logo.variations!.withText!.darkBackground)
-            {
+            } @if(existingBranding()!.logo.variations!.withText!.darkBackground) {
             <div class="glass-card p-3 text-center">
               <div
                 class="w-16 h-16 mx-auto mb-2 bg-gray-800/50 rounded flex items-center justify-center p-1"
@@ -140,9 +132,7 @@
               </div>
               <p class="text-white text-xs">Dark background</p>
             </div>
-            }
-            @if(existingBranding()!.logo.variations!.iconOnly!.lightBackground!)
-            {
+            } @if(existingBranding()!.logo.variations!.iconOnly!.lightBackground!) {
             <div class="glass-card p-3 text-center">
               <div
                 class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1"
@@ -205,9 +195,7 @@
                   [style.background-color]="existingBranding()!.colors.colors.primary"
                 ></div>
                 <p class="text-white text-sm font-medium">Primary</p>
-                <p class="text-gray-400 text-xs">
-                  {{ existingBranding()!.colors.colors.primary }}
-                </p>
+                <p class="text-gray-400 text-xs">{{ existingBranding()!.colors.colors.primary }}</p>
               </div>
               } @if(existingBranding()!.colors.colors.secondary) {
               <div class="glass-card p-3">
@@ -227,9 +215,7 @@
                   [style.background-color]="existingBranding()!.colors.colors.accent"
                 ></div>
                 <p class="text-white text-sm font-medium">Accent</p>
-                <p class="text-gray-400 text-xs">
-                  {{ existingBranding()!.colors.colors.accent }}
-                </p>
+                <p class="text-gray-400 text-xs">{{ existingBranding()!.colors.colors.accent }}</p>
               </div>
               } @if(existingBranding()!.colors.colors.background) {
               <div class="glass-card p-3">
@@ -264,8 +250,8 @@
           </div>
         </div>
 
-        @if(existingBranding() && (existingBranding()!.typography!.primaryFont
-        || existingBranding()!.generatedTypography!.length > 0)) {
+        @if(existingBranding() && (existingBranding()!.typography!.primaryFont ||
+        existingBranding()!.generatedTypography!.length > 0)) {
         <!-- Real Typography Data -->
         <div class="space-y-4">
           @if(existingBranding()!.typography!.primaryFont) {
@@ -352,9 +338,7 @@
         <i class="pi pi-exclamation-triangle text-6xl text-gray-400 mb-4"></i>
       </div>
       <h3 class="text-2xl font-bold text-white mb-4">No Project Selected</h3>
-      <p class="text-gray-300 mb-8">
-        Please select a project to view its brand identity.
-      </p>
+      <p class="text-gray-300 mb-8">Please select a project to view its brand identity.</p>
       <button class="inner-button" (click)="goToProjects()">
         <i class="pi pi-folder mr-2"></i>
         Select Project
@@ -386,9 +370,7 @@
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
-            <div
-              class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2"
-            >
+            <div class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2">
               <img
                 src="https://uxwing.com/wp-content/themes/uxwing/download/file-and-folder-type/svg-icon.png"
                 alt="SVG"
@@ -415,9 +397,7 @@
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
-            <div
-              class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2"
-            >
+            <div class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2">
               <img
                 src="https://cdn-icons-png.flaticon.com/512/337/337948.png"
                 alt="PNG"
@@ -444,9 +424,7 @@
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
-            <div
-              class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2"
-            >
+            <div class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2">
               <img
                 src="https://cdn-icons-png.flaticon.com/512/9645/9645799.png"
                 alt="PSD"
@@ -466,18 +444,10 @@
     </div>
 
     <div class="flex justify-end gap-2">
-      <button
-        class="outer-button"
-        (click)="visible = false"
-        [disabled]="isDownloading()"
-      >
+      <button class="outer-button" (click)="visible = false" [disabled]="isDownloading()">
         Cancel
       </button>
-      <button
-        class="inner-button"
-        (click)="downloadLogosZip()"
-        [disabled]="isDownloading()"
-      >
+      <button class="inner-button" (click)="downloadLogosZip()" [disabled]="isDownloading()">
         {{ isDownloading() ? 'Downloading...' : 'Download' }}
       </button>
     </div>

@@ -5,10 +5,7 @@ import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { BusinessPlanModel } from '../../models/businessPlan.model';
 import { SSEService } from '../../../../shared/services/sse.service';
-import {
-  SSEStepEvent,
-  SSEConnectionConfig,
-} from '../../../../shared/models/sse-step.model';
+import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 
 @Injectable({
   providedIn: 'root',
@@ -29,10 +26,7 @@ export class BusinessPlanService {
     this.sseService.closeConnection('business-plan');
   }
 
-  createBusinessplanItem(
-    projectId: string,
-    additionalInfos?: any
-  ): Observable<SSEStepEvent> {
+  createBusinessplanItem(projectId: string, additionalInfos?: any): Observable<SSEStepEvent> {
     console.log('Starting business plan generation with SSE...', {
       projectId,
       hasAdditionalInfos: !!additionalInfos,
@@ -62,10 +56,7 @@ export class BusinessPlanService {
         };
 
         // Add the JSON data as a string
-        formData.append(
-          'additionalInfos',
-          JSON.stringify(cleanAdditionalInfos)
-        );
+        formData.append('additionalInfos', JSON.stringify(cleanAdditionalInfos));
 
         // Add team member images
         if (additionalInfos.teamMembers) {
@@ -82,40 +73,32 @@ export class BusinessPlanService {
 
         console.log('Sending multipart data:', {
           additionalInfosJson: cleanAdditionalInfos,
-          imageCount:
-            additionalInfos.teamMembers?.filter((m: any) => m.pictureFile)
-              .length || 0,
+          imageCount: additionalInfos.teamMembers?.filter((m: any) => m.pictureFile).length || 0,
         });
 
         // Send multipart data to backend
-        this.http
-          .post(`${this.apiUrl}/set-additional-info/${projectId}`, formData)
-          .subscribe({
-            next: () => {
-              console.log(
-                'Additional info sent successfully, starting SSE generation...'
-              );
+        this.http.post(`${this.apiUrl}/set-additional-info/${projectId}`, formData).subscribe({
+          next: () => {
+            console.log('Additional info sent successfully, starting SSE generation...');
 
-              // Now start the SSE generation with additional info flag
-              const config: SSEConnectionConfig = {
-                url: `${this.apiUrl}/generate/${projectId}?withAdditionalInfo=true`,
-                keepAlive: true,
-                reconnectionDelay: 1000,
-              };
+            // Now start the SSE generation with additional info flag
+            const config: SSEConnectionConfig = {
+              url: `${this.apiUrl}/generate/${projectId}?withAdditionalInfo=true`,
+              keepAlive: true,
+              reconnectionDelay: 1000,
+            };
 
-              this.sseService
-                .createConnection(config, 'business-plan')
-                .subscribe({
-                  next: (event) => observer.next(event),
-                  error: (error) => observer.error(error),
-                  complete: () => observer.complete(),
-                });
-            },
-            error: (error) => {
-              console.error('Error sending additional info:', error);
-              observer.error(error);
-            },
-          });
+            this.sseService.createConnection(config, 'business-plan').subscribe({
+              next: (event) => observer.next(event),
+              error: (error) => observer.error(error),
+              complete: () => observer.complete(),
+            });
+          },
+          error: (error) => {
+            console.error('Error sending additional info:', error);
+            observer.error(error);
+          },
+        });
       });
     } else {
       // Standard generation without additional info
@@ -134,9 +117,7 @@ export class BusinessPlanService {
   }
   getBusinessplanItems(projectId?: string): Observable<BusinessPlanModel> {
     return this.http.get<BusinessPlanModel>(`${this.apiUrl}/${projectId}`).pipe(
-      tap((response) =>
-        console.log('getBusinessplanItems response:', response)
-      ),
+      tap((response) => console.log('getBusinessplanItems response:', response)),
       catchError((error) => {
         console.error('Error in getBusinessplanItems:', error);
         throw error;
@@ -146,9 +127,7 @@ export class BusinessPlanService {
 
   getBusinessplanItemById(id: string): Observable<BusinessPlanModel> {
     return this.http.get<BusinessPlanModel>(`${this.apiUrl}/${id}`).pipe(
-      tap((response) =>
-        console.log('getBusinessplanItemById response:', response)
-      ),
+      tap((response) => console.log('getBusinessplanItemById response:', response)),
       catchError((error) => {
         console.error(`Error in getBusinessplanItemById for ID ${id}:`, error);
         throw error;
@@ -156,24 +135,14 @@ export class BusinessPlanService {
     );
   }
 
-  getBusinessplanItem(
-    projectId: string,
-    businessplanId: string
-  ): Observable<BusinessPlanModel> {
-    return this.http
-      .get<BusinessPlanModel>(`${this.apiUrl}/${projectId}/${businessplanId}`)
-      .pipe(
-        tap((response) =>
-          console.log('getBusinessplanItem response:', response)
-        ),
-        catchError((error) => {
-          console.error(
-            `Error in getBusinessplanItem for ID ${businessplanId}:`,
-            error
-          );
-          throw error;
-        })
-      );
+  getBusinessplanItem(projectId: string, businessplanId: string): Observable<BusinessPlanModel> {
+    return this.http.get<BusinessPlanModel>(`${this.apiUrl}/${projectId}/${businessplanId}`).pipe(
+      tap((response) => console.log('getBusinessplanItem response:', response)),
+      catchError((error) => {
+        console.error(`Error in getBusinessplanItem for ID ${businessplanId}:`, error);
+        throw error;
+      })
+    );
   }
 
   updateBusinessplanItem(
@@ -181,9 +150,7 @@ export class BusinessPlanService {
     item: Partial<BusinessPlanModel>
   ): Observable<BusinessPlanModel> {
     return this.http.put<BusinessPlanModel>(`${this.apiUrl}/${id}`, item).pipe(
-      tap((response) =>
-        console.log('updateBusinessplanItem response:', response)
-      ),
+      tap((response) => console.log('updateBusinessplanItem response:', response)),
       catchError((error) => {
         console.error(`Error in updateBusinessplanItem for ID ${id}:`, error);
         throw error;
@@ -192,27 +159,16 @@ export class BusinessPlanService {
   }
 
   // Delete a specific project businessplan item
-  deleteBusinessplanItem(
-    projectId: string,
-    businessplanId: string
-  ): Observable<void> {
-    return this.http
-      .delete<void>(`${this.apiUrl}/${projectId}/${businessplanId}`)
-      .pipe(
-        tap((response) =>
-          console.log(
-            `deleteBusinessplanItem response for ID ${businessplanId}:`,
-            response
-          )
-        ),
-        catchError((error) => {
-          console.error(
-            `Error in deleteBusinessplanItem for ID ${businessplanId}:`,
-            error
-          );
-          throw error;
-        })
-      );
+  deleteBusinessplanItem(projectId: string, businessplanId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${projectId}/${businessplanId}`).pipe(
+      tap((response) =>
+        console.log(`deleteBusinessplanItem response for ID ${businessplanId}:`, response)
+      ),
+      catchError((error) => {
+        console.error(`Error in deleteBusinessplanItem for ID ${businessplanId}:`, error);
+        throw error;
+      })
+    );
   }
 
   /**
@@ -231,14 +187,9 @@ export class BusinessPlanService {
         },
       })
       .pipe(
-        tap(() =>
-          console.log(`Downloading business plan PDF for project: ${projectId}`)
-        ),
+        tap(() => console.log(`Downloading business plan PDF for project: ${projectId}`)),
         catchError((error) => {
-          console.error(
-            `Error downloading business plan PDF for project ${projectId}:`,
-            error
-          );
+          console.error(`Error downloading business plan PDF for project ${projectId}:`, error);
 
           // Handle specific error cases
           if (error.status === 401) {

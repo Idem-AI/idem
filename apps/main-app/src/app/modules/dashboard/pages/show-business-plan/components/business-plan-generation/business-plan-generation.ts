@@ -64,24 +64,16 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   });
 
   // Computed properties using the new generation state
-  protected readonly isGenerating = computed(
-    () => this.generationState().isGenerating
-  );
-  protected readonly generationError = computed(
-    () => this.generationState().error
-  );
+  protected readonly isGenerating = computed(() => this.generationState().isGenerating);
+  protected readonly generationError = computed(() => this.generationState().error);
   protected readonly completedSteps = computed(() =>
     this.generationState().steps.filter((step) => step.status === 'completed')
   );
   protected readonly hasCompletedSteps = computed(() =>
     this.generationService.hasCompletedSteps(this.generationState())
   );
-  protected readonly totalSteps = computed(
-    () => this.generationState().totalSteps
-  );
-  protected readonly completedCount = computed(
-    () => this.generationState().completedSteps
-  );
+  protected readonly totalSteps = computed(() => this.generationState().totalSteps);
+  protected readonly completedCount = computed(() => this.generationState().completedSteps);
   protected readonly progressPercentage = computed(() =>
     this.generationService.calculateProgress(this.generationState())
   );
@@ -98,9 +90,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   /**
    * Handle additional info form submission
    */
-  protected onAdditionalInfoSubmitted(
-    additionalInfos: ProjectModel['additionalInfos']
-  ): void {
+  protected onAdditionalInfoSubmitted(additionalInfos: ProjectModel['additionalInfos']): void {
     console.log('Additional info form submitted:', additionalInfos);
     this.additionalInfos.set(additionalInfos);
     this.isSavingAdditionalInfo.set(true);
@@ -132,14 +122,10 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
     // Reset state for new generation
     this.resetGenerationState();
-    console.log(
-      'Starting business plan generation with SSE (no additional info)...'
-    );
+    console.log('Starting business plan generation with SSE (no additional info)...');
 
     // Create SSE connection for business plan generation
-    const sseConnection = this.businessPlanService.createBusinessplanItem(
-      this.projectId()!
-    );
+    const sseConnection = this.businessPlanService.createBusinessplanItem(this.projectId()!);
 
     this.startGenerationProcess(sseConnection);
   }
@@ -159,9 +145,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
     // Reset state for new generation
     this.resetGenerationState();
-    console.log(
-      'Starting business plan generation with SSE (with additional info)...'
-    );
+    console.log('Starting business plan generation with SSE (with additional info)...');
 
     // Create SSE connection for business plan generation with additional info
     const sseConnection = this.businessPlanService.createBusinessplanItem(
@@ -179,9 +163,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
           // On first event, mark additional info as saved with minimum display time
           if (this.isSavingAdditionalInfo()) {
-            console.log(
-              'First SSE event received, additional info saved successfully'
-            );
+            console.log('First SSE event received, additional info saved successfully');
             // Ensure loader is visible for at least 1.5 seconds for better UX
             setTimeout(() => {
               this.isSavingAdditionalInfo.set(false);
@@ -198,14 +180,9 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          console.error(
-            `Error generating business plan for project ID: ${this.projectId()}:`,
-            err
-          );
+          console.error(`Error generating business plan for project ID: ${this.projectId()}:`, err);
           this.isSavingAdditionalInfo.set(false);
-          this.additionalInfoError.set(
-            'Error saving additional information. Please try again.'
-          );
+          this.additionalInfoError.set('Error saving additional information. Please try again.');
           this.showAdditionalInfoForm.set(true); // Show form again on error
           this.generationState.update((state) => ({
             ...state,
@@ -238,10 +215,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          console.error(
-            `Error generating business plan for project ID: ${this.projectId()}:`,
-            err
-          );
+          console.error(`Error generating business plan for project ID: ${this.projectId()}:`, err);
           this.generationState.update((state) => ({
             ...state,
             error: 'Failed to generate business plan',
@@ -329,9 +303,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
     // Wait 4 seconds to allow backend to complete saving
     setTimeout(() => {
-      console.log(
-        'Post-processing complete, redirecting to business plan display'
-      );
+      console.log('Post-processing complete, redirecting to business plan display');
       this.isPostProcessing.set(false);
       this.router.navigate(['/console/business-plan']);
     }, 4000);

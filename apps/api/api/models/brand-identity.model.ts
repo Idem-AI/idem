@@ -1,5 +1,5 @@
-import { LogoModel } from "./logo.model";
-import { SectionModel } from "./section.model";
+import { LogoModel } from './logo.model';
+import { SectionModel } from './section.model';
 
 /**
  * @openapi

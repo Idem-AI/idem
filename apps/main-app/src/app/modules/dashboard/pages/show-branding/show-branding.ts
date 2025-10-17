@@ -11,11 +11,7 @@ import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { BrandingService } from '../../services/ai-agents/branding.service';
 import { ProjectService } from '../../services/project.service';
-import {
-  BrandIdentityModel,
-  ColorModel,
-  TypographyModel,
-} from '../../models/brand-identity.model';
+import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { LogoModel } from '../../models/logo.model';
 import { ProjectModel } from '../../models/project.model';
 import { BrandingDisplayComponent } from './components/branding-display/branding-display';
@@ -115,11 +111,11 @@ export class ShowBrandingComponent implements OnInit {
   private loadExistingBranding(project: ProjectModel): void {
     // Load branding data from project
     const brandingData = project.analysisResultModel?.branding;
-    
+
     if (brandingData) {
       console.log('Branding data found in project:', brandingData);
       this.existingBranding.set(brandingData);
-      
+
       // Also check for PDF if available
       this.checkForBrandingPdf(project.id!);
     } else {
@@ -149,8 +145,8 @@ export class ShowBrandingComponent implements OnInit {
                   type: 'pdf',
                   data: 'PDF Available',
                   summary: 'Brand guide PDF document',
-                }
-              ]
+                },
+              ],
             };
             this.existingBranding.set(updatedBranding);
           } else {
@@ -214,12 +210,8 @@ export class ShowBrandingComponent implements OnInit {
         if (err.message === 'DOWNLOAD_ERROR' || err.isRetryable === true) {
           this.hasError.set(true);
           this.isRetryable.set(true);
-          this.errorMessage.set(
-            'An error occurred while loading branding data.'
-          );
-          console.log(
-            'Retryable error occurred, showing error message with retry button'
-          );
+          this.errorMessage.set('An error occurred while loading branding data.');
+          console.log('Retryable error occurred, showing error message with retry button');
         } else {
           console.log('No branding PDF found, keeping existing data if any');
           this.hasError.set(false);
@@ -307,36 +299,36 @@ export class ShowBrandingComponent implements OnInit {
 
     const extension = this.selectedExtension;
     console.log('Downloading logos ZIP for project:', projectId, 'with extension:', extension);
-    
+
     // Start loading
     this.isDownloading.set(true);
-    
+
     this.brandingService.downloadLogosZip(projectId, extension).subscribe({
       next: (zipBlob: Blob) => {
         // Stop loading
         this.isDownloading.set(false);
-        
+
         if (zipBlob && zipBlob.size > 0) {
           // Create download link
           const url = window.URL.createObjectURL(zipBlob);
           const link = document.createElement('a');
           link.href = url;
-          
+
           // Get project name for filename
           const projectName = this.currentProject()?.name || 'project';
           const sanitizedName = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
           link.download = `${sanitizedName}_logos_${extension}.zip`;
-          
+
           // Trigger download
           document.body.appendChild(link);
           link.click();
-          
+
           // Cleanup
           document.body.removeChild(link);
           window.URL.revokeObjectURL(url);
-          
+
           console.log('Logos ZIP download completed');
-          
+
           // Close dialog after successful download
           this.visible = false;
         } else {
@@ -347,9 +339,9 @@ export class ShowBrandingComponent implements OnInit {
       error: (err: any) => {
         // Stop loading
         this.isDownloading.set(false);
-        
+
         console.error('Error downloading logos ZIP:', err);
-        
+
         // Handle specific error cases
         if (err.message === 'LOGOS_NOT_FOUND') {
           alert('No logo variations found for this project.');

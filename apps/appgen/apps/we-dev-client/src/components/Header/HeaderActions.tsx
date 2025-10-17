@@ -1,22 +1,22 @@
-import { useFileStore } from "../WeIde/stores/fileStore";
-import JSZip from "jszip";
-import { useTranslation } from "react-i18next";
-import useChatModeStore from "@/stores/chatModeSlice";
-import { ChatMode } from "@/types/chat";
-import useTerminalStore from "@/stores/terminalSlice";
-import { getWebContainerInstance } from "../WeIde/services/webcontainer";
-import { useState } from "react";
-import { toast } from "react-toastify";
-import { Modal } from "antd";
-import { sendToGitHub } from "@/api/persistence/db";
-import { HelpButton } from "./HelpButton";
+import { useFileStore } from '../WeIde/stores/fileStore';
+import JSZip from 'jszip';
+import { useTranslation } from 'react-i18next';
+import useChatModeStore from '@/stores/chatModeSlice';
+import { ChatMode } from '@/types/chat';
+import useTerminalStore from '@/stores/terminalSlice';
+import { getWebContainerInstance } from '../WeIde/services/webcontainer';
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { Modal } from 'antd';
+import { sendToGitHub } from '@/api/persistence/db';
+import { HelpButton } from './HelpButton';
 
 // Add a helper function to recursively get all files
 const getAllFiles = async (
   webcontainer: any,
   dirPath: string,
   zip: JSZip,
-  baseDir: string = ""
+  baseDir: string = ''
 ) => {
   try {
     const entries = await webcontainer.fs.readdir(dirPath, {
@@ -28,17 +28,12 @@ const getAllFiles = async (
       try {
         if (entry.isDirectory()) {
           // If it's a directory, recursively process it
-          await getAllFiles(
-            webcontainer,
-            fullPath,
-            zip,
-            `${baseDir}${entry.name}/`
-          );
+          await getAllFiles(webcontainer, fullPath, zip, `${baseDir}${entry.name}/`);
         } else {
           // If it's a file, read its content and add it to the zip
           const content = await webcontainer.fs.readFile(fullPath);
           const relativePath = `${baseDir}${entry.name}`;
-          console.log("Adding file:", relativePath);
+          console.log('Adding file:', relativePath);
           zip.file(relativePath, content);
         }
       } catch (error) {
@@ -57,7 +52,7 @@ const getAllFiles = async (
         // Try to read the file content
         const content = await webcontainer.fs.readFile(fullPath);
         const relativePath = `${baseDir}${file}`;
-        console.log("Adding file:", relativePath);
+        console.log('Adding file:', relativePath);
         zip.file(relativePath, content);
       } catch (error) {
         // If reading fails, it might be a directory, try recursively
@@ -78,7 +73,7 @@ export function HeaderActions() {
   const { mode } = useChatModeStore();
   const [showModal, setShowModal] = useState(false);
   const [showDeployChoiceModal, setShowDeployChoiceModal] = useState(false);
-  const [deployUrl, setDeployUrl] = useState("");
+  const [deployUrl, setDeployUrl] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
   const [isSendingToGitHub, setIsSendingToGitHub] = useState(false);
 
@@ -89,17 +84,17 @@ export function HeaderActions() {
         // Pack the dist directory
         zip.file(path, content as string);
       });
-      const blob = await zip.generateAsync({ type: "blob" });
+      const blob = await zip.generateAsync({ type: 'blob' });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = "project.zip";
+      a.download = 'project.zip';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error("Failed to download:", error);
+      console.error('Failed to download:', error);
     }
   };
 
@@ -107,15 +102,15 @@ export function HeaderActions() {
     setShowDeployChoiceModal(true);
   };
 
-  const handleDeployChoice = (choice: "netlify" | "idem") => {
+  const handleDeployChoice = (choice: 'netlify' | 'idem') => {
     setShowDeployChoiceModal(false);
 
-    if (choice === "idem") {
+    if (choice === 'idem') {
       const idemUrl = process.env.REACT_APP_IDEM_MAIN_APP_URL;
       if (idemUrl) {
-        window.open(`${idemUrl}/console/deployments`, "_blank");
+        window.open(`${idemUrl}/console/deployments`, '_blank');
       } else {
-        toast.error("REACT_APP_IDEM_MAIN_APP_URL not configured");
+        toast.error('REACT_APP_IDEM_MAIN_APP_URL not configured');
       }
     } else {
       publishToNetlify();
@@ -130,29 +125,26 @@ export function HeaderActions() {
       const webcontainer = await getWebContainerInstance();
 
       newTerminal(async () => {
-        const res = await getEndTerminal().executeCommand("npm run build");
+        const res = await getEndTerminal().executeCommand('npm run build');
         if (res.exitCode === 127) {
-          await getEndTerminal().executeCommand("npm install");
-          await getEndTerminal().executeCommand("npm run build");
+          await getEndTerminal().executeCommand('npm install');
+          await getEndTerminal().executeCommand('npm run build');
         }
 
         try {
           const zip = new JSZip();
 
           // Use new recursive function to get all files
-          await getAllFiles(webcontainer, "dist", zip);
+          await getAllFiles(webcontainer, 'dist', zip);
 
           // Generate and download zip file
-          const blob = await zip.generateAsync({ type: "blob" });
+          const blob = await zip.generateAsync({ type: 'blob' });
           const formData = new FormData();
-          formData.append(
-            "file",
-            new File([blob], "dist.zip", { type: "application/zip" })
-          );
+          formData.append('file', new File([blob], 'dist.zip', { type: 'application/zip' }));
 
           // Send request
           const response = await fetch(`${API_BASE}/api/deploy`, {
-            method: "POST",
+            method: 'POST',
             body: formData,
           });
           const data = await response.json();
@@ -160,18 +152,18 @@ export function HeaderActions() {
           if (data.success) {
             setDeployUrl(data.url);
             setShowModal(true);
-            toast.success(t("header.deploySuccess"));
+            toast.success(t('header.deploySuccess'));
           }
         } catch (error) {
-          console.error("Failed to read dist directory:", error);
-          toast.error(t("header.error.deploy_failed"));
+          console.error('Failed to read dist directory:', error);
+          toast.error(t('header.error.deploy_failed'));
         } finally {
           setIsDeploying(false);
         }
       });
     } catch (error) {
-      console.error("Failed to deploy:", error);
-      toast.error(t("header.error.deploy_failed"));
+      console.error('Failed to deploy:', error);
+      toast.error(t('header.error.deploy_failed'));
       setIsDeploying(false);
     }
   };
@@ -179,9 +171,9 @@ export function HeaderActions() {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(deployUrl);
-      toast.success("Link copied to clipboard!");
+      toast.success('Link copied to clipboard!');
     } catch (err) {
-      console.error("Failed to copy:", err);
+      console.error('Failed to copy:', err);
     }
   };
 
@@ -191,10 +183,10 @@ export function HeaderActions() {
     try {
       // Get project ID from URL params
       const urlParams = new URLSearchParams(window.location.search);
-      const projectId = urlParams.get("projectId");
+      const projectId = urlParams.get('projectId');
 
       if (!projectId) {
-        toast.error("Project ID not found");
+        toast.error('Project ID not found');
         return;
       }
 
@@ -202,16 +194,16 @@ export function HeaderActions() {
       const githubData = {
         files: files,
         projectName: `project-${projectId}`,
-        description: "Project generated from we-dev-client",
+        description: 'Project generated from we-dev-client',
         timestamp: new Date().toISOString(),
       };
-      console.log("Sending to GitHub:", githubData);
+      console.log('Sending to GitHub:', githubData);
 
       // await sendToGitHub(projectId, githubData);
-      toast.success("Project sent to GitHub successfully!");
+      toast.success('Project sent to GitHub successfully!');
     } catch (error) {
-      console.error("Failed to send to GitHub:", error);
-      toast.error("Failed to send to GitHub. Please try again.");
+      console.error('Failed to send to GitHub:', error);
+      toast.error('Failed to send to GitHub. Please try again.');
     } finally {
       setIsSendingToGitHub(false);
     }
@@ -226,12 +218,7 @@ export function HeaderActions() {
             onClick={handleDownload}
             className="outer-button flex items-center gap-1.5 text-sm"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -239,15 +226,13 @@ export function HeaderActions() {
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            <span>{t("header.download")}</span>
+            <span>{t('header.download')}</span>
           </button>
           <button
             onClick={handleDeployClick}
             disabled={isDeploying}
             className={`flex items-center gap-1.5 text-sm ${
-              isDeploying
-                ? "outer-button opacity-75 cursor-not-allowed"
-                : "inner-button"
+              isDeploying ? 'outer-button opacity-75 cursor-not-allowed' : 'inner-button'
             }`}
           >
             {isDeploying ? (
@@ -268,12 +253,7 @@ export function HeaderActions() {
                 />
               </svg>
             ) : (
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -282,17 +262,13 @@ export function HeaderActions() {
                 />
               </svg>
             )}
-            <span>
-              {isDeploying ? t("header.deploying") : t("header.deploy")}
-            </span>
+            <span>{isDeploying ? t('header.deploying') : t('header.deploy')}</span>
           </button>
           <button
             onClick={handleSendToGitHub}
             disabled={isSendingToGitHub}
             className={`flex items-center gap-1.5 text-sm ${
-              isSendingToGitHub
-                ? "outer-button opacity-75 cursor-not-allowed"
-                : "outer-button"
+              isSendingToGitHub ? 'outer-button opacity-75 cursor-not-allowed' : 'outer-button'
             }`}
           >
             {isSendingToGitHub ? (
@@ -321,7 +297,7 @@ export function HeaderActions() {
                 />
               </svg>
             )}
-            <span>{isSendingToGitHub ? "Sending..." : "Send to GitHub"}</span>
+            <span>{isSendingToGitHub ? 'Sending...' : 'Send to GitHub'}</span>
           </button>
 
           {/* Directory opening option disabled in web mode */}
@@ -334,23 +310,21 @@ export function HeaderActions() {
           footer={null}
           centered
           styles={{
-            content: { backgroundColor: "var(--color-bg-light)" },
-            header: { backgroundColor: "var(--color-bg-light)" },
+            content: { backgroundColor: 'var(--color-bg-light)' },
+            header: { backgroundColor: 'var(--color-bg-light)' },
           }}
         >
           <div className="text-center mb-6">
             <div className="text-5xl mb-4">🚀</div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {t("header.deploySuccess")}
+              {t('header.deploySuccess')}
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
-              {t("header.deployToCloud")}
-            </p>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">{t('header.deployToCloud')}</p>
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-              {t("header.accessLink")}
+              {t('header.accessLink')}
             </p>
             <div className="flex items-center gap-2">
               <input
@@ -363,12 +337,7 @@ export function HeaderActions() {
                 onClick={copyToClipboard}
                 className="px-3 py-2 bg-white dark:bg-gray-500 text-gray-700 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-400 transition-colors flex items-center gap-1"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -376,7 +345,7 @@ export function HeaderActions() {
                     d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
                   />
                 </svg>
-                {t("header.copy")}
+                {t('header.copy')}
               </button>
             </div>
           </div>
@@ -386,19 +355,14 @@ export function HeaderActions() {
               onClick={() => setShowModal(false)}
               className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
             >
-              {t("header.close")}
+              {t('header.close')}
             </button>
             <button
-              onClick={() => window.open(deployUrl, "_blank")}
+              onClick={() => window.open(deployUrl, '_blank')}
               className="px-4 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors flex items-center gap-2"
             >
-              <span>{t("header.visitSite")}</span>
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="white"
-                viewBox="0 0 24 24"
-              >
+              <span>{t('header.visitSite')}</span>
+              <svg className="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -421,20 +385,18 @@ export function HeaderActions() {
           width={400}
           className="deploy-loading-modal"
           styles={{
-            content: { backgroundColor: "var(--color-bg-light)" },
+            content: { backgroundColor: 'var(--color-bg-light)' },
 
             body: {
-              padding: "2rem",
+              padding: '2rem',
             },
             header: {
-              display: "none",
+              display: 'none',
             },
           }}
         >
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Deploying Your Project
-            </h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Deploying Your Project</h3>
             <div className="flex justify-center items-center h-32">
               <div className="relative">
                 <div className="animate-spin rounded-full h-16 w-16 border-2 border-blue-500/30 border-t-blue-500"></div>
@@ -457,12 +419,12 @@ export function HeaderActions() {
           width={600}
           className=" bg-black"
           styles={{
-            content: { backgroundColor: "var(--color-bg-light)" },
+            content: { backgroundColor: 'var(--color-bg-light)' },
             body: {
               padding: 0,
             },
             header: {
-              display: "none",
+              display: 'none',
             },
           }}
         >
@@ -482,18 +444,14 @@ export function HeaderActions() {
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Deploy Your Project
-            </h3>
-            <p className="text-gray-300 text-sm">
-              Choose how you want to deploy your application
-            </p>
+            <h3 className="text-2xl font-bold text-white mb-2">Deploy Your Project</h3>
+            <p className="text-gray-300 text-sm">Choose how you want to deploy your application</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* Idem Option - Custom Deployment */}
             <button
-              onClick={() => handleDeployChoice("idem")}
+              onClick={() => handleDeployChoice('idem')}
               className="group relative overflow-hidden rounded-2xl  bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
             >
               <div className="relative z-10">
@@ -512,8 +470,7 @@ export function HeaderActions() {
                 </div>
 
                 <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-                  Deploy to any cloud provider, your own server, or
-                  infrastructure of choice
+                  Deploy to any cloud provider, your own server, or infrastructure of choice
                 </p>
 
                 <div className="flex flex-wrap gap-1.5">
@@ -538,7 +495,7 @@ export function HeaderActions() {
 
             {/* Netlify Option - Quick Deployment */}
             <button
-              onClick={() => handleDeployChoice("netlify")}
+              onClick={() => handleDeployChoice('netlify')}
               className="group relative overflow-hidden rounded-2xl  bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left transition-all duration-300 hover:border-teal-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
             >
               <div className="relative z-10">

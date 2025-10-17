@@ -2,13 +2,7 @@
  * Models for parsing and managing Terraform tfvars files
  */
 
-export type TfVarType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'list'
-  | 'map'
-  | 'object';
+export type TfVarType = 'string' | 'number' | 'boolean' | 'list' | 'map' | 'object';
 
 export interface TfVarValue {
   type: TfVarType;

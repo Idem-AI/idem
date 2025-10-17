@@ -128,8 +128,8 @@ export interface DevelopmentConfigsModel {
 }
 
 export enum LandingPageConfig {
-  NONE = "NONE",
-  SEPARATE = "SEPARATE",
-  INTEGRATED = "INTEGRATED",
-  ONLY_LANDING = "ONLY_LANDING",
+  NONE = 'NONE',
+  SEPARATE = 'SEPARATE',
+  INTEGRATED = 'INTEGRATED',
+  ONLY_LANDING = 'ONLY_LANDING',
 }

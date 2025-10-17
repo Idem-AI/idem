@@ -42,9 +42,11 @@ export class PdfViewer implements OnInit, OnDestroy {
 
   // Computed responsive properties
   protected readonly isMobile = computed(() => this.viewportWidth() < 768);
-  protected readonly isTablet = computed(() => this.viewportWidth() >= 768 && this.viewportWidth() < 1024);
+  protected readonly isTablet = computed(
+    () => this.viewportWidth() >= 768 && this.viewportWidth() < 1024
+  );
   protected readonly isDesktop = computed(() => this.viewportWidth() >= 1024);
-  
+
   protected readonly pdfHeight = computed(() => {
     const baseHeight = this.viewportHeight() * 0.8; // 80% of viewport height
     if (this.isMobile()) {
@@ -55,7 +57,7 @@ export class PdfViewer implements OnInit, OnDestroy {
       return Math.max(600, Math.min(baseHeight, 800)); // 600px min, 800px max on desktop
     }
   });
-  
+
   protected readonly containerMaxWidth = computed(() => {
     if (this.isMobile()) {
       return '100%';

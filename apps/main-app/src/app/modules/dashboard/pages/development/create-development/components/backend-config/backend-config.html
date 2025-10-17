@@ -12,10 +12,7 @@
   <form [formGroup]="backendForm()" class="space-y-8">
     <!-- Programming Language Selection -->
     <div aria-labelledby="language-section">
-      <h3
-        id="language-section"
-        class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4"
-      >
+      <h3 id="language-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
         Choose Programming Language
       </h3>
       <div
@@ -39,10 +36,7 @@
     <!-- Framework Selection -->
     @if (availableFrameworks().length > 0) {
     <div class="mt-6 md:mt-8" aria-labelledby="framework-section">
-      <h3
-        id="framework-section"
-        class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4"
-      >
+      <h3 id="framework-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
         Choose Framework
       </h3>
       @if (availableFrameworks().length > 0) {
@@ -75,10 +69,7 @@
     <!-- API Type Selection -->
     @if (availableFrameworks().length > 0) {
     <div class="mt-6 md:mt-8" aria-labelledby="api-type-section">
-      <h3
-        id="api-type-section"
-        class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4"
-      >
+      <h3 id="api-type-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
         API Type
       </h3>
       @if (availableApiTypes().length > 0) {
@@ -111,10 +102,7 @@
     <!-- ORM Selection -->
     @if (availableOrms().length > 0) {
     <div class="mt-6 md:mt-8" aria-labelledby="orm-section">
-      <h3
-        id="orm-section"
-        class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4"
-      >
+      <h3 id="orm-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
         ORM/ODM Selection
       </h3>
       @if (availableOrms().length > 0) {
@@ -145,15 +133,8 @@
     }
 
     <!-- Backend Features -->
-    <div
-      formGroupName="features"
-      class="mt-6 md:mt-8"
-      aria-labelledby="features-section"
-    >
-      <h3
-        id="features-section"
-        class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4"
-      >
+    <div formGroupName="features" class="mt-6 md:mt-8" aria-labelledby="features-section">
+      <h3 id="features-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
         Backend Features
       </h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -171,8 +152,12 @@
                 <span class="{{ feature.icon }}"></span>
               </div>
               <div class="min-w-0 flex-1">
-                <div class="text-white font-medium text-sm md:text-base truncate">{{ feature.name }}</div>
-                <p class="text-gray-400 text-xs md:text-sm hidden lg:block truncate">{{ feature.description }}</p>
+                <div class="text-white font-medium text-sm md:text-base truncate">
+                  {{ feature.name }}
+                </div>
+                <p class="text-gray-400 text-xs md:text-sm hidden lg:block truncate">
+                  {{ feature.description }}
+                </p>
               </div>
             </div>
             <div class="flex-shrink-0">
