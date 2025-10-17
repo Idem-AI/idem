@@ -1,0 +1,259 @@
+@if (isSubmitting()) {
+<!-- Full-screen loading state -->
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/5 backdrop-blur-sm h-screen w-full"
+>
+  <div class="text-center space-y-6 max-w-md mx-auto px-6">
+    <app-loader></app-loader>
+    <p class="text-gray-300 text-sm">Finalizing your project...</p>
+  </div>
+</div>
+} @else {
+<section
+  class="flex flex-col items-center min-h-[78vh] justify-center text-gray-100 w-full"
+>
+  <h1
+    class="text-2xl md:text-5xl text-center font-bold text-gray-100 mb-8 pb-2 sm:w-[60%]"
+  >
+    Check all your choices and finalize your project
+  </h1>
+  <div class="card flex justify-center w-full">
+    <div class="max-w-4xl mx-auto p-6 w-full">
+      <!-- Project Information Summary -->
+      <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
+        <h2
+          class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2"
+        >
+          Project Information
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-300 mb-2">
+              Project Details
+            </h3>
+            <div class="space-y-2">
+              <p class="text-gray-300">
+                <span class="text-gray-400">Name:</span> {{ project().name }}
+              </p>
+              <p class="text-gray-300">
+                <span class="text-gray-400">Type:</span> {{ project().type }}
+              </p>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-300 mb-2">
+              Business Informations
+            </h3>
+            <div class="space-y-2">
+              <p class="text-gray-300">
+                <span class="text-gray-400">Team Size:</span> {{
+                project().teamSize }}
+              </p>
+              <p class="text-gray-300">
+                <span class="text-gray-400">Scope:</span> {{ project().scope }}
+              </p>
+              <p class="text-gray-300">
+                <span class="text-gray-400">Budget:</span> {{
+                project().budgetIntervals }}
+              </p>
+              <p class="text-gray-300">
+                <span class="text-gray-400">Target:</span> {{ project().targets
+                }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual Identity Summary -->
+      <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
+        <h2
+          class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2"
+        >
+          Visual Identity
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Logo Preview -->
+          <div class="bg-gray-700/30 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold text-gray-300 mb-4">Logo</h3>
+            @if (getSelectedLogo()) {
+            <div class="flex flex-col items-center justify-center">
+              <div
+                class="w-40 h-40 flex items-center justify-center p-4 mb-2 bg-zinc-100 rounded-lg"
+                [innerHTML]="getSelectedLogo()!.svg | safeHtml"
+              ></div>
+              <p class="text-gray-300">{{ getSelectedLogo()?.name }}</p>
+            </div>
+            }
+          </div>
+
+          <!-- Color Palette Preview -->
+          <div class="bg-gray-700/30 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold text-gray-300 mb-4">
+              Color Palette
+            </h3>
+            @if (getSelectedColor()) {
+            <div class="space-y-3">
+              <p class="text-gray-300">{{ getSelectedColor()?.name }}</p>
+              <div class="flex space-x-2">
+                <div
+                  class="w-10 h-10 rounded-lg"
+                  [style.backgroundColor]="getSelectedColor()?.colors!.primary"
+                ></div>
+                <div
+                  class="w-10 h-10 rounded-lg"
+                  [style.backgroundColor]="getSelectedColor()?.colors!.secondary"
+                ></div>
+                <div
+                  class="w-10 h-10 rounded-lg"
+                  [style.backgroundColor]="getSelectedColor()?.colors!.accent"
+                ></div>
+              </div>
+            </div>
+            }
+          </div>
+
+          <!-- Typography Preview -->
+          <div class="bg-gray-700/30 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold text-gray-300 mb-4">Typography</h3>
+            @if (getSelectedTypography()) {
+            <div class="space-y-3">
+              <p class="text-gray-300">{{ getSelectedTypography()?.name }}</p>
+              <p
+                [style.fontFamily]="getSelectedTypography()?.primaryFont"
+                class="text-lg font-bold text-gray-200"
+              >
+                {{ getSelectedTypography()?.primaryFont }}
+              </p>
+              <p
+                [style.fontFamily]="getSelectedTypography()?.secondaryFont"
+                class="text-md text-gray-300"
+              >
+                {{ getSelectedTypography()?.secondaryFont }}
+              </p>
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy Policy and Terms -->
+      <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
+        <h2
+          class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2"
+        >
+          Legal & Privacy
+        </h2>
+        <div class="space-y-4">
+          <!-- Privacy Policy (Required) -->
+          <div class="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="privacyPolicy"
+              [checked]="privacyPolicyAccepted()"
+              (change)="onPrivacyPolicyChange($event)"
+              class="mt-1 accent-blue-500"
+              required
+            />
+            <label for="privacyPolicy" class="text-sm text-gray-300">
+              <span class="text-red-400">*</span> I agree to the
+              <a
+                routerLink="/privacy-policy"
+                class="text-blue-400 hover:underline"
+                target="_blank"
+                >Privacy Policy</a
+              >
+            </label>
+          </div>
+
+          <!-- Terms of Service (Required) -->
+          <div class="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="termsOfService"
+              [checked]="termsOfServiceAccepted()"
+              (change)="onTermsOfServiceChange($event)"
+              class="mt-1 accent-blue-500"
+              required
+            />
+            <label for="termsOfService" class="text-sm text-gray-300">
+              <span class="text-red-400">*</span> I agree to the
+              <a
+                routerLink="/terms-of-service"
+                class="text-blue-400 hover:underline"
+                target="_blank"
+                >Terms of Service</a
+              >
+            </label>
+          </div>
+
+          <!-- Beta Policy (Required only in beta) -->
+          @if (isBeta()) {
+          <div class="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="betaPolicy"
+              [checked]="betaPolicyAccepted()"
+              (change)="onBetaPolicyChange($event)"
+              class="mt-1 accent-yellow-500"
+              required
+            />
+            <label for="betaPolicy" class="text-sm text-gray-300">
+              <span class="text-red-400">*</span> I agree to the
+              <a
+                routerLink="/beta-policy"
+                class="text-yellow-400 hover:underline"
+                target="_blank"
+                >Beta Program Terms</a
+              >
+              <span
+                class="inline-flex items-center px-2 py-1 ml-2 text-xs font-medium bg-yellow-900/30 text-yellow-300 rounded-full"
+              >
+                BETA
+              </span>
+            </label>
+          </div>
+          }
+
+          <!-- Marketing Consent (Optional) -->
+          <div class="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="marketingConsent"
+              [checked]="marketingConsentAccepted()"
+              (change)="onMarketingConsentChange($event)"
+              class="mt-1 accent-green-500"
+            />
+            <label for="marketingConsent" class="text-sm text-gray-300">
+              I agree to receive marketing communications about products,
+              services, and promotions
+              <span class="text-gray-500">(optional)</span>
+            </label>
+          </div>
+
+          <!-- Required fields notice -->
+          <div
+            class="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded-lg"
+          >
+            <p class="text-sm text-blue-200">
+              <span class="text-red-400">*</span> Required fields must be
+              accepted to continue
+            </p>
+          </div>
+        </div>
+        <div class="flex justify-end mt-8">
+          <button
+            (click)="submitProject()"
+            [disabled]="!canSubmit()"
+            [class]="canSubmit() ? 'inner-button text-white' : 'inner-button text-gray-400 cursor-not-allowed'"
+            class="px-8 py-3 rounded-lg font-semibold transition-all duration-200 min-w-[200px]"
+          >
+            @if (canSubmit()) { Create Project } @else { Accept Required
+            Policies }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+}

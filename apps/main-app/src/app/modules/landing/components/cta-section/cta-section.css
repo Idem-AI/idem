@@ -1,0 +1,16 @@
+/* CTA Section specific styles - minimal custom CSS as requested */
+
+/* Enhanced glow effect for primary CTA button */
+.group:hover .glow-effect {
+  box-shadow: 0 0 30px rgba(20, 71, 230, 0.6), 0 0 60px rgba(209, 30, 192, 0.4);
+}
+
+/* Subtle animation for floating elements */
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-gentle-float {
+  animation: gentle-float 3s ease-in-out infinite;
+}

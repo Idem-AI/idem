@@ -1,0 +1,23 @@
+@if (isInitialLoading()) {
+  <app-splash-screen></app-splash-screen>
+}
+
+@if (currentLayout$ | async; as layout) { @if (layout === 'public') {
+<app-public-layout>
+  <router-outlet (activate)="resetPosition()"></router-outlet>
+</app-public-layout>
+} @else if (layout === 'dashboard') {
+<app-dashboard-layout>
+  <router-outlet (activate)="resetPosition()"></router-outlet>
+</app-dashboard-layout>
+} @else if (layout === 'empty') {
+<app-empty-layout>
+  <router-outlet (activate)="resetPosition()"></router-outlet>
+</app-empty-layout>
+} }
+
+<!-- Conteneur de notifications global -->
+<app-notification-container></app-notification-container>
+
+<!-- Avertissement de quota -->
+<app-quota-warning></app-quota-warning>

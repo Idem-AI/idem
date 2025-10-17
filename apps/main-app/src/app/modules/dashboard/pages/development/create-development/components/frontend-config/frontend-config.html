@@ -1,0 +1,101 @@
+<section class="container rounded-2xl sm:p-4 md:p-6 mb-6 md:mb-8 backdrop-blur-sm">
+  <h2
+    class="text-xl md:text-2xl font-semibold text-white mb-4 md:mb-6 border-b border-gray-700/50 pb-2 md:pb-3"
+  >
+    Frontend Framework
+  </h2>
+
+  <form [formGroup]="frontendForm()" class="space-y-8">
+    <!-- Framework Selection -->
+    <div>
+      <h3 class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">Choose Framework</h3>
+      <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+        @for (framework of frontendFrameworks; track framework.id) {
+        <app-tech-card
+          [tech]="framework"
+          [selected]="frontendForm()!.get('framework')?.value === framework.id"
+          [selectedVersion]="frontendForm()!.get('frameworkVersion')?.value"
+          [showAdvancedOptions]="true"
+          (techSelect)="selectFramework($event, framework.icon)"
+          (versionSelect)="frontendForm()!.get('frameworkVersion')?.setValue($event)"
+        ></app-tech-card>
+        }
+      </div>
+    </div>
+
+    <!-- Styling Preferences -->
+    <div class="mt-6 md:mt-8">
+      <h3 class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">Styling Preferences</h3>
+      <p class="text-xs md:text-sm text-gray-300 mb-3 md:mb-4 hidden sm:block">
+        Select multiple options as needed
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+        @for (style of stylingOptions; track style.id) {
+        <div
+          class="glass-card p-3 md:p-4 rounded-xl transition-all border border-gray-800/30 backdrop-blur-sm hover:border-gray-600/50"
+          [class.border-primary]="isStylingSelected(style.id)"
+          [class.shadow-glow]="isStylingSelected(style.id)"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center min-w-0 flex-1">
+              <img
+                src="{{ style.icon }}"
+                alt="{{ style.name }}"
+                class="w-8 h-8 md:w-10 md:h-10 rounded-lg mr-2 md:mr-3 flex-shrink-0"
+              />
+              <div class="min-w-0 flex-1">
+                <div class="text-white font-medium text-sm md:text-base truncate">{{ style.name }}</div>
+                <p class="text-gray-400 text-xs md:text-sm hidden lg:block truncate">{{ style.description }}</p>
+              </div>
+            </div>
+            <div class="flex-shrink-0">
+              <p-toggleSwitch
+                [ngModel]="isStylingSelected(style.id)"
+                (ngModelChange)="toggleStylingWithSwitch(style.id, {checked: $event})"
+                [ngModelOptions]="{standalone: true}"
+                styleClass="custom-toggle"
+              ></p-toggleSwitch>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Frontend Features -->
+    <div formGroupName="features" class="mt-6 md:mt-8">
+      <h3 class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">Frontend Features</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+        @for (feature of frontendFeatures; track feature.id) {
+        <div
+          class="glass-card p-3 md:p-4 rounded-xl transition-all border border-gray-800/30 backdrop-blur-sm hover:border-gray-600/50"
+          [class.border-primary]="getFeatureValue(feature.formControlName)"
+          [class.shadow-glow]="getFeatureValue(feature.formControlName)"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center min-w-0 flex-1">
+              <div
+                class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-sm md:text-lg mr-2 md:mr-3 bg-gray-800/50 flex-shrink-0"
+              >
+                <span class="{{ feature.icon }}"></span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-white font-medium text-sm md:text-base truncate">{{ feature.name }}</div>
+                <p class="text-gray-400 text-xs md:text-sm hidden lg:block truncate">{{ feature.description }}</p>
+              </div>
+            </div>
+            <div class="flex-shrink-0">
+              <p-toggleSwitch
+                [ngModel]="getFeatureValue(feature.formControlName)"
+                (ngModelChange)="toggleFeature(feature.formControlName)"
+                [ngModelOptions]="{standalone: true}"
+                styleClass="custom-toggle"
+              ></p-toggleSwitch>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+  </form>
+</section>

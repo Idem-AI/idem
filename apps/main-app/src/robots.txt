@@ -1,0 +1,28 @@
+# Robots.txt for Idem - AI-powered open source project builder
+# https://idem-ai.com
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /assets/private/
+Disallow: /console/
+Disallow: /auth/
+Disallow: /*.json$
+Disallow: /*?*
+
+# Allow important assets for SEO
+Allow: /assets/seo/
+Allow: /assets/icons/
+Allow: /assets/images/
+Allow: /sitemap.xml
+Allow: /robots.txt
+
+# Crawl delay to be respectful
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://idem-ai.com/sitemap.xml
+
+# Additional sitemaps (if needed in the future)
+# Sitemap: https://idem-ai.com/sitemap-pages.xml
+# Sitemap: https://idem-ai.com/sitemap-blog.xml

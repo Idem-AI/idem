@@ -1,0 +1,28 @@
+<!-- Layout container -->
+<div class="min-h-screen">
+  <!-- Sidebar -->
+  <app-sidebar-dashboard (sidebarCollapsedChange)="onSidebarCollapsedChange($event)" />
+  
+  <!-- Main content area -->
+  <div class="transition-all duration-300 pt-[80px] min-h-screen bg-opacity-95 relative ml-0"
+       [class.md:ml-64]="!isSidebarCollapsed()"
+       [class.md:ml-20]="isSidebarCollapsed()">
+    <div 
+      class="h-full"
+      [ngClass]="{
+        'p-4': true,
+        'md:p-8': true
+      }"
+    >
+      <div 
+        class="glass-card relative rounded-xl shadow-xl shadow-primary/5 border border-gray-800/30 h-full"
+        [ngClass]="{
+          'p-4': true,
+          'md:p-6': true
+        }"
+      >
+        <router-outlet></router-outlet>
+      </div>
+    </div>
+  </div>
+</div>

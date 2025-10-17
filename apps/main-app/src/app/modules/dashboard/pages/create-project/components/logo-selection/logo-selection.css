@@ -1,0 +1,23 @@
+/* All styles migrated to Tailwind CSS classes in the HTML template */
+.animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes bounce-in {
+    0% {
+      transform: translateX(-50%) scale(0.8);
+      opacity: 0;
+    }
+    50% {
+      transform: translateX(-50%) scale(1.05);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(-50%) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-bounce-in {
+    animation: bounce-in 0.5s ease-out;
+  }

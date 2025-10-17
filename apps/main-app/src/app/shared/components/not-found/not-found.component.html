@@ -1,0 +1,257 @@
+<div
+  class="flex flex-col items-center justify-center min-h-screen text-white p-6 relative overflow-hidden bg-gradient-glow"
+>
+  <!-- Animated glitch elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+    <div
+      [class.opacity-0]="!animationActive()"
+      class="absolute random-position h-1 glitch-element"
+      [style.width.%]="20 + i * 10"
+      [style.opacity]="0.1 + i * 0.1"
+      [style.animation-delay.ms]="i * 200"
+      [style.top.%]="(i * 15) % 100"
+    ></div>
+    }
+  </div>
+
+  <!-- 3D glitch text with theme colors -->
+  <div class="relative mb-8">
+    <h1
+      [class.animate-glitch]="animationActive()"
+      [class.text-glow-primary]="!hoverGlitch()"
+      [class.text-glow-secondary]="hoverGlitch()"
+      class="text-9xl font-bold tracking-tight relative glitch-text"
+    >
+      <span class="relative z-10 cursor-pointer" (mouseenter)="toggleGlitch()"
+        >404</span
+      >
+    </h1>
+  </div>
+
+  <!-- Message with glass card effect -->
+  <div
+    class="glass-card p-6 mb-8 max-w-lg text-center"
+    [class.opacity-0]="!animationActive()"
+    [class.translate-y-0]="animationActive()"
+    [class.translate-y-8]="!animationActive()"
+    style="transition: all 0.8s cubic-bezier(0.17, 0.67, 0.83, 0.67)"
+  >
+    <h2 class="text-2xl font-medium mb-2">
+      The page you're looking for doesn't exist
+    </h2>
+    <p class="text-gray-300">
+      The digital coordinates you requested could not be found in our dimension
+    </p>
+  </div>
+
+  <!-- Interactive elements with theme-styled buttons -->
+  <div class="flex flex-col sm:flex-row gap-4 mt-4">
+    <a
+      routerLink="/home"
+      class="inner-button glow-primary transition-transform duration-500"
+      [class.scale-100]="animationActive()"
+      [class.scale-95]="!animationActive()"
+    >
+      Take me home
+    </a>
+    <a
+      routerLink="/console"
+      class="outer-button transition-transform duration-500 delay-100"
+      [class.scale-100]="animationActive()"
+      [class.scale-95]="!animationActive()"
+    >
+      Go to dashboard
+    </a>
+  </div>
+
+  <!-- Animated floating elements with theme colors -->
+  <div class="particles-container absolute inset-0 pointer-events-none">
+    <!-- Primary color particles -->
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+    <div
+      [class.opacity-0]="!floatingActive()"
+      class="absolute floating-element transition-all duration-1000 rounded-full"
+      [style.left.%]="(i * 15 + 5) % 100"
+      [style.top.%]="(i * 12) % 100"
+      [style.width.px]="4 + (i % 5)"
+      [style.height.px]="4 + (i % 5)"
+      [style.background-color]="'var(--color-primary)'"
+      [style.box-shadow]="'0 0 10px var(--color-primary-glow)'"
+      [style.animation-delay.ms]="i * 400"
+    ></div>
+    }
+
+    <!-- Secondary color particles -->
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+    <div
+      [class.opacity-0]="!floatingActive()"
+      class="absolute floating-element transition-all duration-1000 rounded-full"
+      [style.left.%]="(i * 18) % 100"
+      [style.top.%]="(i * 16 + 10) % 100"
+      [style.width.px]="3 + (i % 4)"
+      [style.height.px]="3 + (i % 4)"
+      [style.background-color]="'var(--color-secondary)'"
+      [style.box-shadow]="'0 0 8px var(--color-secondary-glow)'"
+      [style.animation-delay.ms]="i * 300 + 200"
+    ></div>
+    }
+
+    <!-- Accent color particles -->
+    @for (i of [1, 2, 3]; track i) {
+    <div
+      [class.opacity-0]="!floatingActive()"
+      class="absolute floating-element transition-all duration-1000 rounded-full"
+      [style.left.%]="(i * 25 + 15) % 100"
+      [style.top.%]="(i * 20 + 20) % 100"
+      [style.width.px]="2 + (i % 3)"
+      [style.height.px]="2 + (i % 3)"
+      [style.background-color]="'var(--color-accent)'"
+      [style.box-shadow]="'0 0 15px var(--color-accent-glow)'"
+      [style.animation-delay.ms]="i * 500 + 100"
+    ></div>
+    }
+  </div>
+</div>
+
+<!-- Styles specific to this component -->
+<style>
+  /* Refined glitch text effect using theme colors */
+  .glitch-text {
+    text-shadow: 0 0 2px #fff, 0 0 15px var(--color-primary-glow),
+      0 0 30px var(--color-primary-glow);
+    transition: text-shadow 0.3s ease;
+  }
+
+  .glitch-text:hover {
+    text-shadow: 0 0 2px #fff, 0 0 15px var(--color-secondary-glow),
+      0 0 30px var(--color-secondary-glow);
+  }
+
+  .animate-glitch {
+    animation: glitch 1.5s infinite;
+    position: relative;
+  }
+
+  .animate-glitch::before,
+  .animate-glitch::after {
+    content: "404";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .animate-glitch::before {
+    color: var(--color-primary);
+    z-index: -1;
+    animation: glitch-animation 0.5s infinite;
+  }
+
+  .animate-glitch::after {
+    color: var(--color-secondary);
+    z-index: -2;
+    animation: glitch-animation-2 0.5s infinite;
+  }
+
+  @keyframes glitch-animation {
+    0% {
+      transform: translate(0);
+    }
+    20% {
+      transform: translate(-3px, 3px);
+    }
+    40% {
+      transform: translate(-3px, -3px);
+    }
+    60% {
+      transform: translate(3px, 3px);
+    }
+    80% {
+      transform: translate(3px, -3px);
+    }
+    100% {
+      transform: translate(0);
+    }
+  }
+
+  @keyframes glitch-animation-2 {
+    0% {
+      transform: translate(0);
+    }
+    20% {
+      transform: translate(3px, -3px);
+    }
+    40% {
+      transform: translate(3px, 3px);
+    }
+    60% {
+      transform: translate(-3px, -3px);
+    }
+    80% {
+      transform: translate(-3px, 3px);
+    }
+    100% {
+      transform: translate(0);
+    }
+  }
+
+  .glitch-element {
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-primary),
+      transparent
+    );
+    animation: slide-x 5s infinite linear;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes slide-x {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(200%);
+    }
+  }
+
+  .random-position {
+    transform: rotate(calc(var(--rotation, 0) * 1deg));
+  }
+
+  .floating-element {
+    animation: float 15s infinite ease-in-out;
+    filter: blur(1px);
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(30px, -30px) scale(1.2);
+    }
+    50% {
+      transform: translate(-20px, 20px) scale(0.8);
+    }
+    75% {
+      transform: translate(20px, 20px) scale(1.1);
+    }
+  }
+</style>

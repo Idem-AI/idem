@@ -1,0 +1,66 @@
+# 屏蔽所有 node_modules 目录
+**/**/node_modules/
+**/workspace/
+**/release/
+**/workspace
+**/.idea
+**/.vscode
+**/.DS_Store
+**/.source
+.turbo/
+# 其他常见需要忽略的文件
+.DS_Store
+dist
+**/certs
+
+*.log
+**/**/workspace/
+**/**/logs/
+**/**/packages/
+.pnpm-lock.yaml
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+.idea
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+apps/we-dev-next/public/wedev_public/
+apps/we-dev-client/node-jiti

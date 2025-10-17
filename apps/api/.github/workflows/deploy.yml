@@ -1,0 +1,101 @@
+name: CI/CD IDEM BACKEND
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build:
+    name: 🔧 Build Docker image on remote server
+    runs-on: ubuntu-latest
+    outputs:
+      commit_id: ${{ steps.vars.outputs.commit_id }}
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get short commit ID
+        id: vars
+        run: echo "commit_id=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: SSH Build Image
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/Idem-app/idem-api
+
+            BRANCH="${{ github.ref_name }}"
+            COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-api:$COMMIT_ID"
+
+            echo "📍 BRANCH: $BRANCH"
+            echo "📍 COMMIT_ID: $COMMIT_ID"
+            echo "📍 IMAGE_NAME: $IMAGE_NAME"
+
+            git fetch origin
+            git checkout $BRANCH || git checkout -b $BRANCH origin/$BRANCH
+            git reset --hard origin/$BRANCH
+
+            echo "🔨 Build Docker image $IMAGE_NAME"
+            docker build -t $IMAGE_NAME .
+
+  push:
+    name: 📤 Push Docker image to GitHub Container Registry
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    steps:
+      - name: SSH Push Image
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/Idem-app/idem-api
+
+            COMMIT_ID="${{ needs.build.outputs.commit_id }}"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-api:$COMMIT_ID"
+
+            echo "📤 Push Docker image $IMAGE_NAME"
+            docker push $IMAGE_NAME
+
+  deploy:
+    name: 🚀 Deploy with docker-compose
+    runs-on: ubuntu-latest
+    needs: [build, push]
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    steps:
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/Idem-app
+
+            BRANCH="${{ github.ref_name }}"
+            COMMIT_ID="${{ needs.build.outputs.commit_id }}"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-api:$COMMIT_ID"
+
+            if [ "$BRANCH" = "main" ]; then
+              COMPOSE_FILE="docker-compose.prod.yml"
+            else
+              COMPOSE_FILE="docker-compose.staging.yml"
+            fi
+
+            echo "🔁 Mise à jour de l'image dans $COMPOSE_FILE"
+            sed -i "s|image: ghcr.io/.*/idem-api:.*|image: $IMAGE_NAME|" "$COMPOSE_FILE"
+
+            echo "♻️ Restarting docker-compose using $COMPOSE_FILE with $IMAGE_NAME image"
+            docker-compose -f "$COMPOSE_FILE" up -d idem-api
