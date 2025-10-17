@@ -1,0 +1,123 @@
+/* Essential splash screen styles */
+.splash-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-bg-dark);
+  z-index: 9999;
+  transition: opacity 0.8s ease-out;
+}
+
+.splash-container.fade-out { opacity: 0; }
+
+.logo-letter {
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--color-light-text);
+  opacity: 0;
+  animation: letterFadeIn 0.6s ease-out forwards;
+}
+
+.logo-letter.i {
+  animation-delay: 0.1s;
+  color: var(--color-primary);
+}
+
+.logo-letter.d { animation-delay: 0.2s; }
+.logo-letter.e { animation-delay: 0.3s; }
+.logo-letter.m { animation-delay: 0.4s; }
+
+.logo-tagline {
+  font-size: 0.875rem;
+  color: var(--color-light-text);
+  opacity: 0;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  animation: fadeInUp 0.8s ease-out 0.6s forwards;
+}
+
+/* Progress elements */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--glass-border);
+  transition: all 0.4s ease;
+}
+
+.dot.active {
+  background-color: var(--color-primary);
+  transform: scale(1.2);
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  color: var(--color-light-text);
+  opacity: 0.6;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Particle animations */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: float 8s ease-in-out infinite;
+}
+
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: expandRing 3s ease-in-out infinite;
+}
+
+/* Essential animations */
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  100% { transform: scale(1.05); opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  25% { transform: translateY(-10px) translateX(5px); }
+  50% { transform: translateY(0px) translateX(10px); }
+  75% { transform: translateY(10px) translateX(5px); }
+}
+
+@keyframes expandRing {
+  0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+}
+
+@keyframes letterFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 0.7; transform: translateY(0); }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .logo-letter, .logo-tagline, .progress-text { animation: none; opacity: 1; }
+  .logo-tagline { opacity: 0.7; }
+  .progress-text { opacity: 0.6; }
+}

@@ -1,0 +1,11 @@
+version: '3.7'
+services:
+  mermaid:
+    build:
+      context: .
+      target: mermaid-dev
+    volumes:
+      - ./src:/app/src
+    ports:
+      - 3000:3000
+      - 24678:24678

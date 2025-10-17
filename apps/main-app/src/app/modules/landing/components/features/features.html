@@ -1,0 +1,144 @@
+<!-- Features Section -->
+<section class="relative py-16 sm:py-20 lg:py-24 overflow-hidden">
+  <!-- Animated Background Particles -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div
+      class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-2xl animate-pulse"
+    ></div>
+    <div
+      class="absolute top-3/4 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-2xl animate-pulse delay-1000"
+    ></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Section Header -->
+    <div class="text-center mb-16 sm:mb-20">
+      <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        Powerful AI
+        <span
+          class="text-gradient bg-gradient-to-r from-primary to-primary-glow text-white"
+        >
+          Features
+        </span>
+      </h2>
+
+      <p
+        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+      >
+        Transform your ideas into complete projects with our AI-powered open source tools designed for modern development workflows
+      </p>
+    </div>
+
+    <!-- Category Navigation -->
+    <div class="mb-16">
+      <div class="flex flex-wrap justify-center gap-3 sm:gap-4">
+        @for (category of categories(); track category.id) {
+        <button
+          (click)="selectCategory(category.id)"
+          class="group relative px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02]"
+          [class]="selectedCategory() === category.id 
+            ? 'bg-white text-gray-900 shadow-lg' 
+            : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'"
+        >
+          <div class="flex items-center gap-3">
+            <i [class]="'pi ' + category.icon + ' text-lg'"></i>
+            <span>{{ category.name }}</span>
+          </div>
+        </button>
+        }
+      </div>
+    </div>
+
+    <!-- Features Grid -->
+    <div
+      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 mb-16"
+    >
+      @for (feature of getFilteredFeatures(); track feature.id) {
+      <div
+        (mouseenter)="setHoveredFeature(feature.id)"
+        (mouseleave)="setHoveredFeature(null)"
+        class="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all duration-300 hover:border-white/20"
+      >
+        <!-- Popular Badge -->
+        @if (feature.isPopular) {
+        <div
+          class="absolute -top-3 -right-3 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center"
+        >
+          <i class="pi pi-star-fill text-white text-xs"></i>
+        </div>
+        }
+
+        <!-- Hover Gradient Overlay -->
+        <div
+          class="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          [style.background]="'linear-gradient(135deg, ' + feature.color + '20, ' + feature.color + '10)'"
+        ></div>
+
+        <div class="relative z-10">
+          <!-- Feature Icon -->
+          <div class="mb-6">
+            <div
+              class="w-16 h-16 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+              [style.background]="'linear-gradient(135deg, ' + feature.color + ', ' + feature.color + 'CC)'"
+            >
+              <i [class]="'pi ' + feature.icon + ' text-2xl text-white'"></i>
+            </div>
+          </div>
+
+          <!-- Feature Content -->
+          <div>
+            <h3
+              class="text-xl font-bold text-white mb-3 group-hover:text-primary transition-colors duration-300"
+            >
+              {{ feature.title }}
+            </h3>
+
+            <p class="text-gray-400 text-sm leading-relaxed mb-4">
+              {{ feature.description }}
+            </p>
+
+            <!-- Key Benefits -->
+            <div class="space-y-2">
+              @for (benefit of feature.benefits.slice(0, 3); track benefit) {
+              <div class="flex items-center gap-2 text-sm text-gray-300">
+                <div
+                  class="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"
+                ></div>
+                <span>{{ benefit }}</span>
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="text-center mb-16">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div>
+          <div class="text-3xl font-bold text-white mb-2">500+</div>
+          <div class="text-gray-400 text-sm">Projects Created</div>
+        </div>
+        <div>
+          <div class="text-3xl font-bold text-white mb-2">50+</div>
+          <div class="text-gray-400 text-sm">Enterprise Clients</div>
+        </div>
+        <div>
+          <div class="text-3xl font-bold text-white mb-2">99%</div>
+          <div class="text-gray-400 text-sm">Success Rate</div>
+        </div>
+        <div>
+          <div class="text-3xl font-bold text-white mb-2">24/7</div>
+          <div class="text-gray-400 text-sm">AI Support</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="text-center">
+      <app-cta></app-cta>
+    </div>
+  </div>
+</section>

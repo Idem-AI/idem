@@ -1,0 +1,103 @@
+/* Business Plan Generation Component Styles */
+
+/* Animation for pulse effect */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Custom progress bar */
+::ng-deep .custom-progress-bar .p-progressbar {
+  height: 12px;
+  background: rgba(75, 85, 99, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+::ng-deep .custom-progress-bar .p-progressbar-value {
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+/* Loading animation for steps */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Step content styling */
+.prose {
+  color: #e5e7eb;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: #f9fafb;
+}
+
+.prose strong {
+  color: #f9fafb;
+}
+
+.prose ul, .prose ol {
+  color: #d1d5db;
+}
+
+/* Glass card effect */
+.glass-card {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+/* Progress header styling */
+.progress-header {
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+/* Step cards hover effect */
+.step-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+/* Current step animation */
+.current-step-indicator {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Completed step checkmark animation */
+.completed-checkmark {
+  animation: scale-in 0.3s ease-out;
+}
+
+@keyframes scale-in {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Section spacing */
+.completed-steps-section,
+.current-step-section {
+  margin-bottom: 2rem;
+}
+
+/* Error state styling */
+.error-icon {
+  color: #ef4444;
+}
+
+/* Success state styling */
+.success-icon {
+  color: #10b981;
+}

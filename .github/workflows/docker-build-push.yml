@@ -1,0 +1,114 @@
+name: Docker Build & Push (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        required: true
+        type: string
+        description: 'Project name (idem-ai, idem-api, idem-ai-chart, idem-appgen)'
+      project-path:
+        required: true
+        type: string
+        description: 'Path to the project directory'
+      dockerfile-path:
+        required: false
+        type: string
+        default: 'Dockerfile'
+        description: 'Path to Dockerfile'
+      image-name:
+        required: true
+        type: string
+        description: 'Docker image name (e.g., ghcr.io/idem-ai/idem-ai)'
+      build-target:
+        required: false
+        type: string
+        description: 'Docker build target (optional)'
+      push-image:
+        required: false
+        type: boolean
+        default: true
+        description: 'Whether to push the image'
+      environment:
+        required: false
+        type: string
+        default: 'production'
+        description: 'Environment (production, staging)'
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+      SERVER_HOST:
+        required: false
+      SERVER_USER:
+        required: false
+      SSH_PRIVATE_KEY:
+        required: false
+    outputs:
+      image-tag:
+        description: 'Docker image tag'
+        value: ${{ jobs.build-push.outputs.image-tag }}
+      commit-id:
+        description: 'Short commit ID'
+        value: ${{ jobs.build-push.outputs.commit-id }}
+
+jobs:
+  build-push:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      commit-id: ${{ steps.vars.outputs.commit_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get short commit ID
+        id: vars
+        run: |
+          COMMIT_ID=$(git rev-parse --short HEAD)
+          echo "commit_id=$COMMIT_ID" >> $GITHUB_OUTPUT
+          echo "📍 Commit ID: $COMMIT_ID"
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to GitHub Container Registry
+        if: ${{ inputs.push-image }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.image-name }}
+          tags: |
+            type=raw,value=${{ steps.vars.outputs.commit_id }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+            type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/dev' }}
+            type=sha,prefix={{branch}}-
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.project-path }}
+          file: ${{ inputs.project-path }}/${{ inputs.dockerfile-path }}
+          target: ${{ inputs.build-target }}
+          push: ${{ inputs.push-image }}
+          pull: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+      
+      - name: Image digest
+        run: echo "📦 Image digest: ${{ steps.meta.outputs.tags }}"

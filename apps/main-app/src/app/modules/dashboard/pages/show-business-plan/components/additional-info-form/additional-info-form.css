@@ -1,0 +1,196 @@
+/* Additional Info Form Styles */
+
+.additional-info-form {
+  min-height: 100vh;
+}
+
+/* Form Labels */
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-light-text);
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
+}
+
+/* Form Inputs */
+.form-input {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 0.5rem;
+  color: var(--color-light-text) !important;
+  transition: all 200ms;
+}
+
+.form-input:focus {
+  background: var(--glass-bg-darker) !important;
+  box-shadow: 0 0 0 2px rgba(20, 71, 230, 0.3) !important;
+}
+
+.form-input.error {
+  border-color: var(--color-danger) !important;
+  box-shadow: 0 0 0 2px rgba(211, 64, 83, 0.3) !important;
+}
+
+/* Form Fields */
+.form-field {
+  margin-bottom: 1rem;
+}
+
+/* Error Messages */
+.error-message {
+  color: var(--color-danger);
+  font-size: 0.75rem;
+}
+
+/* Team Member Cards */
+.team-member-card {
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s ease;
+}
+
+.team-member-card:hover {
+  border-color: rgba(20, 71, 230, 0.3);
+  box-shadow: 0 0 20px rgba(20, 71, 230, 0.1);
+}
+
+/* PrimeNG Component Overrides */
+
+/* Button Overrides */
+::ng-deep .p-button {
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 200ms;
+}
+
+::ng-deep .p-button:not(.p-button-outlined) {
+  border: none !important;
+  color: white !important;
+}
+
+::ng-deep .p-button:not(.p-button-outlined):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(20, 71, 230, 0.4) !important;
+}
+
+::ng-deep .p-button.p-button-outlined {
+  background: var(--glass-bg) !important;
+  color: var(--color-light-text) !important;
+  border: 1px solid var(--glass-border) !important;
+}
+
+::ng-deep .p-button.p-button-outlined:hover {
+  background: var(--glass-bg-darker) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+/* Input Text Overrides */
+::ng-deep .p-inputtext {
+  background: var(--glass-bg) !important;
+  color: var(--color-light-text) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+::ng-deep .p-inputtext:focus {
+  background: var(--glass-bg-darker) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(20, 71, 230, 0.3) !important;
+}
+
+::ng-deep .p-inputtext::placeholder {
+  color: #9CA3AF !important;
+}
+
+/* Textarea Overrides */
+::ng-deep .p-inputtextarea {
+  background: var(--glass-bg) !important;
+  color: var(--color-light-text) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+::ng-deep .p-inputtextarea:focus {
+  background: var(--glass-bg-darker) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(20, 71, 230, 0.3) !important;
+}
+
+/* File Upload Overrides */
+::ng-deep .p-fileupload .p-button {
+  background: var(--glass-bg) !important;
+  color: var(--color-accent) !important;
+  border: 1px solid var(--color-accent) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.875rem !important;
+}
+
+::ng-deep .p-fileupload .p-button:hover {
+  background: var(--color-accent) !important;
+  color: white !important;
+}
+
+::ng-deep .p-fileupload .p-button .p-button-icon {
+  font-size: 0.875rem !important;
+}
+
+/* Message Overrides */
+::ng-deep .p-message {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 0.5rem !important;
+  color: var(--color-light-text) !important;
+}
+
+::ng-deep .p-message.p-message-error {
+  border-color: var(--color-danger) !important;
+}
+
+::ng-deep .p-message .p-message-icon {
+  color: var(--color-danger) !important;
+}
+
+/* Card Overrides */
+::ng-deep .p-card {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 1rem !important;
+  color: var(--color-light-text) !important;
+}
+
+::ng-deep .p-card .p-card-body {
+  padding: 2rem !important;
+}
+
+/* Skeleton Overrides */
+::ng-deep .p-skeleton {
+  background: var(--glass-bg) !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Custom Upload Area */
+.member-upload {
+  flex-shrink: 0;
+}
+
+/* Success State */
+.glow-primary:not(:disabled) {
+  box-shadow: 0 0 20px var(--color-primary-glow) !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .additional-info-form {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  ::ng-deep .p-card .p-card-body {
+    padding: 1.5rem !important;
+  }
+}

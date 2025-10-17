@@ -1,0 +1,181 @@
+/* Pricing card with enhanced glass effects */
+.pricing-section {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.pricing-card {
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+  height: 100%;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pricing-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 255, 255, 0.12),
+    transparent 70%
+  );
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.pricing-card:hover::before {
+  opacity: 1;
+}
+
+/* Content should be positioned relative to appear above the ::before overlay */
+.pricing-card > div {
+  position: relative;
+  z-index: 1;
+}
+
+.pricing-popular {
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-popular::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  background-size: 200% 100%;
+  animation: shine-gradient 3s linear infinite;
+}
+
+@keyframes shine-gradient {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Spotlight effect */
+.pricing-spotlight {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle at calc(var(--x, 50) * 1px) calc(var(--y, 50) * 1px),
+    var(--color-primary-glow) 0%,
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pricing-card:hover .pricing-spotlight {
+  opacity: 0.15;
+}
+
+/* Price animations */
+.price-value {
+  position: relative;
+  display: inline-block;
+  transition: transform 0.3s, text-shadow 0.3s;
+}
+
+.pricing-card:hover .price-value {
+  transform: scale(1.08);
+  text-shadow: 0 0 15px var(--color-primary-glow);
+}
+
+/* Feature list animations */
+.feature-item {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s, transform 0.5s;
+}
+
+.animate-in .feature-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger delays for features */
+.feature-item:nth-child(1) {
+  transition-delay: 0.1s;
+}
+.feature-item:nth-child(2) {
+  transition-delay: 0.2s;
+}
+.feature-item:nth-child(3) {
+  transition-delay: 0.3s;
+}
+.feature-item:nth-child(4) {
+  transition-delay: 0.4s;
+}
+
+/* Button effects */
+.pricing-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pricing-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.7s;
+  z-index: -1;
+}
+
+.pricing-button:hover::before {
+  left: 100%;
+}
+
+.premium-button {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-accent)
+  );
+  background-size: 200% 100%;
+  animation: gradient-shift 3s ease infinite;
+  border: none;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

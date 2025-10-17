@@ -1,0 +1,270 @@
+/* PDF Viewer Component Styles - Responsive Design for ngx-extended-pdf-viewer */
+
+/* Base PDF Container styling */
+.pdf-container {
+  background-color: #ffffff;
+  padding: 10px;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Mobile-specific PDF container */
+.mobile-pdf {
+  padding: 5px;
+}
+
+/* Tablet-specific PDF container */
+.tablet-pdf {
+  padding: 8px;
+}
+
+/* Desktop-specific PDF container */
+.desktop-pdf {
+  padding: 12px;
+}
+
+/* Responsive styling for ngx-extended-pdf-viewer */
+.responsive-pdf-viewer ::ng-deep ngx-extended-pdf-viewer {
+  background-color: #ffffff !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 767px) {
+  .responsive-pdf-viewer ::ng-deep ngx-extended-pdf-viewer {
+    font-size: 12px !important;
+  }
+  
+  .responsive-pdf-viewer ::ng-deep .page {
+    margin-bottom: 8px !important;
+  }
+  
+  .responsive-pdf-viewer ::ng-deep .viewerContainer {
+    padding: 5px !important;
+  }
+}
+
+/* Tablet responsive adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-pdf-viewer ::ng-deep ngx-extended-pdf-viewer {
+    font-size: 14px !important;
+  }
+  
+  .responsive-pdf-viewer ::ng-deep .page {
+    margin-bottom: 12px !important;
+  }
+  
+  .responsive-pdf-viewer ::ng-deep .viewerContainer {
+    padding: 8px !important;
+  }
+}
+
+/* Desktop responsive adjustments */
+@media (min-width: 1024px) {
+  .responsive-pdf-viewer ::ng-deep ngx-extended-pdf-viewer {
+    font-size: 16px !important;
+  }
+  
+  .responsive-pdf-viewer ::ng-deep .page {
+    margin-bottom: 15px !important;
+  }
+  
+  .responsive-pdf-viewer ::ng-deep .viewerContainer {
+    padding: 10px !important;
+  }
+}
+
+/* Hide the toolbar completely */
+.responsive-pdf-viewer ::ng-deep .toolbar {
+  display: none !important;
+}
+
+/* Hide secondary toolbar */
+.responsive-pdf-viewer ::ng-deep .secondaryToolbar {
+  display: none !important;
+}
+
+/* Clean styling for the viewer container */
+.responsive-pdf-viewer ::ng-deep .viewerContainer {
+  background-color: #ffffff !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+/* Responsive viewer container adjustments */
+@media (max-width: 767px) {
+  .responsive-pdf-viewer ::ng-deep .viewerContainer {
+    overflow-x: hidden !important;
+  }
+}
+
+/* Style the PDF pages */
+.responsive-pdf-viewer ::ng-deep .page {
+  margin-bottom: 15px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 4px !important;
+  overflow: visible !important;
+  background-color: #ffffff !important;
+  max-width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Mobile page styling */
+@media (max-width: 767px) {
+  .responsive-pdf-viewer ::ng-deep .page {
+    margin-bottom: 8px !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 2px !important;
+  }
+}
+
+/* Tablet page styling */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-pdf-viewer ::ng-deep .page {
+    margin-bottom: 12px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 3px !important;
+  }
+}
+
+/* Responsive PDF page canvas */
+.responsive-pdf-viewer ::ng-deep .page canvas {
+  border: none !important;
+  border-radius: 4px !important;
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+/* Mobile canvas adjustments */
+@media (max-width: 767px) {
+  .responsive-pdf-viewer ::ng-deep .page canvas {
+    border-radius: 2px !important;
+  }
+}
+
+/* Tablet canvas adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-pdf-viewer ::ng-deep .page canvas {
+    border-radius: 3px !important;
+  }
+}
+
+/* Responsive text layer */
+.responsive-pdf-viewer ::ng-deep .textLayer {
+  border-radius: 4px !important;
+  max-width: 100% !important;
+}
+
+/* Mobile text layer */
+@media (max-width: 767px) {
+  .responsive-pdf-viewer ::ng-deep .textLayer {
+    border-radius: 2px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Tablet text layer */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-pdf-viewer ::ng-deep .textLayer {
+    border-radius: 3px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Ensure proper spacing for the last page */
+.responsive-pdf-viewer ::ng-deep .page:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Responsive zoom controls (if any remain visible) */
+.responsive-pdf-viewer ::ng-deep .zoomIn,
+.responsive-pdf-viewer ::ng-deep .zoomOut {
+  display: none !important;
+}
+
+/* Hide any remaining UI elements that might interfere */
+.responsive-pdf-viewer ::ng-deep .findbar,
+.responsive-pdf-viewer ::ng-deep .doorHanger,
+.responsive-pdf-viewer ::ng-deep .loadingBar {
+  display: none !important;
+}
+
+/* Responsive scrollbar styling */
+.responsive-pdf-viewer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.responsive-pdf-viewer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.responsive-pdf-viewer::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.responsive-pdf-viewer::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Mobile scrollbar - thinner */
+@media (max-width: 767px) {
+  .responsive-pdf-viewer::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .responsive-pdf-viewer::-webkit-scrollbar-track {
+    border-radius: 2px;
+  }
+  
+  .responsive-pdf-viewer::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+  }
+}
+
+/* Tablet scrollbar - medium */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-pdf-viewer::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .responsive-pdf-viewer::-webkit-scrollbar-track {
+    border-radius: 3px;
+  }
+  
+  .responsive-pdf-viewer::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+  }
+}
+
+/* Touch-friendly improvements for mobile */
+@media (max-width: 767px) {
+  .responsive-pdf-viewer ::ng-deep .page {
+    touch-action: pan-x pan-y !important;
+  }
+  
+  .responsive-pdf-viewer ::ng-deep .viewerContainer {
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* Print-friendly styles */
+@media print {
+  .responsive-pdf-viewer ::ng-deep .page {
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+    page-break-after: always !important;
+  }
+  
+  .responsive-pdf-viewer ::ng-deep .viewerContainer {
+    padding: 0 !important;
+  }
+}

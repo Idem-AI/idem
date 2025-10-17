@@ -1,0 +1,81 @@
+/* Tech Card component styles - using Tailwind CSS classes in template */
+
+/* Animations */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Glass effect enhancements */
+:host ::ng-deep .backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+:host ::ng-deep .backdrop-blur-xl {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* Button hover effects */
+:host ::ng-deep button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:host ::ng-deep button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(var(--primary-rgb), 0.15);
+}
+
+/* Card hover animations */
+:host ::ng-deep .template-card:hover {
+  box-shadow: 0 0 25px rgba(var(--primary-rgb), 0.15);
+  border-color: rgba(var(--primary-rgb), 0.5);
+}
+
+/* Shadow glow effect */
+:host ::ng-deep .shadow-glow {
+  box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.25);
+}
+
+/* PrimeNG dropdown styling */
+:host ::ng-deep .p-dropdown {
+  background: rgba(17, 24, 39, 0.8);
+  border-color: rgba(75, 85, 99, 0.3);
+  border-radius: 0.5rem;
+}
+
+:host ::ng-deep .p-dropdown:hover {
+  border-color: rgba(var(--primary-rgb), 0.5);
+}
+
+:host ::ng-deep .p-dropdown-panel {
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  border-radius: 0.5rem;
+}
+
+:host ::ng-deep .p-dropdown-items {
+  padding: 0.5rem 0;
+}
+
+:host ::ng-deep .p-dropdown-item {
+  color: rgba(243, 244, 246, 0.9);
+  padding: 0.75rem 1rem;
+}
+
+:host ::ng-deep .p-dropdown-item:hover {
+  background: rgba(var(--primary-rgb), 0.15);
+  color: white;
+}
+
+:host ::ng-deep .p-dropdown-item.p-highlight {
+  background: rgba(var(--primary-rgb), 0.25);
+  color: white;
+}

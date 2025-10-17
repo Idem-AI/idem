@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Format and lint staged files
+npx lint-staged
+
+# Run affected tests
+npm run test:affected -- --passWithNoTests
