@@ -42,3 +42,6 @@ coverage
 
 # Misc
 *.tsbuildinfo
+
+# Apps with separate formatting
+apps/chart
