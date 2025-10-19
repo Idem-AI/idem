@@ -42,8 +42,14 @@ coverage
 
 # Misc
 *.tsbuildinfo
+
+# Lock files - don't format to avoid pipeline issues
 package-lock.json
 **/package-lock.json
+pnpm-lock.yaml
+**/pnpm-lock.yaml
+yarn.lock
+**/yarn.lock
 
 # Apps with separate formatting
 apps/chart
