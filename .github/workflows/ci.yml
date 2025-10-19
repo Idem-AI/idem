@@ -242,7 +242,7 @@ jobs:
     name: 🚀 Deploy API
     needs: [detect-changes, build-api]
     if: |
-      github.event_name == 'push' && 
+      github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
       needs.detect-changes.outputs.api == 'true'
     uses: ./.github/workflows/deploy-api.yml
@@ -252,7 +252,7 @@ jobs:
     name: 🚀 Deploy Main App
     needs: [detect-changes, build-main-app]
     if: |
-      github.event_name == 'push' && 
+      github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
       needs.detect-changes.outputs.main-app == 'true'
     uses: ./.github/workflows/deploy-main-app.yml
@@ -262,7 +262,7 @@ jobs:
     name: 🚀 Deploy Chart
     needs: [detect-changes, build-chart]
     if: |
-      github.event_name == 'push' && 
+      github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
       needs.detect-changes.outputs.chart == 'true'
     uses: ./.github/workflows/deploy-chart.yml
@@ -272,7 +272,17 @@ jobs:
   summary:
     name: 📊 CI/CD Summary
     runs-on: ubuntu-latest
-    needs: [detect-changes, build-api, build-main-app, build-chart, build-appgen, deploy-api, deploy-main-app, deploy-chart]
+    needs:
+      [
+        detect-changes,
+        build-api,
+        build-main-app,
+        build-chart,
+        build-appgen,
+        deploy-api,
+        deploy-main-app,
+        deploy-chart,
+      ]
     if: |
       always() && (
         needs.detect-changes.outputs.api == 'true' ||
