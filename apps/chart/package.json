@@ -13,7 +13,7 @@
     "lint:fix": "prettier --write --cache . && eslint --fix --ignore-path .gitignore .",
     "format": "prettier --write --cache .",
     "pre-commit": "lint-staged",
-    "postinstall": "husky install && svelte-kit sync && (git config blame.ignoreRevsFile .git-blame-ignore-revs || true)",
+    "postinstall": "svelte-kit sync && (git config blame.ignoreRevsFile .git-blame-ignore-revs || true)",
     "test:unit": "vitest",
     "test:unit:ui": "vitest --ui",
     "test:unit:coverage": "vitest run --coverage",
