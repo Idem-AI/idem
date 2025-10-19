@@ -117,130 +117,11 @@ jobs:
       #     path: '**/coverage'
       #     retention-days: 7
 
-  # Job 4: Build changed projects only
-  build-api:
-    name: 🔨 Build API
-    runs-on: ubuntu-latest
-    needs: [detect-changes, setup, quality]
-    if: needs.detect-changes.outputs.api == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build API
-        run: npm run build --workspace=apps/api
-
-      - name: Upload API build artifacts
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: api-build
-          path: apps/api/dist
-          retention-days: 7
-
-  build-main-app:
-    name: 🔨 Build Main App
-    runs-on: ubuntu-latest
-    needs: [detect-changes, setup, quality]
-    if: needs.detect-changes.outputs.main-app == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Main App
-        run: npm run build --workspace=apps/main-app
-
-      - name: Upload Main App build artifacts
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: main-app-build
-          path: apps/main-app/dist
-          retention-days: 7
-
-  build-chart:
-    name: 🔨 Build Chart
-    runs-on: ubuntu-latest
-    needs: [detect-changes, setup, quality]
-    if: needs.detect-changes.outputs.chart == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: 'apps/chart/.node-version'
-          cache: pnpm
-          cache-dependency-path: 'apps/chart/pnpm-lock.yaml'
-
-      - name: Build Chart
-        working-directory: apps/chart
-        run: |
-          pnpm install
-          pnpm build
-
-      - name: Upload Chart build artifacts
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: chart-build
-          path: apps/chart/build
-          retention-days: 7
-
-  build-appgen:
-    name: 🔨 Build AppGen
-    runs-on: ubuntu-latest
-    needs: [detect-changes, setup, quality]
-    if: needs.detect-changes.outputs.appgen == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build AppGen
-        run: npm run build --workspace=apps/appgen
-
-      - name: Upload AppGen build artifacts
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: appgen-build
-          path: apps/appgen/apps/*/dist
-          retention-days: 7
-
   # Deploy jobs (only on push to main/master/dev branches)
+  # Note: Docker builds are handled within the deployment workflows
   deploy-api:
     name: 🚀 Deploy API
-    needs: [detect-changes, build-api]
+    needs: [detect-changes, quality]
     if: |
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
@@ -250,7 +131,7 @@ jobs:
 
   deploy-main-app:
     name: 🚀 Deploy Main App
-    needs: [detect-changes, build-main-app]
+    needs: [detect-changes, quality]
     if: |
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
@@ -260,7 +141,7 @@ jobs:
 
   deploy-chart:
     name: 🚀 Deploy Chart
-    needs: [detect-changes, build-chart]
+    needs: [detect-changes, quality]
     if: |
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
@@ -272,17 +153,7 @@ jobs:
   summary:
     name: 📊 CI/CD Summary
     runs-on: ubuntu-latest
-    needs:
-      [
-        detect-changes,
-        build-api,
-        build-main-app,
-        build-chart,
-        build-appgen,
-        deploy-api,
-        deploy-main-app,
-        deploy-chart,
-      ]
+    needs: [detect-changes, quality, deploy-api, deploy-main-app, deploy-chart]
     if: |
       always() && (
         needs.detect-changes.outputs.api == 'true' ||
@@ -295,11 +166,11 @@ jobs:
         run: |
           echo "## 📊 CI/CD Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Applications Built:" >> $GITHUB_STEP_SUMMARY
-          echo "- **API**: ${{ needs.detect-changes.outputs.api == 'true' && '✅ Built' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Main App**: ${{ needs.detect-changes.outputs.main-app == 'true' && '✅ Built' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Chart**: ${{ needs.detect-changes.outputs.chart == 'true' && '✅ Built' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **AppGen**: ${{ needs.detect-changes.outputs.appgen == 'true' && '✅ Built' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Changes Detected:" >> $GITHUB_STEP_SUMMARY
+          echo "- **API**: ${{ needs.detect-changes.outputs.api == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Main App**: ${{ needs.detect-changes.outputs.main-app == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Chart**: ${{ needs.detect-changes.outputs.chart == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AppGen**: ${{ needs.detect-changes.outputs.appgen == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployments:" >> $GITHUB_STEP_SUMMARY
           echo "- **API**: ${{ needs.deploy-api.result == 'success' && '✅ Deployed' || (needs.deploy-api.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
