@@ -7,7 +7,7 @@ on:
     branches: [main, develop, dev, master]
 
 env:
-  NODE_VERSION: '18.x'
+  NODE_VERSION: '20.x'
 
 jobs:
   # Job 1: Setup
@@ -27,7 +27,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10.7.1
 
       - name: Install dependencies
         run: npm ci
@@ -50,7 +50,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10.7.1
 
       - name: Install dependencies
         run: npm ci
@@ -91,7 +91,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10.7.1
 
       - name: Install dependencies
         run: npm ci
