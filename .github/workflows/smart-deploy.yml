@@ -1,11 +1,16 @@
-name: 🎯 Smart Deploy - Auto-detect Changes
+name: 🎯 Smart Deploy - Auto-detect Changes (DEPRECATED - Use ci.yml instead)
+
+# This workflow is deprecated. The smart deploy logic is now integrated in ci.yml
+# Kept for reference only. To re-enable, uncomment the 'on' section below.
+# on:
+#   push:
+#     branches:
+#       - main
+#       - dev
+#       - master
 
 on:
-  push:
-    branches:
-      - main
-      - dev
-      - master
+  workflow_dispatch:
 
 jobs:
   detect-changes:
