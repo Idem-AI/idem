@@ -12,7 +12,6 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "strictNullChecks": true,
-    "verbatimModuleSyntax": true,
     "types": ["vitest/importMeta", "@playwright/test"]
   },
   "extends": "./.svelte-kit/tsconfig.json"

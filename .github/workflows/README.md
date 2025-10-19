@@ -1,51 +1,76 @@
-# 🎯 GitHub Actions Workflows - Smart Deploy System
+# 🎯 GitHub Actions Workflows - Smart CI/CD System
 
-This folder contains GitHub Actions workflows with the Smart Deploy system for the Idem monorepo.
+This folder contains GitHub Actions workflows with an intelligent CI/CD system for the Idem monorepo.
 
 ## 📋 Available Workflows
 
-### 1. `smart-deploy.yml` - 🎯 Orchestrateur Principal
+### 1. `ci.yml` - 🎯 Main CI/CD Workflow (Unified)
 
-**Trigger**: Push to `main`, `dev`, `master`
+**Trigger**:
 
-**Description**: Main workflow that automatically detects modified applications and triggers only necessary deployments.
+- Push to `main`, `develop`, `dev`, `master`
+- Pull requests to `main`, `develop`, `dev`, `master`
+
+**Description**: Unified workflow that automatically detects modified applications, runs quality checks, builds only changed apps, and deploys them.
 
 **Jobs**:
 
-- 🔍 **detect-changes** - Detects modified applications with `dorny/paths-filter@v3`
-- 🚀 **deploy-api** - Calls `deploy-api.yml` if `apps/api/**` modified
-- 🚀 **deploy-main-app** - Calls `deploy-main-app.yml` if `apps/main-app/**` modified
-- 🚀 **deploy-chart** - Calls `deploy-chart.yml` if `apps/chart/**` modified
-- 📊 **summary** - Generates deployment summary
+1. 🔍 **detect-changes** - Detects modified applications with `dorny/paths-filter@v3`
+2. 🔧 **setup** - Installs dependencies (only if changes detected)
+3. ✅ **quality** - Runs format check and linting (only if changes detected)
+4. 🔨 **build-api** - Builds API if `apps/api/**` modified
+5. 🔨 **build-main-app** - Builds Main App if `apps/main-app/**` modified
+6. 🔨 **build-chart** - Builds Chart if `apps/chart/**` modified
+7. 🔨 **build-appgen** - Builds AppGen if `apps/appgen/**` modified
+8. 🚀 **deploy-api** - Deploys API (only on push to main/dev/master)
+9. 🚀 **deploy-main-app** - Deploys Main App (only on push to main/dev/master)
+10. 🚀 **deploy-chart** - Deploys Chart (only on push to main/master)
+11. 📊 **summary** - Generates build and deployment summary
 
 **Benefits**:
 
-- ⚡ **60-70% faster** - Only modified apps are deployed
+- ⚡ **60-70% faster** - Only modified apps are built and deployed
 - 💰 **Cost savings** - Reduced CI/CD minutes
-- 📊 **Visibility** - Clear deployment summaries
-- 🔧 **Maintenance** - Centralized workflows
+- 📊 **Visibility** - Clear build and deployment summaries
+- 🔧 **Maintenance** - Single unified workflow
+- 🎯 **Smart** - No unnecessary builds or deployments
 
 **Summary Example**:
 
 ```
-📊 Deployment Summary
+📊 CI/CD Summary
 
-Applications Detected:
-- API: ✅ Deployed
+Applications Built:
+- API: ✅ Built
 - Main App: ⏭️ Skipped
 - Chart: ⏭️ Skipped
 - AppGen: ⏭️ Skipped
+
+Deployments:
+- API: ✅ Deployed
+- Main App: ⏭️ Skipped
+- Chart: ⏭️ Skipped
 ```
 
 ---
 
-### 2. `deploy-api.yml` - 🚀 API Deployment
+### 2. `smart-deploy.yml` - 🎯 Legacy Smart Deploy (DEPRECATED)
+
+**Status**: ⚠️ **DEPRECATED** - Logic integrated into `ci.yml`
+
+**Trigger**: Manual only (`workflow_dispatch`)
+
+This workflow is kept for reference but is no longer used. All smart deploy logic is now in `ci.yml`.
+
+---
+
+### 3. `deploy-api.yml` - 🚀 API Deployment
 
 **Type**: Reusable workflow (`workflow_call`)
 
 **Trigger**:
 
-- Called by `smart-deploy.yml`
+- Called by `ci.yml` (when API changes detected on push to main/dev/master)
 - Manual via `workflow_dispatch`
 
 **Description**: Deploys the backend API (Express/TypeScript)
@@ -71,13 +96,13 @@ SSH_PRIVATE_KEY    # SSH private key
 
 ---
 
-### 3. `deploy-main-app.yml` - 🚀 Main Application Deployment
+### 4. `deploy-main-app.yml` - 🚀 Main Application Deployment
 
 **Type**: Reusable workflow (`workflow_call`)
 
 **Trigger**:
 
-- Called by `smart-deploy.yml`
+- Called by `ci.yml` (when Main App changes detected on push to main/dev/master)
 - Manual via `workflow_dispatch`
 
 **Description**: Deploys the main Angular application
@@ -103,13 +128,13 @@ SSH_PRIVATE_KEY    # SSH private key
 
 ---
 
-### 4. `deploy-chart.yml` - 🚀 Chart Editor Deployment
+### 5. `deploy-chart.yml` - 🚀 Chart Editor Deployment
 
 **Type**: Reusable workflow (`workflow_call`)
 
 **Trigger**:
 
-- Called by `smart-deploy.yml`
+- Called by `ci.yml` (when Chart changes detected on push to main/master)
 - Manual via `workflow_dispatch`
 
 **Description**: Deploys the diagram editor (SvelteKit) to GitHub Pages
@@ -132,25 +157,28 @@ id-token: write
 
 ## 🔄 Before/After Comparison
 
-### Before Smart Deploy
+### Before (Multiple Workflows)
 
 ```
-❌ Workflows in each application subfolder
-❌ All projects deployed on every push
+❌ Multiple workflows running in parallel (ci.yml + smart-deploy.yml + individual workflows)
+❌ All projects built and deployed on every push
 ❌ Fixed time: 15-20 minutes
 ❌ No change detection
 ❌ Workflow duplication
+❌ Wasted CI/CD minutes
 ```
 
-### After Smart Deploy
+### After (Unified Smart CI/CD)
 
 ```
-✅ Centralized workflows at root
-✅ Deployment only if changes detected
-✅ Variable time: 5-20 minutes depending on modified apps
+✅ Single unified workflow (ci.yml)
+✅ Build and deploy only changed applications
+✅ Variable time: 1-20 minutes depending on changes
 ✅ Automatic detection with paths-filter
-✅ Reusable workflows (workflow_call)
-✅ Automatic deployment summary
+✅ Reusable deployment workflows (workflow_call)
+✅ Automatic build and deployment summary
+✅ Quality checks only when needed
+✅ 60-90% time savings on typical commits
 ```
 
 ---
