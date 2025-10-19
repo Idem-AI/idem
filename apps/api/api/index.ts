@@ -73,13 +73,11 @@ console.log(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Si pas d'origin (requêtes same-origin comme Swagger UI), autoriser
       if (!origin) {
         callback(null, true);
         return;
       }
 
-      // Autoriser les requêtes depuis le même serveur (pour Swagger UI)
       if (origin.startsWith(`http://localhost:${port}`)) {
         callback(null, true);
         return;

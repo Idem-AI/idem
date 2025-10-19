@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main, develop, dev, master]
 
+# Permissions needed for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 env:
   NODE_VERSION: '18.x'
 
@@ -19,7 +25,6 @@ jobs:
       main-app: ${{ steps.filter.outputs.main-app }}
       chart: ${{ steps.filter.outputs.chart }}
       appgen: ${{ steps.filter.outputs.appgen }}
-      any-app: ${{ steps.filter.outputs.api == 'true' || steps.filter.outputs.main-app == 'true' || steps.filter.outputs.chart == 'true' || steps.filter.outputs.appgen == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,7 +48,11 @@ jobs:
     name: 🔧 Setup
     runs-on: ubuntu-latest
     needs: detect-changes
-    if: needs.detect-changes.outputs.any-app == 'true'
+    if: |
+      needs.detect-changes.outputs.api == 'true' ||
+      needs.detect-changes.outputs.main-app == 'true' ||
+      needs.detect-changes.outputs.chart == 'true' ||
+      needs.detect-changes.outputs.appgen == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,7 +76,11 @@ jobs:
     name: ✅ Quality checks
     runs-on: ubuntu-latest
     needs: [detect-changes, setup]
-    if: needs.detect-changes.outputs.any-app == 'true'
+    if: |
+      needs.detect-changes.outputs.api == 'true' ||
+      needs.detect-changes.outputs.main-app == 'true' ||
+      needs.detect-changes.outputs.chart == 'true' ||
+      needs.detect-changes.outputs.appgen == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -260,7 +273,13 @@ jobs:
     name: 📊 CI/CD Summary
     runs-on: ubuntu-latest
     needs: [detect-changes, build-api, build-main-app, build-chart, build-appgen, deploy-api, deploy-main-app, deploy-chart]
-    if: always() && needs.detect-changes.outputs.any-app == 'true'
+    if: |
+      always() && (
+        needs.detect-changes.outputs.api == 'true' ||
+        needs.detect-changes.outputs.main-app == 'true' ||
+        needs.detect-changes.outputs.chart == 'true' ||
+        needs.detect-changes.outputs.appgen == 'true'
+      )
     steps:
       - name: Display CI/CD summary
         run: |
