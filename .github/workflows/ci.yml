@@ -43,39 +43,11 @@ jobs:
             appgen:
               - 'apps/appgen/**'
 
-  # Job 2: Setup
-  setup:
-    name: 🔧 Setup
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: |
-      needs.detect-changes.outputs.api == 'true' ||
-      needs.detect-changes.outputs.main-app == 'true' ||
-      needs.detect-changes.outputs.chart == 'true' ||
-      needs.detect-changes.outputs.appgen == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Install dependencies
-        run: npm ci
-
-  # Job 3: Quality checks
+  # Job 2: Quality checks
   quality:
     name: ✅ Quality checks
     runs-on: ubuntu-latest
-    needs: [detect-changes, setup]
+    needs: detect-changes
     if: |
       needs.detect-changes.outputs.api == 'true' ||
       needs.detect-changes.outputs.main-app == 'true' ||
