@@ -20,6 +20,42 @@ jobs:
           cache: pnpm
           cache-dependency-path: 'apps/chart/pnpm-lock.yaml'
 
+      # Cache pnpm store
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-chart-${{ hashFiles('apps/chart/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-chart-
+            ${{ runner.os }}-pnpm-store-
+
+      # Cache node_modules
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: apps/chart/node_modules
+          key: ${{ runner.os }}-chart-modules-${{ hashFiles('apps/chart/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-chart-modules-
+
+      # Cache SvelteKit build
+      - name: Cache SvelteKit build
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/chart/.svelte-kit
+            apps/chart/build
+          key: ${{ runner.os }}-svelte-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-svelte-build-
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
@@ -36,7 +72,7 @@ jobs:
         run: |
           export DEPLOY=true
           [ "$GITHUB_EVENT_NAME" != "pull_request" ] && rm -rf docs/_app/
-          pnpm install
+          pnpm install --frozen-lockfile
           pnpm build
 
       - name: Upload artifact

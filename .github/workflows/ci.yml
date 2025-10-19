@@ -68,14 +68,51 @@ jobs:
         with:
           version: 8
 
+      # Cache npm dependencies
+      - name: Cache node modules
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      # Cache pnpm store
+      - name: Get pnpm store directory
+        id: pnpm-cache-dir
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache-dir.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
+
+      # Cache ESLint
+      - name: Cache ESLint
+        uses: actions/cache@v4
+        with:
+          path: .eslintcache
+          key: ${{ runner.os }}-eslint-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx') }}
+          restore-keys: |
+            ${{ runner.os }}-eslint-
 
       - name: Format check
         run: npm run format:check
 
       - name: Lint all projects
-        run: npm run lint:all
+        run: npm run lint:all -- --cache --cache-location .eslintcache
 
       # TODO: Enable tests after fixing Chrome setup and test configuration
       # - name: Test all projects
