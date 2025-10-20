@@ -41,7 +41,7 @@
     "lucide-react": "^0.471.1",
     "minio": "^8.0.4",
     "mongoose": "^8.9.3",
-    "next": "14.2.23",
+    "next": "14.2.25",
     "next-intl": "^3.26.3",
     "react": "^18.3.1",
     "react-custom-scroll": "^7.0.0",
