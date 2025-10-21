@@ -9,15 +9,16 @@
 }
 
 .tfvars-form-editor ::-webkit-scrollbar-track {
-  @apply bg-gray-600 dark:bg-gray-700;
+  background-color: rgb(75 85 99);
 }
 
 .tfvars-form-editor ::-webkit-scrollbar-thumb {
-  @apply bg-gray-500 dark:bg-gray-500 rounded-full;
+  background-color: rgb(107 114 128);
+  border-radius: 9999px;
 }
 
 .tfvars-form-editor ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-600 dark:bg-gray-600;
+  background-color: rgb(75 85 99);
 }
 
 /* Smooth transitions for section expansion */
