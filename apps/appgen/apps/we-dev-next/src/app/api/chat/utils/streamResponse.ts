@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Messages, StreamingOptions, streamTextFn } from '../action';
 import { CONTINUE_PROMPT, ToolInfo } from '../prompt';
-import { deductUserTokens, estimateTokens } from '@/utils/tokens';
 import SwitchableStream from '../switchable-stream';
 import { tool } from 'ai';
 import { jsonSchemaToZodSchema } from '@/app/api/chat/utils/json2zod';
@@ -29,6 +28,7 @@ export async function streamResponse(
   const options: StreamingOptions = {
     tools: toolList,
     toolCallStreaming: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (err: any) => {
       // Get error information, prioritize cause property
       const errorCause = err?.cause?.message || err?.cause || err?.error?.message;
@@ -43,10 +43,6 @@ export async function streamResponse(
       const { text: content, finishReason } = response;
 
       if (finishReason !== 'length') {
-        const tokens = estimateTokens(content);
-        if (userId) {
-          await deductUserTokens(userId, tokens);
-        }
         return stream.close();
       }
 
@@ -64,10 +60,9 @@ export async function streamResponse(
     return result.toDataStreamResponse({
       sendReasoning: true,
     });
-  } catch (error: any) {
-    // 确保流被关闭
+  } catch (error) {
     stream.close();
-    // 如果错误中包含 cause，将其作为新错误抛出
+
     if (error.cause) {
       const newError = new Error(error.cause);
       newError.cause = error.cause;

@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         count: files.length,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in list API:', error);
     return NextResponse.json(
       {

@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         uploadedAt: new Date().toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in upload API:', error);
     return NextResponse.json(
       {

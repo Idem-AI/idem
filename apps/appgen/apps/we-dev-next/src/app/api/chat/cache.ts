@@ -5,12 +5,11 @@ export const cacheFunctionRegister = {
 };
 
 function resolveRedis(extra: promptExtra) {
-  let promptArr = [];
-  let username = extra.extra['cacheUsername'] ?? '';
-  let password = extra.extra['cachePassword'] ?? 'root';
-  let databaseUrl = extra.extra['cacheUrl'] ?? 'localhost:3306';
-  promptArr.push(
+  const username = extra.extra['cacheUsername'] ?? '';
+  const password = extra.extra['cachePassword'] ?? 'root';
+  const databaseUrl = extra.extra['cacheUrl'] ?? 'localhost:3306';
+  extra?.extra['backendLanguage'].push(
     `IMPORTANT: Use Redis for caching. Redis URL is ${databaseUrl}, username is ${username}, password is ${password}. Please write this configuration to the backend.`
   );
-  return promptArr;
+  return extra?.extra['backendLanguage'];
 }

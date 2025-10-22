@@ -1,22 +1,24 @@
-import { storageService } from '../services/storage.service';
+import { storageService, UploadResult } from '../services/storage.service';
 import { createGeneratedAppZips } from './zip-generator';
 
 export interface GeneratedAppCode {
-  frontend?: Record<string, any>;
-  backend?: Record<string, any>;
+  frontend?: FrontendZip;
+  backend?: BackendZip;
+}
+
+export interface FrontendZip {
+  buffer: Buffer;
+  fileName: string;
+}
+
+export interface BackendZip {
+  buffer: Buffer;
+  fileName: string;
 }
 
 export interface StorageUploadResult {
-  frontend?: {
-    url: string;
-    filePath: string;
-    fileName: string;
-  };
-  backend?: {
-    url: string;
-    filePath: string;
-    fileName: string;
-  };
+  frontend?: UploadResult;
+  backend?: UploadResult;
   uploadedAt: string;
 }
 
@@ -61,19 +63,11 @@ export async function generateAndUploadAppZips(
     };
 
     if (uploadResults.frontend) {
-      result.frontend = {
-        url: uploadResults.frontend.downloadURL,
-        filePath: uploadResults.frontend.filePath,
-        fileName: uploadResults.frontend.fileName,
-      };
+      result.frontend = uploadResults.frontend;
     }
 
     if (uploadResults.backend) {
-      result.backend = {
-        url: uploadResults.backend.downloadURL,
-        filePath: uploadResults.backend.filePath,
-        fileName: uploadResults.backend.fileName,
-      };
+      result.backend = uploadResults.backend;
     }
 
     console.log('App generation and upload completed successfully', {
@@ -83,7 +77,7 @@ export async function generateAndUploadAppZips(
     });
 
     return result;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in generateAndUploadAppZips:', error);
     throw new Error(`Failed to generate and upload app zips: ${error.message}`);
   }
@@ -125,11 +119,7 @@ export async function updateAppZips(
         existingPaths.frontendFilePath
       );
 
-      result.frontend = {
-        url: uploadResult.downloadURL,
-        filePath: uploadResult.filePath,
-        fileName: uploadResult.fileName,
-      };
+      result.frontend = uploadResult;
     }
 
     if (zipBuffers.backend && existingPaths.backendFilePath) {
@@ -138,11 +128,7 @@ export async function updateAppZips(
         existingPaths.backendFilePath
       );
 
-      result.backend = {
-        url: uploadResult.downloadURL,
-        filePath: uploadResult.filePath,
-        fileName: uploadResult.fileName,
-      };
+      result.backend = uploadResult;
     }
 
     console.log('App update completed successfully', {
@@ -150,7 +136,7 @@ export async function updateAppZips(
     });
 
     return result;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in updateAppZips:', error);
     throw new Error(`Failed to update app zips: ${error.message}`);
   }

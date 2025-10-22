@@ -56,7 +56,7 @@ export async function DELETE(request: NextRequest) {
       message: `Successfully deleted ${filePaths.length} file(s)`,
       deletedCount: filePaths.length,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in delete API:', error);
     return NextResponse.json(
       {

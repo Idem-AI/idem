@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Messages, StreamingOptions, streamTextFn } from '../action';
 import { CONTINUE_PROMPT, ToolInfo } from '../prompt';
-import { deductUserTokens, estimateTokens } from '@/utils/tokens';
 import SwitchableStream from '../switchable-stream';
 import { tool } from 'ai';
 import { jsonSchemaToZodSchema } from '@/app/api/chat/utils/json2zod';
@@ -22,7 +21,7 @@ export async function handleChatMode(
         id: args.id,
         description: args.description,
         parameters: jsonSchemaToZodSchema(args.parameters),
-        execute: async (input: any) => {
+        execute: async (input) => {
           return input;
         },
       });
@@ -32,19 +31,15 @@ export async function handleChatMode(
   const options: StreamingOptions = {
     tools: toolList,
     toolCallStreaming: true,
-    onError: (error: any) => {
+    onError: (error) => {
       const uuid = uuidv4();
-      const msg = error?.errors?.[0]?.responseBody;
+      const msg = error?.error;
       throw new Error(`${msg || JSON.stringify(error)} logid ${uuid}`);
     },
     onFinish: async (response) => {
       const { text: content, finishReason } = response;
 
       if (finishReason !== 'length') {
-        const tokens = estimateTokens(content);
-        if (userId) {
-          await deductUserTokens(userId, tokens);
-        }
         return stream.close();
       }
 

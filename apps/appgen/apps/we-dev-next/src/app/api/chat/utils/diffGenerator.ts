@@ -14,7 +14,7 @@ export function getHistoryDiff(
   for (let i = currentMessageIndex - 1; i >= 0; i--) {
     const message = historyMessages[i];
     if (message.role === 'assistant') {
-      const { files, content } = parseMessage(message.content);
+      const { files } = parseMessage(message.content);
       const hasRelevantFiles = filesPath.some((path) => files && files[path]);
 
       if (hasRelevantFiles) {

@@ -61,7 +61,7 @@ export class StorageService {
         downloadURL,
         filePath,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error uploading zip file to Firebase Storage`, {
         fileName,
         folderPath,
@@ -126,7 +126,7 @@ export class StorageService {
       });
 
       return results;
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error uploading generated app zips`, {
         userId,
         projectId,
@@ -188,7 +188,7 @@ export class StorageService {
         downloadURL,
         filePath,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error updating zip file in Firebase Storage`, {
         filePath,
         error: error.message,
@@ -219,7 +219,7 @@ export class StorageService {
       await file.delete();
 
       console.log(`Zip file deleted successfully: ${filePath}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error deleting zip file from Firebase Storage`, {
         filePath,
         error: error.message,
@@ -247,7 +247,7 @@ export class StorageService {
       console.log(`All zip files deleted successfully`, {
         deletedCount: filePaths.length,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error deleting multiple zip files from Firebase Storage`, {
         filePaths,
         error: error.message,
@@ -272,7 +272,7 @@ export class StorageService {
       }
 
       return `https://storage.googleapis.com/${bucket.name}/${filePath}`;
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error getting download URL`, {
         filePath,
         error: error.message,
@@ -301,7 +301,7 @@ export class StorageService {
       });
 
       return filePaths;
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error listing project zip files`, {
         userId,
         projectId,
