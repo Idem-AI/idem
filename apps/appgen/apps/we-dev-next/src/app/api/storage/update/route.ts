@@ -106,7 +106,7 @@ export async function PUT(request: NextRequest) {
         updatedAt: new Date().toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in update API:', error);
     return NextResponse.json(
       {

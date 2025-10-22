@@ -1,5 +1,5 @@
 import archiver from 'archiver';
-import { Readable } from 'stream';
+import { BackendZip, FrontendZip, GeneratedAppCode } from './app-generation-storage';
 
 export interface ZipFileEntry {
   path: string;
@@ -60,12 +60,12 @@ export async function createZipFromFiles(
  * @returns Buffer containing the zip file
  */
 export async function createZipFromDirectoryStructure(
-  directoryStructure: Record<string, any>,
+  directoryStructure: FrontendZip | BackendZip,
   basePath: string = ''
 ): Promise<Buffer> {
   const files: ZipFileEntry[] = [];
 
-  function traverseStructure(obj: Record<string, any>, currentPath: string) {
+  function traverseStructure(obj: FrontendZip | BackendZip, currentPath: string) {
     for (const [key, value] of Object.entries(obj)) {
       const fullPath = currentPath ? `${currentPath}/${key}` : key;
 
@@ -92,10 +92,7 @@ export async function createZipFromDirectoryStructure(
  * @param generatedCode - Object containing frontend and/or backend code structures
  * @returns Object with frontend and/or backend zip buffers
  */
-export async function createGeneratedAppZips(generatedCode: {
-  frontend?: Record<string, any>;
-  backend?: Record<string, any>;
-}): Promise<{
+export async function createGeneratedAppZips(generatedCode: GeneratedAppCode): Promise<{
   frontend?: Buffer;
   backend?: Buffer;
 }> {
@@ -116,38 +113,8 @@ export async function createGeneratedAppZips(generatedCode: {
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating generated app zips:', error);
     throw new Error(`Failed to create zip files: ${error.message}`);
   }
-}
-
-/**
- * Extract file structure from a flat array of file paths and contents
- * Useful when you have generated code as an array of files
- * @param files - Array of files with path and content
- * @returns Directory structure object
- */
-export function createDirectoryStructureFromFiles(files: ZipFileEntry[]): Record<string, any> {
-  const structure: Record<string, any> = {};
-
-  files.forEach((file) => {
-    const parts = file.path.split('/');
-    let current = structure;
-
-    parts.forEach((part, index) => {
-      if (index === parts.length - 1) {
-        // It's a file
-        current[part] = file.content;
-      } else {
-        // It's a directory
-        if (!current[part]) {
-          current[part] = {};
-        }
-        current = current[part];
-      }
-    });
-  });
-
-  return structure;
 }

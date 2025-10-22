@@ -44,7 +44,7 @@ export async function verifyUserAuthentication(authToken: string): Promise<UserV
       isAuthenticated: false,
       error: 'Invalid authentication response',
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('User authentication verification failed:', {
       error: error.message,
       status: error.response?.status,

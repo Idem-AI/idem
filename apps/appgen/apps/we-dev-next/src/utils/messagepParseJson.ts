@@ -38,6 +38,7 @@ export function parseMessage(content: string): ParsedMessage {
         files[filePath] = fileContent.trim();
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       startIndex = BOLT_ACTION_REGEX.lastIndex;
     }
 

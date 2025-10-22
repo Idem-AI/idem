@@ -128,7 +128,7 @@ interface ProjectModel {
           authentication?: boolean;
           authorization?: boolean;
           paymentIntegration?: boolean;
-          [key: string]: any;
+          [key: string]: boolean | string;
         };
       };
     };

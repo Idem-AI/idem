@@ -1,4 +1,4 @@
-export function stripIndents(arg0: string | TemplateStringsArray, ...values: any[]) {
+export function stripIndents(arg0: string | TemplateStringsArray, ...values: string[]) {
   if (typeof arg0 !== 'string') {
     const processedString = arg0.reduce((acc, curr, i) => {
       acc += curr + (values[i] ?? '');
