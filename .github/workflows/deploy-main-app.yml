@@ -27,11 +27,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app/idem
+            cd /root/idem/apps/main-app
 
             BRANCH="${{ github.ref_name }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-ai:$COMMIT_ID"
+            IMAGE_NAME="ghcr.io/idem-ai/idem:$COMMIT_ID"
 
             echo "📍 BRANCH: $BRANCH"
             echo "📍 COMMIT_ID: $COMMIT_ID"
@@ -58,10 +58,10 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app/idem
+            cd /root/idem/apps/main-app
 
             COMMIT_ID="${{ needs.build.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-ai:$COMMIT_ID"
+            IMAGE_NAME="ghcr.io/idem-ai/idem:$COMMIT_ID"
 
             echo "📤 Push Docker image $IMAGE_NAME"
             docker push $IMAGE_NAME
@@ -80,20 +80,20 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app
+            cd /root/idem
 
             BRANCH="${{ github.ref_name }}"
             COMMIT_ID="${{ needs.build.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-ai:$COMMIT_ID"
+            IMAGE_NAME="ghcr.io/idem-ai/idem:$COMMIT_ID"
 
             if [ "$BRANCH" = "main" ]; then
-              COMPOSE_FILE="docker-compose.prod.yml"
+              COMPOSE_FILE="docker-compose.yml"
             else
               COMPOSE_FILE="docker-compose.staging.yml"
             fi
 
             echo "🔁 Mise à jour de l'image dans $COMPOSE_FILE"
-            sed -i "s|image: ghcr.io/.*/idem-ai:.*|image: $IMAGE_NAME|" "$COMPOSE_FILE"
+            sed -i "s|image: ghcr.io/.*/idem:.*|image: $IMAGE_NAME|" "$COMPOSE_FILE"
 
             echo "♻️ Restarting docker-compose using $COMPOSE_FILE with $IMAGE_NAME image"
             docker-compose -f "$COMPOSE_FILE" up -d idem

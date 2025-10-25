@@ -27,11 +27,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app/idem-api
+            cd /root/idem/apps/api
 
             BRANCH="${{ github.ref_name }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-api:$COMMIT_ID"
+            IMAGE_NAME="ghcr.io/idem-ai/idem:${COMMIT_ID}-api"
 
             echo "📍 BRANCH: $BRANCH"
             echo "📍 COMMIT_ID: $COMMIT_ID"
@@ -58,7 +58,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app/idem-api
+            cd /root/idem/apps/api
 
             COMMIT_ID="${{ needs.build.outputs.commit_id }}"
             IMAGE_NAME="ghcr.io/idem-ai/idem-api:$COMMIT_ID"
@@ -80,14 +80,14 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app
+            cd /root/idem
 
             BRANCH="${{ github.ref_name }}"
             COMMIT_ID="${{ needs.build.outputs.commit_id }}"
             IMAGE_NAME="ghcr.io/idem-ai/idem-api:$COMMIT_ID"
 
             if [ "$BRANCH" = "main" ]; then
-              COMPOSE_FILE="docker-compose.prod.yml"
+              COMPOSE_FILE="docker-compose.yml"
             else
               COMPOSE_FILE="docker-compose.staging.yml"
             fi
