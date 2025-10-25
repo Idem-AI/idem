@@ -4,13 +4,15 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm install mermaid --save
 
+RUN npm install && npm install -g npm@11.6.2
 COPY . .
 
 RUN node -r dotenv/config mynode.js
 
 RUN npm run build -- --configuration=production
+
 
 FROM node:20-alpine AS runner
 
