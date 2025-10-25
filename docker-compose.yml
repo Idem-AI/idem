@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+
+######################### NGINX REVERSE PROXY && CERTBOT #########################################
+  nginx:
+    image: nginx:1.15-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/nginx:/etc/nginx/conf.d
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    networks:
+      - idem
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - idem
+############################ APP CONTAINER ######################################################################
+
+
+############################### IDEM FRONTEND ###########################################
+
+  idem: 
+    image: ghcr.io/idem-ai/idem:1.0
+    container_name: idem
+    restart: always
+    networks:
+      - idem
+
+############################################################
+
+
+################# IDEM API ###########################
+  idem-api:
+    image: ghcr.io/idem-ai/idem-api:v1.0
+    container_name: idem-api
+    environment:
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+      PORT: "${PORT}"
+      FIREBASE_API_KEY: "${FIREBASE_API_KEY}"
+      FIREBASE_AUTH_DOMAIN: "${FIREBASE_AUTH_DOMAIN}"
+      FIREBASE_PROJECT_ID: "${FIREBASE_PROJECT_ID}"
+      FIREBASE_STORAGE_BUCKET: "${FIREBASE_STORAGE_BUCKET}"
+      FIREBASE_MESSAGING_SENDER_ID: "${FIREBASE_MESSAGING_SENDER_ID}"
+      FIREBASE_APP_ID: "${FIREBASE_APP_ID}"
+      FIREBASE_PRIVATE_KEY: "${FIREBASE_PRIVATE_KEY}"
+      FIREBASE_CLIENT_EMAIL: "${FIREBASE_CLIENT_EMAIL}"
+      CORS_ALLOWED_ORIGINS: "https://api.idem-ai.com,https://webgen.idem-ai.com, https://appgen.idem-ai.com, http://chart.idem-ai.com,https://idem-ai.com"
+    ports:
+      - "${PORT}:${PORT}"
+    restart: unless-stopped
+    networks:
+      - idem
+#####################################################
+
+################# IDEM WEBGEN #####################
+  idem-webgen:
+    restart: always
+    image: ghcr.io/idem-ai/idem-appgen:v1.0
+    container_name: idem-webgen
+    env_file:
+     - .env
+    networks:
+      - idem
+
+####################################################
+
+##################### IDEM APPGEN SERVER ########## 
+  appgen-server:
+    restart: always
+    image: appgen-server:v1.1
+    container_name: appgen-server
+    env_file:
+      - .env
+    networks:
+      - idem
+
+##################################################
+
+################# IDEM CHART ###################
+  idem-chart:
+    image: ghcr.io/idem-ai/idem-chart:v1.0
+    container_name: idem-chart
+    ports:
+      - "8040:8080"
+    platform: linux/amd64
+    restart: unless-stopped
+    networks:
+      - idem
+
+networks:
+  idem:
+    driver: bridge
