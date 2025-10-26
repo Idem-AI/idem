@@ -59,6 +59,7 @@ export default defineConfig(async ({ mode }) => {
     },
 
     server: {
+      host: true, // écoute sur toutes les interfaces réseau
       headers: {
         'Cross-Origin-Embedder-Policy': 'credentialless',
         'Cross-Origin-Opener-Policy': 'same-origin',
@@ -66,6 +67,12 @@ export default defineConfig(async ({ mode }) => {
       watch: {
         ignored: ['**/workspace/**'],
       },
+    },
+
+    preview: {
+      host: '0.0.0.0', // permet l’accès depuis l’extérieur
+      port: 4173,      // port de preview
+      allowedHosts: ['webgen.idem-ai.com', 'appgen.idem-ai.com'], // domaine autorisé
     },
 
     css: {
