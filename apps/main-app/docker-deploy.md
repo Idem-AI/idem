@@ -1,4 +1,4 @@
-# 🐳 Deployment Guide — Dockerized Setup for IDEM
+# 🐳 Deployment Guide — Dockerized Setup for IDEM-AI
 
 This guide provides step-by-step instructions to run the **IDEM Web Generator** and its associated services using **Docker** and **Docker Compose**.
 

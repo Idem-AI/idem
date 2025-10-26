@@ -8,10 +8,10 @@
     "email": "your.email@example.com"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "tsc": "tsc",
-    "start": "vite preview"
+    "start": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",
