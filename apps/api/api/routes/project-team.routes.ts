@@ -6,7 +6,7 @@ const router = Router();
 
 /**
  * @openapi
- * /api/projects/{projectId}/teams:
+ * /projects/{projectId}/teams:
  *   post:
  *     summary: Ajouter une équipe à un projet
  *     tags: [Project Teams]
@@ -43,7 +43,7 @@ router.post('/:projectId/teams', authenticate, projectTeamController.addTeamToPr
 
 /**
  * @openapi
- * /api/projects/{projectId}/teams:
+ * /projects/{projectId}/teams:
  *   get:
  *     summary: Récupérer toutes les équipes d'un projet
  *     tags: [Project Teams]
@@ -63,7 +63,7 @@ router.get('/:projectId/teams', authenticate, projectTeamController.getProjectTe
 
 /**
  * @openapi
- * /api/projects/{projectId}/teams/roles:
+ * /projects/{projectId}/teams/roles:
  *   put:
  *     summary: Mettre à jour les rôles d'une équipe dans un projet
  *     tags: [Project Teams]
@@ -99,7 +99,7 @@ router.put('/:projectId/teams/roles', authenticate, projectTeamController.update
 
 /**
  * @openapi
- * /api/projects/{projectId}/teams/{teamId}:
+ * /projects/{projectId}/teams/{teamId}:
  *   delete:
  *     summary: Retirer une équipe d'un projet
  *     tags: [Project Teams]
@@ -128,7 +128,7 @@ router.delete(
 
 /**
  * @openapi
- * /api/projects/{projectId}/permissions:
+ * /projects/{projectId}/permissions:
  *   get:
  *     summary: Récupérer les permissions de l'utilisateur dans un projet
  *     tags: [Project Teams]
@@ -148,7 +148,7 @@ router.get('/:projectId/permissions', authenticate, projectTeamController.getUse
 
 /**
  * @openapi
- * /api/projects/{projectId}/access:
+ * /projects/{projectId}/access:
  *   get:
  *     summary: Vérifier si l'utilisateur a accès au projet
  *     tags: [Project Teams]

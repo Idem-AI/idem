@@ -6,7 +6,7 @@ const router = Router();
 
 /**
  * @openapi
- * /api/teams:
+ * /teams:
  *   post:
  *     summary: Créer une nouvelle équipe
  *     tags: [Teams]
@@ -47,7 +47,7 @@ router.post('/', authenticate, teamController.createTeam);
 
 /**
  * @openapi
- * /api/teams/my-teams:
+ * /teams/my-teams:
  *   get:
  *     summary: Récupérer toutes les équipes de l'utilisateur
  *     tags: [Teams]
@@ -63,7 +63,7 @@ router.get('/my-teams', authenticate, teamController.getUserTeams);
 
 /**
  * @openapi
- * /api/teams/{teamId}:
+ * /teams/{teamId}:
  *   get:
  *     summary: Récupérer une équipe par ID
  *     tags: [Teams]
@@ -85,7 +85,7 @@ router.get('/:teamId', authenticate, teamController.getTeam);
 
 /**
  * @openapi
- * /api/teams/{teamId}/members:
+ * /teams/{teamId}/members:
  *   post:
  *     summary: Ajouter un membre à une équipe
  *     tags: [Teams]
@@ -125,7 +125,7 @@ router.post('/:teamId/members', authenticate, teamController.addTeamMember);
 
 /**
  * @openapi
- * /api/teams/{teamId}/members/role:
+ * /teams/{teamId}/members/role:
  *   put:
  *     summary: Mettre à jour le rôle d'un membre
  *     tags: [Teams]
@@ -160,7 +160,7 @@ router.put('/:teamId/members/role', authenticate, teamController.updateMemberRol
 
 /**
  * @openapi
- * /api/teams/{teamId}/members/{memberId}:
+ * /teams/{teamId}/members/{memberId}:
  *   delete:
  *     summary: Retirer un membre d'une équipe
  *     tags: [Teams]

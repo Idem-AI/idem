@@ -3,7 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '../../models/project.model';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Loader } from '../../../../components/loader/loader';
 
 @Component({
@@ -17,21 +17,29 @@ import { Loader } from '../../../../components/loader/loader';
 export class DashboardComponent implements OnInit {
   protected readonly cookieService = inject(CookieService);
   protected readonly projectService = inject(ProjectService);
+  protected readonly router = inject(Router);
+  protected readonly route = inject(ActivatedRoute);
 
   readonly project = signal<ProjectModel | null>(null);
   readonly isLoading = signal<boolean>(true);
   readonly error = signal<string | null>(null);
-  protected readonly router = inject(Router);
+
   ngOnInit(): void {
     this.isLoading.set(true);
-    const projectId = this.cookieService.get('projectId');
-    console.log('projectId', projectId);
+
+    // Get project ID from route params
+    const projectId = this.route.snapshot.paramMap.get('projectId');
+    console.log('projectId from route:', projectId);
+
     if (!projectId) {
       this.error.set('No project selected. Please select a project to view the dashboard.');
       this.isLoading.set(false);
-      this.router.navigate(['/console/projects']);
+      this.router.navigate(['/console']);
       return;
     }
+
+    // Save to cookie for other components
+    this.cookieService.set('projectId', projectId);
 
     this.projectService.getProjectById(projectId).subscribe({
       next: (projectData) => {

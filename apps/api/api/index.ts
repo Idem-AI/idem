@@ -130,10 +130,10 @@ app.use('/cache', cacheRoutes);
 app.use('/project', policyRoutes);
 
 // Authorization routes
-app.use('/api/teams', teamRoutes);
-app.use('/api/invitations', invitationRoutes);
-app.use('/api/projects', projectTeamRoutes);
-app.use('/api/migration', migrationRoutes);
+app.use('/teams', teamRoutes);
+app.use('/invitations', invitationRoutes);
+app.use('/projects', projectTeamRoutes);
+app.use('/migration', migrationRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

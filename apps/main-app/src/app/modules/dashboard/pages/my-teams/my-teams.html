@@ -1,0 +1,71 @@
+<div class="min-h-screen text-white flex flex-col mt-16">
+  <div class="flex-1 flex px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
+    <main
+      class="flex-1 space-y-6 sm:space-y-8 lg:space-y-10 overflow-y-auto max-w-7xl mx-auto w-full"
+    >
+      @if (isLoading()) {
+      <div class="flex justify-center items-center h-64">
+        <app-loader />
+      </div>
+      } @else if (errorMessage()) {
+      <div class="glass-card p-6 border border-red-500/50">
+        <div class="flex items-center gap-3 text-red-400">
+          <i class="pi pi-exclamation-triangle text-2xl"></i>
+          <div>
+            <h3 class="font-bold">Error</h3>
+            <p class="text-sm">{{ errorMessage() }}</p>
+          </div>
+        </div>
+      </div>
+      } @else {
+      <!-- Header -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">My Teams</h1>
+          <button (click)="onCreateTeam()" class="inner-button">
+            <i class="pi pi-plus mr-2"></i>
+            Create Team
+          </button>
+        </div>
+        <p class="text-gray-400">Manage your teams and collaborate with others</p>
+      </section>
+
+      <!-- Recent Teams -->
+      @if (recentTeams().length > 0) {
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary">Recent Teams</h2>
+        </div>
+
+        <app-team-list
+          [teams]="recentTeams()"
+          [showCreateButton]="false"
+          (teamClick)="onTeamClick($event)"
+        />
+      </section>
+      }
+
+      <!-- All Teams -->
+      <section class="space-y-4 sm:space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h2 class="text-xl sm:text-2xl font-semibold text-primary">All Teams</h2>
+        </div>
+
+        <app-team-list
+          [teams]="teams()"
+          [showCreateButton]="true"
+          [createButtonLabel]="'Create a new team'"
+          [emptyMessage]="'No teams available'"
+          (teamClick)="onTeamClick($event)"
+          (createClick)="onCreateTeam()"
+        />
+      </section>
+      }
+    </main>
+  </div>
+</div>
+
+<!-- Create Team Modal -->
+@if (showCreateModal()) {
+<app-create-team-modal (closeModal)="onCloseCreateModal()" (teamCreated)="onTeamCreated()" />
+}

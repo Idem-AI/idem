@@ -6,7 +6,7 @@ const router = Router();
 
 /**
  * @openapi
- * /api/migration/run:
+ * /migration/run:
  *   post:
  *     summary: Lancer la migration des utilisateurs (Admin uniquement)
  *     tags: [Migration]
@@ -22,7 +22,7 @@ router.post('/run', authenticate, migrationController.runMigration);
 
 /**
  * @openapi
- * /api/migration/status:
+ * /migration/status:
  *   get:
  *     summary: Récupérer le statut de la migration
  *     tags: [Migration]

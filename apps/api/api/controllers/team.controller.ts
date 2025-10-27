@@ -21,7 +21,7 @@ export async function createTeam(req: CustomRequest, res: Response): Promise<voi
     const data: CreateTeamDTO = req.body;
     const team = await teamService.createTeam(userId, data);
 
-    res.status(201).json({ success: true, data: team });
+    res.status(201).json(team);
   } catch (error: any) {
     logger.error(`Error creating team: ${error.message}`);
     res
@@ -45,7 +45,7 @@ export async function getTeam(req: CustomRequest, res: Response): Promise<void> 
       return;
     }
 
-    res.status(200).json({ success: true, data: team });
+    res.status(200).json(team);
   } catch (error: any) {
     logger.error(`Error getting team: ${error.message}`);
     res
@@ -69,7 +69,7 @@ export async function getUserTeams(req: CustomRequest, res: Response): Promise<v
     }
 
     const teams = await teamService.getUserTeams(userId);
-    res.status(200).json({ success: true, data: teams });
+    res.status(200).json(teams);
   } catch (error: any) {
     logger.error(`Error getting user teams: ${error.message}`);
     res
@@ -96,7 +96,7 @@ export async function addTeamMember(req: CustomRequest, res: Response): Promise<
     const data: AddTeamMemberDTO = req.body;
 
     const team = await teamService.addMember(teamId, userId, data);
-    res.status(200).json({ success: true, data: team });
+    res.status(200).json(team);
   } catch (error: any) {
     logger.error(`Error adding team member: ${error.message}`);
     res
@@ -123,7 +123,7 @@ export async function updateMemberRole(req: CustomRequest, res: Response): Promi
     const data: UpdateTeamMemberRoleDTO = req.body;
 
     const team = await teamService.updateMemberRole(teamId, userId, data);
-    res.status(200).json({ success: true, data: team });
+    res.status(200).json(team);
   } catch (error: any) {
     logger.error(`Error updating member role: ${error.message}`);
     res
@@ -149,7 +149,7 @@ export async function removeMember(req: CustomRequest, res: Response): Promise<v
     const { teamId, memberId } = req.params;
 
     const team = await teamService.removeMember(teamId, userId, memberId);
-    res.status(200).json({ success: true, data: team });
+    res.status(200).json(team);
   } catch (error: any) {
     logger.error(`Error removing member: ${error.message}`);
     res
