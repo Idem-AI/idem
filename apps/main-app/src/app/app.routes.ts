@@ -156,6 +156,12 @@ export const routes: Routes = [
       ),
     data: { layout: 'empty' },
   },
+  {
+    path: 'console/teams',
+    loadComponent: () =>
+      import('./components/teams/team-management.component').then((m) => m.TeamManagementComponent),
+    data: { layout: 'dashboard' },
+  },
 
   // Policy pages
   {
