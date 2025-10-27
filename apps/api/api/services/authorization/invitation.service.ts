@@ -3,7 +3,6 @@ import {
   CreateInvitationDTO,
   AcceptInvitationDTO,
   InvitationEmailData,
-  InvitationStatus,
 } from '@idem/shared-models';
 import { FirestoreRepository } from '../../repository/FirestoreRepository';
 import logger from '../../config/logger';

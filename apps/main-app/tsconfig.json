@@ -16,7 +16,14 @@
     "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
-    "module": "ES2022"
+    "module": "ES2022",
+    "baseUrl": ".",
+    "paths": {
+      "@idem/shared-models": ["../../packages/shared-models/src"],
+      "@idem/shared-models/*": ["../../packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["../../packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["../../packages/shared-auth-client/src/*"]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

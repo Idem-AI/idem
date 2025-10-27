@@ -8,7 +8,7 @@ export type ProjectType = 'web' | 'mobile' | 'iot' | 'desktop';
 /**
  * Membre d'équipe dans le projet (legacy)
  */
-export interface TeamMember {
+export interface ProjectTeamMember {
   name: string;
   role: string;
   email: string;
@@ -31,7 +31,7 @@ export interface ProjectAdditionalInfos {
   city: string;
   country: string;
   zipCode: string;
-  teamMembers: TeamMember[];
+  teamMembers: ProjectTeamMember[];
 }
 
 /**

@@ -1,14 +1,14 @@
-import {
-  TeamModel,
-  CreateTeamDTO,
-  AddTeamMemberDTO,
-  UpdateTeamMemberRoleDTO,
-  TeamMember,
-  TeamRole,
-} from '@idem/shared-models';
 import { FirestoreRepository } from '../../repository/FirestoreRepository';
 import logger from '../../config/logger';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  TeamModel,
+  CreateTeamDTO,
+  TeamMember,
+  AddTeamMemberDTO,
+  UpdateTeamMemberRoleDTO,
+  TeamRole,
+} from '@idem/shared-models';
 
 const TEAMS_COLLECTION = 'teams';
 
