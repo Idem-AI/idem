@@ -8,11 +8,13 @@
     "apps/chart",
     "apps/appgen",
     "apps/api",
-    "packages/shared-models"
+    "packages/shared-models",
+    "packages/shared-auth-client"
   ],
   "scripts": {
-    "postinstall": "husky install || true",
+    "postinstall": "husky install || true && npm run build:shared && npm run build:shared-auth",
     "install:all": "npm install --workspaces",
+    "prepare:packages": "npm run build:shared && npm run build:shared-auth",
     "dev:chart": "npm run dev --workspace=mermaid-live-editor",
     "dev:appgen-next": "npm run dev:next --workspace=we-dev",
     "dev:appgen-client": "npm run dev:client --workspace=we-dev",
@@ -24,7 +26,8 @@
     "build:appgen-client": "npm run build:client --workspace=we-dev",
     "build:api": "npm run build --workspace=idem-api",
     "build:shared": "npm run build --workspace=@idem/shared-models",
-    "build:all": "npm run build:shared && npm run build:main-app && npm run build:chart && npm run build:appgen && npm run build:api",
+    "build:shared-auth": "npm run build --workspace=@idem/shared-auth-client",
+    "build:all": "npm run build:shared && npm run build:shared-auth && npm run build:main-app && npm run build:chart && npm run build:appgen-client  && npm run build:api && npm run build:appgen-next ",
     "test:all": "npm run test --workspaces --if-present",
     "lint:all": "npm run lint --workspace=idem --workspace=idem-api --workspace=we-dev --if-present",
     "lint:fix": "npm run lint:fix --workspace=idem --workspace=idem-api --workspace=we-dev --if-present",
