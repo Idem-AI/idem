@@ -1,0 +1,30 @@
+{
+  "name": "@idem/shared-auth-client",
+  "version": "1.0.0",
+  "description": "Shared authentication and authorization client for all Idem frontends",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "idem",
+    "auth",
+    "authorization",
+    "client",
+    "frontend"
+  ],
+  "author": "arolleaguekeng",
+  "license": "MIT",
+  "dependencies": {
+    "@idem/shared-models": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "firebase": "^11.0.0"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@idem/shared-models",
+  "version": "1.0.0",
+  "description": "Shared models and types for Idem workspace",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "idem",
+    "models",
+    "types",
+    "shared"
+  ],
+  "author": "arolleaguekeng",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

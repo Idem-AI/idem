@@ -15,8 +15,10 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@idem/shared/*": ["libs/shared/*"],
-      "@idem/types/*": ["libs/types/*"]
+      "@idem/shared-models": ["packages/shared-models/src"],
+      "@idem/shared-models/*": ["packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["packages/shared-auth-client/src/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
