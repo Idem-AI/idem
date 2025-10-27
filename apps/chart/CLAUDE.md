@@ -11,7 +11,7 @@ Chart is a Mermaid-based diagram and chart editor built with **Svelte 5** and **
 - **Framework**: Svelte 5.23.2
 - **Meta-Framework**: SvelteKit 2.20.3
 - **Build Tool**: Vite 5.4.14
-- **Styling**: Tailwind CSS 3.4.17 (will migrate to 4.x)
+- **Styling**: Tailwind CSS 4.0.15 (CSS-first configuration)
 - **UI Components**: Bits UI, Paneforge, Svelte Sonner
 - **Icons**: Lucide Svelte, Unplugin Icons
 - **Code Editor**: Monaco Editor 0.52.2
@@ -48,13 +48,18 @@ This project uses the **`@idem/shared-styles`** package for consistent design.
 pnpm add @idem/shared-styles
 ```
 
-**Import in src/app.css:**
+**Import in src/app.postcss:**
 
 ```css
+/* Import shared design system (includes Tailwind 4) */
 @import '@idem/shared-styles/styles.css';
+
+/* External fonts */
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import '@fontsource-variable/recursive/crsv.css';
 ```
 
-**Extend in tailwind.config.js:**
+**Tailwind config extends shared config:**
 
 ```js
 import sharedConfig from '@idem/shared-styles/tailwind.config';
@@ -62,6 +67,7 @@ import sharedConfig from '@idem/shared-styles/tailwind.config';
 export default {
   ...sharedConfig,
   content: ['./src/**/*.{html,js,svelte,ts}']
+  // Keep chart-specific colors for UI components
 };
 ```
 
@@ -69,159 +75,100 @@ export default {
 
 The design system is defined in `@idem/shared-styles`. **ALWAYS** use this shared package.
 
-#### Global Styles (src/app.css)
+#### Core Colors (oklch)
 
-**🚨 CRITICAL: Use Tailwind 4 import syntax**
+All colors use **oklch** color space from `@idem/shared-styles`:
 
 ```css
-/* Import shared design system (includes Tailwind 4) */
-@import '@idem/shared-styles/styles.css';
-
-/* DO NOT USE these v3 directives:
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-*/
-
-@import url('https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap');
-
-/* Force dark mode */
-:root {
-  color-scheme: dark;
-
-  --color-primary: #1447e6;
-  --color-secondary: #d11ec0;
-  --color-accent: #22d3ee;
-  --color-primary-glow: rgba(20, 73, 230, 0.66);
-  --color-secondary-glow: rgba(209, 30, 192, 0.66);
-  --color-accent-glow: rgba(34, 211, 238, 0.6);
-
-  --color-bg-dark: #06080d;
-  --color-bg-light: #0f141b;
-  --color-light-text: #f5f5f5;
-  --color-success: #219653;
-  --color-danger: #d34053;
-  --color-warning: #ffa70b;
-
-  --glass-bg: rgba(15, 20, 27, 0.4);
-  --glass-bg-darker: rgba(20, 20, 30, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --glass-blur: 8px;
-}
-
-* {
-  font-family: 'Jura', sans-serif;
-  scroll-behavior: smooth;
-}
-
-body {
-  background-color: var(--color-bg-dark);
-  background-size: 50px 50px;
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-@layer components {
-  .glass {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    box-shadow: var(--glass-shadow);
-  }
-
-  .glass-dark {
-    background: var(--glass-bg-darker);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    box-shadow: var(--glass-shadow);
-  }
-
-  .glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    box-shadow: var(--glass-shadow);
-    transition: all 0.3s ease;
-  }
-
-  .glass-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-  }
-
-  .inner-button {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-glow));
-    background-size: 200% 100%;
-    animation: gradient-shift 3s ease infinite;
-    color: white;
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    text-transform: uppercase;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    border: none;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    cursor: pointer;
-  }
-
-  .inner-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(60, 164, 250, 0.4);
-  }
-
-  .outer-button {
-    border: 1px solid var(--glass-border);
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px);
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    text-transform: uppercase;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-  }
-
-  .input {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    color: var(--color-light-text);
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    width: 100%;
-  }
-
-  .input:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-primary-glow);
-  }
-}
-
-@keyframes gradient-shift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
+--color-primary: oklch(0.55 0.22 264) /* Blue */ --color-secondary: oklch(0.6 0.25 328)
+  /* Magenta */ --color-accent: oklch(0.75 0.15 195) /* Cyan */ --color-bg-dark: oklch(0.1 0.01 264)
+  /* Dark background */ --color-bg-light: oklch(0.15 0.01 264) /* Light background */
+  --color-light-text: oklch(0.96 0 0) /* White text */ --color-success: oklch(0.55 0.15 145)
+  /* Green */ --color-danger: oklch(0.58 0.2 25) /* Red */ --color-warning: oklch(0.7 0.18 75)
+  /* Orange */;
 ```
 
-### Tailwind Configuration
+**DO NOT redefine these variables** - they come from `@idem/shared-styles`.
+
+#### Glass Morphism Classes
+
+**Use classes from `@idem/shared-styles`:**
+
+```svelte
+<!-- Standard glass effect -->
+<div class="glass rounded-2xl p-6">
+  <!-- Content -->
+</div>
+
+<!-- Darker glass -->
+<div class="glass-dark rounded-2xl p-6">
+  <!-- Content -->
+</div>
+
+<!-- Glass card with hover -->
+<div class="glass-card p-6">
+  <!-- Content -->
+</div>
+```
+
+**DO NOT redefine these classes** - they are provided by `@idem/shared-styles`.
+
+#### Button Components
+
+**Use classes from `@idem/shared-styles`:**
+
+```svelte
+<!-- Primary button with gradient -->
+<button class="inner-button"> Primary Action </button>
+
+<!-- Secondary glass button -->
+<button class="outer-button"> Secondary Action </button>
+
+<!-- With Tailwind utilities -->
+<button class="inner-button hover:-translate-y-0.5"> Hover Effect </button>
+```
+
+#### Input Components
+
+**Use `.input` class from `@idem/shared-styles`:**
+
+```svelte
+<script lang="ts">
+  let value = $state('');
+</script>
+
+<div class="w-full">
+  <label class="text-light-text mb-2 block text-sm"> Label </label>
+  <input class="input" bind:value placeholder="Enter text" />
+</div>
+```
+
+### Tailwind CSS 4 Guidelines
+
+**🚨 CRITICAL**: This project uses Tailwind CSS 4 ONLY. Never use Tailwind v3 syntax.
+
+#### Tailwind 4 Syntax - MANDATORY
+
+| ❌ NEVER USE (v3)   | ✅ ALWAYS USE (v4)      |
+| ------------------- | ----------------------- |
+| `@tailwind base`    | `@import 'tailwindcss'` |
+| `bg-opacity-50`     | `bg-black/50`           |
+| `text-opacity-80`   | `text-white/80`         |
+| `flex-shrink-0`     | `shrink-0`              |
+| `flex-grow-1`       | `grow`                  |
+| `overflow-ellipsis` | `text-ellipsis`         |
+
+**Examples:**
+
+```svelte
+<!-- ✅ Correct (v4) -->
+<div class="bg-black/50 text-white/80 shrink-0">
+
+<!-- ❌ Wrong (v3) - DO NOT USE -->
+<div class="bg-opacity-50 text-opacity-80 flex-shrink-0">
+```
+
+## Svelte 5 Best Practices
 
 **🚨 Use shared configuration - DO NOT redefine design tokens**
 
@@ -269,7 +216,7 @@ export default {
 </script>
 
 <div class="glass-card p-6">
-  <h2 class="mb-4 text-2xl text-light-text">Count: {count}</h2>
+  <h2 class="text-light-text mb-4 text-2xl">Count: {count}</h2>
   <p class="mb-4 text-white/80">User: {user.name}, Age: {user.age}</p>
 
   <button class="inner-button" onclick={increment}> Increment Count </button>
@@ -329,7 +276,7 @@ export default {
 </script>
 
 <div class="glass-card p-6">
-  <h2 class="mb-4 text-2xl text-light-text">{title}</h2>
+  <h2 class="text-light-text mb-4 text-2xl">{title}</h2>
   <p class="mb-4 text-white/80">Count: {count}</p>
 
   {#if onIncrement}
@@ -369,11 +316,11 @@ export default {
 </script>
 
 <div class={cn('glass-card p-6', className)}>
-  <h2 class="mb-4 text-2xl text-light-text">Counter</h2>
+  <h2 class="text-light-text mb-4 text-2xl">Counter</h2>
 
   <div class="mb-4 flex items-center gap-4">
     <button class="outer-button" onclick={decrement}>-</button>
-    <span class="text-3xl text-light-text">{count}</span>
+    <span class="text-light-text text-3xl">{count}</span>
     <button class="inner-button" onclick={increment}>+</button>
   </div>
 
@@ -422,7 +369,7 @@ export const isAuthenticated = derived(userStore, ($user) => $user !== null);
 
 {#if $isAuthenticated}
   <div class="glass-card p-6">
-    <h2 class="text-2xl text-light-text">Welcome, {$userStore?.name}!</h2>
+    <h2 class="text-light-text text-2xl">Welcome, {$userStore?.name}!</h2>
   </div>
 {:else}
   <div class="glass-card p-6">
@@ -444,9 +391,9 @@ export const isAuthenticated = derived(userStore, ($user) => $user !== null);
 {#if loading}
   <div class="glass p-8 text-center">
     <div
-      class="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent">
+      class="border-primary mx-auto h-8 w-8 animate-spin rounded-full border-4 border-t-transparent">
     </div>
-    <p class="mt-4 text-light-text">Loading...</p>
+    <p class="text-light-text mt-4">Loading...</p>
   </div>
 {:else if error}
   <div class="glass-dark border border-red-500 p-6">
@@ -502,17 +449,17 @@ export const isAuthenticated = derived(userStore, ($user) => $user !== null);
 
 <form class="glass-card p-6">
   <div class="mb-4">
-    <label class="mb-2 block text-light-text text-sm">Name</label>
+    <label class="text-light-text mb-2 block text-sm">Name</label>
     <input bind:value={name} class="input" />
   </div>
 
   <div class="mb-4">
-    <label class="mb-2 block text-light-text text-sm">Email</label>
+    <label class="text-light-text mb-2 block text-sm">Email</label>
     <input bind:value={email} type="email" class="input" />
   </div>
 
   <div class="mb-4">
-    <label class="flex cursor-pointer items-center gap-2 text-light-text">
+    <label class="text-light-text flex cursor-pointer items-center gap-2">
       <input bind:checked={agreed} type="checkbox" />
       I agree to the terms
     </label>
@@ -568,7 +515,7 @@ export const load: PageLoad = async ({ fetch }) => {
 </script>
 
 <div class="glass-card p-6">
-  <h1 class="mb-6 text-4xl text-light-text">Blog Posts</h1>
+  <h1 class="text-light-text mb-6 text-4xl">Blog Posts</h1>
 
   <div class="space-y-4">
     {#each data.posts as post}
@@ -616,7 +563,7 @@ export const actions: Actions = {
 </script>
 
 <form method="POST" use:enhance class="glass-card p-6">
-  <h2 class="mb-4 text-2xl text-light-text">Contact Us</h2>
+  <h2 class="text-light-text mb-4 text-2xl">Contact Us</h2>
 
   {#if form?.error}
     <div class="glass-dark mb-4 border border-red-500 p-4">
@@ -631,12 +578,12 @@ export const actions: Actions = {
   {/if}
 
   <div class="mb-4">
-    <label class="mb-2 block text-light-text text-sm">Name</label>
+    <label class="text-light-text mb-2 block text-sm">Name</label>
     <input name="name" class="input" required />
   </div>
 
   <div class="mb-4">
-    <label class="mb-2 block text-light-text text-sm">Email</label>
+    <label class="text-light-text mb-2 block text-sm">Email</label>
     <input name="email" type="email" class="input" required />
   </div>
 
@@ -747,7 +694,7 @@ export const POST: RequestHandler = async ({ request }) => {
     role="dialog"
     aria-modal="true">
     <div class="glass-card m-4 w-full max-w-md p-6" onclick={(e) => e.stopPropagation()}>
-      <h2 class="mb-4 text-2xl text-light-text">{title}</h2>
+      <h2 class="text-light-text mb-4 text-2xl">{title}</h2>
       {@render children()}
 
       <div class="mt-6 flex gap-4">

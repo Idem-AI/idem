@@ -31,6 +31,97 @@ The MCP provides:
 - Dependency injection patterns
 - Router and forms best practices
 
+## Angular Style Guide - MANDATORY
+
+**Follow the official Angular Style Guide:** https://angular.dev/style-guide
+
+### Key Principles
+
+#### Dependency Injection
+
+- ✅ **PREFER** `inject()` function over constructor injection
+- ✅ More readable, better type inference
+- ✅ Easier to add comments to dependencies
+
+```typescript
+// ✅ PREFER
+import { inject } from '@angular/core';
+
+export class MyComponent {
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+}
+
+// ❌ AVOID
+export class MyComponent {
+  constructor(
+    private http: HttpClient,
+    private router: Router
+  ) {}
+}
+```
+
+#### Component Members
+
+- ✅ Use `readonly` for inputs, outputs, and queries
+- ✅ Use `protected` for template-only members
+- ✅ Group Angular properties before methods
+
+```typescript
+@Component({...})
+export class UserProfile {
+  // Inputs/Outputs first
+  readonly userId = input<string>();
+  readonly userSaved = output<void>();
+
+  // Protected computed for template
+  protected fullName = computed(() =>
+    `${this.firstName()} ${this.lastName()}`
+  );
+
+  // Methods after
+  saveUser() { ... }
+}
+```
+
+#### Templates
+
+- ✅ **PREFER** `[class]` and `[style]` over `ngClass` and `ngStyle`
+- ✅ Keep templates simple, move complex logic to TypeScript
+- ✅ Use signals and computed for reactive values
+- ⚠️ **NEVER use Tailwind opacity syntax in `[class.xxx]` bindings**
+
+```html
+<!-- ✅ CORRECT -->
+<div [class.active]="isActive()" [class.dense]="density() === 'high'">
+  <!-- ❌ AVOID -->
+  <div [ngClass]="{active: isActive(), dense: density() === 'high'}"></div>
+</div>
+```
+
+**🚨 CRITICAL - Angular Class Binding Limitation:**
+
+Angular's `[class.xxx]` binding **DOES NOT SUPPORT** Tailwind 4 opacity syntax with slashes:
+
+```html
+<!-- ❌ NEVER DO THIS - Causes Angular errors -->
+<div [class.bg-primary/30]="isActive()">
+<div [class.text-white/80]="isSelected()">
+
+<!-- ✅ USE THIS INSTEAD - Use [class] binding -->
+<div [class]="isActive() ? 'bg-primary/30' : ''">
+<div [class]="isSelected() ? 'text-white/80' : ''">
+
+<!-- ✅ OR use ngClass for complex conditions -->
+<div [ngClass]="{'bg-primary/30': isActive(), 'bg-secondary/30': !isActive()}">
+
+<!-- ✅ OR define custom CSS classes -->
+<div [class.active-state]="isActive()">
+<!-- In CSS: .active-state { @apply bg-primary/30; } -->
+```
+
+**Why?** The `/` character in `[class.bg-primary/30]` is invalid in Angular's class binding syntax.
+
 ## Design System - CRITICAL
 
 **ALL UI COMPONENTS MUST FOLLOW THE IDEM DESIGN SYSTEM**
@@ -62,19 +153,26 @@ export default {
 
 The design system is defined in `@idem/shared-styles/styles.css`. **ALWAYS** use this shared package.
 
-#### Core Colors
+#### Core Colors (oklch)
 
-```typescript
-// Use these CSS variables in components
---color-primary: #1447e6
---color-secondary: #d11ec0
---color-accent: #22d3ee
---color-bg-dark: #06080d
---color-bg-light: #0f141b
---color-light-text: #f5f5f5
---color-success: #219653
---color-danger: #d34053
---color-warning: #ffa70b
+All colors use **oklch** color space for wider gamut:
+
+```css
+--color-primary: oklch(0.55 0.22 264) /* Blue */ --color-secondary: oklch(0.6 0.25 328)
+  /* Magenta */ --color-accent: oklch(0.75 0.15 195) /* Cyan */ --color-bg-dark: oklch(0.1 0.01 264)
+  /* Dark background */ --color-bg-light: oklch(0.15 0.01 264) /* Light background */
+  --color-light-text: oklch(0.96 0 0) /* White text */ --color-success: oklch(0.55 0.15 145)
+  /* Green */ --color-danger: oklch(0.58 0.2 25) /* Red */ --color-warning: oklch(0.7 0.18 75)
+  /* Orange */;
+```
+
+**Use in templates:**
+
+```html
+<!-- Tailwind utilities -->
+<div class="bg-primary text-light-text">
+  <button class="bg-secondary hover:bg-secondary/80"></button>
+</div>
 ```
 
 #### Glass Morphism Effects
