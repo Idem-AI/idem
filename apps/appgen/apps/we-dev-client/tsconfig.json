@@ -14,7 +14,11 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["../../components/*"],
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@idem/shared-models": ["../../../../packages/shared-models/src"],
+      "@idem/shared-models/*": ["../../../../packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["../../../../packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["../../../../packages/shared-auth-client/src/*"]
     }
   },
   "exclude": ["**/**/node_modules/*", "**/**/58d2c/*", "**/**/SketchEditor/*"],
