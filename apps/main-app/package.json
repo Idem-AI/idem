@@ -1,9 +1,10 @@
 {
-  "name": "idem",
+  "name": "main-app",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "node -r dotenv/config mynode.js && ng serve --host 0.0.0.0",
+    "start": "ng serve --host 0.0.0.0",
+    "dev": "ng serve --host 0.0.0.0",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
