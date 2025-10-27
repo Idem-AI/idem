@@ -53,6 +53,10 @@ import cacheRoutes from './routes/cache.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
 import policyRoutes from './routes/policy.routes';
+import teamRoutes from './routes/team.routes';
+import invitationRoutes from './routes/invitation.routes';
+import projectTeamRoutes from './routes/project-team.routes';
+import migrationRoutes from './routes/migration.routes';
 
 const app: Express = express();
 
@@ -124,6 +128,12 @@ app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
 app.use('/project', policyRoutes);
+
+// Authorization routes
+app.use('/api/teams', teamRoutes);
+app.use('/api/invitations', invitationRoutes);
+app.use('/api/projects', projectTeamRoutes);
+app.use('/api/migration', migrationRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
