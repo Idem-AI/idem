@@ -18,7 +18,9 @@
       "@idem/shared-models": ["packages/shared-models/src"],
       "@idem/shared-models/*": ["packages/shared-models/src/*"],
       "@idem/shared-auth-client": ["packages/shared-auth-client/src"],
-      "@idem/shared-auth-client/*": ["packages/shared-auth-client/src/*"]
+      "@idem/shared-auth-client/*": ["packages/shared-auth-client/src/*"],
+      "@idem/shared-styles": ["packages/shared-styles"],
+      "@idem/shared-styles/*": ["packages/shared-styles/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
