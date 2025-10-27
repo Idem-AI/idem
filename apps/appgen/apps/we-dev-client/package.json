@@ -84,7 +84,7 @@
   "devDependencies": {
     "@iconify/json": "^2.2.300",
     "@iconify/tailwind": "^1.2.0",
-    "@idem/shared-styles": "workspace:*",
+    "@idem/shared-styles": "file:../../../../packages/shared-styles",
     "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@tailwindcss/postcss": "^4.0.15",
     "@types/lodash": "^4.17.13",

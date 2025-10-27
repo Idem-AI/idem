@@ -25,6 +25,7 @@
     "@angular/router": "^20.0.0",
     "@angular/ssr": "^20.0.0",
     "@google/generative-ai": "^0.24.0",
+    "@idem/shared-styles": "file:../../packages/shared-styles",
     "@primeng/themes": "^20.0.0",
     "@tailwindcss/postcss": "^4.0.15",
     "@types/html2canvas": "^0.5.35",

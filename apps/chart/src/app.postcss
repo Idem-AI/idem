@@ -1,9 +1,14 @@
+/**
+ * Chart App - Styles
+ * Using @idem/shared-styles with Tailwind CSS 4
+ */
+
+/* Import shared design system (includes Tailwind 4 and theme) */
+@import '@idem/shared-styles/styles.css';
+
+/* External fonts and icons */
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 @import '@fontsource-variable/recursive/crsv.css';
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @layer base {
   /* Prevent flash of white content during initial load */

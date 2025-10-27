@@ -13,8 +13,8 @@
     "tailwind.config.js",
     "README.md"
   ],
-  "peerDependencies": {
-    "tailwindcss": "^4.0.0"
+  "dependencies": {
+    "tailwindcss": "^4.0.15"
   },
   "keywords": [
     "design-system",

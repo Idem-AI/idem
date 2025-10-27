@@ -9,7 +9,8 @@
     "apps/appgen",
     "apps/api",
     "packages/shared-models",
-    "packages/shared-auth-client"
+    "packages/shared-auth-client",
+    "packages/shared-styles"
   ],
   "scripts": {
     "postinstall": "husky install || true && npm run build:shared && npm run build:shared-auth",
