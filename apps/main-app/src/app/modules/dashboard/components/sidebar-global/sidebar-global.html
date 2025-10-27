@@ -27,53 +27,12 @@
       <!-- Logo -->
       <div class="flex-shrink-0 flex items-center">
         <a
-          routerLink="/"
+          routerLink="/console"
           class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
         >
           <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto" />
           <app-beta-badge></app-beta-badge>
         </a>
-      </div>
-
-      <!-- Desktop Project Selector -->
-      <div class="hidden md:block ml-6 relative project-selector">
-        <button
-          (click)="toggleProjectSelector()"
-          class="flex items-center gap-3 px-4 py-2 glass-card hover:bg-white/5 transition-all duration-200 min-w-[200px] justify-between"
-        >
-          <div class="flex items-center gap-3">
-            <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-            <span class="text-white font-medium truncate">
-              {{ selectedProject()?.name || 'Select Project' }}
-            </span>
-          </div>
-          <i
-            class="pi pi-chevron-down text-gray-400 transition-transform duration-200"
-            [class.rotate-180]="isProjectSelectorOpen()"
-          ></i>
-        </button>
-
-        <!-- Project Dropdown -->
-        @if (isProjectSelectorOpen()) {
-        <div
-          class="absolute top-full left-0 mt-2 w-full glass-card border border-white/10 rounded-xl shadow-xl z-50 py-2 max-h-64 overflow-y-auto"
-        >
-          @for (project of dropDownProjects(); track project.code) {
-          <button
-            (click)="onProjectChange(project)"
-            class="w-full px-4 py-3 text-left hover:bg-white/5 transition-all duration-200 flex items-center gap-3 text-white"
-            [class.bg-primary]="selectedProject()?.code === project.code"
-          >
-            @if (project.code === 'all-projects') {
-            <i class="pi pi-list text-primary"></i>
-            } @else {
-            <div class="w-2 h-2 rounded-full bg-accent"></div>
-            }
-            <span class="font-medium">{{ project.name }}</span>
-          </button>
-          }
-        </div>
-        }
       </div>
     </div>
 
@@ -81,7 +40,7 @@
     <div class="flex items-center gap-4">
       @if (user()) {
       <!-- Quota Display - Desktop only -->
-      <div>
+      <div class="hidden md:block">
         <app-quota-display
           [quotaInfo]="quotaInfo() ?? null"
           [quotaDisplay]="quotaDisplay() ?? null"
@@ -124,15 +83,6 @@
           </a>
 
           <a
-            routerLink="/console"
-            (click)="navigateTo('/console')"
-            class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
-          >
-            <i class="pi pi-th-large text-secondary"></i>
-            <span>Global Dashboard</span>
-          </a>
-
-          <a
             routerLink="/settings"
             (click)="navigateTo('/settings')"
             class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
@@ -159,6 +109,7 @@
     </div>
   </div>
 </nav>
+
 <!-- Desktop Sidebar -->
 <aside
   [@sidebarExpand]="sidebarState()"
@@ -258,7 +209,7 @@
   >
     <!-- Header -->
     <div class="flex items-center justify-between p-4 border-b border-white/10">
-      <a routerLink="/" class="flex items-center gap-2" (click)="toggleMobileDrawer()">
+      <a routerLink="/console" class="flex items-center gap-2" (click)="toggleMobileDrawer()">
         <img src="/assets/icons/logo_white.png" alt="Lexi" class="w-24 h-auto" />
         <app-beta-badge></app-beta-badge>
       </a>
@@ -284,30 +235,6 @@
         ></app-quota-display>
       </div>
       }
-
-      <!-- Mobile Project Selector -->
-      <div>
-        <h3 class="text-sm font-medium text-gray-400 mb-3">Current Project</h3>
-        <div class="space-y-2">
-          @for (project of dropDownProjects(); track project.code) {
-          <button
-            (click)="onProjectChange(project)"
-            class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left"
-            [class.bg-primary]="selectedProject()?.code === project.code"
-            [class.text-white]="selectedProject()?.code === project.code"
-            [class.text-white]="selectedProject()?.code !== project.code"
-            [class.hover:bg-white]="selectedProject()?.code !== project.code"
-          >
-            @if (project.code === 'all-projects') {
-            <i class="pi pi-list text-primary"></i>
-            } @else {
-            <div class="w-2 h-2 rounded-full bg-accent"></div>
-            }
-            <span class="font-medium">{{ project.name }}</span>
-          </button>
-          }
-        </div>
-      </div>
 
       <!-- Mobile Navigation -->
       <div>

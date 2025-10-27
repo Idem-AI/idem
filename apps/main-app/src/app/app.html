@@ -8,6 +8,10 @@
 <app-dashboard-layout>
   <router-outlet (activate)="resetPosition()"></router-outlet>
 </app-dashboard-layout>
+} @else if (layout === 'global') {
+<app-global-layout>
+  <router-outlet (activate)="resetPosition()"></router-outlet>
+</app-global-layout>
 } @else if (layout === 'empty') {
 <app-empty-layout>
   <router-outlet (activate)="resetPosition()"></router-outlet>

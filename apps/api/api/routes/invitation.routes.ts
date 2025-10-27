@@ -6,7 +6,7 @@ const router = Router();
 
 /**
  * @openapi
- * /api/invitations:
+ * /invitations:
  *   post:
  *     summary: Créer une invitation utilisateur
  *     tags: [Invitations]
@@ -47,7 +47,7 @@ router.post('/', authenticate, invitationController.createInvitation);
 
 /**
  * @openapi
- * /api/invitations/accept:
+ * /invitations/accept:
  *   post:
  *     summary: Accepter une invitation
  *     tags: [Invitations]
@@ -78,7 +78,7 @@ router.post('/accept', invitationController.acceptInvitation);
 
 /**
  * @openapi
- * /api/invitations/{token}:
+ * /invitations/{token}:
  *   get:
  *     summary: Récupérer les détails d'une invitation par token
  *     tags: [Invitations]
@@ -98,7 +98,7 @@ router.get('/:token', invitationController.getInvitationByToken);
 
 /**
  * @openapi
- * /api/invitations/{token}/reject:
+ * /invitations/{token}/reject:
  *   post:
  *     summary: Rejeter une invitation
  *     tags: [Invitations]
@@ -116,7 +116,7 @@ router.post('/:token/reject', invitationController.rejectInvitation);
 
 /**
  * @openapi
- * /api/invitations/{invitationId}/resend:
+ * /invitations/{invitationId}/resend:
  *   post:
  *     summary: Renvoyer une invitation
  *     tags: [Invitations]

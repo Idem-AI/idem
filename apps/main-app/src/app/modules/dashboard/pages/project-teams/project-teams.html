@@ -1,0 +1,47 @@
+<div class="min-h-screen text-white flex flex-col">
+  <div class="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
+    <main class="flex-1 space-y-6 sm:space-y-8 max-w-7xl mx-auto w-full">
+      <!-- Header -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">Project Teams</h1>
+            <p class="text-gray-400 mt-2">Manage teams assigned to this project</p>
+          </div>
+          <button (click)="addTeamToProject()" class="inner-button">
+            <i class="pi pi-plus mr-2"></i>
+            Add Team
+          </button>
+        </div>
+      </section>
+
+      @if (isLoading()) {
+      <div class="flex justify-center items-center h-64">
+        <app-loader />
+      </div>
+      } @else if (errorMessage()) {
+      <div class="glass-card p-6 border border-red-500/50">
+        <div class="flex items-center gap-3 text-red-400">
+          <i class="pi pi-exclamation-triangle text-2xl"></i>
+          <div>
+            <h3 class="font-bold">Error</h3>
+            <p class="text-sm">{{ errorMessage() }}</p>
+          </div>
+        </div>
+      </div>
+      } @else {
+      <!-- Teams List -->
+      <section class="space-y-4">
+        <app-team-list
+          [teams]="teams()"
+          [showCreateButton]="true"
+          [createButtonLabel]="'Add Team to Project'"
+          [emptyMessage]="'No teams assigned to this project'"
+          (teamClick)="openTeamDetails($event)"
+          (createClick)="addTeamToProject()"
+        />
+      </section>
+      }
+    </main>
+  </div>
+</div>

@@ -26,9 +26,39 @@ export const routes: Routes = [
     data: { layout: 'empty' },
   },
 
-  // Dashboard layout routes
+  // Global dashboard layout routes
   {
-    path: 'console/dashboard',
+    path: 'console',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
+        (m) => m.GlobalDashboard
+      ),
+    data: { layout: 'global' },
+  },
+  {
+    path: 'console/projects',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
+    data: { layout: 'global' },
+  },
+  {
+    path: 'console/teams',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/my-teams/my-teams').then((m) => m.MyTeams),
+    data: { layout: 'global' },
+  },
+  {
+    path: 'console/teams/:teamId',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/team-details-global/team-details-global').then(
+        (m) => m.TeamDetailsGlobal
+      ),
+    data: { layout: 'global' },
+  },
+
+  // Project dashboard layout routes
+  {
+    path: 'console/project/:projectId',
     loadComponent: () =>
       import('./modules/dashboard/pages/dashboard/dashboard').then((m) => m.DashboardComponent),
     data: { layout: 'dashboard' },
@@ -129,15 +159,17 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console',
+    path: 'console/project-teams',
     loadComponent: () =>
-      import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
-    data: { layout: 'empty' },
+      import('./modules/dashboard/pages/project-teams/project-teams').then((m) => m.ProjectTeams),
+    data: { layout: 'dashboard' },
   },
   {
-    path: 'console/projects',
+    path: 'console/project-teams/:teamId',
     loadComponent: () =>
-      import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
+      import('./modules/dashboard/pages/team-details-project/team-details-project').then(
+        (m) => m.TeamDetailsProject
+      ),
     data: { layout: 'dashboard' },
   },
   {
@@ -155,12 +187,6 @@ export const routes: Routes = [
         (m) => m.CreateProjectComponent
       ),
     data: { layout: 'empty' },
-  },
-  {
-    path: 'console/teams',
-    loadComponent: () =>
-      import('./components/teams/team-management.component').then((m) => m.TeamManagementComponent),
-    data: { layout: 'dashboard' },
   },
 
   // Policy pages

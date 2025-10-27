@@ -7,6 +7,7 @@ import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { PublicLayoutComponent } from './layouts/public-layout/public-layout';
 import { DashboardLayoutComponent } from './layouts/dashboard-layout/dashboard-layout';
+import { GlobalLayoutComponent } from './layouts/global-layout/global-layout';
 import { EmptyLayout } from './layouts/empty-layout/empty-layout';
 import { NotificationContainerComponent } from './shared/components/notification-container/notification-container';
 import { QuotaWarningComponent } from './shared/components/quota-warning/quota-warning';
@@ -19,6 +20,7 @@ import { AnalyticsService } from './shared/services/analytics.service';
     RouterOutlet,
     PublicLayoutComponent,
     DashboardLayoutComponent,
+    GlobalLayoutComponent,
     CommonModule,
     EmptyLayout,
     SplashScreenComponent,
@@ -40,7 +42,7 @@ export class App implements OnInit, OnDestroy {
   protected readonly isInitialLoading = signal(true);
 
   /** Layout courant selon la route active */
-  protected readonly currentLayout$: Observable<'public' | 'dashboard' | 'empty'> =
+  protected readonly currentLayout$: Observable<'public' | 'dashboard' | 'global' | 'empty'> =
     this.router.events.pipe(
       filter((event) => event instanceof NavigationEnd),
       startWith(null),
@@ -49,7 +51,10 @@ export class App implements OnInit, OnDestroy {
         while (route?.firstChild) {
           route = route.firstChild;
         }
-        return (route?.snapshot.data?.['layout'] as 'public' | 'dashboard' | 'empty') || 'public';
+        return (
+          (route?.snapshot.data?.['layout'] as 'public' | 'dashboard' | 'global' | 'empty') ||
+          'public'
+        );
       }),
       distinctUntilChanged()
     );

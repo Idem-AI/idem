@@ -107,9 +107,15 @@ export class SidebarDashboard implements OnInit {
   // Navigation items
   protected readonly navigationItems = signal([
     {
-      label: 'Dashboard',
+      label: 'Project Home',
       icon: 'pi pi-home',
-      route: 'console/dashboard',
+      route: 'console/project',
+      isActive: false,
+    },
+    {
+      label: 'Teams',
+      icon: 'pi pi-users',
+      route: 'console/project-teams',
       isActive: false,
     },
     {
@@ -372,16 +378,16 @@ export class SidebarDashboard implements OnInit {
 
             const initialCookieId = this.cookieService.get('projectId');
             if (!initialCookieId) {
-              this.router.navigate([`/console/projects`], {
+              this.router.navigate([`/console`], {
                 replaceUrl: true,
               });
             } else {
               const projectExists = projects.find((p) => p.id === initialCookieId);
               if (!projectExists) {
                 console.warn(
-                  `Initial project ID '${initialCookieId}' not found. Navigating to dashboard.`
+                  `Initial project ID '${initialCookieId}' not found. Navigating to global dashboard.`
                 );
-                this.router.navigate([`/console/dashboard`], { replaceUrl: true });
+                this.router.navigate([`/console`], { replaceUrl: true });
               }
             }
           } else {
@@ -406,8 +412,8 @@ export class SidebarDashboard implements OnInit {
     if (projectId) {
       // Check if "View All Projects" option was selected
       if (projectId === 'all-projects') {
-        // Navigate to projects list view
-        this.router.navigate(['/console/projects']);
+        // Navigate to global dashboard
+        this.router.navigate(['/console']);
         this.isProjectSelectorOpen.set(false);
         return;
       }
@@ -419,8 +425,8 @@ export class SidebarDashboard implements OnInit {
       this.projectIdFromCookie.set(projectId);
       this.isProjectSelectorOpen.set(false);
 
-      // Navigate to the project dashboard
-      this.router.navigate([`/console/dashboard`]);
+      // Navigate to the project dashboard with project ID
+      this.router.navigate([`/console/project`, projectId]);
     }
   }
 
