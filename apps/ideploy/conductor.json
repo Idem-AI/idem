@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "setup": "./scripts/conductor-setup.sh",
+    "run": "docker rm -f ideploy ideploy-realtime ideploy-minio ideploy-testing-host ideploy-redis ideploy-db ideploy-mail ideploy-vite; spin up; spin down"
+  },
+  "runScriptMode": "nonconcurrent"
+}
