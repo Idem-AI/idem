@@ -10,7 +10,7 @@ We Dev Client is a development tool built with **React 18** and **Vite**. It pro
 
 - **Framework**: React 18.2.0
 - **Build Tool**: Vite 5.0.8
-- **Styling**: Tailwind CSS 3.4.17 (will migrate to 4.x)
+- **Styling**: Tailwind CSS 4.0.15 (CSS-first configuration)
 - **UI Components**: Ant Design 5.23.0, Radix UI
 - **Icons**: Lucide React, React Icons, Ant Design Icons
 - **Code Editor**: CodeMirror 6
@@ -37,128 +37,111 @@ The MCP provides:
 
 **ALL UI COMPONENTS MUST FOLLOW THE IDEM DESIGN SYSTEM**
 
-**🚨 MANDATORY: This project uses Tailwind CSS 4.x and `@idem/shared-styles` package.**
+**🚨 MANDATORY: This project uses Tailwind CSS 4.x with CSS-first configuration and `@idem/shared-styles` package.**
 
 ### Shared Styles Integration
 
-This project has been migrated to use the **`@idem/shared-styles`** package for consistent design.
+This project uses **`@idem/shared-styles`** for consistent design across all Idem applications.
 
-**Installation:**
-
-```bash
-npm install @idem/shared-styles
-```
-
-**Import in your CSS:**
+**Configuration is in `global.css`:**
 
 ```css
+/* Import shared design system (includes Tailwind 4) */
 @import '@idem/shared-styles/styles.css';
+
+/* Project-specific extensions */
+@theme {
+  --font-montserrat: 'Montserrat', sans-serif;
+  --font-raleway: 'Raleway', sans-serif;
+}
 ```
 
-**Extend in tailwind.config.js:**
-
-```js
-import sharedConfig from '@idem/shared-styles/tailwind.config';
-
-export default {
-  ...sharedConfig,
-  content: ['./src/**/*.{js,ts,jsx,tsx}'],
-};
-```
+**NO `tailwind.config.js` needed** - Everything is configured in CSS (Tailwind 4 approach).
 
 ### Theme Configuration
 
 The design system is defined in `@idem/shared-styles`. **ALWAYS** use this shared package instead of custom styles.
 
-#### Core Colors (CSS Variables)
+#### Core Colors (oklch)
+
+All colors use **oklch** color space from `@idem/shared-styles`:
 
 ```css
-:root {
-  --color-primary: #1447e6;
-  --color-secondary: #d11ec0;
-  --color-accent: #22d3ee;
-  --color-primary-glow: rgba(20, 73, 230, 0.66);
-  --color-secondary-glow: rgba(209, 30, 192, 0.66);
-  --color-accent-glow: rgba(34, 211, 238, 0.6);
+--color-primary: oklch(0.55 0.22 264) /* Blue */ --color-secondary: oklch(0.6 0.25 328)
+  /* Magenta */ --color-accent: oklch(0.75 0.15 195) /* Cyan */ --color-bg-dark: oklch(0.1 0.01 264)
+  /* Dark background */ --color-bg-light: oklch(0.15 0.01 264) /* Light background */
+  --color-light-text: oklch(0.96 0 0) /* White text */ --color-success: oklch(0.55 0.15 145)
+  /* Green */ --color-danger: oklch(0.58 0.2 25) /* Red */ --color-warning: oklch(0.7 0.18 75)
+  /* Orange */;
+```
 
-  --color-bg-dark: #06080d;
-  --color-bg-light: #0f141b;
-  --color-light-text: #f5f5f5;
+**Use Tailwind utilities:**
 
-  --glass-bg: rgba(15, 20, 27, 0.4);
-  --glass-bg-darker: rgba(20, 20, 30, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --glass-blur: 8px;
-}
+```tsx
+<div className="bg-primary text-light-text">
+<button className="bg-secondary hover:bg-secondary/80">
 ```
 
 #### Glass Morphism Classes
 
-Create these utility classes in your CSS:
+**Use these classes from `@idem/shared-styles`:**
 
-```css
-.glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
-}
+```tsx
+// Standard glass effect
+<div className="glass rounded-2xl p-6">
+  {/* Content */}
+</div>
 
-.glass-dark {
-  background: var(--glass-bg-darker);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
-}
+// Darker glass
+<div className="glass-dark rounded-2xl p-6">
+  {/* Content */}
+</div>
 
-.glass-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  box-shadow: var(--glass-shadow);
-  transition: all 0.3s ease;
-}
-
-.glass-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-}
+// Glass card with hover
+<div className="glass-card p-6">
+  {/* Content */}
+</div>
 ```
+
+**DO NOT redefine these classes** - they come from `@idem/shared-styles`.
 
 #### Button Components
 
+**Use classes from `@idem/shared-styles`:**
+
 ```tsx
-// GlassButton.tsx
+// Primary button with gradient
+<button className="inner-button">
+  Primary Action
+</button>
+
+// Secondary glass button
+<button className="outer-button">
+  Secondary Action
+</button>
+
+// With Tailwind utilities
+<button className="inner-button hover:-translate-y-0.5">
+  Hover Effect
+</button>
+```
+
+**Custom Button Component:**
+
+```tsx
 import { cn } from '@/lib/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary';
-  children: React.ReactNode;
+  variant?: 'inner' | 'outer';
 }
 
-export const GlassButton = ({
-  variant = 'primary',
-  className,
-  children,
-  ...props
-}: ButtonProps) => {
-  const baseClass =
-    'px-5 py-3 rounded-lg uppercase font-medium text-sm tracking-wide transition-all duration-300 relative overflow-hidden';
-
-  const variantClass =
-    variant === 'primary'
-      ? 'bg-gradient-to-br from-[#1447e6] to-[#1447e6aa] hover:shadow-[0_8px_20px_rgba(60,164,250,0.4)]'
-      : 'glass border border-white/10 hover:bg-white/10';
-
+export const Button = ({ variant = 'inner', className, children, ...props }: ButtonProps) => {
   return (
-    <button className={cn(baseClass, variantClass, className)} {...props}>
-      <span className="relative z-10">{children}</span>
-      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700" />
+    <button
+      className={cn(variant === 'inner' ? 'inner-button' : 'outer-button', className)}
+      {...props}
+    >
+      {children}
     </button>
   );
 };
@@ -166,59 +149,69 @@ export const GlassButton = ({
 
 #### Input Components
 
+**Use `.input` class from `@idem/shared-styles`:**
+
 ```tsx
-// GlassInput.tsx
 import { cn } from '@/lib/utils';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
 }
 
-export const GlassInput = ({ label, className, ...props }: InputProps) => {
+export const Input = ({ label, className, ...props }: InputProps) => {
   return (
     <div className="w-full">
-      {label && <label className="block text-sm text-[#f5f5f5] mb-2">{label}</label>}
-      <input
-        className={cn(
-          'w-full px-4 py-3 rounded-lg',
-          'glass border border-white/10',
-          'text-[#f5f5f5] placeholder:text-white/40',
-          'focus:outline-none focus:border-[#1447e6] focus:ring-2 focus:ring-[#1447e6]/50',
-          'transition-all duration-300',
-          className
-        )}
-        {...props}
-      />
+      {label && <label className="block text-sm text-light-text mb-2">{label}</label>}
+      <input className={cn('input', className)} {...props} />
     </div>
   );
 };
 ```
 
-### Tailwind Configuration
+**The `.input` class includes:**
 
-**🚨 This project now uses Tailwind CSS 4 with shared configuration.**
+- Glass background with blur
+- Border with focus states
+- Proper text colors
+- Smooth transitions
 
-Your `tailwind.config.js` should extend the shared config:
+### Tailwind CSS 4 - CSS-First Configuration
 
-```js
-import sharedConfig from '@idem/shared-styles/tailwind.config';
-import { addDynamicIconSelectors } from '@iconify/tailwind';
+**🚨 CRITICAL**: This project uses Tailwind CSS 4 with CSS-first configuration.
 
-/** @type {import('tailwindcss').Config} */
-export default {
-  ...sharedConfig,
-  content: ['./src/**/*.{js,ts,jsx,tsx}'],
-  theme: {
-    extend: {
-      ...sharedConfig.theme.extend,
-      // Add project-specific extensions only if needed
-    },
-  },
-  plugins: [addDynamicIconSelectors()],
-};
+**NO `tailwind.config.js` file** - Everything is configured in `global.css`:
+
+```css
+/* global.css */
+@import '@idem/shared-styles/styles.css';
+
+@theme {
+  /* Project-specific extensions */
+  --font-montserrat: 'Montserrat', sans-serif;
+  --font-raleway: 'Raleway', sans-serif;
+}
 ```
 
-**DO NOT redefine colors, fonts, or design tokens - they come from `@idem/shared-styles`.**
+#### Tailwind 4 Syntax - MANDATORY
+
+| ❌ NEVER USE (v3)   | ✅ ALWAYS USE (v4)      |
+| ------------------- | ----------------------- |
+| `@tailwind base`    | `@import 'tailwindcss'` |
+| `bg-opacity-50`     | `bg-black/50`           |
+| `text-opacity-80`   | `text-white/80`         |
+| `flex-shrink-0`     | `shrink-0`              |
+| `flex-grow-1`       | `grow`                  |
+| `overflow-ellipsis` | `text-ellipsis`         |
+
+**Examples:**
+
+```tsx
+// ✅ Correct (v4)
+<div className="bg-black/50 text-white/80 shrink-0">
+
+// ❌ Wrong (v3) - DO NOT USE
+<div className="bg-opacity-50 text-opacity-80 flex-shrink-0">
+```
 
 ## React Best Practices
 
