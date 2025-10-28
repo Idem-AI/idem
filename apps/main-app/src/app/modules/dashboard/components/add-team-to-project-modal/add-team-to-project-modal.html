@@ -1,0 +1,265 @@
+<!-- Modal Backdrop -->
+<div
+  class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+  (click)="onClose()"
+>
+  <!-- Modal Content -->
+  <div
+    class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div class="sticky top-0 bg-gray-900/95 backdrop-blur-sm border-b border-white/10 p-6 z-10">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-white mb-1">Add Team to Project</h2>
+          <p class="text-sm text-gray-400">
+            Choose an existing team or create a new one to add to this project
+          </p>
+        </div>
+        <button
+          (click)="onClose()"
+          class="text-gray-400 hover:text-white transition p-2 hover:bg-white/5 rounded-lg"
+          [disabled]="isSubmitting()"
+        >
+          <i class="pi pi-times text-xl"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Selection Mode Tabs -->
+    <div class="p-6 border-b border-white/10">
+      <div class="flex gap-2 p-1 bg-white/5 rounded-lg">
+        <button
+          (click)="setSelectionMode('existing')"
+          [class.bg-primary]="selectionMode() === 'existing'"
+          [class.text-white]="selectionMode() === 'existing'"
+          [class.text-gray-400]="selectionMode() !== 'existing'"
+          class="flex-1 px-4 py-3 rounded-md font-medium transition"
+        >
+          <i class="pi pi-users mr-2"></i>
+          Existing Team
+        </button>
+        <button
+          (click)="setSelectionMode('new')"
+          [class.bg-primary]="selectionMode() === 'new'"
+          [class.text-white]="selectionMode() === 'new'"
+          [class.text-gray-400]="selectionMode() !== 'new'"
+          class="flex-1 px-4 py-3 rounded-md font-medium transition"
+        >
+          <i class="pi pi-plus-circle mr-2"></i>
+          Create New Team
+        </button>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    @if (errorMessage()) {
+    <div class="mx-6 mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+      <div class="flex items-start gap-3">
+        <i class="pi pi-exclamation-circle text-red-500 text-lg flex-shrink-0 mt-0.5"></i>
+        <p class="text-sm text-red-300">{{ errorMessage() }}</p>
+      </div>
+    </div>
+    }
+
+    <!-- Existing Team Form -->
+    @if (selectionMode() === 'existing') {
+    <form [formGroup]="existingTeamForm" (ngSubmit)="onSubmitExistingTeam()" class="p-6 space-y-6">
+      <!-- Team Selection -->
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">
+          Select Team <span class="text-red-500">*</span>
+        </label>
+        @if (isLoadingTeams()) {
+        <div class="flex items-center justify-center py-8">
+          <i class="pi pi-spin pi-spinner text-2xl text-primary"></i>
+        </div>
+        } @else if (availableTeams().length === 0) {
+        <div class="text-center py-8 border-2 border-dashed border-gray-700 rounded-lg">
+          <i class="pi pi-users text-3xl text-gray-600 mb-2"></i>
+          <p class="text-gray-400 text-sm">No teams available</p>
+          <p class="text-gray-500 text-xs mt-1">Create a new team to get started</p>
+        </div>
+        } @else {
+        <select
+          formControlName="teamId"
+          class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
+        >
+          <option value="" disabled selected>Choose a team...</option>
+          @for (team of availableTeams(); track team.id) {
+          <option [value]="team.id" class="bg-gray-800">
+            {{ team.name }} @if (team.description) { - {{ team.description }} }
+          </option>
+          }
+        </select>
+        }
+      </div>
+
+      <!-- Project Roles -->
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-3">
+          Project Roles <span class="text-red-500">*</span>
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          @for (role of availableRoles; track role) {
+          <button
+            type="button"
+            (click)="toggleRole(role, existingTeamForm)"
+            [class.bg-primary]="isRoleSelected(role, existingTeamForm)"
+            [class.border-primary]="isRoleSelected(role, existingTeamForm)"
+            [class.text-primary]="isRoleSelected(role, existingTeamForm)"
+            [class.bg-white]="!isRoleSelected(role, existingTeamForm)"
+            [class.border-white]="!isRoleSelected(role, existingTeamForm)"
+            [class.text-gray-300]="!isRoleSelected(role, existingTeamForm)"
+            class="px-4 py-3 border rounded-lg font-medium transition hover:bg-primary/10 hover:border-primary/50 text-left"
+          >
+            <i
+              [class.pi-check-circle]="isRoleSelected(role, existingTeamForm)"
+              [class.pi-circle]="!isRoleSelected(role, existingTeamForm)"
+              class="pi mr-2"
+            ></i>
+            {{ roleLabels[role] }}
+          </button>
+          }
+        </div>
+        @if (existingTeamForm.get('roles')?.touched && existingTeamForm.get('roles')?.invalid) {
+        <p class="text-red-400 text-xs mt-2">Please select at least one role</p>
+        }
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3 pt-4">
+        <button
+          type="button"
+          (click)="onClose()"
+          class="flex-1 px-4 py-3 outer-button rounded-lg text-white font-medium transition"
+          [disabled]="isSubmitting()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="flex-1 px-4 py-3 inner-button rounded-lg text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="isSubmitting() || existingTeamForm.invalid || availableTeams().length === 0"
+        >
+          @if (isSubmitting()) {
+          <span class="flex items-center justify-center gap-2">
+            <i class="pi pi-spin pi-spinner"></i>
+            Adding...
+          </span>
+          } @else {
+          <span class="flex items-center justify-center gap-2">
+            <i class="pi pi-plus"></i>
+            Add Team
+          </span>
+          }
+        </button>
+      </div>
+    </form>
+    }
+
+    <!-- New Team Form -->
+    @if (selectionMode() === 'new') {
+    <form [formGroup]="newTeamForm" (ngSubmit)="onSubmitNewTeam()" class="p-6 space-y-6">
+      <!-- Team Name -->
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">
+          Team Name <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          formControlName="name"
+          placeholder="e.g., Frontend Team"
+          class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
+        />
+        @if (newTeamForm.get('name')?.touched && newTeamForm.get('name')?.invalid) {
+        <p class="text-red-400 text-xs mt-2">Team name must be at least 3 characters</p>
+        }
+      </div>
+
+      <!-- Team Description -->
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">
+          Description <span class="text-gray-500 text-xs">(Optional)</span>
+        </label>
+        <textarea
+          formControlName="description"
+          placeholder="Brief description of the team's purpose..."
+          rows="3"
+          class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition resize-none"
+        ></textarea>
+      </div>
+
+      <!-- Project Roles -->
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-3">
+          Project Roles <span class="text-red-500">*</span>
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          @for (role of availableRoles; track role) {
+          <button
+            type="button"
+            (click)="toggleRole(role, newTeamForm)"
+            [class.bg-primary]="isRoleSelected(role, newTeamForm)"
+            [class.border-primary]="isRoleSelected(role, newTeamForm)"
+            [class.text-primary]="isRoleSelected(role, newTeamForm)"
+            [class.bg-white]="!isRoleSelected(role, newTeamForm)"
+            [class.border-white]="!isRoleSelected(role, newTeamForm)"
+            [class.text-gray-300]="!isRoleSelected(role, newTeamForm)"
+            class="px-4 py-3 border rounded-lg font-medium transition hover:bg-primary/10 hover:border-primary/50 text-left"
+          >
+            <i
+              [class.pi-check-circle]="isRoleSelected(role, newTeamForm)"
+              [class.pi-circle]="!isRoleSelected(role, newTeamForm)"
+              class="pi mr-2"
+            ></i>
+            {{ roleLabels[role] }}
+          </button>
+          }
+        </div>
+        @if (newTeamForm.get('roles')?.touched && newTeamForm.get('roles')?.invalid) {
+        <p class="text-red-400 text-xs mt-2">Please select at least one role</p>
+        }
+      </div>
+
+      <!-- Info Box -->
+      <div class="flex items-start gap-3 p-4 bg-primary/10 border border-primary/30 rounded-lg">
+        <i class="pi pi-info-circle text-primary text-lg flex-shrink-0"></i>
+        <p class="text-sm text-gray-300">
+          The team will be created and immediately added to this project with the selected roles.
+        </p>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3 pt-2">
+        <button
+          type="button"
+          (click)="onClose()"
+          class="flex-1 px-4 py-3 outer-button rounded-lg text-white font-medium transition"
+          [disabled]="isSubmitting()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="flex-1 px-4 py-3 inner-button rounded-lg text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="isSubmitting() || newTeamForm.invalid"
+        >
+          @if (isSubmitting()) {
+          <span class="flex items-center justify-center gap-2">
+            <i class="pi pi-spin pi-spinner"></i>
+            Creating...
+          </span>
+          } @else {
+          <span class="flex items-center justify-center gap-2">
+            <i class="pi pi-plus-circle"></i>
+            Create & Add Team
+          </span>
+          }
+        </button>
+      </div>
+    </form>
+    }
+  </div>
+</div>
