@@ -57,4 +57,39 @@ export class DashboardComponent implements OnInit {
       },
     });
   }
+
+  /**
+   * Calculate number of completed steps
+   */
+  protected getCompletedSteps(): number {
+    const proj = this.project();
+    if (!proj?.analysisResultModel) return 0;
+
+    let completed = 0;
+    const analysis = proj.analysisResultModel;
+
+    if (analysis.branding?.sections?.length > 0) completed++;
+    if (analysis.businessPlan) completed++;
+    if (analysis.design) completed++;
+    if (analysis.development) completed++;
+    // Deployment is always pending for now
+
+    return completed;
+  }
+
+  /**
+   * Calculate progress ring offset for SVG animation
+   */
+  protected getProgressOffset(): number {
+    const circumference = 2 * Math.PI * 85; // radius = 85 for new circular progress
+    const progress = this.getCompletedSteps() / 5;
+    return circumference * (1 - progress);
+  }
+
+  /**
+   * Get step card CSS class based on completion status
+   */
+  protected getStepStatus(isCompleted: boolean): string {
+    return isCompleted ? 'step-card completed' : 'step-card';
+  }
 }
