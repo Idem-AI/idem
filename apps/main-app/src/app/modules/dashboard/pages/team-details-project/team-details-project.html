@@ -48,13 +48,6 @@
           <span class="text-gray-400">{{ team()!.members.length }} members</span>
         </div>
 
-        <div class="flex justify-end mb-4">
-          <button (click)="addMember()" class="inner-button">
-            <i class="pi pi-plus mr-2"></i>
-            Add Member
-          </button>
-        </div>
-
         @if (hasMembers()) {
         <div class="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           @for (member of team()!.members; track member.userId) {
@@ -127,12 +120,3 @@
     </main>
   </div>
 </div>
-
-<!-- Add Member Modal -->
-@if (showAddMemberModal() && teamId()) {
-<app-add-member-modal
-  [teamId]="teamId()!"
-  (closeModal)="onCloseAddMemberModal()"
-  (memberAdded)="onMemberAdded()"
-/>
-}

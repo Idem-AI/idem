@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
   TeamModel,
@@ -11,6 +11,15 @@ import {
   UserAccessResponse,
   ProjectRole,
 } from '../models/team.model';
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
 
 @Injectable({
   providedIn: 'root',
@@ -29,8 +38,9 @@ export class TeamService {
     description?: string;
     members?: TeamMemberModel[];
   }): Observable<TeamModel> {
-    return this.http.post<TeamModel>(`${this.apiUrl}/teams`, teamData).pipe(
-      tap((response) => console.log('createTeam response:', response)),
+    return this.http.post<ApiResponse<TeamModel>>(`${this.apiUrl}/teams`, teamData).pipe(
+      map((response) => response.data),
+      tap((data) => console.log('createTeam response:', data)),
       catchError((error) => {
         console.error('Error in createTeam:', error);
         return throwError(() => error);
@@ -43,8 +53,9 @@ export class TeamService {
    * @returns Observable of team array
    */
   getUserTeams(): Observable<TeamModel[]> {
-    return this.http.get<TeamModel[]>(`${this.apiUrl}/teams/my-teams`).pipe(
-      tap((response) => console.log('getUserTeams response:', response)),
+    return this.http.get<ApiResponse<TeamModel[]>>(`${this.apiUrl}/teams/my-teams`).pipe(
+      map((response) => response.data),
+      tap((data) => console.log('getUserTeams response:', data)),
       catchError((error) => {
         console.error('Error in getUserTeams:', error);
         return throwError(() => error);
@@ -58,8 +69,9 @@ export class TeamService {
    * @returns Observable of the team
    */
   getTeam(teamId: string): Observable<TeamModel> {
-    return this.http.get<TeamModel>(`${this.apiUrl}/teams/${teamId}`).pipe(
-      tap((response) => console.log(`getTeam response for ${teamId}:`, response)),
+    return this.http.get<ApiResponse<TeamModel>>(`${this.apiUrl}/teams/${teamId}`).pipe(
+      map((response) => response.data),
+      tap((data) => console.log(`getTeam response for ${teamId}:`, data)),
       catchError((error) => {
         console.error(`Error in getTeam for ${teamId}:`, error);
         return throwError(() => error);
@@ -77,13 +89,16 @@ export class TeamService {
     teamId: string,
     member: { email: string; displayName: string; role: string }
   ): Observable<TeamModel> {
-    return this.http.post<TeamModel>(`${this.apiUrl}/teams/${teamId}/members`, member).pipe(
-      tap((response) => console.log(`addTeamMember response for ${teamId}:`, response)),
-      catchError((error) => {
-        console.error(`Error in addTeamMember for ${teamId}:`, error);
-        return throwError(() => error);
-      })
-    );
+    return this.http
+      .post<ApiResponse<TeamModel>>(`${this.apiUrl}/teams/${teamId}/members`, member)
+      .pipe(
+        map((response) => response.data),
+        tap((data) => console.log(`addTeamMember response for ${teamId}:`, data)),
+        catchError((error) => {
+          console.error(`Error in addTeamMember for ${teamId}:`, error);
+          return throwError(() => error);
+        })
+      );
   }
 
   /**
@@ -134,9 +149,12 @@ export class TeamService {
     roles: ProjectRole[]
   ): Observable<ProjectTeamModel> {
     return this.http
-      .post<ProjectTeamModel>(`${this.apiUrl}/projects/${projectId}/teams`, { teamId, roles })
+      .post<
+        ApiResponse<ProjectTeamModel>
+      >(`${this.apiUrl}/projects/${projectId}/teams`, { teamId, roles })
       .pipe(
-        tap((response) => console.log(`addTeamToProject response for ${projectId}:`, response)),
+        map((response) => response.data),
+        tap((data) => console.log(`addTeamToProject response for ${projectId}:`, data)),
         catchError((error) => {
           console.error(`Error in addTeamToProject for ${projectId}:`, error);
           return throwError(() => error);
@@ -150,13 +168,16 @@ export class TeamService {
    * @returns Observable of project teams array
    */
   getProjectTeams(projectId: string): Observable<ProjectTeamModel[]> {
-    return this.http.get<ProjectTeamModel[]>(`${this.apiUrl}/projects/${projectId}/teams`).pipe(
-      tap((response) => console.log(`getProjectTeams response for ${projectId}:`, response)),
-      catchError((error) => {
-        console.error(`Error in getProjectTeams for ${projectId}:`, error);
-        return throwError(() => error);
-      })
-    );
+    return this.http
+      .get<ApiResponse<ProjectTeamModel[]>>(`${this.apiUrl}/projects/${projectId}/teams`)
+      .pipe(
+        map((response) => response.data),
+        tap((data) => console.log(`getProjectTeams response for ${projectId}:`, data)),
+        catchError((error) => {
+          console.error(`Error in getProjectTeams for ${projectId}:`, error);
+          return throwError(() => error);
+        })
+      );
   }
 
   /**

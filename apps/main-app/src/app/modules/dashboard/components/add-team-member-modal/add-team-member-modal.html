@@ -1,0 +1,137 @@
+@if (isOpen()) {
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+  (click)="onClose()"
+>
+  <div
+    class="glass-card w-full max-w-lg p-6 space-y-6 animate-fade-in"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <h2 class="text-2xl font-bold text-white">Add Team Member</h2>
+      <button
+        (click)="onClose()"
+        class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition"
+      >
+        <i class="pi pi-times text-xl"></i>
+      </button>
+    </div>
+
+    <!-- Error Message -->
+    @if (errorMessage()) {
+    <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
+      <div class="flex items-center gap-3 text-red-400">
+        <i class="pi pi-exclamation-triangle text-xl"></i>
+        <p class="text-sm">{{ errorMessage() }}</p>
+      </div>
+    </div>
+    }
+
+    <!-- Form -->
+    <form [formGroup]="memberForm" (ngSubmit)="onSubmit()" class="space-y-4">
+      <!-- Email -->
+      <div class="space-y-2">
+        <label for="email" class="block text-sm font-medium text-gray-300">
+          Email Address <span class="text-red-400">*</span>
+        </label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="member@example.com"
+          class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+          [class.border-red-500]="hasError('email', 'required') || hasError('email', 'email')"
+        />
+        @if (hasError('email', 'required') || hasError('email', 'email')) {
+        <p class="text-red-400 text-sm">{{ getErrorMessage('email') }}</p>
+        }
+      </div>
+
+      <!-- Display Name -->
+      <div class="space-y-2">
+        <label for="displayName" class="block text-sm font-medium text-gray-300">
+          Display Name <span class="text-red-400">*</span>
+        </label>
+        <input
+          id="displayName"
+          type="text"
+          formControlName="displayName"
+          placeholder="John Doe"
+          class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+          [class.border-red-500]="hasError('displayName', 'required') || hasError('displayName', 'minlength')"
+        />
+        @if (hasError('displayName', 'required') || hasError('displayName', 'minlength')) {
+        <p class="text-red-400 text-sm">{{ getErrorMessage('displayName') }}</p>
+        }
+      </div>
+
+      <!-- Role -->
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-300">
+          Role <span class="text-red-400">*</span>
+        </label>
+        <div class="space-y-2">
+          @for (role of roles; track role.value) {
+          <label
+            class="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:bg-white/10 transition"
+            [class.border-primary]="memberForm.get('role')?.value === role.value"
+            [class.bg-primary]="memberForm.get('role')?.value === role.value"
+          >
+            <input
+              type="radio"
+              [value]="role.value"
+              formControlName="role"
+              class="mt-1 text-primary focus:ring-primary"
+            />
+            <div class="flex-1">
+              <div class="font-medium text-white">{{ role.label }}</div>
+              <div class="text-sm text-gray-400">{{ role.description }}</div>
+            </div>
+          </label>
+          }
+        </div>
+      </div>
+
+      <!-- Info Box -->
+      <div class="bg-primary/10 border border-primary/30 rounded-lg p-4">
+        <div class="flex gap-3">
+          <i class="pi pi-info-circle text-primary text-lg flex-shrink-0"></i>
+          <p class="text-sm text-gray-300">
+            An invitation will be sent to the member's email address.
+          </p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3 pt-2">
+        <button
+          type="button"
+          (click)="onClose()"
+          class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white font-medium transition"
+          [disabled]="isSubmitting()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-secondary hover:opacity-90 rounded-lg text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="isSubmitting() || memberForm.invalid"
+        >
+          @if (isSubmitting()) {
+          <span class="flex items-center justify-center gap-2">
+            <i class="pi pi-spin pi-spinner"></i>
+            Adding...
+          </span>
+          } @else {
+          <span class="flex items-center justify-center gap-2">
+            <i class="pi pi-user-plus"></i>
+            Add Member
+          </span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}

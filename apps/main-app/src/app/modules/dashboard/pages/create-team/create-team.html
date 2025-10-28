@@ -1,0 +1,115 @@
+<div class="min-h-screen text-white flex flex-col">
+  <div class="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
+    <main class="flex-1 space-y-6 sm:space-y-8 max-w-3xl mx-auto w-full">
+      <!-- Header -->
+      <section class="space-y-4">
+        <button
+          (click)="onCancel()"
+          class="flex items-center gap-2 text-gray-400 hover:text-white transition"
+        >
+          <i class="pi pi-arrow-left"></i>
+          <span>Back to Teams</span>
+        </button>
+
+        <div>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">Create New Team</h1>
+          <p class="text-gray-400 mt-2">
+            Create a team to collaborate with others on your projects
+          </p>
+        </div>
+      </section>
+
+      <!-- Error Message -->
+      @if (errorMessage()) {
+      <div class="glass-card p-4 border border-red-500/50">
+        <div class="flex items-center gap-3 text-red-400">
+          <i class="pi pi-exclamation-triangle text-xl"></i>
+          <p class="text-sm">{{ errorMessage() }}</p>
+        </div>
+      </div>
+      }
+
+      <!-- Form -->
+      <form [formGroup]="teamForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        <div class="glass-card p-6 space-y-6">
+          <!-- Team Name -->
+          <div class="space-y-2">
+            <label for="name" class="block text-sm font-medium text-gray-300">
+              Team Name <span class="text-red-400">*</span>
+            </label>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              placeholder="Enter team name"
+              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+              [class.border-red-500]="hasError('name', 'required') || hasError('name', 'minlength') || hasError('name', 'maxlength')"
+            />
+            @if (hasError('name', 'required') || hasError('name', 'minlength') || hasError('name',
+            'maxlength')) {
+            <p class="text-red-400 text-sm">{{ getErrorMessage('name') }}</p>
+            }
+          </div>
+
+          <!-- Description -->
+          <div class="space-y-2">
+            <label for="description" class="block text-sm font-medium text-gray-300">
+              Description
+            </label>
+            <textarea
+              id="description"
+              formControlName="description"
+              rows="4"
+              placeholder="Describe your team's purpose and goals"
+              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition resize-none"
+              [class.border-red-500]="hasError('description', 'maxlength')"
+            ></textarea>
+            @if (hasError('description', 'maxlength')) {
+            <p class="text-red-400 text-sm">{{ getErrorMessage('description') }}</p>
+            }
+          </div>
+
+          <!-- Info Box -->
+          <div class="bg-primary/10 border border-primary/30 rounded-lg p-4">
+            <div class="flex gap-3">
+              <i class="pi pi-info-circle text-primary text-xl flex-shrink-0"></i>
+              <div class="text-sm text-gray-300">
+                <p class="font-medium text-white mb-1">After creating the team</p>
+                <p>You can add members and assign the team to projects.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button
+            type="button"
+            (click)="onCancel()"
+            class="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white font-medium transition"
+            [disabled]="isSubmitting()"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-secondary hover:opacity-90 rounded-lg text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+            [disabled]="isSubmitting() || teamForm.invalid"
+          >
+            @if (isSubmitting()) {
+            <span class="flex items-center justify-center gap-2">
+              <i class="pi pi-spin pi-spinner"></i>
+              Creating...
+            </span>
+            } @else {
+            <span class="flex items-center justify-center gap-2">
+              <i class="pi pi-check"></i>
+              Create Team
+            </span>
+            }
+          </button>
+        </div>
+      </form>
+    </main>
+  </div>
+</div>

@@ -12,12 +12,11 @@ import { ProjectTeamModel, TeamModel } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { Loader } from '../../../../components/loader/loader';
-import { TeamList } from '../../components/team-list/team-list';
 
 @Component({
   selector: 'app-project-teams',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader, TeamList],
+  imports: [CommonModule, RouterModule, Loader],
   templateUrl: './project-teams.html',
   styleUrl: './project-teams.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,12 +35,6 @@ export class ProjectTeams implements OnInit {
 
   // Computed
   protected readonly hasTeams = computed(() => this.projectTeams().length > 0);
-
-  protected readonly teams = computed(() => {
-    return this.projectTeams()
-      .map((pt) => pt.team)
-      .filter((team): team is TeamModel => team !== undefined);
-  });
 
   ngOnInit() {
     const projectId = this.cookieService.get('projectId');
@@ -77,12 +70,10 @@ export class ProjectTeams implements OnInit {
   }
 
   /**
-   * Navigate to team details (project context)
+   * Navigate to team details
    */
   protected openTeamDetails(teamId: string): void {
-    this.router.navigate(['/console/project-teams', teamId], {
-      queryParams: { projectId: this.projectId() },
-    });
+    this.router.navigate(['/console/teams', teamId]);
   }
 
   /**
