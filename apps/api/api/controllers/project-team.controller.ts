@@ -22,7 +22,7 @@ export async function addTeamToProject(req: CustomRequest, res: Response): Promi
     const data: AddTeamToProjectDTO = req.body;
 
     const projectTeam = await projectTeamService.addTeamToProject(projectId, userId, data);
-    res.status(201).json(projectTeam);
+    res.status(201).json({ success: true, data: projectTeam });
   } catch (error: any) {
     logger.error(`Error adding team to project: ${error.message}`);
     res
@@ -39,7 +39,7 @@ export async function getProjectTeams(req: CustomRequest, res: Response): Promis
     const { projectId } = req.params;
     const teams = await projectTeamService.getProjectTeams(projectId);
 
-    res.status(200).json(teams);
+    res.status(200).json({ success: true, data: teams });
   } catch (error: any) {
     logger.error(`Error getting project teams: ${error.message}`);
     res
@@ -66,7 +66,7 @@ export async function updateTeamRoles(req: CustomRequest, res: Response): Promis
     const data: UpdateProjectTeamRolesDTO = req.body;
 
     const projectTeam = await projectTeamService.updateTeamRoles(projectId, userId, data);
-    res.status(200).json(projectTeam);
+    res.status(200).json({ success: true, data: projectTeam });
   } catch (error: any) {
     logger.error(`Error updating team roles: ${error.message}`);
     res
@@ -101,7 +101,7 @@ export async function removeTeamFromProject(req: CustomRequest, res: Response): 
       return;
     }
 
-    res.status(200).json({ message: 'Team removed from project' });
+    res.status(200).json({ success: true, data: { message: 'Team removed from project' } });
   } catch (error: any) {
     logger.error(`Error removing team from project: ${error.message}`);
     res
@@ -127,7 +127,7 @@ export async function getUserPermissions(req: CustomRequest, res: Response): Pro
     const { projectId } = req.params;
     const permissions = await projectTeamService.getUserPermissions(projectId, userId);
 
-    res.status(200).json(permissions);
+    res.status(200).json({ success: true, data: permissions });
   } catch (error: any) {
     logger.error(`Error getting user permissions: ${error.message}`);
     res
@@ -153,7 +153,7 @@ export async function checkUserAccess(req: CustomRequest, res: Response): Promis
     const { projectId } = req.params;
     const hasAccess = await projectTeamService.userHasAccess(projectId, userId);
 
-    res.status(200).json({ hasAccess });
+    res.status(200).json({ success: true, data: { hasAccess } });
   } catch (error: any) {
     logger.error(`Error checking user access: ${error.message}`);
     res

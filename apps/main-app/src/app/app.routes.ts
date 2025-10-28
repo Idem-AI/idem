@@ -48,6 +48,12 @@ export const routes: Routes = [
     data: { layout: 'global' },
   },
   {
+    path: 'console/teams/create',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/create-team/create-team').then((m) => m.CreateTeam),
+    data: { layout: 'global' },
+  },
+  {
     path: 'console/teams/:teamId',
     loadComponent: () =>
       import('./modules/dashboard/pages/team-details-global/team-details-global').then(
@@ -169,6 +175,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./modules/dashboard/pages/team-details-project/team-details-project').then(
         (m) => m.TeamDetailsProject
+      ),
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'console/teams/add-to-project',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/add-team-to-project/add-team-to-project').then(
+        (m) => m.AddTeamToProject
       ),
     data: { layout: 'dashboard' },
   },

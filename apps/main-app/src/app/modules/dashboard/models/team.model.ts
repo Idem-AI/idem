@@ -63,3 +63,33 @@ export interface UserAccessResponse {
   hasAccess: boolean;
   permissions?: UserPermissions;
 }
+
+/**
+ * DTO for creating a team
+ */
+export interface CreateTeamDTO {
+  name: string;
+  description?: string;
+  members?: Array<{
+    email: string;
+    displayName: string;
+    role: 'admin' | 'member' | 'viewer';
+  }>;
+}
+
+/**
+ * DTO for adding a member to a team
+ */
+export interface AddTeamMemberDTO {
+  email: string;
+  displayName: string;
+  role: 'admin' | 'member' | 'viewer';
+}
+
+/**
+ * DTO for adding a team to a project
+ */
+export interface AddTeamToProjectDTO {
+  teamId: string;
+  roles: ProjectRole[];
+}

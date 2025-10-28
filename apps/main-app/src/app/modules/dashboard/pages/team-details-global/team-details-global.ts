@@ -13,13 +13,13 @@ import { ProjectModel } from '../../models/project.model';
 import { TeamService } from '../../services/team.service';
 import { ProjectService } from '../../services/project.service';
 import { Loader } from '../../../../components/loader/loader';
-import { AddMemberModal } from '../../components/add-member-modal/add-member-modal';
+import { AddTeamMemberModal } from '../../components/add-team-member-modal/add-team-member-modal';
 import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-team-details-global',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader, AddMemberModal],
+  imports: [CommonModule, RouterModule, Loader, AddTeamMemberModal],
   templateUrl: './team-details-global.html',
   styleUrl: './team-details-global.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,7 +37,7 @@ export class TeamDetailsGlobal implements OnInit {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly teamId = signal<string | null>(null);
-  protected readonly showAddMemberModal = signal(false);
+  protected readonly isAddMemberModalOpen = signal(false);
 
   // Computed
   protected readonly hasMembers = computed(() => (this.team()?.members?.length || 0) > 0);
@@ -210,23 +210,23 @@ export class TeamDetailsGlobal implements OnInit {
    * Open add member modal
    */
   protected addMember(): void {
-    this.showAddMemberModal.set(true);
-  }
-
-  /**
-   * Handle member added
-   */
-  protected onMemberAdded(): void {
-    this.showAddMemberModal.set(false);
-    if (this.teamId()) {
-      this.loadTeamDetails(this.teamId()!);
-    }
+    this.isAddMemberModalOpen.set(true);
   }
 
   /**
    * Close add member modal
    */
-  protected onCloseAddMemberModal(): void {
-    this.showAddMemberModal.set(false);
+  protected closeAddMemberModal(): void {
+    this.isAddMemberModalOpen.set(false);
+  }
+
+  /**
+   * Handle member added event
+   */
+  protected onMemberAdded(): void {
+    // Reload team details to show new member
+    if (this.teamId()) {
+      this.loadTeamDetails(this.teamId()!);
+    }
   }
 }

@@ -12,12 +12,11 @@ import { TeamModel } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
 import { Loader } from '../../../../components/loader/loader';
 import { TeamList } from '../../components/team-list/team-list';
-import { CreateTeamModal } from '../../components/create-team-modal/create-team-modal';
 
 @Component({
   selector: 'app-my-teams',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader, TeamList, CreateTeamModal],
+  imports: [CommonModule, RouterModule, Loader, TeamList],
   templateUrl: './my-teams.html',
   styleUrl: './my-teams.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,7 +30,6 @@ export class MyTeams implements OnInit {
   protected readonly teams = signal<TeamModel[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly showCreateModal = signal(false);
 
   // Computed
   protected readonly recentTeams = computed(() => {
@@ -77,24 +75,9 @@ export class MyTeams implements OnInit {
   }
 
   /**
-   * Open create team modal
+   * Navigate to create team
    */
   protected onCreateTeam(): void {
-    this.showCreateModal.set(true);
-  }
-
-  /**
-   * Handle team created
-   */
-  protected onTeamCreated(): void {
-    this.showCreateModal.set(false);
-    this.loadTeams();
-  }
-
-  /**
-   * Close create modal
-   */
-  protected onCloseCreateModal(): void {
-    this.showCreateModal.set(false);
+    this.router.navigate(['/console/teams/create']);
   }
 }

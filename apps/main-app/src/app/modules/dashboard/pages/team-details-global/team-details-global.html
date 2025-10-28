@@ -185,10 +185,9 @@
 </div>
 
 <!-- Add Member Modal -->
-@if (showAddMemberModal() && teamId()) {
-<app-add-member-modal
+<app-add-team-member-modal
+  [isOpen]="isAddMemberModalOpen()"
   [teamId]="teamId()!"
-  (closeModal)="onCloseAddMemberModal()"
+  (close)="closeAddMemberModal()"
   (memberAdded)="onMemberAdded()"
 />
-}

@@ -11,12 +11,11 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { TeamModel, TeamMemberModel, ProjectRole } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
 import { Loader } from '../../../../components/loader/loader';
-import { AddMemberModal } from '../../components/add-member-modal/add-member-modal';
 
 @Component({
   selector: 'app-team-details-project',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader, AddMemberModal],
+  imports: [CommonModule, RouterModule, Loader],
   templateUrl: './team-details-project.html',
   styleUrl: './team-details-project.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,7 +33,6 @@ export class TeamDetailsProject implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly teamId = signal<string | null>(null);
   protected readonly projectId = signal<string | null>(null);
-  protected readonly showAddMemberModal = signal(false);
 
   // Computed
   protected readonly hasMembers = computed(() => (this.team()?.members?.length || 0) > 0);
@@ -135,29 +133,5 @@ export class TeamDetailsProject implements OnInit {
         },
       });
     }
-  }
-
-  /**
-   * Open add member modal
-   */
-  protected addMember(): void {
-    this.showAddMemberModal.set(true);
-  }
-
-  /**
-   * Handle member added
-   */
-  protected onMemberAdded(): void {
-    this.showAddMemberModal.set(false);
-    if (this.teamId()) {
-      this.loadTeamDetails(this.teamId()!);
-    }
-  }
-
-  /**
-   * Close add member modal
-   */
-  protected onCloseAddMemberModal(): void {
-    this.showAddMemberModal.set(false);
   }
 }
