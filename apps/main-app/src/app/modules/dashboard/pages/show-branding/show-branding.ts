@@ -231,7 +231,7 @@ export class ShowBrandingComponent implements OnInit {
    */
   protected generateBranding(): void {
     console.log('Navigating to branding generation page');
-    this.router.navigate(['/console/branding/generate']);
+    this.router.navigate(['/console/project/branding/generate']);
   }
 
   /**

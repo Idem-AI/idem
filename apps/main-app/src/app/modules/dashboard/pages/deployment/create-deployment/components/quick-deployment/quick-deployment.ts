@@ -176,7 +176,7 @@ export class QuickDeployment implements OnInit {
       next: (deployment: QuickDeploymentModel) => {
         console.log('Quick deployment created successfully:', deployment);
         this.loadingDeployment.set(false);
-        this.router.navigate(['/console/deployments']);
+        this.router.navigate(['/console/project/deployments']);
       },
       error: (error: any) => {
         console.error('Error creating quick deployment:', error);

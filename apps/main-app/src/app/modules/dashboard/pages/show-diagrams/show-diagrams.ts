@@ -85,7 +85,7 @@ export class ShowDiagramsComponent implements OnInit {
    */
   protected generateDiagrams(): void {
     console.log('Navigating to diagram generation page');
-    this.router.navigate(['/console/diagrams/generate']);
+    this.router.navigate(['/console/project/diagrams/generate']);
   }
 
   /**

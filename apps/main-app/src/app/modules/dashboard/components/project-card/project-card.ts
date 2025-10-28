@@ -17,6 +17,6 @@ export class ProjectCard {
 
   cardClick(id: string) {
     this.cookieService.set('projectId', id);
-    this.router.navigate([`/console/project`, id]);
+    this.router.navigate(['/console/project/dashboard']);
   }
 }

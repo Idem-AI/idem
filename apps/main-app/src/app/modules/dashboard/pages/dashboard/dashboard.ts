@@ -27,19 +27,16 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.isLoading.set(true);
 
-    // Get project ID from route params
-    const projectId = this.route.snapshot.paramMap.get('projectId');
-    console.log('projectId from route:', projectId);
+    // Get project ID from cookie (set by navigation from projects list)
+    const projectId = this.cookieService.get('projectId');
+    console.log('projectId from cookie:', projectId);
 
     if (!projectId) {
       this.error.set('No project selected. Please select a project to view the dashboard.');
       this.isLoading.set(false);
-      this.router.navigate(['/console']);
+      this.router.navigate(['/console/projects']);
       return;
     }
-
-    // Save to cookie for other components
-    this.cookieService.set('projectId', projectId);
 
     this.projectService.getProjectById(projectId).subscribe({
       next: (projectData) => {

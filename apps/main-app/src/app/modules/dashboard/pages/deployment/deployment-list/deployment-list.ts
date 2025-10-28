@@ -179,7 +179,7 @@ export class DeploymentList implements OnInit {
     }
 
     // Navigate to the deployment details page
-    this.router.navigate(['/console/deployments', deploymentId]);
+    this.router.navigate(['/console/project/deployments', deploymentId]);
   }
 
   protected formatDate(date: Date): string {

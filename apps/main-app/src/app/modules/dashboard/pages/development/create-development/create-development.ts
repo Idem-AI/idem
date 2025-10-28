@@ -142,7 +142,7 @@ export class CreateDevelopmentComponent implements OnInit {
    * @param projectId The ID of the project to generate
    */
   protected goToShowDevelopment(): void {
-    this.router.navigate(['/console/development']);
+    this.router.navigate(['/console/project/development']);
   }
 
   /**
@@ -441,7 +441,7 @@ export class CreateDevelopmentComponent implements OnInit {
       console.log('Development configuration saved successfully');
 
       // Navigate to show-development page
-      this.router.navigate(['/console/development']);
+      this.router.navigate(['/console/project/development']);
     } catch (error) {
       console.error('Error saving development configuration:', error);
       this.errorMessages.set(['Failed to save development configuration']);
