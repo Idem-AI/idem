@@ -26,7 +26,9 @@ export const routes: Routes = [
     data: { layout: 'empty' },
   },
 
-  // Global dashboard layout routes
+  // ============================================
+  // GLOBAL DASHBOARD ROUTES (layout: 'global')
+  // ============================================
   {
     path: 'console',
     loadComponent: () =>
@@ -43,7 +45,6 @@ export const routes: Routes = [
       ),
     data: { layout: 'global' },
   },
-
   {
     path: 'console/projects',
     loadComponent: () =>
@@ -71,7 +72,9 @@ export const routes: Routes = [
     data: { layout: 'global' },
   },
 
-  // Project dashboard layout routes
+  // ============================================
+  // PROJECT DASHBOARD ROUTES (layout: 'dashboard')
+  // ============================================
   {
     path: 'console/project/dashboard',
     loadComponent: () =>
@@ -79,7 +82,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/branding',
+    path: 'console/project/branding',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-branding/show-branding').then(
         (m) => m.ShowBrandingComponent
@@ -87,7 +90,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/branding/generate',
+    path: 'console/project/branding/generate',
     loadComponent: () =>
       import(
         './modules/dashboard/pages/show-branding/branding-generation/branding-generation-page'
@@ -95,7 +98,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/business-plan',
+    path: 'console/project/business-plan',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-business-plan/show-business-plan').then(
         (m) => m.ShowBusinessPlan
@@ -103,7 +106,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/business-plan/generate',
+    path: 'console/project/business-plan/generate',
     loadComponent: () =>
       import(
         './modules/dashboard/pages/show-business-plan/business-plan-generation/business-plan-generation-page'
@@ -111,7 +114,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/diagrams',
+    path: 'console/project/diagrams',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-diagrams/show-diagrams').then(
         (m) => m.ShowDiagramsComponent
@@ -119,7 +122,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/diagrams/generate',
+    path: 'console/project/diagrams/generate',
     loadComponent: () =>
       import(
         './modules/dashboard/pages/show-diagrams/diagram-generation/diagram-generation-page'
@@ -127,13 +130,13 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/tests',
+    path: 'console/project/tests',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-tests/show-tests').then((m) => m.ShowTestsComponent),
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/development/create',
+    path: 'console/project/development/create',
     loadComponent: () =>
       import('./modules/dashboard/pages/development/create-development/create-development').then(
         (m) => m.CreateDevelopmentComponent
@@ -141,7 +144,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/development',
+    path: 'console/project/development',
     loadComponent: () =>
       import('./modules/dashboard/pages/development/show-development/show-development').then(
         (m) => m.ShowDevelopment
@@ -149,7 +152,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/deployments/create',
+    path: 'console/project/deployments/create',
     loadComponent: () =>
       import('./modules/dashboard/pages/deployment/create-deployment/create-deployment').then(
         (m) => m.CreateDeployment
@@ -157,7 +160,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/deployments',
+    path: 'console/project/deployments',
     loadComponent: () =>
       import('./modules/dashboard/pages/deployment/deployment-list/deployment-list').then(
         (m) => m.DeploymentList
@@ -165,7 +168,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/deployments/:id',
+    path: 'console/project/deployments/:id',
     loadComponent: () =>
       import('./modules/dashboard/pages/deployment/deployment-details/deployment-details').then(
         (m) => m.DeploymentDetails
@@ -174,13 +177,13 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/project-teams',
+    path: 'console/project/teams',
     loadComponent: () =>
       import('./modules/dashboard/pages/project-teams/project-teams').then((m) => m.ProjectTeams),
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/project-teams/:teamId',
+    path: 'console/project/teams/:teamId',
     loadComponent: () =>
       import('./modules/dashboard/pages/team-details-project/team-details-project').then(
         (m) => m.TeamDetailsProject
@@ -188,7 +191,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/teams/add-to-project',
+    path: 'console/project/teams/add',
     loadComponent: () =>
       import('./modules/dashboard/pages/add-team-to-project/add-team-to-project').then(
         (m) => m.AddTeamToProject
@@ -196,7 +199,7 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'console/profile',
+    path: 'console/project/profile',
     loadComponent: () =>
       import('./modules/dashboard/pages/profile/profile').then((m) => m.ProfileComponent),
     data: { layout: 'dashboard' },
