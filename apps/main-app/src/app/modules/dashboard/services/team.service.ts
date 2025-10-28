@@ -10,6 +10,7 @@ import {
   UserPermissions,
   UserAccessResponse,
   ProjectRole,
+  CreateTeamDTO,
 } from '../models/team.model';
 
 interface ApiResponse<T> {
@@ -33,11 +34,7 @@ export class TeamService {
    * @param teamData Team data to create
    * @returns Observable of the created team
    */
-  createTeam(teamData: {
-    name: string;
-    description?: string;
-    members?: TeamMemberModel[];
-  }): Observable<TeamModel> {
+  createTeam(teamData: CreateTeamDTO): Observable<TeamModel> {
     return this.http.post<ApiResponse<TeamModel>>(`${this.apiUrl}/teams`, teamData).pipe(
       map((response) => response.data),
       tap((data) => console.log('createTeam response:', data)),

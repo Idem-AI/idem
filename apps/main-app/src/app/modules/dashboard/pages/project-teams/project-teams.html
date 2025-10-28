@@ -32,14 +32,68 @@
       } @else {
       <!-- Teams List -->
       <section class="space-y-4">
-        <app-team-list
-          [teams]="teams()"
-          [showCreateButton]="true"
-          [createButtonLabel]="'Add Team to Project'"
-          [emptyMessage]="'No teams assigned to this project'"
-          (teamClick)="openTeamDetails($event)"
-          (createClick)="addTeamToProject()"
-        />
+        @if (hasTeams()) {
+        <div class="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          @for (projectTeam of projectTeams(); track projectTeam.teamId) {
+          <div
+            (click)="openTeamDetails(projectTeam.teamId)"
+            class="glass-card p-6 hover:shadow-[0_0_20px_-5px_var(--color-primary)] hover:scale-[1.01] transition-all duration-300 cursor-pointer group"
+          >
+            <div class="flex items-start justify-between mb-4">
+              <div
+                class="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center group-hover:bg-accent/30 transition"
+              >
+                <i class="pi pi-users text-accent text-xl"></i>
+              </div>
+            </div>
+
+            @if (projectTeam.team) {
+            <h3 class="text-lg font-bold mb-2 truncate group-hover:text-primary transition">
+              {{ projectTeam.team.name }}
+            </h3>
+            <p class="text-sm text-gray-400 mb-4 line-clamp-2">
+              {{ projectTeam.team.description || 'No description' }}
+            </p>
+
+            <div class="flex items-center gap-2 text-xs text-gray-400 mb-3">
+              <i class="pi pi-users"></i>
+              <span>{{ projectTeam.team.members.length }} members</span>
+            </div>
+            }
+
+            <!-- Project Roles -->
+            <div class="space-y-2">
+              <p class="text-xs text-gray-400 font-medium">Project Roles:</p>
+              <div class="flex flex-wrap gap-2">
+                @for (role of projectTeam.roles; track role) {
+                <span
+                  class="px-2 py-1 text-xs rounded-full border bg-primary/10 text-primary border-primary/30"
+                >
+                  {{ role }}
+                </span>
+                }
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        } @else {
+        <div
+          class="text-center py-12 sm:py-16 border-2 border-dashed border-gray-800 rounded-xl glass"
+        >
+          <i class="pi pi-users text-3xl sm:text-4xl text-gray-600 mb-3"></i>
+          <div class="text-gray-400 text-sm sm:text-base mb-2">
+            No teams assigned to this project
+          </div>
+          <button
+            (click)="addTeamToProject()"
+            class="text-primary text-sm sm:text-base inline-block transition-colors outer-button mt-4"
+          >
+            <i class="pi pi-plus mr-2"></i>
+            Add Team to Project
+          </button>
+        </div>
+        }
       </section>
       }
     </main>

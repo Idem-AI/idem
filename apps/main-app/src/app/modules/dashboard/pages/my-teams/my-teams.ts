@@ -11,14 +11,12 @@ import { Router, RouterModule } from '@angular/router';
 import { TeamModel } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
 import { Loader } from '../../../../components/loader/loader';
-import { TeamList } from '../../components/team-list/team-list';
 
 @Component({
   selector: 'app-my-teams',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader, TeamList],
+  imports: [CommonModule, RouterModule, Loader],
   templateUrl: './my-teams.html',
-  styleUrl: './my-teams.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MyTeams implements OnInit {
