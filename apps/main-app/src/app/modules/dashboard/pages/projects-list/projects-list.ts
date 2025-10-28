@@ -110,10 +110,10 @@ export class ProjectsList implements OnInit {
   protected openProjectDashboard(projectId: string) {
     this.isDropdownOpen.set(false);
     this.cookieService.set('projectId', projectId);
-    this.router.navigate([`console/project/dashboard/${projectId}`]);
+    this.router.navigate(['/console/project/dashboard']);
   }
 
   openCreateProject() {
-    this.router.navigate([`console/create-project`]);
+    this.router.navigate(['/console/create-project']);
   }
 }

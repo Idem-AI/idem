@@ -425,8 +425,8 @@ export class SidebarDashboard implements OnInit {
       this.projectIdFromCookie.set(projectId);
       this.isProjectSelectorOpen.set(false);
 
-      // Navigate to the project dashboard with project ID
-      this.router.navigate([`/console/project`, projectId]);
+      // Navigate to the project dashboard
+      this.router.navigate(['/console/project/dashboard']);
     }
   }
 

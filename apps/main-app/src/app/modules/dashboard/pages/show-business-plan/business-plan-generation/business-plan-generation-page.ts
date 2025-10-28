@@ -70,7 +70,7 @@ export class BusinessPlanGenerationPage implements OnInit {
     console.log('Business plan generation completed, redirecting to display:', businessPlan);
 
     // Redirect to the business plan display page
-    this.router.navigate(['/console/business-plan']);
+    this.router.navigate(['/console/project/business-plan']);
   }
 
   /**

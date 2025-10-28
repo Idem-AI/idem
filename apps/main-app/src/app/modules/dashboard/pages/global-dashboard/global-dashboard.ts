@@ -120,7 +120,7 @@ export class GlobalDashboard implements OnInit {
    */
   protected openProjectDashboard(projectId: string): void {
     this.cookieService.set('projectId', projectId);
-    this.router.navigate(['/console/project', projectId]);
+    this.router.navigate(['/console/project/dashboard']);
   }
 
   /**

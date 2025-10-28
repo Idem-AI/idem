@@ -72,7 +72,7 @@ export class DiagramGenerationPage implements OnInit {
     console.log('Diagram generation completed, redirecting to display:', diagram);
 
     // Redirect to the diagrams display page
-    this.router.navigate(['/console/diagrams']);
+    this.router.navigate(['/console/project/diagrams']);
   }
 
   /**

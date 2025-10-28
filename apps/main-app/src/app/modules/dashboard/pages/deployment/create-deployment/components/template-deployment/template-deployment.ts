@@ -226,7 +226,7 @@ export class TemplateDeployment implements OnInit {
       next: (deployment) => {
         console.log('Template deployment created successfully:', deployment);
         this.loadingDeployment.set(false);
-        this.router.navigate(['/console/deployments']);
+        this.router.navigate(['/console/project/deployments']);
       },
       error: (error) => {
         console.error('Error creating template deployment:', error);

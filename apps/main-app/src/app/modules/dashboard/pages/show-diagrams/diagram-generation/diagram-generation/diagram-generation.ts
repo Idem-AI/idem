@@ -153,7 +153,7 @@ export class DiagramGeneration implements OnInit, OnDestroy {
    */
   private handleGenerationComplete(state: SSEGenerationState): void {
     console.log('Diagram generation completed:', state);
-    this.router.navigate(['/console/diagrams']);
+    this.router.navigate(['/console/project/diagrams']);
   }
 
   /**

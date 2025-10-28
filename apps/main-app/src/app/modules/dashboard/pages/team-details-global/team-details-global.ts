@@ -12,6 +12,7 @@ import { TeamModel, TeamMemberModel, ProjectTeamModel } from '../../models/team.
 import { ProjectModel } from '../../models/project.model';
 import { TeamService } from '../../services/team.service';
 import { ProjectService } from '../../services/project.service';
+import { CookieService } from '../../../../shared/services/cookie.service';
 import { Loader } from '../../../../components/loader/loader';
 import { AddTeamMemberModal } from '../../components/add-team-member-modal/add-team-member-modal';
 import { forkJoin } from 'rxjs';
@@ -27,6 +28,7 @@ export class TeamDetailsGlobal implements OnInit {
   // Services
   private readonly teamService = inject(TeamService);
   private readonly projectService = inject(ProjectService);
+  private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -90,7 +92,8 @@ export class TeamDetailsGlobal implements OnInit {
    * Navigate to project
    */
   protected goToProject(projectId: string): void {
-    this.router.navigate(['/console/project', projectId]);
+    this.cookieService.set('projectId', projectId);
+    this.router.navigate(['/console/project/dashboard']);
   }
 
   /**
