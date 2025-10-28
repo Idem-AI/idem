@@ -115,37 +115,37 @@ export class SidebarDashboard implements OnInit {
     {
       label: 'Teams',
       icon: 'pi pi-users',
-      route: 'console/project-teams',
+      route: 'console/project/teams',
       isActive: false,
     },
     {
       label: 'Branding',
       icon: 'pi pi-palette',
-      route: 'console/branding',
+      route: 'console/project/branding',
       isActive: false,
     },
     {
       label: 'Business Plan',
       icon: 'pi pi-calendar',
-      route: 'console/business-plan',
+      route: 'console/project/business-plan',
       isActive: false,
     },
     {
       label: 'Diagrams',
       icon: 'pi pi-chart-line',
-      route: 'console/diagrams',
+      route: 'console/project/diagrams',
       isActive: false,
     },
     {
       label: 'Development',
       icon: 'pi pi-code',
-      route: 'console/development',
+      route: 'console/project/development',
       isActive: false,
     },
     {
       label: 'Deployment',
       icon: 'pi pi-globe',
-      route: 'console/deployments',
+      route: 'console/project/deployments',
       isActive: false,
     },
   ]);

@@ -183,7 +183,7 @@ export class AddTeamToProject implements OnInit {
           console.log('Team added to project successfully');
           this.isSubmitting.set(false);
           // Navigate back to project teams
-          this.router.navigate(['/console/project-teams']);
+          this.router.navigate(['/console/project/teams']);
         },
         error: (error) => {
           console.error('Error adding team to project:', error);
@@ -197,6 +197,6 @@ export class AddTeamToProject implements OnInit {
    * Cancel and go back
    */
   protected onCancel(): void {
-    this.router.navigate(['/console/project-teams']);
+    this.router.navigate(['/console/project/teams']);
   }
 }

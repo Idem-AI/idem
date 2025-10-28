@@ -100,7 +100,7 @@ export class ShowBusinessPlan implements OnInit {
    */
   protected generateBusinessPlan(): void {
     console.log('Navigating to business plan generation page');
-    this.router.navigate(['/console/business-plan/generate']);
+    this.router.navigate(['/console/project/business-plan/generate']);
   }
 
   /**
