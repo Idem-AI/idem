@@ -17,7 +17,6 @@ import { Loader } from '../../../../components/loader/loader';
   standalone: true,
   imports: [CommonModule, RouterModule, Loader],
   templateUrl: './team-details-project.html',
-  styleUrl: './team-details-project.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TeamDetailsProject implements OnInit {

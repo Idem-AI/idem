@@ -21,7 +21,6 @@ import { forkJoin } from 'rxjs';
   standalone: true,
   imports: [CommonModule, RouterModule, Loader, AddTeamMemberModal],
   templateUrl: './team-details-global.html',
-  styleUrl: './team-details-global.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TeamDetailsGlobal implements OnInit {
@@ -67,66 +66,14 @@ export class TeamDetailsGlobal implements OnInit {
     this.teamService.getTeam(teamId).subscribe({
       next: (team) => {
         this.team.set(team);
-        // Load all projects to find which ones have this team
-        this.loadAssignedProjects(teamId);
+        // TODO: Implement backend route to get projects by teamId
+        // For now, just finish loading
+        this.assignedProjects.set([]);
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error loading team details:', error);
         this.errorMessage.set('Failed to load team details');
-        this.isLoading.set(false);
-      },
-    });
-  }
-
-  /**
-   * Loads projects assigned to this team
-   */
-  private loadAssignedProjects(teamId: string): void {
-    // Get all user projects
-    this.projectService.getProjects().subscribe({
-      next: (projects) => {
-        if (projects.length === 0) {
-          this.assignedProjects.set([]);
-          this.isLoading.set(false);
-          return;
-        }
-
-        // For each project, check if this team is assigned
-        const projectChecks = projects.map(
-          (project) =>
-            new Promise<{ project: ProjectModel; teams: ProjectTeamModel[] }>((resolve) => {
-              this.teamService.getProjectTeams(project.id!).subscribe({
-                next: (teams: ProjectTeamModel[]) => {
-                  resolve({ project, teams });
-                },
-                error: () => {
-                  resolve({ project, teams: [] });
-                },
-              });
-            })
-        );
-
-        Promise.all(projectChecks).then(
-          (results: { project: ProjectModel; teams: ProjectTeamModel[] }[]) => {
-            const assigned = results
-              .filter((result: { project: ProjectModel; teams: ProjectTeamModel[] }) =>
-                result.teams.some((t: ProjectTeamModel) => t.teamId === teamId)
-              )
-              .map((result: { project: ProjectModel; teams: ProjectTeamModel[] }) => {
-                const teamData = result.teams.find((t: ProjectTeamModel) => t.teamId === teamId);
-                return {
-                  project: result.project,
-                  roles: teamData?.roles || [],
-                };
-              });
-
-            this.assignedProjects.set(assigned);
-            this.isLoading.set(false);
-          }
-        );
-      },
-      error: (error) => {
-        console.error('Error loading projects:', error);
         this.isLoading.set(false);
       },
     });
