@@ -12,11 +12,12 @@ import { ProjectTeamModel, TeamModel } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { Loader } from '../../../../components/loader/loader';
+import { AddTeamToProjectModalComponent } from '../../components/add-team-to-project-modal/add-team-to-project-modal';
 
 @Component({
   selector: 'app-project-teams',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader],
+  imports: [CommonModule, RouterModule, Loader, AddTeamToProjectModalComponent],
   templateUrl: './project-teams.html',
   styleUrl: './project-teams.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,6 +36,9 @@ export class ProjectTeams implements OnInit {
 
   // Computed
   protected readonly hasTeams = computed(() => this.projectTeams().length > 0);
+
+  // Modal state
+  protected readonly showAddTeamModal = signal(false);
 
   ngOnInit() {
     const projectId = this.cookieService.get('projectId');
@@ -77,12 +81,27 @@ export class ProjectTeams implements OnInit {
   }
 
   /**
-   * Navigate to add team to project
+   * Open add team modal
    */
   protected addTeamToProject(): void {
-    this.router.navigate(['/console/teams/add-to-project'], {
-      queryParams: { projectId: this.projectId() },
-    });
+    this.showAddTeamModal.set(true);
+  }
+
+  /**
+   * Close add team modal
+   */
+  protected closeAddTeamModal(): void {
+    this.showAddTeamModal.set(false);
+  }
+
+  /**
+   * Handle team added event
+   */
+  protected onTeamAdded(): void {
+    // Reload teams after adding
+    if (this.projectId()) {
+      this.loadProjectTeams(this.projectId()!);
+    }
   }
 
   /**

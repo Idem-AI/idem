@@ -108,14 +108,14 @@
         <button
           type="button"
           (click)="onClose()"
-          class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white font-medium transition"
+          class="flex-1 px-4 py-3 outer-button rounded-lg text-white font-medium transition"
           [disabled]="isSubmitting()"
         >
           Cancel
         </button>
         <button
           type="submit"
-          class="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-secondary hover:opacity-90 rounded-lg text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex-1 px-4 py-3 inner-button rounded-lg text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
           [disabled]="isSubmitting() || memberForm.invalid"
         >
           @if (isSubmitting()) {

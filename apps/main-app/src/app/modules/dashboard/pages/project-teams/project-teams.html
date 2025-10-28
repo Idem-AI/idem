@@ -99,3 +99,12 @@
     </main>
   </div>
 </div>
+
+<!-- Add Team Modal -->
+@if (showAddTeamModal()) {
+<app-add-team-to-project-modal
+  [projectId]="projectId()!"
+  (close)="closeAddTeamModal()"
+  (teamAdded)="onTeamAdded()"
+/>
+}

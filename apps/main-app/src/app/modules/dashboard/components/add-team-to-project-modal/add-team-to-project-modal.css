@@ -1,0 +1,28 @@
+/* Scrollbar styling for modal content */
+:host ::ng-deep {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+:host ::ng-deep ::-webkit-scrollbar {
+  width: 8px;
+}
+
+:host ::ng-deep ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:host ::ng-deep ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+:host ::ng-deep ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Select dropdown styling */
+select option {
+  background-color: #1f2937;
+  color: white;
+}
