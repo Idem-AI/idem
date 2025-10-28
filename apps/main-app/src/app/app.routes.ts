@@ -36,6 +36,15 @@ export const routes: Routes = [
     data: { layout: 'global' },
   },
   {
+    path: 'console/dashboard',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
+        (m) => m.GlobalDashboard
+      ),
+    data: { layout: 'global' },
+  },
+
+  {
     path: 'console/projects',
     loadComponent: () =>
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
@@ -64,7 +73,7 @@ export const routes: Routes = [
 
   // Project dashboard layout routes
   {
-    path: 'console/project/:projectId',
+    path: 'console/project/dashboard',
     loadComponent: () =>
       import('./modules/dashboard/pages/dashboard/dashboard').then((m) => m.DashboardComponent),
     data: { layout: 'dashboard' },

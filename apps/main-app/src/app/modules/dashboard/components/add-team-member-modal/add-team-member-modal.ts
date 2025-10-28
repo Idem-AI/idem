@@ -1,13 +1,16 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { RadioButtonModule } from 'primeng/radiobutton';
 import { TeamService } from '../../services/team.service';
 import { AddTeamMemberDTO } from '../../models/team.model';
 
 @Component({
   selector: 'app-add-team-member-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DialogModule, InputTextModule, RadioButtonModule],
   templateUrl: './add-team-member-modal.html',
   styleUrl: './add-team-member-modal.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

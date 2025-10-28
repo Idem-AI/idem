@@ -198,7 +198,7 @@ export class CreateProjectComponent implements OnInit {
    */
   protected async finalizeProject(): Promise<void> {
     this.cookieService.set('projectId', this.project().id!);
-    this.router.navigate(['/console/dashboard']);
+    this.router.navigate(['/console/project/dashboard']);
   }
 
   /**

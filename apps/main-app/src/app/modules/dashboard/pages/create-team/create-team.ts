@@ -2,13 +2,15 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { TeamService } from '../../services/team.service';
 import { CreateTeamDTO } from '../../models/team.model';
 
 @Component({
   selector: 'app-create-team',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, InputTextModule, TextareaModule],
   templateUrl: './create-team.html',
   styleUrl: './create-team.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

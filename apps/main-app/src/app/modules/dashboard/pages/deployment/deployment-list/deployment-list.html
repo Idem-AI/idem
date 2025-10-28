@@ -158,7 +158,7 @@
                 <button
                   class="bg-transparent text-gray-200 border border-white/10 rounded w-[30px] h-[30px] grid place-items-center hover:bg-white/10 transition"
                   title="View Details"
-                  [routerLink]="['/console/dashboard', projectId(), 'deployment', deployment.id]"
+                  [routerLink]="['/console/project/dashboard', projectId(), 'deployment', deployment.id]"
                 >
                   <i class="pi pi-eye"></i>
                 </button>
@@ -166,7 +166,7 @@
                 <button
                   class="bg-transparent text-gray-200 border border-white/10 rounded w-[30px] h-[30px] grid place-items-center hover:bg-white/10 transition"
                   title="View Logs"
-                  [routerLink]="['/console/dashboard', projectId(), 'deployment', deployment.id, 'logs']"
+                  [routerLink]="['/console/project/dashboard', projectId(), 'deployment', deployment.id, 'logs']"
                 >
                   <i class="pi pi-list"></i>
                 </button>

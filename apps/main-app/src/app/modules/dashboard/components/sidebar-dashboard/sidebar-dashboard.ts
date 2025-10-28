@@ -109,7 +109,7 @@ export class SidebarDashboard implements OnInit {
     {
       label: 'Project Home',
       icon: 'pi pi-home',
-      route: 'console/project',
+      route: 'console/project/dashboard',
       isActive: false,
     },
     {

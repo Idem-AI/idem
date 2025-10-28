@@ -38,12 +38,14 @@
               Team Name <span class="text-red-400">*</span>
             </label>
             <input
+              pInputText
               id="name"
               type="text"
               formControlName="name"
               placeholder="Enter team name"
-              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
-              [class.border-red-500]="hasError('name', 'required') || hasError('name', 'minlength') || hasError('name', 'maxlength')"
+              class="w-full"
+              [class.ng-invalid]="hasError('name', 'required') || hasError('name', 'minlength') || hasError('name', 'maxlength')"
+              [class.ng-dirty]="hasError('name', 'required') || hasError('name', 'minlength') || hasError('name', 'maxlength')"
             />
             @if (hasError('name', 'required') || hasError('name', 'minlength') || hasError('name',
             'maxlength')) {
@@ -57,12 +59,14 @@
               Description
             </label>
             <textarea
+              pTextarea
               id="description"
               formControlName="description"
               rows="4"
               placeholder="Describe your team's purpose and goals"
-              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition resize-none"
-              [class.border-red-500]="hasError('description', 'maxlength')"
+              class="w-full"
+              [class.ng-invalid]="hasError('description', 'maxlength')"
+              [class.ng-dirty]="hasError('description', 'maxlength')"
             ></textarea>
             @if (hasError('description', 'maxlength')) {
             <p class="text-red-400 text-sm">{{ getErrorMessage('description') }}</p>
@@ -86,27 +90,22 @@
           <button
             type="button"
             (click)="onCancel()"
-            class="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white font-medium transition"
+            class="flex-1 outer-button"
             [disabled]="isSubmitting()"
           >
+            <i class="pi pi-times mr-2"></i>
             Cancel
           </button>
           <button
             type="submit"
-            class="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-secondary hover:opacity-90 rounded-lg text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1 inner-button"
             [disabled]="isSubmitting() || teamForm.invalid"
           >
             @if (isSubmitting()) {
-            <span class="flex items-center justify-center gap-2">
-              <i class="pi pi-spin pi-spinner"></i>
-              Creating...
-            </span>
-            } @else {
-            <span class="flex items-center justify-center gap-2">
-              <i class="pi pi-check"></i>
-              Create Team
-            </span>
-            }
+            <i class="pi pi-spin pi-spinner mr-2"></i>
+            Creating... } @else {
+            <i class="pi pi-check mr-2"></i>
+            Create Team }
           </button>
         </div>
       </form>

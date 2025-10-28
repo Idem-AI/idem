@@ -1,6 +1,9 @@
 import { Component, EventEmitter, Input, Output, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { TeamService } from '../../services/team.service';
 import { TeamModel, ProjectRole, CreateTeamDTO } from '../../models/team.model';
 
@@ -9,7 +12,7 @@ type SelectionMode = 'existing' | 'new';
 @Component({
   selector: 'app-add-team-to-project-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DialogModule, InputTextModule, TextareaModule],
   templateUrl: './add-team-to-project-modal.html',
   styleUrl: './add-team-to-project-modal.css',
 })
@@ -22,6 +25,7 @@ export class AddTeamToProjectModalComponent {
   @Output() teamAdded = new EventEmitter<void>();
 
   // State
+  protected visible = signal(true);
   protected selectionMode = signal<SelectionMode>('existing');
   protected isSubmitting = signal(false);
   protected errorMessage = signal<string | null>(null);
