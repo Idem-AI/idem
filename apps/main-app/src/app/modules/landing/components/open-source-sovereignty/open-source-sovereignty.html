@@ -70,15 +70,45 @@
           </p>
           <ul class="space-y-2 sm:space-y-3">
             <li class="flex items-center gap-2 sm:gap-3">
-              <i class="pi pi-check-circle text-primary text-sm sm:text-base"></i>
+              <svg
+                class="w-5 h-5 text-primary flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
               <span class="text-sm sm:text-base text-gray-300">Full source code access</span>
             </li>
             <li class="flex items-center gap-2 sm:gap-3">
-              <i class="pi pi-check-circle text-primary text-sm sm:text-base"></i>
+              <svg
+                class="w-5 h-5 text-primary flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
               <span class="text-sm sm:text-base text-gray-300">No vendor lock-in</span>
             </li>
             <li class="flex items-center gap-2 sm:gap-3">
-              <i class="pi pi-check-circle text-primary text-sm sm:text-base"></i>
+              <svg
+                class="w-5 h-5 text-primary flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
               <span class="text-sm sm:text-base text-gray-300">Community driven</span>
             </li>
           </ul>
@@ -86,69 +116,207 @@
       </div>
     </div>
 
-    <!-- Features Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-      @for (feature of features; track feature.title) {
-      <div
-        class="group relative glass-card p-8 rounded-2xl border border-white/10 hover:border-primary/50 transition-all duration-300 hover:transform hover:scale-[1.02]"
-      >
-        <!-- Icon -->
-        <div class="mb-6">
+    <!-- Features Grid - Diagonal Layout -->
+    <div class="mb-16">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        @for (feature of features; track feature.title; let i = $index) {
+        <div
+          class="group relative overflow-hidden rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-500"
+          [class.lg:mt-12]="i % 2 === 1"
+        >
+          <!-- Diagonal Background Gradient -->
           <div
-            class="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors duration-300"
-          >
-            <i [class]="'pi ' + feature.icon + ' text-3xl text-primary'"></i>
+            class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          ></div>
+          <div
+            class="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl transform translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-700"
+          ></div>
+
+          <div class="relative glass-card p-8 lg:p-10">
+            <!-- Icon with SVG -->
+            <div class="mb-6 flex items-center gap-4">
+              <div
+                class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+              >
+                <svg
+                  class="w-7 h-7 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  @if (i === 0) {
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                  />
+                  } @else if (i === 1) {
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                  } @else if (i === 2) {
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                  } @else {
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                  }
+                </svg>
+              </div>
+              <div class="h-12 w-1 bg-gradient-to-b from-primary to-transparent rounded-full"></div>
+            </div>
+
+            <!-- Content -->
+            <h3
+              class="text-2xl font-bold text-white mb-4 group-hover:text-primary transition-colors duration-300"
+            >
+              {{ feature.title }}
+            </h3>
+
+            <p class="text-gray-400 mb-6 leading-relaxed">{{ feature.description }}</p>
+
+            <!-- Benefits with modern checkmarks -->
+            <div class="space-y-3">
+              @for (benefit of feature.benefits; track benefit) {
+              <div class="flex items-start gap-3 group/item">
+                <div class="mt-0.5">
+                  <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <span class="text-gray-300 text-sm group-hover/item:text-white transition-colors"
+                  >{{ benefit }}</span
+                >
+              </div>
+              }
+            </div>
           </div>
         </div>
-
-        <!-- Content -->
-        <h3
-          class="text-2xl font-bold text-white mb-4 group-hover:text-primary transition-colors duration-300"
-        >
-          {{ feature.title }}
-        </h3>
-
-        <p class="text-gray-400 mb-6 leading-relaxed">{{ feature.description }}</p>
-
-        <!-- Benefits -->
-        <ul class="space-y-3">
-          @for (benefit of feature.benefits; track benefit) {
-          <li class="flex items-start gap-3">
-            <i class="pi pi-check-circle text-primary mt-1 flex-shrink-0"></i>
-            <span class="text-gray-300 text-sm">{{ benefit }}</span>
-          </li>
-          }
-        </ul>
+        }
       </div>
-      }
     </div>
 
-    <!-- GitHub CTA -->
-    <div class="text-center glass-card p-8 rounded-2xl border border-white/10">
-      <div class="max-w-2xl mx-auto">
-        <i class="pi pi-github text-5xl text-primary mb-4"></i>
-        <h3 class="text-2xl font-bold text-white mb-4">Explore the Source Code</h3>
-        <p class="text-gray-400 mb-6">
-          Audit our code, contribute improvements, or deploy your own instance. IDEM is built in the
-          open for maximum transparency.
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href="https://github.com/Idem-Engine"
-            target="_blank"
-            class="inner-button px-8 py-3 rounded-lg font-semibold transition-all duration-300"
-          >
-            <i class="pi pi-github mr-2"></i>
-            View on GitHub
-          </a>
-          <a
-            href="https://github.com/Idem-Engine/idem/blob/main/LICENSE"
-            target="_blank"
-            class="outer-button px-8 py-3 rounded-lg font-semibold transition-all duration-300"
-          >
-            <i class="pi pi-file-pdf mr-2"></i>
-            Read License
-          </a>
+    <!-- GitHub CTA - Modern Split Design -->
+    <div class="relative overflow-hidden rounded-2xl border border-white/10">
+      <div
+        class="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10"
+      ></div>
+      <div class="relative glass-card p-8 lg:p-12">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <!-- Left: Icon & Title -->
+          <div class="text-center lg:text-left">
+            <div
+              class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 mb-6"
+            >
+              <svg class="w-12 h-12 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-3xl font-bold text-white mb-4">Explore the Source Code</h3>
+            <p class="text-gray-400 leading-relaxed">
+              Audit our code, contribute improvements, or deploy your own instance. IDEM is built in
+              the open for maximum transparency.
+            </p>
+          </div>
+
+          <!-- Right: Actions -->
+          <div class="space-y-4">
+            <a
+              href="https://github.com/Idem-Engine"
+              target="_blank"
+              class="group flex items-center gap-4 p-6 glass-card rounded-xl border border-white/10 hover:border-primary/50 transition-all duration-300"
+            >
+              <div
+                class="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors"
+              >
+                <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                  <path
+                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1 text-left">
+                <div class="font-bold text-white group-hover:text-primary transition-colors">
+                  View on GitHub
+                </div>
+                <div class="text-sm text-gray-400">Explore the complete codebase</div>
+              </div>
+              <svg
+                class="w-5 h-5 text-gray-400 group-hover:text-primary group-hover:translate-x-1 transition-all"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </a>
+
+            <a
+              href="https://github.com/Idem-Engine/idem/blob/main/LICENSE"
+              target="_blank"
+              class="group flex items-center gap-4 p-6 glass-card rounded-xl border border-white/10 hover:border-secondary/50 transition-all duration-300"
+            >
+              <div
+                class="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center group-hover:bg-secondary/30 transition-colors"
+              >
+                <svg
+                  class="w-6 h-6 text-secondary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1 text-left">
+                <div class="font-bold text-white group-hover:text-secondary transition-colors">
+                  Read License
+                </div>
+                <div class="text-sm text-gray-400">Apache 2.0 with Commons Clause</div>
+              </div>
+              <svg
+                class="w-5 h-5 text-gray-400 group-hover:text-secondary group-hover:translate-x-1 transition-all"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </a>
+          </div>
         </div>
       </div>
     </div>
