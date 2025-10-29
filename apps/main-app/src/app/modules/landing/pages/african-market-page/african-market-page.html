@@ -1,0 +1,283 @@
+<!-- African Market Page -->
+<div class="relative min-h-screen bg-black overflow-hidden">
+  <!-- Background Effects -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div
+      class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"
+    ></div>
+    <div
+      class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-1000"
+    ></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <!-- Page Header -->
+    <div class="text-center mb-16">
+      <a
+        routerLink="/"
+        class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+      >
+        <i class="pi pi-arrow-left"></i>
+        <span>Back to Home</span>
+      </a>
+
+      <div
+        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
+      >
+        <i class="pi pi-map-marker text-primary"></i>
+        <span class="text-white">Pan-African Vision</span>
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        Built in <span class="text-primary">Cameroon</span>
+        <br />
+        for <span class="text-primary">All of Africa</span>
+      </h1>
+
+      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+        IDEM is Africa's first sovereign open source AI platform, founded in Cameroon with a
+        pan-African mission. We're democratizing tech entrepreneurship by making world-class AI
+        tools accessible and affordable for every African entrepreneur.
+      </p>
+    </div>
+
+    <!-- African Market Statistics -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Africa's Digital Opportunity</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          The continent with the fastest-growing digital economy and youngest population globally
+        </p>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+        @for (stat of stats; track stat.label) {
+        <div
+          class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all hover:transform hover:scale-105"
+        >
+          <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
+          <div class="text-sm text-white font-semibold mb-1">{{ stat.label }}</div>
+          <div class="text-xs text-gray-500">{{ stat.trend }}</div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Why Africa Section -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Why Africa?</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Unprecedented opportunities for innovation and entrepreneurship across the continent
+        </p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        @for (reason of whyAfrica; track reason.title) {
+        <div
+          class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/50 transition-all hover:transform hover:scale-[1.02]"
+        >
+          <div
+            class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mx-auto mb-4"
+          >
+            <i [class]="'pi ' + reason.icon + ' text-2xl text-primary'"></i>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-3 text-center">{{ reason.title }}</h3>
+          <p class="text-sm text-gray-400 mb-4 text-center leading-relaxed">
+            {{ reason.description }}
+          </p>
+          <div class="flex flex-wrap gap-2 justify-center">
+            @for (stat of reason.stats.slice(0, 2); track stat) {
+            <span class="px-3 py-1 bg-primary/10 rounded-full text-xs text-primary font-semibold"
+              >{{ stat }}</span
+            >
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Regional Expansion Roadmap -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+          Pan-African Expansion Roadmap
+        </h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Strategic expansion from our Cameroon base to every corner of the continent
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        @for (region of regions; track region.region) {
+        <div
+          class="glass-card p-6 rounded-xl border-2 transition-all hover:transform hover:scale-[1.02]"
+          [style.border-color]="region.color"
+        >
+          <!-- Region Header -->
+          <div class="flex items-start gap-4 mb-4">
+            <div class="text-5xl">{{ region.flag }}</div>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-white mb-2">{{ region.region }}</h3>
+              <div class="flex flex-wrap items-center gap-2 mb-3">
+                <div
+                  class="inline-block px-3 py-1 rounded-full text-xs font-bold"
+                  [style.background-color]="region.color + '20'"
+                  [style.color]="region.color"
+                >
+                  {{ region.status }}
+                </div>
+                <span class="text-xs text-gray-400">{{ region.timeline }}</span>
+              </div>
+              <p class="text-sm text-gray-400 mb-3 leading-relaxed">{{ region.description }}</p>
+            </div>
+          </div>
+
+          <!-- Countries -->
+          <div class="mb-4">
+            <div class="text-xs text-gray-500 mb-2 font-semibold">Key Markets:</div>
+            <div class="flex flex-wrap gap-2">
+              @for (country of region.countries; track country) {
+              <span class="px-3 py-1 bg-white/5 rounded-full text-xs text-gray-300"
+                >{{ country }}</span
+              >
+              }
+            </div>
+          </div>
+
+          <!-- Top Opportunities -->
+          <div>
+            <div class="text-xs text-gray-500 mb-2 font-semibold">Key Opportunities:</div>
+            <div class="space-y-1">
+              @for (opp of region.opportunities.slice(0, 3); track opp) {
+              <div class="flex items-start gap-2">
+                <i class="pi pi-check text-primary text-xs mt-0.5 flex-shrink-0"></i>
+                <span class="text-xs text-gray-400">{{ opp }}</span>
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- IDEM's African Advantages -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+          Why IDEM is Different for Africa
+        </h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Built by Africans, for Africans, with deep understanding of the continent's unique context
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (advantage of idemAdvantages; track advantage.title) {
+        <div
+          class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/50 transition-all"
+        >
+          <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
+            <i [class]="'pi ' + advantage.icon + ' text-2xl text-primary'"></i>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-3">{{ advantage.title }}</h3>
+          <p class="text-sm text-gray-400 mb-4 leading-relaxed">{{ advantage.description }}</p>
+          <ul class="space-y-2">
+            @for (benefit of advantage.benefits.slice(0, 3); track benefit) {
+            <li class="text-xs text-gray-400 flex items-start gap-2">
+              <i class="pi pi-check-circle text-primary mt-0.5 flex-shrink-0"></i>
+              <span>{{ benefit }}</span>
+            </li>
+            }
+          </ul>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Founders Section -->
+    <div class="mb-20">
+      <div class="glass-card p-8 rounded-2xl border border-white/10">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl font-bold text-white mb-4">Meet the Cameroonian Founders</h2>
+          <p class="text-gray-400 max-w-2xl mx-auto">
+            Two Cameroonian entrepreneurs combining technical excellence and strategic vision to
+            build Africa's first sovereign AI platform
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Founder 1 -->
+          <div
+            class="glass p-6 rounded-xl border border-white/5 hover:border-primary/30 transition-all"
+          >
+            <div class="flex items-start gap-4">
+              <div
+                class="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"
+              >
+                <i class="pi pi-user text-3xl text-primary"></i>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-xl font-bold text-white mb-1">Arolle Dubois Aguekeng</h3>
+                <div class="text-primary text-sm font-semibold mb-3">CEO & Co-Founder</div>
+                <p class="text-sm text-gray-400 mb-3 leading-relaxed">
+                  Senior Software Engineer and entrepreneur behind IDEM's vision. Brings strategic
+                  vision and deep understanding of African entrepreneurial ecosystems.
+                </p>
+                <span class="px-3 py-1 bg-white/5 rounded-full text-xs text-gray-400"
+                  >🇨🇲 Cameroon</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Founder 2 -->
+          <div
+            class="glass p-6 rounded-xl border border-white/5 hover:border-primary/30 transition-all"
+          >
+            <div class="flex items-start gap-4">
+              <div
+                class="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"
+              >
+                <i class="pi pi-user text-3xl text-primary"></i>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-xl font-bold text-white mb-1">Romuald Djeteje</h3>
+                <div class="text-primary text-sm font-semibold mb-3">CTO & Co-Founder</div>
+                <p class="text-sm text-gray-400 mb-3 leading-relaxed">
+                  DevSecOps Engineer with expertise in security, cloud architecture, and automation.
+                  Ensures IDEM's technical excellence, scalability, and data security.
+                </p>
+                <span class="px-3 py-1 bg-white/5 rounded-full text-xs text-gray-400"
+                  >🇨🇲 Cameroon</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
+      <h2 class="text-3xl font-bold text-white mb-4">Join Africa's Tech Revolution</h2>
+      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+        Start building with IDEM today. Free tier available with 10 credits to create your first
+        project. No credit card required.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-rocket mr-2"></i>
+          Start Building Free
+        </a>
+        <a routerLink="/" class="outer-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-arrow-left mr-2"></i>
+          Back to Home
+        </a>
+      </div>
+      <p class="text-sm text-gray-500 mt-6">
+        🇨🇲 Made in Cameroon • 🌍 For All of Africa • 💚 Open Source
+      </p>
+    </div>
+  </div>
+</div>

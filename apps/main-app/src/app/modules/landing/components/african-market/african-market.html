@@ -45,9 +45,9 @@
       }
     </div>
 
-    <!-- Expansion Roadmap -->
-    <div class="mb-16">
-      <h3 class="text-3xl font-bold text-white text-center mb-8">Pan-African Expansion Roadmap</h3>
+    <!-- Expansion Roadmap Summary -->
+    <div class="mb-12">
+      <h3 class="text-3xl font-bold text-white text-center mb-8">Pan-African Expansion</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         @for (market of markets; track market.region) {
         <div
@@ -65,79 +65,45 @@
               {{ market.status }}
             </div>
           </div>
-          <p class="text-gray-400 text-sm text-center">{{ market.description }}</p>
         </div>
         }
       </div>
     </div>
 
-    <!-- African Advantages -->
-    <div class="mb-16">
-      <h3 class="text-3xl font-bold text-white text-center mb-8">
-        Why IDEM is Different for Africa
-      </h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- African Advantages Summary -->
+    <div class="mb-12">
+      <h3 class="text-2xl font-bold text-white text-center mb-6">Why IDEM for Africa?</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         @for (advantage of advantages; track advantage.title) {
         <div
-          class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/50 transition-colors"
+          class="glass-card p-4 rounded-xl border border-white/10 hover:border-primary/50 transition-colors text-center"
         >
-          <div class="flex items-start gap-4">
-            <div
-              class="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0"
-            >
-              <i [class]="'pi ' + advantage.icon + ' text-xl text-primary'"></i>
-            </div>
-            <div class="flex-1">
-              <h4 class="text-lg font-bold text-white mb-2">{{ advantage.title }}</h4>
-              <p class="text-gray-400 text-sm leading-relaxed">{{ advantage.description }}</p>
-            </div>
+          <div
+            class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center mx-auto mb-3"
+          >
+            <i [class]="'pi ' + advantage.icon + ' text-lg text-primary'"></i>
           </div>
+          <h4 class="text-sm font-bold text-white mb-2">{{ advantage.title }}</h4>
+          <p class="text-gray-400 text-xs leading-relaxed">{{ advantage.description }}</p>
         </div>
         }
       </div>
     </div>
 
-    <!-- Founders Section -->
-    <div class="glass-card p-8 rounded-2xl border border-white/10">
-      <div class="text-center mb-8">
-        <h3 class="text-3xl font-bold text-white mb-4">Meet the Cameroonian Founders</h3>
-        <p class="text-gray-400 max-w-2xl mx-auto">
-          Two Cameroonian entrepreneurs combining technical excellence and strategic vision to build
-          Africa's first sovereign AI platform
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- Founder 1 -->
-        <div class="text-center">
-          <div
-            class="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
-          >
-            <i class="pi pi-user text-4xl text-primary"></i>
-          </div>
-          <h4 class="text-xl font-bold text-white mb-2">Arolle Dubois Aguekeng</h4>
-          <div class="text-primary font-semibold mb-3">CEO & Co-Founder</div>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Senior Software Engineer and entrepreneur behind IDEM's vision. Brings strategic vision
-            and deep understanding of African entrepreneurial ecosystems.
-          </p>
-        </div>
-
-        <!-- Founder 2 -->
-        <div class="text-center">
-          <div
-            class="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
-          >
-            <i class="pi pi-user text-4xl text-primary"></i>
-          </div>
-          <h4 class="text-xl font-bold text-white mb-2">Romuald Djeteje</h4>
-          <div class="text-primary font-semibold mb-3">CTO & Co-Founder</div>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            DevSecOps Engineer with expertise in security, cloud architecture, and automation.
-            Ensures IDEM's technical excellence, scalability, and data security.
-          </p>
-        </div>
-      </div>
+    <!-- Learn More CTA -->
+    <div class="text-center glass-card p-8 rounded-2xl border border-white/10">
+      <h3 class="text-2xl font-bold text-white mb-4">Discover IDEM's Pan-African Vision</h3>
+      <p class="text-gray-400 mb-6 max-w-2xl mx-auto">
+        Learn more about our expansion roadmap, regional opportunities, Cameroonian founders, and
+        why IDEM is uniquely positioned to serve African entrepreneurs.
+      </p>
+      <a
+        routerLink="/african-market"
+        class="inner-button px-8 py-3 rounded-lg font-semibold inline-flex items-center gap-2"
+      >
+        <i class="pi pi-book"></i>
+        Learn More About Our African Mission
+      </a>
     </div>
   </div>
 </section>
