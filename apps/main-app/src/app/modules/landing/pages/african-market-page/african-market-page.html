@@ -41,13 +41,49 @@
       </p>
     </div>
 
-    <!-- Hero Image -->
-    <div class="mb-20 rounded-2xl overflow-hidden border border-white/10 max-w-5xl mx-auto">
-      <img
-        src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1400&auto=format&fit=crop"
-        alt="African tech entrepreneurs collaborating"
-        class="w-full h-96 object-cover"
-      />
+    <!-- Hero Mosaic Layout -->
+    <div class="mb-20 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto">
+      <div
+        class="col-span-2 row-span-2 rounded-xl lg:rounded-2xl overflow-hidden border border-primary/30 relative group"
+      >
+        <img
+          src="https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=1000&auto=format&fit=crop"
+          alt="African woman tech entrepreneur"
+          class="w-full h-full object-cover min-h-[300px] sm:min-h-[350px] lg:min-h-[400px] group-hover:scale-105 transition-transform duration-500"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+          <h3 class="text-xl sm:text-2xl font-bold text-white mb-1">Leading Innovation</h3>
+          <p class="text-sm sm:text-base text-white/90">African women in tech</p>
+        </div>
+      </div>
+      <div class="rounded-lg lg:rounded-xl overflow-hidden border border-white/10">
+        <img
+          src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=600&auto=format&fit=crop"
+          alt="African entrepreneur"
+          class="w-full h-full object-cover min-h-[140px] sm:min-h-[170px] lg:min-h-[190px]"
+        />
+      </div>
+      <div class="rounded-lg lg:rounded-xl overflow-hidden border border-white/10">
+        <img
+          src="https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=600&auto=format&fit=crop"
+          alt="African developer"
+          class="w-full h-full object-cover min-h-[140px] sm:min-h-[170px] lg:min-h-[190px]"
+        />
+      </div>
+      <div
+        class="col-span-2 rounded-lg lg:rounded-xl overflow-hidden border border-white/10 relative"
+      >
+        <img
+          src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop"
+          alt="African tech team"
+          class="w-full h-full object-cover min-h-[140px] sm:min-h-[170px] lg:min-h-[190px]"
+        />
+        <div class="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
+          <p class="text-sm sm:text-base text-white font-semibold">Building Together</p>
+        </div>
+      </div>
     </div>
 
     <!-- African Market Statistics -->
@@ -80,21 +116,30 @@
         </p>
       </div>
 
-      <!-- Inspiring Images -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-        <div class="rounded-xl overflow-hidden border border-white/10">
+      <!-- Inspiring Images - Asymmetric Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-12">
+        <div
+          class="md:col-span-2 rounded-xl lg:rounded-2xl overflow-hidden border border-white/10 relative group"
+        >
           <img
-            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop"
-            alt="African entrepreneur smiling"
-            class="w-full h-64 object-cover"
-          />
-        </div>
-        <div class="rounded-xl overflow-hidden border border-white/10">
-          <img
-            src="https://images.unsplash.com/photo-1531545514256-b1400bc00f31?q=80&w=800&auto=format&fit=crop"
+            src="https://images.unsplash.com/photo-1531545514256-b1400bc00f31?q=80&w=1000&auto=format&fit=crop"
             alt="African business team celebrating"
-            class="w-full h-64 object-cover"
+            class="w-full h-full object-cover min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] group-hover:scale-105 transition-transform duration-500"
           />
+          <div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+        </div>
+        <div class="space-y-4 lg:space-y-6">
+          <div class="rounded-xl overflow-hidden border border-white/10 relative">
+            <img
+              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=600&auto=format&fit=crop"
+              alt="African entrepreneur smiling"
+              class="w-full h-32 sm:h-36 lg:h-40 object-cover"
+            />
+          </div>
+          <div class="glass-card p-4 lg:p-6 rounded-xl border border-white/10">
+            <h4 class="text-base lg:text-lg font-bold text-white mb-2">1.4B People</h4>
+            <p class="text-xs lg:text-sm text-gray-400">Youngest population globally</p>
+          </div>
         </div>
       </div>
 
