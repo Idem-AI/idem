@@ -1,0 +1,256 @@
+<!-- Pricing Page -->
+<div class="relative min-h-screen bg-black overflow-hidden">
+  <!-- Background -->
+  <div class="absolute inset-0">
+    <div class="absolute inset-0 bg-gradient-to-b from-black via-primary/5 to-black"></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <!-- Hero -->
+    <div class="mb-16">
+      <div class="text-center mb-8">
+        <a
+          routerLink="/"
+          class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+        >
+          <i class="pi pi-arrow-left"></i>
+          <span>Back to Home</span>
+        </a>
+
+        <div
+          class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
+        >
+          <i class="pi pi-tag text-primary"></i>
+          <span class="text-white">Transparent Pricing</span>
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+          Simple, <span class="text-primary">Affordable</span> Pricing
+        </h1>
+
+        <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+          Start for free and scale as you grow. No hidden fees, no surprises. Designed for African
+          entrepreneurs with pricing that makes sense.
+        </p>
+      </div>
+
+      <!-- Hero Image -->
+      <div class="rounded-2xl overflow-hidden border border-white/10 max-w-4xl mx-auto">
+        <img
+          src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1200&auto=format&fit=crop"
+          alt="Happy African entrepreneur"
+          class="w-full h-96 object-cover"
+        />
+      </div>
+    </div>
+
+    <!-- Pricing Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+      @for (plan of plans; track plan.name) {
+      <div
+        [class]="plan.popular ? 'glass-card p-6 rounded-xl border-2 border-primary relative' : 'glass-card p-6 rounded-xl border border-white/10 relative'"
+      >
+        @if (plan.popular) {
+        <div
+          class="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-primary rounded-full text-xs font-bold text-white"
+        >
+          Most Popular
+        </div>
+        }
+
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-bold text-white mb-2">{{ plan.name }}</h3>
+          <div class="mb-2">
+            <span class="text-4xl font-bold text-primary">{{ plan.price }}</span>
+            <span class="text-gray-400 text-sm">{{ plan.period }}</span>
+          </div>
+          <div class="text-sm text-primary font-semibold mb-3">{{ plan.credits }}</div>
+          <p class="text-sm text-gray-400">{{ plan.description }}</p>
+        </div>
+
+        <ul class="space-y-3 mb-6">
+          @for (feature of plan.features; track feature) {
+          <li class="flex items-start gap-2 text-sm text-gray-300">
+            <i class="pi pi-check text-primary mt-0.5 flex-shrink-0"></i>
+            <span>{{ feature }}</span>
+          </li>
+          }
+        </ul>
+
+        <a
+          [routerLink]="plan.name === 'Enterprise' ? '/contact' : '/auth/signup'"
+          [class]="plan.popular ? 'inner-button w-full py-3 rounded-lg font-semibold text-center block' : 'outer-button w-full py-3 rounded-lg font-semibold text-center block'"
+        >
+          {{ plan.cta }}
+        </a>
+      </div>
+      }
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Compare Plans</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Detailed comparison of features across all plans
+        </p>
+      </div>
+
+      <div class="glass-card rounded-xl border border-white/10 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-white/5">
+              <tr>
+                <th class="text-left p-4 text-white font-semibold">Feature</th>
+                <th class="text-center p-4 text-white font-semibold">Free</th>
+                <th class="text-center p-4 text-white font-semibold">Starter</th>
+                <th class="text-center p-4 text-white font-semibold">Pro</th>
+                <th class="text-center p-4 text-white font-semibold">Enterprise</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10">
+              <tr>
+                <td class="p-4 text-gray-300">Monthly Credits</td>
+                <td class="p-4 text-center text-gray-400">10</td>
+                <td class="p-4 text-center text-gray-400">100</td>
+                <td class="p-4 text-center text-gray-400">500</td>
+                <td class="p-4 text-center text-primary">Unlimited</td>
+              </tr>
+              <tr>
+                <td class="p-4 text-gray-300">Core Features</td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+              </tr>
+              <tr>
+                <td class="p-4 text-gray-300">API Access</td>
+                <td class="p-4 text-center"><i class="pi pi-times text-gray-600"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+              </tr>
+              <tr>
+                <td class="p-4 text-gray-300">Team Collaboration</td>
+                <td class="p-4 text-center"><i class="pi pi-times text-gray-600"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-times text-gray-600"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+              </tr>
+              <tr>
+                <td class="p-4 text-gray-300">Priority Support</td>
+                <td class="p-4 text-center"><i class="pi pi-times text-gray-600"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+              </tr>
+              <tr>
+                <td class="p-4 text-gray-300">On-Premise Deployment</td>
+                <td class="p-4 text-center"><i class="pi pi-times text-gray-600"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-times text-gray-600"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-times text-gray-600"></i></td>
+                <td class="p-4 text-center"><i class="pi pi-check text-primary"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Value Proposition -->
+    <div class="mb-20">
+      <div class="glass-card p-10 rounded-2xl border border-white/10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center mb-10">
+          <div class="rounded-xl overflow-hidden border border-white/10">
+            <img
+              src="https://images.unsplash.com/photo-1531545514256-b1400bc00f31?q=80&w=800&auto=format&fit=crop"
+              alt="African business team celebrating success"
+              class="w-full h-80 object-cover"
+            />
+          </div>
+          <div class="text-center lg:text-left">
+            <h2 class="text-3xl font-bold text-white mb-4">Why IDEM Pricing is Different</h2>
+            <p class="text-gray-400 leading-relaxed">
+              Designed specifically for African entrepreneurs and businesses. We understand the
+              unique challenges and opportunities in African markets, and our pricing reflects that
+              commitment.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="text-center">
+            <div
+              class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/20 mb-4"
+            >
+              <i class="pi pi-dollar text-2xl text-primary"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">60-80% Cheaper</h3>
+            <p class="text-sm text-gray-400">
+              Significantly more affordable than international alternatives
+            </p>
+          </div>
+
+          <div class="text-center">
+            <div
+              class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/20 mb-4"
+            >
+              <i class="pi pi-mobile text-2xl text-primary"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Mobile Money</h3>
+            <p class="text-sm text-gray-400">Pay with mobile money across Africa for easy access</p>
+          </div>
+
+          <div class="text-center">
+            <div
+              class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/20 mb-4"
+            >
+              <i class="pi pi-shield text-2xl text-primary"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">No Hidden Fees</h3>
+            <p class="text-sm text-gray-400">
+              Transparent pricing with no surprise charges or hidden costs
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Frequently Asked Questions</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Everything you need to know about IDEM pricing
+        </p>
+      </div>
+
+      <div class="max-w-3xl mx-auto space-y-4">
+        @for (faq of faqs; track faq.question) {
+        <div class="glass-card p-6 rounded-xl border border-white/10">
+          <h3 class="text-lg font-bold text-white mb-2">{{ faq.question }}</h3>
+          <p class="text-sm text-gray-400">{{ faq.answer }}</p>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
+      <h2 class="text-3xl font-bold text-white mb-4">Ready to Get Started?</h2>
+      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+        Start with 10 free credits. No credit card required. Upgrade anytime.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-rocket mr-2"></i>
+          Start Free
+        </a>
+        <a routerLink="/contact" class="outer-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-comments mr-2"></i>
+          Contact Sales
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,262 @@
+<!-- Open Source & Sovereignty Page -->
+<div class="relative min-h-screen bg-black overflow-hidden">
+  <!-- Background with image -->
+  <div class="absolute inset-0">
+    <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-black/90 to-black"></div>
+    <div
+      class="absolute inset-0 opacity-10"
+      style="background-image: url('/assets/images/code-pattern.svg'); background-size: cover"
+    ></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <!-- Hero Section -->
+    <div class="text-center mb-20">
+      <a
+        routerLink="/"
+        class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+      >
+        <i class="pi pi-arrow-left"></i>
+        <span>Back to Home</span>
+      </a>
+
+      <div
+        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
+      >
+        <i class="pi pi-code text-primary"></i>
+        <span class="text-white">100% Open Source</span>
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        Open Source &
+        <br />
+        <span class="text-primary">Data Sovereignty</span>
+      </h1>
+
+      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+        IDEM is fully open source under Apache 2.0 license. Your data stays in Africa with complete
+        transparency, no vendor lock-in, and community-driven development.
+      </p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+      @for (stat of stats; track stat.label) {
+      <div
+        class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all"
+      >
+        <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
+        <div class="text-sm text-white font-semibold mb-1">{{ stat.label }}</div>
+        <div class="text-xs text-gray-500">{{ stat.description }}</div>
+      </div>
+      }
+    </div>
+
+    <!-- Main Features Grid -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Why Open Source Matters</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Transparency, security, and freedom for African tech entrepreneurs
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        @for (feature of features; track feature.title) {
+        <div
+          class="glass-card p-8 rounded-xl border border-white/10 hover:border-primary/50 transition-all"
+        >
+          <div class="flex items-start gap-4 mb-4">
+            <div
+              class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0"
+            >
+              <i [class]="'pi ' + feature.icon + ' text-2xl text-primary'"></i>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-white mb-2">{{ feature.title }}</h3>
+              <p class="text-sm text-gray-400 mb-4">{{ feature.description }}</p>
+            </div>
+          </div>
+          <ul class="space-y-2">
+            @for (benefit of feature.benefits; track benefit) {
+            <li class="text-xs text-gray-400 flex items-start gap-2">
+              <i class="pi pi-check-circle text-primary mt-0.5 flex-shrink-0"></i>
+              <span>{{ benefit }}</span>
+            </li>
+            }
+          </ul>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Apache 2.0 License Section -->
+    <div class="mb-20">
+      <div class="glass-card p-10 rounded-2xl border border-white/10">
+        <div class="text-center mb-10">
+          <div
+            class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/20 mb-6"
+          >
+            <i class="pi pi-file-edit text-4xl text-primary"></i>
+          </div>
+          <h2 class="text-3xl font-bold text-white mb-4">Apache 2.0 License</h2>
+          <p class="text-gray-400 max-w-2xl mx-auto">
+            One of the most permissive and business-friendly open source licenses, trusted by major
+            tech companies worldwide
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          @for (detail of licenseDetails; track detail.title) {
+          <div class="text-center glass p-6 rounded-xl border border-white/5">
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/20 mb-4"
+            >
+              <i [class]="'pi ' + detail.icon + ' text-xl text-primary'"></i>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">{{ detail.title }}</h3>
+            <p class="text-xs text-gray-400">{{ detail.description }}</p>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Sovereignty Section with Background -->
+    <div class="mb-20 relative">
+      <div
+        class="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl blur-3xl"
+      ></div>
+      <div class="relative glass-card p-10 rounded-2xl border border-primary/30">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <div
+              class="inline-flex items-center gap-2 px-4 py-2 bg-primary/20 rounded-full text-sm font-medium mb-6"
+            >
+              <i class="pi pi-map-marker text-primary"></i>
+              <span class="text-primary">African Infrastructure</span>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-4">Your Data Stays in Africa</h2>
+            <p class="text-gray-400 mb-6 leading-relaxed">
+              IDEM deploys on African cloud infrastructure, ensuring your data remains on the
+              continent. Full compliance with local regulations and GDPR, with the option for
+              on-premise deployment for complete control.
+            </p>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <i class="pi pi-check-circle text-primary mt-1"></i>
+                <div>
+                  <div class="text-white font-semibold">African Data Centers</div>
+                  <div class="text-sm text-gray-400">Low latency across the continent</div>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <i class="pi pi-check-circle text-primary mt-1"></i>
+                <div>
+                  <div class="text-white font-semibold">Regulatory Compliance</div>
+                  <div class="text-sm text-gray-400">GDPR and local data protection laws</div>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <i class="pi pi-check-circle text-primary mt-1"></i>
+                <div>
+                  <div class="text-white font-semibold">On-Premise Option</div>
+                  <div class="text-sm text-gray-400">Deploy on your own infrastructure</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="rounded-xl overflow-hidden border border-white/10">
+            <img
+              src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop"
+              alt="Cloud Infrastructure and Data Centers"
+              class="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Community Section -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Join the Community</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Contribute to Africa's first sovereign AI platform and help shape the future of African
+          tech
+        </p>
+      </div>
+
+      <!-- Community Image -->
+      <div class="mb-12 rounded-2xl overflow-hidden border border-white/10">
+        <img
+          src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop"
+          alt="African tech community collaboration"
+          class="w-full h-64 object-cover"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-card p-6 rounded-xl border border-white/10 text-center">
+          <i class="pi pi-github text-4xl text-primary mb-4"></i>
+          <h3 class="text-lg font-bold text-white mb-2">GitHub</h3>
+          <p class="text-sm text-gray-400 mb-4">Explore the code, report issues, and contribute</p>
+          <a
+            href="https://github.com/Idem-Engine"
+            target="_blank"
+            class="outer-button px-6 py-2 rounded-lg text-sm inline-block"
+          >
+            View Repository
+          </a>
+        </div>
+
+        <div class="glass-card p-6 rounded-xl border border-white/10 text-center">
+          <i class="pi pi-discord text-4xl text-primary mb-4"></i>
+          <h3 class="text-lg font-bold text-white mb-2">Discord</h3>
+          <p class="text-sm text-gray-400 mb-4">Join discussions and get community support</p>
+          <a
+            href="https://discord.gg/idem"
+            target="_blank"
+            class="outer-button px-6 py-2 rounded-lg text-sm inline-block"
+          >
+            Join Discord
+          </a>
+        </div>
+
+        <div class="glass-card p-6 rounded-xl border border-white/10 text-center">
+          <i class="pi pi-book text-4xl text-primary mb-4"></i>
+          <h3 class="text-lg font-bold text-white mb-2">Documentation</h3>
+          <p class="text-sm text-gray-400 mb-4">Learn how to contribute and customize IDEM</p>
+          <a
+            routerLink="/documentation"
+            class="outer-button px-6 py-2 rounded-lg text-sm inline-block"
+          >
+            Read Docs
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
+      <h2 class="text-3xl font-bold text-white mb-4">Start Building with Open Source AI</h2>
+      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+        Experience the freedom of open source with the power of AI. Start for free today.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-rocket mr-2"></i>
+          Get Started Free
+        </a>
+        <a
+          href="https://github.com/Idem-Engine"
+          target="_blank"
+          class="outer-button px-8 py-3 rounded-lg font-semibold"
+        >
+          <i class="pi pi-github mr-2"></i>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
