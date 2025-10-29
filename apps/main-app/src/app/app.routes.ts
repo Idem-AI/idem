@@ -13,6 +13,12 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'deployment',
+    loadComponent: () =>
+      import('./modules/landing/pages/deployment/deployment').then((m) => m.DeploymentPage),
+    data: { layout: 'public' },
+  },
+  {
     path: 'premium-beta',
     loadComponent: () =>
       import('./modules/landing/pages/premium-beta-access/premium-beta-access').then(

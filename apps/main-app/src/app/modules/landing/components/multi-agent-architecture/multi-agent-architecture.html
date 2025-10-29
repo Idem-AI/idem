@@ -1,0 +1,160 @@
+<!-- Multi-Agent Architecture Section -->
+<section
+  class="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-transparent to-black/20"
+>
+  <!-- Background Effects -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div
+      class="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"
+    ></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Section Header -->
+    <div class="text-center mb-16">
+      <div
+        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
+      >
+        <i class="pi pi-sitemap text-primary"></i>
+        <span class="text-white">Revolutionary Technology</span>
+      </div>
+
+      <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        <span class="text-primary">200+</span> Specialized
+        <br />
+        AI Agents Working for You
+      </h2>
+
+      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+        IDEM's revolutionary multi-agent architecture orchestrates hundreds of specialized AI
+        agents, each expert in their domain, collaborating to build your complete project.
+      </p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+      <div class="text-center glass-card p-6 rounded-xl border border-white/10">
+        <div class="text-4xl font-bold text-primary mb-2">200+</div>
+        <div class="text-sm text-gray-400">AI Agents</div>
+      </div>
+      <div class="text-center glass-card p-6 rounded-xl border border-white/10">
+        <div class="text-4xl font-bold text-primary mb-2">500+</div>
+        <div class="text-sm text-gray-400">Target by 2026</div>
+      </div>
+      <div class="text-center glass-card p-6 rounded-xl border border-white/10">
+        <div class="text-4xl font-bold text-primary mb-2">100%</div>
+        <div class="text-sm text-gray-400">Open Source</div>
+      </div>
+      <div class="text-center glass-card p-6 rounded-xl border border-white/10">
+        <div class="text-4xl font-bold text-primary mb-2">5</div>
+        <div class="text-sm text-gray-400">Agent Categories</div>
+      </div>
+    </div>
+
+    <!-- Agent Categories -->
+    <div class="mb-12">
+      <div class="flex flex-wrap justify-center gap-4 mb-8">
+        @for (category of agentCategories; track category.id) {
+        <button
+          (click)="selectCategory(category)"
+          class="group relative px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02]"
+          [ngClass]="{
+            'glass-dark border-2 text-white shadow-lg': selectedCategory().id === category.id,
+            'glass border text-white/70 hover:text-white hover:border-white/30': selectedCategory().id !== category.id
+          }"
+          [style.border-color]="selectedCategory().id === category.id ? category.color : ''"
+        >
+          <div class="flex items-center gap-3">
+            <i
+              [class]="'pi ' + category.icon + ' text-xl'"
+              [style.color]="selectedCategory().id === category.id ? category.color : ''"
+            ></i>
+            <span>{{ category.name }}</span>
+            <span
+              class="px-2 py-1 rounded-full text-xs font-bold"
+              [style.background-color]="category.color + '20'"
+              [style.color]="category.color"
+            >
+              {{ category.count }}
+            </span>
+          </div>
+        </button>
+        }
+      </div>
+
+      <!-- Selected Category Details -->
+      <div class="glass-card p-8 rounded-2xl border border-white/10">
+        <div class="flex items-start gap-6 mb-6">
+          <div
+            class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
+            [style.background-color]="selectedCategory().color + '20'"
+          >
+            <i
+              [class]="'pi ' + selectedCategory().icon + ' text-3xl'"
+              [style.color]="selectedCategory().color"
+            ></i>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-2xl font-bold text-white mb-2">{{ selectedCategory().name }}</h3>
+            <p class="text-gray-400 leading-relaxed">{{ selectedCategory().description }}</p>
+          </div>
+        </div>
+
+        <!-- Agent List -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (agent of selectedCategory().agents; track agent) {
+          <div
+            class="flex items-center gap-3 p-4 glass rounded-lg border border-white/5 hover:border-white/20 transition-colors"
+          >
+            <div
+              class="w-2 h-2 rounded-full flex-shrink-0"
+              [style.background-color]="selectedCategory().color"
+            ></div>
+            <span class="text-white text-sm">{{ agent }}</span>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="text-center glass-card p-8 rounded-2xl border border-white/10">
+      <h3 class="text-2xl font-bold text-white mb-6">How Multi-Agent Architecture Works</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div
+            class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+          >
+            <span class="text-2xl font-bold text-primary">1</span>
+          </div>
+          <h4 class="text-lg font-semibold text-white mb-2">Orchestration</h4>
+          <p class="text-gray-400 text-sm">
+            Master orchestrator analyzes your project and assigns specialized agents
+          </p>
+        </div>
+        <div class="text-center">
+          <div
+            class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+          >
+            <span class="text-2xl font-bold text-primary">2</span>
+          </div>
+          <h4 class="text-lg font-semibold text-white mb-2">Collaboration</h4>
+          <p class="text-gray-400 text-sm">
+            Agents work in parallel, sharing context and ensuring consistency
+          </p>
+        </div>
+        <div class="text-center">
+          <div
+            class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+          >
+            <span class="text-2xl font-bold text-primary">3</span>
+          </div>
+          <h4 class="text-lg font-semibold text-white mb-2">Validation</h4>
+          <p class="text-gray-400 text-sm">
+            Quality agents review output before presenting results to you
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
