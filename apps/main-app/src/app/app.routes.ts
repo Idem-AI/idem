@@ -55,6 +55,12 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'about',
+    loadComponent: () =>
+      import('./modules/landing/pages/about-page/about-page').then((m) => m.AboutPage),
+    data: { layout: 'public' },
+  },
+  {
     path: 'premium-beta',
     loadComponent: () =>
       import('./modules/landing/pages/premium-beta-access/premium-beta-access').then(
