@@ -73,6 +73,14 @@
             Pricing
             <span class="nav-dot"></span>
           </a>
+          <a
+            routerLink="/about"
+            routerLinkActive="active"
+            class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
+          >
+            Entreprise
+            <span class="nav-dot"></span>
+          </a>
         </div>
 
         <!-- GitHub icon with link -->
@@ -230,6 +238,15 @@
       >
         <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
         Pricing
+      </a>
+      <a
+        routerLink="/about"
+        (click)="toggleMenu()"
+        routerLinkActive="active"
+        class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
+      >
+        <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
+        Entreprise
       </a>
 
       <!-- Dashboard link - only visible when logged in -->
