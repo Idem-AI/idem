@@ -97,21 +97,48 @@
           <div class="grid gap-3 sm:grid-cols-2">
             @for (role of projectRoles; track role.value) {
             <label
-              class="flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all duration-300"
+              class="group flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all duration-300 hover:bg-white/10"
               [ngClass]="{
                 'border-white/10 bg-white/5': !isRoleSelected(role.value),
-                'border-primary bg-primary/20': isRoleSelected(role.value)
+                'border-primary bg-primary/20 ring-2 ring-primary/30': isRoleSelected(role.value)
               }"
             >
-              <p-checkbox
-                [binary]="true"
-                [(ngModel)]="role.checked"
-                (onChange)="toggleRole(role.value)"
-                [inputId]="'role-' + role.value"
-                styleClass="mt-1"
-              />
+              <div class="relative flex items-center justify-center mt-0.5">
+                <input
+                  type="checkbox"
+                  [checked]="isRoleSelected(role.value)"
+                  (change)="toggleRole(role.value)"
+                  [id]="'role-' + role.value"
+                  class="peer sr-only"
+                />
+                <div
+                  class="w-5 h-5 rounded border-2 transition-all duration-200"
+                  [ngClass]="{
+                    'border-white/20 bg-white/5': !isRoleSelected(role.value),
+                    'border-primary bg-primary': isRoleSelected(role.value)
+                  }"
+                >
+                  @if (isRoleSelected(role.value)) {
+                  <svg
+                    class="w-full h-full text-white p-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="3"
+                      d="M5 13l4 4L19 7"
+                    ></path>
+                  </svg>
+                  }
+                </div>
+              </div>
               <div class="flex-1">
-                <div class="font-medium text-white">{{ role.label }}</div>
+                <div class="font-medium text-white group-hover:text-primary transition-colors">
+                  {{ role.label }}
+                </div>
                 <div class="text-sm text-gray-400">{{ role.description }}</div>
               </div>
             </label>

@@ -99,17 +99,19 @@
         <button
           type="button"
           (click)="toggleRole(role, existingTeamForm)"
-          [class.bg-primary]="isRoleSelected(role, existingTeamForm)"
-          [class.border-primary]="isRoleSelected(role, existingTeamForm)"
-          [class.text-primary]="isRoleSelected(role, existingTeamForm)"
-          [class.bg-white]="!isRoleSelected(role, existingTeamForm)"
-          [class.border-white]="!isRoleSelected(role, existingTeamForm)"
-          [class.text-gray-300]="!isRoleSelected(role, existingTeamForm)"
-          class="px-4 py-3 border rounded-lg font-medium transition hover:bg-primary/10 hover:border-primary/50 text-left"
+          [ngClass]="{
+            'bg-primary/20 border-primary ring-2 ring-primary/30 text-white': isRoleSelected(role, existingTeamForm),
+            'bg-white/5 border-white/10 text-gray-300': !isRoleSelected(role, existingTeamForm)
+          }"
+          class="px-4 py-3 border rounded-lg font-medium transition hover:bg-white/10 hover:border-white/20 text-left"
         >
           <i
             [class.pi-check-circle]="isRoleSelected(role, existingTeamForm)"
             [class.pi-circle]="!isRoleSelected(role, existingTeamForm)"
+            [ngClass]="{
+              'text-primary': isRoleSelected(role, existingTeamForm),
+              'text-gray-500': !isRoleSelected(role, existingTeamForm)
+            }"
             class="pi mr-2"
           ></i>
           {{ roleLabels[role] }}
@@ -191,17 +193,19 @@
         <button
           type="button"
           (click)="toggleRole(role, newTeamForm)"
-          [class.bg-primary]="isRoleSelected(role, newTeamForm)"
-          [class.border-primary]="isRoleSelected(role, newTeamForm)"
-          [class.text-primary]="isRoleSelected(role, newTeamForm)"
-          [class.bg-white]="!isRoleSelected(role, newTeamForm)"
-          [class.border-white]="!isRoleSelected(role, newTeamForm)"
-          [class.text-gray-300]="!isRoleSelected(role, newTeamForm)"
-          class="px-4 py-3 border rounded-lg font-medium transition hover:bg-primary/10 hover:border-primary/50 text-left"
+          [ngClass]="{
+            'bg-primary/20 border-primary ring-2 ring-primary/30 text-white': isRoleSelected(role, newTeamForm),
+            'bg-white/5 border-white/10 text-gray-300': !isRoleSelected(role, newTeamForm)
+          }"
+          class="px-4 py-3 border rounded-lg font-medium transition hover:bg-white/10 hover:border-white/20 text-left"
         >
           <i
             [class.pi-check-circle]="isRoleSelected(role, newTeamForm)"
             [class.pi-circle]="!isRoleSelected(role, newTeamForm)"
+            [ngClass]="{
+              'text-primary': isRoleSelected(role, newTeamForm),
+              'text-gray-500': !isRoleSelected(role, newTeamForm)
+            }"
             class="pi mr-2"
           ></i>
           {{ roleLabels[role] }}
@@ -241,7 +245,7 @@
         <i class="pi pi-spin pi-spinner mr-2"></i>
         Creating... } @else {
         <i class="pi pi-plus-circle mr-2"></i>
-        Create & Add Team }
+        Create &amp; Add Team }
       </button>
     </div>
   </form>

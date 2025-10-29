@@ -1,5 +1,6 @@
-import { Component, signal, OnInit, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
+import { Component, signal, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { SeoService } from '../../../../shared/services/seo.service';
 
 interface DeploymentScreenshot {
@@ -15,118 +16,76 @@ interface DeploymentScreenshot {
 @Component({
   selector: 'app-deployment-screenshots',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './deployment-screenshots.html',
   styleUrl: './deployment-screenshots.css',
 })
-export class DeploymentScreenshots implements OnInit, OnDestroy {
+export class DeploymentScreenshots implements OnInit {
   // Angular-initialized properties
   protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
   private readonly seoService = inject(SeoService);
 
   // State properties
-  protected readonly activeScreenshot = signal<number>(0);
-  private rotationInterval?: number;
-
   protected readonly screenshots = signal<DeploymentScreenshot[]>([
     {
-      id: 'conversational-ui',
-      mode: 'AI Assistant',
-      title: 'Conversational Interface',
-      description:
-        'Natural language interaction with AI-powered architecture suggestions and real-time guidance.',
-      imageUrl: '/assets/screenshots/conversational-mode.png',
-      features: [
-        'Chat-based interface',
-        'Real-time AI responses',
-        'Architecture visualization',
-        'Step-by-step guidance',
-      ],
-      color: '#1447e6',
-    },
-    {
-      id: 'quick-deploy-ui',
+      id: 'quick-deploy',
       mode: 'Quick Deploy',
-      title: 'One-Click Deployment',
-      description: 'Streamlined interface for instant deployment with minimal user input required.',
-      imageUrl: '/assets/screenshots/quick-deploy-mode.png',
-      features: [
-        'Single-click deployment',
-        'Progress indicators',
-        'Automatic configuration',
-        'Instant results',
-      ],
-      color: '#22c55e',
+      title: 'Quick Deployment',
+      description:
+        'Zero configuration deployment. We handle everything and provide you with a live URL instantly.',
+      imageUrl: '/assets/screenshots/quick-deploy.png',
+      features: ['Zero config', 'Instant deployment', 'Free subdomain', 'Custom domain support'],
+      color: '#10b981',
     },
     {
-      id: 'templates-ui',
-      mode: 'Architecture Templates',
-      title: 'Template Selection',
+      id: 'vps-deploy',
+      mode: 'VPS',
+      title: 'VPS Deployment',
       description:
-        'Gallery of pre-built architecture templates with customization options and preview capabilities.',
-      imageUrl: '/assets/screenshots/templates-mode.png',
-      features: [
-        'Template gallery',
-        'Live preview',
-        'Customization panel',
-        'Architecture diagrams',
-      ],
-      color: '#d11ec0',
+        'Deploy on IDEM servers or your own VPS with full control and Docker Swarm high availability.',
+      imageUrl: '/assets/screenshots/vps-deploy.png',
+      features: ['Your server or ours', 'Docker Swarm', 'Full monitoring', 'Log management'],
+      color: '#3b82f6',
     },
     {
-      id: 'expert-ui',
-      mode: 'Component Catalog',
-      title: 'Advanced Configuration',
+      id: 'cloud-deploy',
+      mode: 'Cloud Provider',
+      title: 'Cloud Deployment',
       description:
-        'Comprehensive component catalog with detailed configuration options and dependency management.',
-      imageUrl: '/assets/screenshots/expert-mode.png',
+        'AI-powered deployment on AWS, GCP with automatic resource provisioning and cost optimization.',
+      imageUrl: '/assets/screenshots/cloud-deploy.png',
       features: [
-        'Component library',
-        'Advanced settings',
-        'Dependency graph',
-        'Custom configurations',
+        'AWS & GCP support',
+        'AI recommendations',
+        'Cost optimization',
+        'One-click deploy',
       ],
+      color: '#8b5cf6',
+    },
+    {
+      id: 'architecture-deploy',
+      mode: 'Architecture Design',
+      title: 'Custom Architecture',
+      description:
+        'Design and deploy custom cloud architectures with AI assistance, templates, or total control.',
+      imageUrl: '/assets/screenshots/architecture-deploy.png',
+      features: ['AI Assistant', 'Pre-built templates', 'Custom config', 'Visual designer'],
       color: '#f59e0b',
     },
   ]);
 
   ngOnInit(): void {
     this.setupSeoForDeploymentScreenshots();
-    this.startAutoRotation();
-  }
-
-  ngOnDestroy(): void {
-    if (this.rotationInterval) {
-      clearInterval(this.rotationInterval);
-      this.rotationInterval = undefined;
-    }
-  }
-
-  private startAutoRotation(): void {
-    this.rotationInterval = window.setInterval(() => {
-      const screenshots = this.screenshots();
-      const current = this.activeScreenshot();
-      const next = (current + 1) % screenshots.length;
-      this.activeScreenshot.set(next);
-    }, 6000);
-  }
-
-  protected selectScreenshot(index: number): void {
-    this.activeScreenshot.set(index);
-  }
-
-  protected getCurrentScreenshot(): DeploymentScreenshot {
-    return this.screenshots()[this.activeScreenshot()];
   }
 
   private setupSeoForDeploymentScreenshots(): void {
-    // Add structured data for deployment screenshots
+    // Add structured data for deployment modes
     const deploymentStructuredData = {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
-      name: 'Idem Deployment Interface',
+      name: 'Idem Deployment Solutions',
       description:
-        'Multiple deployment modes including AI assistant, quick deploy, templates, and expert configuration',
+        'Multiple deployment modes: Quick Deploy, VPS, Cloud Providers (AWS/GCP), and Custom Architecture Design',
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Web Browser',
       featureList: this.screenshots().map((screenshot) => screenshot.title),
@@ -141,11 +100,11 @@ export class DeploymentScreenshots implements OnInit, OnDestroy {
     // Add structured data to page if not already present
     if (
       this.isBrowser() &&
-      !document.querySelector('script[data-deployment-screenshots-structured-data]')
+      !document.querySelector('script[data-deployment-modes-structured-data]')
     ) {
       const script = document.createElement('script');
       script.type = 'application/ld+json';
-      script.setAttribute('data-deployment-screenshots-structured-data', 'true');
+      script.setAttribute('data-deployment-modes-structured-data', 'true');
       script.textContent = JSON.stringify(deploymentStructuredData);
       document.head.appendChild(script);
     }

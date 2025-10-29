@@ -7,15 +7,8 @@ import {
   computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-  FormsModule,
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
-import { CheckboxModule } from 'primeng/checkbox';
 import { TeamService } from '../../services/team.service';
 import { TeamModel, AddTeamToProjectDTO } from '../../models/team.model';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -24,7 +17,7 @@ import { Loader } from '../../../../components/loader/loader';
 @Component({
   selector: 'app-add-team-to-project',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, CheckboxModule, Loader],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, Loader],
   templateUrl: './add-team-to-project.html',
   styleUrl: './add-team-to-project.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,33 +43,28 @@ export class AddTeamToProject implements OnInit {
       value: 'project-owner',
       label: 'Project Owner',
       description: 'Full control over the project',
-      checked: false,
     },
     {
       value: 'project-admin',
       label: 'Project Admin',
       description: 'Can manage project settings',
-      checked: false,
     },
     {
       value: 'developer',
       label: 'Developer',
       description: 'Can write and deploy code',
-      checked: true,
     },
     {
       value: 'designer',
       label: 'Designer',
       description: 'Can manage design assets',
-      checked: false,
     },
     {
       value: 'contributor',
       label: 'Contributor',
       description: 'Can contribute to the project',
-      checked: false,
     },
-    { value: 'viewer', label: 'Viewer', description: 'Can only view the project', checked: false },
+    { value: 'viewer', label: 'Viewer', description: 'Can only view the project' },
   ];
 
   protected readonly assignForm: FormGroup = this.fb.group({
@@ -137,18 +125,15 @@ export class AddTeamToProject implements OnInit {
    * Toggle role selection
    */
   protected toggleRole(roleValue: string): void {
-    const role = this.projectRoles.find((r) => r.value === roleValue);
-    if (!role) return;
-
     const currentRoles = this.assignForm.get('roles')?.value || [];
     const index = currentRoles.indexOf(roleValue);
 
-    if (role.checked && index === -1) {
-      // Add role
-      currentRoles.push(roleValue);
-    } else if (!role.checked && index > -1) {
+    if (index > -1) {
       // Remove role
       currentRoles.splice(index, 1);
+    } else {
+      // Add role
+      currentRoles.push(roleValue);
     }
 
     this.assignForm.patchValue({ roles: currentRoles });
