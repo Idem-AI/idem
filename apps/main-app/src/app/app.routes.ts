@@ -19,6 +19,14 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'african-market',
+    loadComponent: () =>
+      import('./modules/landing/pages/african-market-page/african-market-page').then(
+        (m) => m.AfricanMarketPage
+      ),
+    data: { layout: 'public' },
+  },
+  {
     path: 'premium-beta',
     loadComponent: () =>
       import('./modules/landing/pages/premium-beta-access/premium-beta-access').then(
