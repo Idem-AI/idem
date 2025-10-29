@@ -34,27 +34,35 @@
             <span class="nav-dot"></span>
           </a>
           <a
-            routerLink="/deployment"
+            routerLink="/solutions"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
           >
-            Deployment
+            Solutions
             <span class="nav-dot"></span>
           </a>
           <a
-            routerLink="/documentation"
+            routerLink="/architecture"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
           >
-            Documentation
+            Architecture
             <span class="nav-dot"></span>
           </a>
           <a
-            routerLink="/premium-beta"
+            routerLink="/open-source"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
           >
-            Beta Program
+            Open Source
+            <span class="nav-dot"></span>
+          </a>
+          <a
+            routerLink="/pricing"
+            routerLinkActive="active"
+            class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
+          >
+            Pricing
             <span class="nav-dot"></span>
           </a>
         </div>
@@ -171,22 +179,40 @@
         Home
       </a>
       <a
-        routerLink="/deployment"
+        routerLink="/solutions"
         (click)="toggleMenu()"
         routerLinkActive="active"
         class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
       >
         <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-        Deployment
+        Solutions
       </a>
       <a
-        routerLink="/documentation"
+        routerLink="/architecture"
         (click)="toggleMenu()"
         routerLinkActive="active"
         class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
       >
         <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-        Doc
+        Architecture
+      </a>
+      <a
+        routerLink="/open-source"
+        (click)="toggleMenu()"
+        routerLinkActive="active"
+        class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
+      >
+        <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
+        Open Source
+      </a>
+      <a
+        routerLink="/pricing"
+        (click)="toggleMenu()"
+        routerLinkActive="active"
+        class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
+      >
+        <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
+        Pricing
       </a>
 
       <!-- Dashboard link - only visible when logged in -->

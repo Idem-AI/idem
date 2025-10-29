@@ -27,6 +27,34 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'open-source',
+    loadComponent: () =>
+      import('./modules/landing/pages/open-source-page/open-source-page').then(
+        (m) => m.OpenSourcePage
+      ),
+    data: { layout: 'public' },
+  },
+  {
+    path: 'architecture',
+    loadComponent: () =>
+      import('./modules/landing/pages/architecture-page/architecture-page').then(
+        (m) => m.ArchitecturePage
+      ),
+    data: { layout: 'public' },
+  },
+  {
+    path: 'pricing',
+    loadComponent: () =>
+      import('./modules/landing/pages/pricing-page/pricing-page').then((m) => m.PricingPage),
+    data: { layout: 'public' },
+  },
+  {
+    path: 'solutions',
+    loadComponent: () =>
+      import('./modules/landing/pages/solutions-page/solutions-page').then((m) => m.SolutionsPage),
+    data: { layout: 'public' },
+  },
+  {
     path: 'premium-beta',
     loadComponent: () =>
       import('./modules/landing/pages/premium-beta-access/premium-beta-access').then(
