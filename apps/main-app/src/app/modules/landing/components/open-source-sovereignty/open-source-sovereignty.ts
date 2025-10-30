@@ -12,39 +12,43 @@ export class OpenSourceSovereigntyComponent {
   protected readonly features = [
     {
       icon: 'pi-code',
-      title: 'Apache 2.0 License',
+      title: 'Complete Business Suite in One Platform',
       description:
-        'Full transparency with auditable source code. Deploy on your own infrastructure with complete control.',
-      benefits: ['Inspect every line of code', 'No vendor lock-in', 'Community-driven development'],
+        'From logo creation to full-stack web apps, IDEM handles every step. 200+ AI agents work together to build your brand, strategy, and product—all from a single idea.',
+      benefits: [
+        'Logo & brand identity generation',
+        'Business plan creation',
+        'Full web application development',
+      ],
     },
     {
       icon: 'pi-shield',
-      title: 'Digital Sovereignty',
+      title: 'Deploy on Your Own Infrastructure',
       description:
-        'Your data stays under your control. Deploy on-premise or on African cloud infrastructure.',
+        'Host on AWS, Google Cloud, Azure, or your own servers. Your code, your servers, your data. No external dependencies, no vendor lock-in.',
       benefits: [
-        'Data never leaves your control',
-        'Compliance with local regulations',
-        'African infrastructure options',
+        'Full source code access',
+        'Deploy anywhere in minutes',
+        'Complete data sovereignty',
       ],
     },
     {
       icon: 'pi-users',
-      title: 'Community Powered',
+      title: 'Built for African Entrepreneurs',
       description:
-        'Built by Africans for Africa. Contribute, customize, and extend the platform for your needs.',
+        'Designed in Cameroon with African markets in mind. Local payment integrations, multilingual support, and infrastructure optimized for African internet speeds.',
       benefits: [
-        'African developer community',
-        'Custom extensions support',
-        'Continuous improvements',
+        'African payment gateways ready',
+        'Optimized for low bandwidth',
+        'Community-driven development',
       ],
     },
     {
       icon: 'pi-dollar',
-      title: 'Cost Optimization',
+      title: 'From Idea to Revenue in Days',
       description:
-        '60-80% cost reduction vs proprietary solutions. No licensing fees, only infrastructure costs.',
-      benefits: ['No hidden fees', 'Transparent pricing', 'Community optimizations'],
+        'What costs $50,000+ with agencies, IDEM delivers for free. Build your MVP, launch your startup, and start generating revenue—all without writing a single line of code.',
+      benefits: ['Zero licensing fees', 'No monthly subscriptions', 'Launch in days, not months'],
     },
   ];
 }

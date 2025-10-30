@@ -44,13 +44,10 @@
         <div class="text-center group">
           <div class="mb-4">
             <div
-              class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform"
+              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
             >
               200+
             </div>
-            <div
-              class="h-1 w-16 bg-gradient-to-r from-primary to-transparent mx-auto rounded-full"
-            ></div>
           </div>
           <div class="text-base font-bold text-white mb-1">AI Agents</div>
           <div class="text-xs text-gray-400">Currently active</div>
@@ -58,13 +55,10 @@
         <div class="text-center group">
           <div class="mb-4">
             <div
-              class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-secondary to-secondary/70 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform"
+              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
             >
               500+
             </div>
-            <div
-              class="h-1 w-16 bg-gradient-to-r from-secondary to-transparent mx-auto rounded-full"
-            ></div>
           </div>
           <div class="text-base font-bold text-white mb-1">Target by 2026</div>
           <div class="text-xs text-gray-400">Expanding rapidly</div>
@@ -72,13 +66,10 @@
         <div class="text-center group">
           <div class="mb-4">
             <div
-              class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform"
+              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
             >
               100%
             </div>
-            <div
-              class="h-1 w-16 bg-gradient-to-r from-primary to-transparent mx-auto rounded-full"
-            ></div>
           </div>
           <div class="text-base font-bold text-white mb-1">Open Source</div>
           <div class="text-xs text-gray-400">Fully transparent</div>
@@ -86,13 +77,10 @@
         <div class="text-center group">
           <div class="mb-4">
             <div
-              class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-secondary to-secondary/70 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform"
+              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
             >
               5
             </div>
-            <div
-              class="h-1 w-16 bg-gradient-to-r from-secondary to-transparent mx-auto rounded-full"
-            ></div>
           </div>
           <div class="text-base font-bold text-white mb-1">Categories</div>
           <div class="text-xs text-gray-400">Specialized domains</div>
@@ -102,111 +90,126 @@
 
     <!-- Agent Categories -->
     <div class="mb-12">
-      <div class="flex flex-wrap justify-center gap-4 mb-8">
-        @for (category of agentCategories; track category.id) {
+      <!-- Navigation Header with Arrows -->
+      <div class="flex items-center justify-between mb-8 gap-4">
+        <!-- Previous Button -->
         <button
-          (click)="selectCategory(category)"
-          class="group relative px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02]"
-          [ngClass]="{
-            'glass-dark border-2 text-white shadow-lg': selectedCategory().id === category.id,
-            'glass border text-white/70 hover:text-white hover:border-white/30': selectedCategory().id !== category.id
-          }"
-          [style.border-color]="selectedCategory().id === category.id ? category.color : ''"
+          (click)="previousCategory()"
+          class="group flex items-center gap-2 px-4 py-3 glass rounded-xl border border-white/10 hover:border-primary/50 transition-all duration-300 hover:scale-105"
         >
-          <div class="flex items-center gap-3">
-            <svg
-              class="w-5 h-5"
-              [style.color]="selectedCategory().id === category.id ? category.color : 'currentColor'"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-            <span>{{ category.name }}</span>
-            <span
-              class="px-2 py-1 rounded-full text-xs font-bold"
-              [style.background-color]="category.color + '20'"
-              [style.color]="category.color"
-            >
-              {{ category.count }}
-            </span>
-          </div>
+          <svg
+            class="w-5 h-5 text-white group-hover:text-primary transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          <span class="text-white/70 group-hover:text-white text-sm font-medium hidden sm:inline"
+            >Previous</span
+          >
         </button>
-        }
+
+        <!-- Category Indicators -->
+        <div class="flex items-center gap-3">
+          @for (category of agentCategories; track category.id; let i = $index) {
+          <button
+            (click)="selectCategory(category)"
+            class="group relative transition-all duration-300"
+            [attr.aria-label]="category.name"
+          >
+            <div
+              class="h-2 rounded-full transition-all duration-300"
+              [ngClass]="{
+                'w-12 bg-primary': selectedCategory().id === category.id,
+                'w-8 bg-white/30 group-hover:bg-white/50': selectedCategory().id !== category.id
+              }"
+            ></div>
+            <!-- Tooltip -->
+            <div
+              class="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/90 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+            >
+              {{ category.name }}
+            </div>
+          </button>
+          }
+        </div>
+
+        <!-- Next Button -->
+        <button
+          (click)="nextCategory()"
+          class="group flex items-center gap-2 px-4 py-3 glass rounded-xl border border-white/10 hover:border-primary/50 transition-all duration-300 hover:scale-105"
+        >
+          <span class="text-white/70 group-hover:text-white text-sm font-medium hidden sm:inline"
+            >Next</span
+          >
+          <svg
+            class="w-5 h-5 text-white group-hover:text-primary transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
       </div>
 
       <!-- Selected Category Details - Modern Card -->
-      <div class="relative overflow-hidden rounded-2xl border border-white/10">
-        <div
-          class="absolute inset-0 bg-gradient-to-br"
-          [style.background]="'linear-gradient(135deg, ' + selectedCategory().color + '10, transparent)'"
-        ></div>
-        <div class="relative glass-card p-8 lg:p-10">
-          <div class="flex items-start gap-6 mb-8">
-            <div
-              class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"
-              [style.background]="'linear-gradient(135deg, ' + selectedCategory().color + '40, ' + selectedCategory().color + '20)'"
-            >
-              <svg
-                class="w-8 h-8"
-                [style.color]="selectedCategory().color"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-2xl lg:text-3xl font-bold text-white mb-3">
-                {{ selectedCategory().name }}
-              </h3>
-              <p class="text-gray-400 leading-relaxed text-base">
-                {{ selectedCategory().description }}
-              </p>
+      <div class="relative overflow-hidden rounded-2xl border border-primary/20 shadow-2xl">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent"></div>
+        <div class="relative glass-card p-8 lg:p-12">
+          <!-- Header -->
+          <div class="mb-10">
+            <div class="flex items-start justify-between gap-6 mb-6">
+              <div class="flex-1">
+                <div
+                  class="inline-block px-4 py-1.5 bg-primary/20 rounded-full text-xs font-bold text-primary mb-4"
+                >
+                  {{ selectedCategory().count }} Agents
+                </div>
+                <h3 class="text-3xl lg:text-4xl font-bold text-white mb-4 leading-tight">
+                  {{ selectedCategory().name }}
+                </h3>
+                <p class="text-white/80 leading-relaxed text-lg font-medium">
+                  {{ selectedCategory().description }}
+                </p>
+              </div>
             </div>
           </div>
 
-          <!-- Agent List - Modern Pills -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            @for (agent of selectedCategory().agents; track agent) {
-            <div
-              class="group/agent flex items-center gap-3 p-4 glass rounded-xl border border-white/5 hover:border-white/20 transition-all duration-300 hover:transform hover:scale-[1.02]"
-            >
+          <!-- Agent List - Clean Grid -->
+          <div>
+            <h4 class="text-sm font-bold text-white/60 uppercase tracking-wider mb-4">
+              Available Agents
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              @for (agent of selectedCategory().agents; track agent) {
               <div
-                class="flex items-center justify-center w-6 h-6 rounded-lg"
-                [style.background-color]="selectedCategory().color + '20'"
+                class="group/agent relative p-5 glass-dark rounded-xl border border-white/10 hover:border-primary/40 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-xl"
               >
-                <svg
-                  class="w-3 h-3"
-                  [style.color]="selectedCategory().color"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-2 h-2 rounded-full bg-primary group-hover/agent:animate-pulse"
+                  ></div>
+                  <span
+                    class="text-white text-base font-semibold group-hover/agent:text-primary transition-colors"
+                  >
+                    {{ agent }}
+                  </span>
+                </div>
               </div>
-              <span
-                class="text-white text-sm font-medium group-hover/agent:text-primary transition-colors"
-                >{{ agent }}</span
-              >
+              }
             </div>
-            }
           </div>
         </div>
       </div>
@@ -216,7 +219,7 @@
     <div class="relative rounded-2xl lg:rounded-3xl overflow-hidden border border-white/10">
       <!-- Background Image -->
       <img
-        src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1400&auto=format&fit=crop"
+        src="https://images.pexels.com/photos/3869651/pexels-photo-3869651.jpeg"
         alt="African tech team collaboration"
         class="w-full h-full object-cover min-h-[600px] sm:min-h-[700px] lg:min-h-[800px]"
       />
