@@ -26,11 +26,18 @@ export class VideoTrailer implements OnInit, AfterViewInit {
   @ViewChild('videoPlayer', { static: false }) videoPlayer!: ElementRef<HTMLVideoElement>;
 
   protected readonly isPlaying = signal(false);
-  protected readonly isLoading = signal(true);
+  protected readonly isLoading = signal(false);
+  protected readonly hasStartedPlaying = signal(false);
   protected readonly currentTime = signal(0);
   protected readonly duration = signal(0);
   protected readonly volume = signal(1);
   protected readonly isMuted = signal(false);
+
+  // Video URL and Poster
+  protected readonly videoUrl =
+    'https://firebasestorage.googleapis.com/v0/b/lexis-ia.firebasestorage.app/o/demo%2Fdemo.mp4?alt=media&token=9c2a1294-08ca-4446-8904-9f5771f5eff1';
+  protected readonly videoPoster =
+    'https://firebasestorage.googleapis.com/v0/b/lexis-ia.firebasestorage.app/o/demo%2Fposter.jpg?alt=media&token=placeholder';
 
   ngOnInit(): void {
     this.setupSeoForVideoTrailer();
@@ -82,6 +89,19 @@ export class VideoTrailer implements OnInit, AfterViewInit {
     video.addEventListener('ended', () => {
       this.isPlaying.set(false);
       this.currentTime.set(0);
+    });
+  }
+
+  protected startVideo(): void {
+    this.isLoading.set(true);
+    this.hasStartedPlaying.set(true);
+    const video = this.videoPlayer.nativeElement;
+
+    // Load and play the video
+    video.load();
+    video.play().catch((error) => {
+      console.error('Error playing video:', error);
+      this.isLoading.set(false);
     });
   }
 
