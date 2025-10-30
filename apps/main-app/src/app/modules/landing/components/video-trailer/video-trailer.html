@@ -44,15 +44,17 @@
       <div class="glass-card rounded-3xl overflow-hidden shadow-2xl">
         <!-- Video Element -->
         <div class="relative aspect-video bg-gradient-to-br from-primary/20 to-secondary/20">
-          <!-- Placeholder Video (replace with actual video) -->
+          <!-- Demo Video -->
           <video
             #videoPlayer
             class="w-full h-full object-cover"
-            poster="/assets/video/idem-trailer-poster.jpg"
             preload="metadata"
+            crossorigin="anonymous"
           >
-            <source src="/assets/video/idem-trailer.mp4" type="video/mp4" />
-            <source src="/assets/video/idem-trailer.webm" type="video/webm" />
+            <source
+              src="https://firebasestorage.googleapis.com/v0/b/lexis-ia.firebasestorage.app/o/demo%2Fdemo.mp4?alt=media&token=9c2a1294-08ca-4446-8904-9f5771f5eff1"
+              type="video/mp4"
+            />
             Your browser does not support the video tag.
           </video>
 

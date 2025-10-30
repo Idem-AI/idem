@@ -39,10 +39,33 @@ export class VideoTrailer implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     const video = this.videoPlayer.nativeElement;
 
+    // Handle metadata loaded
     video.addEventListener('loadedmetadata', () => {
       this.duration.set(video.duration);
       this.isLoading.set(false);
     });
+
+    // Handle when enough data is loaded to play
+    video.addEventListener('loadeddata', () => {
+      this.isLoading.set(false);
+    });
+
+    // Handle when video can play through
+    video.addEventListener('canplay', () => {
+      this.isLoading.set(false);
+    });
+
+    // Handle loading errors
+    video.addEventListener('error', () => {
+      console.error('Video loading error:', video.error);
+      this.isLoading.set(false);
+    });
+
+    // If video is already loaded (cached)
+    if (video.readyState >= 2) {
+      this.duration.set(video.duration);
+      this.isLoading.set(false);
+    }
 
     video.addEventListener('timeupdate', () => {
       this.currentTime.set(video.currentTime);
