@@ -210,6 +210,12 @@ body {
   box-shadow: 0 8px 20px rgba(60, 164, 250, 0.4);
   cursor: pointer;
 }
+.i-underline {
+  text-decoration-line: underline;
+  text-underline-offset: 8px;
+  text-decoration-thickness: 8px;
+  text-decoration-color: var(--color-primary);
+}
 
 @keyframes gradient-shift {
   0% {
