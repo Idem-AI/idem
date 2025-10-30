@@ -11,44 +11,27 @@ import { CommonModule } from '@angular/common';
 export class OpenSourceSovereigntyComponent {
   protected readonly features = [
     {
-      icon: 'pi-code',
-      title: 'Complete Business Suite in One Platform',
-      description:
-        'From logo creation to full-stack web apps, IDEM handles every step. 200+ AI agents work together to build your brand, strategy, and product—all from a single idea.',
-      benefits: [
-        'Logo & brand identity generation',
-        'Business plan creation',
-        'Full web application development',
-      ],
+      title: 'Complete Business Suite',
+      description: '200+ AI agents build your brand, strategy, and product from a single idea.',
+      benefits: ['Logo & brand identity', 'Business plans', 'Full-stack web apps'],
+      image: 'https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg',
+      imagePosition: 'left' as const,
     },
     {
-      icon: 'pi-shield',
-      title: 'Deploy on Your Own Infrastructure',
+      title: 'Deploy Anywhere',
       description:
-        'Host on AWS, Google Cloud, Azure, or your own servers. Your code, your servers, your data. No external dependencies, no vendor lock-in.',
-      benefits: [
-        'Full source code access',
-        'Deploy anywhere in minutes',
-        'Complete data sovereignty',
-      ],
+        'Your code, your servers, your data. AWS, Google Cloud, Azure, or your own infrastructure.',
+      benefits: ['Full source code', 'Zero vendor lock-in', 'Complete sovereignty'],
+      image: 'https://images.pexels.com/photos/1148820/pexels-photo-1148820.jpeg',
+      imagePosition: 'right' as const,
     },
     {
-      icon: 'pi-users',
-      title: 'Built for African Entrepreneurs',
+      title: 'Launch in Days',
       description:
-        'Designed in Cameroon with African markets in mind. Local payment integrations, multilingual support, and infrastructure optimized for African internet speeds.',
-      benefits: [
-        'African payment gateways ready',
-        'Optimized for low bandwidth',
-        'Community-driven development',
-      ],
-    },
-    {
-      icon: 'pi-dollar',
-      title: 'From Idea to Revenue in Days',
-      description:
-        'What costs $50,000+ with agencies, IDEM delivers for free. Build your MVP, launch your startup, and start generating revenue—all without writing a single line of code.',
-      benefits: ['Zero licensing fees', 'No monthly subscriptions', 'Launch in days, not months'],
+        'What costs $50K+ with agencies, IDEM delivers for free. MVP to revenue in days.',
+      benefits: ['Zero licensing fees', 'No subscriptions', 'Start earning fast'],
+      image: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg',
+      imagePosition: 'left' as const,
     },
   ];
 }
