@@ -45,13 +45,10 @@
         <div class="text-center group">
           <div class="mb-4">
             <div
-              class="text-5xl lg:text-6xl font-bold text-primary mb-2 group-hover:scale-110 transition-transform"
+              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
             >
               {{ stat.value }}
             </div>
-            <div
-              class="h-1 w-16 bg-primary/30 mx-auto rounded-full group-hover:bg-primary transition-colors"
-            ></div>
           </div>
           <div class="text-lg font-bold text-white mb-2">{{ stat.label }}</div>
           <div class="text-sm text-gray-400 leading-relaxed">{{ stat.description }}</div>
@@ -60,62 +57,61 @@
       </div>
     </div>
 
-    <!-- African Advantages Summary - Modern Cards -->
-    <div class="mb-12">
-      <div class="text-center mb-10">
-        <h3 class="text-3xl sm:text-4xl font-bold text-white mb-3">Why IDEM for Africa?</h3>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+    <!-- Why IDEM for Africa - Bento Grid Layout -->
+    <div class="mb-16">
+      <div class="text-center mb-12">
+        <h3 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+          Why <span class="i-underline">IDEM</span> for Africa?
+        </h3>
+        <p class="text-lg text-white/70 max-w-2xl mx-auto">
           Built by Africans, designed for African success
         </p>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+      <!-- Bento Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         @for (advantage of advantages; track advantage.title; let i = $index) {
         <div
-          class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all duration-300 hover:transform hover:scale-[1.02] group"
+          class="group relative overflow-hidden rounded-2xl glass-card border border-white/10 hover:border-primary/30 transition-all duration-300 p-6 lg:p-8"
+          [ngClass]="{
+            'lg:col-span-2': i === 0,
+            'lg:row-span-2': i === 1
+          }"
         >
-          <div class="mb-4">
+          <!-- Hover Gradient -->
+          <div
+            class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          ></div>
+
+          <div class="relative">
+            <!-- Badge -->
             <div
-              class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+              class="inline-block px-3 py-1 bg-primary/20 rounded-full text-xs font-bold text-primary mb-4"
             >
-              <svg
-                class="w-7 h-7 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                @if (i === 0) {
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
-                />
-                } @else if (i === 1) {
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-                } @else if (i === 2) {
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-                } @else {
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-                }
-              </svg>
+              Key Advantage
             </div>
-            <h4 class="text-base font-bold text-white mb-2">{{ advantage.title }}</h4>
-            <p class="text-gray-400 text-sm leading-relaxed">{{ advantage.description }}</p>
+
+            <!-- Title -->
+            <h4
+              class="text-xl lg:text-2xl font-bold text-white mb-3 group-hover:text-primary transition-colors"
+            >
+              {{ advantage.title }}
+            </h4>
+
+            <!-- Description -->
+            <p
+              class="text-white/70 leading-relaxed"
+              [ngClass]="i === 0 || i === 1 ? 'text-base lg:text-lg' : 'text-sm lg:text-base'"
+            >
+              {{ advantage.description }}
+            </p>
+
+            <!-- Decorative Element -->
+            <div class="mt-6 flex items-center gap-2">
+              <div class="w-8 h-1 bg-primary rounded-full"></div>
+              <div class="w-4 h-1 bg-primary/50 rounded-full"></div>
+              <div class="w-2 h-1 bg-primary/30 rounded-full"></div>
+            </div>
           </div>
         </div>
         }
@@ -174,10 +170,14 @@
           <div class="glass-card p-6 rounded-xl border border-white/10">
             <div class="flex items-center gap-3 mb-3">
               <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <i class="pi pi-users text-primary text-lg"></i>
+                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"
+                  />
+                </svg>
               </div>
               <div>
-                <div class="text-2xl font-bold text-white">15+</div>
+                <div class="text-2xl font-bold text-white i-underline">15+</div>
                 <div class="text-xs text-gray-400">African Countries</div>
               </div>
             </div>
@@ -209,7 +209,11 @@
         routerLink="/african-market"
         class="inner-button px-8 py-3 rounded-lg font-semibold inline-flex items-center gap-2"
       >
-        <i class="pi pi-book"></i>
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"
+          />
+        </svg>
         Learn More About Our African Mission
       </a>
     </div>
