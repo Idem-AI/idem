@@ -3,6 +3,8 @@
 namespace App\Livewire\Project\New;
 
 use App\Models\Application;
+use App\Services\IdemQuotaService;
+use Illuminate\Support\Facades\Auth;
 use App\Models\GithubApp;
 use App\Models\GitlabApp;
 use App\Models\PrivateKey;
@@ -90,7 +92,7 @@ class GithubPrivateRepositoryDeployKey extends Component
     public function mount()
     {
         if (isDev()) {
-            $this->repository_url = 'https://github.com/coollabsio/ideploy-examples/tree/v4.x';
+            $this->repository_url = 'https://github.com/coollabsio/coolify-examples/tree/v4.x';
         }
         $this->parameters = get_route_parameters();
         $this->query = request()->query();
@@ -137,6 +139,15 @@ class GithubPrivateRepositoryDeployKey extends Component
     {
         $this->validate();
         try {
+            // IDEM: Check if user can deploy (quota check)
+            $quotaService = app(IdemQuotaService::class);
+            $team = Auth::user()->currentTeam();
+            
+            if (!$quotaService->canDeployApp($team)) {
+                $this->dispatch('error', 'Application limit reached. Please upgrade your plan to deploy more applications.');
+                return redirect()->route('idem.subscription');
+            }
+            
             $destination_uuid = $this->query['destination'];
             $destination = StandaloneDocker::where('uuid', $destination_uuid)->first();
             if (! $destination) {

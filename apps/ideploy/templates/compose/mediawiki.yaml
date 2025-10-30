@@ -13,7 +13,7 @@ services:
     volumes:
       - mediawiki-images:/var/www/html/images
       - mediawiki-sqlite:/var/www/html/data
-    # Follow the instructions in https://ideploy.io/docs/services/mediawiki#installation-steps for the following line
+    # Follow the instructions in https://coolify.io/docs/services/mediawiki#installation-steps for the following line
     # - ./LocalSettings.php:/var/www/html/LocalSettings.php
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]

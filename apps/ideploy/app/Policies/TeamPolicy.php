@@ -28,8 +28,8 @@ class TeamPolicy
      */
     public function create(User $user): bool
     {
-        // All authenticated users can create teams
-        return true;
+        // Only admins can create teams
+        return $user->isAdmin();
     }
 
     /**

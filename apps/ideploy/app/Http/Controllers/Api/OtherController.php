@@ -38,7 +38,7 @@ class OtherController extends Controller
     )]
     public function version(Request $request)
     {
-        return response(config('constants.ideploy.version'));
+        return response(config('constants.coolify.version'));
     }
 
     #[OA\Get(

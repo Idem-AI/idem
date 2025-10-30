@@ -1,0 +1,72 @@
+{
+    "name": "lorisleiva/laravel-actions",
+    "description": "Laravel components that take care of one specific task",
+    "keywords": [
+        "laravel",
+        "component",
+        "action",
+        "controller",
+        "job",
+        "object",
+        "command",
+        "listener"
+    ],
+    "homepage": "https://github.com/lorisleiva/laravel-actions",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Loris Leiva",
+            "email": "loris.leiva@gmail.com",
+            "homepage": "https://lorisleiva.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/contracts": "^10.0|^11.0|^12.0",
+        "lorisleiva/lody": "^0.6"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^2.34|^3.0",
+        "phpunit/phpunit": "^10.5|^11.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lorisleiva\\Actions\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Lorisleiva\\Actions\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest --colors=always",
+        "test-coverage": "vendor/bin/pest --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Lorisleiva\\Actions\\ActionServiceProvider"
+            ],
+            "aliases": {
+                "Action": "Lorisleiva\\Actions\\Facades\\Actions"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/lorisleiva"
+        }
+    ]
+}

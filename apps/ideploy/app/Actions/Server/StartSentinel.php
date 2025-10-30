@@ -25,8 +25,8 @@ class StartSentinel
         $token = data_get($server, 'settings.sentinel_token');
         $endpoint = data_get($server, 'settings.sentinel_custom_url');
         $debug = data_get($server, 'settings.is_sentinel_debug_enabled');
-        $mountDir = '/data/ideploy/sentinel';
-        $image = config('constants.ideploy.registry_url').'/coollabsio/sentinel:'.$version;
+        $mountDir = '/data/coolify/sentinel';
+        $image = config('constants.coolify.registry_url').'/coollabsio/sentinel:'.$version;
         if (! $endpoint) {
             throw new \RuntimeException('You should set FQDN in Instance Settings.');
         }
@@ -40,21 +40,21 @@ class StartSentinel
             'COLLECTOR_RETENTION_PERIOD_DAYS' => $metricsHistory,
         ];
         $labels = [
-            'ideploy.managed' => 'true',
+            'coolify.managed' => 'true',
         ];
         if (isDev()) {
             // data_set($environments, 'DEBUG', 'true');
             if ($customImage && ! empty($customImage)) {
                 $image = $customImage;
             }
-            $mountDir = '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/sentinel';
+            $mountDir = '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/sentinel';
         }
         $dockerEnvironments = '-e "'.implode('" -e "', array_map(fn ($key, $value) => "$key=$value", array_keys($environments), $environments)).'"';
         $dockerLabels = implode(' ', array_map(fn ($key, $value) => "$key=$value", array_keys($labels), $labels));
-        $dockerCommand = "docker run -d $dockerEnvironments --name ideploy-sentinel -v /var/run/docker.sock:/var/run/docker.sock -v $mountDir:/app/db --pid host --health-cmd \"curl --fail http://127.0.0.1:8888/api/health || exit 1\" --health-interval 10s --health-retries 3 --add-host=host.docker.internal:host-gateway --label $dockerLabels $image";
+        $dockerCommand = "docker run -d $dockerEnvironments --name coolify-sentinel -v /var/run/docker.sock:/var/run/docker.sock -v $mountDir:/app/db --pid host --health-cmd \"curl --fail http://127.0.0.1:8888/api/health || exit 1\" --health-interval 10s --health-retries 3 --add-host=host.docker.internal:host-gateway --label $dockerLabels $image";
 
         instant_remote_process([
-            'docker rm -f ideploy-sentinel || true',
+            'docker rm -f coolify-sentinel || true',
             "mkdir -p $mountDir",
             $dockerCommand,
             "chown -R 9999:root $mountDir",

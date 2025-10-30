@@ -11,7 +11,13 @@ use App\Http\Controllers\Api\SecurityController;
 use App\Http\Controllers\Api\ServersController;
 use App\Http\Controllers\Api\ServicesController;
 use App\Http\Controllers\Api\TeamController;
+use App\Http\Controllers\Api\IdemAdminController;
+use App\Http\Controllers\Api\IdemSubscriptionController;
+use App\Http\Controllers\Api\IdemStripeController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Middleware\ApiAllowed;
+use App\Http\Middleware\IdemAdminAuth;
+use App\Http\Middleware\CheckIdemQuota;
 use App\Jobs\PushServerUpdateJob;
 use App\Models\Server;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +30,49 @@ Route::group([
 });
 
 Route::post('/feedback', [OtherController::class, 'feedback']);
+
+// IDEM Authentication routes (JWT)
+Route::prefix('v1/auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
+
+// IDEM SaaS Routes (JWT Authentication)
+Route::group([
+    'middleware' => [\App\Http\Middleware\SharedJwtAuth::class],
+    'prefix' => 'v1',
+], function () {
+    // Client Subscription Routes
+    Route::prefix('idem')->group(function () {
+        Route::get('/subscription', [IdemSubscriptionController::class, 'getSubscription']);
+        Route::get('/plans', [IdemSubscriptionController::class, 'getPlans']);
+        Route::get('/quota', [IdemSubscriptionController::class, 'getQuotas']);
+        Route::post('/subscription/change', [IdemSubscriptionController::class, 'changePlan']);
+        Route::post('/subscription/cancel', [IdemSubscriptionController::class, 'cancelSubscription']);
+        Route::get('/upgrade-suggestions', [IdemSubscriptionController::class, 'getUpgradeSuggestions']);
+        Route::get('/preflight/app', [IdemSubscriptionController::class, 'checkCanDeploy']);
+        Route::get('/preflight/server', [IdemSubscriptionController::class, 'checkCanAddServer']);
+        
+        // Stripe routes
+        Route::post('/stripe/checkout', [IdemStripeController::class, 'createCheckoutSession']);
+        Route::get('/stripe/success', [IdemStripeController::class, 'checkoutSuccess']);
+        Route::post('/stripe/cancel-subscription', [IdemStripeController::class, 'cancelSubscription']);
+        Route::post('/stripe/portal', [IdemStripeController::class, 'createPortalSession']);
+    });
+
+    // Admin Routes (requires admin role)
+    Route::prefix('idem/admin')->middleware([IdemAdminAuth::class])->group(function () {
+        Route::get('/dashboard', [IdemAdminController::class, 'dashboard']);
+        Route::get('/servers/managed', [IdemAdminController::class, 'getManagedServers']);
+        Route::get('/servers/managed/{uuid}', [IdemAdminController::class, 'getManagedServerDetails']);
+        Route::get('/teams', [IdemAdminController::class, 'getTeams']);
+        Route::get('/teams/{teamId}', [IdemAdminController::class, 'getTeamDetails']);
+        Route::post('/teams/{teamId}/change-plan', [IdemAdminController::class, 'changeTeamSubscription']);
+        Route::post('/users/promote', [IdemAdminController::class, 'promoteUser']);
+        Route::post('/users/demote', [IdemAdminController::class, 'demoteUser']);
+        Route::get('/export', [IdemAdminController::class, 'export']);
+    });
+});
 
 Route::group([
     'middleware' => ['auth:sanctum', 'api.ability:write'],
@@ -199,5 +248,5 @@ Route::group([
 });
 
 Route::any('/{any}', function () {
-    return response()->json(['message' => 'Not found.', 'docs' => 'https://ideploy.io/docs'], 404);
+    return response()->json(['message' => 'Not found.', 'docs' => 'https://coolify.io/docs'], 404);
 })->where('any', '.*');

@@ -176,6 +176,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{uuid}/revoke', [Controller::class, 'revokeInvitation'])->name('team.invitation.revoke');
     });
 
+    // IDEM SaaS Routes
+    Route::get('/idem', \App\Livewire\Idem\Dashboard::class)->name('idem.dashboard');
+    Route::get('/idem/subscription', \App\Livewire\Idem\SubscriptionDashboard::class)->name('idem.subscription');
+    Route::get('/application/{application_uuid}/deployment', \App\Livewire\Idem\DeploymentChoice::class)->name('application.deployment');
+    
+    // IDEM Admin Routes
+    Route::middleware(['idem.admin'])->prefix('idem/admin')->group(function () {
+        Route::get('/', \App\Livewire\Idem\AdminDashboard::class)->name('idem.admin.dashboard');
+    });
+
     Route::get('/projects', ProjectIndex::class)->name('project.index');
     Route::prefix('project/{project_uuid}')->group(function () {
         Route::get('/', ProjectShow::class)->name('project.show');
@@ -368,6 +378,12 @@ Route::middleware(['auth'])->group(function () {
 
 });
 
+// ============================================
+// IDEM SaaS Routes
+// ============================================
+require __DIR__.'/idem.php';
+
+// Catch-all route (must be last)
 Route::any('/{any}', function () {
     if (auth()->user()) {
         return redirect(RouteServiceProvider::HOME);

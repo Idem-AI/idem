@@ -1,19 +1,19 @@
 #!/bin/bash
 ## Do not modify this file. You will lose the ability to autoupdate!
 
-CDN="https://cdn.coollabs.io/ideploy"
+CDN="https://cdn.coollabs.io/coolify"
 LATEST_IMAGE=${1:-latest}
 LATEST_HELPER_VERSION=${2:-latest}
 REGISTRY_URL=${3:-ghcr.io}
 SKIP_BACKUP=${4:-false}
-ENV_FILE="/data/ideploy/source/.env"
+ENV_FILE="/data/coolify/source/.env"
 
 DATE=$(date +%Y-%m-%d-%H-%M-%S)
-LOGFILE="/data/ideploy/source/upgrade-${DATE}.log"
+LOGFILE="/data/coolify/source/upgrade-${DATE}.log"
 
-curl -fsSL $CDN/docker-compose.yml -o /data/ideploy/source/docker-compose.yml
-curl -fsSL $CDN/docker-compose.prod.yml -o /data/ideploy/source/docker-compose.prod.yml
-curl -fsSL $CDN/.env.production -o /data/ideploy/source/.env.production
+curl -fsSL $CDN/docker-compose.yml -o /data/coolify/source/docker-compose.yml
+curl -fsSL $CDN/docker-compose.prod.yml -o /data/coolify/source/docker-compose.prod.yml
+curl -fsSL $CDN/.env.production -o /data/coolify/source/.env.production
 
 # Backup existing .env file before making any changes
 if [ "$SKIP_BACKUP" != "true" ]; then
@@ -26,7 +26,7 @@ if [ "$SKIP_BACKUP" != "true" ]; then
 fi
 
 echo "Merging .env.production values into .env" >>"$LOGFILE"
-awk -F '=' '!seen[$1]++' "$ENV_FILE" /data/ideploy/source/.env.production > "$ENV_FILE.tmp" && mv "$ENV_FILE.tmp" "$ENV_FILE"
+awk -F '=' '!seen[$1]++' "$ENV_FILE" /data/coolify/source/.env.production > "$ENV_FILE.tmp" && mv "$ENV_FILE.tmp" "$ENV_FILE"
 echo ".env file merged successfully" >>"$LOGFILE"
 
 update_env_var() {
@@ -49,12 +49,12 @@ update_env_var "PUSHER_APP_ID" "$(openssl rand -hex 32)"
 update_env_var "PUSHER_APP_KEY" "$(openssl rand -hex 32)"
 update_env_var "PUSHER_APP_SECRET" "$(openssl rand -hex 32)"
 
-# Make sure ideploy network exists
+# Make sure coolify network exists
 # It is created when starting Coolify with docker compose
-if ! docker network inspect ideploy >/dev/null 2>&1; then
-    if ! docker network create --attachable --ipv6 ideploy 2>/dev/null; then
-        echo "Failed to create ideploy network with ipv6. Trying without ipv6..."
-        docker network create --attachable ideploy 2>/dev/null
+if ! docker network inspect coolify >/dev/null 2>&1; then
+    if ! docker network create --attachable --ipv6 coolify 2>/dev/null; then
+        echo "Failed to create coolify network with ipv6. Trying without ipv6..."
+        docker network create --attachable coolify 2>/dev/null
     fi
 fi
 
@@ -64,9 +64,9 @@ if [ -f /root/.docker/config.json ]; then
     DOCKER_CONFIG_MOUNT="-v /root/.docker/config.json:/root/.docker/config.json"
 fi
 
-if [ -f /data/ideploy/source/docker-compose.custom.yml ]; then
+if [ -f /data/coolify/source/docker-compose.custom.yml ]; then
     echo "docker-compose.custom.yml detected." >>"$LOGFILE"
-    docker run -v /data/ideploy/source:/data/ideploy/source -v /var/run/docker.sock:/var/run/docker.sock ${DOCKER_CONFIG_MOUNT} --rm ${REGISTRY_URL:-ghcr.io}/coollabsio/ideploy-helper:${LATEST_HELPER_VERSION} bash -c "LATEST_IMAGE=${LATEST_IMAGE} docker compose --env-file /data/ideploy/source/.env -f /data/ideploy/source/docker-compose.yml -f /data/ideploy/source/docker-compose.prod.yml -f /data/ideploy/source/docker-compose.custom.yml up -d --remove-orphans --force-recreate --wait --wait-timeout 60" >>"$LOGFILE" 2>&1
+    docker run -v /data/coolify/source:/data/coolify/source -v /var/run/docker.sock:/var/run/docker.sock ${DOCKER_CONFIG_MOUNT} --rm ${REGISTRY_URL:-ghcr.io}/coollabsio/coolify-helper:${LATEST_HELPER_VERSION} bash -c "LATEST_IMAGE=${LATEST_IMAGE} docker compose --env-file /data/coolify/source/.env -f /data/coolify/source/docker-compose.yml -f /data/coolify/source/docker-compose.prod.yml -f /data/coolify/source/docker-compose.custom.yml up -d --remove-orphans --force-recreate --wait --wait-timeout 60" >>"$LOGFILE" 2>&1
 else
-    docker run -v /data/ideploy/source:/data/ideploy/source -v /var/run/docker.sock:/var/run/docker.sock ${DOCKER_CONFIG_MOUNT} --rm ${REGISTRY_URL:-ghcr.io}/coollabsio/ideploy-helper:${LATEST_HELPER_VERSION} bash -c "LATEST_IMAGE=${LATEST_IMAGE} docker compose --env-file /data/ideploy/source/.env -f /data/ideploy/source/docker-compose.yml -f /data/ideploy/source/docker-compose.prod.yml up -d --remove-orphans --force-recreate --wait --wait-timeout 60" >>"$LOGFILE" 2>&1
+    docker run -v /data/coolify/source:/data/coolify/source -v /var/run/docker.sock:/var/run/docker.sock ${DOCKER_CONFIG_MOUNT} --rm ${REGISTRY_URL:-ghcr.io}/coollabsio/coolify-helper:${LATEST_HELPER_VERSION} bash -c "LATEST_IMAGE=${LATEST_IMAGE} docker compose --env-file /data/coolify/source/.env -f /data/coolify/source/docker-compose.yml -f /data/coolify/source/docker-compose.prod.yml up -d --remove-orphans --force-recreate --wait --wait-timeout 60" >>"$LOGFILE" 2>&1
 fi

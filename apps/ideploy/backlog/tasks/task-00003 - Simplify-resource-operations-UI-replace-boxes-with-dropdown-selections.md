@@ -18,9 +18,7 @@ priority: medium
 Replace the current box-based layout in resource-operations.blade.php with clean dropdown selections to improve UX when there are many servers, projects, or environments. The current interface becomes overwhelming and cluttered with multiple modal confirmation boxes for each option.
 
 ## Acceptance Criteria
-
 <!-- AC:BEGIN -->
-
 - [ ] #1 Clone section shows a dropdown to select server/destination instead of multiple boxes
 - [ ] #2 Move section shows a dropdown to select project/environment instead of multiple boxes
 - [ ] #3 Single "Clone Resource" button that triggers modal after dropdown selection

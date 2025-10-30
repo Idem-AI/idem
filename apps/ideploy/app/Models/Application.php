@@ -324,7 +324,7 @@ class Application extends BaseModel
     {
         $uuid = $this->uuid;
         $server = data_get($this, 'destination.server');
-        instant_remote_process(["docker network disconnect {$uuid} ideploy-proxy"], $server, false);
+        instant_remote_process(["docker network disconnect {$uuid} coolify-proxy"], $server, false);
         instant_remote_process(["docker network rm {$uuid}"], $server, false);
     }
 
@@ -840,6 +840,18 @@ class Application extends BaseModel
         return $this->morphTo();
     }
 
+    // IDEM: Serveur assigné pour déploiement géré
+    public function assignedServer()
+    {
+        return $this->belongsTo(Server::class, 'idem_assigned_server_id');
+    }
+
+    // IDEM: Vérifie si l'app est déployée sur serveurs gérés
+    public function isDeployedOnIdemManaged()
+    {
+        return $this->idem_deploy_on_managed ?? true;
+    }
+
     public function isDeploymentInprogress()
     {
         $deployments = ApplicationDeploymentQueue::where('application_id', $this->id)->whereIn('status', [ApplicationDeploymentStatus::IN_PROGRESS, ApplicationDeploymentStatus::QUEUED])->count();
@@ -1186,7 +1198,7 @@ class Application extends BaseModel
             $git_clone_command = "git clone{$depthFlag}{$submoduleFlags} --no-checkout -b {$escapedBranch}";
         }
         if ($pull_request_id !== 0) {
-            $pr_branch_name = "pr-{$pull_request_id}-ideploy";
+            $pr_branch_name = "pr-{$pull_request_id}-coolify";
         }
         if ($this->deploymentType() === 'source') {
             $source_html_url = data_get($this, 'source.html_url');
@@ -1403,14 +1415,14 @@ class Application extends BaseModel
                 }
             }
             $labels = collect(data_get($service, 'labels', []));
-            if (! $labels->contains('ideploy.managed')) {
-                $labels->push('ideploy.managed=true');
+            if (! $labels->contains('coolify.managed')) {
+                $labels->push('coolify.managed=true');
             }
-            if (! $labels->contains('ideploy.applicationId')) {
-                $labels->push('ideploy.applicationId='.$this->id);
+            if (! $labels->contains('coolify.applicationId')) {
+                $labels->push('coolify.applicationId='.$this->id);
             }
-            if (! $labels->contains('ideploy.type')) {
-                $labels->push('ideploy.type=application');
+            if (! $labels->contains('coolify.type')) {
+                $labels->push('coolify.type=application');
             }
             data_set($service, 'labels', $labels->toArray());
 
@@ -1564,7 +1576,7 @@ class Application extends BaseModel
         }
         $customLabels = base64_decode($this->custom_labels);
         if (mb_detect_encoding($customLabels, 'ASCII', true) === false) {
-            $customLabels = str(implode('|ideploy|', generateLabelsApplication($this, $preview)))->replace('|ideploy|', "\n");
+            $customLabels = str(implode('|coolify|', generateLabelsApplication($this, $preview)))->replace('|coolify|', "\n");
         }
         $this->custom_labels = base64_encode($customLabels);
         $this->save();
@@ -1865,7 +1877,7 @@ class Application extends BaseModel
         $container_name = $this->uuid;
         if ($server->isMetricsEnabled()) {
             $from = now()->subMinutes($mins)->toIso8601ZuluString();
-            $metrics = instant_remote_process(["docker exec ideploy-sentinel sh -c 'curl -H \"Authorization: Bearer {$server->settings->sentinel_token}\" http://localhost:8888/api/container/{$container_name}/cpu/history?from=$from'"], $server, false);
+            $metrics = instant_remote_process(["docker exec coolify-sentinel sh -c 'curl -H \"Authorization: Bearer {$server->settings->sentinel_token}\" http://localhost:8888/api/container/{$container_name}/cpu/history?from=$from'"], $server, false);
             if (str($metrics)->contains('error')) {
                 $error = json_decode($metrics, true);
                 $error = data_get($error, 'error', 'Something is not okay, are you okay?');
@@ -1889,7 +1901,7 @@ class Application extends BaseModel
         $container_name = $this->uuid;
         if ($server->isMetricsEnabled()) {
             $from = now()->subMinutes($mins)->toIso8601ZuluString();
-            $metrics = instant_remote_process(["docker exec ideploy-sentinel sh -c 'curl -H \"Authorization: Bearer {$server->settings->sentinel_token}\" http://localhost:8888/api/container/{$container_name}/memory/history?from=$from'"], $server, false);
+            $metrics = instant_remote_process(["docker exec coolify-sentinel sh -c 'curl -H \"Authorization: Bearer {$server->settings->sentinel_token}\" http://localhost:8888/api/container/{$container_name}/memory/history?from=$from'"], $server, false);
             if (str($metrics)->contains('error')) {
                 $error = json_decode($metrics, true);
                 $error = data_get($error, 'error', 'Something is not okay, are you okay?');

@@ -2,11 +2,14 @@
 
 namespace App\Livewire\Project\New;
 
+use App\Models\Application;
 use App\Models\EnvironmentVariable;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\StandaloneDocker;
 use App\Models\SwarmDocker;
+use App\Services\IdemQuotaService;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Symfony\Component\Yaml\Yaml;
 
@@ -31,6 +34,15 @@ class DockerCompose extends Component
 
     public function submit()
     {
+        // IDEM: Check if user can deploy (quota check)
+        $quotaService = app(IdemQuotaService::class);
+        $team = Auth::user()->currentTeam();
+        
+        if (!$quotaService->canDeployApp($team)) {
+            $this->dispatch('error', 'Application limit reached. Please upgrade your plan to deploy more applications.');
+            return redirect()->route('idem.subscription');
+        }
+        
         $server_id = $this->query['server_id'];
         try {
             $this->validate([

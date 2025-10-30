@@ -1,21 +1,33 @@
 <div x-data x-init="$nextTick(() => { if ($refs.autofocusInput) $refs.autofocusInput.focus(); })">
-    <h1>Create a new Application</h1>
-    <div class="pb-8">Deploy any public Git repositories.</div>
+    {{-- Header --}}
+    <div class="mb-6 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
+        <h1 class="text-2xl font-bold text-white mb-2">Create a new Application</h1>
+        <p class="text-sm text-gray-400">Deploy any public Git repository with automatic builds and deployments</p>
+    </div>
 
-    <!-- Repository URL Form -->
-    <form class="flex flex-col gap-2" wire:submit='loadBranch'>
-        <div class="flex flex-col gap-2">
+    <!-- Repository URL Form --}}
+    <form class="flex flex-col gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50" wire:submit='loadBranch'>
+        <div class="flex flex-col gap-4">
             <div class="flex gap-2 items-end">
                 <x-forms.input required id="repository_url" label="Repository URL (https://)"
                     helper="{!! __('repository.url') !!}" autofocus />
-                <x-forms.button type="submit">
+                <button type="submit" class="px-6 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                     Check repository
-                </x-forms.button>
+                </button>
             </div>
-            <div>
-                For example application deployments, checkout <a class="underline dark:text-white"
-                    href="https://github.com/coollabsio/ideploy-examples/" target="_blank">Coolify
-                    Examples</a>.
+            <div class="p-4 bg-[#4F46E5]/10 border border-[#4F46E5]/20 rounded-lg">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-[#4F46E5] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="text-sm text-gray-300">
+                        For example application deployments, checkout <a class="text-[#4F46E5] hover:text-[#6366F1] underline font-medium"
+                            href="https://github.com/coollabsio/coolify-examples/" target="_blank">Coolify Examples</a>.
+                    </div>
+                </div>
             </div>
         </div>
     </form>
@@ -29,8 +41,8 @@
             </div>
         @endif
 
-        <!-- Application Configuration Form -->
-        <form class="flex flex-col gap-2 pt-4" wire:submit='submit'>
+        <!-- Application Configuration Form --}}
+        <form class="flex flex-col gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50 mt-6" wire:submit='submit'>
             <div class="flex flex-col gap-2 pb-6">
                 <div class="flex gap-2">
                     @if ($git_source === 'other')

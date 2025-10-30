@@ -132,7 +132,7 @@ it('accepts complex cloud-config with multiple sections', function () {
     $script = <<<'YAML'
 #cloud-config
 users:
-  - name: ideploy
+  - name: coolify
     groups: sudo, docker
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
@@ -151,7 +151,7 @@ package_upgrade: true
 runcmd:
   - systemctl enable docker
   - systemctl start docker
-  - usermod -aG docker ideploy
+  - usermod -aG docker coolify
   - echo "Server setup complete"
 
 write_files:

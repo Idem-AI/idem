@@ -93,8 +93,8 @@ Coolify uses a **team-based multi-tenancy** model where:
 ### Local Setup
 ```bash
 # Clone and setup
-git clone https://github.com/coollabsio/ideploy.git
-cd ideploy
+git clone https://github.com/coollabsio/coolify.git
+cd coolify
 cp .env.example .env
 
 # Docker development (recommended)
@@ -123,12 +123,12 @@ docker-compose exec app php artisan migrate
 class ApplicationShow extends Component
 {
     public Application $application;
-
+    
     protected $listeners = [
         'deployment.started' => 'refresh',
         'deployment.completed' => 'refresh',
     ];
-
+    
     public function deploy(): void
     {
         $this->authorize('deploy', $this->application);
@@ -146,7 +146,7 @@ class ApplicationController extends Controller
         $this->middleware('auth:sanctum');
         $this->middleware('team.access');
     }
-
+    
     public function deploy(Application $application): JsonResponse
     {
         $this->authorize('deploy', $application);
@@ -163,7 +163,7 @@ class DeployApplicationJob implements ShouldQueue
     public function handle(DockerService $dockerService): void
     {
         $this->deployment->update(['status' => 'running']);
-
+        
         try {
             $dockerService->deployContainer($this->deployment->application);
             $this->deployment->update(['status' => 'success']);
@@ -182,10 +182,10 @@ class DeployApplicationJob implements ShouldQueue
 test('user can deploy application via API', function () {
     $user = User::factory()->create();
     $application = Application::factory()->create(['team_id' => $user->currentTeam->id]);
-
+    
     $response = $this->actingAs($user)
         ->postJson("/api/v1/applications/{$application->id}/deploy");
-
+    
     $response->assertStatus(200);
     expect($application->deployments()->count())->toBe(1);
 });
@@ -195,7 +195,7 @@ test('user can deploy application via API', function () {
 ```php
 test('user can create application through UI', function () {
     $user = User::factory()->create();
-
+    
     $this->browse(function (Browser $browser) use ($user) {
         $browser->loginAs($user)
             ->visit('/applications/create')
@@ -275,7 +275,7 @@ npm run dev
 ### Production
 ```bash
 # Install Coolify
-curl -fsSL https://cdn.coollabs.io/ideploy/install.sh | bash
+curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
 
 # Update Coolify
 ./scripts/upgrade.sh

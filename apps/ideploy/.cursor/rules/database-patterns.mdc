@@ -47,7 +47,7 @@ Each database type has its own dedicated model with specific configurations:
 
 #### SQL Databases
 - **[StandalonePostgresql.php](mdc:app/Models/StandalonePostgresql.php)** - PostgreSQL instances
-- **[StandaloneMysql.php](mdc:app/Models/StandaloneMysql.php)** - MySQL instances
+- **[StandaloneMysql.php](mdc:app/Models/StandaloneMysql.php)** - MySQL instances  
 - **[StandaloneMariadb.php](mdc:app/Models/StandaloneMariadb.php)** - MariaDB instances
 
 #### NoSQL & Analytics
@@ -174,17 +174,17 @@ class Application extends Model
     {
         return $this->belongsTo(Server::class);
     }
-
+    
     public function environment()
     {
         return $this->belongsTo(Environment::class);
     }
-
+    
     public function deployments()
     {
         return $this->hasMany(ApplicationDeploymentQueue::class);
     }
-
+    
     public function environmentVariables()
     {
         return $this->hasMany(EnvironmentVariable::class);
@@ -211,10 +211,10 @@ use HasUuids;
 
 ### Cache Keys Structure
 ```
-ideploy:session:{session_id}
-ideploy:server:{server_id}:status
-ideploy:deployment:{deployment_id}:logs
-ideploy:user:{user_id}:teams
+coolify:session:{session_id}
+coolify:server:{server_id}:status
+coolify:deployment:{deployment_id}:logs
+coolify:user:{user_id}:teams
 ```
 
 ## Query Optimization Patterns

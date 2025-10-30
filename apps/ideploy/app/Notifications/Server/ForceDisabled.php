@@ -40,7 +40,7 @@ class ForceDisabled extends CustomEmailNotification
             color: DiscordMessage::errorColor(),
         );
 
-        $message->addField('Please update your subscription to enable the server again!', '[Link](https://app.ideploy.io/subscriptions)');
+        $message->addField('Please update your subscription to enable the server again!', '[Link](https://app.coolify.io/subscriptions)');
 
         return $message;
     }
@@ -48,7 +48,7 @@ class ForceDisabled extends CustomEmailNotification
     public function toTelegram(): array
     {
         return [
-            'message' => "Coolify: Server ({$this->server->name}) disabled because it is not paid!\n All automations and integrations are stopped.\nPlease update your subscription to enable the server again [here](https://app.ideploy.io/subscriptions).",
+            'message' => "Coolify: Server ({$this->server->name}) disabled because it is not paid!\n All automations and integrations are stopped.\nPlease update your subscription to enable the server again [here](https://app.coolify.io/subscriptions).",
         ];
     }
 
@@ -57,7 +57,7 @@ class ForceDisabled extends CustomEmailNotification
         return new PushoverMessage(
             title: 'Server disabled',
             level: 'error',
-            message: "Server ({$this->server->name}) disabled because it is not paid!\n All automations and integrations are stopped.<br/>Please update your subscription to enable the server again [here](https://app.ideploy.io/subscriptions).",
+            message: "Server ({$this->server->name}) disabled because it is not paid!\n All automations and integrations are stopped.<br/>Please update your subscription to enable the server again [here](https://app.coolify.io/subscriptions).",
         );
     }
 
@@ -66,7 +66,7 @@ class ForceDisabled extends CustomEmailNotification
         $title = 'Server disabled';
         $description = "Server ({$this->server->name}) disabled because it is not paid!\n";
         $description .= "All automations and integrations are stopped.\n\n";
-        $description .= 'Please update your subscription to enable the server again: https://app.ideploy.io/subscriptions';
+        $description .= 'Please update your subscription to enable the server again: https://app.coolify.io/subscriptions';
 
         return new SlackMessage(
             title: $title,

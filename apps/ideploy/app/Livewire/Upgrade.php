@@ -21,7 +21,7 @@ class Upgrade extends Component
     public function checkUpdate()
     {
         try {
-            $this->latestVersion = get_latest_version_of_ideploy();
+            $this->latestVersion = get_latest_version_of_coolify();
             $this->isUpgradeAvailable = data_get(InstanceSettings::get(), 'new_version_available', false);
             if (isDev()) {
                 $this->isUpgradeAvailable = true;
