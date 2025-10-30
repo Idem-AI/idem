@@ -37,7 +37,7 @@
         <div class="p-4 rounded-sm bg-coolgray-400">
             <h2 id="tier-hobby" class="flex items-start gap-4 text-4xl font-bold tracking-tight">Unlimited Trial
                 <x-forms.button><a class="font-bold dark:text-white hover:no-underline"
-                        href="https://github.com/coollabsio/ideploy">Get Started</a></x-forms.button>
+                        href="https://github.com/coollabsio/coolify">Get Started</a></x-forms.button>
             </h2>
             <p class="mt-4 text-sm leading-6">Start self-hosting <span class="dark:text-warning">without limits</span>
                 with
@@ -47,7 +47,7 @@
 
         <div class="flow-root mt-12">
             <div class="pb-10 text-xl text-center">For the detailed list of features, please visit our landing page: <a
-                    class="font-bold underline dark:text-white" href="https://ideploy.io">ideploy.io</a></div>
+                    class="font-bold underline dark:text-white" href="https://coolify.io">coolify.io</a></div>
             <div
                 class="grid max-w-sm grid-cols-1 -mt-16 divide-y divide-neutral-200 dark:divide-coolgray-500 isolate gap-y-16 sm:mx-auto lg:-mx-8 lg:mt-0 lg:max-w-none lg:grid-cols-3 lg:divide-x lg:divide-y-0 xl:-mx-4">
 
@@ -430,7 +430,7 @@
                     <div class="text-2xl font-semibold dark:text-white">Pull Request Deployments</div>
                 </div>
                 <div class="mt-1 text-base leading-7 text-gray-300">
-                    Automagically deploy new commits and pull requests separately to quickly
+                    Automatically deploy new commits and pull requests separately to quickly
                     review contributions and speed up your teamwork!
                 </div>
             </div>

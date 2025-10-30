@@ -4,53 +4,8 @@
  * Released under the MIT license
  * https://github.com/microsoft/monaco-editor/blob/main/LICENSE.txt
  *-----------------------------------------------------------------------------*/
-define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
-  'use strict';
-  var moduleExports = (() => {
-    var s = Object.defineProperty;
-    var m = Object.getOwnPropertyDescriptor;
-    var l = Object.getOwnPropertyNames;
-    var u = Object.prototype.hasOwnProperty;
-    var p = (t, e) => {
-        for (var a in e) s(t, a, { get: e[a], enumerable: !0 });
-      },
-      d = (t, e, a, o) => {
-        if ((e && typeof e == 'object') || typeof e == 'function')
-          for (let i of l(e))
-            !u.call(t, i) &&
-              i !== a &&
-              s(t, i, { get: () => e[i], enumerable: !(o = m(e, i)) || o.enumerable });
-        return t;
-      };
-    var x = (t) => d(s({}, '__esModule', { value: !0 }), t);
-    var F = {};
-    p(F, { conf: () => f, language: () => L });
-    var f = {
-      comments: { lineComment: '//', blockComment: ['/*', '*/'] },
-      brackets: [
-        ['{', '}'],
-        ['[', ']'],
-        ['(', ')'],
-      ],
-      autoClosingPairs: [
-        { open: '[', close: ']' },
-        { open: '{', close: '}' },
-        { open: '(', close: ')' },
-      ],
-      surroundingPairs: [
-        { open: '{', close: '}' },
-        { open: '[', close: ']' },
-        { open: '(', close: ')' },
-      ],
-    };
-    function r(t) {
-      let e = [],
-        a = t.split(/\t+|\r+|\n+| +/);
-      for (let o = 0; o < a.length; ++o) a[o].length > 0 && e.push(a[o]);
-      return e;
-    }
-    var g = r('true false'),
-      _ = r(`
+define("vs/basic-languages/wgsl/wgsl", ["require","require"],(require)=>{
+"use strict";var moduleExports=(()=>{var s=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var l=Object.getOwnPropertyNames;var u=Object.prototype.hasOwnProperty;var p=(t,e)=>{for(var a in e)s(t,a,{get:e[a],enumerable:!0})},d=(t,e,a,o)=>{if(e&&typeof e=="object"||typeof e=="function")for(let i of l(e))!u.call(t,i)&&i!==a&&s(t,i,{get:()=>e[i],enumerable:!(o=m(e,i))||o.enumerable});return t};var x=t=>d(s({},"__esModule",{value:!0}),t);var F={};p(F,{conf:()=>f,language:()=>L});var f={comments:{lineComment:"//",blockComment:["/*","*/"]},brackets:[["{","}"],["[","]"],["(",")"]],autoClosingPairs:[{open:"[",close:"]"},{open:"{",close:"}"},{open:"(",close:")"}],surroundingPairs:[{open:"{",close:"}"},{open:"[",close:"]"},{open:"(",close:")"}]};function r(t){let e=[],a=t.split(/\t+|\r+|\n+| +/);for(let o=0;o<a.length;++o)a[o].length>0&&e.push(a[o]);return e}var g=r("true false"),_=r(`
 			  alias
 			  break
 			  case
@@ -75,8 +30,7 @@ define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
 			  switch
 			  var
 			  while
-			  `),
-      h = r(`
+			  `),h=r(`
 			  NULL
 			  Self
 			  abstract
@@ -222,8 +176,7 @@ define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
 			  with
 			  writeonly
 			  yield
-			  `),
-      b = r(`
+			  `),b=r(`
 		read write read_write
 		function private workgroup uniform storage
 		perspective linear flat
@@ -249,8 +202,7 @@ define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
 		rgba32sint
 		rgba32float
 		bgra8unorm
-`),
-      v = r(`
+`),v=r(`
 		bool
 		f16
 		f32
@@ -264,8 +216,7 @@ define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
 		texture_external
 		texture_external
 		u32
-		`),
-      y = r(`
+		`),y=r(`
 		array
 		atomic
 		mat2x2
@@ -292,8 +243,7 @@ define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
 		vec2
 		vec3
 		vec4
-		`),
-      k = r(`
+		`),k=r(`
 		vec2i vec3i vec4i
 		vec2u vec3u vec4u
 		vec2f vec3f vec4f
@@ -304,8 +254,7 @@ define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
 		mat2x2h mat2x3h mat2x4h
 		mat3x2h mat3x3h mat3x4h
 		mat4x2h mat4x3h mat4x4h
-		`),
-      w = r(`
+		`),w=r(`
   bitcast all any select arrayLength abs acos acosh asin asinh atan atanh atan2
   ceil clamp cos cosh countLeadingZeros countOneBits countTrailingZeros cross
   degrees determinant distance dot exp exp2 extractBits faceForward firstLeadingBit
@@ -321,8 +270,7 @@ define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
   pack4x8unorm pack2x16snorm pack2x16unorm pack2x16float unpack4x8snorm unpack4x8unorm
   unpack2x16snorm unpack2x16unorm unpack2x16float storageBarrier workgroupBarrier
   workgroupUniformLoad
-`),
-      S = r(`
+`),S=r(`
 					 &
 					 &&
 					 ->
@@ -354,85 +302,6 @@ define('vs/basic-languages/wgsl/wgsl', ['require', 'require'], (require) => {
 					 ^=
 					 >>=
 					 <<=
-					 `),
-      C = /enable|requires|diagnostic/,
-      c = /[_\p{XID_Start}]\p{XID_Continue}*/u,
-      n = 'variable.predefined',
-      L = {
-        tokenPostfix: '.wgsl',
-        defaultToken: 'invalid',
-        unicode: !0,
-        atoms: g,
-        keywords: _,
-        reserved: h,
-        predeclared_enums: b,
-        predeclared_types: v,
-        predeclared_type_generators: y,
-        predeclared_type_aliases: k,
-        predeclared_intrinsics: w,
-        operators: S,
-        symbols: /[!%&*+\-\.\/:;<=>^|_~,]+/,
-        tokenizer: {
-          root: [
-            [C, 'keyword', '@directive'],
-            [
-              c,
-              {
-                cases: {
-                  '@atoms': n,
-                  '@keywords': 'keyword',
-                  '@reserved': 'invalid',
-                  '@predeclared_enums': n,
-                  '@predeclared_types': n,
-                  '@predeclared_type_generators': n,
-                  '@predeclared_type_aliases': n,
-                  '@predeclared_intrinsics': n,
-                  '@default': 'identifier',
-                },
-              },
-            ],
-            { include: '@commentOrSpace' },
-            { include: '@numbers' },
-            [/[{}()\[\]]/, '@brackets'],
-            ['@', 'annotation', '@attribute'],
-            [/@symbols/, { cases: { '@operators': 'operator', '@default': 'delimiter' } }],
-            [/./, 'invalid'],
-          ],
-          commentOrSpace: [
-            [/\s+/, 'white'],
-            [/\/\*/, 'comment', '@blockComment'],
-            [/\/\/.*$/, 'comment'],
-          ],
-          blockComment: [
-            [/[^\/*]+/, 'comment'],
-            [/\/\*/, 'comment', '@push'],
-            [/\*\//, 'comment', '@pop'],
-            [/[\/*]/, 'comment'],
-          ],
-          attribute: [{ include: '@commentOrSpace' }, [/\w+/, 'annotation', '@pop']],
-          directive: [
-            { include: '@commentOrSpace' },
-            [/[()]/, '@brackets'],
-            [/,/, 'delimiter'],
-            [c, 'meta.content'],
-            [/;/, 'delimiter', '@pop'],
-          ],
-          numbers: [
-            [/0[fh]/, 'number.float'],
-            [/[1-9][0-9]*[fh]/, 'number.float'],
-            [/[0-9]*\.[0-9]+([eE][+-]?[0-9]+)?[fh]?/, 'number.float'],
-            [/[0-9]+\.[0-9]*([eE][+-]?[0-9]+)?[fh]?/, 'number.float'],
-            [/[0-9]+[eE][+-]?[0-9]+[fh]?/, 'number.float'],
-            [/0[xX][0-9a-fA-F]*\.[0-9a-fA-F]+(?:[pP][+-]?[0-9]+[fh]?)?/, 'number.hex'],
-            [/0[xX][0-9a-fA-F]+\.[0-9a-fA-F]*(?:[pP][+-]?[0-9]+[fh]?)?/, 'number.hex'],
-            [/0[xX][0-9a-fA-F]+[pP][+-]?[0-9]+[fh]?/, 'number.hex'],
-            [/0[xX][0-9a-fA-F]+[iu]?/, 'number.hex'],
-            [/[1-9][0-9]*[iu]?/, 'number'],
-            [/0[iu]?/, 'number'],
-          ],
-        },
-      };
-    return x(F);
-  })();
-  return moduleExports;
+					 `),C=/enable|requires|diagnostic/,c=/[_\p{XID_Start}]\p{XID_Continue}*/u,n="variable.predefined",L={tokenPostfix:".wgsl",defaultToken:"invalid",unicode:!0,atoms:g,keywords:_,reserved:h,predeclared_enums:b,predeclared_types:v,predeclared_type_generators:y,predeclared_type_aliases:k,predeclared_intrinsics:w,operators:S,symbols:/[!%&*+\-\.\/:;<=>^|_~,]+/,tokenizer:{root:[[C,"keyword","@directive"],[c,{cases:{"@atoms":n,"@keywords":"keyword","@reserved":"invalid","@predeclared_enums":n,"@predeclared_types":n,"@predeclared_type_generators":n,"@predeclared_type_aliases":n,"@predeclared_intrinsics":n,"@default":"identifier"}}],{include:"@commentOrSpace"},{include:"@numbers"},[/[{}()\[\]]/,"@brackets"],["@","annotation","@attribute"],[/@symbols/,{cases:{"@operators":"operator","@default":"delimiter"}}],[/./,"invalid"]],commentOrSpace:[[/\s+/,"white"],[/\/\*/,"comment","@blockComment"],[/\/\/.*$/,"comment"]],blockComment:[[/[^\/*]+/,"comment"],[/\/\*/,"comment","@push"],[/\*\//,"comment","@pop"],[/[\/*]/,"comment"]],attribute:[{include:"@commentOrSpace"},[/\w+/,"annotation","@pop"]],directive:[{include:"@commentOrSpace"},[/[()]/,"@brackets"],[/,/,"delimiter"],[c,"meta.content"],[/;/,"delimiter","@pop"]],numbers:[[/0[fh]/,"number.float"],[/[1-9][0-9]*[fh]/,"number.float"],[/[0-9]*\.[0-9]+([eE][+-]?[0-9]+)?[fh]?/,"number.float"],[/[0-9]+\.[0-9]*([eE][+-]?[0-9]+)?[fh]?/,"number.float"],[/[0-9]+[eE][+-]?[0-9]+[fh]?/,"number.float"],[/0[xX][0-9a-fA-F]*\.[0-9a-fA-F]+(?:[pP][+-]?[0-9]+[fh]?)?/,"number.hex"],[/0[xX][0-9a-fA-F]+\.[0-9a-fA-F]*(?:[pP][+-]?[0-9]+[fh]?)?/,"number.hex"],[/0[xX][0-9a-fA-F]+[pP][+-]?[0-9]+[fh]?/,"number.hex"],[/0[xX][0-9a-fA-F]+[iu]?/,"number.hex"],[/[1-9][0-9]*[iu]?/,"number"],[/0[iu]?/,"number"]]}};return x(F);})();
+return moduleExports;
 });

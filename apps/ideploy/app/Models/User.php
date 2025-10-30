@@ -263,6 +263,14 @@ class User extends Authenticatable implements SendsEmail
         return $this->role() === 'admin' || $this->role() === 'owner';
     }
 
+    /**
+     * Check if user is IDEM platform admin (uses idem_role field)
+     */
+    public function isIdemAdmin(): bool
+    {
+        return $this->idem_role === 'admin';
+    }
+
     public function isOwner()
     {
         return $this->role() === 'owner';

@@ -3,6 +3,8 @@
 namespace App\Livewire\Project\New;
 
 use App\Models\Application;
+use App\Services\IdemQuotaService;
+use Illuminate\Support\Facades\Auth;
 use App\Models\GithubApp;
 use App\Models\Project;
 use App\Models\StandaloneDocker;
@@ -32,6 +34,15 @@ CMD ["nginx", "-g", "daemon off;"]
 
     public function submit()
     {
+        // IDEM: Check if user can deploy (quota check)
+        $quotaService = app(IdemQuotaService::class);
+        $team = Auth::user()->currentTeam();
+        
+        if (!$quotaService->canDeployApp($team)) {
+            $this->dispatch('error', 'Application limit reached. Please upgrade your plan to deploy more applications.');
+            return redirect()->route('idem.subscription');
+        }
+        
         $this->validate([
             'dockerfile' => 'required',
         ]);
@@ -55,7 +66,7 @@ CMD ["nginx", "-g", "daemon off;"]
         $application = Application::create([
             'name' => 'dockerfile-'.new Cuid2,
             'repository_project_id' => 0,
-            'git_repository' => 'coollabsio/ideploy',
+            'git_repository' => 'coollabsio/coolify',
             'git_branch' => 'main',
             'build_pack' => 'dockerfile',
             'dockerfile' => $this->dockerfile,

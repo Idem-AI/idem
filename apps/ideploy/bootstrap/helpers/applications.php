@@ -198,7 +198,7 @@ function clone_application(Application $source, $destination, array $overrides =
 
     // Update custom labels if needed
     if ($newApplication->destination->server->proxyType() !== 'NONE' && $applicationSettings->is_container_label_readonly_enabled === true) {
-        $customLabels = str(implode('|ideploy|', generateLabelsApplication($newApplication)))->replace('|ideploy|', "\n");
+        $customLabels = str(implode('|coolify|', generateLabelsApplication($newApplication)))->replace('|coolify|', "\n");
         $newApplication->custom_labels = base64_encode($customLabels);
         $newApplication->save();
     }

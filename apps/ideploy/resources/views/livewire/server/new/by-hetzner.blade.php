@@ -3,7 +3,7 @@
         <x-limit-reached name="servers" />
     @else
         @if ($current_step === 1)
-            <div class="flex flex-col w-full gap-4">
+            <div class="flex flex-col w-full gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
                 @if ($available_tokens->count() > 0)
                     <div class="flex gap-2">
                         <div class="flex-1">
@@ -25,7 +25,7 @@
                         </div>
                     </div>
 
-                    <div class="text-center text-sm dark:text-neutral-500">OR</div>
+                    <div class="text-center text-sm text-gray-500">OR</div>
                 @endif
 
                 <x-modal-input isFullWidth
@@ -36,14 +36,14 @@
             </div>
         @elseif ($current_step === 2)
             @if ($loading_data)
-                <div class="flex items-center justify-center py-8">
+                <div class="flex items-center justify-center py-8 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
                     <div class="text-center">
-                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                        <p class="mt-4 text-sm dark:text-neutral-400">Loading Hetzner data...</p>
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4F46E5] mx-auto"></div>
+                        <p class="mt-4 text-sm text-gray-400">Loading Hetzner data...</p>
                     </div>
                 </div>
             @else
-                <form class="flex flex-col w-full gap-2" wire:submit='submit'>
+                <form class="flex flex-col w-full gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50" wire:submit='submit'>
                     <div>
                         <x-forms.input id="server_name" label="Server Name" helper="A friendly name for your server." />
                     </div>

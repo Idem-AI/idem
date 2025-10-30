@@ -30,8 +30,8 @@ class UpdateCoolify
             return;
         }
         CleanupDocker::dispatch($this->server, false, false);
-        $this->latestVersion = get_latest_version_of_ideploy();
-        $this->currentVersion = config('constants.ideploy.version');
+        $this->latestVersion = get_latest_version_of_coolify();
+        $this->currentVersion = config('constants.coolify.version');
         if (! $manual_update) {
             if (! $settings->is_auto_update_enabled) {
                 return;
@@ -52,12 +52,12 @@ class UpdateCoolify
     {
         PullHelperImageJob::dispatch($this->server);
 
-        $image = config('constants.ideploy.registry_url').'/coollabsio/ideploy:'.$this->latestVersion;
+        $image = config('constants.coolify.registry_url').'/coollabsio/coolify:'.$this->latestVersion;
         instant_remote_process(["docker pull -q $image"], $this->server, false);
 
         remote_process([
-            'curl -fsSL https://cdn.coollabs.io/ideploy/upgrade.sh -o /data/ideploy/source/upgrade.sh',
-            "bash /data/ideploy/source/upgrade.sh $this->latestVersion",
+            'curl -fsSL https://cdn.coollabs.io/coolify/upgrade.sh -o /data/coolify/source/upgrade.sh',
+            "bash /data/coolify/source/upgrade.sh $this->latestVersion",
         ], $this->server);
     }
 }

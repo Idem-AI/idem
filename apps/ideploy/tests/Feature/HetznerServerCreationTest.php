@@ -91,11 +91,11 @@ it('validates IP address selection uses IPv6 when only IPv6 is enabled', functio
 });
 
 it('validates SSH key array merging logic with Coolify key', function () {
-    $ideployKeyId = 123;
+    $coolifyKeyId = 123;
     $selectedHetznerKeys = [];
 
     $sshKeys = array_merge(
-        [$ideployKeyId],
+        [$coolifyKeyId],
         $selectedHetznerKeys
     );
     $sshKeys = array_unique($sshKeys);
@@ -106,11 +106,11 @@ it('validates SSH key array merging logic with Coolify key', function () {
 });
 
 it('validates SSH key array merging with additional Hetzner keys', function () {
-    $ideployKeyId = 123;
+    $coolifyKeyId = 123;
     $selectedHetznerKeys = [456, 789];
 
     $sshKeys = array_merge(
-        [$ideployKeyId],
+        [$coolifyKeyId],
         $selectedHetznerKeys
     );
     $sshKeys = array_unique($sshKeys);
@@ -121,11 +121,11 @@ it('validates SSH key array merging with additional Hetzner keys', function () {
 });
 
 it('validates deduplication when Coolify key is also in selected keys', function () {
-    $ideployKeyId = 123;
+    $coolifyKeyId = 123;
     $selectedHetznerKeys = [123, 456, 789];
 
     $sshKeys = array_merge(
-        [$ideployKeyId],
+        [$coolifyKeyId],
         $selectedHetznerKeys
     );
     $sshKeys = array_unique($sshKeys);

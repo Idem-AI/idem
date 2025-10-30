@@ -18,7 +18,7 @@ class InstanceSettingsSeeder extends Seeder
             'is_registration_enabled' => true,
             'is_api_enabled' => isDev(),
             'smtp_enabled' => true,
-            'smtp_host' => 'ideploy-mail',
+            'smtp_host' => 'coolify-mail',
             'smtp_port' => 1025,
             'smtp_from_address' => 'hi@localhost.com',
             'smtp_from_name' => 'Coolify',

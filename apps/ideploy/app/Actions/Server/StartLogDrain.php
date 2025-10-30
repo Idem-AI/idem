@@ -52,11 +52,11 @@ class StartLogDrain
 [FILTER]
     Name                modify
     Match               *
-    Set                 ideploy.server_name {$server->name}
-    Rename              COOLIFY_APP_NAME ideploy.app_name
-    Rename              COOLIFY_PROJECT_NAME ideploy.project_name
-    Rename              COOLIFY_SERVER_IP ideploy.server_ip
-    Rename              COOLIFY_ENVIRONMENT_NAME ideploy.environment_name
+    Set                 coolify.server_name {$server->name}
+    Rename              COOLIFY_APP_NAME coolify.app_name
+    Rename              COOLIFY_PROJECT_NAME coolify.project_name
+    Rename              COOLIFY_SERVER_IP coolify.server_ip
+    Rename              COOLIFY_ENVIRONMENT_NAME coolify.environment_name
 [OUTPUT]
     Name nrlogs
     Match *
@@ -107,11 +107,11 @@ class StartLogDrain
 [FILTER]
     Name                modify
     Match               *
-    Set                 ideploy.server_name {$server->name}
-    Rename              COOLIFY_APP_NAME ideploy.app_name
-    Rename              COOLIFY_PROJECT_NAME ideploy.project_name
-    Rename              COOLIFY_SERVER_IP ideploy.server_ip
-    Rename              COOLIFY_ENVIRONMENT_NAME ideploy.environment_name
+    Set                 coolify.server_name {$server->name}
+    Rename              COOLIFY_APP_NAME coolify.app_name
+    Rename              COOLIFY_PROJECT_NAME coolify.project_name
+    Rename              COOLIFY_SERVER_IP coolify.server_ip
+    Rename              COOLIFY_ENVIRONMENT_NAME coolify.environment_name
 [OUTPUT]
     Name            http
     Match           *
@@ -145,9 +145,9 @@ class StartLogDrain
             }
             $compose = base64_encode('
 services:
-  ideploy-log-drain:
+  coolify-log-drain:
     image: cr.fluentbit.io/fluent/fluent-bit:2.0
-    container_name: ideploy-log-drain
+    container_name: coolify-log-drain
     command: -c /fluent-bit.conf
     env_file:
       - .env
@@ -157,7 +157,7 @@ services:
     ports:
       - 127.0.0.1:24224:24224
     labels:
-      - ideploy.managed=true
+      - coolify.managed=true
     restart: unless-stopped
 ');
             $readme = base64_encode('# New Relic Log Drain
@@ -170,7 +170,7 @@ Files:
 ');
             $license_key = $server->settings->logdrain_newrelic_license_key;
             $base_uri = $server->settings->logdrain_newrelic_base_uri;
-            $base_path = config('constants.ideploy.base_config_path');
+            $base_path = config('constants.coolify.base_config_path');
 
             $config_path = $base_path.'/log-drains';
             $fluent_bit_config = $config_path.'/fluent-bit.conf';
