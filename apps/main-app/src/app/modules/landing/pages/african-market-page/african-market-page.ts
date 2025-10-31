@@ -2,6 +2,7 @@ import { Component, inject, PLATFORM_ID, signal, OnInit } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SeoService } from '../../../../shared/services/seo.service';
+import { Team } from '../../components/team/team';
 
 interface MarketRegion {
   region: string;
@@ -25,7 +26,7 @@ interface AfricanStat {
 @Component({
   selector: 'app-african-market-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, Team],
   templateUrl: './african-market-page.html',
   styleUrl: './african-market-page.css',
 })
