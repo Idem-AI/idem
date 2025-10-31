@@ -152,7 +152,7 @@ class ServerManagerJob implements ShouldQueue
 
         if ($shouldRestartSentinel) {
             dispatch(function () use ($server) {
-                $server->restartContainer('ideploy-sentinel');
+                $server->restartContainer('coolify-sentinel');
             });
         }
     }

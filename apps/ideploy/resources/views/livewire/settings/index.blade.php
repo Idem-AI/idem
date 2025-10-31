@@ -19,7 +19,7 @@
                     <div class="flex gap-2 md:flex-row flex-col w-full">
                         <x-forms.input id="fqdn" label="Domain"
                             helper="Enter the full domain name (FQDN) of the instance, including 'https://' if you want to secure the dashboard with HTTPS. Setting this will make the dashboard accessible via this domain, secured by HTTPS, instead of just the IP address."
-                            placeholder="https://ideploy.yourdomain.com" />
+                            placeholder="https://coolify.yourdomain.com" />
                         <x-forms.input id="instance_name" label="Name" placeholder="Coolify"
                             helper="Custom name for your Coolify instance, shown in the URL." />
                         <div class="w-full" x-data="{
@@ -79,10 +79,10 @@
                 </div>
             </div>
         </form>
-
-        <x-domain-conflict-modal
-            :conflicts="$domainConflicts"
-            :showModal="$showDomainConflictModal"
+        
+        <x-domain-conflict-modal 
+            :conflicts="$domainConflicts" 
+            :showModal="$showDomainConflictModal" 
             confirmAction="confirmDomainUsage">
             <x-slot:consequences>
                 <ul class="mt-2 ml-4 list-disc">

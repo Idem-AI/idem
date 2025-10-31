@@ -32,7 +32,7 @@ class StartService
         }
         $commands[] = 'echo Starting service.';
         $commands[] = 'docker compose up -d --remove-orphans --force-recreate --build';
-        $commands[] = "docker network connect $service->uuid ideploy-proxy >/dev/null 2>&1 || true";
+        $commands[] = "docker network connect $service->uuid coolify-proxy >/dev/null 2>&1 || true";
         if (data_get($service, 'connect_to_docker_network')) {
             $compose = data_get($service, 'docker_compose', []);
             $network = $service->destination->network;

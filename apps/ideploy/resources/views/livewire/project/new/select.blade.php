@@ -1,26 +1,49 @@
 <div x-data x-init="$wire.loadServers">
-    <div class="flex flex-col gap-4 lg:flex-row ">
-        <h1>New Resource</h1>
-        <div class="w-full pb-4 lg:w-96 lg:pb-0">
-            <x-forms.select wire:model.live="selectedEnvironment">
-                @foreach ($environments as $environment)
-                    <option value="{{ $environment->name }}">Environment: {{ $environment->name }}</option>
-                @endforeach
-            </x-forms.select>
+    {{-- Header Section --}}
+    <div class="mb-6 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-white mb-2">New Resource</h1>
+                <p class="text-sm text-gray-400">Deploy applications, databases, and services to your infrastructure</p>
+            </div>
+            <div class="w-full lg:w-96">
+                <x-forms.select wire:model.live="selectedEnvironment">
+                    @foreach ($environments as $environment)
+                        <option value="{{ $environment->name }}">Environment: {{ $environment->name }}</option>
+                    @endforeach
+                </x-forms.select>
+            </div>
         </div>
     </div>
-    <div class="pb-4">Deploy resources, like Applications, Databases, Services...</div>
     <div x-data="searchResources()">
         @if ($current_step === 'type')
+            {{-- Search Bar --}}
             <div x-init="window.addEventListener('scroll', () => isSticky = window.pageYOffset > 100)" class="sticky z-10 top-10 py-2">
-                <input autocomplete="off" x-ref="searchInput" class="input-sticky"
-                    :class="{ 'input-sticky-active': isSticky }" x-model="search" placeholder="Type / to search..."
-                    @keydown.window.slash.prevent="$refs.searchInput.focus()">
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input 
+                        autocomplete="off" 
+                        x-ref="searchInput" 
+                        x-model="search" 
+                        placeholder="Type / to search resources..."
+                        @keydown.window.slash.prevent="$refs.searchInput.focus()"
+                        class="w-full pl-10 pr-4 py-3 bg-[#0f1724] border rounded-lg text-white placeholder-gray-500 transition-all"
+                        :class="isSticky ? 'border-[#4F46E5] shadow-lg shadow-[#4F46E5]/20' : 'border-gray-800/50 focus:border-[#4F46E5]'">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 px-2 py-1 bg-gray-800/50 rounded">/</span>
+                </div>
             </div>
-            <div x-show="loading">Loading...</div>
+            {{-- Loading State --}}
+            <div x-show="loading" class="flex items-center justify-center py-12">
+                <div class="text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4F46E5] mx-auto"></div>
+                    <p class="mt-4 text-sm text-gray-400">Loading resources...</p>
+                </div>
+            </div>
             <div x-show="!loading" class="flex flex-col gap-4 py-4">
-                <h2 x-show="filteredGitBasedApplications.length > 0">Applications</h2>
-                <h4 x-show="filteredGitBasedApplications.length > 0">Git Based</h4>
+                <h2 x-show="filteredGitBasedApplications.length > 0" class="text-xl font-bold text-white">Applications</h2>
+                <h4 x-show="filteredGitBasedApplications.length > 0" class="text-sm font-semibold text-gray-400 uppercase tracking-wide">Git Based</h4>
                 <div x-show="filteredGitBasedApplications.length > 0"
                     class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-1">
                     <template x-for="application in filteredGitBasedApplications" :key="application.name">
@@ -39,7 +62,7 @@
                         </div>
                     </template>
                 </div>
-                <h4 x-show="filteredDockerBasedApplications.length > 0">Docker Based</h4>
+                <h4 x-show="filteredDockerBasedApplications.length > 0" class="text-sm font-semibold text-gray-400 uppercase tracking-wide">Docker Based</h4>
                 <div x-show="filteredDockerBasedApplications.length > 0"
                     class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-3">
                     <template x-for="application in filteredDockerBasedApplications" :key="application.name">
@@ -55,7 +78,7 @@
                         </div>
                     </template>
                 </div>
-                <h2 x-show="filteredDatabases.length > 0">Databases</h2>
+                <h2 x-show="filteredDatabases.length > 0" class="text-xl font-bold text-white">Databases</h2>
                 <div x-show="filteredDatabases.length > 0"
                     class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-2">
                     <template x-for="database in filteredDatabases" :key="database.id">
@@ -83,7 +106,7 @@
                         respective
                         companies, and use of them does not imply any affiliation or endorsement.<br>Find more services
                         <a class="dark:text-white underline" target="_blank"
-                            href="https://ideploy.io/docs/services/overview">here</a>.
+                            href="https://coolify.io/docs/services/overview">here</a>.
                     </div>
 
                     <div class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-2">
@@ -107,7 +130,7 @@
                                                 :src='service.logo'
                                                 x-on:error.window="$event.target.src = service.logo_github_url"
                                                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
-                                                x-on:error="$event.target.src = '/ideploy-logo.svg'"
+                                                x-on:error="$event.target.src = '/coolify-logo.svg'"
                                                 :data-fallback='service.logo_github_url' />
                                         </template>
                                     </x-slot:logo>
@@ -219,6 +242,117 @@
             </script>
         @endif
     </div>
+    
+    {{-- IDEM: Deployment Choice Step --}}
+    @if ($current_step === 'deployment-choice')
+        <div class="mb-6 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
+            <h2 class="text-2xl font-bold text-white mb-2">🚀 Choose Deployment Environment</h2>
+            <p class="text-sm text-gray-400">Select where you want to deploy your resource (application, database, or service)</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {{-- Option 1: IDEM Managed Servers --}}
+            <div wire:click="chooseIdemManaged" 
+                 class="relative p-6 border-2 rounded-xl cursor-pointer transition-all
+                        border-[#4F46E5] bg-[#4F46E5]/10 hover:bg-[#4F46E5]/20 hover:border-[#6366F1]">
+                <div class="absolute top-4 right-4">
+                    <span class="px-3 py-1 text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30 rounded-full">
+                        Recommended
+                    </span>
+                </div>
+                
+                <div class="flex items-start">
+                    <span class="text-4xl mr-4">☁️</span>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-white mb-2">
+                            IDEM Managed Servers
+                        </h3>
+                        <p class="text-sm text-gray-300 mb-4">
+                            Deploy on our managed infrastructure - Works for apps, databases, and services
+                        </p>
+                        
+                        <ul class="space-y-2">
+                            <li class="flex items-center text-sm text-gray-300">
+                                <svg class="w-4 h-4 text-green-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                High availability
+                            </li>
+                            <li class="flex items-center text-sm text-gray-300">
+                                <svg class="w-4 h-4 text-green-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Automatic scaling
+                            </li>
+                            <li class="flex items-center text-sm text-gray-300">
+                                <svg class="w-4 h-4 text-green-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                No server management
+                            </li>
+                            <li class="flex items-center text-sm text-gray-300">
+                                <svg class="w-4 h-4 text-green-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Best performance
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            {{-- Option 2: Personal Servers --}}
+            <div wire:click="choosePersonalServers" 
+                 class="relative p-6 border-2 rounded-xl cursor-pointer transition-all
+                        border-gray-800/50 bg-[#0f1724] hover:bg-[#151b2e] hover:border-[#4F46E5]/50">
+                <div class="flex items-start">
+                    <span class="text-4xl mr-4">🖥️</span>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-white mb-2">
+                            Your Personal Servers
+                        </h3>
+                        <p class="text-sm text-gray-300 mb-4">
+                            Deploy on your own infrastructure
+                        </p>
+                        
+                        <ul class="space-y-2">
+                            <li class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Full control
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Custom configuration
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Use existing servers
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                You manage updates
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-lg max-w-4xl mx-auto">
+            <p class="text-sm text-blue-800 dark:text-blue-300">
+                💡 <strong>Tip:</strong> IDEM Managed Servers are recommended for most use cases. They provide automatic load balancing, high availability, and require no maintenance from you.
+            </p>
+        </div>
+    @endif
+    
     @if ($current_step === 'servers')
         <h2>Select a server</h2>
         <div class="pb-5"></div>
@@ -255,7 +389,7 @@
         <h2>Select a destination</h2>
         <div class="pb-4">Destinations are used to segregate resources by network. If you are unsure, select the
             default
-            Standalone Docker (ideploy).</div>
+            Standalone Docker (coolify).</div>
         <div class="flex flex-col justify-center gap-4 text-left xl:flex-row xl:flex-wrap">
             @if ($server->isSwarm())
                 @foreach ($swarmDockers as $swarmDocker)

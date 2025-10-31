@@ -62,11 +62,11 @@
                                                     html {
                                                         font-size: 93.75%;
                                                     }
-
+                                
                                                     :root {
                                                         --vh: 1vh;
                                                     }
-
+                                
                                                     @media (min-width: 1024px) {
                                                         html {
                                                             font-size: 87.5%;
@@ -79,8 +79,11 @@
     }">
     <div class="flex lg:pt-6 pt-4 pb-4 pl-2">
         <div class="flex flex-col w-full">
-            <div class="text-2xl font-bold tracking-wide dark:text-white">Coolify</div>
-            <x-version />
+            {{-- IDEM Logo --}}
+            <div class="flex items-center gap-3">
+                <img src="{{ asset('logo/logo.png') }}" alt="IDEM" class="h-10 w-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="text-2xl font-bold tracking-wide text-glow-primary" style="display:none; background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</div>
+            </div>
         </div>
         <div>
             <!-- Search button that triggers global search modal -->
@@ -188,6 +191,47 @@
                             S3 Storages
                         </a>
                     </li>
+                    
+                    {{-- IDEM SaaS: Dashboard Link with Quota --}}
+                    <li>
+                        <a title="IDEM Dashboard"
+                            class="{{ request()->is('idem') || request()->is('idem/dashboard') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                            href="{{ route('idem.dashboard') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M3 12h4l3 8l4 -16l3 8h4" />
+                            </svg>
+                            <span class="flex-1">IDEM</span>
+                            @livewire('idem.quota-badge', ['type' => 'apps', 'compact' => true])
+                        </a>
+                    </li>
+
+                    {{-- IDEM SaaS: Subscription Link --}}
+                    <li>
+                        <a title="Subscription"
+                            class="{{ request()->is('idem/subscription*') || request()->is('idem/plans') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                            href="{{ route('idem.subscription') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                            Subscription
+                        </a>
+                    </li>
+                    
+                    {{-- IDEM SaaS: Admin Dashboard Link (only for admins) --}}
+                    @if(auth()->user() && auth()->user()->idem_role === 'admin')
+                        <li>
+                            <a title="IDEM Admin"
+                                class="{{ request()->is('idem/admin*') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                                href="{{ route('idem.admin.dashboard') }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                <span class="text-red-400 font-semibold">IDEM Admin</span>
+                            </a>
+                        </li>
+                    @endif
+                    
                     <li>
                         <a title="Shared variables"
                             class="{{ request()->is('shared-variables*') ? 'menu-item-active menu-item' : 'menu-item' }}"
@@ -357,20 +401,7 @@
                             Onboarding
                         </a>
                     </li> --}}
-                    <li>
-                        <a title="Sponsor us" class="menu-item" href="https://ideploy.io/sponsorships"
-                            target="_blank">
-                            <svg class="text-pink-500 icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <g fill="none" stroke="currentColor" stroke-linecap="round"
-                                    stroke-linejoin="round" stroke-width="2">
-                                    <path d="M19.5 12.572L12 20l-7.5-7.428A5 5 0 1 1 12 6.006a5 5 0 1 1 7.5 6.572" />
-                                    <path
-                                        d="M12 6L8.707 9.293a1 1 0 0 0 0 1.414l.543.543c.69.69 1.81.69 2.5 0l1-1a3.182 3.182 0 0 1 4.5 0l2.25 2.25m-7 3l2 2M15 13l2 2" />
-                                </g>
-                            </svg>
-                            Sponsor us
-                        </a>
-                    </li>
+                    {{-- IDEM: Sponsor button removed --}}
                 @endif
                 @if (!isSubscribed() && isCloud() && auth()->user()->teams()->get()->count() > 1)
                     <livewire:navbar-delete-team />

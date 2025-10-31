@@ -169,7 +169,7 @@ class Service extends BaseModel
     public function deleteConnectedNetworks()
     {
         $server = data_get($this, 'destination.server');
-        instant_remote_process(["docker network disconnect {$this->uuid} ideploy-proxy"], $server, false);
+        instant_remote_process(["docker network disconnect {$this->uuid} coolify-proxy"], $server, false);
         instant_remote_process(["docker network rm {$this->uuid}"], $server, false);
     }
 
@@ -1293,8 +1293,8 @@ class Service extends BaseModel
             }
         }
 
-        $envs_from_ideploy = $this->environment_variables()->get();
-        $sorted = $envs_from_ideploy->sortBy(function ($env) {
+        $envs_from_coolify = $this->environment_variables()->get();
+        $sorted = $envs_from_coolify->sortBy(function ($env) {
             if (str($env->key)->startsWith('SERVICE_')) {
                 return 1;
             }

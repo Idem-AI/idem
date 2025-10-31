@@ -26,23 +26,23 @@
                 <h4 class="pt-4">Auto Update</h4>
 
                 <div class="text-right md:w-64">
-                    @if (!is_null(config('constants.ideploy.autoupdate', null)))
+                    @if (!is_null(config('constants.coolify.autoupdate', null)))
                         <div class="text-right">
                             <x-forms.checkbox instantSave
                                 helper="AUTOUPDATE is set in .env file, you need to modify it there." disabled
-                                checked="{{ config('constants.ideploy.autoupdate') }}" label="Enabled" />
+                                checked="{{ config('constants.coolify.autoupdate') }}" label="Enabled" />
                         </div>
                     @else
                         <x-forms.checkbox instantSave id="is_auto_update_enabled" label="Enabled" />
                     @endif
                 </div>
-                @if (is_null(config('constants.ideploy.autoupdate', null)) && $is_auto_update_enabled)
+                @if (is_null(config('constants.coolify.autoupdate', null)) && $is_auto_update_enabled)
                     <x-forms.input required id="auto_update_frequency" label="Frequency (cron expression)"
                         placeholder="0 0 * * *"
-                        helper="Frequency (cron expression) (automatically update ideploy).<br>You can use every_minute, hourly, daily, weekly, monthly, yearly.<br><br>Default is every day at 00:00" />
+                        helper="Frequency (cron expression) (automatically update coolify).<br>You can use every_minute, hourly, daily, weekly, monthly, yearly.<br><br>Default is every day at 00:00" />
                 @else
                     <x-forms.input required label="Frequency (cron expression)" disabled placeholder="disabled"
-                        helper="Frequency (cron expression) (automatically update ideploy).<br>You can use every_minute, hourly, daily, weekly, monthly, yearly.<br><br>Default is every day at 00:00" />
+                        helper="Frequency (cron expression) (automatically update coolify).<br>You can use every_minute, hourly, daily, weekly, monthly, yearly.<br><br>Default is every day at 00:00" />
                 @endif
             </div>
 

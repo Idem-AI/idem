@@ -1,0 +1,37 @@
+filter:
+  excluded_paths:
+    - 'tests/*'
+
+checks:
+  php: true
+
+build:
+  environment:
+    php: '8.2'
+    postgresql: false
+    redis: false
+    variables:
+      XDEBUG_MODE: coverage
+
+  nodes:
+    analysis:
+      tests:
+        override:
+          - php-scrutinizer-run
+    coverage:
+      tests:
+        override:
+          - command: 'vendor/bin/phpunit --coverage-clover=.coverage.tmp'
+            coverage:
+              file: '.coverage.tmp'
+              format: 'clover'
+
+coding_style:
+  php:
+    spaces:
+      before_parentheses:
+        closure_definition: true
+      around_operators:
+        concatenation: true
+      other:
+        after_type_cast: false

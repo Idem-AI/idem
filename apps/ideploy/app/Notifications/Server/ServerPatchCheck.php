@@ -18,7 +18,7 @@ class ServerPatchCheck extends CustomEmailNotification
         $this->onQueue('high');
         $this->serverUrl = route('server.security.patches', ['server_uuid' => $this->server->uuid]);
         if (isDev()) {
-            $this->serverUrl = 'https://staging-but-dev.ideploy.io/server/'.$this->server->uuid.'/security/patches';
+            $this->serverUrl = 'https://staging-but-dev.coolify.io/server/'.$this->server->uuid.'/security/patches';
         }
     }
 

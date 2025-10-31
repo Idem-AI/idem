@@ -526,7 +526,11 @@ class ByHetzner extends Component
         try {
             $this->authorize('create', Server::class);
 
-            if (Team::serverLimitReached()) {
+            // IDEM: Admins peuvent ajouter des serveurs sans limite
+            $user = auth()->user();
+            $isIdemAdmin = $user && $user->idem_role === 'admin';
+            
+            if (!$isIdemAdmin && Team::serverLimitReached()) {
                 return $this->dispatch('error', 'You have reached the server limit for your subscription.');
             }
 
@@ -569,6 +573,12 @@ class ByHetzner extends Component
                 'cloud_provider_token_id' => $this->selected_token_id,
                 'hetzner_server_id' => $hetznerServer['id'],
             ]);
+            
+            // IDEM: Si créé par un admin, marquer comme serveur IDEM managed
+            if ($isIdemAdmin) {
+                $server->idem_managed = true;
+                $server->idem_load_score = 0;
+            }
 
             $server->proxy->set('status', 'exited');
             $server->proxy->set('type', ProxyTypes::TRAEFIK->value);

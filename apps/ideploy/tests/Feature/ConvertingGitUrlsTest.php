@@ -4,9 +4,9 @@ use App\Models\GithubApp;
 
 test('convertGitUrlsForDeployKeyAndGithubAppAndHttpUrl', function () {
     $githubApp = GithubApp::find(0);
-    $result = convertGitUrl('andrasbacsai/ideploy-examples.git', 'deploy_key', $githubApp);
+    $result = convertGitUrl('andrasbacsai/coolify-examples.git', 'deploy_key', $githubApp);
     expect($result)->toBe([
-        'repository' => 'git@github.com:andrasbacsai/ideploy-examples.git',
+        'repository' => 'git@github.com:andrasbacsai/coolify-examples.git',
         'port' => 22,
     ]);
 
@@ -14,41 +14,41 @@ test('convertGitUrlsForDeployKeyAndGithubAppAndHttpUrl', function () {
 
 test('convertGitUrlsForDeployKeyAndGithubAppAndSshUrl', function () {
     $githubApp = GithubApp::find(0);
-    $result = convertGitUrl('git@github.com:andrasbacsai/ideploy-examples.git', 'deploy_key', $githubApp);
+    $result = convertGitUrl('git@github.com:andrasbacsai/coolify-examples.git', 'deploy_key', $githubApp);
     expect($result)->toBe([
-        'repository' => 'git@github.com:andrasbacsai/ideploy-examples.git',
+        'repository' => 'git@github.com:andrasbacsai/coolify-examples.git',
         'port' => 22,
     ]);
 });
 
 test('convertGitUrlsForDeployKeyAndHttpUrl', function () {
-    $result = convertGitUrl('andrasbacsai/ideploy-examples.git', 'deploy_key', null);
+    $result = convertGitUrl('andrasbacsai/coolify-examples.git', 'deploy_key', null);
     expect($result)->toBe([
-        'repository' => 'andrasbacsai/ideploy-examples.git',
+        'repository' => 'andrasbacsai/coolify-examples.git',
         'port' => 22,
     ]);
 });
 
 test('convertGitUrlsForDeployKeyAndSshUrl', function () {
-    $result = convertGitUrl('git@github.com:andrasbacsai/ideploy-examples.git', 'deploy_key', null);
+    $result = convertGitUrl('git@github.com:andrasbacsai/coolify-examples.git', 'deploy_key', null);
     expect($result)->toBe([
-        'repository' => 'git@github.com:andrasbacsai/ideploy-examples.git',
+        'repository' => 'git@github.com:andrasbacsai/coolify-examples.git',
         'port' => 22,
     ]);
 });
 
 test('convertGitUrlsForSourceAndSshUrl', function () {
-    $result = convertGitUrl('git@github.com:andrasbacsai/ideploy-examples.git', 'source', null);
+    $result = convertGitUrl('git@github.com:andrasbacsai/coolify-examples.git', 'source', null);
     expect($result)->toBe([
-        'repository' => 'git@github.com:andrasbacsai/ideploy-examples.git',
+        'repository' => 'git@github.com:andrasbacsai/coolify-examples.git',
         'port' => 22,
     ]);
 });
 
 test('convertGitUrlsForSourceAndHttpUrl', function () {
-    $result = convertGitUrl('andrasbacsai/ideploy-examples.git', 'source', null);
+    $result = convertGitUrl('andrasbacsai/coolify-examples.git', 'source', null);
     expect($result)->toBe([
-        'repository' => 'andrasbacsai/ideploy-examples.git',
+        'repository' => 'andrasbacsai/coolify-examples.git',
         'port' => 22,
     ]);
 });

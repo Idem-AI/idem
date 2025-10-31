@@ -49,7 +49,7 @@ class SettingsBackup extends Component
         }
         $settings = instanceSettings();
         $this->server = Server::findOrFail(0);
-        $this->database = StandalonePostgresql::whereName('ideploy-db')->first();
+        $this->database = StandalonePostgresql::whereName('coolify-db')->first();
         $s3s = S3Storage::whereTeamId(0)->get() ?? [];
         if ($this->database) {
             $this->uuid = $this->database->uuid;
@@ -77,14 +77,14 @@ class SettingsBackup extends Component
     {
         try {
             $server = Server::findOrFail(0);
-            $out = instant_remote_process(['docker inspect ideploy-db'], $server);
+            $out = instant_remote_process(['docker inspect coolify-db'], $server);
             $envs = format_docker_envs_to_json($out);
             $postgres_password = $envs['POSTGRES_PASSWORD'];
             $postgres_user = $envs['POSTGRES_USER'];
             $postgres_db = $envs['POSTGRES_DB'];
             $this->database = StandalonePostgresql::create([
                 'id' => 0,
-                'name' => 'ideploy-db',
+                'name' => 'coolify-db',
                 'description' => 'Coolify database',
                 'postgres_user' => $postgres_user,
                 'postgres_password' => $postgres_password,

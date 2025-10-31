@@ -23,7 +23,7 @@ Coolify employs **comprehensive testing strategies** using modern PHP testing fr
 
 #### Feature Tests (`tests/Feature/`)
 - **MAY** use database connections (factories, migrations, models)
-- **MUST** run inside Docker container: `docker exec ideploy php artisan test`
+- **MUST** run inside Docker container: `docker exec coolify php artisan test`
 - **MUST** use `RefreshDatabase` trait if touching database
 - Purpose: Test API endpoints, workflows, and integration scenarios
 
@@ -85,7 +85,7 @@ it('extracts custom commands', function () {
 // Testing Eloquent models
 test('application model has correct relationships', function () {
     $application = Application::factory()->create();
-
+    
     expect($application->server)->toBeInstanceOf(Server::class);
     expect($application->environment)->toBeInstanceOf(Environment::class);
     expect($application->deployments)->toBeInstanceOf(Collection::class);
@@ -96,9 +96,9 @@ test('application can generate deployment configuration', function () {
         'name' => 'test-app',
         'git_repository' => 'https://github.com/user/repo.git'
     ]);
-
+    
     $config = $application->generateDockerCompose();
-
+    
     expect($config)->toContain('test-app');
     expect($config)->toContain('image:');
     expect($config)->toContain('networks:');
@@ -111,9 +111,9 @@ test('application can generate deployment configuration', function () {
 test('configuration generator creates valid docker compose', function () {
     $generator = new ConfigurationGenerator();
     $application = Application::factory()->create();
-
+    
     $compose = $generator->generateDockerCompose($application);
-
+    
     expect($compose)->toBeString();
     expect(yaml_parse($compose))->toBeArray();
     expect($compose)->toContain('version: "3.8"');
@@ -121,7 +121,7 @@ test('configuration generator creates valid docker compose', function () {
 
 test('docker image parser validates image names', function () {
     $parser = new DockerImageParser();
-
+    
     expect($parser->isValid('nginx:latest'))->toBeTrue();
     expect($parser->isValid('invalid-image-name'))->toBeFalse();
     expect($parser->parse('nginx:1.21'))->toEqual([
@@ -139,9 +139,9 @@ test('docker image parser validates image names', function () {
 test('deploy application action creates deployment queue', function () {
     $application = Application::factory()->create();
     $action = new DeployApplicationAction();
-
+    
     $deployment = $action->handle($application);
-
+    
     expect($deployment)->toBeInstanceOf(ApplicationDeploymentQueue::class);
     expect($deployment->status)->toBe('queued');
     expect($deployment->application_id)->toBe($application->id);
@@ -152,17 +152,17 @@ test('server validation action checks ssh connectivity', function () {
         'ip' => '192.168.1.100',
         'port' => 22
     ]);
-
+    
     $action = new ValidateServerAction();
-
+    
     // Mock SSH connection
     $this->mock(SshConnection::class, function ($mock) {
         $mock->shouldReceive('connect')->andReturn(true);
         $mock->shouldReceive('execute')->with('docker --version')->andReturn('Docker version 20.10.0');
     });
-
+    
     $result = $action->handle($server);
-
+    
     expect($result['ssh_connection'])->toBeTrue();
     expect($result['docker_installed'])->toBeTrue();
 });
@@ -177,14 +177,14 @@ test('authenticated user can list applications', function () {
     $user = User::factory()->create();
     $team = Team::factory()->create();
     $user->teams()->attach($team);
-
+    
     $applications = Application::factory(3)->create([
         'team_id' => $team->id
     ]);
-
+    
     $response = $this->actingAs($user)
         ->getJson('/api/v1/applications');
-
+    
     $response->assertStatus(200)
         ->assertJsonCount(3, 'data')
         ->assertJsonStructure([
@@ -197,14 +197,14 @@ test('authenticated user can list applications', function () {
 test('user cannot access applications from other teams', function () {
     $user = User::factory()->create();
     $otherTeam = Team::factory()->create();
-
+    
     $application = Application::factory()->create([
         'team_id' => $otherTeam->id
     ]);
-
+    
     $response = $this->actingAs($user)
         ->getJson("/api/v1/applications/{$application->id}");
-
+    
     $response->assertStatus(403);
 });
 ```
@@ -217,37 +217,37 @@ test('application deployment creates docker containers', function () {
         'git_repository' => 'https://github.com/laravel/laravel.git',
         'git_branch' => 'main'
     ]);
-
+    
     // Mock Docker operations
     $this->mock(DockerService::class, function ($mock) {
         $mock->shouldReceive('buildImage')->andReturn('app:latest');
         $mock->shouldReceive('createContainer')->andReturn('container_id');
         $mock->shouldReceive('startContainer')->andReturn(true);
     });
-
+    
     $deployment = $application->deploy();
-
+    
     expect($deployment->status)->toBe('queued');
-
+    
     // Process the deployment job
     $this->artisan('queue:work --once');
-
+    
     $deployment->refresh();
     expect($deployment->status)->toBe('success');
 });
 
 test('failed deployment triggers rollback', function () {
     $application = Application::factory()->create();
-
+    
     // Mock failed deployment
     $this->mock(DockerService::class, function ($mock) {
         $mock->shouldReceive('buildImage')->andThrow(new DeploymentException('Build failed'));
     });
-
+    
     $deployment = $application->deploy();
-
+    
     $this->artisan('queue:work --once');
-
+    
     $deployment->refresh();
     expect($deployment->status)->toBe('failed');
     expect($deployment->error_message)->toContain('Build failed');
@@ -262,7 +262,7 @@ test('github webhook triggers deployment', function () {
         'git_repository' => 'https://github.com/user/repo.git',
         'git_branch' => 'main'
     ]);
-
+    
     $payload = [
         'ref' => 'refs/heads/main',
         'repository' => [
@@ -273,22 +273,22 @@ test('github webhook triggers deployment', function () {
             'message' => 'Update application'
         ]
     ];
-
+    
     $response = $this->postJson("/webhooks/github/{$application->id}", $payload);
-
+    
     $response->assertStatus(200);
-
+    
     expect($application->deployments()->count())->toBe(1);
     expect($application->deployments()->first()->commit_sha)->toBe('abc123');
 });
 
 test('webhook validates payload signature', function () {
     $application = Application::factory()->create();
-
+    
     $payload = ['invalid' => 'payload'];
-
+    
     $response = $this->postJson("/webhooks/github/{$application->id}", $payload);
-
+    
     $response->assertStatus(400);
 });
 ```
@@ -301,7 +301,7 @@ test('webhook validates payload signature', function () {
 test('user can create and deploy application', function () {
     $user = User::factory()->create();
     $server = Server::factory()->create(['team_id' => $user->currentTeam->id]);
-
+    
     $this->browse(function (Browser $browser) use ($user, $server) {
         $browser->loginAs($user)
             ->visit('/applications/create')
@@ -321,7 +321,7 @@ test('user can create and deploy application', function () {
 test('user can monitor deployment logs in real-time', function () {
     $user = User::factory()->create();
     $application = Application::factory()->create(['team_id' => $user->currentTeam->id]);
-
+    
     $this->browse(function (Browser $browser) use ($user, $application) {
         $browser->loginAs($user)
             ->visit("/applications/{$application->id}")
@@ -341,7 +341,7 @@ test('user can monitor deployment logs in real-time', function () {
 test('server status component updates in real-time', function () {
     $user = User::factory()->create();
     $server = Server::factory()->create(['team_id' => $user->currentTeam->id]);
-
+    
     $this->browse(function (Browser $browser) use ($user, $server) {
         $browser->loginAs($user)
             ->visit("/servers/{$server->id}")
@@ -350,10 +350,10 @@ test('server status component updates in real-time', function () {
             ->assertSee('CPU Usage')
             ->assertSee('Memory Usage')
             ->assertSee('Disk Usage');
-
+        
         // Simulate server going offline
         $server->update(['status' => 'offline']);
-
+        
         $browser->waitForText('Status: Offline', 5)
             ->assertSee('Status: Offline');
     });
@@ -375,10 +375,10 @@ test('applications table has correct structure', function () {
 
 test('foreign key constraints are properly set', function () {
     $application = Application::factory()->create();
-
+    
     expect($application->server)->toBeInstanceOf(Server::class);
     expect($application->environment)->toBeInstanceOf(Environment::class);
-
+    
     // Test cascade deletion
     $application->server->delete();
     expect(Application::find($application->id))->toBeNull();
@@ -390,7 +390,7 @@ test('foreign key constraints are properly set', function () {
 // Testing model factories
 test('application factory creates valid models', function () {
     $application = Application::factory()->create();
-
+    
     expect($application->name)->toBeString();
     expect($application->git_repository)->toStartWith('https://');
     expect($application->server_id)->toBeInt();
@@ -402,7 +402,7 @@ test('application factory can create with custom attributes', function () {
         'name' => 'Custom App',
         'git_branch' => 'develop'
     ]);
-
+    
     expect($application->name)->toBe('Custom App');
     expect($application->git_branch)->toBe('develop');
 });
@@ -419,17 +419,17 @@ test('deploy application job processes successfully', function () {
         'application_id' => $application->id,
         'status' => 'queued'
     ]);
-
+    
     $job = new DeployApplicationJob($deployment);
-
+    
     // Mock external dependencies
     $this->mock(DockerService::class, function ($mock) {
         $mock->shouldReceive('buildImage')->andReturn('app:latest');
         $mock->shouldReceive('deployContainer')->andReturn(true);
     });
-
+    
     $job->handle();
-
+    
     $deployment->refresh();
     expect($deployment->status)->toBe('success');
 });
@@ -439,16 +439,16 @@ test('failed job is retried with exponential backoff', function () {
     $deployment = ApplicationDeploymentQueue::factory()->create([
         'application_id' => $application->id
     ]);
-
+    
     $job = new DeployApplicationJob($deployment);
-
+    
     // Mock failure
     $this->mock(DockerService::class, function ($mock) {
         $mock->shouldReceive('buildImage')->andThrow(new Exception('Network error'));
     });
-
+    
     expect(fn() => $job->handle())->toThrow(Exception::class);
-
+    
     // Job should be retried
     expect($job->tries)->toBe(3);
     expect($job->backoff())->toBe([1, 5, 10]);
@@ -468,18 +468,18 @@ test('unauthenticated users cannot access protected routes', function () {
 test('users can only access their team resources', function () {
     $user1 = User::factory()->create();
     $user2 = User::factory()->create();
-
+    
     $team1 = Team::factory()->create();
     $team2 = Team::factory()->create();
-
+    
     $user1->teams()->attach($team1);
     $user2->teams()->attach($team2);
-
+    
     $application = Application::factory()->create(['team_id' => $team1->id]);
-
+    
     $response = $this->actingAs($user2)
         ->get("/applications/{$application->id}");
-
+    
     $response->assertStatus(403);
 });
 ```
@@ -489,24 +489,24 @@ test('users can only access their team resources', function () {
 // Testing input validation and sanitization
 test('application creation validates required fields', function () {
     $user = User::factory()->create();
-
+    
     $response = $this->actingAs($user)
         ->postJson('/api/v1/applications', []);
-
+    
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['name', 'git_repository', 'server_id']);
 });
 
 test('malicious input is properly sanitized', function () {
     $user = User::factory()->create();
-
+    
     $response = $this->actingAs($user)
         ->postJson('/api/v1/applications', [
             'name' => '<script>alert("xss")</script>',
             'git_repository' => 'javascript:alert("xss")',
             'server_id' => 'invalid'
         ]);
-
+    
     $response->assertStatus(422);
 });
 ```
@@ -519,15 +519,15 @@ test('malicious input is properly sanitized', function () {
 test('application list endpoint handles concurrent requests', function () {
     $user = User::factory()->create();
     $applications = Application::factory(100)->create(['team_id' => $user->currentTeam->id]);
-
+    
     $startTime = microtime(true);
-
+    
     $response = $this->actingAs($user)
         ->getJson('/api/v1/applications');
-
+    
     $endTime = microtime(true);
     $responseTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
-
+    
     $response->assertStatus(200);
     expect($responseTime)->toBeLessThan(500); // Should respond within 500ms
 });
@@ -538,16 +538,16 @@ test('application list endpoint handles concurrent requests', function () {
 // Testing memory efficiency
 test('deployment process does not exceed memory limits', function () {
     $initialMemory = memory_get_usage();
-
+    
     $application = Application::factory()->create();
     $deployment = $application->deploy();
-
+    
     // Process deployment
     $this->artisan('queue:work --once');
-
+    
     $finalMemory = memory_get_usage();
     $memoryIncrease = $finalMemory - $initialMemory;
-
+    
     expect($memoryIncrease)->toBeLessThan(50 * 1024 * 1024); // Less than 50MB
 });
 ```
@@ -559,7 +559,7 @@ test('deployment process does not exceed memory limits', function () {
 // Custom test assertions
 expect()->extend('toBeValidDockerCompose', function () {
     $yaml = yaml_parse($this->value);
-
+    
     return $yaml !== false &&
            isset($yaml['version']) &&
            isset($yaml['services']) &&
@@ -568,7 +568,7 @@ expect()->extend('toBeValidDockerCompose', function () {
 
 expect()->extend('toHaveValidSshConnection', function () {
     $server = $this->value;
-
+    
     try {
         $connection = new SshConnection($server);
         return $connection->test();
@@ -645,7 +645,7 @@ jobs:
 // Generate test coverage reports
 test('application has adequate test coverage', function () {
     $coverage = $this->getCoverageData();
-
+    
     expect($coverage['application'])->toBeGreaterThan(80);
     expect($coverage['models'])->toBeGreaterThan(90);
     expect($coverage['actions'])->toBeGreaterThan(85);

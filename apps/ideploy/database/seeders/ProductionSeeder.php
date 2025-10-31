@@ -72,27 +72,27 @@ class ProductionSeeder extends Seeder
             ]);
         }
 
-        if (! isCloud() && config('constants.ideploy.is_windows_docker_desktop') == false) {
-            $ideploy_key_name = '@host.docker.internal';
+        if (! isCloud() && config('constants.coolify.is_windows_docker_desktop') == false) {
+            $coolify_key_name = '@host.docker.internal';
             $ssh_keys_directory = Storage::disk('ssh-keys')->files();
-            $ideploy_key = collect($ssh_keys_directory)->firstWhere(fn ($item) => str($item)->contains($ideploy_key_name));
+            $coolify_key = collect($ssh_keys_directory)->firstWhere(fn ($item) => str($item)->contains($coolify_key_name));
 
             $private_key_found = PrivateKey::find(0);
             if (! $private_key_found) {
-                if ($ideploy_key) {
-                    $user = str($ideploy_key)->before('@')->after('id.');
-                    $ideploy_key = Storage::disk('ssh-keys')->get($ideploy_key);
+                if ($coolify_key) {
+                    $user = str($coolify_key)->before('@')->after('id.');
+                    $coolify_key = Storage::disk('ssh-keys')->get($coolify_key);
                     PrivateKey::create([
                         'id' => 0,
                         'team_id' => 0,
                         'name' => 'localhost\'s key',
                         'description' => 'The private key for the Coolify host machine (localhost).',
-                        'private_key' => $ideploy_key,
+                        'private_key' => $coolify_key,
                     ]);
                     echo "SSH key found for the Coolify host machine (localhost).\n";
                 } else {
                     echo "No SSH key found for the Coolify host machine (localhost).\n";
-                    echo "Please read the following documentation (point 3) to fix it: https://ideploy.
+                    echo "Please read the following documentation (point 3) to fix it: https://coolify.
                 io/docs/knowledge-base/server/openssh/\n";
                     echo "Your localhost connection won't work until then.";
                 }
@@ -137,22 +137,14 @@ class ProductionSeeder extends Seeder
             if (StandaloneDocker::find(0) == null) {
                 StandaloneDocker::create([
                     'id' => 0,
-                    'name' => 'localhost-ideploy',
-                    'network' => 'ideploy',
+                    'name' => 'localhost-coolify',
+                    'network' => 'coolify',
                     'server_id' => 0,
                 ]);
             }
         }
 
-        if (config('constants.ideploy.is_windows_docker_desktop')) {
-            $testWindowsKey = env('TEST_SSH_WINDOWS_KEY', '-----BEGIN OPENSSH PRIVATE KEY-----
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
------END OPENSSH PRIVATE KEY-----');
-
+        if (config('constants.coolify.is_windows_docker_desktop')) {
             PrivateKey::updateOrCreate(
                 [
                     'id' => 0,
@@ -161,17 +153,24 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
                 [
                     'name' => 'Testing-host',
                     'description' => 'This is a a docker container with SSH access',
-                    'private_key' => $testWindowsKey,
+                    'private_key' => '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACBbhpqHhqv6aI67Mj9abM3DVbmcfYhZAhC7ca4d9UCevAAAAJi/QySHv0Mk
+hwAAAAtzc2gtZWQyNTUxOQAAACBbhpqHhqv6aI67Mj9abM3DVbmcfYhZAhC7ca4d9UCevA
+AAAECBQw4jg1WRT2IGHMncCiZhURCts2s24HoDS0thHnnRKVuGmoeGq/pojrsyP1pszcNV
+uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
+-----END OPENSSH PRIVATE KEY-----
+',
                 ]
             );
             if (Server::find(0) == null) {
                 $server_details = [
                     'id' => 0,
-                    'uuid' => 'ideploy-testing-host',
+                    'uuid' => 'coolify-testing-host',
                     'name' => 'localhost',
                     'description' => "This is the server where Coolify is running on. Don't delete this!",
                     'user' => 'root',
-                    'ip' => 'ideploy-testing-host',
+                    'ip' => 'coolify-testing-host',
                     'team_id' => 0,
                     'private_key_id' => 0,
                 ];
@@ -193,8 +192,8 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
             if (StandaloneDocker::find(0) == null) {
                 StandaloneDocker::create([
                     'id' => 0,
-                    'name' => 'localhost-ideploy',
-                    'network' => 'ideploy',
+                    'name' => 'localhost-coolify',
+                    'network' => 'coolify',
                     'server_id' => 0,
                 ]);
             }

@@ -1,0 +1,13 @@
+name: publish-beta
+
+on:
+  workflow_dispatch:
+  release:
+    types: [prereleased]
+
+jobs:
+  publish-prerelease:
+    uses: ./.github/workflows/service_publish-node-package.yml
+    with:
+      release-tag: beta
+    secrets: inherit
