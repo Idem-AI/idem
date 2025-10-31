@@ -1,11 +1,10 @@
 /* Idem Design System - Shared Styles */
 /* Version: 1.0.0 */
 /* Tailwind CSS 4.x */
-
+@import url('https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 /* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap');
 
 /* Force dark mode only */
 html {
