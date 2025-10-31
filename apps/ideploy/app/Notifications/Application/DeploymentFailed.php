@@ -58,10 +58,10 @@ class DeploymentFailed extends CustomEmailNotification
         $pull_request_id = data_get($this->preview, 'pull_request_id', 0);
         $fqdn = $this->fqdn;
         if ($pull_request_id === 0) {
-            $mail->subject('Coolify: Deployment failed of '.$this->application_name.'.');
+            $mail->subject('Ideploy: Deployment failed of '.$this->application_name.'.');
         } else {
             $fqdn = $this->preview->fqdn;
-            $mail->subject('Coolify: Deployment failed of pull request #'.$this->preview->pull_request_id.' of '.$this->application_name.'.');
+            $mail->subject('Ideploy: Deployment failed of pull request #'.$this->preview->pull_request_id.' of '.$this->application_name.'.');
         }
         $mail->view('emails.application-deployment-failed', [
             'name' => $this->application_name,
@@ -117,9 +117,9 @@ class DeploymentFailed extends CustomEmailNotification
     public function toTelegram(): array
     {
         if ($this->preview) {
-            $message = 'Coolify: Pull request #'.$this->preview->pull_request_id.' of '.$this->application_name.' ('.$this->preview->fqdn.') deployment failed: ';
+            $message = 'Ideploy: Pull request #'.$this->preview->pull_request_id.' of '.$this->application_name.' ('.$this->preview->fqdn.') deployment failed: ';
         } else {
-            $message = 'Coolify: Deployment failed of '.$this->application_name.' ('.$this->fqdn.'): ';
+            $message = 'Ideploy: Deployment failed of '.$this->application_name.' ('.$this->fqdn.'): ';
         }
         $buttons[] = [
             'text' => 'Deployment logs',

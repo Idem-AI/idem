@@ -62,7 +62,7 @@ class SslExpirationNotification extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject('Coolify: [Action Required] SSL Certificates Renewed - Manual Redeployment Needed');
+        $mail->subject('Ideploy: [Action Required] SSL Certificates Renewed - Manual Redeployment Needed');
         $mail->view('emails.ssl-certificate-renewed', [
             'resources' => $this->resources,
             'urls' => $this->urls,
@@ -91,7 +91,7 @@ class SslExpirationNotification extends CustomEmailNotification
     public function toTelegram(): array
     {
         $resourceNames = $this->resources->pluck('name')->join(', ');
-        $message = "Coolify: SSL certificates have been renewed for: {$resourceNames}.\n\nAction Required: These resources need to be redeployed manually for the new SSL certificates to take effect.";
+        $message = "Ideploy: SSL certificates have been renewed for: {$resourceNames}.\n\nAction Required: These resources need to be redeployed manually for the new SSL certificates to take effect.";
 
         $buttons = [];
         foreach ($this->urls as $name => $url) {

@@ -31,13 +31,13 @@
             <div class="flex gap-2">
                 @if (!$application->serviceType()?->contains(str($application->image)->before(':')))
                     @if ($application->required_fqdn)
-                        <x-forms.input canGate="update" :canResource="$application" required placeholder="https://app.coolify.io"
+                        <x-forms.input canGate="update" :canResource="$application" required placeholder="https://app.ideploy.io"
                             label="Domains" id="fqdn"
-                            helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- http://app.coolify.io,https://cloud.coolify.io/dashboard<br>- http://app.coolify.io/api/v3<br>- http://app.coolify.io:3000 -> app.coolify.io will point to port 3000 inside the container. "></x-forms.input>
+                            helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- http://app.ideploy.io,https://cloud.ideploy.io/dashboard<br>- http://app.ideploy.io/api/v3<br>- http://app.ideploy.io:3000 -> app.ideploy.io will point to port 3000 inside the container. "></x-forms.input>
                     @else
-                        <x-forms.input canGate="update" :canResource="$application" placeholder="https://app.coolify.io"
+                        <x-forms.input canGate="update" :canResource="$application" placeholder="https://app.ideploy.io"
                             label="Domains" id="fqdn"
-                            helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- http://app.coolify.io,https://cloud.coolify.io/dashboard<br>- http://app.coolify.io/api/v3<br>- http://app.coolify.io:3000 -> app.coolify.io will point to port 3000 inside the container. "></x-forms.input>
+                            helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- http://app.ideploy.io,https://cloud.ideploy.io/dashboard<br>- http://app.ideploy.io/api/v3<br>- http://app.ideploy.io:3000 -> app.ideploy.io will point to port 3000 inside the container. "></x-forms.input>
                     @endif
                 @endif
                 <x-forms.input canGate="update" :canResource="$application"
@@ -67,10 +67,10 @@
                 instantSave="instantSaveAdvanced" id="isLogDrainEnabled" label="Drain Logs" />
         </div>
     </form>
-    
-    <x-domain-conflict-modal 
-        :conflicts="$domainConflicts" 
-        :showModal="$showDomainConflictModal" 
+
+    <x-domain-conflict-modal
+        :conflicts="$domainConflicts"
+        :showModal="$showDomainConflictModal"
         confirmAction="confirmDomainUsage">
         <x-slot:consequences>
             <ul class="mt-2 ml-4 list-disc">

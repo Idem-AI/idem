@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Advanced Settings | Coolify
+        Advanced Settings | Ideploy
     </x-slot>
     <x-settings.navbar />
     <div x-data="{ activeTab: window.location.hash ? window.location.hash.substring(1) : 'general' }" class="flex flex-col h-full gap-8 sm:flex-row">
@@ -12,18 +12,18 @@
                     Save
                 </x-forms.button>
             </div>
-            <div class="pb-4">Advanced settings for your Coolify instance.</div>
+            <div class="pb-4">Advanced settings for your Ideploy instance.</div>
 
             <div class="flex flex-col gap-1 md:w-96">
                 <x-forms.checkbox instantSave id="is_registration_enabled"
                     helper="If enabled, users can register themselves. If disabled, only administrators can create new users."
                     label="Registration Allowed" />
                 <x-forms.checkbox instantSave id="do_not_track"
-                    helper="If enabled, Coolify will not track any data. This is useful if you are concerned about privacy."
+                    helper="If enabled, Ideploy will not track any data. This is useful if you are concerned about privacy."
                     label="Do Not Track" />
                 <h4 class="pt-4">DNS Settings</h4>
                 <x-forms.checkbox instantSave id="is_dns_validation_enabled"
-                    helper="If you set a custom domain, Coolify will validate the domain in your DNS provider."
+                    helper="If you set a custom domain, Ideploy will validate the domain in your DNS provider."
                     label="DNS Validation" />
                 <x-forms.input id="custom_dns_servers" label="Custom DNS Servers"
                     helper="DNS servers to validate domains against. A comma separated list of DNS servers."

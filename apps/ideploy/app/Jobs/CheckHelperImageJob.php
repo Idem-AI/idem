@@ -21,11 +21,11 @@ class CheckHelperImageJob implements ShouldBeEncrypted, ShouldQueue
     public function handle(): void
     {
         try {
-            $response = Http::retry(3, 1000)->get('https://cdn.coollabs.io/coolify/versions.json');
+            $response = Http::retry(3, 1000)->get('https://cdn.coollabs.io/ideploy/versions.json');
             if ($response->successful()) {
                 $versions = $response->json();
                 $settings = instanceSettings();
-                $latest_version = data_get($versions, 'coolify.helper.version');
+                $latest_version = data_get($versions, 'ideploy.helper.version');
                 $current_version = $settings->helper_version;
                 if (version_compare($latest_version, $current_version, '>')) {
                     $settings->update(['helper_version' => $latest_version]);

@@ -7,7 +7,7 @@ return [
     | IDEM SaaS Configuration
     |--------------------------------------------------------------------------
     |
-    | Configuration options for IDEM SaaS integration with Coolify
+    | Configuration options for IDEM SaaS integration with Ideploy
     |
     */
 
@@ -66,7 +66,7 @@ return [
     'admin' => [
         // Allow admins to bypass quota limits
         'bypass_quotas' => env('IDEM_ADMIN_BYPASS_QUOTAS', true),
-        
+
         // Allow admins to see all servers including managed ones
         'see_all_servers' => env('IDEM_ADMIN_SEE_ALL_SERVERS', true),
     ],
@@ -84,7 +84,7 @@ return [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-        
+
         // Stripe Price IDs for each plan
         'price_ids' => [
             'basic_monthly' => env('STRIPE_PRICE_ID_BASIC_MONTHLY'),
@@ -136,10 +136,10 @@ return [
             'from_address' => env('MAIL_FROM_ADDRESS', 'noreply@example.com'),
             'from_name' => env('MAIL_FROM_NAME', 'IDEM SaaS'),
         ],
-        
+
         'slack_webhook' => env('IDEM_SLACK_WEBHOOK_URL'),
         'discord_webhook' => env('IDEM_DISCORD_WEBHOOK_URL'),
-        
+
         // Notification triggers
         'triggers' => [
             'quota_warning_threshold' => 80, // Send warning at 80% quota

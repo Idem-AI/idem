@@ -3,11 +3,11 @@ description: Docker orchestration, deployment workflows, and containerization pa
 globs: app/Jobs/*.php, app/Actions/Application/*.php, app/Actions/Server/*.php, docker/*.*, *.yml, *.yaml
 alwaysApply: false
 ---
-# Coolify Deployment Architecture
+# Ideploy Deployment Architecture
 
 ## Deployment Philosophy
 
-Coolify orchestrates **Docker-based deployments** across multiple servers with automated configuration generation, zero-downtime deployments, and comprehensive monitoring.
+Ideploy orchestrates **Docker-based deployments** across multiple servers with automated configuration generation, zero-downtime deployments, and comprehensive monitoring.
 
 ## Core Deployment Components
 
@@ -26,7 +26,7 @@ Coolify orchestrates **Docker-based deployments** across multiple servers with a
 
 ### 1. Source Code Integration
 ```
-Git Repository → Webhook → Coolify → Build & Deploy
+Git Repository → Webhook → Ideploy → Build & Deploy
 ```
 
 #### Source Control Models
@@ -97,7 +97,7 @@ services:
     volumes:
       - ${VOLUME_MAPPINGS}
     networks:
-      - coolify
+      - ideploy
 ```
 
 #### Nginx Configurations

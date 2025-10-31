@@ -1,6 +1,6 @@
 ---
 id: task-00001
-title: Implement Docker build caching for Coolify staging builds
+title: Implement Docker build caching for Ideploy staging builds
 status: To Do
 assignee: []
 created_date: '2025-08-26 12:15'
@@ -20,7 +20,9 @@ priority: high
 Implement comprehensive Docker build caching to reduce staging build times by 50-70% through BuildKit cache mounts for dependencies and GitHub Actions registry caching. This optimization will significantly reduce build times from ~10-15 minutes to ~3-5 minutes, decrease network usage, and lower GitHub Actions costs.
 
 ## Acceptance Criteria
+
 <!-- AC:BEGIN -->
+
 - [ ] #1 Docker BuildKit cache mounts are added to Composer dependency installation in production Dockerfile
 - [ ] #2 Docker BuildKit cache mounts are added to NPM dependency installation in production Dockerfile
 - [ ] #3 GitHub Actions BuildX setup is configured for both AMD64 and AARCH64 jobs
@@ -36,13 +38,13 @@ Implement comprehensive Docker build caching to reduce staging build times by 50
    - Add cache mount for Composer dependencies at line 30: --mount=type=cache,target=/var/www/.composer/cache
    - Add cache mount for NPM dependencies at line 41: --mount=type=cache,target=/root/.npm
 
-2. Update .github/workflows/coolify-staging-build.yml for AMD64 job:
+2. Update .github/workflows/ideploy-staging-build.yml for AMD64 job:
    - Add docker/setup-buildx-action@v3 step after checkout
    - Configure cache-from and cache-to parameters in build-push-action
    - Use registry caching with buildcache-amd64 tags
 
-3. Update .github/workflows/coolify-staging-build.yml for AARCH64 job:
-   - Add docker/setup-buildx-action@v3 step after checkout  
+3. Update .github/workflows/ideploy-staging-build.yml for AARCH64 job:
+   - Add docker/setup-buildx-action@v3 step after checkout
    - Configure cache-from and cache-to parameters in build-push-action
    - Use registry caching with buildcache-aarch64 tags
 

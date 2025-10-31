@@ -3,7 +3,7 @@ description: Laravel application structure, patterns, and architectural decision
 globs: app/**/*.php, config/*.php, bootstrap/**/*.php
 alwaysApply: false
 ---
-# Coolify Application Architecture
+# Ideploy Application Architecture
 
 ## Laravel Project Structure
 
@@ -129,7 +129,7 @@ app/
   - Shared variable inheritance
 
 #### **[InstanceSettings.php](mdc:app/Models/InstanceSettings.php)** (3.2KB, 124 lines)
-- **Purpose**: Global Coolify instance configuration
+- **Purpose**: Global Ideploy instance configuration
 - **Key Features**:
   - FQDN and port configuration
   - Auto-update settings
@@ -149,7 +149,7 @@ class DeployApplication extends Action
     {
         // Business logic for deployment
     }
-    
+
     public function asJob(Application $application): void
     {
         // Queue job implementation

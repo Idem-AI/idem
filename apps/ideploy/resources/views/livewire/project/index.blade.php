@@ -1,8 +1,8 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
-        Projects | Coolify
+        Projects | Ideploy
     </x-slot>
-    
+
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center gap-3 mb-2">
@@ -38,7 +38,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                                 </svg>
                             </div>
-                            
+
                             {{-- Project Info --}}
                             <div class="flex-1 min-w-0">
                                 <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400 transition-colors mb-1 truncate" x-text="project.name"></h3>
@@ -46,11 +46,11 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     {{-- Actions Footer --}}
                     <div class="px-5 py-4 bg-gray-900/20 border-t border-gray-700/50" x-show="project.canUpdate || project.canCreateResource">
                         <div class="flex items-center gap-3">
-                            <a wire:click.stop 
+                            <a wire:click.stop
                                x-show="project.addResourceRoute"
                                :href="project.addResourceRoute"
                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:scale-105">
@@ -75,7 +75,7 @@
             </div>
         </template>
     </div>
-    
+
     {{-- Empty State --}}
     <div x-show="projects.length === 0" class="flex flex-col items-center justify-center py-16">
         <div class="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-4">

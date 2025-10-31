@@ -3,14 +3,14 @@ description: Complete technology stack, dependencies, and infrastructure compone
 globs: composer.json, package.json, docker-compose*.yml, config/*.php
 alwaysApply: false
 ---
-# Coolify Technology Stack
+# Ideploy Technology Stack
 
 ## Backend Framework
 
 ### **Laravel 12.4.1** (PHP Framework)
 - **Location**: [composer.json](mdc:composer.json)
 - **Purpose**: Core application framework
-- **Key Features**: 
+- **Key Features**:
   - Eloquent ORM for database interactions
   - Artisan CLI for development tasks
   - Queue system for background jobs
@@ -60,7 +60,7 @@ alwaysApply: false
 - **Models**: [app/Models/](mdc:app/Models/)
 
 ### **Redis 7** (Caching & Real-time)
-- **Purpose**: 
+- **Purpose**:
   - Session storage
   - Queue backend
   - Real-time data caching

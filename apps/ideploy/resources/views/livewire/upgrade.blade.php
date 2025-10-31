@@ -61,10 +61,10 @@
                             </x-callout>
                             <br />
                             <p>You can review the changelogs <a class="font-bold underline dark:text-white"
-                                    href="https://github.com/coollabsio/coolify/releases" target="_blank">here</a>.</p>
+                                    href="https://github.com/coollabsio/ideploy/releases" target="_blank">here</a>.</p>
                             <br />
                             <p>If something goes wrong and you cannot upgrade your instance, You can check the following
-                                <a class="font-bold underline dark:text-white" href="https://coolify.io/docs/upgrade"
+                                <a class="font-bold underline dark:text-white" href="https://ideploy.io/docs/upgrade"
                                     target="_blank">guide</a> on what to do.
                             </p>
                             <div class="flex flex-col pt-4" x-show="showProgress">
@@ -110,7 +110,7 @@
                         .then(response => {
                             if (response.ok) {
                                 this.currentStatus =
-                                    'Coolify is back online. Reloading this page (you can manually reload if its not done automatically)...';
+                                    'Ideploy is back online. Reloading this page (you can manually reload if its not done automatically)...';
                                 if (checkHealthInterval) clearInterval(
                                     checkHealthInterval);
                                 setTimeout(() => {
@@ -118,14 +118,14 @@
                                 }, 5000)
                             } else {
                                 this.currentStatus =
-                                    "Waiting for Coolify to come back from the dead..."
+                                    "Waiting for Ideploy to come back from the dead..."
                             }
                         })
                 }, 2000);
             },
             upgrade() {
                 if (checkIfIamDeadInterval || this.$wire.showProgress) return true;
-                this.currentStatus = 'Pulling new images and updating Coolify.';
+                this.currentStatus = 'Pulling new images and updating Ideploy.';
                 checkIfIamDeadInterval = setInterval(() => {
                     fetch('/api/health')
                         .then(response => {
@@ -133,7 +133,7 @@
                                 this.currentStatus = "Waiting for the update process..."
                             } else {
                                 this.currentStatus =
-                                    "Update done, restarting Coolify & waiting until it is revived!"
+                                    "Update done, restarting Ideploy & waiting until it is revived!"
                                 if (checkIfIamDeadInterval) clearInterval(
                                     checkIfIamDeadInterval);
                                 this.revive();
