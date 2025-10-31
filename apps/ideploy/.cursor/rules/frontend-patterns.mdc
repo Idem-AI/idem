@@ -3,11 +3,11 @@ description: Livewire components, Alpine.js patterns, Tailwind CSS, and enhanced
 globs: app/Livewire/**/*.php, resources/views/**/*.blade.php, resources/js/**/*.js, resources/css/**/*.css
 alwaysApply: false
 ---
-# Coolify Frontend Architecture & Patterns
+# Ideploy Frontend Architecture & Patterns
 
 ## Frontend Philosophy
 
-Coolify uses a **server-side first** approach with minimal JavaScript, leveraging Livewire for reactivity and Alpine.js for lightweight client-side interactions.
+Ideploy uses a **server-side first** approach with minimal JavaScript, leveraging Livewire for reactivity and Alpine.js for lightweight client-side interactions.
 
 ## Core Frontend Stack
 
@@ -119,7 +119,7 @@ Coolify uses a **server-side first** approach with minimal JavaScript, leveragin
 ### Integration with Livewire
 ```html
 <!-- Livewire actions with Alpine state -->
-<button 
+<button
     x-data="{ loading: false }"
     x-on:click="loading = true"
     wire:click="deploy"
@@ -233,7 +233,7 @@ class ServerList extends Component
 ## Enhanced Form Components
 
 ### Built-in Authorization System
-Coolify features **enhanced form components** with automatic authorization handling:
+Ideploy features **enhanced form components** with automatic authorization handling:
 
 ```html
 <!-- ✅ New Pattern: Single line with built-in authorization -->
@@ -273,12 +273,12 @@ class ServerCreateForm extends Component
 {
     public $name;
     public $ip;
-    
+
     protected $rules = [
         'name' => 'required|min:3',
         'ip' => 'required|ip',
     ];
-    
+
     public function save()
     {
         $this->validate();

@@ -4,7 +4,7 @@
             <div class="w-full max-w-md space-y-8">
                 <div class="text-center space-y-2">
                     <h1 class="!text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                        Coolify
+                        Ideploy
                     </h1>
                     <p class="text-lg dark:text-neutral-400">
                         {{ __('auth.forgot_password_heading') }}

@@ -29,7 +29,7 @@ services:
           token: ReplaceConfig
           api:
             host: 0.0.0.0
-            port: 8443 # Warning, panel must have 443 as daemon port, while here it should should be 8443, FQDN in Coolify for this service should be https://*:8443
+            port: 8443 # Warning, panel must have 443 as daemon port, while here it should should be 8443, FQDN in Ideploy for this service should be https://*:8443
             ssl:
               enabled: false
               cert: ReplaceConfig
@@ -42,4 +42,4 @@ services:
           allowed_mounts: []
           remote: ''
     ports:
-      - '2022:2022'
+      - "2022:2022"

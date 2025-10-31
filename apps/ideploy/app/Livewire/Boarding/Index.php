@@ -131,7 +131,7 @@ class Index extends Component
                 }
             }
 
-            // Auto-regenerate key pair for "Generate with Coolify" mode on page refresh
+            // Auto-regenerate key pair for "Generate with Ideploy" mode on page refresh
             if ($this->privateKeyType === 'create' && empty($this->privateKey)) {
                 $this->createNewPrivateKey();
             }
@@ -408,7 +408,7 @@ class Index extends Component
     private function createNewPrivateKey()
     {
         $this->privateKeyName = generate_random_name();
-        $this->privateKeyDescription = 'Created by Coolify';
+        $this->privateKeyDescription = 'Created by Ideploy';
         ['private' => $this->privateKey, 'public' => $this->publicKey] = generateSSHKey();
     }
 

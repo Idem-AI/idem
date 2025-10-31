@@ -4,13 +4,13 @@
 
 # About the Project
 
-Coolify is an open-source & self-hostable alternative to Heroku / Netlify / Vercel / etc.
+Ideploy is an open-source & self-hostable alternative to Heroku / Netlify / Vercel / etc.
 
 It helps you manage your servers, applications, and databases on your own hardware; you only need an SSH connection. You can manage VPS, Bare Metal, Raspberry PIs, and anything else.
 
-Imagine having the ease of a cloud but with your own servers. That is **Coolify**.
+Imagine having the ease of a cloud but with your own servers. That is **Ideploy**.
 
-No vendor lock-in, which means that all the configurations for your applications/databases/etc are saved to your server. So, if you decide to stop using Coolify (oh nooo), you could still manage your running resources. You lose the automations and all the magic. 🪄️
+No vendor lock-in, which means that all the configurations for your applications/databases/etc are saved to your server. So, if you decide to stop using Ideploy (oh nooo), you could still manage your running resources. You lose the automations and all the magic. 🪄️
 
 For more information, take a look at our landing page at [ideploy.io](https://ideploy.io).
 
@@ -31,15 +31,15 @@ Contact us at [ideploy.io/docs/contact](https://ideploy.io/docs/contact).
 
 # Cloud
 
-If you do not want to self-host Coolify, there is a paid cloud version available: [app.ideploy.io](https://app.ideploy.io)
+If you do not want to self-host Ideploy, there is a paid cloud version available: [app.ideploy.io](https://app.ideploy.io)
 
 For more information & pricing, take a look at our landing page [ideploy.io](https://ideploy.io).
 
 ## Why should I use the Cloud version?
 
-The recommended way to use Coolify is to have one server for Coolify and one (or more) for the resources you are deploying. A server is around 4-5$/month.
+The recommended way to use Ideploy is to have one server for Ideploy and one (or more) for the resources you are deploying. A server is around 4-5$/month.
 
-By subscribing to the cloud version, you get the Coolify server for the same price, but with:
+By subscribing to the cloud version, you get the Ideploy server for the same price, but with:
 
 - High-availability
 - Free email notifications
@@ -48,7 +48,7 @@ By subscribing to the cloud version, you get the Coolify server for the same pri
 
 # Donations
 
-To stay completely free and open-source, with no feature behind the paywall and evolve the project, we need your help. If you like Coolify, please consider donating to help us fund the project's future development.
+To stay completely free and open-source, with no feature behind the paywall and evolve the project, we need your help. If you like Ideploy, please consider donating to help us fund the project's future development.
 
 [ideploy.io/sponsorships](https://ideploy.io/sponsorships)
 
@@ -73,7 +73,7 @@ Thank you so much!
 - [Formbricks](https://formbricks.com?ref=ideploy.io) - The open source feedback platform
 - [GoldenVM](https://billing.goldenvm.com?ref=ideploy.io) - Premium virtual machine hosting solutions
 - [Gozunga](https://gozunga.com?ref=ideploy.io) - Seriously Simple Cloud Infrastructure
-- [Hetzner](http://htznr.li/CoolifyXHetzner) - Server, cloud, hosting, and data center solutions
+- [Hetzner](http://htznr.li/IdeployXHetzner) - Server, cloud, hosting, and data center solutions
 - [Hostinger](https://www.hostinger.com/vps/ideploy-hosting?ref=ideploy.io) - Web hosting and VPS solutions
 - [JobsCollider](https://jobscollider.com/remote-jobs?ref=ideploy.io) - 30,000+ remote jobs for developers
 - [Juxtdigital](https://juxtdigital.com?ref=ideploy.io) - Digital PR & AI Authority Building Agency
@@ -155,7 +155,7 @@ Thank you so much!
 </a>
 </p>
 
-<a href="https://www.producthunt.com/posts/ideploy?ref=badge-featured&utm_medium=badge&utm_souce=badge-ideploy" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=338273&theme=light" alt="Coolify - An&#0032;open&#0045;source&#0032;&#0038;&#0032;self&#0045;hostable&#0032;Heroku&#0044;&#0032;Netlify&#0032;alternative | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+<a href="https://www.producthunt.com/posts/ideploy?ref=badge-featured&utm_medium=badge&utm_souce=badge-ideploy" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=338273&theme=light" alt="Ideploy - An&#0032;open&#0045;source&#0032;&#0038;&#0032;self&#0045;hostable&#0032;Heroku&#0044;&#0032;Netlify&#0032;alternative | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 
 <a href="https://trendshift.io/repositories/634" target="_blank"><img src="https://trendshift.io/api/badge/repositories/634" alt="coollabsio%2Fideploy | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 

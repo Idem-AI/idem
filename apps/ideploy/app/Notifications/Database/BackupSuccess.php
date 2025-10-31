@@ -31,7 +31,7 @@ class BackupSuccess extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject("Coolify: Backup successfully done for {$this->database->name}");
+        $mail->subject("Ideploy: Backup successfully done for {$this->database->name}");
         $mail->view('emails.backup-success', [
             'name' => $this->name,
             'database_name' => $this->database_name,
@@ -56,7 +56,7 @@ class BackupSuccess extends CustomEmailNotification
 
     public function toTelegram(): array
     {
-        $message = "Coolify: Database backup for {$this->name} (db:{$this->database_name}) with frequency of {$this->frequency} was successful.";
+        $message = "Ideploy: Database backup for {$this->name} (db:{$this->database_name}) with frequency of {$this->frequency} was successful.";
 
         return [
             'message' => $message,

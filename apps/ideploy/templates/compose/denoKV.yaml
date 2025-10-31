@@ -9,18 +9,18 @@ services:
   denokv:
     image: ghcr.io/denoland/denokv:latest
     environment:
-      - 'ACCESS_TOKEN=${SERVICE_PASSWORD_DENOKV}'
+      - "ACCESS_TOKEN=${SERVICE_PASSWORD_DENOKV}"
       - SERVICE_URL_DENOKV_4512
     volumes:
-      - '${COOLIFY_VOLUME_APP}:/data'
-    command: '--sqlite-path /data/denokv.sqlite serve --access-token ${SERVICE_PASSWORD_DENOKV}'
+      - "${IDEPLOY_VOLUME_APP}:/data"
+    command: "--sqlite-path /data/denokv.sqlite serve --access-token ${SERVICE_PASSWORD_DENOKV}"
     healthcheck:
       test:
         - CMD
         - nc
-        - '-zv'
+        - "-zv"
         - 127.0.0.1
-        - '4512'
+        - "4512"
       interval: 5s
       timeout: 5s
       retries: 3

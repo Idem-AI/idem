@@ -9,5 +9,5 @@ Failed to check for package updates on your server {{ $name }}.
 
 ---
 
-You can manage your server and view more details in your [Coolify Dashboard]({{ $server_url }}).
+You can manage your server and view more details in your [Ideploy Dashboard]({{ $server_url }}).
 </x-emails.layout>

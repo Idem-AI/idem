@@ -1,4 +1,4 @@
-project_name: "Coolify"
+project_name: "Ideploy"
 default_status: "To Do"
 statuses: ["To Do", "In Progress", "Done"]
 labels: []

@@ -35,7 +35,7 @@ class PublicGitRepository extends Component
 
     public bool $isStatic = false;
 
-    public bool $checkCoolifyConfig = true;
+    public bool $checkIdeployConfig = true;
 
     public ?string $publish_directory = null;
 
@@ -102,7 +102,7 @@ class PublicGitRepository extends Component
     public function mount()
     {
         if (isDev()) {
-            $this->repository_url = 'https://github.com/coollabsio/coolify-examples/tree/v4.x';
+            $this->repository_url = 'https://github.com/coollabsio/ideploy-examples/tree/v4.x';
             $this->port = 3000;
         }
         $this->parameters = get_route_parameters();
@@ -278,12 +278,12 @@ class PublicGitRepository extends Component
             // IDEM: Check if user can deploy (quota check)
             $quotaService = app(IdemQuotaService::class);
             $team = Auth::user()->currentTeam();
-            
+
             if (!$quotaService->canDeployApp($team)) {
                 $this->dispatch('error', 'Application limit reached. Please upgrade your plan to deploy more applications.');
                 return redirect()->route('idem.subscription');
             }
-            
+
             $this->validate();
 
             // Additional validation for git repository and branch
@@ -326,7 +326,7 @@ class PublicGitRepository extends Component
                 $server = $destination->server;
                 $new_service = [
                     'name' => 'service'.str()->random(10),
-                    'docker_compose_raw' => 'coolify',
+                    'docker_compose_raw' => 'ideploy',
                     'environment_id' => $environment->id,
                     'server_id' => $server->id,
                 ];
@@ -393,7 +393,7 @@ class PublicGitRepository extends Component
             $fqdn = generateUrl(server: $destination->server, random: $application->uuid);
             $application->fqdn = $fqdn;
             $application->save();
-            if ($this->checkCoolifyConfig) {
+            if ($this->checkIdeployConfig) {
                 // $config = loadConfigFromGit($this->repository_url, $this->git_branch, $this->base_directory, $this->query['server_id'], auth()->user()->currentTeam()->id);
                 // if ($config) {
                 //     $application->setConfig($config);

@@ -272,7 +272,7 @@ class Show extends Component
             $this->server->settings->save();
             ServerReachabilityChanged::dispatch($this->server);
         } else {
-            $this->dispatch('error', 'Server is not reachable.', 'Please validate your configuration and connection.<br><br>Check this <a target="_blank" class="underline" href="https://coolify.io/docs/knowledge-base/server/openssh">documentation</a> for further help. <br><br>Error: '.$error);
+            $this->dispatch('error', 'Server is not reachable.', 'Please validate your configuration and connection.<br><br>Check this <a target="_blank" class="underline" href="https://ideploy.io/docs/knowledge-base/server/openssh">documentation</a> for further help. <br><br>Error: '.$error);
 
             return;
         }
@@ -397,7 +397,7 @@ class Show extends Component
                 $this->dispatch('success', 'Server status refreshed: '.ucfirst($this->hetznerServerStatus ?? 'unknown'));
             }
 
-            // If Hetzner server is off but Coolify thinks it's still reachable, update Coolify's state
+            // If Hetzner server is off but Ideploy thinks it's still reachable, update Ideploy's state
             if ($this->hetznerServerStatus === 'off' && $this->server->settings->is_reachable) {
                 ['uptime' => $uptime, 'error' => $error] = $this->server->validateConnection();
                 if ($uptime) {
@@ -407,7 +407,7 @@ class Show extends Component
                     $this->server->settings->save();
                     ServerReachabilityChanged::dispatch($this->server);
                 } else {
-                    $this->dispatch('error', 'Server is not reachable.', 'Please validate your configuration and connection.<br><br>Check this <a target="_blank" class="underline" href="https://coolify.io/docs/knowledge-base/server/openssh">documentation</a> for further help. <br><br>Error: '.$error);
+                    $this->dispatch('error', 'Server is not reachable.', 'Please validate your configuration and connection.<br><br>Check this <a target="_blank" class="underline" href="https://ideploy.io/docs/knowledge-base/server/openssh">documentation</a> for further help. <br><br>Error: '.$error);
 
                     return;
                 }

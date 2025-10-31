@@ -73,13 +73,13 @@ class Heading extends Component
         if (class_exists('App\Services\IdemQuotaService')) {
             $team = auth()->user()->currentTeam();
             $quotaService = app('App\Services\IdemQuotaService');
-            
+
             if (!$quotaService->canDeployApp($team)) {
                 $usage = $quotaService->getQuotaUsage($team);
                 $current = $usage['usage']['apps']['current'];
                 $limit = $usage['usage']['apps']['limit'];
-                
-                $this->dispatch('error', 'Application limit reached', 
+
+                $this->dispatch('error', 'Application limit reached',
                     "You have reached your application limit ({$current}/{$limit}). Please upgrade your plan to deploy more applications.");
                 return redirect()->route('idem.plans');
             }
@@ -96,12 +96,12 @@ class Heading extends Component
             return;
         }
         if (data_get($this->application, 'settings.is_build_server_enabled') && str($this->application->docker_registry_image_name)->isEmpty()) {
-            $this->dispatch('error', 'Failed to deploy.', 'To use a build server, you must first set a Docker image.<br>More information here: <a target="_blank" class="underline" href="https://coolify.io/docs/knowledge-base/server/build-server">documentation</a>');
+            $this->dispatch('error', 'Failed to deploy.', 'To use a build server, you must first set a Docker image.<br>More information here: <a target="_blank" class="underline" href="https://ideploy.io/docs/knowledge-base/server/build-server">documentation</a>');
 
             return;
         }
         if ($this->application->additional_servers->count() > 0 && str($this->application->docker_registry_image_name)->isEmpty()) {
-            $this->dispatch('error', 'Failed to deploy.', 'Before deploying to multiple servers, you must first set a Docker image in the General tab.<br>More information here: <a target="_blank" class="underline" href="https://coolify.io/docs/knowledge-base/server/multiple-servers">documentation</a>');
+            $this->dispatch('error', 'Failed to deploy.', 'Before deploying to multiple servers, you must first set a Docker image in the General tab.<br>More information here: <a target="_blank" class="underline" href="https://ideploy.io/docs/knowledge-base/server/multiple-servers">documentation</a>');
 
             return;
         }
@@ -144,7 +144,7 @@ class Heading extends Component
         $this->authorize('deploy', $this->application);
 
         if ($this->application->additional_servers->count() > 0 && str($this->application->docker_registry_image_name)->isEmpty()) {
-            $this->dispatch('error', 'Failed to deploy', 'Before deploying to multiple servers, you must first set a Docker image in the General tab.<br>More information here: <a target="_blank" class="underline" href="https://coolify.io/docs/knowledge-base/server/multiple-servers">documentation</a>');
+            $this->dispatch('error', 'Failed to deploy', 'Before deploying to multiple servers, you must first set a Docker image in the General tab.<br>More information here: <a target="_blank" class="underline" href="https://ideploy.io/docs/knowledge-base/server/multiple-servers">documentation</a>');
 
             return;
         }

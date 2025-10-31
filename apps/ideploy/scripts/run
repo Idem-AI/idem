@@ -21,10 +21,10 @@ function help {
 }
 
 function logs {
-    docker exec -t coolify tail -f storage/logs/laravel.log
+    docker exec -t ideploy tail -f storage/logs/laravel.log
 }
 function test {
-    docker exec -t coolify php artisan test --testsuite=Feature -p
+    docker exec -t ideploy php artisan test --testsuite=Feature -p
 }
 
 function sync:bunny {
@@ -32,25 +32,25 @@ function sync:bunny {
 }
 
 function db:reset {
-    bash spin exec -u www-data coolify php artisan migrate:fresh --seed
+    bash spin exec -u www-data ideploy php artisan migrate:fresh --seed
 }
 function db:reset-prod {
-    bash spin exec -u www-data coolify php artisan migrate:fresh --force --seed --seeder=ProductionSeeder ||
+    bash spin exec -u www-data ideploy php artisan migrate:fresh --force --seed --seeder=ProductionSeeder ||
         php artisan migrate:fresh --force --seed --seeder=ProductionSeeder
 }
-function coolify {
-    bash spin exec -u www-data coolify sh
+function ideploy {
+    bash spin exec -u www-data ideploy sh
 }
 
-function coolify:root {
-    bash spin exec coolify sh
+function ideploy:root {
+    bash spin exec ideploy sh
 }
-function coolify:proxy {
-    docker exec -ti coolify-proxy sh
+function ideploy:proxy {
+    docker exec -ti ideploy-proxy sh
 }
 
 function redis {
-    docker exec -ti coolify-redis redis-cli
+    docker exec -ti ideploy-redis redis-cli
 }
 
 function vite {
@@ -58,7 +58,7 @@ function vite {
 }
 
 function tinker {
-    bash spin exec -u www-data coolify php artisan tinker
+    bash spin exec -u www-data ideploy php artisan tinker
 }
 
 function default {

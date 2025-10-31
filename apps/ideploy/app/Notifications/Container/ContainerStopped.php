@@ -24,7 +24,7 @@ class ContainerStopped extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject("Coolify: A resource  has been stopped unexpectedly on {$this->server->name}");
+        $mail->subject("Ideploy: A resource  has been stopped unexpectedly on {$this->server->name}");
         $mail->view('emails.container-stopped', [
             'containerName' => $this->name,
             'serverName' => $this->server->name,
@@ -51,7 +51,7 @@ class ContainerStopped extends CustomEmailNotification
 
     public function toTelegram(): array
     {
-        $message = "Coolify: A resource ($this->name) has been stopped unexpectedly on {$this->server->name}";
+        $message = "Ideploy: A resource ($this->name) has been stopped unexpectedly on {$this->server->name}";
         $payload = [
             'message' => $message,
         ];
@@ -59,7 +59,7 @@ class ContainerStopped extends CustomEmailNotification
             $payload['buttons'] = [
                 [
                     [
-                        'text' => 'Open Application in Coolify',
+                        'text' => 'Open Application in Ideploy',
                         'url' => $this->url,
                     ],
                 ],
@@ -74,7 +74,7 @@ class ContainerStopped extends CustomEmailNotification
         $buttons = [];
         if ($this->url) {
             $buttons[] = [
-                'text' => 'Open Application in Coolify',
+                'text' => 'Open Application in Ideploy',
                 'url' => $this->url,
             ];
         }

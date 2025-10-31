@@ -23,10 +23,10 @@
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
-                    <input 
-                        autocomplete="off" 
-                        x-ref="searchInput" 
-                        x-model="search" 
+                    <input
+                        autocomplete="off"
+                        x-ref="searchInput"
+                        x-model="search"
                         placeholder="Type / to search resources..."
                         @keydown.window.slash.prevent="$refs.searchInput.focus()"
                         class="w-full pl-10 pr-4 py-3 bg-[#0f1724] border rounded-lg text-white placeholder-gray-500 transition-all"
@@ -106,7 +106,7 @@
                         respective
                         companies, and use of them does not imply any affiliation or endorsement.<br>Find more services
                         <a class="dark:text-white underline" target="_blank"
-                            href="https://coolify.io/docs/services/overview">here</a>.
+                            href="https://ideploy.io/docs/services/overview">here</a>.
                     </div>
 
                     <div class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-2">
@@ -130,7 +130,7 @@
                                                 :src='service.logo'
                                                 x-on:error.window="$event.target.src = service.logo_github_url"
                                                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
-                                                x-on:error="$event.target.src = '/coolify-logo.svg'"
+                                                x-on:error="$event.target.src = '/ideploy-logo.svg'"
                                                 :data-fallback='service.logo_github_url' />
                                         </template>
                                     </x-slot:logo>
@@ -242,17 +242,17 @@
             </script>
         @endif
     </div>
-    
+
     {{-- IDEM: Deployment Choice Step --}}
     @if ($current_step === 'deployment-choice')
         <div class="mb-6 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
             <h2 class="text-2xl font-bold text-white mb-2">🚀 Choose Deployment Environment</h2>
             <p class="text-sm text-gray-400">Select where you want to deploy your resource (application, database, or service)</p>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {{-- Option 1: IDEM Managed Servers --}}
-            <div wire:click="chooseIdemManaged" 
+            <div wire:click="chooseIdemManaged"
                  class="relative p-6 border-2 rounded-xl cursor-pointer transition-all
                         border-[#4F46E5] bg-[#4F46E5]/10 hover:bg-[#4F46E5]/20 hover:border-[#6366F1]">
                 <div class="absolute top-4 right-4">
@@ -260,7 +260,7 @@
                         Recommended
                     </span>
                 </div>
-                
+
                 <div class="flex items-start">
                     <span class="text-4xl mr-4">☁️</span>
                     <div class="flex-1">
@@ -270,7 +270,7 @@
                         <p class="text-sm text-gray-300 mb-4">
                             Deploy on our managed infrastructure - Works for apps, databases, and services
                         </p>
-                        
+
                         <ul class="space-y-2">
                             <li class="flex items-center text-sm text-gray-300">
                                 <svg class="w-4 h-4 text-green-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -300,9 +300,9 @@
                     </div>
                 </div>
             </div>
-            
+
             {{-- Option 2: Personal Servers --}}
-            <div wire:click="choosePersonalServers" 
+            <div wire:click="choosePersonalServers"
                  class="relative p-6 border-2 rounded-xl cursor-pointer transition-all
                         border-gray-800/50 bg-[#0f1724] hover:bg-[#151b2e] hover:border-[#4F46E5]/50">
                 <div class="flex items-start">
@@ -314,7 +314,7 @@
                         <p class="text-sm text-gray-300 mb-4">
                             Deploy on your own infrastructure
                         </p>
-                        
+
                         <ul class="space-y-2">
                             <li class="flex items-center text-sm text-gray-700 dark:text-gray-300">
                                 <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,14 +345,14 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-lg max-w-4xl mx-auto">
             <p class="text-sm text-blue-800 dark:text-blue-300">
                 💡 <strong>Tip:</strong> IDEM Managed Servers are recommended for most use cases. They provide automatic load balancing, high availability, and require no maintenance from you.
             </p>
         </div>
     @endif
-    
+
     @if ($current_step === 'servers')
         <h2>Select a server</h2>
         <div class="pb-5"></div>
@@ -389,7 +389,7 @@
         <h2>Select a destination</h2>
         <div class="pb-4">Destinations are used to segregate resources by network. If you are unsure, select the
             default
-            Standalone Docker (coolify).</div>
+            Standalone Docker (ideploy).</div>
         <div class="flex flex-col justify-center gap-4 text-left xl:flex-row xl:flex-wrap">
             @if ($server->isSwarm())
                 @foreach ($swarmDockers as $swarmDocker)

@@ -15,7 +15,7 @@ function collectProxyDockerNetworksByServer(Server $server)
     if (is_null($proxyType) || $proxyType === 'NONE') {
         return collect();
     }
-    $networks = instant_remote_process(['docker inspect --format="{{json .NetworkSettings.Networks }}" coolify-proxy'], $server, false);
+    $networks = instant_remote_process(['docker inspect --format="{{json .NetworkSettings.Networks }}" ideploy-proxy'], $server, false);
 
     return collect($networks)->map(function ($network) {
         return collect(json_decode($network))->keys();
@@ -70,13 +70,13 @@ function collectDockerNetworksByServer(Server $server)
     $allNetworks = $allNetworks->flatten()->unique();
     if ($server->isSwarm()) {
         if ($networks->count() === 0) {
-            $networks = collect(['coolify-overlay']);
-            $allNetworks = collect(['coolify-overlay']);
+            $networks = collect(['ideploy-overlay']);
+            $allNetworks = collect(['ideploy-overlay']);
         }
     } else {
         if ($networks->count() === 0) {
-            $networks = collect(['coolify']);
-            $allNetworks = collect(['coolify']);
+            $networks = collect(['ideploy']);
+            $allNetworks = collect(['ideploy']);
         }
     }
 
@@ -92,16 +92,16 @@ function connectProxyToNetworks(Server $server)
         $commands = $networks->map(function ($network) {
             return [
                 "docker network ls --format '{{.Name}}' | grep '^$network$' >/dev/null || docker network create --driver overlay --attachable $network >/dev/null",
-                "docker network connect $network coolify-proxy >/dev/null 2>&1 || true",
-                "echo 'Successfully connected coolify-proxy to $network network.'",
+                "docker network connect $network ideploy-proxy >/dev/null 2>&1 || true",
+                "echo 'Successfully connected ideploy-proxy to $network network.'",
             ];
         });
     } else {
         $commands = $networks->map(function ($network) {
             return [
                 "docker network ls --format '{{.Name}}' | grep '^$network$' >/dev/null || docker network create --attachable $network >/dev/null",
-                "docker network connect $network coolify-proxy >/dev/null 2>&1 || true",
-                "echo 'Successfully connected coolify-proxy to $network network.'",
+                "docker network connect $network ideploy-proxy >/dev/null 2>&1 || true",
+                "echo 'Successfully connected ideploy-proxy to $network network.'",
             ];
         });
     }
@@ -125,7 +125,7 @@ function extractCustomProxyCommands(Server $server, string $existing_config): ar
             return $custom_commands;
         }
 
-        // Define default commands that Coolify generates
+        // Define default commands that Ideploy generates
         $default_command_prefixes = [
             '--ping=',
             '--api.',
@@ -174,14 +174,14 @@ function generateDefaultProxyConfiguration(Server $server, array $custom_command
             return $docker['network'];
         })->unique();
         if ($networks->count() === 0) {
-            $networks = collect(['coolify-overlay']);
+            $networks = collect(['ideploy-overlay']);
         }
     } else {
         $networks = collect($server->standaloneDockers)->map(function ($docker) {
             return $docker['network'];
         })->unique();
         if ($networks->count() === 0) {
-            $networks = collect(['coolify']);
+            $networks = collect(['ideploy']);
         }
     }
 
@@ -203,15 +203,15 @@ function generateDefaultProxyConfiguration(Server $server, array $custom_command
             'traefik.http.routers.traefik.entrypoints=http',
             'traefik.http.routers.traefik.service=api@internal',
             'traefik.http.services.traefik.loadbalancer.server.port=8080',
-            'coolify.managed=true',
-            'coolify.proxy=true',
+            'ideploy.managed=true',
+            'ideploy.proxy=true',
         ];
         $config = [
-            'name' => 'coolify-proxy',
+            'name' => 'ideploy-proxy',
             'networks' => $array_of_networks->toArray(),
             'services' => [
                 'traefik' => [
-                    'container_name' => 'coolify-proxy',
+                    'container_name' => 'ideploy-proxy',
                     'image' => 'traefik:v3.1',
                     'restart' => RESTART_MODE,
                     'extra_hosts' => [
@@ -260,7 +260,7 @@ function generateDefaultProxyConfiguration(Server $server, array $custom_command
             $config['services']['traefik']['command'][] = '--log.level=debug';
             $config['services']['traefik']['command'][] = '--accesslog.filepath=/traefik/access.log';
             $config['services']['traefik']['command'][] = '--accesslog.bufferingsize=100';
-            $config['services']['traefik']['volumes'][] = '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/proxy/:/traefik';
+            $config['services']['traefik']['volumes'][] = '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/proxy/:/traefik';
         } else {
             $config['services']['traefik']['command'][] = '--api.insecure=false';
             $config['services']['traefik']['volumes'][] = "{$proxy_path}:/traefik";
@@ -296,7 +296,7 @@ function generateDefaultProxyConfiguration(Server $server, array $custom_command
             'networks' => $array_of_networks->toArray(),
             'services' => [
                 'caddy' => [
-                    'container_name' => 'coolify-proxy',
+                    'container_name' => 'ideploy-proxy',
                     'image' => 'lucaslorentz/caddy-docker-proxy:2.8-alpine',
                     'restart' => RESTART_MODE,
                     'extra_hosts' => [
@@ -313,8 +313,8 @@ function generateDefaultProxyConfiguration(Server $server, array $custom_command
                         '443:443/udp',
                     ],
                     'labels' => [
-                        'coolify.managed=true',
-                        'coolify.proxy=true',
+                        'ideploy.managed=true',
+                        'ideploy.proxy=true',
                     ],
                     'volumes' => [
                         '/var/run/docker.sock:/var/run/docker.sock:ro',

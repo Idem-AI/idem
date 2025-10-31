@@ -15,7 +15,7 @@ class StopProxy
     public function handle(Server $server, bool $forceStop = true, int $timeout = 30)
     {
         try {
-            $containerName = $server->isSwarm() ? 'coolify-proxy_traefik' : 'coolify-proxy';
+            $containerName = $server->isSwarm() ? 'ideploy-proxy_traefik' : 'ideploy-proxy';
             $server->proxy->status = 'stopping';
             $server->save();
             ProxyStatusChangedUI::dispatch($server->team_id);

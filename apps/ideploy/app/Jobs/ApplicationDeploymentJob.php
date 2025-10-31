@@ -162,7 +162,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
 
     private ?string $branch = null;
 
-    private ?string $coolify_variables = null;
+    private ?string $ideploy_variables = null;
 
     private bool $preserveRepository = false;
 
@@ -288,7 +288,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     $allContainers = collect($allContainers)->sort()->values();
                     foreach ($allContainers as $container) {
                         $containerName = data_get($container, 'Name');
-                        if ($containerName === 'coolify-proxy') {
+                        if ($containerName === 'ideploy-proxy') {
                             continue;
                         }
                         if (preg_match('/-(\d{12})/', $containerName)) {
@@ -635,7 +635,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 [executeInDocker($this->deployment_uuid, "cd {$this->basedir} && {$build_command}"), 'hidden' => true],
             );
         } else {
-            $command = "{$this->coolify_variables} docker compose";
+            $command = "{$this->ideploy_variables} docker compose";
             // Prepend DOCKER_BUILDKIT=1 if BuildKit is supported
             if ($this->dockerBuildkitSupported) {
                 $command = "DOCKER_BUILDKIT=1 {$command}";
@@ -679,7 +679,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 'hidden' => true,
                 'ignore_errors' => true,
             ], [
-                "docker network connect {$networkId} coolify-proxy >/dev/null 2>&1 || true",
+                "docker network connect {$networkId} ideploy-proxy >/dev/null 2>&1 || true",
                 'hidden' => true,
                 'ignore_errors' => true,
             ]);
@@ -697,7 +697,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 $this->write_deployment_configurations();
                 $this->docker_compose_location = '/docker-compose.yaml';
 
-                $command = "{$this->coolify_variables} docker compose";
+                $command = "{$this->ideploy_variables} docker compose";
                 // Always use .env file
                 $command .= " --env-file {$server_workdir}/.env";
                 $command .= " --project-directory {$server_workdir} -f {$server_workdir}{$this->docker_compose_location} up -d";
@@ -712,7 +712,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     [executeInDocker($this->deployment_uuid, "cd {$this->basedir} && {$this->docker_compose_custom_start_command}"), 'hidden' => true],
                 );
             } else {
-                $command = "{$this->coolify_variables} docker compose";
+                $command = "{$this->ideploy_variables} docker compose";
                 if ($this->preserveRepository) {
                     // Always use .env file
                     $command .= " --env-file {$server_workdir}/.env";
@@ -1090,8 +1090,8 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             });
         }
         $ports = $this->application->main_port();
-        $coolify_envs = $this->generate_coolify_env_variables();
-        $coolify_envs->each(function ($item, $key) use ($envs) {
+        $ideploy_envs = $this->generate_ideploy_env_variables();
+        $ideploy_envs->each(function ($item, $key) use ($envs) {
             $envs->push($key.'='.$item);
         });
         if ($this->pull_request_id === 0) {
@@ -1104,12 +1104,12 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     $parsedDomain = data_get($domain, 'domain');
                     if (filled($parsedDomain)) {
                         $parsedDomain = str($parsedDomain)->explode(',')->first();
-                        $coolifyUrl = Url::fromString($parsedDomain);
-                        $coolifyScheme = $coolifyUrl->getScheme();
-                        $coolifyFqdn = $coolifyUrl->getHost();
-                        $coolifyUrl = $coolifyUrl->withScheme($coolifyScheme)->withHost($coolifyFqdn)->withPort(null);
-                        $envs->push('SERVICE_URL_'.str($forServiceName)->upper().'='.$coolifyUrl->__toString());
-                        $envs->push('SERVICE_FQDN_'.str($forServiceName)->upper().'='.$coolifyFqdn);
+                        $ideployUrl = Url::fromString($parsedDomain);
+                        $ideployScheme = $ideployUrl->getScheme();
+                        $ideployFqdn = $ideployUrl->getHost();
+                        $ideployUrl = $ideployUrl->withScheme($ideployScheme)->withHost($ideployFqdn)->withPort(null);
+                        $envs->push('SERVICE_URL_'.str($forServiceName)->upper().'='.$ideployUrl->__toString());
+                        $envs->push('SERVICE_FQDN_'.str($forServiceName)->upper().'='.$ideployFqdn);
                     }
                 }
 
@@ -1162,12 +1162,12 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     $parsedDomain = data_get($domain, 'domain');
                     if (filled($parsedDomain)) {
                         $parsedDomain = str($parsedDomain)->explode(',')->first();
-                        $coolifyUrl = Url::fromString($parsedDomain);
-                        $coolifyScheme = $coolifyUrl->getScheme();
-                        $coolifyFqdn = $coolifyUrl->getHost();
-                        $coolifyUrl = $coolifyUrl->withScheme($coolifyScheme)->withHost($coolifyFqdn)->withPort(null);
-                        $envs->push('SERVICE_URL_'.str($forServiceName)->upper().'='.$coolifyUrl->__toString());
-                        $envs->push('SERVICE_FQDN_'.str($forServiceName)->upper().'='.$coolifyFqdn);
+                        $ideployUrl = Url::fromString($parsedDomain);
+                        $ideployScheme = $ideployUrl->getScheme();
+                        $ideployFqdn = $ideployUrl->getHost();
+                        $ideployUrl = $ideployUrl->withScheme($ideployScheme)->withHost($ideployFqdn)->withPort(null);
+                        $envs->push('SERVICE_URL_'.str($forServiceName)->upper().'='.$ideployUrl->__toString());
+                        $envs->push('SERVICE_FQDN_'.str($forServiceName)->upper().'='.$ideployFqdn);
                     }
                 }
 
@@ -1326,10 +1326,10 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
         }
 
         $envs = collect([]);
-        $coolify_envs = $this->generate_coolify_env_variables();
+        $ideploy_envs = $this->generate_ideploy_env_variables();
 
-        // Add COOLIFY variables
-        $coolify_envs->each(function ($item, $key) use ($envs) {
+        // Add IDEPLOY variables
+        $ideploy_envs->each(function ($item, $key) use ($envs) {
             $envs->push($key.'='.escapeBashEnvValue($item));
         });
 
@@ -1353,12 +1353,12 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     $parsedDomain = data_get($domain, 'domain');
                     if (filled($parsedDomain)) {
                         $parsedDomain = str($parsedDomain)->explode(',')->first();
-                        $coolifyUrl = Url::fromString($parsedDomain);
-                        $coolifyScheme = $coolifyUrl->getScheme();
-                        $coolifyFqdn = $coolifyUrl->getHost();
-                        $coolifyUrl = $coolifyUrl->withScheme($coolifyScheme)->withHost($coolifyFqdn)->withPort(null);
-                        $envs->push('SERVICE_URL_'.str($forServiceName)->upper().'='.escapeBashEnvValue($coolifyUrl->__toString()));
-                        $envs->push('SERVICE_FQDN_'.str($forServiceName)->upper().'='.escapeBashEnvValue($coolifyFqdn));
+                        $ideployUrl = Url::fromString($parsedDomain);
+                        $ideployScheme = $ideployUrl->getScheme();
+                        $ideployFqdn = $ideployUrl->getHost();
+                        $ideployUrl = $ideployUrl->withScheme($ideployScheme)->withHost($ideployFqdn)->withPort(null);
+                        $envs->push('SERVICE_URL_'.str($forServiceName)->upper().'='.escapeBashEnvValue($ideployUrl->__toString()));
+                        $envs->push('SERVICE_FQDN_'.str($forServiceName)->upper().'='.escapeBashEnvValue($ideployFqdn));
                     }
                 }
             } else {
@@ -1375,12 +1375,12 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     $parsedDomain = data_get($domain, 'domain');
                     if (filled($parsedDomain)) {
                         $parsedDomain = str($parsedDomain)->explode(',')->first();
-                        $coolifyUrl = Url::fromString($parsedDomain);
-                        $coolifyScheme = $coolifyUrl->getScheme();
-                        $coolifyFqdn = $coolifyUrl->getHost();
-                        $coolifyUrl = $coolifyUrl->withScheme($coolifyScheme)->withHost($coolifyFqdn)->withPort(null);
-                        $envs->push('SERVICE_URL_'.str($forServiceName)->upper().'='.escapeBashEnvValue($coolifyUrl->__toString()));
-                        $envs->push('SERVICE_FQDN_'.str($forServiceName)->upper().'='.escapeBashEnvValue($coolifyFqdn));
+                        $ideployUrl = Url::fromString($parsedDomain);
+                        $ideployScheme = $ideployUrl->getScheme();
+                        $ideployFqdn = $ideployUrl->getHost();
+                        $ideployUrl = $ideployUrl->withScheme($ideployScheme)->withHost($ideployFqdn)->withPort(null);
+                        $envs->push('SERVICE_URL_'.str($forServiceName)->upper().'='.escapeBashEnvValue($ideployUrl->__toString()));
+                        $envs->push('SERVICE_FQDN_'.str($forServiceName)->upper().'='.escapeBashEnvValue($ideployFqdn));
                     }
                 }
             }
@@ -1777,7 +1777,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
     {
         $this->checkForCancellation();
         $settings = instanceSettings();
-        $helperImage = config('constants.coolify.helper_image');
+        $helperImage = config('constants.ideploy.helper_image');
         $helperImage = "{$helperImage}:{$settings->helper_version}";
         // Get user home directory
         $this->serverUserHomeDir = instant_remote_process(['echo $HOME'], $this->server);
@@ -1872,9 +1872,9 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
         }
     }
 
-    private function set_coolify_variables()
+    private function set_ideploy_variables()
     {
-        $this->coolify_variables = "SOURCE_COMMIT={$this->commit} ";
+        $this->ideploy_variables = "SOURCE_COMMIT={$this->commit} ";
         if ($this->pull_request_id === 0) {
             $fqdn = $this->application->fqdn;
         } else {
@@ -1885,18 +1885,18 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             $fqdn = $url->getHost();
             $url = $url->withHost($fqdn)->withPort(null)->__toString();
             if ((int) $this->application->compose_parsing_version >= 3) {
-                $this->coolify_variables .= "COOLIFY_URL={$url} ";
-                $this->coolify_variables .= "COOLIFY_FQDN={$fqdn} ";
+                $this->ideploy_variables .= "IDEPLOY_URL={$url} ";
+                $this->ideploy_variables .= "IDEPLOY_FQDN={$fqdn} ";
             } else {
-                $this->coolify_variables .= "COOLIFY_URL={$fqdn} ";
-                $this->coolify_variables .= "COOLIFY_FQDN={$url} ";
+                $this->ideploy_variables .= "IDEPLOY_URL={$fqdn} ";
+                $this->ideploy_variables .= "IDEPLOY_FQDN={$url} ";
             }
         }
         if (isset($this->application->git_branch)) {
-            $this->coolify_variables .= "COOLIFY_BRANCH={$this->application->git_branch} ";
+            $this->ideploy_variables .= "IDEPLOY_BRANCH={$this->application->git_branch} ";
         }
-        $this->coolify_variables .= "COOLIFY_RESOURCE_UUID={$this->application->uuid} ";
-        $this->coolify_variables .= "COOLIFY_CONTAINER_NAME={$this->container_name} ";
+        $this->ideploy_variables .= "IDEPLOY_RESOURCE_UUID={$this->application->uuid} ";
+        $this->ideploy_variables .= "IDEPLOY_CONTAINER_NAME={$this->container_name} ";
     }
 
     private function check_git_if_build_needed()
@@ -1981,7 +1981,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 }
             }
         }
-        $this->set_coolify_variables();
+        $this->set_ideploy_variables();
 
         // Restart helper container with actual SOURCE_COMMIT value
         if ($this->application->settings->use_build_secrets && $this->commit !== 'HEAD') {
@@ -2146,98 +2146,98 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             }
         }
 
-        // Add COOLIFY_* environment variables to Nixpacks build context
-        $coolify_envs = $this->generate_coolify_env_variables();
-        $coolify_envs->each(function ($value, $key) {
+        // Add IDEPLOY_* environment variables to Nixpacks build context
+        $ideploy_envs = $this->generate_ideploy_env_variables();
+        $ideploy_envs->each(function ($value, $key) {
             $this->env_nixpacks_args->push("--env {$key}={$value}");
         });
 
         $this->env_nixpacks_args = $this->env_nixpacks_args->implode(' ');
     }
 
-    private function generate_coolify_env_variables(): Collection
+    private function generate_ideploy_env_variables(): Collection
     {
-        $coolify_envs = collect([]);
+        $ideploy_envs = collect([]);
         $local_branch = $this->branch;
         if ($this->pull_request_id !== 0) {
             // Add SOURCE_COMMIT if not exists
             if ($this->application->environment_variables_preview->where('key', 'SOURCE_COMMIT')->isEmpty()) {
                 if (! is_null($this->commit)) {
-                    $coolify_envs->put('SOURCE_COMMIT', $this->commit);
+                    $ideploy_envs->put('SOURCE_COMMIT', $this->commit);
                 } else {
-                    $coolify_envs->put('SOURCE_COMMIT', 'unknown');
+                    $ideploy_envs->put('SOURCE_COMMIT', 'unknown');
                 }
             }
-            if ($this->application->environment_variables_preview->where('key', 'COOLIFY_FQDN')->isEmpty()) {
+            if ($this->application->environment_variables_preview->where('key', 'IDEPLOY_FQDN')->isEmpty()) {
                 if ((int) $this->application->compose_parsing_version >= 3) {
-                    $coolify_envs->put('COOLIFY_URL', $this->preview->fqdn);
+                    $ideploy_envs->put('IDEPLOY_URL', $this->preview->fqdn);
                 } else {
-                    $coolify_envs->put('COOLIFY_FQDN', $this->preview->fqdn);
+                    $ideploy_envs->put('IDEPLOY_FQDN', $this->preview->fqdn);
                 }
             }
-            if ($this->application->environment_variables_preview->where('key', 'COOLIFY_URL')->isEmpty()) {
+            if ($this->application->environment_variables_preview->where('key', 'IDEPLOY_URL')->isEmpty()) {
                 $url = str($this->preview->fqdn)->replace('http://', '')->replace('https://', '');
                 if ((int) $this->application->compose_parsing_version >= 3) {
-                    $coolify_envs->put('COOLIFY_FQDN', $url);
+                    $ideploy_envs->put('IDEPLOY_FQDN', $url);
                 } else {
-                    $coolify_envs->put('COOLIFY_URL', $url);
+                    $ideploy_envs->put('IDEPLOY_URL', $url);
                 }
             }
             if ($this->application->build_pack !== 'dockercompose' || $this->application->compose_parsing_version === '1' || $this->application->compose_parsing_version === '2') {
-                if ($this->application->environment_variables_preview->where('key', 'COOLIFY_BRANCH')->isEmpty()) {
-                    $coolify_envs->put('COOLIFY_BRANCH', $local_branch);
+                if ($this->application->environment_variables_preview->where('key', 'IDEPLOY_BRANCH')->isEmpty()) {
+                    $ideploy_envs->put('IDEPLOY_BRANCH', $local_branch);
                 }
-                if ($this->application->environment_variables_preview->where('key', 'COOLIFY_RESOURCE_UUID')->isEmpty()) {
-                    $coolify_envs->put('COOLIFY_RESOURCE_UUID', $this->application->uuid);
+                if ($this->application->environment_variables_preview->where('key', 'IDEPLOY_RESOURCE_UUID')->isEmpty()) {
+                    $ideploy_envs->put('IDEPLOY_RESOURCE_UUID', $this->application->uuid);
                 }
-                if ($this->application->environment_variables_preview->where('key', 'COOLIFY_CONTAINER_NAME')->isEmpty()) {
-                    $coolify_envs->put('COOLIFY_CONTAINER_NAME', $this->container_name);
+                if ($this->application->environment_variables_preview->where('key', 'IDEPLOY_CONTAINER_NAME')->isEmpty()) {
+                    $ideploy_envs->put('IDEPLOY_CONTAINER_NAME', $this->container_name);
                 }
             }
 
-            add_coolify_default_environment_variables($this->application, $coolify_envs, $this->application->environment_variables_preview);
+            add_ideploy_default_environment_variables($this->application, $ideploy_envs, $this->application->environment_variables_preview);
 
         } else {
             // Add SOURCE_COMMIT if not exists
             if ($this->application->environment_variables->where('key', 'SOURCE_COMMIT')->isEmpty()) {
                 if (! is_null($this->commit)) {
-                    $coolify_envs->put('SOURCE_COMMIT', $this->commit);
+                    $ideploy_envs->put('SOURCE_COMMIT', $this->commit);
                 } else {
-                    $coolify_envs->put('SOURCE_COMMIT', 'unknown');
+                    $ideploy_envs->put('SOURCE_COMMIT', 'unknown');
                 }
             }
-            if ($this->application->environment_variables->where('key', 'COOLIFY_FQDN')->isEmpty()) {
+            if ($this->application->environment_variables->where('key', 'IDEPLOY_FQDN')->isEmpty()) {
                 if ((int) $this->application->compose_parsing_version >= 3) {
-                    $coolify_envs->put('COOLIFY_URL', $this->application->fqdn);
+                    $ideploy_envs->put('IDEPLOY_URL', $this->application->fqdn);
                 } else {
-                    $coolify_envs->put('COOLIFY_FQDN', $this->application->fqdn);
+                    $ideploy_envs->put('IDEPLOY_FQDN', $this->application->fqdn);
                 }
             }
-            if ($this->application->environment_variables->where('key', 'COOLIFY_URL')->isEmpty()) {
+            if ($this->application->environment_variables->where('key', 'IDEPLOY_URL')->isEmpty()) {
                 $url = str($this->application->fqdn)->replace('http://', '')->replace('https://', '');
                 if ((int) $this->application->compose_parsing_version >= 3) {
-                    $coolify_envs->put('COOLIFY_FQDN', $url);
+                    $ideploy_envs->put('IDEPLOY_FQDN', $url);
                 } else {
-                    $coolify_envs->put('COOLIFY_URL', $url);
+                    $ideploy_envs->put('IDEPLOY_URL', $url);
                 }
             }
             if ($this->application->build_pack !== 'dockercompose' || $this->application->compose_parsing_version === '1' || $this->application->compose_parsing_version === '2') {
-                if ($this->application->environment_variables->where('key', 'COOLIFY_BRANCH')->isEmpty()) {
-                    $coolify_envs->put('COOLIFY_BRANCH', $local_branch);
+                if ($this->application->environment_variables->where('key', 'IDEPLOY_BRANCH')->isEmpty()) {
+                    $ideploy_envs->put('IDEPLOY_BRANCH', $local_branch);
                 }
-                if ($this->application->environment_variables->where('key', 'COOLIFY_RESOURCE_UUID')->isEmpty()) {
-                    $coolify_envs->put('COOLIFY_RESOURCE_UUID', $this->application->uuid);
+                if ($this->application->environment_variables->where('key', 'IDEPLOY_RESOURCE_UUID')->isEmpty()) {
+                    $ideploy_envs->put('IDEPLOY_RESOURCE_UUID', $this->application->uuid);
                 }
-                if ($this->application->environment_variables->where('key', 'COOLIFY_CONTAINER_NAME')->isEmpty()) {
-                    $coolify_envs->put('COOLIFY_CONTAINER_NAME', $this->container_name);
+                if ($this->application->environment_variables->where('key', 'IDEPLOY_CONTAINER_NAME')->isEmpty()) {
+                    $ideploy_envs->put('IDEPLOY_CONTAINER_NAME', $this->container_name);
                 }
             }
 
-            add_coolify_default_environment_variables($this->application, $coolify_envs, $this->application->environment_variables);
+            add_ideploy_default_environment_variables($this->application, $ideploy_envs, $this->application->environment_variables);
 
         }
 
-        return $coolify_envs;
+        return $ideploy_envs;
     }
 
     private function generate_env_variables()
@@ -2245,8 +2245,8 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
         $this->env_args = collect([]);
         $this->env_args->put('SOURCE_COMMIT', $this->commit);
 
-        $coolify_envs = $this->generate_coolify_env_variables();
-        $coolify_envs->each(function ($value, $key) {
+        $ideploy_envs = $this->generate_ideploy_env_variables();
+        $ideploy_envs->each(function ($value, $key) {
             $this->env_args->put($key, $value);
         });
 
@@ -2288,7 +2288,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             $this->application->parseContainerLabels();
             $labels = collect(preg_split("/\r\n|\n|\r/", base64_decode($this->application->custom_labels)));
             $labels = $labels->filter(function ($value, $key) {
-                return ! Str::startsWith($value, 'coolify.');
+                return ! Str::startsWith($value, 'ideploy.');
             });
             $this->application->custom_labels = base64_encode($labels->implode("\n"));
             $this->application->save();
@@ -2597,7 +2597,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
         }
         $dockerfile = base64_encode("FROM {$this->application->static_image}
         WORKDIR /usr/share/nginx/html/
-        LABEL coolify.deploymentId={$this->deployment_uuid}
+        LABEL ideploy.deploymentId={$this->deployment_uuid}
         COPY . .
         RUN rm -f /usr/share/nginx/html/nginx.conf
         RUN rm -f /usr/share/nginx/html/Dockerfile
@@ -2640,7 +2640,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
 
     /**
      * Wrap a docker build command with environment export from /artifacts/build-time.env
-     * This enables shell interpolation of variables (e.g., APP_URL=$COOLIFY_URL)
+     * This enables shell interpolation of variables (e.g., APP_URL=$IDEPLOY_URL)
      *
      * @param  string  $build_command  The docker build command to wrap
      * @return string The wrapped command with export statement
@@ -2652,15 +2652,15 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
 
     private function build_image()
     {
-        // Add Coolify related variables to the build args/secrets
+        // Add Ideploy related variables to the build args/secrets
         if ($this->dockerBuildkitSupported) {
-            // Coolify variables are already included in the secrets from generate_build_env_variables
+            // Ideploy variables are already included in the secrets from generate_build_env_variables
             // build_secrets is already a string at this point
         } else {
-            // Traditional build args approach - generate COOLIFY_ variables locally
-            // Generate COOLIFY_ variables locally for build args
-            $coolify_envs = $this->generate_coolify_env_variables();
-            $coolify_envs->each(function ($value, $key) {
+            // Traditional build args approach - generate IDEPLOY_ variables locally
+            // Generate IDEPLOY_ variables locally for build args
+            $ideploy_envs = $this->generate_ideploy_env_variables();
+            $ideploy_envs->each(function ($value, $key) {
                 $this->build_args->push("--build-arg '{$key}'");
             });
             $this->build_args = $this->build_args instanceof \Illuminate\Support\Collection
@@ -2794,7 +2794,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             $publishDir = $publishDir ? "/{$publishDir}" : '';
             $dockerfile = base64_encode("FROM {$this->application->static_image}
 WORKDIR /usr/share/nginx/html/
-LABEL coolify.deploymentId={$this->deployment_uuid}
+LABEL ideploy.deploymentId={$this->deployment_uuid}
 COPY --from=$this->build_image_name /app{$publishDir} .
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
             if (str($this->application->custom_nginx_configuration)->isNotEmpty()) {
@@ -3009,7 +3009,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         } else {
             if ($this->application->dockerfile || $this->application->build_pack === 'dockerfile' || $this->application->build_pack === 'dockerimage') {
                 $this->application_deployment_queue->addLogEntry('----------------------------------------');
-                $this->application_deployment_queue->addLogEntry("WARNING: Dockerfile or Docker Image based deployment detected. The healthcheck needs a curl or wget command to check the health of the application. Please make sure that it is available in the image or turn off healthcheck on Coolify's UI.");
+                $this->application_deployment_queue->addLogEntry("WARNING: Dockerfile or Docker Image based deployment detected. The healthcheck needs a curl or wget command to check the health of the application. Please make sure that it is available in the image or turn off healthcheck on Ideploy's UI.");
                 $this->application_deployment_queue->addLogEntry('----------------------------------------');
             }
             $this->application_deployment_queue->addLogEntry('New container is not healthy, rolling back to the old container.');
@@ -3026,16 +3026,16 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
             $this->application_deployment_queue->addLogEntry('Pulling latest images from the registry.');
             $this->execute_remote_command(
                 [executeInDocker($this->deployment_uuid, "docker compose --project-name {$this->application->uuid} --project-directory {$this->workdir} pull"), 'hidden' => true],
-                [executeInDocker($this->deployment_uuid, "{$this->coolify_variables} docker compose --project-name {$this->application->uuid} --project-directory {$this->workdir} up --build -d"), 'hidden' => true],
+                [executeInDocker($this->deployment_uuid, "{$this->ideploy_variables} docker compose --project-name {$this->application->uuid} --project-directory {$this->workdir} up --build -d"), 'hidden' => true],
             );
         } else {
             if ($this->use_build_server) {
                 $this->execute_remote_command(
-                    ["{$this->coolify_variables} docker compose --project-name {$this->application->uuid} --project-directory {$this->configuration_dir} -f {$this->configuration_dir}{$this->docker_compose_location} up --pull always --build -d", 'hidden' => true],
+                    ["{$this->ideploy_variables} docker compose --project-name {$this->application->uuid} --project-directory {$this->configuration_dir} -f {$this->configuration_dir}{$this->docker_compose_location} up --pull always --build -d", 'hidden' => true],
                 );
             } else {
                 $this->execute_remote_command(
-                    [executeInDocker($this->deployment_uuid, "{$this->coolify_variables} docker compose --project-name {$this->application->uuid} --project-directory {$this->workdir} -f {$this->workdir}{$this->docker_compose_location} up --build -d"), 'hidden' => true],
+                    [executeInDocker($this->deployment_uuid, "{$this->ideploy_variables} docker compose --project-name {$this->application->uuid} --project-directory {$this->workdir} -f {$this->workdir}{$this->docker_compose_location} up --build -d"), 'hidden' => true],
                 );
             }
         }
@@ -3126,7 +3126,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
             $this->build_args = generateDockerBuildArgs($vars_with_metadata);
 
             if ($secrets_hash) {
-                $this->build_args->push("--build-arg COOLIFY_BUILD_SECRETS_HASH={$secrets_hash}");
+                $this->build_args->push("--build-arg IDEPLOY_BUILD_SECRETS_HASH={$secrets_hash}");
             }
         }
     }
@@ -3139,7 +3139,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         }
 
         // Generate env variables if not already done
-        // This populates $this->env_args with both user-defined and COOLIFY_* variables
+        // This populates $this->env_args with both user-defined and IDEPLOY_* variables
         if (! $this->env_args || $this->env_args->isEmpty()) {
             $this->generate_env_variables();
         }
@@ -3169,7 +3169,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         });
 
         $env_flags = generateDockerEnvFlags($vars_array);
-        $env_flags .= " -e COOLIFY_BUILD_SECRETS_HASH={$secrets_hash}";
+        $env_flags .= " -e IDEPLOY_BUILD_SECRETS_HASH={$secrets_hash}";
 
         return $env_flags;
     }
@@ -3188,7 +3188,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
             })
             ->implode(' ');
 
-        $this->build_secrets .= ' --secret id=COOLIFY_BUILD_SECRETS_HASH,env=COOLIFY_BUILD_SECRETS_HASH';
+        $this->build_secrets .= ' --secret id=IDEPLOY_BUILD_SECRETS_HASH,env=IDEPLOY_BUILD_SECRETS_HASH';
     }
 
     private function generate_secrets_hash($variables)
@@ -3244,14 +3244,14 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
                         $dockerfile->splice(1, 0, ["ARG {$env->key}={$env->real_value}"]);
                     }
                 }
-                // Add Coolify variables as ARGs
-                if ($this->coolify_variables) {
-                    $coolify_vars = collect(explode(' ', trim($this->coolify_variables)))
+                // Add Ideploy variables as ARGs
+                if ($this->ideploy_variables) {
+                    $ideploy_vars = collect(explode(' ', trim($this->ideploy_variables)))
                         ->filter()
                         ->map(function ($var) {
                             return "ARG {$var}";
                         });
-                    foreach ($coolify_vars as $arg) {
+                    foreach ($ideploy_vars as $arg) {
                         $dockerfile->splice(1, 0, [$arg]);
                     }
                 }
@@ -3268,14 +3268,14 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
                         $dockerfile->splice(1, 0, ["ARG {$env->key}={$env->real_value}"]);
                     }
                 }
-                // Add Coolify variables as ARGs
-                if ($this->coolify_variables) {
-                    $coolify_vars = collect(explode(' ', trim($this->coolify_variables)))
+                // Add Ideploy variables as ARGs
+                if ($this->ideploy_variables) {
+                    $ideploy_vars = collect(explode(' ', trim($this->ideploy_variables)))
                         ->filter()
                         ->map(function ($var) {
                             return "ARG {$var}";
                         });
-                    foreach ($coolify_vars as $arg) {
+                    foreach ($ideploy_vars as $arg) {
                         $dockerfile->splice(1, 0, [$arg]);
                     }
                 }
@@ -3283,7 +3283,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
 
             if ($envs->isNotEmpty()) {
                 $secrets_hash = $this->generate_secrets_hash($envs);
-                $dockerfile->splice(1, 0, ["ARG COOLIFY_BUILD_SECRETS_HASH={$secrets_hash}"]);
+                $dockerfile->splice(1, 0, ["ARG IDEPLOY_BUILD_SECRETS_HASH={$secrets_hash}"]);
             }
 
             $dockerfile_base64 = base64_encode($dockerfile->implode("\n"));
@@ -3323,7 +3323,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         }
 
         // Generate env variables if not already done
-        // This populates $this->env_args with both user-defined and COOLIFY_* variables
+        // This populates $this->env_args with both user-defined and IDEPLOY_* variables
         if (! $this->env_args || $this->env_args->isEmpty()) {
             $this->generate_env_variables();
         }
@@ -3337,7 +3337,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         $mountStrings = $variables->map(fn ($value, $key) => "--mount=type=secret,id={$key},env={$key}")->implode(' ');
 
         // Add mount for the secrets hash to ensure cache invalidation
-        $mountStrings .= ' --mount=type=secret,id=COOLIFY_BUILD_SECRETS_HASH,env=COOLIFY_BUILD_SECRETS_HASH';
+        $mountStrings .= ' --mount=type=secret,id=IDEPLOY_BUILD_SECRETS_HASH,env=IDEPLOY_BUILD_SECRETS_HASH';
 
         $modified = false;
         $dockerfile = $dockerfile->map(function ($line) use ($mountStrings, &$modified) {
@@ -3372,7 +3372,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         }
 
         // Generate env variables if not already done
-        // This populates $this->env_args with both user-defined and COOLIFY_* variables
+        // This populates $this->env_args with both user-defined and IDEPLOY_* variables
         if (! $this->env_args || $this->env_args->isEmpty()) {
             $this->generate_env_variables();
         }
@@ -3523,7 +3523,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
     private function add_build_secrets_to_compose($composeFile)
     {
         // Generate env variables if not already done
-        // This populates $this->env_args with both user-defined and COOLIFY_* variables
+        // This populates $this->env_args with both user-defined and IDEPLOY_* variables
         if (! $this->env_args || $this->env_args->isEmpty()) {
             $this->generate_env_variables();
         }

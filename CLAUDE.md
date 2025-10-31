@@ -12,7 +12,7 @@ Idem is a comprehensive monorepo containing multiple applications for architectu
   - **we-dev-client**: React + Vite client
   - **we-dev-next**: Next.js 15 application
 - **chart**: Svelte 5 diagram/chart editor
-- **ideploy**: Laravel-based deployment platform (Coolify fork)
+- **ideploy**: Laravel-based deployment platform (Ideploy fork)
 
 ## Monorepo Structure
 

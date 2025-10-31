@@ -1,4 +1,4 @@
-# Coolify Technology Stack
+# Ideploy Technology Stack
 
 ## Frontend
 

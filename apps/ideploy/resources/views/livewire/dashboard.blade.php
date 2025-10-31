@@ -1,12 +1,12 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
-        Dashboard | Coolify
+        Dashboard | Ideploy
     </x-slot>
-    
+
     @if (session('error'))
         <span x-data x-init="$wire.emit('error', '{{ session('error') }}')" />
     @endif
-    
+
     @if (request()->query->get('success'))
         <div class="mb-10 font-bold alert alert-success">
             Your subscription has been activated! Welcome onboard! It could take a few seconds before your
@@ -17,7 +17,7 @@
     {{-- Projects Section --}}
     <section class="mb-8">
         <h2 class="text-2xl font-light mb-4 text-gray-100">Projects</h2>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {{-- Create New Project Card --}}
             @can('createAnyResource')
@@ -38,7 +38,7 @@
                 <livewire:project.add-empty />
             </x-modal-input>
             @endcan
-            
+
             {{-- Project Cards --}}
             @foreach ($projects as $project)
                 @php
@@ -46,7 +46,7 @@
                     $totalResources = 0;
                     $activeResources = 0;
                     $resourceTypes = [];
-                    
+
                     foreach ($project->environments ?? [] as $environment) {
                         // Applications
                         if (isset($environment->applications)) {
@@ -56,7 +56,7 @@
                                 $resourceTypes[] = 'Web Application';
                             }
                         }
-                        
+
                         // Services
                         if (isset($environment->services)) {
                             $totalResources += $environment->services->count();
@@ -65,7 +65,7 @@
                                 $resourceTypes[] = 'Service';
                             }
                         }
-                        
+
                         // Databases
                         $dbTypes = ['postgresqls', 'mysqls', 'mariadbs', 'mongodbs', 'redis'];
                         foreach ($dbTypes as $dbType) {
@@ -78,9 +78,9 @@
                             }
                         }
                     }
-                    
+
                     $inactiveResources = $totalResources - $activeResources;
-                    
+
                     // Générer des tags catégories
                     $categoryTags = [];
                     if ($project->id % 3 == 0) $categoryTags[] = 'Companies';
@@ -88,7 +88,7 @@
                     if ($project->id % 5 == 0) $categoryTags[] = 'Regional';
                     if (empty($categoryTags)) $categoryTags[] = 'Local';
                 @endphp
-                
+
                 <a href="{{ $project->navigateTo() }}" class="group block">
                     <div class="bg-[#151b2e] hover:bg-[#1a2137] border border-gray-700 hover:border-gray-600 rounded-xl overflow-hidden transition-all duration-300 min-h-[260px] flex flex-col">
                         {{-- Header avec Logo et Titre --}}
@@ -107,7 +107,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         {{-- Resources Summary --}}
                         <div class="p-3 bg-gray-900/30">
                             <div class="grid grid-cols-3 gap-2">
@@ -128,7 +128,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         {{-- Tags Section --}}
                         <div class="p-3 flex-grow">
                             <div class="space-y-2">
@@ -142,7 +142,7 @@
                                     @endforeach
                                 </div>
                                 @endif
-                                
+
                                 {{-- Category Tags --}}
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     @foreach($categoryTags as $tag)
@@ -152,7 +152,7 @@
                                             @elseif($tag === 'Regional') bg-orange-500/20 text-orange-400 border border-orange-500/30
                                             @else bg-orange-500/20 text-orange-400 border border-orange-500/30
                                             @endif">
-                                            <span class="w-1 h-1 rounded-full 
+                                            <span class="w-1 h-1 rounded-full
                                                 @if($tag === 'Companies') bg-red-400
                                                 @elseif($tag === 'Students') bg-purple-400
                                                 @elseif($tag === 'Regional') bg-orange-400
@@ -164,7 +164,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         {{-- Footer avec Date --}}
                         <div class="px-4 py-2 bg-gray-900/20 border-t border-gray-700/50">
                             <div class="flex items-center justify-between">
@@ -178,7 +178,7 @@
                 </a>
             @endforeach
         </div>
-        
+
         @if ($projects->count() === 0)
             <div class="flex flex-col gap-4 items-center justify-center py-12">
                 <div class='text-xl font-semibold text-gray-400'>No projects found.</div>
@@ -204,7 +204,7 @@
                 </x-modal-input>
             @endif
         </div>
-        
+
         @if ($servers->count() > 0)
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach ($servers as $server)
@@ -212,17 +212,17 @@
                         $totalResources = 0;
                         $activeResources = 0;
                         $hasIssues = false;
-                        
+
                         foreach ($server->destinations() ?? [] as $destination) {
                             $totalResources += $destination->applications->count();
                             $activeResources += $destination->applications->where('status', 'running')->count();
                         }
-                        
+
                         if (!$server->isFunctional()) {
                             $hasIssues = true;
                         }
                     @endphp
-                    
+
                     <a href="{{ route('server.show', ['server_uuid' => $server->uuid]) }}" class="group block">
                         <div @class([
                             'rounded-xl p-4 transition-all duration-300 min-h-[200px] flex flex-col',
@@ -248,7 +248,7 @@
                                     </p>
                                 </div>
                             </div>
-                            
+
                             <div class="grid grid-cols-2 gap-2 mb-3">
                                 <div @class([
                                     'rounded-md p-2 text-center',
@@ -270,7 +270,7 @@
                                     <div class="text-[10px] text-gray-400 mt-0.5">Active</div>
                                 </div>
                             </div>
-                            
+
                             <div class="mt-auto pt-3 border-t border-gray-700">
                                 <div class="flex items-center justify-between text-[10px] text-gray-500">
                                     <span class="truncate">{{ $server->ip }}</span>
@@ -292,7 +292,7 @@
             @if ($privateKeys->count() === 0)
                 <div class="flex flex-col gap-4 items-center justify-center py-12">
                     <div class='text-xl font-semibold text-gray-400'>No private keys found.</div>
-                    <div class="text-gray-500">Before you can add your server, first 
+                    <div class="text-gray-500">Before you can add your server, first
                         <x-modal-input buttonTitle="add a private key" title="New Private Key">
                             <livewire:security.private-key.create />
                         </x-modal-input>

@@ -167,8 +167,8 @@ class StartMariadb
                 [
                     [
                         'type' => 'bind',
-                        'source' => '/data/coolify/ssl/coolify-ca.crt',
-                        'target' => '/etc/mysql/certs/coolify-ca.crt',
+                        'source' => '/data/ideploy/ssl/ideploy-ca.crt',
+                        'target' => '/etc/mysql/certs/ideploy-ca.crt',
                         'read_only' => true,
                     ],
                 ]
@@ -197,7 +197,7 @@ class StartMariadb
                 'mariadbd',
                 '--ssl-cert=/etc/mysql/certs/server.crt',
                 '--ssl-key=/etc/mysql/certs/server.key',
-                '--ssl-ca=/etc/mysql/certs/coolify-ca.crt',
+                '--ssl-ca=/etc/mysql/certs/ideploy-ca.crt',
                 '--require-secure-transport=1',
             ];
         }
@@ -274,7 +274,7 @@ class StartMariadb
             $environment_variables->push("MARIADB_PASSWORD={$this->database->mariadb_password}");
         }
 
-        add_coolify_default_environment_variables($this->database, $environment_variables, $environment_variables);
+        add_ideploy_default_environment_variables($this->database, $environment_variables, $environment_variables);
 
         return $environment_variables->all();
     }

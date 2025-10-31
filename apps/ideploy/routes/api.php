@@ -52,7 +52,7 @@ Route::group([
         Route::get('/upgrade-suggestions', [IdemSubscriptionController::class, 'getUpgradeSuggestions']);
         Route::get('/preflight/app', [IdemSubscriptionController::class, 'checkCanDeploy']);
         Route::get('/preflight/server', [IdemSubscriptionController::class, 'checkCanAddServer']);
-        
+
         // Stripe routes
         Route::post('/stripe/checkout', [IdemStripeController::class, 'createCheckoutSession']);
         Route::get('/stripe/success', [IdemStripeController::class, 'checkoutSuccess']);
@@ -248,5 +248,5 @@ Route::group([
 });
 
 Route::any('/{any}', function () {
-    return response()->json(['message' => 'Not found.', 'docs' => 'https://coolify.io/docs'], 404);
+    return response()->json(['message' => 'Not found.', 'docs' => 'https://ideploy.io/docs'], 404);
 })->where('any', '.*');

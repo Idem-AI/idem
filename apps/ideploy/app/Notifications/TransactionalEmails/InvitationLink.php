@@ -27,7 +27,7 @@ class InvitationLink extends CustomEmailNotification
         $invitation_team = Team::find($invitation->team->id);
 
         $mail = new MailMessage;
-        $mail->subject('Coolify: Invitation for '.$invitation_team->name);
+        $mail->subject('Ideploy: Invitation for '.$invitation_team->name);
         $mail->view('emails.invitation-link', [
             'team' => $invitation_team->name,
             'email' => $this->user->email,

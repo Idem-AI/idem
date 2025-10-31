@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Script pour exécuter Coolify localement sans Docker
+# Script pour exécuter Ideploy localement sans Docker
 # Usage: ./scripts/run-local.sh
 
 set -e
 
-echo "🚀 Démarrage de Coolify en mode local (sans Docker)"
+echo "🚀 Démarrage de Ideploy en mode local (sans Docker)"
 echo "=================================================="
 
 # Couleurs pour les logs
@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 # Vérifier que nous sommes dans le bon répertoire
 if [ ! -f "artisan" ]; then
-    echo -e "${RED}❌ Erreur: Ce script doit être exécuté depuis la racine du projet Coolify${NC}"
+    echo -e "${RED}❌ Erreur: Ce script doit être exécuté depuis la racine du projet Ideploy${NC}"
     exit 1
 fi
 
@@ -110,7 +110,7 @@ npm run build
 
 echo -e "\n${GREEN}✅ Configuration terminée!${NC}"
 echo -e "\n${BLUE}=================================================="
-echo -e "🎉 Coolify est prêt à être lancé!"
+echo -e "🎉 Ideploy est prêt à être lancé!"
 echo -e "=================================================="
 echo -e "\nPour démarrer les services, exécutez dans des terminaux séparés:"
 echo -e "\n  ${GREEN}Terminal 1 - Serveur Web:${NC}"

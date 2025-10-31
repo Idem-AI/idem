@@ -66,7 +66,7 @@ class Import extends Component
     public function mount()
     {
         if (isDev()) {
-            $this->customLocation = '/data/coolify/pg-dump-all-1736245863.gz';
+            $this->customLocation = '/data/ideploy/pg-dump-all-1736245863.gz';
         }
         $this->parameters = get_route_parameters();
         $this->getContainers();

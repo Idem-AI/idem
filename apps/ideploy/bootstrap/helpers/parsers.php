@@ -423,7 +423,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
         // convert environment variables to one format
         $environment = convertToKeyValueCollection($environment);
 
-        // Add Coolify defined environments
+        // Add Ideploy defined environments
         $allEnvironments = $resource->environment_variables()->get(['key', 'value']);
 
         $allEnvironments = $allEnvironments->mapWithKeys(function ($item) {
@@ -507,7 +507,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
 
         $allMagicEnvironments = $allMagicEnvironments->merge($magicEnvironments);
         if ($magicEnvironments->count() > 0) {
-            // Generate Coolify environment variables
+            // Generate Ideploy environment variables
             foreach ($magicEnvironments as $key => $value) {
                 $key = str($key);
                 $value = replaceVariables($value);
@@ -657,7 +657,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
         $environment = $environment->merge($buildArgs);
 
         $environment = convertToKeyValueCollection($environment);
-        $coolifyEnvironments = collect([]);
+        $ideployEnvironments = collect([]);
 
         $isDatabase = isDatabaseImage($image, $service);
         $volumesParsed = collect([]);
@@ -785,9 +785,9 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
                         );
                         if (isDev()) {
                             if ((int) $resource->compose_parsing_version >= 4) {
-                                $source = $source->replace($mainDirectory, '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/applications/'.$uuid);
+                                $source = $source->replace($mainDirectory, '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/applications/'.$uuid);
                             } else {
-                                $source = $source->replace($mainDirectory, '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/applications/'.$uuid);
+                                $source = $source->replace($mainDirectory, '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/applications/'.$uuid);
                             }
                         }
                         $volume = "$source:$target";
@@ -997,7 +997,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
                         $isRequired = true;
                     }
                     if ($originalValue->value() === $value->value()) {
-                        // This means the variable does not have a default value, so it needs to be created in Coolify
+                        // This means the variable does not have a default value, so it needs to be created in Ideploy
                         $parsedKeyValue = replaceVariables($value);
                         $resource->environment_variables()->firstOrCreate([
                             'key' => $parsedKeyValue,
@@ -1028,18 +1028,18 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
         if ($pullRequestId !== 0) {
             $branch = "pull/{$pullRequestId}/head";
         }
-        if ($originalResource->environment_variables->where('key', 'COOLIFY_BRANCH')->isEmpty()) {
-            $coolifyEnvironments->put('COOLIFY_BRANCH', "\"{$branch}\"");
+        if ($originalResource->environment_variables->where('key', 'IDEPLOY_BRANCH')->isEmpty()) {
+            $ideployEnvironments->put('IDEPLOY_BRANCH', "\"{$branch}\"");
         }
 
-        // Add COOLIFY_RESOURCE_UUID to environment
-        if ($resource->environment_variables->where('key', 'COOLIFY_RESOURCE_UUID')->isEmpty()) {
-            $coolifyEnvironments->put('COOLIFY_RESOURCE_UUID', "{$resource->uuid}");
+        // Add IDEPLOY_RESOURCE_UUID to environment
+        if ($resource->environment_variables->where('key', 'IDEPLOY_RESOURCE_UUID')->isEmpty()) {
+            $ideployEnvironments->put('IDEPLOY_RESOURCE_UUID', "{$resource->uuid}");
         }
 
-        // Add COOLIFY_CONTAINER_NAME to environment
-        if ($resource->environment_variables->where('key', 'COOLIFY_CONTAINER_NAME')->isEmpty()) {
-            $coolifyEnvironments->put('COOLIFY_CONTAINER_NAME', "{$containerName}");
+        // Add IDEPLOY_CONTAINER_NAME to environment
+        if ($resource->environment_variables->where('key', 'IDEPLOY_CONTAINER_NAME')->isEmpty()) {
+            $ideployEnvironments->put('IDEPLOY_CONTAINER_NAME', "{$containerName}");
         }
 
         if ($isPullRequest) {
@@ -1063,18 +1063,18 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
 
                 if (filled($parsedDomain)) {
                     $parsedDomain = str($parsedDomain)->explode(',')->first();
-                    $coolifyUrl = Url::fromString($parsedDomain);
-                    $coolifyScheme = $coolifyUrl->getScheme();
-                    $coolifyFqdn = $coolifyUrl->getHost();
-                    $coolifyUrl = $coolifyUrl->withScheme($coolifyScheme)->withHost($coolifyFqdn)->withPort(null);
-                    $coolifyEnvironments->put('SERVICE_URL_'.str($forServiceName)->upper()->replace('-', '_')->replace('.', '_'), $coolifyUrl->__toString());
-                    $coolifyEnvironments->put('SERVICE_FQDN_'.str($forServiceName)->upper()->replace('-', '_')->replace('.', '_'), $coolifyFqdn);
+                    $ideployUrl = Url::fromString($parsedDomain);
+                    $ideployScheme = $ideployUrl->getScheme();
+                    $ideployFqdn = $ideployUrl->getHost();
+                    $ideployUrl = $ideployUrl->withScheme($ideployScheme)->withHost($ideployFqdn)->withPort(null);
+                    $ideployEnvironments->put('SERVICE_URL_'.str($forServiceName)->upper()->replace('-', '_')->replace('.', '_'), $ideployUrl->__toString());
+                    $ideployEnvironments->put('SERVICE_FQDN_'.str($forServiceName)->upper()->replace('-', '_')->replace('.', '_'), $ideployFqdn);
                     $resource->environment_variables()->updateOrCreate([
                         'resourceable_type' => Application::class,
                         'resourceable_id' => $resource->id,
                         'key' => 'SERVICE_URL_'.str($forServiceName)->upper()->replace('-', '_')->replace('.', '_'),
                     ], [
-                        'value' => $coolifyUrl->__toString(),
+                        'value' => $ideployUrl->__toString(),
                         'is_preview' => false,
                     ]);
                     $resource->environment_variables()->updateOrCreate([
@@ -1082,7 +1082,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
                         'resourceable_id' => $resource->id,
                         'key' => 'SERVICE_FQDN_'.str($forServiceName)->upper()->replace('-', '_')->replace('.', '_'),
                     ], [
-                        'value' => $coolifyFqdn,
+                        'value' => $ideployFqdn,
                         'is_preview' => false,
                     ]);
                 } else {
@@ -1145,24 +1145,24 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
         );
 
         $isDatabase = isDatabaseImage($image, $service);
-        // Add COOLIFY_FQDN & COOLIFY_URL to environment
+        // Add IDEPLOY_FQDN & IDEPLOY_URL to environment
         if (! $isDatabase && $fqdns instanceof Collection && $fqdns->count() > 0) {
             $fqdnsWithoutPort = $fqdns->map(function ($fqdn) {
                 return str($fqdn)->after('://')->before(':')->prepend(str($fqdn)->before('://')->append('://'));
             });
-            $coolifyEnvironments->put('COOLIFY_URL', $fqdnsWithoutPort->implode(','));
+            $ideployEnvironments->put('IDEPLOY_URL', $fqdnsWithoutPort->implode(','));
 
             $urls = $fqdns->map(function ($fqdn) {
                 return str($fqdn)->replace('http://', '')->replace('https://', '')->before(':');
             });
-            $coolifyEnvironments->put('COOLIFY_FQDN', $urls->implode(','));
+            $ideployEnvironments->put('IDEPLOY_FQDN', $urls->implode(','));
         }
-        add_coolify_default_environment_variables($resource, $coolifyEnvironments, $resource->environment_variables);
+        add_ideploy_default_environment_variables($resource, $ideployEnvironments, $resource->environment_variables);
         if ($environment->count() > 0) {
             $environment = $environment->filter(function ($value, $key) {
                 return ! str($key)->startsWith('SERVICE_FQDN_');
             })->map(function ($value, $key) use ($resource) {
-                // if value is empty, set it to null so if you set the environment variable in the .env file (Coolify's UI), it will used
+                // if value is empty, set it to null so if you set the environment variable in the .env file (Ideploy's UI), it will used
                 if (str($value)->isEmpty()) {
                     if ($resource->environment_variables()->where('key', $key)->exists()) {
                         $value = $resource->environment_variables()->where('key', $key)->first()->value;
@@ -1274,8 +1274,8 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
         if ($volumesParsed->count() > 0) {
             $payload['volumes'] = $volumesParsed;
         }
-        if ($environment->count() > 0 || $coolifyEnvironments->count() > 0) {
-            $payload['environment'] = $environment->merge($coolifyEnvironments)->merge($serviceNameEnvironments);
+        if ($environment->count() > 0 || $ideployEnvironments->count() > 0) {
+            $payload['environment'] = $environment->merge($ideployEnvironments)->merge($serviceNameEnvironments);
         }
         if ($logging) {
             $payload['logging'] = $logging;
@@ -1447,7 +1447,7 @@ function serviceParser(Service $resource): Collection
         // convert environment variables to one format
         $environment = convertToKeyValueCollection($environment);
 
-        // Add Coolify defined environments
+        // Add Ideploy defined environments
         $allEnvironments = $resource->environment_variables()->get(['key', 'value']);
 
         $allEnvironments = $allEnvironments->mapWithKeys(function ($item) {
@@ -1527,7 +1527,7 @@ function serviceParser(Service $resource): Collection
                     $urlWithPort = "$url:$port";
                 }
                 if (is_null($savedService->fqdn)) {
-                    if ((int) $resource->compose_parsing_version >= 5 && version_compare(config('constants.coolify.version'), '4.0.0-beta.420.7', '>=')) {
+                    if ((int) $resource->compose_parsing_version >= 5 && version_compare(config('constants.ideploy.version'), '4.0.0-beta.420.7', '>=')) {
                         if ($fqdnFor) {
                             $savedService->fqdn = $fqdnWithPort;
                         }
@@ -1674,7 +1674,7 @@ function serviceParser(Service $resource): Collection
         $environment = $environment->merge($buildArgs);
 
         $environment = convertToKeyValueCollection($environment);
-        $coolifyEnvironments = collect([]);
+        $ideployEnvironments = collect([]);
 
         $isDatabase = isDatabaseImage($image, $service);
         $volumesParsed = collect([]);
@@ -1833,9 +1833,9 @@ function serviceParser(Service $resource): Collection
                         );
                         if (isDev()) {
                             if ((int) $resource->compose_parsing_version >= 4) {
-                                $source = $source->replace($mainDirectory, '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/services/'.$uuid);
+                                $source = $source->replace($mainDirectory, '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/services/'.$uuid);
                             } else {
-                                $source = $source->replace($mainDirectory, '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/applications/'.$uuid);
+                                $source = $source->replace($mainDirectory, '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/applications/'.$uuid);
                             }
                         }
                         $volume = "$source:$target";
@@ -2019,7 +2019,7 @@ function serviceParser(Service $resource): Collection
                         $isRequired = true;
                     }
                     if ($originalValue->value() === $value->value()) {
-                        // This means the variable does not have a default value, so it needs to be created in Coolify
+                        // This means the variable does not have a default value, so it needs to be created in Ideploy
                         $parsedKeyValue = replaceVariables($value);
                         $resource->environment_variables()->firstOrCreate([
                             'key' => $parsedKeyValue,
@@ -2047,14 +2047,14 @@ function serviceParser(Service $resource): Collection
             }
         }
 
-        // Add COOLIFY_RESOURCE_UUID to environment
-        if ($resource->environment_variables->where('key', 'COOLIFY_RESOURCE_UUID')->isEmpty()) {
-            $coolifyEnvironments->put('COOLIFY_RESOURCE_UUID', "{$resource->uuid}");
+        // Add IDEPLOY_RESOURCE_UUID to environment
+        if ($resource->environment_variables->where('key', 'IDEPLOY_RESOURCE_UUID')->isEmpty()) {
+            $ideployEnvironments->put('IDEPLOY_RESOURCE_UUID', "{$resource->uuid}");
         }
 
-        // Add COOLIFY_CONTAINER_NAME to environment
-        if ($resource->environment_variables->where('key', 'COOLIFY_CONTAINER_NAME')->isEmpty()) {
-            $coolifyEnvironments->put('COOLIFY_CONTAINER_NAME', "{$containerName}");
+        // Add IDEPLOY_CONTAINER_NAME to environment
+        if ($resource->environment_variables->where('key', 'IDEPLOY_CONTAINER_NAME')->isEmpty()) {
+            $ideployEnvironments->put('IDEPLOY_CONTAINER_NAME', "{$containerName}");
         }
 
         if ($savedService->serviceType()) {
@@ -2075,23 +2075,23 @@ function serviceParser(Service $resource): Collection
             environment: $resource->environment->name,
         );
 
-        // Add COOLIFY_FQDN & COOLIFY_URL to environment
+        // Add IDEPLOY_FQDN & IDEPLOY_URL to environment
         if (! $isDatabase && $fqdns instanceof Collection && $fqdns->count() > 0) {
             $fqdnsWithoutPort = $fqdns->map(function ($fqdn) {
                 return str($fqdn)->replace('http://', '')->replace('https://', '')->before(':');
             });
-            $coolifyEnvironments->put('COOLIFY_FQDN', $fqdnsWithoutPort->implode(','));
+            $ideployEnvironments->put('IDEPLOY_FQDN', $fqdnsWithoutPort->implode(','));
             $urls = $fqdns->map(function ($fqdn): Stringable {
                 return str($fqdn)->after('://')->before(':')->prepend(str($fqdn)->before('://')->append('://'));
             });
-            $coolifyEnvironments->put('COOLIFY_URL', $urls->implode(','));
+            $ideployEnvironments->put('IDEPLOY_URL', $urls->implode(','));
         }
-        add_coolify_default_environment_variables($resource, $coolifyEnvironments, $resource->environment_variables);
+        add_ideploy_default_environment_variables($resource, $ideployEnvironments, $resource->environment_variables);
         if ($environment->count() > 0) {
             $environment = $environment->filter(function ($value, $key) {
                 return ! str($key)->startsWith('SERVICE_FQDN_');
             })->map(function ($value, $key) use ($resource) {
-                // if value is empty, set it to null so if you set the environment variable in the .env file (Coolify's UI), it will used
+                // if value is empty, set it to null so if you set the environment variable in the .env file (Ideploy's UI), it will used
                 if (str($value)->isEmpty()) {
                     if ($resource->environment_variables()->where('key', $key)->exists()) {
                         $value = $resource->environment_variables()->where('key', $key)->first()->value;
@@ -2200,8 +2200,8 @@ function serviceParser(Service $resource): Collection
         if ($volumesParsed->count() > 0) {
             $payload['volumes'] = $volumesParsed;
         }
-        if ($environment->count() > 0 || $coolifyEnvironments->count() > 0) {
-            $payload['environment'] = $environment->merge($coolifyEnvironments)->merge($serviceNameEnvironments);
+        if ($environment->count() > 0 || $ideployEnvironments->count() > 0) {
+            $payload['environment'] = $environment->merge($ideployEnvironments)->merge($serviceNameEnvironments);
         }
         if ($logging) {
             $payload['logging'] = $logging;

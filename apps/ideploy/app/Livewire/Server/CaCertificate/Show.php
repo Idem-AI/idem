@@ -88,7 +88,7 @@ class Show extends Component
         try {
             $this->authorize('manageCaCertificate', $this->server);
             SslHelper::generateSslCertificate(
-                commonName: 'Coolify CA Certificate',
+                commonName: 'Ideploy CA Certificate',
                 serverId: $this->server->id,
                 isCaCertificate: true,
                 validityDays: 10 * 365
@@ -112,15 +112,15 @@ class Show extends Component
 
     private function writeCertificateToServer()
     {
-        $caCertPath = config('constants.coolify.base_config_path').'/ssl/';
+        $caCertPath = config('constants.ideploy.base_config_path').'/ssl/';
 
         $commands = collect([
             "mkdir -p $caCertPath",
             "chown -R 9999:root $caCertPath",
             "chmod -R 700 $caCertPath",
-            "rm -rf $caCertPath/coolify-ca.crt",
-            "echo '{$this->certificateContent}' > $caCertPath/coolify-ca.crt",
-            "chmod 644 $caCertPath/coolify-ca.crt",
+            "rm -rf $caCertPath/ideploy-ca.crt",
+            "echo '{$this->certificateContent}' > $caCertPath/ideploy-ca.crt",
+            "chmod 644 $caCertPath/ideploy-ca.crt",
         ]);
 
         remote_process($commands, $this->server);
