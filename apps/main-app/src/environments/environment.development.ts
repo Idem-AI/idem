@@ -15,7 +15,7 @@ export const environment = {
     measurementId: 'G-1YQGTP97EJ',
   },
   services: {
-    domain: 'https://idem-ai.com',
+    domain: 'https://idem.africa',
     api: {
       url: 'http://localhost:3001',
       version: 'v1',

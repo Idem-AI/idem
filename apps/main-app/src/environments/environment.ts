@@ -15,17 +15,17 @@ export const environment = {
     measurementId: 'G-1YQGTP97EJ',
   },
   services: {
-    domain: 'https://idem-ai.com',
+    domain: 'https://idem.africa',
     api: {
-      url: 'https://api.idem-ai.com',
+      url: 'https://api.idem.africa',
       version: 'v1',
       llmModel: 'gpt-3.5-turbo',
     },
     webgen: {
-      url: 'https://appgen.idem-ai.com',
+      url: 'https://appgen.idem.africa',
     },
     diagen: {
-      url: 'http://chart.idem-ai.com',
+      url: 'http://chart.idem.africa',
     },
   },
 };

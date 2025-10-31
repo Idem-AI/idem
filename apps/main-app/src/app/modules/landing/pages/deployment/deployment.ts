@@ -30,14 +30,14 @@ export class DeploymentPage {
       title: 'Quick Deployment',
       subtitle: 'Deploy in seconds with zero configuration',
       description:
-        'IDEM handles everything automatically. We build your application images, deploy them on our infrastructure, and provide you with a live URL. Your app is accessible at https://[your-app].idem-ai.com with the option to add your custom domain.',
+        'IDEM handles everything automatically. We build your application images, deploy them on our infrastructure, and provide you with a live URL. Your app is accessible at https://[your-app].idem.africa with the option to add your custom domain.',
       icon: 'pi-bolt',
       color: '#10b981',
       features: [
         'Zero configuration required',
         'Automatic image building',
         'Instant deployment on IDEM servers',
-        'Free subdomain: [your-app].idem-ai.com',
+        'Free subdomain: [your-app].idem.africa',
         'Custom domain support',
         'SSL certificates included',
         'Automatic scaling',
