@@ -40,7 +40,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       category: 'SaaS Platform',
       description: 'Modern B2B software solution with clean design and powerful features',
       imageUrl: '/assets/showcase/website-1.jpg',
-      liveUrl: 'https://techflow-demo.idem-ai.com',
+      liveUrl: 'https://techflow-demo.idem.africa',
       technologies: ['Angular', 'Node.js', 'PostgreSQL'],
     },
     {
@@ -49,7 +49,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       category: 'E-commerce',
       description: 'Sustainable products marketplace with integrated payment system',
       imageUrl: '/assets/showcase/website-2.jpg',
-      liveUrl: 'https://ecogreen-demo.idem-ai.com',
+      liveUrl: 'https://ecogreen-demo.idem.africa',
       technologies: ['React', 'Express', 'MongoDB'],
     },
     {
@@ -58,7 +58,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       category: 'Healthcare',
       description: 'Patient management system with telemedicine capabilities',
       imageUrl: '/assets/showcase/website-3.jpg',
-      liveUrl: 'https://healthcare-demo.idem-ai.com',
+      liveUrl: 'https://healthcare-demo.idem.africa',
       technologies: ['Vue.js', 'Laravel', 'MySQL'],
     },
     {
@@ -67,7 +67,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       category: 'Education',
       description: 'Interactive learning platform with video streaming and assessments',
       imageUrl: '/assets/showcase/website-4.jpg',
-      liveUrl: 'https://edulearn-demo.idem-ai.com',
+      liveUrl: 'https://edulearn-demo.idem.africa',
       technologies: ['Angular', 'NestJS', 'PostgreSQL'],
     },
     {
@@ -76,7 +76,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       category: 'Finance',
       description: 'Real-time financial analytics and trading dashboard',
       imageUrl: '/assets/showcase/website-5.jpg',
-      liveUrl: 'https://fintech-demo.idem-ai.com',
+      liveUrl: 'https://fintech-demo.idem.africa',
       technologies: ['React', 'FastAPI', 'Redis'],
     },
     {
@@ -85,7 +85,7 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
       category: 'Portfolio',
       description: 'Artist portfolio with interactive galleries and booking system',
       imageUrl: '/assets/showcase/website-6.jpg',
-      liveUrl: 'https://portfolio-demo.idem-ai.com',
+      liveUrl: 'https://portfolio-demo.idem.africa',
       technologies: ['Next.js', 'Strapi', 'PostgreSQL'],
     },
   ]);

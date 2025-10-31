@@ -3,148 +3,148 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-  
+
   <!-- Homepage -->
   <url>
-    <loc>https://idem-ai.com/</loc>
+    <loc>https://idem.africa/</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-  
+
   <!-- Public Pages -->
   <url>
-    <loc>https://idem-ai.com/home</loc>
+    <loc>https://idem.africa/home</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/premium-beta</loc>
+    <loc>https://idem.africa/premium-beta</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-  
+
   <!-- Authentication Pages -->
   <url>
-    <loc>https://idem-ai.com/login</loc>
+    <loc>https://idem.africa/login</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-  
+
   <!-- Legal Pages -->
   <url>
-    <loc>https://idem-ai.com/privacy-policy</loc>
+    <loc>https://idem.africa/privacy-policy</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/terms-of-service</loc>
+    <loc>https://idem.africa/terms-of-service</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/beta-policy</loc>
+    <loc>https://idem.africa/beta-policy</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
-  
+
   <!-- Dashboard Pages (Public accessible) -->
   <url>
-    <loc>https://idem-ai.com/console</loc>
+    <loc>https://idem.africa/console</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/dashboard</loc>
+    <loc>https://idem.africa/console/dashboard</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/projects</loc>
+    <loc>https://idem.africa/console/projects</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/create-project</loc>
+    <loc>https://idem.africa/console/create-project</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
-  
+
   <!-- Feature Pages -->
   <url>
-    <loc>https://idem-ai.com/console/branding</loc>
+    <loc>https://idem.africa/console/branding</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/business-plan</loc>
+    <loc>https://idem.africa/console/business-plan</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/diagrams</loc>
+    <loc>https://idem.africa/console/diagrams</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/tests</loc>
+    <loc>https://idem.africa/console/tests</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/development</loc>
+    <loc>https://idem.africa/console/development</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/development/create</loc>
+    <loc>https://idem.africa/console/development/create</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/deployments</loc>
+    <loc>https://idem.africa/console/deployments</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/deployments/create</loc>
+    <loc>https://idem.africa/console/deployments/create</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
-  
+
   <url>
-    <loc>https://idem-ai.com/console/profile</loc>
+    <loc>https://idem.africa/console/profile</loc>
     <lastmod>2025-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
