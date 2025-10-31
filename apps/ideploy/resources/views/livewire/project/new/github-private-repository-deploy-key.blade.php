@@ -1,9 +1,12 @@
 <div>
-    <h1>Create a new Application</h1>
-    <div class="pb-4">Deploy any public or private Git repositories through a Deploy Key.</div>
+    {{-- Header --}}
+    <div class="mb-6 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
+        <h1 class="text-2xl font-bold text-white mb-2">Create a new Application</h1>
+        <p class="text-sm text-gray-400">Deploy any public or private Git repositories through a Deploy Key</p>
+    </div>
     <div class="flex flex-col ">
         @if ($current_step === 'private_keys')
-            <h2 class="pb-4">Select a private key</h2>
+            <h2 class="text-xl font-bold text-white mb-4">Select a private key</h2>
             <div class="flex flex-col justify-center gap-2 text-left ">
                 @forelse ($private_keys as $key)
                     @if ($private_key_id == $key->id)
@@ -46,7 +49,7 @@
             </div>
         @endif
         @if ($current_step === 'repository')
-            <form class="flex flex-col gap-2" wire:submit='submit'>
+            <form class="flex flex-col gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50" wire:submit='submit'>
                 <x-forms.input id="repository_url" required label="Repository URL (https:// or git@)" />
                 <div class="flex gap-2">
                     <x-forms.input id="branch" required label="Branch" />

@@ -1,9 +1,13 @@
-<div>
+<div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
         Profile | Coolify
     </x-slot>
-    <h1>Profile</h1>
-    <div class="subtitle -mt-2">Your user profile settings.</div>
+    
+    {{-- Header --}}
+    <div class="mb-6">
+        <h1 class="text-3xl font-light text-gray-100 mb-2">Profile</h1>
+        <p class="text-sm text-gray-400">Your user profile settings.</p>
+    </div>
     <form wire:submit='submit' class="flex flex-col">
         <div class="flex items-center gap-2">
             <h2>General</h2>

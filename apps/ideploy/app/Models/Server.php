@@ -60,7 +60,7 @@ class Server extends BaseModel
 
     public static $batch_counter = 0;
 
-    protected $appends = ['is_ideploy_host'];
+    protected $appends = ['is_coolify_host'];
 
     protected static function booted()
     {
@@ -92,30 +92,30 @@ class Server extends BaseModel
                 if ($server->isSwarm()) {
                     SwarmDocker::create([
                         'id' => 0,
-                        'name' => 'ideploy',
-                        'network' => 'ideploy-overlay',
+                        'name' => 'coolify',
+                        'network' => 'coolify-overlay',
                         'server_id' => $server->id,
                     ]);
                 } else {
                     StandaloneDocker::create([
                         'id' => 0,
-                        'name' => 'ideploy',
-                        'network' => 'ideploy',
+                        'name' => 'coolify',
+                        'network' => 'coolify',
                         'server_id' => $server->id,
                     ]);
                 }
             } else {
                 if ($server->isSwarm()) {
                     SwarmDocker::create([
-                        'name' => 'ideploy-overlay',
-                        'network' => 'ideploy-overlay',
+                        'name' => 'coolify-overlay',
+                        'network' => 'coolify-overlay',
                         'server_id' => $server->id,
                     ]);
                 } else {
                     $standaloneDocker = new StandaloneDocker([
-                        'name' => 'ideploy',
+                        'name' => 'coolify',
                         'uuid' => (string) new Cuid2,
-                        'network' => 'ideploy',
+                        'network' => 'coolify',
                         'server_id' => $server->id,
                     ]);
                     $standaloneDocker->saveQuietly();
@@ -240,7 +240,7 @@ class Server extends BaseModel
         $redirect_url = $this->proxy->redirect_url;
         if (isDev()) {
             if ($proxy_type === ProxyTypes::CADDY->value) {
-                $dynamic_conf_path = '/data/ideploy/proxy/caddy/dynamic';
+                $dynamic_conf_path = '/data/coolify/proxy/caddy/dynamic';
             }
         }
         if ($proxy_type === ProxyTypes::TRAEFIK->value) {
@@ -331,7 +331,7 @@ class Server extends BaseModel
         $settings = instanceSettings();
         $dynamic_config_path = $this->proxyPath().'/dynamic';
         if ($this->proxyType() === ProxyTypes::TRAEFIK->value) {
-            $file = "$dynamic_config_path/ideploy.yaml";
+            $file = "$dynamic_config_path/coolify.yaml";
             if (empty($settings->fqdn) || (isCloud() && $this->id !== 0) || ! $this->isLocalhost()) {
                 instant_remote_process([
                     "rm -f $file",
@@ -353,55 +353,55 @@ class Server extends BaseModel
                             ],
                         ],
                         'routers' => [
-                            'ideploy-http' => [
+                            'coolify-http' => [
                                 'middlewares' => [
                                     0 => 'gzip',
                                 ],
                                 'entryPoints' => [
                                     0 => 'http',
                                 ],
-                                'service' => 'ideploy',
+                                'service' => 'coolify',
                                 'rule' => "Host(`{$host}`)",
                             ],
-                            'ideploy-realtime-ws' => [
+                            'coolify-realtime-ws' => [
                                 'entryPoints' => [
                                     0 => 'http',
                                 ],
-                                'service' => 'ideploy-realtime',
+                                'service' => 'coolify-realtime',
                                 'rule' => "Host(`{$host}`) && PathPrefix(`/app`)",
                             ],
-                            'ideploy-terminal-ws' => [
+                            'coolify-terminal-ws' => [
                                 'entryPoints' => [
                                     0 => 'http',
                                 ],
-                                'service' => 'ideploy-terminal',
+                                'service' => 'coolify-terminal',
                                 'rule' => "Host(`{$host}`) && PathPrefix(`/terminal/ws`)",
                             ],
                         ],
                         'services' => [
-                            'ideploy' => [
+                            'coolify' => [
                                 'loadBalancer' => [
                                     'servers' => [
                                         0 => [
-                                            'url' => 'http://ideploy:8080',
+                                            'url' => 'http://coolify:8080',
                                         ],
                                     ],
                                 ],
                             ],
-                            'ideploy-realtime' => [
+                            'coolify-realtime' => [
                                 'loadBalancer' => [
                                     'servers' => [
                                         0 => [
-                                            'url' => 'http://ideploy-realtime:6001',
+                                            'url' => 'http://coolify-realtime:6001',
                                         ],
                                     ],
                                 ],
                             ],
-                            'ideploy-terminal' => [
+                            'coolify-terminal' => [
                                 'loadBalancer' => [
                                     'servers' => [
                                         0 => [
-                                            'url' => 'http://ideploy-realtime:6002',
+                                            'url' => 'http://coolify-realtime:6002',
                                         ],
                                     ],
                                 ],
@@ -411,35 +411,35 @@ class Server extends BaseModel
                 ];
 
                 if ($schema === 'https') {
-                    $traefik_dynamic_conf['http']['routers']['ideploy-http']['middlewares'] = [
+                    $traefik_dynamic_conf['http']['routers']['coolify-http']['middlewares'] = [
                         0 => 'redirect-to-https',
                     ];
 
-                    $traefik_dynamic_conf['http']['routers']['ideploy-https'] = [
+                    $traefik_dynamic_conf['http']['routers']['coolify-https'] = [
                         'entryPoints' => [
                             0 => 'https',
                         ],
-                        'service' => 'ideploy',
+                        'service' => 'coolify',
                         'rule' => "Host(`{$host}`)",
                         'tls' => [
                             'certresolver' => 'letsencrypt',
                         ],
                     ];
-                    $traefik_dynamic_conf['http']['routers']['ideploy-realtime-wss'] = [
+                    $traefik_dynamic_conf['http']['routers']['coolify-realtime-wss'] = [
                         'entryPoints' => [
                             0 => 'https',
                         ],
-                        'service' => 'ideploy-realtime',
+                        'service' => 'coolify-realtime',
                         'rule' => "Host(`{$host}`) && PathPrefix(`/app`)",
                         'tls' => [
                             'certresolver' => 'letsencrypt',
                         ],
                     ];
-                    $traefik_dynamic_conf['http']['routers']['ideploy-terminal-wss'] = [
+                    $traefik_dynamic_conf['http']['routers']['coolify-terminal-wss'] = [
                         'entryPoints' => [
                             0 => 'https',
                         ],
-                        'service' => 'ideploy-terminal',
+                        'service' => 'coolify-terminal',
                         'rule' => "Host(`{$host}`) && PathPrefix(`/terminal/ws`)",
                         'tls' => [
                             'certresolver' => 'letsencrypt',
@@ -459,7 +459,7 @@ class Server extends BaseModel
                 ], $this);
             }
         } elseif ($this->proxyType() === 'CADDY') {
-            $file = "$dynamic_config_path/ideploy.caddy";
+            $file = "$dynamic_config_path/coolify.caddy";
             if (empty($settings->fqdn) || (isCloud() && $this->id !== 0) || ! $this->isLocalhost()) {
                 instant_remote_process([
                     "rm -f $file",
@@ -472,12 +472,12 @@ class Server extends BaseModel
                 $caddy_file = "
 $schema://$host {
     handle /app/* {
-        reverse_proxy ideploy-realtime:6001
+        reverse_proxy coolify-realtime:6001
     }
     handle /terminal/ws {
-        reverse_proxy ideploy-realtime:6002
+        reverse_proxy coolify-realtime:6002
     }
-    reverse_proxy ideploy:8080
+    reverse_proxy coolify:8080
 }";
                 $base64 = base64_encode($caddy_file);
                 instant_remote_process([
@@ -491,13 +491,13 @@ $schema://$host {
     public function reloadCaddy()
     {
         return instant_remote_process([
-            'docker exec ideploy-proxy caddy reload --config /config/caddy/Caddyfile.autosave',
+            'docker exec coolify-proxy caddy reload --config /config/caddy/Caddyfile.autosave',
         ], $this);
     }
 
     public function proxyPath()
     {
-        $base_path = config('constants.ideploy.base_config_path');
+        $base_path = config('constants.coolify.base_config_path');
         $proxyType = $this->proxyType();
         $proxy_path = "$base_path/proxy";
 
@@ -602,7 +602,7 @@ $schema://$host {
     {
         if ($this->isMetricsEnabled()) {
             $from = now()->subMinutes($mins)->toIso8601ZuluString();
-            $cpu = instant_remote_process(["docker exec ideploy-sentinel sh -c 'curl -H \"Authorization: Bearer {$this->settings->sentinel_token}\" http://localhost:8888/api/cpu/history?from=$from'"], $this, false);
+            $cpu = instant_remote_process(["docker exec coolify-sentinel sh -c 'curl -H \"Authorization: Bearer {$this->settings->sentinel_token}\" http://localhost:8888/api/cpu/history?from=$from'"], $this, false);
             if (str($cpu)->contains('error')) {
                 $error = json_decode($cpu, true);
                 $error = data_get($error, 'error', 'Something is not okay, are you okay?');
@@ -623,7 +623,7 @@ $schema://$host {
     {
         if ($this->isMetricsEnabled()) {
             $from = now()->subMinutes($mins)->toIso8601ZuluString();
-            $memory = instant_remote_process(["docker exec ideploy-sentinel sh -c 'curl -H \"Authorization: Bearer {$this->settings->sentinel_token}\" http://localhost:8888/api/memory/history?from=$from'"], $this, false);
+            $memory = instant_remote_process(["docker exec coolify-sentinel sh -c 'curl -H \"Authorization: Bearer {$this->settings->sentinel_token}\" http://localhost:8888/api/memory/history?from=$from'"], $this, false);
             if (str($memory)->contains('error')) {
                 $error = json_decode($memory, true);
                 $error = data_get($error, 'error', 'Something is not okay, are you okay?');
@@ -734,7 +734,7 @@ $schema://$host {
             $containers = format_docker_command_output_to_json($containers);
             $containers = $containers->map(function ($container) {
                 $labels = data_get($container, 'Labels');
-                if (! str($labels)->contains('ideploy.managed')) {
+                if (! str($labels)->contains('coolify.managed')) {
                     return $container;
                 }
 
@@ -774,7 +774,7 @@ $schema://$host {
 
             return $postgresqls->concat($redis)->concat($mongodbs)->concat($mysqls)->concat($mariadbs)->concat($keydbs)->concat($dragonflies)->concat($clickhouses);
         })->flatten()->filter(function ($item) {
-            return data_get($item, 'name') !== 'ideploy-db';
+            return data_get($item, 'name') !== 'coolify-db';
         });
     }
 
@@ -897,6 +897,30 @@ $schema://$host {
     public function cloudProviderToken()
     {
         return $this->belongsTo(CloudProviderToken::class);
+    }
+
+    // IDEM: Applications assignées à ce serveur géré
+    public function assignedApplications()
+    {
+        return $this->hasMany(Application::class, 'idem_assigned_server_id');
+    }
+
+    // IDEM: Vérifie si le serveur est géré par IDEM
+    public function isIdemManaged()
+    {
+        return $this->idem_managed ?? false;
+    }
+
+    // IDEM: Obtient le score de charge
+    public function getLoadScore()
+    {
+        return $this->idem_load_score ?? 0;
+    }
+
+    // IDEM: Met à jour le score de charge
+    public function updateLoadScore(int $score)
+    {
+        $this->update(['idem_load_score' => $score]);
     }
 
     public function sslCertificates()
@@ -1221,9 +1245,9 @@ $schema://$host {
             return;
         }
         if ($isSwarm) {
-            return instant_remote_process(['docker network create --attachable --driver overlay ideploy-overlay >/dev/null 2>&1 || true'], $this, false);
+            return instant_remote_process(['docker network create --attachable --driver overlay coolify-overlay >/dev/null 2>&1 || true'], $this, false);
         } else {
-            return instant_remote_process(['docker network create ideploy --attachable >/dev/null 2>&1 || true'], $this, false);
+            return instant_remote_process(['docker network create coolify --attachable >/dev/null 2>&1 || true'], $this, false);
         }
     }
 
@@ -1346,15 +1370,15 @@ $schema://$host {
             ray('CA certificate generated', $caCertificate);
             if ($caCertificate) {
                 $certificateContent = $caCertificate->ssl_certificate;
-                $caCertPath = config('constants.ideploy.base_config_path').'/ssl/';
+                $caCertPath = config('constants.coolify.base_config_path').'/ssl/';
 
                 $commands = collect([
                     "mkdir -p $caCertPath",
                     "chown -R 9999:root $caCertPath",
                     "chmod -R 700 $caCertPath",
-                    "rm -rf $caCertPath/ideploy-ca.crt",
-                    "echo '{$certificateContent}' > $caCertPath/ideploy-ca.crt",
-                    "chmod 644 $caCertPath/ideploy-ca.crt",
+                    "rm -rf $caCertPath/coolify-ca.crt",
+                    "echo '{$certificateContent}' > $caCertPath/coolify-ca.crt",
+                    "chmod 644 $caCertPath/coolify-ca.crt",
                 ]);
 
                 instant_remote_process($commands, $this, false);
@@ -1367,5 +1391,84 @@ $schema://$host {
         } catch (\Throwable $e) {
             return handleError($e);
         }
+    }
+
+    /**
+     * Calculate and update server load score (0-100)
+     * Based on: CPU usage, Memory usage, Disk usage, Number of resources
+     */
+    public function calculateAndUpdateLoadScore(): void
+    {
+        try {
+            $score = 0;
+            
+            // CPU usage (weight: 30%)
+            if (isset($this->settings->cpu_percentage)) {
+                $cpuScore = min(100, $this->settings->cpu_percentage);
+                $score += ($cpuScore * 0.30);
+            }
+            
+            // Memory usage (weight: 30%)
+            if (isset($this->settings->memory_percentage)) {
+                $memoryScore = min(100, $this->settings->memory_percentage);
+                $score += ($memoryScore * 0.30);
+            }
+            
+            // Disk usage (weight: 20%)
+            if (isset($this->settings->disk_usage_percentage)) {
+                $diskScore = min(100, $this->settings->disk_usage_percentage);
+                $score += ($diskScore * 0.20);
+            }
+            
+            // Number of deployed resources (weight: 20%)
+            $resourcesCount = $this->getResourcesCount();
+            $maxResources = 50; // Threshold for max load
+            $resourceScore = min(100, ($resourcesCount / $maxResources) * 100);
+            $score += ($resourceScore * 0.20);
+            
+            $finalScore = (int) round($score);
+            
+            // Update using existing method
+            $this->updateLoadScore($finalScore);
+        } catch (\Throwable $e) {
+            // Silently fail
+        }
+    }
+
+    /**
+     * Get total count of deployed resources on this server
+     */
+    public function getResourcesCount(): int
+    {
+        $count = 0;
+        
+        // Applications
+        foreach ($this->destinations() as $destination) {
+            $count += $destination->applications()->count();
+        }
+        
+        // Services
+        $count += $this->services()->count();
+        
+        // Standalone databases
+        $count += $this->standaloneDatabases()->count() ?? 0;
+        
+        return $count;
+    }
+
+
+
+    /**
+     * Get optimal server for deployment (lowest load score)
+     * Only considers IDEM managed servers that are reachable
+     */
+    public static function getOptimalForDeployment(): ?self
+    {
+        return static::where('idem_managed', true)
+            ->whereHas('settings', fn($q) => $q->where('is_reachable', true)
+                                              ->where('is_usable', true)
+                                              ->where('force_disabled', false))
+            ->orderBy('idem_load_score', 'asc')
+            ->first();
     }
 }

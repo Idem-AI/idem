@@ -1,23 +1,28 @@
 <div>
-    <div class="flex items-end gap-2">
-        <h1>Create a new Application</h1>
-        <x-modal-input buttonTitle="+ Add GitHub App" title="New GitHub App" closeOutside="false">
-            <livewire:source.github.create />
-        </x-modal-input>
-        @if ($repositories->count() > 0)
-            <a target="_blank" class="flex hover:no-underline" href="{{ getInstallationPath($github_app) }}">
-                <x-forms.button>
-                    Change Repositories on GitHub
-                    <x-external-link />
-                </x-forms.button>
-            </a>
-        @endif
+    {{-- Header --}}
+    <div class="mb-6 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
+        <div class="flex items-center justify-between gap-4 mb-2">
+            <h1 class="text-2xl font-bold text-white">Create a new Application</h1>
+            <div class="flex items-center gap-2">
+                <x-modal-input buttonTitle="+ Add GitHub App" title="New GitHub App" closeOutside="false">
+                    <livewire:source.github.create />
+                </x-modal-input>
+                @if ($repositories->count() > 0)
+                    <a target="_blank" class="flex hover:no-underline" href="{{ getInstallationPath($github_app) }}">
+                        <button class="px-4 py-2 border border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5]/10 font-semibold rounded-lg transition-colors text-sm flex items-center gap-2">
+                            Change Repositories on GitHub
+                            <x-external-link />
+                        </button>
+                    </a>
+                @endif
+            </div>
+        </div>
+        <p class="text-sm text-gray-400">Deploy any public or private Git repositories through a GitHub App</p>
     </div>
-    <div class="pb-4">Deploy any public or private Git repositories through a GitHub App.</div>
     @if ($github_apps->count() !== 0)
         <div class="flex flex-col gap-2">
             @if ($current_step === 'github_apps')
-                <h2 class="pt-4 pb-4">Select a Github App</h2>
+                <h2 class="text-xl font-bold text-white mb-4">Select a Github App</h2>
                 <div class="flex flex-col justify-center gap-2 text-left">
                     @foreach ($github_apps as $ghapp)
                         <div class="flex">
@@ -64,9 +69,9 @@
                     <div>No repositories found. Check your GitHub App configuration.</div>
                 @endif
                 @if ($branches->count() > 0)
-                    <h2 class="text-lg font-bold">Configuration</h2>
-                    <div class="flex flex-col gap-2 pb-6">
-                        <form class="flex flex-col" wire:submit='submit'>
+                    <h2 class="text-xl font-bold text-white mb-4">Configuration</h2>
+                    <div class="flex flex-col gap-4">
+                        <form class="flex flex-col gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50" wire:submit='submit'>
                             <div class="flex flex-col gap-2 pb-6">
                                 <div class="flex gap-2">
                                     <x-forms.select id="selected_branch_name" label="Branch">

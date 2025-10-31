@@ -212,7 +212,7 @@
                                         <p class="text-xs mt-1">
                                             Non-root user is experimental:
                                             <a class="font-bold underline" target="_blank"
-                                                href="https://ideploy.io/docs/knowledge-base/server/non-root-user">docs</a>
+                                                href="https://coolify.io/docs/knowledge-base/server/non-root-user">docs</a>
                                         </p>
                                     </div>
                                 </div>
@@ -230,7 +230,7 @@
 
                                 <p class="mb-4">
                                     For more help, check this <a target="_blank" class="underline font-semibold"
-                                        href="https://ideploy.io/docs/knowledge-base/server/openssh">documentation</a>.
+                                        href="https://coolify.io/docs/knowledge-base/server/openssh">documentation</a>.
                                 </p>
 
                                 <x-forms.input readonly id="serverPublicKey" class="mb-4"
@@ -444,7 +444,7 @@
                                         <p class="mt-1 text-xs dark:text-white text-black">
                                             Non-root user support is experimental.
                                             <a class="font-bold underline hover:text-coollabs" target="_blank"
-                                                href="https://ideploy.io/docs/knowledge-base/server/non-root-user">Learn
+                                                href="https://coolify.io/docs/knowledge-base/server/non-root-user">Learn
                                                 more</a>
                                         </p>
                                     </div>

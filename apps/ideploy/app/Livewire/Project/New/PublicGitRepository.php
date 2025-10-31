@@ -11,7 +11,9 @@ use App\Models\StandaloneDocker;
 use App\Models\SwarmDocker;
 use App\Rules\ValidGitBranch;
 use App\Rules\ValidGitRepositoryUrl;
+use App\Services\IdemQuotaService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Spatie\Url\Url;
 
@@ -100,7 +102,7 @@ class PublicGitRepository extends Component
     public function mount()
     {
         if (isDev()) {
-            $this->repository_url = 'https://github.com/coollabsio/ideploy-examples/tree/v4.x';
+            $this->repository_url = 'https://github.com/coollabsio/coolify-examples/tree/v4.x';
             $this->port = 3000;
         }
         $this->parameters = get_route_parameters();
@@ -273,6 +275,15 @@ class PublicGitRepository extends Component
     public function submit()
     {
         try {
+            // IDEM: Check if user can deploy (quota check)
+            $quotaService = app(IdemQuotaService::class);
+            $team = Auth::user()->currentTeam();
+            
+            if (!$quotaService->canDeployApp($team)) {
+                $this->dispatch('error', 'Application limit reached. Please upgrade your plan to deploy more applications.');
+                return redirect()->route('idem.subscription');
+            }
+            
             $this->validate();
 
             // Additional validation for git repository and branch
@@ -315,7 +326,7 @@ class PublicGitRepository extends Component
                 $server = $destination->server;
                 $new_service = [
                     'name' => 'service'.str()->random(10),
-                    'docker_compose_raw' => 'ideploy',
+                    'docker_compose_raw' => 'coolify',
                     'environment_id' => $environment->id,
                     'server_id' => $server->id,
                 ];

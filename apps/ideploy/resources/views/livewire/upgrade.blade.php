@@ -61,10 +61,10 @@
                             </x-callout>
                             <br />
                             <p>You can review the changelogs <a class="font-bold underline dark:text-white"
-                                    href="https://github.com/coollabsio/ideploy/releases" target="_blank">here</a>.</p>
+                                    href="https://github.com/coollabsio/coolify/releases" target="_blank">here</a>.</p>
                             <br />
                             <p>If something goes wrong and you cannot upgrade your instance, You can check the following
-                                <a class="font-bold underline dark:text-white" href="https://ideploy.io/docs/upgrade"
+                                <a class="font-bold underline dark:text-white" href="https://coolify.io/docs/upgrade"
                                     target="_blank">guide</a> on what to do.
                             </p>
                             <div class="flex flex-col pt-4" x-show="showProgress">

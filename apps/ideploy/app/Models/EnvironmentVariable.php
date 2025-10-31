@@ -45,7 +45,7 @@ class EnvironmentVariable extends BaseModel
         'resourceable_id' => 'integer',
     ];
 
-    protected $appends = ['real_value', 'is_shared', 'is_really_required', 'is_nixpacks', 'is_ideploy'];
+    protected $appends = ['real_value', 'is_shared', 'is_really_required', 'is_nixpacks', 'is_coolify'];
 
     protected static function booted()
     {
@@ -73,7 +73,7 @@ class EnvironmentVariable extends BaseModel
                 }
             }
             $environment_variable->update([
-                'version' => config('constants.ideploy.version'),
+                'version' => config('constants.coolify.version'),
             ]);
         });
 

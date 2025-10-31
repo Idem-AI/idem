@@ -3,6 +3,8 @@
 namespace App\Livewire\Project\New;
 
 use App\Models\Application;
+use App\Services\IdemQuotaService;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Project;
 use App\Models\StandaloneDocker;
 use App\Models\SwarmDocker;
@@ -82,6 +84,15 @@ class DockerImage extends Component
 
     public function submit()
     {
+        // IDEM: Check if user can deploy (quota check)
+        $quotaService = app(IdemQuotaService::class);
+        $team = Auth::user()->currentTeam();
+        
+        if (!$quotaService->canDeployApp($team)) {
+            $this->dispatch('error', 'Application limit reached. Please upgrade your plan to deploy more applications.');
+            return redirect()->route('idem.subscription');
+        }
+        
         $this->validate([
             'imageName' => ['required', 'string'],
             'imageTag' => ['nullable', 'string', 'regex:/^[a-z0-9][a-z0-9._-]*$/i'],
@@ -136,7 +147,7 @@ class DockerImage extends Component
         $application = Application::create([
             'name' => 'docker-image-'.new Cuid2,
             'repository_project_id' => 0,
-            'git_repository' => 'coollabsio/ideploy',
+            'git_repository' => 'coollabsio/coolify',
             'git_branch' => 'main',
             'build_pack' => 'dockerimage',
             'ports_exposes' => 80,

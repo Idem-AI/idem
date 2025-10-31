@@ -9,7 +9,7 @@ services:
     image: myoung34/github-runner:latest
     environment:
       - REPO_URL=${REPO_URL}
-      - RUNNER_NAME_PREFIX=${RUNNER_NAME_PREFIX:-ideploy-runner}
+      - RUNNER_NAME_PREFIX=${RUNNER_NAME_PREFIX:-coolify-runner}
       - RUNNER_NAME_SUFFIX=${RUNNER_NAME_SUFFIX:-false}
       - ACCESS_TOKEN=${ACCESS_TOKEN}
       - RUNNER_WORKDIR=/runner/work

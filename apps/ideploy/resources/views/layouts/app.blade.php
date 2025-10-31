@@ -32,8 +32,8 @@
                             </button>
                         </div>
 
-                        <div class="flex flex-col pb-2 overflow-y-auto min-w-56 dark:bg-coolgray-100 gap-y-5 scrollbar">
-                            <x-navbar />
+                        <div class="flex flex-col pb-2 overflow-y-auto min-w-56 gap-y-5 scrollbar">
+                            <x-navbar-modern />
                         </div>
                     </div>
                 </div>
@@ -41,13 +41,15 @@
 
             <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-56 lg:flex-col">
                 <div class="flex flex-col overflow-y-auto grow gap-y-5 scrollbar">
-                    <x-navbar />
+                    <x-navbar-modern />
                 </div>
             </div>
 
-            <div class="sticky top-0 z-40 flex items-center justify-between px-4 py-4 gap-x-6 sm:px-6 lg:hidden bg-white/95 dark:bg-base/95 backdrop-blur-sm border-b border-neutral-300/50 dark:border-coolgray-200/50">
+            <div class="sticky top-0 z-40 flex items-center justify-between px-4 py-4 gap-x-6 sm:px-6 lg:hidden glass-dark border-b border-glass-border">
                 <div class="flex items-center gap-3 flex-shrink-0">
-                    <div class="text-xl font-bold tracking-wide dark:text-white">Coolify</div>
+                    {{-- IDEM Logo Mobile --}}
+                    <img src="{{ asset('logo/logo.png') }}" alt="IDEM" class="h-8 w-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                    <div class="text-xl font-bold tracking-wide text-glow-primary" style="display:none; background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</div>
                     <livewire:switch-team />
                 </div>
                 <button type="button" class="-m-2.5 p-2.5 dark:text-warning" x-on:click="open = !open">
@@ -60,6 +62,9 @@
             </div>
 
             <main class="lg:pl-56">
+                {{-- Modern Top Navbar with Subscription Info & Credits --}}
+                <x-navbar-topbar />
+                
                 <div class="p-4 sm:px-6 lg:px-8 lg:py-6">
                     {{ $slot }}
                 </div>

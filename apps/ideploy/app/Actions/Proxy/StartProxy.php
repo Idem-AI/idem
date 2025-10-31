@@ -40,14 +40,14 @@ class StartProxy
                 "mkdir -p $proxy_path/dynamic",
                 "cd $proxy_path",
                 "echo 'Creating required Docker Compose file.'",
-                "echo 'Starting ideploy-proxy.'",
-                'docker stack deploy --detach=true -c docker-compose.yml ideploy-proxy',
-                "echo 'Successfully started ideploy-proxy.'",
+                "echo 'Starting coolify-proxy.'",
+                'docker stack deploy --detach=true -c docker-compose.yml coolify-proxy',
+                "echo 'Successfully started coolify-proxy.'",
             ]);
         } else {
             if (isDev()) {
                 if ($proxyType === ProxyTypes::CADDY->value) {
-                    $proxy_path = '/data/ideploy/proxy/caddy';
+                    $proxy_path = '/data/coolify/proxy/caddy';
                 }
             }
             $caddyfile = 'import /dynamic/*.caddy';
@@ -58,14 +58,14 @@ class StartProxy
                 "echo 'Creating required Docker Compose file.'",
                 "echo 'Pulling docker image.'",
                 'docker compose pull',
-                'if docker ps -a --format "{{.Names}}" | grep -q "^ideploy-proxy$"; then',
-                "    echo 'Stopping and removing existing ideploy-proxy.'",
-                '    docker rm -f ideploy-proxy || true',
-                "    echo 'Successfully stopped and removed existing ideploy-proxy.'",
+                'if docker ps -a --format "{{.Names}}" | grep -q "^coolify-proxy$"; then',
+                "    echo 'Stopping and removing existing coolify-proxy.'",
+                '    docker rm -f coolify-proxy || true',
+                "    echo 'Successfully stopped and removed existing coolify-proxy.'",
                 'fi',
-                "echo 'Starting ideploy-proxy.'",
+                "echo 'Starting coolify-proxy.'",
                 'docker compose up -d --wait --remove-orphans',
-                "echo 'Successfully started ideploy-proxy.'",
+                "echo 'Successfully started coolify-proxy.'",
             ]);
             $commands = $commands->merge(connectProxyToNetworks($server));
         }

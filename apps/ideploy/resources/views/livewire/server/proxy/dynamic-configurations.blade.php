@@ -28,9 +28,9 @@
                     @if ($contents?->isNotEmpty())
                         @foreach ($contents as $fileName => $value)
                             <div class="flex flex-col gap-2 py-2">
-                                @if (str_replace('|', '.', $fileName) === 'ideploy.yaml' ||
+                                @if (str_replace('|', '.', $fileName) === 'coolify.yaml' ||
                                         str_replace('|', '.', $fileName) === 'Caddyfile' ||
-                                        str_replace('|', '.', $fileName) === 'ideploy.caddy' ||
+                                        str_replace('|', '.', $fileName) === 'coolify.caddy' ||
                                         str_replace('|', '.', $fileName) === 'default_redirect_503.yaml' ||
                                         str_replace('|', '.', $fileName) === 'default_redirect_503.caddy')
                                     <div>

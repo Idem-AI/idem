@@ -128,7 +128,12 @@ class ByIp extends Component
             if (is_null($this->private_key_id)) {
                 return $this->dispatch('error', 'You must select a private key');
             }
-            if (Team::serverLimitReached()) {
+            
+            // IDEM: Admins peuvent ajouter des serveurs sans limite
+            $user = auth()->user();
+            $isIdemAdmin = $user && $user->idem_role === 'admin';
+            
+            if (!$isIdemAdmin && Team::serverLimitReached()) {
                 return $this->dispatch('error', 'You have reached the server limit for your subscription.');
             }
             $payload = [
@@ -147,6 +152,13 @@ class ByIp extends Component
                 data_forget($payload, 'proxy');
             }
             $server = Server::create($payload);
+            
+            // IDEM: Si créé par un admin, marquer comme serveur IDEM managed
+            if ($isIdemAdmin) {
+                $server->idem_managed = true;
+                $server->idem_load_score = 0;
+            }
+            
             $server->proxy->set('status', 'exited');
             $server->proxy->set('type', ProxyTypes::TRAEFIK->value);
             $server->save();

@@ -29,7 +29,7 @@ class StartMongodb
         $container_name = $this->database->uuid;
         $this->configuration_dir = database_configuration_dir().'/'.$container_name;
         if (isDev()) {
-            $this->configuration_dir = '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/databases/'.$container_name;
+            $this->configuration_dir = '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/databases/'.$container_name;
         }
 
         $this->commands = [
@@ -202,7 +202,7 @@ class StartMongodb
                 [
                     [
                         'type' => 'bind',
-                        'source' => '/data/ideploy/ssl/ideploy-ca.crt',
+                        'source' => '/data/coolify/ssl/coolify-ca.crt',
                         'target' => '/etc/mongo/certs/ca.pem',
                         'read_only' => true,
                     ],
@@ -322,7 +322,7 @@ class StartMongodb
             $environment_variables->push("MONGO_INITDB_DATABASE={$this->database->mongo_initdb_database}");
         }
 
-        add_ideploy_default_environment_variables($this->database, $environment_variables, $environment_variables);
+        add_coolify_default_environment_variables($this->database, $environment_variables, $environment_variables);
 
         return $environment_variables->all();
     }

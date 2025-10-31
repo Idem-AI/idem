@@ -1,4 +1,4 @@
 {
-  "$schema": "/phpactor.schema.json",
-  "language_server_phpstan.enabled": true
+    "$schema": "/phpactor.schema.json",
+    "language_server_phpstan.enabled": true
 }

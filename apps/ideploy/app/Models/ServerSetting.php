@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -58,6 +57,7 @@ class ServerSetting extends Model
     protected $casts = [
         'force_docker_cleanup' => 'boolean',
         'docker_cleanup_threshold' => 'integer',
+        'sentinel_token' => 'encrypted',
         'is_reachable' => 'boolean',
         'is_usable' => 'boolean',
         'is_terminal_enabled' => 'boolean',
@@ -137,42 +137,6 @@ class ServerSetting extends Model
     public function server()
     {
         return $this->belongsTo(Server::class);
-    }
-
-    public function sentinelToken(): Attribute
-    {
-        return Attribute::make(
-            get: function (?string $value) {
-                if (empty($value)) {
-                    return null;
-                }
-
-                try {
-                    return decrypt($value);
-                } catch (DecryptException $e) {
-                    Log::warning("Failed to decrypt sentinel_token for server setting ID {$this->id}. Regenerating token.", [
-                        'error' => $e->getMessage(),
-                    ]);
-                    
-                    // Regenerate token silently
-                    $this->generateSentinelToken(save: true, ignoreEvent: true);
-                    
-                    return $this->attributes['sentinel_token'] ?? null;
-                }
-            },
-            set: function (?string $value) {
-                if (empty($value)) {
-                    return null;
-                }
-
-                // If already encrypted, return as-is
-                if (str_starts_with($value, 'eyJpdiI6')) {
-                    return $value;
-                }
-
-                return encrypt($value);
-            }
-        );
     }
 
     public function dockerCleanupFrequency(): Attribute

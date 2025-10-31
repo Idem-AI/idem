@@ -21,7 +21,7 @@ class ProxyStatusChangedNotification implements ShouldQueueAfterCommit
         if (is_null($server)) {
             return;
         }
-        $proxyContainerName = 'ideploy-proxy';
+        $proxyContainerName = 'coolify-proxy';
         $status = getContainerStatus($server, $proxyContainerName);
         $server->proxy->set('status', $status);
         $server->save();
@@ -35,7 +35,7 @@ class ProxyStatusChangedNotification implements ShouldQueueAfterCommit
         }
         if ($status === 'created') {
             instant_remote_process([
-                'docker rm -f ideploy-proxy',
+                'docker rm -f coolify-proxy',
             ], $server);
         }
     }

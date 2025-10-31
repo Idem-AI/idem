@@ -97,7 +97,7 @@ services:
     volumes:
       - ${VOLUME_MAPPINGS}
     networks:
-      - ideploy
+      - coolify
 ```
 
 #### Nginx Configurations

@@ -66,13 +66,13 @@
                         <div class="flex flex-col text-sm dark:text-white">
                             <div>
                                 You need to bring your own servers from any cloud provider (such as <a class="underline"
-                                    href="https://ideploy.io/hetzner" target="_blank">Hetzner</a>, DigitalOcean, AWS,
+                                    href="https://coolify.io/hetzner" target="_blank">Hetzner</a>, DigitalOcean, AWS,
                                 etc.)
                             </div>
                             <div>
                                 (You can connect your RPi, old laptop, or any other device that runs
                                 the <a class="underline"
-                                    href="https://ideploy.io/docs/installation#supported-operating-systems"
+                                    href="https://coolify.io/docs/installation#supported-operating-systems"
                                     target="_blank">supported operating systems</a>.)
                             </div>
                         </div>
@@ -152,7 +152,7 @@
                             </svg>
 
                             Do you require official support for your self-hosted instance?<a class="underline"
-                                href="https://ideploy.io/docs/contact">Contact Us</a>
+                                href="https://coolify.io/docs/contact">Contact Us</a>
                         </li>
                     </ul>
                 </div>
