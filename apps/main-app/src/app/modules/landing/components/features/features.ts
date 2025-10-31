@@ -1,6 +1,5 @@
 import { Component, signal, inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Cta } from '../cta/cta';
 import { SeoService } from '../../../../shared/services/seo.service';
 
 interface Feature {
@@ -25,7 +24,7 @@ interface FeatureCategory {
 @Component({
   selector: 'app-features',
   standalone: true,
-  imports: [CommonModule, Cta],
+  imports: [CommonModule],
   templateUrl: './features.html',
   styleUrl: './features.css',
 })

@@ -38,8 +38,6 @@ import { Cta } from '../../components/cta/cta';
     Diagrams,
     DeploymentScreenshots,
     AfricanMarketComponent,
-    Pricing,
-    CtaSection,
     Cta,
   ],
   templateUrl: './home.html',
