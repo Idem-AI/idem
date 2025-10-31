@@ -2,6 +2,7 @@ import { Component, inject, PLATFORM_ID, signal, OnInit } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SeoService } from '../../../../shared/services/seo.service';
+import { Team } from '../../components/team/team';
 
 interface TeamMember {
   name: string;
@@ -25,7 +26,7 @@ interface Milestone {
 @Component({
   selector: 'app-about-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, Team],
   templateUrl: './about-page.html',
   styleUrl: './about-page.css',
 })
