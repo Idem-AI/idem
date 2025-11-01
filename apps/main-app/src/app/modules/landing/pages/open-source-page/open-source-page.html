@@ -82,38 +82,6 @@
       </div>
     </div>
 
-    <!-- Apache 2.0 License Section -->
-    <div class="mb-20">
-      <div class="glass-card p-10 rounded-2xl border border-white/10">
-        <div class="text-center mb-10">
-          <div
-            class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/20 mb-6"
-          >
-            <i class="pi pi-file-edit text-4xl text-primary"></i>
-          </div>
-          <h2 class="text-3xl font-bold text-white mb-4">Apache 2.0 License</h2>
-          <p class="text-gray-400 max-w-2xl mx-auto">
-            One of the most permissive and business-friendly open source licenses, trusted by major
-            tech companies worldwide
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          @for (detail of licenseDetails; track detail.title) {
-          <div class="text-center glass p-6 rounded-xl border border-white/5">
-            <div
-              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/20 mb-4"
-            >
-              <i [class]="'pi ' + detail.icon + ' text-xl text-primary'"></i>
-            </div>
-            <h3 class="text-base font-bold text-white mb-2">{{ detail.title }}</h3>
-            <p class="text-xs text-gray-400">{{ detail.description }}</p>
-          </div>
-          }
-        </div>
-      </div>
-    </div>
-
     <!-- Data Sovereignty Section - Asymmetric Layout -->
     <div class="mb-20 relative">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
