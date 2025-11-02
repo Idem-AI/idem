@@ -184,7 +184,7 @@ export class AfricanMarketPage implements OnInit {
       title: 'Young, Tech-Savvy Population',
       description:
         'With a median age of 19, Africa has the youngest population globally. This demographic dividend creates massive opportunities for digital innovation.',
-      stats: ['Median age: 19 years', '60% under 25', '200M youth entering workforce by 2030'],
+      stats: ['Median age: 19 years', '60% under 25', '200M youth entering workforce by 2035'],
     },
     {
       icon: 'pi-mobile',
