@@ -1,10 +1,10 @@
 export const environment = {
-  environment: 'dev',
+  environment: 'prod',
   isBeta: true,
+  waitlistUrl: 'https://forms.gle/gP7fr8te9qMUovad6',
   analytics: {
-    enabled: false,
+    enabled: true, // Analytics enabled in production only
   },
-  waitlistUrl: 'https://idem.africa/waitlist',
   firebase: {
     apiKey: 'AIzaSyCsUpHmK5-o4hp8_HldvlaLU2gLOUVeHgY',
     authDomain: 'lexis-ia.firebaseapp.com',
@@ -16,19 +16,19 @@ export const environment = {
   },
   services: {
     domain: 'https://idem.africa',
-    landingPage: {
-      url: 'http://localhost:4201',
+    dashboard: {
+      url: 'https://dashboard.idem.africa',
     },
     api: {
-      url: 'http://localhost:3001',
+      url: 'https://api.idem.africa',
       version: 'v1',
       llmModel: 'gpt-3.5-turbo',
     },
     webgen: {
-      url: 'http://localhost:5173',
+      url: 'https://appgen.idem.africa',
     },
     diagen: {
-      url: 'http://localhost:3002',
+      url: 'http://chart.idem.africa',
     },
   },
 };
