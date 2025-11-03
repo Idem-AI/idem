@@ -27,20 +27,20 @@ export class CtaSection implements OnInit {
     {
       id: 'launch-minutes',
       icon: 'pi-bolt',
-      title: 'Launch in Minutes',
-      description: 'From idea to deployed application in under 10 minutes',
+      title: $localize`:@@cta-section.features.launch.title:Launch in Minutes`,
+      description: $localize`:@@cta-section.features.launch.description:From idea to deployed application in under 10 minutes`,
     },
     {
       id: 'enterprise-ready',
       icon: 'pi-shield',
-      title: 'Enterprise Ready',
-      description: 'Production-grade security and scalability built-in',
+      title: $localize`:@@cta-section.features.enterprise.title:Enterprise Ready`,
+      description: $localize`:@@cta-section.features.enterprise.description:Production-grade security and scalability built-in`,
     },
     {
       id: 'free-forever',
       icon: 'pi-heart',
-      title: 'Free Forever',
-      description: 'Core features always free, no hidden costs or limits',
+      title: $localize`:@@cta-section.features.free.title:Free Forever`,
+      description: $localize`:@@cta-section.features.free.description:Core features always free, no hidden costs or limits`,
     },
   ]);
 
@@ -76,11 +76,11 @@ export class CtaSection implements OnInit {
     const ctaSectionStructuredData = {
       '@context': 'https://schema.org',
       '@type': 'WebPageElement',
-      name: 'Platform Benefits',
-      description: 'Key benefits of using Idem platform for rapid application development',
+      name: $localize`:@@cta-section.seo.name:Platform Benefits`,
+      description: $localize`:@@cta-section.seo.description:Key benefits of using Idem platform for rapid application development`,
       mainEntity: {
         '@type': 'ItemList',
-        name: 'Platform Features',
+        name: $localize`:@@cta-section.seo.mainEntityName:Platform Features`,
         itemListElement: this.features().map((feature, index) => ({
           '@type': 'ListItem',
           position: index + 1,

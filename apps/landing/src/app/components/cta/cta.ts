@@ -81,11 +81,11 @@ export class Cta implements OnInit, AfterViewInit, OnDestroy {
     const ctaStructuredData = {
       '@context': 'https://schema.org',
       '@type': 'WebPageElement',
-      name: 'Call to Action',
-      description: 'Get started with Idem platform for AI-powered brand creation and deployment',
+      name: $localize`:@@cta.seo.name:Call to Action`,
+      description: $localize`:@@cta.seo.description:Get started with Idem platform for AI-powered brand creation and deployment`,
       potentialAction: {
         '@type': 'Action',
-        name: 'Sign Up',
+        name: $localize`:@@cta.seo.actionName:Sign Up`,
         target: {
           '@type': 'EntryPoint',
           urlTemplate: `${this.seoService.domain}/auth/login`,

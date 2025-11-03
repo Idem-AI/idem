@@ -41,31 +41,47 @@ export class BrandCharter implements OnInit {
   protected readonly brandElements = signal<BrandElement[]>([
     {
       id: 'colors',
-      title: 'Color Palette',
-      description: 'Colors that reflect your brand personality',
+      title: $localize`:@@brand-charter.elements.colors.title:Color Palette`,
+      description: $localize`:@@brand-charter.elements.colors.description:Colors that reflect your brand personality`,
       icon: 'pi-palette',
-      examples: ['Primary Colors', 'Secondary Colors', 'Accent Colors'],
+      examples: [
+        $localize`:@@brand-charter.elements.colors.example1:Primary Colors`,
+        $localize`:@@brand-charter.elements.colors.example2:Secondary Colors`,
+        $localize`:@@brand-charter.elements.colors.example3:Accent Colors`,
+      ],
     },
     {
       id: 'typography',
-      title: 'Typography',
-      description: 'Font families for consistent communication',
+      title: $localize`:@@brand-charter.elements.typography.title:Typography`,
+      description: $localize`:@@brand-charter.elements.typography.description:Font families for consistent communication`,
       icon: 'pi-font',
-      examples: ['Headings Font', 'Body Text Font', 'Display Font'],
+      examples: [
+        $localize`:@@brand-charter.elements.typography.example1:Headings Font`,
+        $localize`:@@brand-charter.elements.typography.example2:Body Text Font`,
+        $localize`:@@brand-charter.elements.typography.example3:Display Font`,
+      ],
     },
     {
       id: 'logo',
-      title: 'Logo Variations',
-      description: 'Logo formats for different use cases',
+      title: $localize`:@@brand-charter.elements.logo.title:Logo Variations`,
+      description: $localize`:@@brand-charter.elements.logo.description:Logo formats for different use cases`,
       icon: 'pi-star',
-      examples: ['Primary Logo', 'Secondary Mark', 'Icon Version'],
+      examples: [
+        $localize`:@@brand-charter.elements.logo.example1:Primary Logo`,
+        $localize`:@@brand-charter.elements.logo.example2:Secondary Mark`,
+        $localize`:@@brand-charter.elements.logo.example3:Icon Version`,
+      ],
     },
     {
       id: 'imagery',
-      title: 'Visual Style',
-      description: 'Visual elements that support your brand',
+      title: $localize`:@@brand-charter.elements.imagery.title:Visual Style`,
+      description: $localize`:@@brand-charter.elements.imagery.description:Visual elements that support your brand`,
       icon: 'pi-image',
-      examples: ['Photography Style', 'Illustration Style', 'Icon Style'],
+      examples: [
+        $localize`:@@brand-charter.elements.imagery.example1:Photography Style`,
+        $localize`:@@brand-charter.elements.imagery.example2:Illustration Style`,
+        $localize`:@@brand-charter.elements.imagery.example3:Icon Style`,
+      ],
     },
   ]);
 
@@ -73,32 +89,32 @@ export class BrandCharter implements OnInit {
     {
       id: '1',
       brandName: 'TechFlow Solutions',
-      industry: 'Technology',
+      industry: $localize`:@@brand-charter.showcases.techflow.industry:Technology`,
       primaryColor: '#1447e6',
       secondaryColor: '#22d3ee',
       fontFamily: 'Inter',
-      logoStyle: 'Modern Geometric',
-      description: 'Professional B2B SaaS brand identity',
+      logoStyle: $localize`:@@brand-charter.showcases.techflow.logoStyle:Modern Geometric`,
+      description: $localize`:@@brand-charter.showcases.techflow.description:Professional B2B SaaS brand identity`,
     },
     {
       id: '2',
       brandName: 'EcoGreen Marketplace',
-      industry: 'Environmental',
+      industry: $localize`:@@brand-charter.showcases.ecogreen.industry:Environmental`,
       primaryColor: '#22c55e',
       secondaryColor: '#16a34a',
       fontFamily: 'Poppins',
-      logoStyle: 'Organic Natural',
-      description: 'Eco-friendly brand for green products',
+      logoStyle: $localize`:@@brand-charter.showcases.ecogreen.logoStyle:Organic Natural`,
+      description: $localize`:@@brand-charter.showcases.ecogreen.description:Eco-friendly brand for green products`,
     },
     {
       id: '3',
       brandName: 'CreativeStudio',
-      industry: 'Design Agency',
+      industry: $localize`:@@brand-charter.showcases.creative.industry:Design Agency`,
       primaryColor: '#d11ec0',
       secondaryColor: '#9333ea',
       fontFamily: 'Montserrat',
-      logoStyle: 'Artistic Bold',
-      description: 'Creative brand for design agency',
+      logoStyle: $localize`:@@brand-charter.showcases.creative.logoStyle:Artistic Bold`,
+      description: $localize`:@@brand-charter.showcases.creative.description:Creative brand for design agency`,
     },
   ]);
 
@@ -143,25 +159,24 @@ export class BrandCharter implements OnInit {
     const brandCharterStructuredData = {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'AI Brand Identity Creation',
-      description:
-        'Comprehensive brand charter creation including color palettes, typography, logos, and visual style guidelines',
+      name: $localize`:@@brand-charter.seo.serviceName:AI Brand Identity Creation`,
+      description: $localize`:@@brand-charter.seo.serviceDescription:Comprehensive brand charter creation including color palettes, typography, logos, and visual style guidelines`,
       provider: {
         '@type': 'Organization',
         name: 'Idem',
       },
-      serviceType: 'Brand Design Service',
-      areaServed: 'Worldwide',
+      serviceType: $localize`:@@brand-charter.seo.serviceType:Brand Design Service`,
+      areaServed: $localize`:@@brand-charter.seo.areaServed:Worldwide`,
       hasOfferCatalog: {
         '@type': 'OfferCatalog',
-        name: 'Brand Elements',
+        name: $localize`:@@brand-charter.seo.offerCatalogName:Brand Elements`,
         itemListElement: this.brandElements().map((element, index) => ({
           '@type': 'Offer',
           itemOffered: {
             '@type': 'Service',
             name: element.title,
             description: element.description,
-            category: 'Brand Design',
+            category: $localize`:@@brand-charter.seo.category:Brand Design`,
           },
         })),
       },
@@ -172,7 +187,7 @@ export class BrandCharter implements OnInit {
         about: {
           '@type': 'Thing',
           name: showcase.industry,
-          description: `Brand identity for ${showcase.industry} industry`,
+          description: $localize`:@@brand-charter.seo.workExample.description:Brand identity for ${showcase.industry}:raw:industry`,
         },
       })),
     };
