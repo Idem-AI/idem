@@ -1,10 +1,10 @@
 export const environment = {
   environment: 'dev',
-  isBeta: true,
+  isBeta: true, // Set to true to show normal login page in development
+  waitlistUrl: 'https://forms.gle/YourDevGoogleFormUrlHere', // Development waitlist form URL
   analytics: {
     enabled: false,
   },
-  waitlistUrl: 'https://idem.africa/waitlist',
   firebase: {
     apiKey: 'AIzaSyCsUpHmK5-o4hp8_HldvlaLU2gLOUVeHgY',
     authDomain: 'lexis-ia.firebaseapp.com',
@@ -16,8 +16,8 @@ export const environment = {
   },
   services: {
     domain: 'https://idem.africa',
-    landingPage: {
-      url: 'http://localhost:4201',
+    dashboard: {
+      url: 'http://localhost:4200',
     },
     api: {
       url: 'http://localhost:3001',
