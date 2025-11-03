@@ -28,7 +28,10 @@
         for <span class="i-underline" i18n="@@african-market-page.all_africa">All of Africa</span>
       </h1>
 
-      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+      <p
+        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@african-market-page.description"
+      >
         IDEM is Africa's first sovereign open source AI platform, founded in Cameroon with a
         pan-African mission. We're democratizing tech entrepreneurship by making world-class AI
         tools accessible and affordable for every African entrepreneur.
@@ -42,6 +45,7 @@
       >
         <img
           src="assets/images/african-market-page/woman-tech-entrepreneur.webp"
+          i18n-alt="@@african-market-page.alt.womanTechEntrepreneur"
           alt="African woman tech entrepreneur"
           loading="lazy"
           class="w-full h-full object-cover min-h-[300px] sm:min-h-[350px] lg:min-h-[400px] group-hover:scale-105 transition-transform duration-500"
@@ -65,6 +69,7 @@
       <div class="rounded-lg lg:rounded-xl overflow-hidden border border-white/10">
         <img
           src="assets/images/african-market-page/entrepreneur-1.webp"
+          i18n-alt="@@african-market-page.alt.entrepreneur"
           alt="African entrepreneur"
           loading="lazy"
           class="w-full h-full object-cover min-h-[140px] sm:min-h-[170px] lg:min-h-[190px]"
@@ -73,6 +78,7 @@
       <div class="rounded-lg lg:rounded-xl overflow-hidden border border-white/10">
         <img
           src="assets/images/african-market-page/developer.webp"
+          i18n-alt="@@african-market-page.alt.developer"
           alt="African developer"
           loading="lazy"
           class="w-full h-full object-cover min-h-[140px] sm:min-h-[170px] lg:min-h-[190px]"
@@ -83,6 +89,7 @@
       >
         <img
           src="assets/images/african-market-page/tech-team.webp"
+          i18n-alt="@@african-market-page.alt.techTeam"
           alt="African tech team"
           loading="lazy"
           class="w-full h-full object-cover min-h-[140px] sm:min-h-[170px] lg:min-h-[190px]"
@@ -108,7 +115,10 @@
         >
           Africa's Digital Opportunity
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p
+          class="text-gray-400 max-w-2xl mx-auto"
+          i18n="@@african-market-page.opportunity.description"
+        >
           The continent with the fastest-growing digital economy and youngest population globally
         </p>
       </div>
@@ -118,8 +128,15 @@
             class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all hover:transform hover:scale-105"
           >
             <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
-            <div class="text-sm text-white font-semibold mb-1">{{ stat.label }}</div>
-            <div class="text-xs text-gray-500">{{ stat.trend }}</div>
+            <div
+              class="text-sm text-white font-semibold mb-1"
+              i18n="@@african-market-page.stat.label"
+            >
+              {{ stat.label }}
+            </div>
+            <div class="text-xs text-gray-500" i18n="@@african-market-page.stat.trend">
+              {{ stat.trend }}
+            </div>
           </div>
         }
       </div>
@@ -134,7 +151,10 @@
         >
           Why Africa?
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p
+          class="text-gray-400 max-w-2xl mx-auto"
+          i18n="@@african-market-page.whyAfrica.description"
+        >
           Unprecedented opportunities for innovation and entrepreneurship across the continent
         </p>
       </div>
@@ -146,6 +166,7 @@
         >
           <img
             src="assets/images/african-market-page/business-celebrating.webp"
+            i18n-alt="@@african-market-page.alt.businessTeam"
             alt="African business team celebrating"
             loading="lazy"
             class="w-full h-full object-cover min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] group-hover:scale-105 transition-transform duration-500"
@@ -156,6 +177,7 @@
           <div class="rounded-xl overflow-hidden border border-white/10 relative">
             <img
               src="assets/images/african-market-page/entrepreneur-smiling.webp"
+              i18n-alt="@@african-market-page.alt.entrepreneurSmiling"
               alt="African entrepreneur smiling"
               loading="lazy"
               class="w-full h-32 sm:h-36 lg:h-40 object-cover"
@@ -188,14 +210,23 @@
             >
               <i [class]="'pi ' + reason.icon + ' text-2xl text-primary'"></i>
             </div>
-            <h3 class="text-lg font-bold text-white mb-3 text-center">{{ reason.title }}</h3>
-            <p class="text-sm text-gray-400 mb-4 text-center leading-relaxed">
+            <h3
+              class="text-lg font-bold text-white mb-3 text-center"
+              i18n="@@african-market-page.reason.title"
+            >
+              {{ reason.title }}
+            </h3>
+            <p
+              class="text-sm text-gray-400 mb-4 text-center leading-relaxed"
+              i18n="@@african-market-page.reason.description"
+            >
               {{ reason.description }}
             </p>
             <div class="flex flex-wrap gap-2 justify-center">
               @for (stat of reason.stats.slice(0, 2); track stat) {
                 <span
                   class="px-3 py-1 bg-primary/10 rounded-full text-xs text-primary font-semibold"
+                  i18n="@@african-market-page.reason.stat"
                   >{{ stat }}</span
                 >
               }
@@ -208,10 +239,13 @@
     <!-- Regional Expansion Roadmap -->
     <div class="mb-20">
       <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+        <h2
+          class="text-3xl sm:text-4xl font-bold text-white mb-4"
+          i18n="@@african-market-page.roadmap.title"
+        >
           Pan-African Expansion Roadmap
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@african-market-page.roadmap.description">
           Strategic expansion from our Cameroon base to every corner of the continent
         </p>
       </div>
@@ -241,26 +275,22 @@
               </div>
             </div>
 
-            <!-- Countries -->
-            <div class="mb-4">
-              <div class="text-xs text-gray-500 mb-2 font-semibold">Key Markets:</div>
-              <div class="flex flex-wrap gap-2">
-                @for (country of region.countries; track country) {
-                  <span class="px-3 py-1 bg-white/5 rounded-full text-xs text-gray-300">{{
-                    country
-                  }}</span>
-                }
-              </div>
-            </div>
-
-            <!-- Top Opportunities -->
             <div>
-              <div class="text-xs text-gray-500 mb-2 font-semibold">Key Opportunities:</div>
+              <div
+                class="text-xs text-gray-500 mb-2 font-semibold"
+                i18n="@@african-market-page.region.keyOpportunities"
+              >
+                Key Opportunities:
+              </div>
               <div class="space-y-1">
                 @for (opp of region.opportunities.slice(0, 3); track opp) {
                   <div class="flex items-start gap-2">
                     <i class="pi pi-check text-primary text-xs mt-0.5 flex-shrink-0"></i>
-                    <span class="text-xs text-gray-400">{{ opp }}</span>
+                    <span
+                      class="text-xs text-gray-400"
+                      i18n="@@african-market-page.region.opportunity"
+                      >{{ opp }}</span
+                    >
                   </div>
                 }
               </div>
@@ -273,10 +303,13 @@
     <!-- IDEM's African Advantages -->
     <div class="mb-20">
       <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+        <h2
+          class="text-3xl sm:text-4xl font-bold text-white mb-4"
+          i18n="@@african-market-page.whyIdem.title"
+        >
           Why IDEM is Different for Africa
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@african-market-page.whyIdem.description">
           Built by Africans, for Africans, with deep understanding of the continent's unique context
         </p>
       </div>
@@ -289,13 +322,23 @@
             <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
               <i [class]="'pi ' + advantage.icon + ' text-2xl text-primary'"></i>
             </div>
-            <h3 class="text-lg font-bold text-white mb-3">{{ advantage.title }}</h3>
-            <p class="text-sm text-gray-400 mb-4 leading-relaxed">{{ advantage.description }}</p>
+            <h3
+              class="text-lg font-bold text-white mb-3"
+              i18n="@@african-market-page.advantage.title"
+            >
+              {{ advantage.title }}
+            </h3>
+            <p
+              class="text-sm text-gray-400 mb-4 leading-relaxed"
+              i18n="@@african-market-page.advantage.description"
+            >
+              {{ advantage.description }}
+            </p>
             <ul class="space-y-2">
               @for (benefit of advantage.benefits.slice(0, 3); track benefit) {
                 <li class="text-xs text-gray-400 flex items-start gap-2">
                   <i class="pi pi-check-circle text-primary mt-0.5 flex-shrink-0"></i>
-                  <span>{{ benefit }}</span>
+                  <span i18n="@@african-market-page.advantage.benefit">{{ benefit }}</span>
                 </li>
               }
             </ul>
@@ -312,21 +355,26 @@
       <h2 class="text-3xl font-bold text-white mb-4" i18n="@@african-market-page.join_africas_tech">
         Join Africa's Tech Revolution
       </h2>
-      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+      <p
+        class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto"
+        i18n="@@african-market-page.cta.description"
+      >
         Start building with IDEM today. Free tier available with 10 credits to create your first
         project. No credit card required.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-rocket mr-2"></i>
-          Start Building Free
+          <ng-container i18n="@@african-market-page.cta.startBuilding"
+            >Start Building Free</ng-container
+          >
         </a>
         <a routerLink="/" class="outer-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-arrow-left mr-2"></i>
-          Back to Home
+          <ng-container i18n="@@african-market-page.cta.backHome">Back to Home</ng-container>
         </a>
       </div>
-      <p class="text-sm text-gray-500 mt-6">
+      <p class="text-sm text-gray-500 mt-6" i18n="@@african-market-page.footer.text">
         🇨🇲 Made in Cameroon • 🌍 For All of Africa • 💚 Open Source
       </p>
     </div>

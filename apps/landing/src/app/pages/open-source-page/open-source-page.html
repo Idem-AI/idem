@@ -25,7 +25,10 @@
         <span class="i-underline" i18n="@@open-source-page.data_sovereignty">Data Sovereignty</span>
       </h1>
 
-      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+      <p
+        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@open-source-page.description"
+      >
         IDEM is fully open source under Apache 2.0 license. Your data stays in Africa with complete
         transparency, no vendor lock-in, and community-driven development.
       </p>
@@ -38,8 +41,12 @@
           class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all"
         >
           <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
-          <div class="text-sm text-white font-semibold mb-1">{{ stat.label }}</div>
-          <div class="text-xs text-gray-500">{{ stat.description }}</div>
+          <div class="text-sm text-white font-semibold mb-1" i18n="@@open-source-page.stat.label">
+            {{ stat.label }}
+          </div>
+          <div class="text-xs text-gray-500" i18n="@@open-source-page.stat.description">
+            {{ stat.description }}
+          </div>
         </div>
       }
     </div>
@@ -53,7 +60,10 @@
         >
           Why Open Source Matters
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p
+          class="text-gray-400 max-w-2xl mx-auto"
+          i18n="@@open-source-page.whyOpenSource.description"
+        >
           Transparency, security, and freedom for African tech entrepreneurs
         </p>
       </div>
@@ -70,15 +80,22 @@
                 <i [class]="'pi ' + feature.icon + ' text-2xl text-primary'"></i>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-bold text-white mb-2">{{ feature.title }}</h3>
-                <p class="text-sm text-gray-400 mb-4">{{ feature.description }}</p>
+                <h3
+                  class="text-xl font-bold text-white mb-2"
+                  i18n="@@open-source-page.feature.title"
+                >
+                  {{ feature.title }}
+                </h3>
+                <p class="text-sm text-gray-400 mb-4" i18n="@@open-source-page.feature.description">
+                  {{ feature.description }}
+                </p>
               </div>
             </div>
             <ul class="space-y-2">
               @for (benefit of feature.benefits; track benefit) {
                 <li class="text-xs text-gray-400 flex items-start gap-2">
                   <i class="pi pi-check-circle text-primary mt-0.5 flex-shrink-0"></i>
-                  <span>{{ benefit }}</span>
+                  <span i18n="@@open-source-page.feature.benefit">{{ benefit }}</span>
                 </li>
               }
             </ul>
@@ -95,6 +112,7 @@
           <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
           <img
             src="assets/images/open-source-page/data-sovereignty.webp"
+            i18n-alt="@@open-source-page.alt.dataSovereignty"
             alt="Data sovereignty"
             loading="lazy"
             class="w-full h-full object-cover min-h-[400px] lg:min-h-[500px]"
@@ -108,10 +126,16 @@
                 >African Infrastructure</span
               >
             </div>
-            <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">
+            <h2
+              class="text-2xl sm:text-3xl font-bold text-white mb-2"
+              i18n="@@open-source-page.dataSovereignty.title"
+            >
               Your Data Stays in Africa
             </h2>
-            <p class="text-sm sm:text-base text-white/90 leading-relaxed">
+            <p
+              class="text-sm sm:text-base text-white/90 leading-relaxed"
+              i18n="@@open-source-page.dataSovereignty.description"
+            >
               IDEM deploys on African cloud infrastructure, ensuring your data remains on the
               continent.
             </p>
@@ -130,7 +154,7 @@
             >
               African Data Centers
             </h3>
-            <p class="text-sm text-gray-400">
+            <p class="text-sm text-gray-400" i18n="@@open-source-page.dataCenters.description">
               Low latency across the continent with sovereign infrastructure
             </p>
           </div>
@@ -158,7 +182,7 @@
             >
               On-Premise Option
             </h3>
-            <p class="text-sm text-gray-400">
+            <p class="text-sm text-gray-400" i18n="@@open-source-page.onPremise.description">
               Deploy on your own infrastructure for complete control
             </p>
           </div>
@@ -175,7 +199,10 @@
         >
           Join the Community
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto px-4">
+        <p
+          class="text-gray-400 max-w-2xl mx-auto px-4"
+          i18n="@@open-source-page.joinCommunity.description"
+        >
           Contribute to Africa's first sovereign AI platform and help shape the future of African
           tech
         </p>
@@ -188,13 +215,17 @@
         >
           <img
             src="assets/images/african-market-page/developer.webp"
+            i18n-alt="@@open-source-page.alt.techTeam"
             alt="African tech team collaboration"
             loading="lazy"
             class="w-full h-64 sm:h-80 lg:h-96 object-cover group-hover:scale-105 transition-transform duration-500"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
           <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
-            <h3 class="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">
+            <h3
+              class="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2"
+              i18n="@@open-source-page.growingEcosystem"
+            >
               Growing African Tech Ecosystem
             </h3>
             <p
@@ -220,6 +251,7 @@
               href="https://github.com/Idem-AI"
               target="_blank"
               class="outer-button px-4 py-2 rounded-lg text-xs inline-block w-full text-center"
+              i18n="@@open-source-page.github.button"
             >
               View Repository
             </a>
@@ -237,6 +269,7 @@
               href="https://discord.gg/idem"
               target="_blank"
               class="outer-button px-4 py-2 rounded-lg text-xs inline-block w-full text-center"
+              i18n="@@open-source-page.discord.button"
             >
               Join Discord
             </a>
@@ -253,6 +286,7 @@
             <a
               routerLink="/documentation"
               class="outer-button px-4 py-2 rounded-lg text-xs inline-block w-full text-center"
+              i18n="@@open-source-page.docs.button"
             >
               Read Docs
             </a>
@@ -266,13 +300,16 @@
       <h2 class="text-3xl font-bold text-white mb-4" i18n="@@open-source-page.start_building_with">
         Start Building with Open Source AI
       </h2>
-      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+      <p
+        class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto"
+        i18n="@@open-source-page.cta.description"
+      >
         Experience the freedom of open source with the power of AI. Start for free today.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-rocket mr-2"></i>
-          Get Started Free
+          <ng-container i18n="@@open-source-page.cta.getStarted">Get Started Free</ng-container>
         </a>
         <a
           href="https://github.com/Idem-AI"
@@ -280,7 +317,7 @@
           class="outer-button px-8 py-3 rounded-lg font-semibold"
         >
           <i class="pi pi-github mr-2"></i>
-          View on GitHub
+          <ng-container i18n="@@open-source-page.cta.github">View on GitHub</ng-container>
         </a>
       </div>
     </div>

@@ -18,12 +18,17 @@
           >
         </div>
 
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-          Simple,
-          <span class="i-underline" i18n="@@pricing-page.affordable">Affordable</span> Pricing
+        <h1
+          class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6"
+          i18n="@@pricing-page.simple_affordable_pricing"
+        >
+          Simple, <span class="i-underline">Affordable</span> Pricing
         </h1>
 
-        <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+        <p
+          class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+          i18n="@@pricing-page.description"
+        >
           Start for free and scale as you grow. No hidden fees, no surprises. Designed for African
           entrepreneurs with pricing that makes sense.
         </p>
@@ -54,15 +59,19 @@
               <span class="text-4xl font-bold text-primary">{{ plan.price }}</span>
               <span class="text-gray-400 text-sm">{{ plan.period }}</span>
             </div>
-            <div class="text-sm text-primary font-semibold mb-3">{{ plan.credits }}</div>
-            <p class="text-sm text-gray-400">{{ plan.description }}</p>
+            <div class="text-sm text-primary font-semibold mb-3" i18n="@@pricing-page.plan.credits">
+              {{ plan.credits }}
+            </div>
+            <p class="text-sm text-gray-400" i18n="@@pricing-page.plan.description">
+              {{ plan.description }}
+            </p>
           </div>
 
           <ul class="space-y-3 mb-6">
             @for (feature of plan.features; track feature) {
               <li class="flex items-start gap-2 text-sm text-gray-300">
                 <i class="pi pi-check text-primary mt-0.5 flex-shrink-0"></i>
-                <span>{{ feature }}</span>
+                <span i18n="@@pricing-page.plan.feature">{{ feature }}</span>
               </li>
             }
           </ul>
@@ -90,7 +99,7 @@
         >
           Compare Plans
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.compare.description">
           Detailed comparison of features across all plans
         </p>
       </div>
@@ -203,10 +212,16 @@
             >
               <span class="text-white" i18n="@@pricing-page.made_for_africa">Made for Africa</span>
             </div>
-            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6">
+            <h2
+              class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6"
+              i18n="@@pricing-page.whyIdem.title"
+            >
               Why IDEM Pricing is Different
             </h2>
-            <p class="text-white/90 text-sm sm:text-base lg:text-lg leading-relaxed mb-6 sm:mb-8">
+            <p
+              class="text-white/90 text-sm sm:text-base lg:text-lg leading-relaxed mb-6 sm:mb-8"
+              i18n="@@pricing-page.whyIdem.description"
+            >
               Designed specifically for African entrepreneurs and businesses. We understand the
               unique challenges and opportunities in African markets, and our pricing reflects that
               commitment.
@@ -226,7 +241,7 @@
             <h3 class="text-xl font-bold text-white mb-3" i18n="@@pricing-page.6080_cheaper">
               60-80% Cheaper
             </h3>
-            <p class="text-gray-400 leading-relaxed">
+            <p class="text-gray-400 leading-relaxed" i18n="@@pricing-page.cheaper.description">
               Significantly more affordable than international alternatives
             </p>
           </div>
@@ -240,7 +255,7 @@
             <h3 class="text-xl font-bold text-white mb-3" i18n="@@pricing-page.mobile_money">
               Mobile Money
             </h3>
-            <p class="text-gray-400 leading-relaxed">
+            <p class="text-gray-400 leading-relaxed" i18n="@@pricing-page.mobileMoney.description">
               Pay with mobile money across Africa for easy access
             </p>
           </div>
@@ -251,8 +266,10 @@
             <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
               <i class="pi pi-shield text-3xl text-primary"></i>
             </div>
-            <h3 class="text-xl font-bold text-white mb-3">No Hidden Fees</h3>
-            <p class="text-gray-400 leading-relaxed">
+            <h3 class="text-xl font-bold text-white mb-3" i18n="@@pricing-page.noHiddenFees.title">
+              No Hidden Fees
+            </h3>
+            <p class="text-gray-400 leading-relaxed" i18n="@@pricing-page.noHiddenFees.description">
               Transparent pricing with no surprise charges or hidden costs
             </p>
           </div>
@@ -269,7 +286,7 @@
         >
           Frequently Asked Questions
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.faq.description">
           Everything you need to know about IDEM pricing
         </p>
       </div>
@@ -277,8 +294,10 @@
       <div class="max-w-3xl mx-auto space-y-4">
         @for (faq of faqs; track faq.question) {
           <div class="glass-card p-6 rounded-xl border border-white/10">
-            <h3 class="text-lg font-bold text-white mb-2">{{ faq.question }}</h3>
-            <p class="text-sm text-gray-400">{{ faq.answer }}</p>
+            <h3 class="text-lg font-bold text-white mb-2" i18n="@@pricing-page.faq.question">
+              {{ faq.question }}
+            </h3>
+            <p class="text-sm text-gray-400" i18n="@@pricing-page.faq.answer">{{ faq.answer }}</p>
           </div>
         }
       </div>
@@ -289,17 +308,17 @@
       <h2 class="text-3xl font-bold text-white mb-4" i18n="@@pricing-page.ready_get_started">
         Ready to Get Started?
       </h2>
-      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto" i18n="@@pricing-page.cta.description">
         Start with 10 free credits. No credit card required. Upgrade anytime.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-rocket mr-2"></i>
-          Start Free
+          <ng-container i18n="@@pricing-page.cta.startFree">Start Free</ng-container>
         </a>
         <a routerLink="/contact" class="outer-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-comments mr-2"></i>
-          Contact Sales
+          <ng-container i18n="@@pricing-page.cta.contactSales">Contact Sales</ng-container>
         </a>
       </div>
     </div>

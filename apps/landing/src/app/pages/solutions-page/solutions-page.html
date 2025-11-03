@@ -28,7 +28,10 @@
         >
       </h1>
 
-      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+      <p
+        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@solutions-page.description"
+      >
         From concept to deployment, IDEM provides all the tools and solutions to bring your ideas to
         life. No technical skills required.
       </p>
@@ -41,7 +44,9 @@
           class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all"
         >
           <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
-          <div class="text-sm text-white font-semibold">{{ stat.label }}</div>
+          <div class="text-sm text-white font-semibold" i18n="@@solutions-page.stat.label">
+            {{ stat.label }}
+          </div>
         </div>
       }
     </div>
@@ -55,7 +60,7 @@
         >
           Our Solutions
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@solutions-page.solutions.description">
           Comprehensive AI-powered tools for every aspect of your project
         </p>
       </div>
@@ -85,14 +90,25 @@
                   >
                     <i [class]="'pi ' + solution.icon + ' text-2xl text-primary'"></i>
                   </div>
-                  <h3 class="text-2xl font-bold text-white">{{ solution.title }}</h3>
+                  <h3 class="text-2xl font-bold text-white" i18n="@@solutions-page.solution.title">
+                    {{ solution.title }}
+                  </h3>
                 </div>
-                <p class="text-gray-400 mb-6 leading-relaxed">{{ solution.description }}</p>
+                <p
+                  class="text-gray-400 mb-6 leading-relaxed"
+                  i18n="@@solutions-page.solution.description"
+                >
+                  {{ solution.description }}
+                </p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   @for (feature of solution.features; track feature) {
                     <div class="flex items-start gap-2">
                       <i class="pi pi-check-circle text-primary mt-0.5 flex-shrink-0"></i>
-                      <span class="text-sm text-gray-300">{{ feature }}</span>
+                      <span
+                        class="text-sm text-gray-300"
+                        i18n="@@solutions-page.solution.feature"
+                        >{{ feature }}</span
+                      >
                     </div>
                   }
                 </div>
@@ -104,6 +120,7 @@
                   <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
                     <img
                       src="assets/images/solutions-page/website-design.webp"
+                      i18n-alt="@@solutions-page.alt.website"
                       alt="Website design and development"
                       loading="lazy"
                       class="w-full h-full object-cover"
@@ -113,6 +130,7 @@
                   <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
                     <img
                       src="assets/images/solutions-page/logo-brand.webp"
+                      i18n-alt="@@solutions-page.alt.logo"
                       alt="Logo and brand design"
                       loading="lazy"
                       class="w-full h-full object-cover"
@@ -122,6 +140,7 @@
                   <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
                     <img
                       src="assets/images/solutions-page/business-planning.webp"
+                      i18n-alt="@@solutions-page.alt.businessPlan"
                       alt="Business planning and strategy"
                       loading="lazy"
                       class="w-full h-full object-cover"
@@ -131,6 +150,7 @@
                   <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
                     <img
                       src="assets/images/solutions-page/brand-charter.webp"
+                      i18n-alt="@@solutions-page.alt.brandCharter"
                       alt="Brand charter and guidelines"
                       loading="lazy"
                       class="w-full h-full object-cover"
@@ -140,6 +160,7 @@
                   <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
                     <img
                       src="assets/images/deployment-page/monitoring-dashboard.webp"
+                      i18n-alt="@@solutions-page.alt.architecture"
                       alt="Technical architecture diagrams"
                       loading="lazy"
                       class="w-full h-full object-cover"
@@ -149,6 +170,7 @@
                   <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
                     <img
                       src="assets/images/architecture-page/ai-network.webp"
+                      i18n-alt="@@solutions-page.alt.deployment"
                       alt="Cloud deployment"
                       loading="lazy"
                       class="w-full h-full object-cover"
@@ -169,7 +191,7 @@
           <h2 class="text-3xl font-bold text-white mb-4" i18n="@@solutions-page.how_works">
             How It Works
           </h2>
-          <p class="text-gray-400 max-w-2xl mx-auto">
+          <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@solutions-page.howItWorks.description">
             Simple process from idea to deployed project
           </p>
         </div>
@@ -244,7 +266,7 @@
         >
           Perfect For
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@solutions-page.perfectFor.description">
           IDEM solutions work for various use cases and industries
         </p>
       </div>
@@ -254,6 +276,7 @@
         <div class="rounded-xl overflow-hidden border border-white/10">
           <img
             src="assets/images/solutions-page/solo-entrepreneur.webp"
+            i18n-alt="@@solutions-page.alt.solo"
             alt="Solo entrepreneur working"
             loading="lazy"
             class="w-full h-48 object-cover"
@@ -262,6 +285,7 @@
         <div class="rounded-xl overflow-hidden border border-white/10">
           <img
             src="assets/images/african-market-page/entrepreneur-1.webp"
+            i18n-alt="@@solutions-page.alt.smallBusiness"
             alt="Small business team"
             loading="lazy"
             class="w-full h-48 object-cover"
@@ -270,6 +294,7 @@
         <div class="rounded-xl overflow-hidden border border-white/10">
           <img
             src="assets/images/african-market-page/developer.webp"
+            i18n-alt="@@solutions-page.alt.agency"
             alt="Agency collaboration"
             loading="lazy"
             class="w-full h-48 object-cover"
@@ -283,7 +308,7 @@
           <h3 class="text-lg font-bold text-white mb-2" i18n="@@solutions-page.solo_entrepreneurs">
             Solo Entrepreneurs
           </h3>
-          <p class="text-sm text-gray-400">
+          <p class="text-sm text-gray-400" i18n="@@solutions-page.solo.description">
             Launch your startup without hiring a full team. Get everything from business plan to
             deployed website.
           </p>
@@ -294,7 +319,7 @@
           <h3 class="text-lg font-bold text-white mb-2" i18n="@@solutions-page.small_businesses">
             Small Businesses
           </h3>
-          <p class="text-sm text-gray-400">
+          <p class="text-sm text-gray-400" i18n="@@solutions-page.smallBusiness.description">
             Establish your online presence quickly and affordably. Professional results without the
             enterprise costs.
           </p>
@@ -305,7 +330,7 @@
           <h3 class="text-lg font-bold text-white mb-2" i18n="@@solutions-page.agencies">
             Agencies
           </h3>
-          <p class="text-sm text-gray-400">
+          <p class="text-sm text-gray-400" i18n="@@solutions-page.agency.description">
             Scale your client delivery with AI. Create more projects faster while maintaining
             quality.
           </p>
@@ -318,17 +343,20 @@
       <h2 class="text-3xl font-bold text-white mb-4" i18n="@@solutions-page.ready_build_your">
         Ready to Build Your Project?
       </h2>
-      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+      <p
+        class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto"
+        i18n="@@solutions-page.cta.description"
+      >
         Start with 10 free credits and experience all our solutions. No credit card required.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-rocket mr-2"></i>
-          Start Building
+          <ng-container i18n="@@solutions-page.cta.startBuilding">Start Building</ng-container>
         </a>
         <a routerLink="/pricing" class="outer-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-tag mr-2"></i>
-          View Pricing
+          <ng-container i18n="@@solutions-page.cta.viewPricing">View Pricing</ng-container>
         </a>
       </div>
     </div>

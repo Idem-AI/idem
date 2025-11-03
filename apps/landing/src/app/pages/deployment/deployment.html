@@ -27,7 +27,10 @@
         <span class="text-primary" i18n="@@deployment.idem">IDEM</span>
       </h1>
 
-      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+      <p
+        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@deployment.description"
+      >
         From zero-config quick deployments to custom cloud architectures, IDEM offers a complete
         range of deployment methods tailored to your expertise level and infrastructure needs.
       </p>
@@ -37,6 +40,7 @@
     <div class="mb-16 rounded-2xl overflow-hidden border border-white/10 max-w-5xl mx-auto">
       <img
         src="assets/images/deployment-page/cloud-deployment.webp"
+        i18n-alt="@@deployment.alt.cloud"
         alt="Cloud deployment and infrastructure"
         loading="lazy"
         class="w-full h-96 object-cover"
@@ -62,7 +66,7 @@
                 [class]="'pi ' + mode.icon + ' text-xl'"
                 [style.color]="selectedMode() === mode.id ? mode.color : ''"
               ></i>
-              <span>{{ mode.title }}</span>
+              <span i18n="@@deployment.mode.title">{{ mode.title }}</span>
             </div>
           </button>
         }
@@ -81,9 +85,18 @@
             ></i>
           </div>
           <div class="flex-1">
-            <h2 class="text-3xl font-bold text-white mb-2">{{ getSelectedMode().title }}</h2>
-            <p class="text-primary text-lg font-semibold mb-4">{{ getSelectedMode().subtitle }}</p>
-            <p class="text-gray-300 leading-relaxed">{{ getSelectedMode().description }}</p>
+            <h2 class="text-3xl font-bold text-white mb-2" i18n="@@deployment.selectedMode.title">
+              {{ getSelectedMode().title }}
+            </h2>
+            <p
+              class="text-primary text-lg font-semibold mb-4"
+              i18n="@@deployment.selectedMode.subtitle"
+            >
+              {{ getSelectedMode().subtitle }}
+            </p>
+            <p class="text-gray-300 leading-relaxed" i18n="@@deployment.selectedMode.description">
+              {{ getSelectedMode().description }}
+            </p>
           </div>
         </div>
 
@@ -96,7 +109,9 @@
             @for (feature of getSelectedMode().features; track feature) {
               <div class="flex items-start gap-3 p-4 glass rounded-lg border border-white/5">
                 <i class="pi pi-check-circle text-primary mt-1 flex-shrink-0"></i>
-                <span class="text-gray-300 text-sm">{{ feature }}</span>
+                <span class="text-gray-300 text-sm" i18n="@@deployment.selectedMode.feature">{{
+                  feature
+                }}</span>
               </div>
             }
           </div>
@@ -105,15 +120,23 @@
         <!-- Target Audience & Use Cases -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="glass p-6 rounded-xl border border-white/5">
-            <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <h3
+              class="text-lg font-bold text-white mb-3 flex items-center gap-2"
+              i18n="@@deployment.selectedMode.targetAudience.title"
+            >
               <i class="pi pi-users text-primary"></i>
               Target Audience
             </h3>
-            <p class="text-gray-300">{{ getSelectedMode().targetAudience }}</p>
+            <p class="text-gray-300" i18n="@@deployment.selectedMode.targetAudience.description">
+              {{ getSelectedMode().targetAudience }}
+            </p>
           </div>
 
           <div class="glass p-6 rounded-xl border border-white/5">
-            <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <h3
+              class="text-lg font-bold text-white mb-3 flex items-center gap-2"
+              i18n="@@deployment.selectedMode.perfectFor.title"
+            >
               <i class="pi pi-bookmark text-primary"></i>
               Perfect For
             </h3>
@@ -121,7 +144,7 @@
               @for (useCase of getSelectedMode().useCases; track useCase) {
                 <li class="text-gray-300 text-sm flex items-start gap-2">
                   <i class="pi pi-angle-right text-primary mt-1 flex-shrink-0"></i>
-                  <span>{{ useCase }}</span>
+                  <span i18n="@@deployment.selectedMode.useCase">{{ useCase }}</span>
                 </li>
               }
             </ul>
@@ -150,11 +173,20 @@
               >
                 <i [class]="'pi ' + archMode.icon + ' text-2xl'" [style.color]="archMode.color"></i>
               </div>
-              <h3 class="text-xl font-bold text-white mb-2">{{ archMode.title }}</h3>
-              <p class="text-gray-400 text-sm mb-4 leading-relaxed">{{ archMode.description }}</p>
+              <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.archMode.title">
+                {{ archMode.title }}
+              </h3>
+              <p
+                class="text-gray-400 text-sm mb-4 leading-relaxed"
+                i18n="@@deployment.archMode.description"
+              >
+                {{ archMode.description }}
+              </p>
               <div class="flex items-center gap-2 text-sm">
                 <i class="pi pi-user text-primary"></i>
-                <span class="text-gray-300">{{ archMode.audience }}</span>
+                <span class="text-gray-300" i18n="@@deployment.archMode.audience">{{
+                  archMode.audience
+                }}</span>
               </div>
             </div>
           }
@@ -164,7 +196,10 @@
 
     <!-- Comparison Table -->
     <div class="mb-16">
-      <h2 class="text-3xl font-bold text-white text-center mb-8">
+      <h2
+        class="text-3xl font-bold text-white text-center mb-8"
+        i18n="@@deployment.chooseMethod.title"
+      >
         Choose the Right Deployment Method
       </h2>
       <div class="glass-card rounded-2xl border border-white/10 overflow-hidden">
@@ -323,6 +358,7 @@
         <div class="rounded-xl overflow-hidden border border-white/10">
           <img
             src="assets/images/deployment-page/server-infrastructure.webp"
+            i18n-alt="@@deployment.alt.servers"
             alt="Server infrastructure and data centers"
             loading="lazy"
             class="w-full h-64 object-cover"
@@ -331,6 +367,7 @@
         <div class="rounded-xl overflow-hidden border border-white/10">
           <img
             src="assets/images/deployment-page/monitoring-dashboard.webp"
+            i18n-alt="@@deployment.alt.monitoring"
             alt="Monitoring dashboard and analytics"
             loading="lazy"
             class="w-full h-64 object-cover"
@@ -348,7 +385,7 @@
           <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.docker_swarm_clusters">
             Docker Swarm Clusters
           </h3>
-          <p class="text-gray-400 text-sm">
+          <p class="text-gray-400 text-sm" i18n="@@deployment.docker.description">
             High availability infrastructure designed to maintain 99.9% uptime for your applications
           </p>
         </div>
@@ -362,7 +399,7 @@
           <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.realtime_monitoring">
             Real-Time Monitoring
           </h3>
-          <p class="text-gray-400 text-sm">
+          <p class="text-gray-400 text-sm" i18n="@@deployment.monitoring.description">
             Visualize all containers, track performance metrics, and access logs directly from IDEM
             platform
           </p>
@@ -377,7 +414,7 @@
           <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.automatic_ssl">
             Automatic SSL
           </h3>
-          <p class="text-gray-400 text-sm">
+          <p class="text-gray-400 text-sm" i18n="@@deployment.ssl.description">
             Free SSL certificates automatically provisioned and renewed for all your deployments
           </p>
         </div>
@@ -389,18 +426,18 @@
       <h2 class="text-3xl font-bold text-white mb-4" i18n="@@deployment.ready_deploy">
         Ready to Deploy?
       </h2>
-      <p class="text-gray-400 mb-8 max-w-2xl mx-auto">
+      <p class="text-gray-400 mb-8 max-w-2xl mx-auto" i18n="@@deployment.cta.description">
         Start with our free tier and deploy your first application in minutes. No credit card
         required.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-rocket mr-2"></i>
-          Start Deploying Free
+          <ng-container i18n="@@deployment.cta.startDeploying">Start Deploying Free</ng-container>
         </a>
         <a routerLink="/" class="outer-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-arrow-left mr-2"></i>
-          Back to Home
+          <ng-container i18n="@@deployment.cta.backHome">Back to Home</ng-container>
         </a>
       </div>
     </div>
