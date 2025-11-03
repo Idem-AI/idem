@@ -20,10 +20,10 @@
         <!-- Left Content - Text -->
         <div class="text-center lg:text-left">
           <!-- Main Headline -->
-          <h1 class="font-bold mb-6 leading-tight md:text-6xl text-3xl">
-            <span i18n="@@hero.the"> <span class="i-underline">The AI</span> that brings </span>
+          <h1 class="font-bold mb-6 leading-tight md:text-6xl text-3xl" i18n="@@hero.title">
+            <span class="i-underline">The AI</span> that brings
             <br />
-            <span class="i-underline" i18n="@@hero.african">African</span>
+            <span class="i-underline">African</span>
             startups to life
           </h1>
 
@@ -31,11 +31,10 @@
           <p
             class="mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0 text-sm sm:text-xl"
             style="color: var(--color-light-text); opacity: 0.9"
+            i18n="@@hero.description"
           >
             From a simple idea, IDEM builds a complete business.
-            <span class="font-black" i18n="@@hero.strategy_brand_product">
-              Strategy, Brand, product, app, everything
-            </span>
+            <span class="font-black"> Strategy, Brand, product, app, everything </span>
             . Designed for Africa, empowering every creator to build, grow, and thrive with full
             independence.
           </p>
@@ -45,6 +44,7 @@
             <a
               routerLink="/console/create-project"
               class="inner-button flex items-center justify-center"
+              i18n="@@hero.tryForFree"
             >
               Try for free
             </a>
@@ -55,7 +55,7 @@
               style="color: var(--color-light-text); border-color: var(--color-primary)"
             >
               <i class="pi pi-github mr-2"></i>
-              View on GitHub
+              <ng-container i18n="@@hero.viewOnGithub">View on GitHub</ng-container>
             </a>
           </div>
 
@@ -85,6 +85,7 @@
         <!-- Right Content - Visual -->
         <img
           src="/assets/images/home/hero1.png"
+          i18n-alt="@@hero.alt.projectBuilder"
           alt="Idem AI-powered project builder interface showing logo generation, business plan creation, and web application development features"
           loading="eager"
           width="600"

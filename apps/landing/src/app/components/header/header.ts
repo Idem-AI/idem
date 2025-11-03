@@ -65,21 +65,21 @@ export class Header implements OnInit {
   // Navigation items
   protected readonly items: MenuItem[] | undefined = [
     {
-      label: 'Home',
+      label: $localize`:@@header.items.home:Home`,
       icon: 'pi pi-home',
     },
     {
-      label: 'Projects',
+      label: $localize`:@@header.items.projects:Projects`,
       icon: 'pi pi-search',
       badge: '3',
       items: [
         {
-          label: 'Core',
+          label: $localize`:@@header.items.core:Core`,
           icon: 'pi pi-bolt',
           shortcut: '⌘+S',
         },
         {
-          label: 'Blocks',
+          label: $localize`:@@header.items.blocks:Blocks`,
           icon: 'pi pi-server',
           shortcut: '⌘+B',
         },
@@ -87,7 +87,7 @@ export class Header implements OnInit {
           separator: true,
         },
         {
-          label: 'UI Kit',
+          label: $localize`:@@header.items.uiKit:UI Kit`,
           icon: 'pi pi-pencil',
           shortcut: '⌘+U',
         },

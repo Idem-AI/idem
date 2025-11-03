@@ -33,9 +33,9 @@ export class Hero implements OnInit {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       name: 'Idem',
-      applicationCategory: 'BusinessApplication',
-      description: 'AI-powered platform for instant brand creation and application deployment',
-      operatingSystem: 'Web Browser',
+      applicationCategory: $localize`:@@hero.seo.appCategory:BusinessApplication`,
+      description: $localize`:@@hero.seo.description:AI-powered platform for instant brand creation and application deployment`,
+      operatingSystem: $localize`:@@hero.seo.os:Web Browser`,
       offers: {
         '@type': 'Offer',
         price: '0',
@@ -43,7 +43,7 @@ export class Hero implements OnInit {
       },
       creator: {
         '@type': 'Organization',
-        name: 'Idem Team',
+        name: $localize`:@@hero.seo.creatorName:Idem Team`,
       },
     };
 

@@ -164,9 +164,8 @@ export class VideoTrailer implements OnInit, AfterViewInit {
     const videoStructuredData = {
       '@context': 'https://schema.org',
       '@type': 'VideoObject',
-      name: 'Idem Platform Demo',
-      description:
-        "Interactive demo showcasing Idem's AI-powered brand creation and deployment capabilities",
+      name: $localize`:@@video-trailer.seo.name:Idem Platform Demo`,
+      description: $localize`:@@video-trailer.seo.description:Interactive demo showcasing Idem's AI-powered brand creation and deployment capabilities`,
       thumbnailUrl: `${this.seoService.domain}/assets/video/demo-thumbnail.jpg`,
       uploadDate: new Date().toISOString(),
       duration: 'PT3M45S',
@@ -174,7 +173,7 @@ export class VideoTrailer implements OnInit, AfterViewInit {
       embedUrl: `${this.seoService.domain}/video-demo`,
       publisher: {
         '@type': 'Organization',
-        name: 'Idem',
+        name: $localize`:@@video-trailer.seo.publisher:Idem`,
         logo: {
           '@type': 'ImageObject',
           url: `${this.seoService.domain}/assets/images/logo.png`,
