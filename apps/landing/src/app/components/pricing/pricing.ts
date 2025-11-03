@@ -127,8 +127,8 @@ export class Pricing implements OnInit, AfterViewInit, OnDestroy {
     const pricingStructuredData = {
       '@context': 'https://schema.org',
       '@type': 'Product',
-      name: 'Idem Platform',
-      description: 'AI-powered platform for instant brand creation and application deployment',
+      name: $localize`:@@pricing.seo.name:Idem Platform`,
+      description: $localize`:@@pricing.seo.description:AI-powered platform for instant brand creation and application deployment`,
       brand: {
         '@type': 'Brand',
         name: 'Idem',
@@ -136,8 +136,8 @@ export class Pricing implements OnInit, AfterViewInit, OnDestroy {
       offers: [
         {
           '@type': 'Offer',
-          name: 'Free Plan',
-          description: 'Get started with basic features',
+          name: $localize`:@@pricing.seo.free.name:Free Plan`,
+          description: $localize`:@@pricing.seo.free.description:Get started with basic features`,
           price: '0',
           priceCurrency: 'USD',
           availability: 'https://schema.org/InStock',
@@ -146,8 +146,8 @@ export class Pricing implements OnInit, AfterViewInit, OnDestroy {
         },
         {
           '@type': 'Offer',
-          name: 'Pro Plan',
-          description: 'Advanced features for professionals',
+          name: $localize`:@@pricing.seo.pro.name:Pro Plan`,
+          description: $localize`:@@pricing.seo.pro.description:Advanced features for professionals`,
           price: '29',
           priceCurrency: 'USD',
           availability: 'https://schema.org/InStock',

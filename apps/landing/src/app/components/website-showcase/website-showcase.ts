@@ -37,8 +37,8 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
     {
       id: '1',
       title: 'TechFlow Solutions',
-      category: 'SaaS Platform',
-      description: 'Modern B2B software solution with clean design and powerful features',
+      category: $localize`:@@website-showcase.websites.techflow.category:SaaS Platform`,
+      description: $localize`:@@website-showcase.websites.techflow.description:Modern B2B software solution with clean design and powerful features`,
       imageUrl: '/assets/showcase/website-1.jpg',
       liveUrl: 'https://techflow-demo.idem.africa',
       technologies: ['Angular', 'Node.js', 'PostgreSQL'],
@@ -46,8 +46,8 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
     {
       id: '2',
       title: 'EcoGreen Marketplace',
-      category: 'E-commerce',
-      description: 'Sustainable products marketplace with integrated payment system',
+      category: $localize`:@@website-showcase.websites.ecogreen.category:E-commerce`,
+      description: $localize`:@@website-showcase.websites.ecogreen.description:Sustainable products marketplace with integrated payment system`,
       imageUrl: '/assets/showcase/website-2.jpg',
       liveUrl: 'https://ecogreen-demo.idem.africa',
       technologies: ['React', 'Express', 'MongoDB'],
@@ -55,8 +55,8 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
     {
       id: '3',
       title: 'HealthCare Connect',
-      category: 'Healthcare',
-      description: 'Patient management system with telemedicine capabilities',
+      category: $localize`:@@website-showcase.websites.healthcare.category:Healthcare`,
+      description: $localize`:@@website-showcase.websites.healthcare.description:Patient management system with telemedicine capabilities`,
       imageUrl: '/assets/showcase/website-3.jpg',
       liveUrl: 'https://healthcare-demo.idem.africa',
       technologies: ['Vue.js', 'Laravel', 'MySQL'],
@@ -64,8 +64,8 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
     {
       id: '4',
       title: 'EduLearn Platform',
-      category: 'Education',
-      description: 'Interactive learning platform with video streaming and assessments',
+      category: $localize`:@@website-showcase.websites.edulearn.category:Education`,
+      description: $localize`:@@website-showcase.websites.edulearn.description:Interactive learning platform with video streaming and assessments`,
       imageUrl: '/assets/showcase/website-4.jpg',
       liveUrl: 'https://edulearn-demo.idem.africa',
       technologies: ['Angular', 'NestJS', 'PostgreSQL'],
@@ -73,8 +73,8 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
     {
       id: '5',
       title: 'FinTech Dashboard',
-      category: 'Finance',
-      description: 'Real-time financial analytics and trading dashboard',
+      category: $localize`:@@website-showcase.websites.fintech.category:Finance`,
+      description: $localize`:@@website-showcase.websites.fintech.description:Real-time financial analytics and trading dashboard`,
       imageUrl: '/assets/showcase/website-5.jpg',
       liveUrl: 'https://fintech-demo.idem.africa',
       technologies: ['React', 'FastAPI', 'Redis'],
@@ -82,8 +82,8 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
     {
       id: '6',
       title: 'Creative Portfolio',
-      category: 'Portfolio',
-      description: 'Artist portfolio with interactive galleries and booking system',
+      category: $localize`:@@website-showcase.websites.creative.category:Portfolio`,
+      description: $localize`:@@website-showcase.websites.creative.description:Artist portfolio with interactive galleries and booking system`,
       imageUrl: '/assets/showcase/website-6.jpg',
       liveUrl: 'https://portfolio-demo.idem.africa',
       technologies: ['Next.js', 'Strapi', 'PostgreSQL'],
@@ -153,8 +153,8 @@ export class WebsiteShowcase implements OnInit, OnDestroy {
     const websiteShowcaseStructuredData = {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
-      name: 'AI-Generated Website Examples',
-      description: "Showcase of websites created using Idem's AI-powered development platform",
+      name: $localize`:@@website-showcase.seo.name:AI-Generated Website Examples`,
+      description: $localize`:@@website-showcase.seo.description:Showcase of websites created using Idem's AI-powered development platform`,
       numberOfItems: this.websites().length,
       itemListElement: this.websites().map((website, index) => ({
         '@type': 'ListItem',

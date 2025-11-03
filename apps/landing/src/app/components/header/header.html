@@ -14,6 +14,7 @@
         >
           <img
             src="/assets/icons/logo_white.png"
+            i18n-alt="@@header.alt.logo"
             alt="IDEM - Africa's sovereign open source AI platform"
             class="w-[120px] h-auto font-bold logo-pulse"
           />
@@ -37,48 +38,48 @@
             routerLink="/solutions"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
-          >
-            Solutions
+            i18n="@@header.nav.solutions"
+            >Solutions
             <span class="nav-dot"></span>
           </a>
           <a
             routerLink="/architecture"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
-          >
-            Architecture
+            i18n="@@header.nav.architecture"
+            >Architecture
             <span class="nav-dot"></span>
           </a>
           <a
             routerLink="/african-market"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
-          >
-            Vision
+            i18n="@@header.nav.vision"
+            >Vision
             <span class="nav-dot"></span>
           </a>
           <a
             routerLink="/open-source"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
-          >
-            Open Source
+            i18n="@@header.nav.openSource"
+            >Open Source
             <span class="nav-dot"></span>
           </a>
           <a
             routerLink="/pricing"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
-          >
-            Pricing
+            i18n="@@header.nav.pricing"
+            >Pricing
             <span class="nav-dot"></span>
           </a>
           <a
             routerLink="/about"
             routerLinkActive="active"
             class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
-          >
-            Entreprise
+            i18n="@@header.nav.enterprise"
+            >Entreprise
             <span class="nav-dot"></span>
           </a>
         </div>
@@ -90,6 +91,7 @@
             target="_blank"
             rel="noopener noreferrer"
             class="text-white hover:text-amber-300 transition-colors duration-300"
+            i18n-aria-label="@@header.aria.github"
             aria-label="Visit IDEM on GitHub"
           >
             <i class="pi pi-github text-2xl"></i>
@@ -100,6 +102,7 @@
             <button
               (click)="navigateToDashboard()"
               class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
+              i18n="@@header.nav.dashboard"
             >
               Dashboard
               <span class="nav-dot"></span>
@@ -109,6 +112,7 @@
               <button (click)="toggleDropdown()" class="flex items-center">
                 <img
                   [src]="user()!.photoURL || '/assets/icons/default-avatar.png'"
+                  i18n-alt="@@header.alt.avatar"
                   alt="Avatar"
                   class="w-10 h-10 rounded-full cursor-pointer border-2 border-white/20 hover:border-primary transition-colors"
                 />
@@ -122,6 +126,7 @@
                   <button
                     (click)="navigateToDashboard()"
                     class="dropdown-item p-3 hover:bg-primary/20 rounded-lg cursor-pointer text-white transition-colors w-full text-left"
+                    i18n="@@header.nav.dashboard"
                   >
                     Dashboard
                   </button>
@@ -129,13 +134,15 @@
                     routerLink="/settings"
                     (click)="navigateTo('/settings')"
                     class="dropdown-item p-3 hover:bg-primary/20 rounded-lg cursor-pointer text-white transition-colors"
-                    >Settings</a
-                  >
+                    i18n="@@header.nav.settings"
+                    >Settings
+                  </a>
                   <a
                     (click)="logout()"
                     class="dropdown-item border-t border-white/10 p-3 hover:bg-primary/20 cursor-pointer text-white transition-colors mt-1 pt-3"
-                    >Logout</a
-                  >
+                    i18n="@@header.nav.logout"
+                    >Logout
+                  </a>
                 </div>
               }
             </div>
@@ -144,8 +151,8 @@
             <a
               routerLink="/login"
               class="inner-button text-white px-6 py-2 rounded-lg hover:text-white transition text-sm"
-            >
-              <span class="relative z-10" i18n="@@header.login">Login</span>
+              i18n="@@header.nav.login"
+              >Login
             </a>
           }
         </div>
@@ -183,63 +190,63 @@
           (click)="toggleMenu()"
           routerLinkActive="active"
           class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-        >
+          i18n="@@header.nav.home"
+          >Home
           <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-          Home
         </a>
         <a
           routerLink="/solutions"
           (click)="toggleMenu()"
           routerLinkActive="active"
           class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-        >
+          i18n="@@header.nav.solutions"
+          >Solutions
           <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-          Solutions
         </a>
         <a
           routerLink="/architecture"
           (click)="toggleMenu()"
           routerLinkActive="active"
           class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-        >
+          i18n="@@header.nav.architecture"
+          >Architecture
           <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-          Architecture
         </a>
         <a
           routerLink="/african-market"
           (click)="toggleMenu()"
           routerLinkActive="active"
           class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-        >
+          i18n="@@header.nav.vision"
+          >Vision
           <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-          Vision
         </a>
         <a
           routerLink="/open-source"
           (click)="toggleMenu()"
           routerLinkActive="active"
           class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-        >
+          i18n="@@header.nav.openSource"
+          >Open Source
           <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-          Open Source
         </a>
         <a
           routerLink="/pricing"
           (click)="toggleMenu()"
           routerLinkActive="active"
           class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-        >
+          i18n="@@header.nav.pricing"
+          >Pricing
           <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-          Pricing
         </a>
         <a
           routerLink="/about"
           (click)="toggleMenu()"
           routerLinkActive="active"
           class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-        >
+          i18n="@@header.nav.enterprise"
+          >Entreprise
           <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-          Entreprise
         </a>
 
         <!-- Dashboard link - only visible when logged in -->
@@ -249,34 +256,34 @@
             (click)="toggleMenu()"
             routerLinkActive="active"
             class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-          >
+            i18n="@@header.nav.dashboard"
+            >Dashboard
             <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-            Dashboard
           </a>
           <a
             routerLink="/profile"
             (click)="toggleMenu()"
             routerLinkActive="active"
             class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-          >
+            i18n="@@header.nav.profile"
+            >Profile
             <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-            Profile
           </a>
           <a
             (click)="logout()"
             class="inner-button flex items-center justify-center mt-2 px-4 py-2.5 rounded-lg transition duration-300 text-center"
-          >
+            i18n="@@header.nav.logout"
+            >Logout
             <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-            Logout
           </a>
         } @else {
           <a
             routerLink="/login"
             (click)="toggleMenu()"
             class="inner-button flex items-center justify-center mt-2 px-4 py-2.5 rounded-lg transition duration-300 text-center"
-          >
+            i18n="@@header.nav.login"
+            >Login
             <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
-            Login
           </a>
         }
       </div>

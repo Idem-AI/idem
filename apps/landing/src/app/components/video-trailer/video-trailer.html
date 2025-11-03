@@ -38,7 +38,10 @@
         <span class="i-underline" i18n="@@video-trailer.action">Action</span>
       </h2>
 
-      <p class="text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+      <p
+        class="text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@video-trailer.description"
+      >
         Watch how IDEM transforms a simple idea into a complete brand and application in just
         minutes. Experience the power of AI-driven development.
       </p>
@@ -59,14 +62,21 @@
             [poster]="videoPoster"
           >
             <source [src]="videoUrl" type="video/mp4" />
-            Your browser does not support the video tag.
+            <ng-container i18n="@@video-trailer.noVideoSupport"
+              >Your browser does not support the video tag.</ng-container
+            >
           </video>
 
           <!-- Custom Poster with Play Button -->
           @if (!hasStartedPlaying() && !isLoading()) {
             <div class="absolute inset-0 cursor-pointer group" (click)="startVideo()">
               <!-- Poster Image -->
-              <img [src]="videoPoster" alt="Video poster" class="w-full h-full object-cover" />
+              <img
+                [src]="videoPoster"
+                i18n-alt="@@video-trailer.alt.poster"
+                alt="Video poster"
+                class="w-full h-full object-cover"
+              />
               <!-- Dark Overlay -->
               <div
                 class="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors duration-300"
@@ -112,7 +122,7 @@
                 <div
                   class="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"
                 ></div>
-                <p class="text-white/80">Loading video...</p>
+                <p class="text-white/80" i18n="@@video-trailer.loading">Loading video...</p>
               </div>
             </div>
           }
@@ -277,7 +287,9 @@
         <h3 class="text-xl font-semibold text-white mb-2" i18n="@@video-trailer.minutes_demo">
           3 Minutes Demo
         </h3>
-        <p class="text-white/60">Complete walkthrough from idea to deployment</p>
+        <p class="text-white/60" i18n="@@video-trailer.demo.description">
+          Complete walkthrough from idea to deployment
+        </p>
       </div>
 
       <div class="text-center">
