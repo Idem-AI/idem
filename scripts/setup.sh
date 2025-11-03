@@ -74,16 +74,50 @@ info "Installing workspace dependencies..."
 npm install
 success "Workspace dependencies installed"
 
-# Install dependencies for each project
-info "Installing project dependencies..."
+echo ""
+info "📦 Building shared packages first..."
+echo ""
 
-# main-app
-if [ -d "apps/main-app" ]; then
-    info "Installing main-app dependencies..."
-    cd apps/main-app
-    sudo npm install
+# Build shared-models
+if [ -d "packages/shared-models" ]; then
+    info "Building @idem/shared-models..."
+    npm run build --workspace=@idem/shared-models
+    success "@idem/shared-models built"
+fi
+
+# Build shared-auth-client
+if [ -d "packages/shared-auth-client" ]; then
+    info "Building @idem/shared-auth-client..."
+    npm run build --workspace=@idem/shared-auth-client
+    success "@idem/shared-auth-client built"
+fi
+
+# Build shared-styles
+if [ -d "packages/shared-styles" ]; then
+    info "Verifying @idem/shared-styles..."
+    success "@idem/shared-styles ready"
+fi
+
+echo ""
+info "🚀 Installing application dependencies..."
+echo ""
+
+# landing-page
+if [ -d "apps/landing-page" ]; then
+    info "Installing landing-page dependencies..."
+    cd apps/landing-page
+    npm install
     cd ../..
-    success "main-app configured"
+    success "landing-page configured"
+fi
+
+# main-dashboard
+if [ -d "apps/main-dashboard" ]; then
+    info "Installing main-dashboard dependencies..."
+    cd apps/main-dashboard
+    npm install
+    cd ../..
+    success "main-dashboard configured"
 fi
 
 # api
@@ -137,13 +171,16 @@ echo ""
 success "🎉 Setup completed successfully!"
 echo ""
 info "Available commands:"
-echo "  npm run dev:ai        - Launch main-app"
-echo "  npm run dev:chart     - Launch chart"
-echo "  npm run dev:appgen    - Launch appgen"
-echo "  npm run dev:api       - Launch idem-api"
-echo "  npm run build:all     - Build all projects"
-echo "  npm run test:all      - Test all projects"
-echo "  npm run lint:all      - Lint all projects"
+echo "  npm run dev:landing      - Launch landing-page (port 4201)"
+echo "  npm run dev:dashboard    - Launch main-dashboard (port 4200)"
+echo "  npm run dev:chart        - Launch chart"
+echo "  npm run dev:appgen       - Launch appgen"
+echo "  npm run dev:api          - Launch idem-api"
+echo "  npm run build:all        - Build all projects"
+echo "  npm run build:landing    - Build landing-page"
+echo "  npm run build:dashboard  - Build main-dashboard"
+echo "  npm run test:all         - Test all projects"
+echo "  npm run lint:all         - Lint all projects"
 echo ""
 info "For more information, see:"
 echo "  - README.md"

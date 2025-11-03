@@ -1,0 +1,617 @@
+<div class="glass-card p-4 sm:p-5 md:p-6 animate-fade-in relative overflow-hidden">
+  <div class="relative z-10">
+    <!-- Chat Interface -->
+    <div class="sm:glass rounded-xl sm:p-4 md:p-6 flex flex-col h-[63vh] md:h-[75vh] relative">
+      <!-- Chat Messages Display -->
+      <div
+        #chatContainer
+        class="flex-grow overflow-y-auto sm:pr-4 space-y-4 sm:space-y-6 custom-scrollbar"
+      >
+        @for (message of chatMessages(); track $index) {
+          <div
+            class="flex gap-2 sm:gap-4 animate-fade-in w-full"
+            [class.justify-end]="message.sender === 'user'"
+          >
+            @if (message.sender === 'ai') {
+              <div
+                class="w-6 h-6 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0 mt-1"
+              >
+                <i class="pi pi-sparkles text-xs sm:text-sm"></i>
+              </div>
+            }
+            <div
+              class="p-3 sm:p-4 rounded-xl flex-1 min-w-0"
+              [class]="
+                message.sender === 'ai'
+                  ? 'glass-dark text-gray-300 border border-primary/20'
+                  : 'bg-primary text-white max-w-[85%] sm:max-w-xl ml-auto'
+              "
+            >
+              @if (message.sender === 'ai') {
+                <!-- Regular AI message content -->
+                <markdown
+                  [data]="message.text"
+                  class="markdown-content glass rounded-lg text-xs sm:text-sm md:text-base w-full"
+                  [lineNumbers]="true"
+                  [lineHighlight]="true"
+                  [clipboard]="true"
+                ></markdown>
+
+                <!-- Sensitive variables request section -->
+                @if (
+                  message.isRequestingSensitiveVariables &&
+                  message.requestedSensitiveVariables &&
+                  message.requestedSensitiveVariables.length > 0
+                ) {
+                  <div class="mt-4 animate-fade-in">
+                    <div class="flex items-center gap-2 mb-3 text-yellow-400">
+                      <i class="pi pi-shield"></i>
+                      <h4 class="font-medium">Sensitive Variables Required</h4>
+                    </div>
+
+                    <div class="glass-dark border border-secondary/30 rounded-lg p-4 mb-4">
+                      <p class="text-sm text-yellow-200 mb-3">
+                        <i class="pi pi-info-circle mr-2"></i>
+                        The AI needs some sensitive information to complete your deployment
+                        configuration. These values will be stored securely and encrypted.
+                      </p>
+
+                      <div class="space-y-2">
+                        @for (
+                          variable of message.requestedSensitiveVariables;
+                          track variable.name
+                        ) {
+                          <div
+                            class="flex items-center justify-between bg-yellow-900/10 rounded p-2"
+                          >
+                            <div>
+                              <span class="text-sm font-medium text-yellow-100">{{
+                                variable.label
+                              }}</span>
+                              @if (variable.description) {
+                                <p class="text-xs text-yellow-300 mt-1">
+                                  {{ variable.description }}
+                                </p>
+                              }
+                            </div>
+                            <span
+                              class="text-xs bg-yellow-500/20 text-yellow-200 px-2 py-1 rounded"
+                            >
+                              {{ variable.type | titlecase }}
+                              @if (variable.required) {
+                                • Required
+                              }
+                            </span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+
+                    <!-- Action buttons for sensitive variables -->
+                    <div class="flex gap-3 mt-4">
+                      <button
+                        (click)="openSensitiveVariablesModal()"
+                        class="px-4 py-2 bg-secondary hover:bg-secondary/90 rounded-lg text-white font-medium flex items-center gap-2 transition-all text-sm"
+                      >
+                        <i class="pi pi-shield"></i>
+                        <span>Enter Sensitive Variables</span>
+                      </button>
+
+                      <button
+                        (click)="submitSensitiveVariables()"
+                        [disabled]="!sensitiveVariablesReady() || storingSensitiveVariables()"
+                        class="px-4 py-2 inner-button text-white font-medium flex items-center gap-2 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        @if (storingSensitiveVariables()) {
+                          <i class="pi pi-spinner animate-spin"></i>
+                          <span>Submitting...</span>
+                        } @else {
+                          <i class="pi pi-send"></i>
+                          <span>Submit Variables</span>
+                        }
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                <!-- Architecture proposal section -->
+                @if (
+                  message.isProposingArchitecture &&
+                  message.proposedComponents &&
+                  message.proposedComponents.length > 0
+                ) {
+                  <div class="mt-4 animate-fade-in">
+                    <div class="flex items-center gap-2 mb-3 text-primary">
+                      <i class="pi pi-sitemap"></i>
+                      <h4 class="font-medium">Proposed Architecture</h4>
+                    </div>
+
+                    <!-- Mermaid Architecture Diagram -->
+                    @if (message.asciiArchitecture) {
+                      <div class="mb-4 p-4 glass-dark rounded-lg">
+                        <div class="flex items-center gap-2 mb-3 text-gray-300">
+                          <i class="pi pi-share-alt"></i>
+                          <h5 class="text-sm font-medium">Architecture Diagram</h5>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 overflow-x-auto">
+                          <markdown
+                            mermaid
+                            [data]="'```mermaid\n' + message.asciiArchitecture + '\n```'"
+                            class="mermaid-diagram"
+                          ></markdown>
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Architecture components grid -->
+                    <div class="grid grid-cols-1 gap-3 sm:gap-4 mt-3">
+                      @for (component of message.proposedComponents; track component.instanceId) {
+                        <div
+                          class="glass-card p-4 cursor-pointer transition-all"
+                          [class.border-primary]="
+                            activeProposedComponent()?.instanceId === component.instanceId
+                          "
+                          [class.glow-primary]="
+                            activeProposedComponent()?.instanceId === component.instanceId
+                          "
+                          (click)="selectProposedComponent(component, message)"
+                        >
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                              <div
+                                class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg glass flex items-center justify-center text-primary"
+                              >
+                                <i class="{{ component.icon }}"></i>
+                              </div>
+                              <div>
+                                <h5 class="font-medium text-sm sm:text-base text-gray-200">
+                                  {{ component.name }}
+                                </h5>
+                                <p class="text-xs text-gray-400">
+                                  {{ component.provider | uppercase }} | {{ component.type }}
+                                </p>
+                              </div>
+                            </div>
+                            <div>
+                              @if (isComponentConfigured(component.instanceId)) {
+                                <span
+                                  class="text-xs text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full flex items-center gap-1"
+                                >
+                                  <i class="pi pi-check-circle text-xs"></i>
+                                </span>
+                              } @else {
+                                <span
+                                  class="text-xs text-yellow-400 bg-yellow-900/30 px-2 py-0.5 rounded-full flex items-center gap-1"
+                                >
+                                  <i class="pi pi-exclamation-triangle text-xs"></i>
+                                </span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+
+                    <div class="flex justify-end mt-4">
+                      <button
+                        (click)="acceptProposedArchitecture(message)"
+                        class="px-3 py-1.5 sm:px-4 sm:py-2 inner-button text-white text-sm sm:text-base font-medium flex items-center gap-2 transition-all"
+                      >
+                        <i class="pi pi-check"></i>
+                        <span>Accept Architecture</span>
+                      </button>
+                    </div>
+                  </div>
+                }
+              } @else {
+                <p class="whitespace-pre-wrap">{{ message.text }}</p>
+              }
+            </div>
+          </div>
+        }
+        @if (aiIsThinking()) {
+          <div class="flex gap-2 sm:gap-4 animate-fade-in w-full">
+            <div
+              class="w-6 h-6 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0 mt-1"
+            >
+              <i class="pi pi-sparkles text-xs sm:text-sm"></i>
+            </div>
+            <div
+              class="flex-1 p-3 sm:p-4 rounded-xl glass-dark text-gray-300 border border-primary/20 flex items-center gap-2 sm:gap-3 text-sm sm:text-base"
+            >
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Thinking...</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Input Area -->
+      <div class="mt-4 sm:mt-6 flex gap-2 sm:gap-4 border-t border-gray-700/50 pt-3 sm:pt-4">
+        <input
+          [value]="aiPrompt()"
+          (input)="updatePrompt($any($event.target).value)"
+          (keyup.enter)="sendAiPrompt()"
+          type="text"
+          placeholder="Describe your infrastructure needs..."
+          class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-2 sm:p-3 text-xs sm:text-base focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-gray-400"
+        />
+        <button
+          (click)="sendAiPrompt()"
+          class="p-2 sm:px-6 sm:py-3 inner-button text-white font-medium flex items-center gap-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all align-center justify-center"
+          [disabled]="!aiPrompt() || aiIsThinking()"
+        >
+          <i class="pi pi-send"></i>
+          <span class="hidden sm:block">Send</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Component Configuration Modal -->
+<p-dialog
+  [(visible)]="configurationDialogVisible"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [maximizable]="false"
+  [closeOnEscape]="true"
+  [dismissableMask]="true"
+  styleClass="component-config-dialog"
+  [style]="{ width: '90vw', maxWidth: '700px' }"
+>
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-3">
+      <i class="{{ activeProposedComponent()?.icon }}"></i>
+      <span class="text-xl font-semibold text-white"
+        >Configure {{ activeProposedComponent()?.name }}</span
+      >
+    </div>
+  </ng-template>
+
+  <div [formGroup]="getActiveComponentForm()!" class="space-y-6">
+    @for (option of getActiveComponentOptions(); track option.name) {
+      <div class="space-y-2">
+        <label
+          [for]="option.name"
+          class="text-sm font-medium flex items-center gap-2 text-gray-200"
+        >
+          {{ option.label }}
+          @if (option.required) {
+            <span class="text-red-400">*</span>
+          }
+          @if (option.description) {
+            <i class="pi pi-info-circle text-gray-500" [title]="option.description"></i>
+          }
+        </label>
+
+        @switch (option.type) {
+          @case ('text') {
+            <input
+              [id]="option.name"
+              type="text"
+              [formControlName]="option.name"
+              [placeholder]="option.placeholder || ''"
+              class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-primary/20 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-gray-500"
+            />
+          }
+          @case ('number') {
+            <input
+              [id]="option.name"
+              type="number"
+              [formControlName]="option.name"
+              class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-primary/20 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
+            />
+          }
+          @case ('select') {
+            <select
+              [id]="option.name"
+              [formControlName]="option.name"
+              class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-primary/20 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
+            >
+              @for (opt of option.options; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          }
+          @case ('toggle') {
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" [formControlName]="option.name" class="sr-only peer" />
+              <div
+                class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
+              ></div>
+            </label>
+          }
+        }
+        @if (
+          getActiveComponentForm()?.get(option.name)?.invalid &&
+          getActiveComponentForm()?.get(option.name)?.touched
+        ) {
+          <p class="text-red-400 text-sm mt-1">This field is required.</p>
+        }
+      </div>
+    }
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-3">
+      <button
+        (click)="configurationDialogVisible.set(false)"
+        class="px-6 py-2.5 outer-button transition-all"
+      >
+        Cancel
+      </button>
+      <button
+        (click)="saveComponentConfiguration()"
+        class="px-6 py-2.5 inner-button text-white font-medium flex items-center gap-2 transition-all"
+        [disabled]="getActiveComponentForm()?.invalid"
+      >
+        <i class="pi pi-check"></i>
+        <span>Save Configuration</span>
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Deployment Configuration Modal -->
+<p-dialog
+  [(visible)]="showDeploymentConfigDialog"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [maximizable]="false"
+  [closeOnEscape]="true"
+  [dismissableMask]="true"
+  header="Deployment Configuration"
+  styleClass="deployment-config-dialog"
+  [style]="{ width: '90vw', maxWidth: '600px' }"
+>
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-3">
+      <i class="pi pi-cog text-primary"></i>
+      <span class="text-xl font-semibold text-white">Deployment Configuration</span>
+    </div>
+  </ng-template>
+
+  <div class="space-y-4">
+    <form [formGroup]="deploymentConfigForm" class="space-y-4">
+      <div>
+        <label for="name" class="block text-sm font-medium text-gray-200 mb-2">
+          Deployment Name
+        </label>
+        <input
+          type="text"
+          id="name"
+          formControlName="name"
+          placeholder="My AI-Generated App"
+          class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-gray-400"
+        />
+      </div>
+
+      <div>
+        <label for="environment" class="block text-sm font-medium text-gray-200 mb-2">
+          Environment
+        </label>
+        <select
+          id="environment"
+          formControlName="environment"
+          class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
+        >
+          <option value="development">Development</option>
+          <option value="staging">Staging</option>
+          <option value="production">Production</option>
+        </select>
+      </div>
+
+      <div class="p-4 glass-dark rounded-lg border border-primary/20">
+        <h4 class="text-sm font-medium text-primary-300 mb-4 flex items-center gap-2">
+          <i class="pi pi-code"></i> Git Repository (Optional)
+        </h4>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="repoUrl" class="block font-medium text-gray-300 mb-1 text-sm">
+              Repository URL
+            </label>
+            <input
+              id="repoUrl"
+              type="text"
+              formControlName="repoUrl"
+              placeholder="https://github.com/user/repo.git"
+              class="w-full glass border border-primary/20 focus:border-primary text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all text-sm placeholder-gray-400"
+            />
+          </div>
+
+          <div>
+            <label for="branch" class="block font-medium text-gray-300 mb-1 text-sm">
+              Branch
+            </label>
+            <input
+              id="branch"
+              type="text"
+              formControlName="branch"
+              placeholder="main"
+              class="w-full glass border border-primary/20 focus:border-primary text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all text-sm placeholder-gray-400"
+            />
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Error messages -->
+  @if (errorMessages().length > 0) {
+    <div class="p-3 bg-red-500/20 border border-red-500/30 rounded-lg mb-4">
+      <ul class="list-disc list-inside text-sm text-red-200">
+        @for (error of errorMessages(); track error) {
+          <li>{{ error }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-3">
+      <button
+        (click)="cancelDeploymentConfig()"
+        class="px-6 py-2.5 outer-button transition-all"
+        [disabled]="creatingDeployment()"
+      >
+        Cancel
+      </button>
+      <button
+        (click)="saveDeploymentConfig()"
+        class="px-6 py-2.5 inner-button text-white font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        [disabled]="deploymentConfigForm.invalid || creatingDeployment()"
+      >
+        @if (creatingDeployment()) {
+          <i class="pi pi-spinner animate-spin"></i>
+          <span>Creating...</span>
+        } @else {
+          <i class="pi pi-save"></i>
+          <span>Save & Continue</span>
+        }
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Sensitive Variables Dialog -->
+<p-dialog
+  [(visible)]="showSensitiveVariablesDialog"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [maximizable]="false"
+  [closeOnEscape]="true"
+  [dismissableMask]="true"
+  header="Secure Variables Configuration"
+  styleClass="sensitive-variables-dialog"
+  [style]="{ width: '90vw', maxWidth: '600px' }"
+>
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-3">
+      <i class="pi pi-shield text-yellow-400"></i>
+      <span class="text-xl font-semibold text-white">Secure Variables Configuration</span>
+    </div>
+  </ng-template>
+
+  <div class="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+    <div class="flex items-start gap-3">
+      <i class="pi pi-shield text-yellow-400 mt-1"></i>
+      <div>
+        <h4 class="text-sm font-medium text-yellow-200 mb-2">Security Notice</h4>
+        <p class="text-xs text-yellow-300">
+          These sensitive values will be encrypted and stored securely. They will only be used for
+          your deployment configuration and will never be logged or exposed.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  @if (sensitiveVariablesForm()) {
+    <form [formGroup]="sensitiveVariablesForm()!" class="space-y-4">
+      @for (variable of currentSensitiveVariables(); track variable.name) {
+        <div class="space-y-2">
+          <label
+            [for]="variable.name"
+            class="text-sm font-medium text-gray-200 flex items-center gap-2"
+          >
+            <i class="pi pi-key text-yellow-400 text-xs"></i>
+            {{ variable.label }}
+            @if (variable.required) {
+              <span class="text-red-400">*</span>
+            }
+          </label>
+
+          @if (variable.description) {
+            <p class="text-xs text-gray-400 mb-2">{{ variable.description }}</p>
+          }
+          @switch (variable.type) {
+            @case ('string') {
+              <input
+                [id]="variable.name"
+                [type]="variable.sensitive ? 'password' : 'text'"
+                [formControlName]="variable.name"
+                [placeholder]="variable.placeholder || ''"
+                class="w-full glass border border-secondary/20 focus:border-secondary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-secondary/30 focus:outline-none transition-all placeholder-gray-400"
+                [class.border-red-500]="
+                  sensitiveVariablesForm()?.get(variable.name)?.invalid &&
+                  sensitiveVariablesForm()?.get(variable.name)?.touched
+                "
+              />
+            }
+            @case ('number') {
+              <input
+                [id]="variable.name"
+                type="number"
+                [formControlName]="variable.name"
+                class="w-full glass border border-secondary/20 focus:border-secondary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-secondary/30 focus:outline-none transition-all"
+                [class.border-red-500]="
+                  sensitiveVariablesForm()?.get(variable.name)?.invalid &&
+                  sensitiveVariablesForm()?.get(variable.name)?.touched
+                "
+              />
+            }
+            @case ('boolean') {
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" [formControlName]="variable.name" class="sr-only peer" />
+                <div
+                  class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"
+                ></div>
+              </label>
+            }
+          }
+          @if (
+            sensitiveVariablesForm()?.get(variable.name)?.invalid &&
+            sensitiveVariablesForm()?.get(variable.name)?.touched
+          ) {
+            <p class="text-red-400 text-xs mt-1">
+              @if (sensitiveVariablesForm()?.get(variable.name)?.errors?.['required']) {
+                This field is required.
+              }
+              @if (sensitiveVariablesForm()?.get(variable.name)?.errors?.['minlength']) {
+                Password must be at least 8 characters long.
+              }
+            </p>
+          }
+        </div>
+      }
+    </form>
+  }
+
+  <!-- Error messages -->
+  @if (errorMessages().length > 0) {
+    <div class="p-3 bg-red-500/20 border border-red-500/30 rounded-lg mb-4">
+      <ul class="list-disc list-inside text-sm text-red-200">
+        @for (error of errorMessages(); track error) {
+          <li>{{ error }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-3">
+      <button
+        (click)="cancelSensitiveVariables()"
+        class="px-6 py-2.5 outer-button transition-all"
+        [disabled]="storingSensitiveVariables()"
+      >
+        Cancel
+      </button>
+      <button
+        (click)="validateSensitiveVariables()"
+        class="px-6 py-2.5 inner-button text-white font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        [disabled]="!sensitiveVariablesForm()"
+      >
+        <i class="pi pi-check"></i>
+        <span>Validate Fields</span>
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>

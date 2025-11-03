@@ -1,0 +1,371 @@
+<div
+  class="additional-info-form min-h-screen bg-gradient-to-br from-bg-dark via-bg-light to-bg-dark sm:p-6"
+>
+  <div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1
+        class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-4"
+      >
+        Additional Information
+      </h1>
+      <p class="text-light-text text-lg opacity-80">
+        Provide these details to enrich your business plan
+      </p>
+    </div>
+
+    @if (isLoading()) {
+      <!-- Loading skeleton -->
+      <div class="glass-card p-8 mb-6">
+        <p-skeleton height="2rem" class="mb-4"></p-skeleton>
+        <p-skeleton height="1.5rem" class="mb-2"></p-skeleton>
+        <p-skeleton height="1.5rem" class="mb-2"></p-skeleton>
+        <p-skeleton height="1.5rem"></p-skeleton>
+      </div>
+    } @else {
+      <form [formGroup]="additionalInfoForm" (ngSubmit)="submitForm()" class="sm:space-y-8">
+        <!-- Company Information Card -->
+        <div class="sm:glass sm:p-8">
+          <h2 class="text-2xl font-semibold text-light-text mb-6 flex items-center gap-3">
+            <i class="pi pi-building text-accent"></i>
+            Company Information
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 sm:gap-6">
+            <!-- Email -->
+            <div class="form-field">
+              <label for="email" class="form-label">Business email *</label>
+              <input
+                pInputText
+                id="email"
+                formControlName="email"
+                placeholder="contact@company.com"
+                class="form-input w-full"
+                [class.error]="getFieldError('email')"
+              />
+              @if (getFieldError('email')) {
+                <small class="error-message">{{ getFieldError('email') }}</small>
+              }
+            </div>
+
+            <!-- Phone -->
+            <div class="form-field">
+              <label for="phone" class="form-label">Phone *</label>
+              <input
+                pInputText
+                id="phone"
+                formControlName="phone"
+                placeholder="+1 555 123 4567"
+                class="form-input w-full"
+                [class.error]="getFieldError('phone')"
+              />
+              @if (getFieldError('phone')) {
+                <small class="error-message">{{ getFieldError('phone') }}</small>
+              }
+            </div>
+
+            <!-- Address -->
+            <div class="form-field">
+              <label for="address" class="form-label">Address *</label>
+              <input
+                pInputText
+                id="address"
+                formControlName="address"
+                placeholder="123 Innovation Street"
+                class="form-input w-full"
+                [class.error]="getFieldError('address')"
+              />
+              @if (getFieldError('address')) {
+                <small class="error-message">{{ getFieldError('address') }}</small>
+              }
+            </div>
+
+            <!-- City -->
+            <div class="form-field">
+              <label for="city" class="form-label">City *</label>
+              <input
+                pInputText
+                id="city"
+                formControlName="city"
+                placeholder="New York"
+                class="form-input w-full"
+                [class.error]="getFieldError('city')"
+              />
+              @if (getFieldError('city')) {
+                <small class="error-message">{{ getFieldError('city') }}</small>
+              }
+            </div>
+
+            <!-- Country -->
+            <div class="form-field">
+              <label for="country" class="form-label">Country *</label>
+              <input
+                pInputText
+                id="country"
+                formControlName="country"
+                placeholder="United States"
+                class="form-input w-full"
+                [class.error]="getFieldError('country')"
+              />
+              @if (getFieldError('country')) {
+                <small class="error-message">{{ getFieldError('country') }}</small>
+              }
+            </div>
+
+            <!-- Zip Code -->
+            <div class="form-field">
+              <label for="zipCode" class="form-label">ZIP code *</label>
+              <input
+                pInputText
+                id="zipCode"
+                formControlName="zipCode"
+                placeholder="10001"
+                class="form-input w-full"
+                [class.error]="getFieldError('zipCode')"
+              />
+              @if (getFieldError('zipCode')) {
+                <small class="error-message">{{ getFieldError('zipCode') }}</small>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Members Card -->
+        <div class="glass-card p-8" formArrayName="teamMembers">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold text-light-text flex items-center gap-3">
+              <i class="pi pi-users text-accent"></i>
+              Team Members
+            </h2>
+            <button
+              type="button"
+              pButton
+              pRipple
+              class="p-button-outlined p-button-success"
+              icon="pi pi-plus"
+              label="Add member"
+              (click)="addTeamMember()"
+            ></button>
+          </div>
+
+          <div class="space-y-8">
+            @for (memberForm of teamMembersArray().controls; track $index; let i = $index) {
+              <div
+                [formGroupName]="i"
+                class="team-member-card glass-dark p-6 rounded-xl border border-glass-border"
+              >
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-lg font-medium text-light-text flex items-center gap-2">
+                    <i class="pi pi-user text-primary"></i>
+                    Member {{ i + 1 }}
+                  </h3>
+                  @if (teamMembersArray().length > 1) {
+                    <button
+                      type="button"
+                      pButton
+                      pRipple
+                      class="p-button-text p-button-danger p-button-sm"
+                      icon="pi pi-trash"
+                      (click)="removeTeamMember(i)"
+                    ></button>
+                  }
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Name -->
+                  <div class="form-field">
+                    <label [for]="'name-' + i" class="form-label">Full name *</label>
+                    <input
+                      pInputText
+                      [id]="'name-' + i"
+                      formControlName="name"
+                      placeholder="John Smith"
+                      class="form-input w-full"
+                      [class.error]="getTeamMemberFieldError(i, 'name')"
+                    />
+                    @if (getTeamMemberFieldError(i, 'name')) {
+                      <small class="error-message">{{ getTeamMemberFieldError(i, 'name') }}</small>
+                    }
+                  </div>
+
+                  <!-- Role -->
+                  <div class="form-field">
+                    <label [for]="'role-' + i" class="form-label">Role *</label>
+                    <input
+                      pInputText
+                      [id]="'role-' + i"
+                      formControlName="role"
+                      placeholder="CEO & Founder"
+                      class="form-input w-full"
+                      [class.error]="getTeamMemberFieldError(i, 'role')"
+                    />
+                    @if (getTeamMemberFieldError(i, 'role')) {
+                      <small class="error-message">{{ getTeamMemberFieldError(i, 'role') }}</small>
+                    }
+                  </div>
+
+                  <!-- Email -->
+                  <div class="form-field">
+                    <label [for]="'member-email-' + i" class="form-label">Email *</label>
+                    <input
+                      pInputText
+                      [id]="'member-email-' + i"
+                      formControlName="email"
+                      placeholder="john.smith@company.com"
+                      class="form-input w-full"
+                      [class.error]="getTeamMemberFieldError(i, 'email')"
+                    />
+                    @if (getTeamMemberFieldError(i, 'email')) {
+                      <small class="error-message">{{ getTeamMemberFieldError(i, 'email') }}</small>
+                    }
+                  </div>
+
+                  <!-- Photo Upload -->
+                  <div class="form-field">
+                    <label class="form-label">Profile picture</label>
+                    <div class="flex items-center gap-4">
+                      @if (memberForm.get('pictureUrl')?.value) {
+                        <img
+                          [src]="memberForm.get('pictureUrl')?.value"
+                          alt="Profile picture"
+                          class="w-16 h-16 rounded-full object-cover border-2 border-primary"
+                        />
+                      } @else {
+                        <div
+                          class="w-16 h-16 rounded-full bg-glass-bg border-2 border-dashed border-glass-border flex items-center justify-center"
+                        >
+                          <i class="pi pi-user text-2xl text-gray-400"></i>
+                        </div>
+                      }
+                      @if (isUploadingMember(i)) {
+                        <div class="flex items-center gap-2 text-accent">
+                          <i class="pi pi-spin pi-spinner"></i>
+                          <span class="text-sm">Uploading...</span>
+                        </div>
+                      } @else {
+                        <p-fileUpload
+                          mode="basic"
+                          name="memberImage"
+                          accept="image/*"
+                          maxFileSize="5000000"
+                          chooseLabel="Choose an image"
+                          class="member-upload"
+                          (onSelect)="onFileSelect($event, i)"
+                        ></p-fileUpload>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bio -->
+                <div class="form-field mt-6">
+                  <label [for]="'bio-' + i" class="form-label">Biography *</label>
+                  <textarea
+                    pInputTextarea
+                    [id]="'bio-' + i"
+                    formControlName="bio"
+                    placeholder="Describe this member's experience and skills..."
+                    rows="3"
+                    class="form-input w-full resize-none p-4"
+                    [class.error]="getTeamMemberFieldError(i, 'bio')"
+                  ></textarea>
+                  @if (getTeamMemberFieldError(i, 'bio')) {
+                    <small class="error-message">{{ getTeamMemberFieldError(i, 'bio') }}</small>
+                  }
+                </div>
+
+                <!-- Social Links -->
+                <div class="mt-6" formGroupName="socialLinks">
+                  <h4 class="text-md font-medium text-light-text mb-3 flex items-center gap-2">
+                    <i class="pi pi-share-alt text-secondary"></i>
+                    Social links (optional)
+                  </h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- LinkedIn -->
+                    <div class="form-field">
+                      <label [for]="'linkedin-' + i" class="form-label">LinkedIn</label>
+                      <div class="relative">
+                        <i
+                          class="pi pi-linkedin absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        ></i>
+                        <input
+                          pInputText
+                          [id]="'linkedin-' + i"
+                          formControlName="linkedin"
+                          placeholder="linkedin.com/in/..."
+                          class="form-input w-full pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- GitHub -->
+                    <div class="form-field">
+                      <label [for]="'github-' + i" class="form-label">GitHub</label>
+                      <div class="relative">
+                        <i
+                          class="pi pi-github absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        ></i>
+                        <input
+                          pInputText
+                          [id]="'github-' + i"
+                          formControlName="github"
+                          placeholder="github.com/..."
+                          class="form-input w-full pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Twitter -->
+                    <div class="form-field">
+                      <label [for]="'twitter-' + i" class="form-label">Twitter</label>
+                      <div class="relative">
+                        <i
+                          class="pi pi-twitter absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        ></i>
+                        <input
+                          pInputText
+                          [id]="'twitter-' + i"
+                          formControlName="twitter"
+                          placeholder="twitter.com/..."
+                          class="form-input w-full pl-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        @if (error()) {
+          <p-message severity="error" [text]="error()!" class="w-full"></p-message>
+        }
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <button
+            type="button"
+            class="p-button-outlined p-button-secondary outer-button"
+            icon="pi pi-times"
+            (click)="cancel()"
+            [disabled]="isSubmitting()"
+          >
+            Cancel
+          </button>
+
+          <button type="submit" pRipple class="inner-button">
+            @if (isSubmitting()) {
+              <i class="pi pi-spin pi-spinner mr-2"></i>
+              Saving...
+            } @else {
+              <i class="pi pi-check mr-2"></i>
+              Continue to generation
+            }
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</div>

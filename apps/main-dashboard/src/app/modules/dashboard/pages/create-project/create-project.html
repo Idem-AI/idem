@@ -1,0 +1,160 @@
+@if (isLoading()) {
+  <!-- Loading State -->
+  <div
+    class="h-screen w-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
+  >
+    <div class="text-center space-y-6 max-w-md mx-auto px-6">
+      <div class="flex justify-center">
+        <div
+          class="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent"
+        ></div>
+      </div>
+      <div class="space-y-2">
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Creating Your Project</h3>
+        <p class="text-gray-600 dark:text-gray-400">
+          Please wait while we finalize your project...
+        </p>
+      </div>
+    </div>
+  </div>
+} @else {
+  <!-- Main Content -->
+  <div class="w-full min-h-screen">
+    <!-- Content Area -->
+    <div class="pt-24 pb-24">
+      <!-- Step Content -->
+      @if (isStepActive(0)) {
+        <app-project-description
+          [project]="project()"
+          (nextStep)="goToNextStep()"
+          (projectUpdate)="onProjectUpdate($event)"
+        ></app-project-description>
+      }
+      @if (isStepActive(1)) {
+        <app-project-details
+          [project]="project()"
+          [groupedProjectTypes]="projectTypes"
+          [groupedTargets]="targets"
+          [groupedScopes]="scopes"
+          (nextStep)="goToNextStep()"
+          (previousStep)="goToPreviousStep()"
+          (projectUpdate)="onProjectUpdate($event)"
+        ></app-project-details>
+      }
+      @if (isStepActive(2)) {
+        <app-color-selection
+          [project]="project()"
+          (nextStep)="goToNextStep()"
+          (previousStep)="goToPreviousStep()"
+          (projectUpdate)="onProjectUpdate($event)"
+        ></app-color-selection>
+      }
+      @if (isStepActive(3)) {
+        <app-typography-selection
+          [project]="project()"
+          (nextStep)="goToNextStep()"
+          (previousStep)="goToPreviousStep()"
+          (projectUpdate)="onProjectUpdate($event)"
+        ></app-typography-selection>
+      }
+      @if (isStepActive(4)) {
+        <app-logo-selection
+          [projectId]="project().id"
+          [project]="project()"
+          [logos]="
+            project().analysisResultModel.branding.generatedLogos
+              ? project().analysisResultModel.branding.generatedLogos
+              : []
+          "
+          (logoSelected)="onLogoSelected($event)"
+          (projectUpdate)="onProjectUpdate($event)"
+          (nextStep)="goToNextStep()"
+        ></app-logo-selection>
+      }
+      @if (isStepActive(5)) {
+        <app-logo-variations
+          [selectedLogo]="project().analysisResultModel.branding.logo"
+          [project]="project()"
+          (projectUpdate)="onProjectUpdate($event)"
+          (nextStep)="goToNextStep()"
+        ></app-logo-variations>
+      }
+      @if (isStepActive(6)) {
+        <app-project-summary
+          [project]="project()"
+          [selectedLogo]="project().analysisResultModel.branding.logo.id || ''"
+          [selectedColor]="project().analysisResultModel.branding.colors.id || ''"
+          [selectedTypography]="project().analysisResultModel.branding.typography.id || ''"
+          [logos]="project().analysisResultModel.branding.generatedLogos || []"
+          [colorPalettes]="project().analysisResultModel.branding.generatedColors || []"
+          [typographyOptions]="project().analysisResultModel.branding.generatedTypography || []"
+          [privacyPolicyAccepted]="acceptances().privacy"
+          [termsOfServiceAccepted]="acceptances().terms"
+          [betaPolicyAccepted]="acceptances().beta"
+          [marketingConsentAccepted]="acceptances().marketing"
+          (privacyPolicyChange)="onAcceptanceChange('privacy', $event)"
+          (termsOfServiceChange)="onAcceptanceChange('terms', $event)"
+          (betaPolicyChange)="onAcceptanceChange('beta', $event)"
+          (marketingConsentChange)="onAcceptanceChange('marketing', $event)"
+          (previousStep)="goToPreviousStep()"
+          (finalizeProject)="finalizeProject()"
+        ></app-project-summary>
+      }
+    </div>
+
+    <!-- Navigation Controls -->
+    @if (currentStepIndex() !== 0) {
+      <div
+        class="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700"
+      >
+        <div class="max-w-4xl mx-auto px-4 py-4">
+          <div class="flex justify-between items-center">
+            <button
+              (click)="goToPreviousStep()"
+              [disabled]="!canGoPrevious()"
+              class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                ></path>
+              </svg>
+              Previous
+            </button>
+
+            <div class="flex items-center space-x-2">
+              @for (step of steps; track step.id; let i = $index) {
+                <div
+                  class="w-2 h-2 rounded-full transition-colors"
+                  [class.bg-primary]="i <= currentStepIndex()"
+                  [class.bg-gray-600]="i > currentStepIndex()"
+                ></div>
+              }
+            </div>
+
+            @if (!isLastStep()) {
+              <button
+                (click)="goToNextStep()"
+                [disabled]="!canGoNext()"
+                class="flex items-center px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  ></path>
+                </svg>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}

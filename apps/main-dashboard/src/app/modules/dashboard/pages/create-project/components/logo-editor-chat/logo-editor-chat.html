@@ -1,0 +1,241 @@
+<div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <div
+    class="bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] border border-gray-700/50 flex flex-col"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700/50">
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center"
+        >
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white">Logo Editor Assistant</h2>
+          <p class="text-xs text-gray-400">AI-powered logo modifications</p>
+        </div>
+      </div>
+      <button
+        (click)="close()"
+        class="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-800 rounded-lg"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Chat Messages -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-4">
+      @for (message of messages(); track message.id) {
+        @if (message.type === 'assistant') {
+          <!-- Assistant Message -->
+          <div class="flex items-start gap-3">
+            <div
+              class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0"
+            >
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"
+                />
+                <path
+                  d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"
+                />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <div class="bg-gray-800/50 rounded-2xl rounded-tl-none px-4 py-3 max-w-2xl">
+                <p class="text-sm text-gray-200">{{ message.content }}</p>
+              </div>
+              <span class="text-xs text-gray-500 mt-1 ml-2">{{
+                message.timestamp | date: 'short'
+              }}</span>
+            </div>
+          </div>
+        }
+        @if (message.type === 'user') {
+          <!-- User Message -->
+          <div class="flex items-start gap-3 justify-end">
+            <div class="flex-1 flex justify-end">
+              <div
+                class="bg-primary/20 border border-primary/30 rounded-2xl rounded-tr-none px-4 py-3 max-w-2xl"
+              >
+                <p class="text-sm text-white">{{ message.content }}</p>
+              </div>
+            </div>
+            <div
+              class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"
+            >
+              <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+          </div>
+        }
+        @if (message.type === 'logo' && message.logo) {
+          <!-- Logo Display -->
+          <div class="flex justify-center my-6">
+            <div class="relative group">
+              <div
+                class="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-700 hover:border-primary transition-all max-w-md"
+              >
+                <div
+                  class="w-64 h-64 flex items-center justify-center"
+                  [innerHTML]="message.logo.svg | safeHtml"
+                ></div>
+              </div>
+
+              <!-- Select Button Overlay -->
+              <div
+                class="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+              >
+                <button
+                  (click)="selectLogo(message.logo!)"
+                  class="px-6 py-3 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg shadow-lg shadow-primary/30 transform hover:scale-105 transition-all flex items-center gap-2"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  Choose This Logo
+                </button>
+              </div>
+
+              <!-- Timestamp -->
+              <div class="text-center mt-2">
+                <span class="text-xs text-gray-500">{{ message.timestamp | date: 'short' }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- Loading Indicator -->
+      @if (isEditing()) {
+        <div class="flex items-center gap-3">
+          <div
+            class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0"
+          >
+            <svg class="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          </div>
+          <div class="flex gap-2">
+            <div
+              class="w-2 h-2 bg-primary rounded-full animate-bounce"
+              style="animation-delay: 0ms"
+            ></div>
+            <div
+              class="w-2 h-2 bg-primary rounded-full animate-bounce"
+              style="animation-delay: 150ms"
+            ></div>
+            <div
+              class="w-2 h-2 bg-primary rounded-full animate-bounce"
+              style="animation-delay: 300ms"
+            ></div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Input Area -->
+    <div class="border-t border-gray-700/50 p-4">
+      <div class="flex gap-3">
+        <div class="flex-1 relative">
+          <textarea
+            [(ngModel)]="userPrompt"
+            (keydown)="handleKeyPress($event)"
+            [disabled]="isEditing()"
+            class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
+            rows="2"
+            placeholder="Describe the changes you want... (Press Enter to send)"
+          ></textarea>
+
+          <!-- Character hint -->
+          <div class="absolute bottom-2 right-2 text-xs text-gray-600">Press Enter to send</div>
+        </div>
+
+        <button
+          (click)="sendMessage()"
+          [disabled]="!canSend()"
+          class="px-6 py-3 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed self-end flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+            />
+          </svg>
+          Send
+        </button>
+      </div>
+
+      <!-- Quick Suggestions -->
+      <div class="mt-3 flex flex-wrap gap-2">
+        <span class="text-xs text-gray-500">Quick suggestions:</span>
+        <button
+          (click)="userPrompt.set('Make it more modern and minimalist')"
+          [disabled]="isEditing()"
+          class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
+        >
+          More modern
+        </button>
+        <button
+          (click)="userPrompt.set('Add a gradient effect')"
+          [disabled]="isEditing()"
+          class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
+        >
+          Add gradient
+        </button>
+        <button
+          (click)="userPrompt.set('Simplify the design')"
+          [disabled]="isEditing()"
+          class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
+        >
+          Simplify
+        </button>
+        <button
+          (click)="userPrompt.set('Make it more professional')"
+          [disabled]="isEditing()"
+          class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
+        >
+          More professional
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

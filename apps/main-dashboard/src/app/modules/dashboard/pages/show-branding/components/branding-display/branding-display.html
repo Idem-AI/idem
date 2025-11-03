@@ -1,0 +1,80 @@
+@if (pdfSrc()) {
+  <app-pdf-viewer
+    [pdfSrc]="pdfSrc()"
+    [isLoading]="isDownloadingPdf()"
+    [error]="pdfError()"
+    [title]="'Branding Guide PDF'"
+    [showPagination]="true"
+    (regenerateRequested)="regeneratePdf()"
+    (downloadRequested)="downloadPdf()"
+  ></app-pdf-viewer>
+} @else if (branding() && branding()!.sections && branding()!.sections.length > 0) {
+  <div class="w-full h-64 sm:h-96 flex flex-col items-center justify-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+    <p class="text-gray-600">Preparing branding content...</p>
+  </div>
+} @else {
+  <!-- Empty State with SVG Illustration -->
+  <div class="w-full min-h-[600px] flex items-center justify-center p-6">
+    <div class="max-w-2xl mx-auto text-center">
+      <div class="glass-card rounded-2xl p-12 space-y-8">
+        <!-- SVG Illustration -->
+        <div class="mx-auto w-64 h-64 mb-6 rounded-full">
+          <img src="/assets/images/ideo.png" alt="" />
+        </div>
+
+        <!-- Header Text -->
+        <div class="space-y-4">
+          <h3 class="text-3xl font-bold text-white">Your Brand Identity Awaits</h3>
+          <p class="text-lg text-gray-300 leading-relaxed">
+            Create a comprehensive brand guide with logos, color palettes, and typography that
+            perfectly represents your vision.
+          </p>
+        </div>
+
+        <!-- Features List -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+          <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
+            <div>
+              <h4 class="text-white font-semibold text-sm mb-1">Color Palette</h4>
+              <p class="text-gray-400 text-xs">Harmonious color schemes</p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
+            <div>
+              <h4 class="text-white font-semibold text-sm mb-1">Logo Design</h4>
+              <p class="text-gray-400 text-xs">Professional variations</p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
+            <div>
+              <h4 class="text-white font-semibold text-sm mb-1">Typography</h4>
+              <p class="text-gray-400 text-xs">Curated font pairings</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA Button -->
+        <div class="pt-4">
+          <button
+            (click)="handleGenerateRequest()"
+            class="group inner-button relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+          >
+            <!-- Button Content -->
+            <span class="relative flex items-center space-x-3">
+              <i class="pi pi-sparkles"></i>
+              <span>Generate Brand Identity</span>
+            </span>
+          </button>
+
+          <p class="text-gray-500 text-sm mt-4">
+            <i class="pi pi-info-circle mr-1"></i>
+            Generation takes approximately 1-2 minutes
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+}
