@@ -17,12 +17,14 @@
         class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
       >
         <i class="pi pi-cloud-upload text-primary"></i>
-        <span class="text-white">Deployment Solutions</span>
+        <span class="text-white" i18n="@@deployment.deployment_solutions"
+          >Deployment Solutions</span
+        >
       </div>
 
       <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
         Deploy Your Way with
-        <span class="text-primary">IDEM</span>
+        <span class="text-primary" i18n="@@deployment.idem">IDEM</span>
       </h1>
 
       <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
@@ -87,7 +89,9 @@
 
         <!-- Features Grid -->
         <div class="mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Key Features</h3>
+          <h3 class="text-xl font-bold text-white mb-4" i18n="@@deployment.key_features">
+            Key Features
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @for (feature of getSelectedMode().features; track feature) {
               <div class="flex items-start gap-3 p-4 glass rounded-lg border border-white/5">
@@ -129,7 +133,12 @@
     <!-- Architecture Design Modes (for Architecture mode) -->
     @if (selectedMode() === 'architecture') {
       <div class="mb-16">
-        <h2 class="text-3xl font-bold text-white text-center mb-8">Architecture Design Modes</h2>
+        <h2
+          class="text-3xl font-bold text-white text-center mb-8"
+          i18n="@@deployment.architecture_design_modes"
+        >
+          Architecture Design Modes
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           @for (archMode of architectureModes; track archMode.id) {
             <div
@@ -163,31 +172,54 @@
           <table class="w-full">
             <thead>
               <tr class="border-b border-white/10">
-                <th class="text-left p-4 text-white font-semibold">Feature</th>
-                <th class="text-center p-4 text-white font-semibold">Quick</th>
-                <th class="text-center p-4 text-white font-semibold">VPS</th>
-                <th class="text-center p-4 text-white font-semibold">Cloud</th>
-                <th class="text-center p-4 text-white font-semibold">Architecture</th>
+                <th class="text-left p-4 text-white font-semibold" i18n="@@deployment.feature">
+                  Feature
+                </th>
+                <th class="text-center p-4 text-white font-semibold" i18n="@@deployment.quick">
+                  Quick
+                </th>
+                <th class="text-center p-4 text-white font-semibold" i18n="@@deployment.vps">
+                  VPS
+                </th>
+                <th class="text-center p-4 text-white font-semibold" i18n="@@deployment.cloud">
+                  Cloud
+                </th>
+                <th
+                  class="text-center p-4 text-white font-semibold"
+                  i18n="@@deployment.architecture"
+                >
+                  Architecture
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr class="border-b border-white/5">
-                <td class="p-4 text-gray-300">Setup Time</td>
+                <td class="p-4 text-gray-300" i18n="@@deployment.setup_time">Setup Time</td>
                 <td class="text-center p-4">
-                  <span class="text-green-400 font-semibold">Seconds</span>
+                  <span class="text-green-400 font-semibold" i18n="@@deployment.seconds"
+                    >Seconds</span
+                  >
                 </td>
                 <td class="text-center p-4">
-                  <span class="text-blue-400 font-semibold">Minutes</span>
+                  <span class="text-blue-400 font-semibold" i18n="@@deployment.minutes"
+                    >Minutes</span
+                  >
                 </td>
                 <td class="text-center p-4">
-                  <span class="text-purple-400 font-semibold">Minutes</span>
+                  <span class="text-purple-400 font-semibold" i18n="@@deployment.minutes"
+                    >Minutes</span
+                  >
                 </td>
                 <td class="text-center p-4">
-                  <span class="text-yellow-400 font-semibold">5-15 min</span>
+                  <span class="text-yellow-400 font-semibold" i18n="@@deployment.515_min"
+                    >5-15 min</span
+                  >
                 </td>
               </tr>
               <tr class="border-b border-white/5">
-                <td class="p-4 text-gray-300">Configuration Required</td>
+                <td class="p-4 text-gray-300" i18n="@@deployment.configuration_required">
+                  Configuration Required
+                </td>
                 <td class="text-center p-4">
                   <i class="pi pi-times text-red-400"></i>
                 </td>
@@ -202,7 +234,7 @@
                 </td>
               </tr>
               <tr class="border-b border-white/5">
-                <td class="p-4 text-gray-300">Custom Domain</td>
+                <td class="p-4 text-gray-300" i18n="@@deployment.custom_domain">Custom Domain</td>
                 <td class="text-center p-4">
                   <i class="pi pi-check text-green-400"></i>
                 </td>
@@ -217,7 +249,9 @@
                 </td>
               </tr>
               <tr class="border-b border-white/5">
-                <td class="p-4 text-gray-300">Own Infrastructure</td>
+                <td class="p-4 text-gray-300" i18n="@@deployment.own_infrastructure">
+                  Own Infrastructure
+                </td>
                 <td class="text-center p-4">
                   <i class="pi pi-times text-red-400"></i>
                 </td>
@@ -232,7 +266,9 @@
                 </td>
               </tr>
               <tr class="border-b border-white/5">
-                <td class="p-4 text-gray-300">Monitoring & Logs</td>
+                <td class="p-4 text-gray-300" i18n="@@deployment.monitoring_logs">
+                  Monitoring & Logs
+                </td>
                 <td class="text-center p-4">
                   <i class="pi pi-check text-green-400"></i>
                 </td>
@@ -247,18 +283,24 @@
                 </td>
               </tr>
               <tr>
-                <td class="p-4 text-gray-300">Skill Level</td>
+                <td class="p-4 text-gray-300" i18n="@@deployment.skill_level">Skill Level</td>
                 <td class="text-center p-4">
-                  <span class="text-green-400 text-sm">Beginner</span>
+                  <span class="text-green-400 text-sm" i18n="@@deployment.beginner">Beginner</span>
                 </td>
                 <td class="text-center p-4">
-                  <span class="text-blue-400 text-sm">Intermediate</span>
+                  <span class="text-blue-400 text-sm" i18n="@@deployment.intermediate"
+                    >Intermediate</span
+                  >
                 </td>
                 <td class="text-center p-4">
-                  <span class="text-purple-400 text-sm">All Levels</span>
+                  <span class="text-purple-400 text-sm" i18n="@@deployment.all_levels"
+                    >All Levels</span
+                  >
                 </td>
                 <td class="text-center p-4">
-                  <span class="text-yellow-400 text-sm">All Levels</span>
+                  <span class="text-yellow-400 text-sm" i18n="@@deployment.all_levels"
+                    >All Levels</span
+                  >
                 </td>
               </tr>
             </tbody>
@@ -269,7 +311,12 @@
 
     <!-- Infrastructure Highlights -->
     <div class="mb-16">
-      <h2 class="text-3xl font-bold text-white text-center mb-8">Built on Robust Infrastructure</h2>
+      <h2
+        class="text-3xl font-bold text-white text-center mb-8"
+        i18n="@@deployment.built_robust_infrastructure"
+      >
+        Built on Robust Infrastructure
+      </h2>
 
       <!-- Infrastructure Images -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
@@ -298,7 +345,9 @@
           >
             <i class="pi pi-shield text-3xl text-primary"></i>
           </div>
-          <h3 class="text-xl font-bold text-white mb-2">Docker Swarm Clusters</h3>
+          <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.docker_swarm_clusters">
+            Docker Swarm Clusters
+          </h3>
           <p class="text-gray-400 text-sm">
             High availability infrastructure designed to maintain 99.9% uptime for your applications
           </p>
@@ -310,7 +359,9 @@
           >
             <i class="pi pi-chart-line text-3xl text-primary"></i>
           </div>
-          <h3 class="text-xl font-bold text-white mb-2">Real-Time Monitoring</h3>
+          <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.realtime_monitoring">
+            Real-Time Monitoring
+          </h3>
           <p class="text-gray-400 text-sm">
             Visualize all containers, track performance metrics, and access logs directly from IDEM
             platform
@@ -323,7 +374,9 @@
           >
             <i class="pi pi-lock text-3xl text-primary"></i>
           </div>
-          <h3 class="text-xl font-bold text-white mb-2">Automatic SSL</h3>
+          <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.automatic_ssl">
+            Automatic SSL
+          </h3>
           <p class="text-gray-400 text-sm">
             Free SSL certificates automatically provisioned and renewed for all your deployments
           </p>
@@ -333,7 +386,9 @@
 
     <!-- CTA Section -->
     <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
-      <h2 class="text-3xl font-bold text-white mb-4">Ready to Deploy?</h2>
+      <h2 class="text-3xl font-bold text-white mb-4" i18n="@@deployment.ready_deploy">
+        Ready to Deploy?
+      </h2>
       <p class="text-gray-400 mb-8 max-w-2xl mx-auto">
         Start with our free tier and deploy your first application in minutes. No credit card
         required.
