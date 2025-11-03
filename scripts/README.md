@@ -26,7 +26,7 @@ Le script effectue les opérations suivantes dans l'ordre :
    - `@idem/shared-styles` - Styles partagés (Tailwind CSS)
 
 5. **🚀 Installation des applications**
-   - `landing-page` - Application publique (port 4201)
+   - `landing` - Application publique (port 4201)
    - `main-dashboard` - Application dashboard (port 4200)
    - `api` - API backend
    - `chart` - Éditeur de diagrammes
@@ -49,7 +49,7 @@ bash scripts/setup.sh
 
 **Important :** Les packages partagés sont buildés **AVANT** les applications car :
 
-1. `landing-page` et `main-dashboard` dépendent de :
+1. `landing` et `main-dashboard` dépendent de :
    - `@idem/shared-models`
    - `@idem/shared-auth-client`
    - `@idem/shared-styles`
@@ -65,25 +65,25 @@ bash scripts/setup.sh
 - **Localisation :** `packages/shared-models/`
 - **Contenu :** Modèles TypeScript, interfaces, types
 - **Build :** `tsc` (TypeScript Compiler)
-- **Utilisé par :** landing-page, main-dashboard, api
+- **Utilisé par :** landing, main-dashboard, api
 
 #### @idem/shared-auth-client
 
 - **Localisation :** `packages/shared-auth-client/`
 - **Contenu :** Service d'authentification Angular
 - **Build :** `tsc` (TypeScript Compiler)
-- **Utilisé par :** landing-page, main-dashboard
+- **Utilisé par :** landing, main-dashboard
 
 #### @idem/shared-styles
 
 - **Localisation :** `packages/shared-styles/`
 - **Contenu :** Design system (Tailwind CSS, classes glass)
 - **Build :** Aucun (CSS pur)
-- **Utilisé par :** landing-page, main-dashboard
+- **Utilisé par :** landing, main-dashboard
 
 ### 🚀 Applications
 
-#### landing-page
+#### landing
 
 - **Port :** 4201
 - **SSR :** Activé
@@ -154,7 +154,7 @@ npm run build:shared
 npm run build:shared-auth
 
 # Puis réinstaller les apps
-cd apps/landing-page && npm install
+cd apps/landing && npm install
 cd apps/main-dashboard && npm install
 ```
 

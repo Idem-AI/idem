@@ -2,7 +2,7 @@
 
 ## ✅ Configuration Terminée
 
-La synchronisation d'authentification et de langue entre `landing-page` et `main-dashboard` est maintenant opérationnelle.
+La synchronisation d'authentification et de langue entre `landing` et `main-dashboard` est maintenant opérationnelle.
 
 ## 🎯 Fonctionnalités Implémentées
 
@@ -126,7 +126,7 @@ Landing Page (Connecté) → Clic "Dashboard" → Dashboard (Connecté automatiq
 
 ```bash
 # 1. Démarrer les deux applications
-cd apps/landing-page && npm start  # Port 4201
+cd apps/landing && npm start  # Port 4201
 cd apps/main-dashboard && npm start  # Port 4200
 
 # 2. Tester
@@ -274,7 +274,7 @@ firebase: {
 ## ✅ Checklist de Validation
 
 - [x] Fichiers d'environnement créés (landing + dashboard)
-- [x] Service auth créé pour landing-page
+- [x] Service auth créé pour landing
 - [x] Service auth-sync créé pour dashboard
 - [x] LanguageService mis à jour (détection URL)
 - [x] Header mis à jour (navigateToDashboard)

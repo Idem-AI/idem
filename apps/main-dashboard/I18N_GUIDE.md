@@ -138,16 +138,16 @@ Le service `LanguageService` détecte automatiquement la langue :
 
 La langue sélectionnée est automatiquement sauvegardée dans localStorage.
 
-## Différences avec landing-page
+## Différences avec landing
 
-| Fonctionnalité         | main-dashboard          | landing-page (main-app) |
-| ---------------------- | ----------------------- | ----------------------- |
-| Système i18n           | ngx-translate           | @angular/localize       |
-| Changement de langue   | Dynamique (sans reload) | Nécessite reload        |
-| SSR                    | Non                     | Oui                     |
-| Fichiers de traduction | JSON runtime            | XLIFF compilé           |
-| Performance            | Chargement JSON         | Pré-compilé             |
-| SEO                    | N/A (dashboard privé)   | Optimal                 |
+| Fonctionnalité         | main-dashboard          | landing (main-app) |
+| ---------------------- | ----------------------- | ------------------ |
+| Système i18n           | ngx-translate           | @angular/localize  |
+| Changement de langue   | Dynamique (sans reload) | Nécessite reload   |
+| SSR                    | Non                     | Oui                |
+| Fichiers de traduction | JSON runtime            | XLIFF compilé      |
+| Performance            | Chargement JSON         | Pré-compilé        |
+| SEO                    | N/A (dashboard privé)   | Optimal            |
 
 ## Commandes utiles
 

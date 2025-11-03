@@ -1,0 +1,295 @@
+<!-- Solutions Page -->
+<div class="relative min-h-screen bg-black overflow-hidden">
+  <!-- Background -->
+  <div class="absolute inset-0">
+    <div class="absolute top-1/3 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl"></div>
+    <div
+      class="absolute bottom-1/3 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-3xl"
+    ></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <!-- Hero -->
+    <div class="text-center mb-20">
+      <div
+        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
+      >
+        <i class="pi pi-th-large text-primary"></i>
+        <span class="text-white">Complete Solutions</span>
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        Everything You Need to
+        <br />
+        <span class="i-underline">Launch Your Project</span>
+      </h1>
+
+      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+        From concept to deployment, IDEM provides all the tools and solutions to bring your ideas to
+        life. No technical skills required.
+      </p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+      @for (stat of stats; track stat.label) {
+        <div
+          class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all"
+        >
+          <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
+          <div class="text-sm text-white font-semibold">{{ stat.label }}</div>
+        </div>
+      }
+    </div>
+
+    <!-- Solutions Grid -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Our Solutions</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Comprehensive AI-powered tools for every aspect of your project
+        </p>
+      </div>
+
+      <div class="space-y-12">
+        @for (solution of solutions; track solution.title; let i = $index) {
+          <!-- Alternating Layout -->
+          <div
+            [class]="
+              i % 2 === 0
+                ? 'glass-card p-8 rounded-2xl border border-white/10'
+                : 'glass-card p-8 rounded-2xl border border-white/10'
+            "
+          >
+            <div
+              [class]="
+                i % 2 === 0
+                  ? 'grid grid-cols-1 lg:grid-cols-2 gap-8 items-center'
+                  : 'grid grid-cols-1 lg:grid-cols-2 gap-8 items-center'
+              "
+            >
+              <!-- Content -->
+              <div [class]="i % 2 === 0 ? 'order-1' : 'order-1 lg:order-2'">
+                <div class="flex items-center gap-3 mb-4">
+                  <div
+                    class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0"
+                  >
+                    <i [class]="'pi ' + solution.icon + ' text-2xl text-primary'"></i>
+                  </div>
+                  <h3 class="text-2xl font-bold text-white">{{ solution.title }}</h3>
+                </div>
+                <p class="text-gray-400 mb-6 leading-relaxed">{{ solution.description }}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  @for (feature of solution.features; track feature) {
+                    <div class="flex items-start gap-2">
+                      <i class="pi pi-check-circle text-primary mt-0.5 flex-shrink-0"></i>
+                      <span class="text-sm text-gray-300">{{ feature }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Visual -->
+              <div [class]="i % 2 === 0 ? 'order-2' : 'order-2 lg:order-1'">
+                @if (i === 0) {
+                  <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
+                    <img
+                      src="assets/images/solutions-page/website-design.webp"
+                      alt="Website design and development"
+                      loading="lazy"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                } @else if (i === 1) {
+                  <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
+                    <img
+                      src="assets/images/solutions-page/logo-brand.webp"
+                      alt="Logo and brand design"
+                      loading="lazy"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                } @else if (i === 2) {
+                  <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
+                    <img
+                      src="assets/images/solutions-page/business-planning.webp"
+                      alt="Business planning and strategy"
+                      loading="lazy"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                } @else if (i === 3) {
+                  <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
+                    <img
+                      src="assets/images/solutions-page/brand-charter.webp"
+                      alt="Brand charter and guidelines"
+                      loading="lazy"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                } @else if (i === 4) {
+                  <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
+                    <img
+                      src="assets/images/deployment-page/monitoring-dashboard.webp"
+                      alt="Technical architecture diagrams"
+                      loading="lazy"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                } @else {
+                  <div class="aspect-video rounded-xl overflow-hidden border border-white/10">
+                    <img
+                      src="assets/images/architecture-page/ai-network.webp"
+                      alt="Cloud deployment"
+                      loading="lazy"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="mb-20">
+      <div class="glass-card p-10 rounded-2xl border border-white/10">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl font-bold text-white mb-4">How It Works</h2>
+          <p class="text-gray-400 max-w-2xl mx-auto">
+            Simple process from idea to deployed project
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="text-center">
+            <div
+              class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+            >
+              <span class="text-2xl font-bold text-primary">1</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Describe Your Idea</h3>
+            <p class="text-sm text-gray-400">Tell us about your project in simple terms</p>
+          </div>
+
+          <div class="text-center">
+            <div
+              class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+            >
+              <span class="text-2xl font-bold text-primary">2</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">AI Generation</h3>
+            <p class="text-sm text-gray-400">Our agents create all project components</p>
+          </div>
+
+          <div class="text-center">
+            <div
+              class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+            >
+              <span class="text-2xl font-bold text-primary">3</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Review & Refine</h3>
+            <p class="text-sm text-gray-400">Customize and adjust to your preferences</p>
+          </div>
+
+          <div class="text-center">
+            <div
+              class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+            >
+              <span class="text-2xl font-bold text-primary">4</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Deploy</h3>
+            <p class="text-sm text-gray-400">Launch your project with one click</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Use Cases -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Perfect For</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          IDEM solutions work for various use cases and industries
+        </p>
+      </div>
+
+      <!-- Success Stories Images -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div class="rounded-xl overflow-hidden border border-white/10">
+          <img
+            src="assets/images/solutions-page/solo-entrepreneur.webp"
+            alt="Solo entrepreneur working"
+            loading="lazy"
+            class="w-full h-48 object-cover"
+          />
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/10">
+          <img
+            src="assets/images/african-market-page/entrepreneur-1.webp"
+            alt="Small business team"
+            loading="lazy"
+            class="w-full h-48 object-cover"
+          />
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/10">
+          <img
+            src="assets/images/african-market-page/developer.webp"
+            alt="Agency collaboration"
+            loading="lazy"
+            class="w-full h-48 object-cover"
+          />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-card p-6 rounded-xl border border-white/10">
+          <i class="pi pi-user text-4xl text-primary mb-4"></i>
+          <h3 class="text-lg font-bold text-white mb-2">Solo Entrepreneurs</h3>
+          <p class="text-sm text-gray-400">
+            Launch your startup without hiring a full team. Get everything from business plan to
+            deployed website.
+          </p>
+        </div>
+
+        <div class="glass-card p-6 rounded-xl border border-white/10">
+          <i class="pi pi-users text-4xl text-primary mb-4"></i>
+          <h3 class="text-lg font-bold text-white mb-2">Small Businesses</h3>
+          <p class="text-sm text-gray-400">
+            Establish your online presence quickly and affordably. Professional results without the
+            enterprise costs.
+          </p>
+        </div>
+
+        <div class="glass-card p-6 rounded-xl border border-white/10">
+          <i class="pi pi-briefcase text-4xl text-primary mb-4"></i>
+          <h3 class="text-lg font-bold text-white mb-2">Agencies</h3>
+          <p class="text-sm text-gray-400">
+            Scale your client delivery with AI. Create more projects faster while maintaining
+            quality.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
+      <h2 class="text-3xl font-bold text-white mb-4">Ready to Build Your Project?</h2>
+      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+        Start with 10 free credits and experience all our solutions. No credit card required.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-rocket mr-2"></i>
+          Start Building
+        </a>
+        <a routerLink="/pricing" class="outer-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-tag mr-2"></i>
+          View Pricing
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

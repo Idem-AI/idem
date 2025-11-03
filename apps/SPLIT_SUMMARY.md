@@ -162,7 +162,7 @@ Toutes les routes dashboard et auth ont été supprimées de main-app :
    - Utilisation dans les composants
    - Changement de langue
    - Structure des traductions
-   - Différences avec landing-page
+   - Différences avec landing
    - Bonnes pratiques
 
 3. **`README.md`** (main-dashboard/)

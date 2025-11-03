@@ -184,7 +184,7 @@ ng generate component modules/dashboard/pages/my-component
 5. ❌ Ne jamais utiliser `[class.bg-primary/20]` (utiliser `[ngClass]`)
 6. ❌ Ne pas utiliser `p-button` de PrimeNG (utiliser inner-button/outer-button)
 
-## 🔗 Liens avec landing-page
+## 🔗 Liens avec landing
 
 Cette application est séparée de la landing page (`main-app`).
 

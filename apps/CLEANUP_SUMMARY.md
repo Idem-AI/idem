@@ -4,21 +4,21 @@
 
 ### 1. Renommage de l'Application
 
-**main-app → landing-page**
+**main-app → landing**
 
 ```bash
 # Renommage du dossier
-apps/main-app/ → apps/landing-page/
+apps/main-app/ → apps/landing/
 ```
 
 ### 2. Nettoyage des Modules
 
-**Modules supprimés de landing-page :**
+**Modules supprimés de landing :**
 
 - ❌ `src/app/modules/dashboard/` - Déplacé vers main-dashboard
 - ❌ `src/app/modules/auth/` - Déplacé vers main-dashboard
 
-**Layouts supprimés de landing-page :**
+**Layouts supprimés de landing :**
 
 - ❌ `src/app/layouts/dashboard-layout/` - Non utilisé par la landing
 - ❌ `src/app/layouts/global-layout/` - Non utilisé par la landing
@@ -30,7 +30,7 @@ apps/main-app/ → apps/landing-page/
 
 ### 3. Nettoyage des Dépendances
 
-**Dépendances supprimées de landing-page/package.json :**
+**Dépendances supprimées de landing/package.json :**
 
 ```json
 // Supprimé - Spécifiques au dashboard
@@ -66,28 +66,28 @@ apps/main-app/ → apps/landing-page/
 
 ### 4. Mise à Jour des Configurations
 
-**landing-page/package.json :**
+**landing/package.json :**
 
 ```json
 {
-  "name": "landing-page", // ✅ Renommé
+  "name": "landing", // ✅ Renommé
   "scripts": {
-    "serve:ssr:landing": "node dist/landing-page/server/server.mjs" // ✅ Mis à jour
+    "serve:ssr:landing": "node dist/landing/server/server.mjs" // ✅ Mis à jour
   }
 }
 ```
 
-**landing-page/angular.json :**
+**landing/angular.json :**
 
 ```json
 {
   "projects": {
-    "landing-page": {
+    "landing": {
       // ✅ Renommé de "idem"
       "architect": {
         "build": {
           "options": {
-            "outputPath": "dist/landing-page", // ✅ Mis à jour
+            "outputPath": "dist/landing", // ✅ Mis à jour
             "assets": [
               // ✅ Supprimé ngx-extended-pdf-viewer
             ],
@@ -109,7 +109,7 @@ apps/main-app/ → apps/landing-page/
 ```json
 {
   "workspaces": [
-    "apps/landing-page", // ✅ Renommé
+    "apps/landing", // ✅ Renommé
     "apps/main-dashboard", // ✅ Ajouté
     "apps/chart",
     "apps/appgen",
@@ -131,8 +131,8 @@ apps/main-app/ → apps/landing-page/
     // "dev:main-app": "npm run dev --workspace=main-app",
 
     // Nouveaux scripts
-    "build:landing": "npm run build --workspace=landing-page",
-    "dev:landing": "npm run dev --workspace=landing-page",
+    "build:landing": "npm run build --workspace=landing",
+    "dev:landing": "npm run dev --workspace=landing",
     "build:dashboard": "npm run build --workspace=main-dashboard",
     "dev:dashboard": "npm run start --workspace=main-dashboard",
 
@@ -140,8 +140,8 @@ apps/main-app/ → apps/landing-page/
     "build:all": "npm run build:shared && npm run build:shared-auth && npm run build:landing && npm run build:dashboard && npm run build:chart && npm run build:appgen-client && npm run build:api && npm run build:appgen-next",
 
     // Lint mis à jour
-    "lint:all": "npm run lint --workspace=landing-page --workspace=main-dashboard --workspace=idem-api --workspace=we-dev --if-present",
-    "lint:fix": "npm run lint:fix --workspace=landing-page --workspace=main-dashboard --workspace=idem-api --workspace=we-dev --if-present"
+    "lint:all": "npm run lint --workspace=landing --workspace=main-dashboard --workspace=idem-api --workspace=we-dev --if-present",
+    "lint:fix": "npm run lint:fix --workspace=landing --workspace=main-dashboard --workspace=idem-api --workspace=we-dev --if-present"
   }
 }
 ```
@@ -152,7 +152,7 @@ apps/main-app/ → apps/landing-page/
 
 - **Modules :** ~202 fichiers (dashboard + auth)
 - **Layouts :** ~7 fichiers (dashboard-layout + global-layout)
-- **Total :** ~209 fichiers supprimés de landing-page
+- **Total :** ~209 fichiers supprimés de landing
 
 ### Dépendances supprimées
 
@@ -169,7 +169,7 @@ apps/main-app/ → apps/landing-page/
 
 ```
 apps/
-├── landing-page/              # ✅ Renommé et nettoyé
+├── landing/              # ✅ Renommé et nettoyé
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── modules/
@@ -240,10 +240,10 @@ npm run lint:fix
 
 ### Depuis chaque application
 
-**landing-page :**
+**landing :**
 
 ```bash
-cd apps/landing-page
+cd apps/landing
 npm install
 npm start              # Servir en anglais
 npm run start:fr       # Servir en français
@@ -273,7 +273,7 @@ Unable to load schema from '.../node_modules/@angular/cli/lib/config/schema.json
 **Solution :**
 
 ```bash
-cd apps/landing-page
+cd apps/landing
 npm install
 ```
 
@@ -286,13 +286,13 @@ Les deux applications ont besoin d'installer leurs dépendances :
 npm install --workspaces
 
 # Ou individuellement
-cd apps/landing-page && npm install
+cd apps/landing && npm install
 cd apps/main-dashboard && npm install
 ```
 
 ### Routes mises à jour
 
-**landing-page** ne contient plus :
+**landing** ne contient plus :
 
 - ❌ `/login` (déplacé vers main-dashboard)
 - ❌ `/console/*` (déplacé vers main-dashboard)
@@ -309,22 +309,22 @@ Consultez les guides pour plus d'informations :
 
 1. **`MIGRATION_GUIDE.md`** - Guide complet de migration entre les applications
 2. **`SPLIT_SUMMARY.md`** - Résumé de la division initiale
-3. **`landing-page/README.md`** - Documentation de la landing page
+3. **`landing/README.md`** - Documentation de la landing page
 4. **`main-dashboard/README.md`** - Documentation du dashboard
 5. **`main-dashboard/I18N_GUIDE.md`** - Guide d'internationalisation ngx-translate
 
 ## ✅ Checklist de Vérification
 
-- [x] Application renommée : main-app → landing-page
-- [x] Modules dashboard et auth supprimés de landing-page
-- [x] Layouts inutilisés supprimés de landing-page
-- [x] Dépendances nettoyées dans landing-page/package.json
+- [x] Application renommée : main-app → landing
+- [x] Modules dashboard et auth supprimés de landing
+- [x] Layouts inutilisés supprimés de landing
+- [x] Dépendances nettoyées dans landing/package.json
 - [x] angular.json mis à jour (nom du projet, outputPath)
 - [x] Scripts SSR mis à jour
 - [x] Assets et scripts nettoyés (mermaid, pdf-viewer)
 - [x] Package.json racine mis à jour (workspaces, scripts)
 - [x] Documentation créée
-- [ ] npm install dans landing-page
+- [ ] npm install dans landing
 - [ ] npm install dans main-dashboard
 - [ ] Tests de build pour les deux applications
 - [ ] Vérification des routes
@@ -334,7 +334,7 @@ Consultez les guides pour plus d'informations :
 
 Deux applications Angular 20 propres et optimisées :
 
-1. **landing-page** - Application publique légère avec SSR (~2.5MB)
+1. **landing** - Application publique légère avec SSR (~2.5MB)
 2. **main-dashboard** - Application privée complète (~4MB)
 
 Chaque application est maintenant indépendante, avec ses propres dépendances et configuration i18n adaptée.

@@ -1,0 +1,302 @@
+<!-- Multi-Agent Architecture Page -->
+<div class="relative min-h-screen bg-black overflow-hidden">
+  <!-- Animated Background -->
+  <div class="absolute inset-0">
+    <div
+      class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"
+    ></div>
+    <div
+      class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-1000"
+    ></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <!-- Hero -->
+    <div class="text-center mb-20">
+      <div
+        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
+      >
+        <i class="pi pi-sitemap text-primary"></i>
+        <span class="text-white">Advanced AI Architecture</span>
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        Multi-Agent
+        <br />
+        <span class="i-underline">AI Architecture</span>
+      </h1>
+
+      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+        IDEM uses specialized AI agents that work together intelligently. Each agent focuses on its
+        expertise while the orchestrator coordinates everything for optimal results.
+      </p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+      @for (stat of stats; track stat.label) {
+        <div
+          class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all hover:transform hover:scale-105"
+        >
+          <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
+          <div class="text-sm text-white font-semibold">{{ stat.label }}</div>
+        </div>
+      }
+    </div>
+
+    <!-- Architecture Diagram Section -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">How It Works</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Intelligent agents collaborate to deliver comprehensive project solutions
+        </p>
+      </div>
+
+      <!-- Hero Image -->
+      <div class="mb-12 rounded-2xl overflow-hidden border border-white/10">
+        <img
+          src="assets/images/architecture-page/ai-network.webp"
+          alt="AI and Technology Network"
+          loading="lazy"
+          class="w-full h-80 object-cover"
+        />
+      </div>
+
+      <!-- Central Orchestrator with Connected Agents -->
+      <div class="relative glass-card p-10 rounded-2xl border border-white/10">
+        <!-- Central Orchestrator -->
+        <div class="flex justify-center mb-12">
+          <div class="relative">
+            <div class="absolute inset-0 bg-primary/20 rounded-full blur-2xl"></div>
+            <div class="relative glass-card p-8 rounded-2xl border-2 border-primary">
+              <i class="pi pi-sitemap text-5xl text-primary mb-4 block text-center"></i>
+              <h3 class="text-xl font-bold text-white text-center mb-2">Orchestrator</h3>
+              <p class="text-sm text-gray-400 text-center">Coordinates all agents</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connected Agents Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          @for (agent of agents.slice(1); track agent.name) {
+            <div
+              class="glass p-4 rounded-xl border border-white/10 text-center hover:border-primary/30 transition-all"
+            >
+              <i
+                [class]="'pi ' + agent.icon + ' text-3xl mb-3 block'"
+                [style.color]="agent.color"
+              ></i>
+              <h4 class="text-sm font-bold text-white mb-1">
+                {{ agent.name.replace(' Agent', '') }}
+              </h4>
+              <p class="text-xs text-gray-400">{{ agent.role }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Agents Details -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Specialized Agents</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Each agent is optimized for specific tasks with deep domain expertise
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (agent of agents; track agent.name) {
+          <div
+            class="glass-card p-6 rounded-xl border-2 transition-all hover:transform hover:scale-[1.02]"
+            [style.border-color]="agent.color + '40'"
+          >
+            <div class="flex items-start gap-4 mb-4">
+              <div
+                class="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+                [style.background-color]="agent.color + '20'"
+              >
+                <i [class]="'pi ' + agent.icon + ' text-2xl'" [style.color]="agent.color"></i>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-bold text-white mb-1">{{ agent.name }}</h3>
+                <div class="text-xs font-semibold mb-2" [style.color]="agent.color">
+                  {{ agent.role }}
+                </div>
+              </div>
+            </div>
+            <p class="text-sm text-gray-400 mb-4">{{ agent.description }}</p>
+            <div class="space-y-2">
+              @for (capability of agent.capabilities; track capability) {
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-check text-xs flex-shrink-0" [style.color]="agent.color"></i>
+                  <span class="text-xs text-gray-400">{{ capability }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Architecture Features -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Architecture Benefits</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">
+          Built for performance, reliability, and scalability
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        @for (feature of features; track feature.title) {
+          <div
+            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/50 transition-all text-center"
+          >
+            <div
+              class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mx-auto mb-4"
+            >
+              <i [class]="'pi ' + feature.icon + ' text-2xl text-primary'"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">{{ feature.title }}</h3>
+            <p class="text-sm text-gray-400">{{ feature.description }}</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Workflow Example -->
+    <div class="mb-20">
+      <div class="glass-card p-10 rounded-2xl border border-white/10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center mb-10">
+          <div>
+            <h2 class="text-3xl font-bold text-white mb-4">Example Workflow</h2>
+            <p class="text-gray-400 leading-relaxed">
+              See how agents collaborate to build a complete project. From initial planning to final
+              delivery, our multi-agent system ensures quality and efficiency at every step.
+            </p>
+          </div>
+          <div class="rounded-xl overflow-hidden border border-white/10">
+            <img
+              src="assets/images/african-market-page/developer.webp"
+              alt="Team collaboration and workflow"
+              loading="lazy"
+              class="w-full h-64 object-cover"
+            />
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="flex items-start gap-4">
+            <div
+              class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"
+            >
+              <span class="text-primary font-bold">1</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-white font-semibold mb-1">User Input</h3>
+              <p class="text-sm text-gray-400">You describe your project idea and requirements</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"
+            >
+              <span class="text-primary font-bold">2</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-white font-semibold mb-1">Orchestrator Planning</h3>
+              <p class="text-sm text-gray-400">
+                Orchestrator analyzes requirements and creates execution plan
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"
+            >
+              <span class="text-primary font-bold">3</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-white font-semibold mb-1">Parallel Agent Execution</h3>
+              <p class="text-sm text-gray-400">
+                Research, Business, Design, and Technical agents work simultaneously
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"
+            >
+              <span class="text-primary font-bold">4</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-white font-semibold mb-1">Quality Validation</h3>
+              <p class="text-sm text-gray-400">
+                Orchestrator validates outputs and ensures consistency
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"
+            >
+              <span class="text-primary font-bold">5</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-white font-semibold mb-1">Delivery</h3>
+              <p class="text-sm text-gray-400">
+                Complete project delivered with all components integrated
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Technology Showcase -->
+    <div class="mb-20">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="rounded-xl overflow-hidden border border-white/10">
+          <img
+            src="assets/images/architecture-page/ai-ml-tech.webp"
+            alt="AI and Machine Learning Technology"
+            loading="lazy"
+            class="w-full h-64 object-cover"
+          />
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/10">
+          <img
+            src="assets/images/architecture-page/cloud-architecture.webp"
+            alt="Cloud Architecture Diagram"
+            loading="lazy"
+            class="w-full h-64 object-cover"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
+      <h2 class="text-3xl font-bold text-white mb-4">Experience Multi-Agent AI</h2>
+      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+        See how specialized agents work together to build your project faster and better
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-rocket mr-2"></i>
+          Start Building
+        </a>
+        <a routerLink="/documentation" class="outer-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-book mr-2"></i>
+          Learn More
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
