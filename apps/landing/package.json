@@ -8,7 +8,14 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:landing": "node dist/landing/server/server.mjs"
+    "serve:ssr:landing": "node dist/landing/server/server.mjs",
+    "i18n:extract": "ng extract-i18n",
+    "i18n:extract:json": "ng extract-i18n --format=json --output-path=src/locale",
+    "start:fr": "ng serve --configuration=fr --host 0.0.0.0 --port 4201",
+    "start:en": "ng serve --configuration=en --host 0.0.0.0 --port 4201",
+    "build:fr": "ng build --configuration=production-fr",
+    "build:en": "ng build --configuration=production-en",
+    "build:all-locales": "npm run build:en && npm run build:fr"
   },
   "prettier": {
     "printWidth": 100,
