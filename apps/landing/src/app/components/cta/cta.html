@@ -4,11 +4,12 @@
   >
     <div class="w-full md:w-1/2 flex-col flex gap-4">
       <h2
+        i18n="@@cta.startBuildingToday"
         class="reveal-left text-start text-2xl w-full md:text-5xl font-bold py-8 text-glow-secondary"
       >
         Start Building Today
       </h2>
-      <p class="reveal-left" style="transition-delay: 100ms">
+      <p i18n="@@cta.description" class="reveal-left" style="transition-delay: 100ms">
         Join Idem and transform your ideas into complete projects with our AI-powered open source
         platform. Generate logos, business plans, and deploy applications - all for free.
       </p>
@@ -16,11 +17,13 @@
         <a
           class="inner-button cta-primary-button px-6 py-3 rounded-xl text-white font-semibold"
           routerLink="/login"
+          i18n="@@cta.signUpButton"
           >Sign Up</a
         >
         <button
           routerLink="/console/create-project"
           class="outer-button cta-secondary-button px-6 py-3 rounded-xl font-semibold text-white"
+          i18n="@@cta.getStartedButton"
         >
           Get Started
         </button>
@@ -29,6 +32,7 @@
     <div class="md:w-1/2 reveal-right">
       <img
         src="/assets/images/home/hello.svg"
+        i18n-alt="@@cta.alt.idemPlatformInterface"
         alt="Idem AI platform interface showing project creation workflow"
         class="floating-enhanced"
       />

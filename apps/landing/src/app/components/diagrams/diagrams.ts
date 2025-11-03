@@ -43,100 +43,122 @@ export class Diagrams implements OnInit, OnDestroy {
   protected readonly diagramTypes = signal<DiagramType[]>([
     {
       id: 'use-case',
-      title: 'Use Case Diagrams',
-      description: 'Visual representation of system functionality and user interactions',
+      title: $localize`:@@diagrams.types.useCase.title:Use Case Diagrams`,
+      description: $localize`:@@diagrams.types.useCase.description:Visual representation of system functionality and user interactions`,
       icon: 'pi-users',
       color: '#1447e6',
-      examples: ['User Registration', 'Payment Processing', 'Content Management'],
+      examples: [
+        $localize`:@@diagrams.types.useCase.example1:User Registration`,
+        $localize`:@@diagrams.types.useCase.example2:Payment Processing`,
+        $localize`:@@diagrams.types.useCase.example3:Content Management`,
+      ],
     },
     {
       id: 'class',
-      title: 'Class Diagrams',
-      description: 'Object-oriented system structure with classes, attributes, and relationships',
+      title: $localize`:@@diagrams.types.class.title:Class Diagrams`,
+      description: $localize`:@@diagrams.types.class.description:Object-oriented system structure with classes, attributes, and relationships`,
       icon: 'pi-sitemap',
       color: '#22c55e',
-      examples: ['User Management', 'Product Catalog', 'Order System'],
+      examples: [
+        $localize`:@@diagrams.types.class.example1:User Management`,
+        $localize`:@@diagrams.types.class.example2:Product Catalog`,
+        $localize`:@@diagrams.types.class.example3:Order System`,
+      ],
     },
     {
       id: 'sequence',
-      title: 'Sequence Diagrams',
-      description: 'Time-ordered interaction between system components and actors',
+      title: $localize`:@@diagrams.types.sequence.title:Sequence Diagrams`,
+      description: $localize`:@@diagrams.types.sequence.description:Time-ordered interaction between system components and actors`,
       icon: 'pi-arrows-h',
       color: '#d11ec0',
-      examples: ['Login Flow', 'API Calls', 'Data Processing'],
+      examples: [
+        $localize`:@@diagrams.types.sequence.example1:Login Flow`,
+        $localize`:@@diagrams.types.sequence.example2:API Calls`,
+        $localize`:@@diagrams.types.sequence.example3:Data Processing`,
+      ],
     },
     {
       id: 'activity',
-      title: 'Activity Diagrams',
-      description: 'Workflow and business process modeling with decision points',
+      title: $localize`:@@diagrams.types.activity.title:Activity Diagrams`,
+      description: $localize`:@@diagrams.types.activity.description:Workflow and business process modeling with decision points`,
       icon: 'pi-share-alt',
       color: '#f59e0b',
-      examples: ['Order Processing', 'User Onboarding', 'Content Approval'],
+      examples: [
+        $localize`:@@diagrams.types.activity.example1:Order Processing`,
+        $localize`:@@diagrams.types.activity.example2:User Onboarding`,
+        $localize`:@@diagrams.types.activity.example3:Content Approval`,
+      ],
     },
     {
       id: 'component',
-      title: 'Component Diagrams',
-      description: 'System architecture showing components and their dependencies',
+      title: $localize`:@@diagrams.types.component.title:Component Diagrams`,
+      description: $localize`:@@diagrams.types.component.description:System architecture showing components and their dependencies`,
       icon: 'pi-th-large',
       color: '#8b5cf6',
-      examples: ['Microservices', 'Frontend Architecture', 'Database Design'],
+      examples: [
+        $localize`:@@diagrams.types.component.example1:Microservices`,
+        $localize`:@@diagrams.types.component.example2:Frontend Architecture`,
+        $localize`:@@diagrams.types.component.example3:Database Design`,
+      ],
     },
     {
       id: 'deployment',
-      title: 'Deployment Diagrams',
-      description: 'Infrastructure and deployment architecture visualization',
+      title: $localize`:@@diagrams.types.deployment.title:Deployment Diagrams`,
+      description: $localize`:@@diagrams.types.deployment.description:Infrastructure and deployment architecture visualization`,
       icon: 'pi-cloud',
       color: '#06b6d4',
-      examples: ['Cloud Infrastructure', 'Server Architecture', 'Network Topology'],
+      examples: [
+        $localize`:@@diagrams.types.deployment.example1:Cloud Infrastructure`,
+        $localize`:@@diagrams.types.deployment.example2:Server Architecture`,
+        $localize`:@@diagrams.types.deployment.example3:Network Topology`,
+      ],
     },
   ]);
 
   protected readonly diagramExamples = signal<DiagramExample[]>([
     {
       id: '1',
-      title: 'E-commerce Platform Use Cases',
-      type: 'Use Case',
-      industry: 'E-commerce',
+      title: $localize`:@@diagrams.examples.ecommerce.title:E-commerce Platform Use Cases`,
+      type: $localize`:@@diagrams.examples.ecommerce.type:Use Case`,
+      industry: $localize`:@@diagrams.examples.ecommerce.industry:E-commerce`,
       complexity: 'Complex',
-      description: 'User journey from registration to checkout',
+      description: $localize`:@@diagrams.examples.ecommerce.description:User journey from registration to checkout`,
       elements: 12,
       connections: 18,
-      previewData: 'User → Browse Products → Add to Cart → Checkout → Payment → Order Confirmation',
+      previewData: $localize`:@@diagrams.examples.ecommerce.preview:User → Browse Products → Add to Cart → Checkout → Payment → Order Confirmation`,
     },
     {
       id: '2',
-      title: 'SaaS Application Classes',
-      type: 'Class Diagram',
-      industry: 'SaaS',
+      title: $localize`:@@diagrams.examples.saas.title:SaaS Application Classes`,
+      type: $localize`:@@diagrams.examples.saas.type:Class Diagram`,
+      industry: $localize`:@@diagrams.examples.saas.industry:SaaS`,
       complexity: 'Medium',
-      description: 'Multi-tenant SaaS application structure',
+      description: $localize`:@@diagrams.examples.saas.description:Multi-tenant SaaS application structure`,
       elements: 8,
       connections: 14,
-      previewData:
-        'User ← extends → Admin | Product → contains → Features | Subscription → manages → Billing',
+      previewData: $localize`:@@diagrams.examples.saas.preview:User ← extends → Admin | Product → contains → Features | Subscription → manages → Billing`,
     },
     {
       id: '3',
-      title: 'API Authentication Sequence',
-      type: 'Sequence',
-      industry: 'Technology',
+      title: $localize`:@@diagrams.examples.api.title:API Authentication Sequence`,
+      type: $localize`:@@diagrams.examples.api.type:Sequence`,
+      industry: $localize`:@@diagrams.examples.api.industry:Technology`,
       complexity: 'Simple',
-      description: 'JWT authentication flow',
+      description: $localize`:@@diagrams.examples.api.description:JWT authentication flow`,
       elements: 5,
       connections: 10,
-      previewData: 'Client → Auth Server → Database → Token Generation → Response',
+      previewData: $localize`:@@diagrams.examples.api.preview:Client → Auth Server → Database → Token Generation → Response`,
     },
     {
       id: '4',
-      title: 'Healthcare Workflow Activity',
-      type: 'Activity',
-      industry: 'Healthcare',
+      title: $localize`:@@diagrams.examples.healthcare.title:Healthcare Workflow Activity`,
+      type: $localize`:@@diagrams.examples.healthcare.type:Activity`,
+      industry: $localize`:@@diagrams.examples.healthcare.industry:Healthcare`,
       complexity: 'Complex',
-      description: 'Patient treatment workflow',
+      description: $localize`:@@diagrams.examples.healthcare.description:Patient treatment workflow`,
       elements: 15,
       connections: 22,
-      previewData:
-        'Patient Registration → Triage → Doctor Assignment → Treatment → Billing → Discharge',
+      previewData: $localize`:@@diagrams.examples.healthcare.preview:Patient Registration → Triage → Doctor Assignment → Treatment → Billing → Discharge`,
     },
   ]);
 
@@ -186,25 +208,24 @@ export class Diagrams implements OnInit, OnDestroy {
     const diagramsStructuredData = {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'AI UML Diagram Generation',
-      description:
-        'Automated generation of UML diagrams including use case, class, sequence, activity, component, and deployment diagrams',
+      name: $localize`:@@diagrams.seo.name:AI UML Diagram Generation`,
+      description: $localize`:@@diagrams.seo.description:Automated generation of UML diagrams including use case, class, sequence, activity, component, and deployment diagrams`,
       provider: {
         '@type': 'Organization',
         name: 'Idem',
       },
-      serviceType: 'Software Development Tools',
-      areaServed: 'Worldwide',
+      serviceType: $localize`:@@diagrams.seo.serviceType:Software Development Tools`,
+      areaServed: $localize`:@@diagrams.seo.areaServed:Worldwide`,
       hasOfferCatalog: {
         '@type': 'OfferCatalog',
-        name: 'UML Diagram Types',
+        name: $localize`:@@diagrams.seo.offerCatalogName:UML Diagram Types`,
         itemListElement: this.diagramTypes().map((diagram, index) => ({
           '@type': 'Offer',
           itemOffered: {
             '@type': 'Service',
             name: diagram.title,
             description: diagram.description,
-            category: 'UML Diagram Generation',
+            category: $localize`:@@diagrams.seo.category:UML Diagram Generation`,
           },
         })),
       },
@@ -222,11 +243,11 @@ export class Diagrams implements OnInit, OnDestroy {
 
   protected getComplexityColor(complexity: string): string {
     switch (complexity) {
-      case 'Simple':
+      case $localize`:@@diagrams.complexity.simple:Simple`:
         return '#22c55e';
-      case 'Medium':
+      case $localize`:@@diagrams.complexity.medium:Medium`:
         return '#f59e0b';
-      case 'Complex':
+      case $localize`:@@diagrams.complexity.complex:Complex`:
         return '#ef4444';
       default:
         return '#6b7280';
