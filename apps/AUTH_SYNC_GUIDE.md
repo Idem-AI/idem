@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Les applications `landing-page` et `main-dashboard` partagent l'authentification Firebase et synchronisent la langue de l'utilisateur lors de la navigation entre les deux applications.
+Les applications `landing` et `main-dashboard` partagent l'authentification Firebase et synchronisent la langue de l'utilisateur lors de la navigation entre les deux applications.
 
 ## Architecture
 
@@ -241,7 +241,7 @@ await this.authService.logout();
 
    ```bash
    # Terminal 1 - Landing Page
-   cd apps/landing-page
+   cd apps/landing
    npm start  # Port 4201
 
    # Terminal 2 - Dashboard

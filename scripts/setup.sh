@@ -102,13 +102,13 @@ echo ""
 info "🚀 Installing application dependencies..."
 echo ""
 
-# landing-page
-if [ -d "apps/landing-page" ]; then
-    info "Installing landing-page dependencies..."
-    cd apps/landing-page
+# landing
+if [ -d "apps/landing" ]; then
+    info "Installing landing dependencies..."
+    cd apps/landing
     npm install
     cd ../..
-    success "landing-page configured"
+    success "landing configured"
 fi
 
 # main-dashboard
@@ -171,13 +171,13 @@ echo ""
 success "🎉 Setup completed successfully!"
 echo ""
 info "Available commands:"
-echo "  npm run dev:landing      - Launch landing-page (port 4201)"
+echo "  npm run dev:landing      - Launch landing (port 4201)"
 echo "  npm run dev:dashboard    - Launch main-dashboard (port 4200)"
 echo "  npm run dev:chart        - Launch chart"
 echo "  npm run dev:appgen       - Launch appgen"
 echo "  npm run dev:api          - Launch idem-api"
 echo "  npm run build:all        - Build all projects"
-echo "  npm run build:landing    - Build landing-page"
+echo "  npm run build:landing    - Build landing"
 echo "  npm run build:dashboard  - Build main-dashboard"
 echo "  npm run test:all         - Test all projects"
 echo "  npm run lint:all         - Lint all projects"

@@ -6,7 +6,7 @@ La restructuration de l'application monolithique en deux applications distinctes
 
 ## 📦 Applications Finales
 
-### 1. landing-page (apps/landing-page/)
+### 1. landing (apps/landing/)
 
 **Anciennement :** main-app
 
@@ -62,7 +62,7 @@ La restructuration de l'application monolithique en deux applications distinctes
 ```json
 {
   "workspaces": [
-    "apps/landing-page", // ✅ Renommé
+    "apps/landing", // ✅ Renommé
     "apps/main-dashboard" // ✅ Ajouté
     // ... autres workspaces
   ],
@@ -76,13 +76,13 @@ La restructuration de l'application monolithique en deux applications distinctes
 }
 ```
 
-### landing-page/package.json
+### landing/package.json
 
 ```json
 {
-  "name": "landing-page", // ✅ Renommé
+  "name": "landing", // ✅ Renommé
   "scripts": {
-    "serve:ssr:landing": "node dist/landing-page/server/server.mjs" // ✅ Mis à jour
+    "serve:ssr:landing": "node dist/landing/server/server.mjs" // ✅ Mis à jour
   },
   "dependencies": {
     // ✅ 13 dépendances supprimées (mermaid, jspdf, etc.)
@@ -90,17 +90,17 @@ La restructuration de l'application monolithique en deux applications distinctes
 }
 ```
 
-### landing-page/angular.json
+### landing/angular.json
 
 ```json
 {
   "projects": {
-    "landing-page": {
+    "landing": {
       // ✅ Renommé de "idem"
       "architect": {
         "build": {
           "options": {
-            "outputPath": "dist/landing-page", // ✅ Mis à jour
+            "outputPath": "dist/landing", // ✅ Mis à jour
             "scripts": [] // ✅ Nettoyé (mermaid supprimé)
           }
         }
@@ -148,7 +148,7 @@ La restructuration de l'application monolithique en deux applications distinctes
    - Utilisation dans les composants
    - Changement de langue
    - Structure des traductions
-   - Différences avec landing-page
+   - Différences avec landing
 
 ## 🎯 Prochaines Étapes
 
@@ -162,14 +162,14 @@ La restructuration de l'application monolithique en deux applications distinctes
    npm install --workspaces
 
    # Ou individuellement
-   cd apps/landing-page && npm install
+   cd apps/landing && npm install
    cd apps/main-dashboard && npm install
    ```
 
-2. **Tester landing-page**
+2. **Tester landing**
 
    ```bash
-   cd apps/landing-page
+   cd apps/landing
    npm start
    # Ouvrir http://localhost:4201
    ```
@@ -193,7 +193,7 @@ La restructuration de l'application monolithique en deux applications distinctes
    - Tester toutes les pages avec les deux langues
 
 3. **Mettre à jour les liens de navigation**
-   - Dans landing-page : Ajouter lien "Accéder au dashboard"
+   - Dans landing : Ajouter lien "Accéder au dashboard"
    - Dans main-dashboard : Ajouter lien "Retour au site"
 
 4. **Vérifier l'authentification**
@@ -226,36 +226,36 @@ La restructuration de l'application monolithique en deux applications distinctes
 
 ### Fichiers
 
-- **Supprimés de landing-page :** ~209 fichiers
+- **Supprimés de landing :** ~209 fichiers
 - **Copiés vers main-dashboard :** ~270 fichiers
 - **Documentation créée :** 5 fichiers
 
 ### Dépendances
 
-- **Supprimées de landing-page :** 14 packages
+- **Supprimées de landing :** 14 packages
 - **Ajoutées à main-dashboard :** 38 packages
 
 ### Bundle Size (estimation)
 
-- **landing-page :** ~2.5MB (réduction de 43%)
+- **landing :** ~2.5MB (réduction de 43%)
 - **main-dashboard :** ~4MB
 
 ### Routes
 
-- **landing-page :** 11 routes publiques
+- **landing :** 11 routes publiques
 - **main-dashboard :** 22 routes privées
 
 ## ✅ Checklist de Validation
 
 ### Configuration
 
-- [x] Application renommée : main-app → landing-page
+- [x] Application renommée : main-app → landing
 - [x] Nouvelle application créée : main-dashboard
 - [x] Package.json racine mis à jour
 - [x] Workspaces configurés
 - [x] Scripts npm mis à jour
 
-### Nettoyage landing-page
+### Nettoyage landing
 
 - [x] Modules dashboard supprimés
 - [x] Modules auth supprimés
@@ -285,9 +285,9 @@ La restructuration de l'application monolithique en deux applications distinctes
 
 ### À Faire
 
-- [ ] npm install dans landing-page
+- [ ] npm install dans landing
 - [ ] npm install dans main-dashboard
-- [ ] Tests de build landing-page
+- [ ] Tests de build landing
 - [ ] Tests de build main-dashboard
 - [ ] Configuration des environnements
 - [ ] Vérification de l'authentification
@@ -299,7 +299,7 @@ La restructuration de l'application monolithique en deux applications distinctes
 
 Deux applications Angular 20 distinctes et optimisées :
 
-1. **landing-page** - Application publique légère avec SSR et @angular/localize
+1. **landing** - Application publique légère avec SSR et @angular/localize
 2. **main-dashboard** - Application privée complète avec ngx-translate
 
 Chaque application est maintenant indépendante, avec :
