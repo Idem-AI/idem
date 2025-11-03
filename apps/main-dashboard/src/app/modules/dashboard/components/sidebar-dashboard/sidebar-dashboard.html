@@ -1,0 +1,335 @@
+<!-- Navbar -->
+<nav
+  class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10 px-3 py-3 lg:px-6 transition-all duration-300"
+>
+  <div class="flex items-center justify-between">
+    <div class="flex items-center">
+      <!-- Mobile menu button -->
+      <button
+        type="button"
+        class="inline-flex items-center p-2 text-sm text-gray-400 rounded-lg md:hidden hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 mr-2 transition-all duration-200"
+        (click)="toggleMobileDrawer()"
+      >
+        <span class="sr-only">Open mobile menu</span>
+        <i class="pi pi-bars text-lg"></i>
+      </button>
+
+      <!-- Desktop sidebar toggle -->
+      <button
+        type="button"
+        class="hidden md:inline-flex items-center p-2 text-sm text-gray-400 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 mr-2 transition-all duration-200"
+        (click)="toggleSidebar()"
+      >
+        <span class="sr-only">Toggle sidebar</span>
+        <i class="pi pi-bars text-lg"></i>
+      </button>
+
+      <!-- Logo -->
+      <div class="flex-shrink-0 flex items-center">
+        <a
+          routerLink="/"
+          class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
+        >
+          <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto" />
+          <app-beta-badge></app-beta-badge>
+        </a>
+      </div>
+
+      <!-- Desktop Project Selector -->
+      <div class="hidden md:block ml-6 relative project-selector">
+        <button
+          (click)="toggleProjectSelector()"
+          class="flex items-center gap-3 px-4 py-2 glass-card hover:bg-white/5 transition-all duration-200 min-w-[200px] justify-between"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+            <span class="text-white font-medium truncate">
+              {{ selectedProject()?.name || 'Select Project' }}
+            </span>
+          </div>
+          <i
+            class="pi pi-chevron-down text-gray-400 transition-transform duration-200"
+            [class.rotate-180]="isProjectSelectorOpen()"
+          ></i>
+        </button>
+
+        <!-- Project Dropdown -->
+        @if (isProjectSelectorOpen()) {
+          <div
+            class="absolute top-full left-0 mt-2 w-full glass-card border border-white/10 rounded-xl shadow-xl z-50 py-2 max-h-64 overflow-y-auto"
+          >
+            @for (project of dropDownProjects(); track project.code) {
+              <button
+                (click)="onProjectChange(project)"
+                class="w-full px-4 py-3 text-left hover:bg-white/5 transition-all duration-200 flex items-center gap-3 text-white"
+                [class.bg-primary]="selectedProject()?.code === project.code"
+              >
+                @if (project.code === 'all-projects') {
+                  <i class="pi pi-list text-primary"></i>
+                } @else {
+                  <div class="w-2 h-2 rounded-full bg-accent"></div>
+                }
+                <span class="font-medium">{{ project.name }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right section -->
+    <div class="flex items-center gap-4">
+      @if (user()) {
+        <!-- Quota Display - Desktop only -->
+        <div>
+          <app-quota-display
+            [quotaInfo]="quotaInfo() ?? null"
+            [quotaDisplay]="quotaDisplay() ?? null"
+            [isBeta]="isBeta()"
+            [betaRestrictions]="betaRestrictions() ?? null"
+            [isLoading]="isQuotaLoading()"
+          ></app-quota-display>
+        </div>
+
+        <!-- User Menu -->
+        <div class="relative">
+          <button
+            (click)="toggleDropdown()"
+            class="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-all duration-200"
+          >
+            <img
+              [src]="user()!.photoURL"
+              alt="Avatar"
+              class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white/20"
+            />
+          </button>
+
+          <!-- User Dropdown -->
+          @if (isDropdownOpen()) {
+            <div
+              class="absolute right-0 mt-2 w-56 glass-card border border-white/10 rounded-xl shadow-xl z-50 py-2"
+            >
+              <div class="px-4 py-3 border-b border-white/10">
+                <p class="text-white font-medium truncate">{{ user()!.displayName }}</p>
+                <p class="text-gray-400 text-sm truncate">{{ user()!.email }}</p>
+              </div>
+
+              <a
+                routerLink="/console/project/profile"
+                (click)="navigateTo('/console/project/profile')"
+                class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
+              >
+                <i class="pi pi-user text-primary"></i>
+                <span>Profile</span>
+              </a>
+
+              <a
+                routerLink="/console"
+                (click)="navigateTo('/console')"
+                class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
+              >
+                <i class="pi pi-th-large text-secondary"></i>
+                <span>Global Dashboard</span>
+              </a>
+
+              <a
+                routerLink="/settings"
+                (click)="navigateTo('/settings')"
+                class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
+              >
+                <i class="pi pi-cog text-secondary"></i>
+                <span>Settings</span>
+              </a>
+
+              <hr class="border-white/10 my-2" />
+
+              <button
+                (click)="logout()"
+                class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 transition-all duration-200"
+              >
+                <i class="pi pi-sign-out"></i>
+                <span>Logout</span>
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="w-10 h-10 rounded-full bg-gray-600 animate-pulse"></div>
+      }
+    </div>
+  </div>
+</nav>
+<!-- Desktop Sidebar -->
+<aside
+  [@sidebarExpand]="sidebarState()"
+  class="hidden md:flex flex-col fixed left-0 top-20 h-[calc(100vh-5rem)] glass border-r border-white/10 transition-all duration-300 z-40"
+  [class.w-64]="!isSidebarCollapsed()"
+  [class.w-20]="isSidebarCollapsed()"
+>
+  <!-- Sidebar Toggle -->
+  <button
+    (click)="toggleSidebar()"
+    class="absolute -right-3 top-24 w-6 h-6 glass-card hover:bg-primary/20 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border border-white/20 group"
+  >
+    <i
+      class="pi text-xs transition-transform duration-300 group-hover:text-primary"
+      [ngClass]="isSidebarCollapsed() ? 'pi-chevron-right' : 'pi-chevron-left'"
+    ></i>
+  </button>
+
+  <!-- Navigation Menu -->
+  <nav class="flex-1 px-4 py-6 space-y-2">
+    @for (item of navigationItems(); track item.route) {
+      <a
+        [routerLink]="item.route"
+        class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden"
+        [class.bg-primary]="item.isActive"
+        [class.text-white]="item.isActive"
+        [class.text-gray-300]="!item.isActive"
+        [class.hover:bg-primary]="!item.isActive"
+        [class.hover:text-white]="!item.isActive"
+        [class.justify-center]="isSidebarCollapsed()"
+        [class.px-3]="!isSidebarCollapsed()"
+        [class.px-2]="isSidebarCollapsed()"
+      >
+        <!-- Active indicator -->
+        @if (item.isActive) {
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"></div>
+        }
+
+        <!-- Icon -->
+        <div class="flex-shrink-0 relative">
+          <i [class]="item.icon" class="text-lg transition-all duration-200"></i>
+          @if (item.isActive) {
+            <div class="absolute inset-0 bg-primary/20 rounded-lg -z-10 animate-pulse"></div>
+          }
+        </div>
+
+        <!-- Label -->
+        @if (!isSidebarCollapsed()) {
+          <span class="font-medium transition-all duration-200 group-hover:translate-x-1">
+            {{ item.label }}
+          </span>
+        }
+
+        <!-- Tooltip for collapsed state -->
+        @if (isSidebarCollapsed()) {
+          <div
+            class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50"
+          >
+            {{ item.label }}
+          </div>
+        }
+      </a>
+    }
+  </nav>
+
+  <!-- Sidebar Footer -->
+  <div class="p-4 border-t border-white/10">
+    @if (!isSidebarCollapsed()) {
+      <div class="text-center">
+        <p class="text-xs text-gray-400 mb-2">Powered by</p>
+        <div class="text-primary font-bold text-sm">Idem</div>
+      </div>
+    } @else {
+      <div class="flex justify-center">
+        <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+          <i class="pi pi-bolt text-primary text-sm"></i>
+        </div>
+      </div>
+    }
+  </div>
+</aside>
+
+<!-- Mobile Drawer -->
+@if (isMobileDrawerOpen()) {
+  <div class="fixed inset-0 z-50 md:hidden">
+    <!-- Backdrop -->
+    <div
+      [@backdropFade]
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-all duration-300"
+      (click)="toggleMobileDrawer()"
+    ></div>
+
+    <!-- Drawer -->
+    <div
+      [@mobileDrawerSlide]
+      class="fixed left-0 top-0 bottom-0 w-80 glass border-r border-white/10 flex flex-col shadow-2xl"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b border-white/10">
+        <a routerLink="/" class="flex items-center gap-2" (click)="toggleMobileDrawer()">
+          <img src="/assets/icons/logo_white.png" alt="Lexi" class="w-24 h-auto" />
+          <app-beta-badge></app-beta-badge>
+        </a>
+        <button
+          (click)="toggleMobileDrawer()"
+          class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+        >
+          <i class="pi pi-times text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-6">
+        <!-- Mobile Quota Display -->
+        @if (user()) {
+          <div class="pb-4 border-b border-white/10">
+            <app-quota-display
+              [quotaInfo]="quotaInfo() ?? null"
+              [quotaDisplay]="quotaDisplay() ?? null"
+              [isBeta]="isBeta()"
+              [betaRestrictions]="betaRestrictions() ?? null"
+              [isLoading]="isQuotaLoading()"
+            ></app-quota-display>
+          </div>
+        }
+
+        <!-- Mobile Project Selector -->
+        <div>
+          <h3 class="text-sm font-medium text-gray-400 mb-3">Current Project</h3>
+          <div class="space-y-2">
+            @for (project of dropDownProjects(); track project.code) {
+              <button
+                (click)="onProjectChange(project)"
+                class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left"
+                [class.bg-primary]="selectedProject()?.code === project.code"
+                [class.text-white]="selectedProject()?.code === project.code"
+                [class.text-white]="selectedProject()?.code !== project.code"
+                [class.hover:bg-white]="selectedProject()?.code !== project.code"
+              >
+                @if (project.code === 'all-projects') {
+                  <i class="pi pi-list text-primary"></i>
+                } @else {
+                  <div class="w-2 h-2 rounded-full bg-accent"></div>
+                }
+                <span class="font-medium">{{ project.name }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Mobile Navigation -->
+        <div>
+          <h3 class="text-sm font-medium text-gray-400 mb-3">Navigation</h3>
+          <nav class="space-y-2">
+            @for (item of navigationItems(); track item.route) {
+              <a
+                [routerLink]="item.route"
+                (click)="toggleMobileDrawer()"
+                class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200"
+                [class.bg-primary]="item.isActive"
+                [class.text-white]="item.isActive"
+                [class.text-white]="!item.isActive"
+                [class.hover:bg-white]="!item.isActive"
+              >
+                <i [class]="item.icon" class="text-lg"></i>
+                <span class="font-medium">{{ item.label }}</span>
+              </a>
+            }
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+}

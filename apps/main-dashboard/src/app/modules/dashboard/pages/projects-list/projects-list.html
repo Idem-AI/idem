@@ -1,0 +1,76 @@
+<div class="min-h-screen text-white flex flex-col mt-16">
+  <!-- MAIN CONTENT -->
+  <div class="flex-1 flex px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
+    <!-- MAIN SECTION -->
+    <main
+      class="flex-1 space-y-6 sm:space-y-8 lg:space-y-10 overflow-y-auto max-w-7xl mx-auto w-full"
+    >
+      @if (isLoading()) {
+        <div class="flex justify-center items-center h-64">
+          <app-loader />
+        </div>
+      } @else {
+        <!-- Projets récents -->
+        <section class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary-500">
+              Recent Projects
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            <!-- Créer un projet -->
+            <button
+              (click)="openCreateProject()"
+              class="h-[200px] sm:h-[220px] lg:h-[240px] flex flex-col justify-center items-center text-center border-2 border-dashed border-secondary-500/50 rounded-xl bg-gray-800/50 hover:bg-gray-800 hover:shadow-[0_0_20px_-5px_var(--color-primary)] hover:scale-[1.01] transition-all duration-300 p-4 hover:cursor-pointer group"
+            >
+              <div
+                class="w-12 h-12 mb-3 bg-primary rounded-full flex items-center justify-center group-hover:bg-secondary-500/20 transition"
+              >
+                <i class="pi pi-plus text-secondary-500 text-2xl"></i>
+              </div>
+              <div class="font-bold text-sm sm:text-base">Create a new project</div>
+              <div
+                class="text-xs sm:text-sm text-gray-400 group-hover:text-white transition-colors"
+              >
+                Start a new project
+              </div>
+            </button>
+
+            <!-- Cartes projets récents -->
+            @for (project of recentProjects(); track $index) {
+              <app-project-card [project]="project" />
+            }
+          </div>
+        </section>
+
+        <!-- Tous les projets -->
+        <section class="space-y-4 sm:space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 class="text-xl sm:text-2xl font-semibold text-primary-500">All projects</h2>
+            <div class="flex gap-2"></div>
+          </div>
+
+          <div class="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            @for (project of userProjects$ | async; track $index) {
+              <app-project-card [project]="project" />
+            } @empty {
+              <div
+                class="col-span-full text-center py-12 sm:py-16 border-2 border-dashed border-gray-800 rounded-xl"
+              >
+                <i class="lucide lucide-folder-x text-3xl sm:text-4xl text-gray-600 mb-3"></i>
+                <div class="text-gray-400 text-sm sm:text-base mb-2">No project available</div>
+                <button
+                  (click)="openCreateProject()"
+                  class="text-primary-500 text-sm sm:text-base inline-block transition-colors outer-button"
+                >
+                  Create a project
+                </button>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </main>
+  </div>
+</div>

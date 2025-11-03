@@ -1,0 +1,37 @@
+<div
+  class="glass-card hover:cursor-pointer w-full min-h-[200px] sm:min-h-[220px] lg:min-h-[240px] p-4 sm:p-5 relative group flex flex-col"
+  (click)="cardClick(project()?.id!)"
+>
+  <div class="flex mb-3">
+    @if (project()?.analysisResultModel?.branding?.logo) {
+      <img
+        [src]="project()?.analysisResultModel?.branding?.logo?.svg"
+        alt="Logo"
+        class="w-[120px] sm:w-[140px] lg:w-[160px] h-auto rounded-lg"
+      />
+    } @else {
+      <h3 class="text-lg font-bold truncate pr-6">{{ project()?.name }}</h3>
+    }
+  </div>
+
+  <p class="text-sm text-gray-400 mb-4 line-clamp-3">{{ project()?.description }}</p>
+
+  <div class="flex flex-wrap gap-2 text-xs mb-3">
+    <span class="bg-secondary-500/20 text-secondary-500 px-2 py-1 rounded font-medium">
+      {{ project()?.type?.name }}
+    </span>
+    <span class="bg-gray-700 px-2 py-1 rounded text-gray-300"
+      >🎯 {{ project()?.targets?.name }}</span
+    >
+    <span class="bg-gray-700 px-2 py-1 rounded text-gray-300">💼 {{ project()?.scope?.name }}</span>
+  </div>
+
+  <div class="flex justify-between items-center mt-4 text-xs text-gray-500">
+    <span>{{ project()?.createdAt | date: 'shortDate' }}</span>
+    <button
+      class="opacity-0 group-hover:opacity-100 transition text-primary-500 hover:text-primary-400"
+    >
+      Open <i class="lucide lucide-arrow-right ml-1"></i>
+    </button>
+  </div>
+</div>

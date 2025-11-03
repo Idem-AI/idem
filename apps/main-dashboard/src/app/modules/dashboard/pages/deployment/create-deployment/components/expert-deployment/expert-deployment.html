@@ -1,0 +1,325 @@
+<div class="grid grid-cols-12 gap-6 h-[75vh]">
+  <!-- TAB 1: CATALOGUE -->
+  <div
+    class="col-span-12 lg:col-span-3 bg-gray-900/50 rounded-xl border border-gray-800 flex flex-col"
+  >
+    <div class="p-4 border-b border-gray-700">
+      <div class="flex gap-1 bg-gray-800 p-1 rounded-lg mb-4">
+        <button
+          (click)="expertSelectedProvider.set('aws')"
+          class="w-full px-3 py-1 text-sm rounded-md"
+          [ngClass]="expertSelectedProvider() === 'aws' ? 'bg-blue-600' : 'hover:bg-gray-700'"
+        >
+          AWS
+        </button>
+        <button
+          (click)="expertSelectedProvider.set('gcp')"
+          class="w-full px-3 py-1 text-sm rounded-md"
+          [ngClass]="expertSelectedProvider() === 'gcp' ? 'bg-green-600' : 'hover:bg-gray-700'"
+        >
+          GCP
+        </button>
+        <button
+          (click)="expertSelectedProvider.set('azure')"
+          class="w-full px-3 py-1 text-sm rounded-md"
+          [ngClass]="expertSelectedProvider() === 'azure' ? 'bg-purple-600' : 'hover:bg-gray-700'"
+        >
+          Azure
+        </button>
+      </div>
+      <div class="relative">
+        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i
+        ><input
+          [(ngModel)]="expertSearchTerm"
+          type="text"
+          placeholder="Rechercher..."
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 pl-9 focus:outline-none focus:border-purple-500"
+        />
+      </div>
+    </div>
+    <div class="overflow-y-auto p-4 flex-grow custom-scrollbar">
+      @for (category of objectKeys(filteredCatalogue()); track category) {
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            {{ category }}
+          </h4>
+          <div class="space-y-2">
+            @for (component of filteredCatalogue()[category]; track component.id) {
+              <div
+                class="bg-gray-800/70 p-3 rounded-lg flex justify-between items-center border border-transparent hover:border-gray-600"
+              >
+                <h5 class="font-medium flex items-center gap-2">
+                  <i class="{{ component.icon }}"></i> {{ component.name }}
+                </h5>
+                <button
+                  (click)="addComponentToArchitecture(component.id)"
+                  class="p-2 h-8 w-8 flex items-center justify-center rounded-md bg-purple-600/30 hover:bg-purple-600/50 text-purple-300"
+                  title="Ajouter"
+                >
+                  <i class="pi pi-plus"></i>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- VOLET 2: CANVAS -->
+  <div
+    class="col-span-12 lg:col-span-5 bg-gray-900/50 rounded-xl border border-gray-800 flex flex-col"
+  >
+    <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+      <h3 class="text-lg font-semibold">Your Architecture</h3>
+      <button
+        class="px-4 py-2 inner-button rounded-lg text-white font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-indigo-600/50"
+        [disabled]="expertArchitecture().length === 0 || loadingDeployment()"
+        (click)="openDeploymentNameDialog()"
+      >
+        <i class="pi pi-rocket"></i>{{ loadingDeployment() ? 'Saving configs...' : 'Save configs' }}
+      </button>
+    </div>
+    <div class="overflow-y-auto p-4 flex-grow space-y-3 custom-scrollbar">
+      @for (component of expertArchitecture(); track component.instanceId) {
+        <div
+          class="bg-gray-800 p-4 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-between animate-fade-in"
+          [class.border-purple-500]="activeExpertComponent()?.instanceId === component.instanceId"
+          [class.border-transparent]="activeExpertComponent()?.instanceId !== component.instanceId"
+          (click)="selectComponentForConfiguration(component)"
+        >
+          <div class="flex items-center gap-3">
+            <i class="{{ component.icon }} text-xl"></i
+            ><span class="font-medium">{{ component.name }}</span>
+            @if (expertForm.get(component.instanceId)?.invalid) {
+              <span
+                class="text-xs text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded-full flex items-center gap-1"
+                ><i class="pi pi-exclamation-triangle text-xs"></i> Not configured</span
+              >
+            } @else {
+              <span
+                class="text-xs text-green-400 bg-green-900/50 px-2 py-0.5 rounded-full flex items-center gap-1"
+                ><i class="pi pi-check-circle text-xs"></i> Ready</span
+              >
+            }
+          </div>
+          <button
+            (click)="
+              removeComponentFromArchitecture(component.instanceId); $event.stopPropagation()
+            "
+            class="p-2 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-full"
+          >
+            <i class="pi pi-trash"></i>
+          </button>
+        </div>
+      }
+      @if (expertArchitecture().length === 0) {
+        <div
+          class="h-full flex flex-col items-center justify-center text-center text-gray-500 border-2 border-dashed border-gray-700 rounded-lg p-8"
+        >
+          <i class="pi pi-sitemap text-4xl mb-4"></i>
+          <h4 class="font-semibold text-lg text-gray-400">Start building</h4>
+          <p>Add components from the catalog.</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- VOLET 3: CONFIGURATION -->
+  <div
+    class="col-span-12 lg:col-span-4 bg-gray-900/50 rounded-xl border border-gray-800 flex flex-col"
+  >
+    @if (activeExpertComponent(); as activeComponent) {
+      <div class="p-4 border-b border-gray-700">
+        <h3 class="text-lg font-semibold flex items-center gap-3">
+          <i class="{{ activeComponent.icon }}"></i> Configuration: {{ activeComponent.name }}
+        </h3>
+      </div>
+      <div
+        class="overflow-y-auto p-4 flex-grow custom-scrollbar"
+        [formGroup]="getActiveComponentForm()!"
+      >
+        @for (option of getActiveComponentModel()?.options; track option.name) {
+          <div class="mb-4">
+            <label [for]="option.name" class="text-sm font-medium mb-2 flex items-center gap-2"
+              >{{ option.label }}
+              @if (option.required) {
+                <span class="text-red-400">*</span>
+              }
+              @if (option.description) {
+                <i class="pi pi-info-circle text-gray-500" [title]="option.description"></i>
+              }
+            </label>
+            @switch (option.type) {
+              @case ('text') {
+                <input
+                  [id]="option.name"
+                  type="text"
+                  [formControlName]="option.name"
+                  [placeholder]="option.placeholder"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
+                />
+              }
+              @case ('number') {
+                <input
+                  [id]="option.name"
+                  type="number"
+                  [formControlName]="option.name"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
+                />
+              }
+              @case ('select') {
+                <select
+                  [id]="option.name"
+                  [formControlName]="option.name"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
+                >
+                  @for (opt of option.options; track opt.value) {
+                    <option [value]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              }
+              @case ('toggle') {
+                <label class="relative inline-flex items-center cursor-pointer"
+                  ><input type="checkbox" [formControlName]="option.name" class="sr-only peer" />
+                  <div
+                    class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"
+                  ></div
+                ></label>
+              }
+            }
+            @if (
+              getActiveComponentForm()?.get(option.name)?.invalid &&
+              getActiveComponentForm()?.get(option.name)?.touched
+            ) {
+              <p class="text-red-400 text-sm mt-1">This field is required.</p>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="h-full flex flex-col items-center justify-center text-center text-gray-500 p-8">
+        <i class="pi pi-sliders-h text-4xl mb-4"></i>
+        <h4 class="font-semibold text-lg text-gray-400">Properties</h4>
+        <p>Select a component to configure it.</p>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Deployment Name Dialog -->
+<p-dialog
+  [visible]="deploymentNameDialogVisible()"
+  (onHide)="deploymentNameDialogVisible.set(false)"
+  [style]="{ width: '450px' }"
+  header="Enter Deployment Name"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="p-fluid"
+  [closeOnEscape]="true"
+  [dismissableMask]="true"
+>
+  <div class="p-4">
+    <div [formGroup]="deploymentConfigForm" class="space-y-4">
+      <!-- Deployment Name Field -->
+      <div>
+        <label for="name" class="text-sm font-medium mb-2 flex items-center gap-1">
+          Deployment Name <span class="text-red-400">*</span>
+        </label>
+        <div class="relative">
+          <span class="p-input-icon-left w-full">
+            <i class="pi pi-tag"></i>
+            <input
+              pInputText
+              id="name"
+              type="text"
+              formControlName="name"
+              class="w-full p-inputtext"
+              placeholder="Enter a name for your deployment"
+            />
+          </span>
+        </div>
+        <small
+          *ngIf="
+            deploymentConfigForm.get('name')?.invalid && deploymentConfigForm.get('name')?.touched
+          "
+          class="text-red-400 mt-1 flex items-center gap-1"
+        >
+          <i class="pi pi-exclamation-circle"></i>
+          Deployment name is required (minimum 3 characters)
+        </small>
+      </div>
+
+      <!-- Git Repository URL Field -->
+      <div>
+        <label for="repoUrl" class="text-sm font-medium mb-2 flex items-center gap-1">
+          Git Repository URL
+          <i
+            class="pi pi-info-circle text-gray-500 text-xs"
+            title="Enter a valid Git repository URL to fetch available branches"
+          ></i>
+        </label>
+        <div class="relative">
+          <span class="p-input-icon-left p-input-icon-right w-full">
+            <i class="pi pi-github"></i>
+            <input
+              pInputText
+              id="repoUrl"
+              type="text"
+              formControlName="repoUrl"
+              class="w-full p-inputtext"
+              placeholder="https://github.com/username/repository.git"
+              (blur)="fetchGitBranches()"
+            />
+            <i *ngIf="loadingGitInfo()" class="pi pi-spin pi-spinner text-blue-500"></i>
+          </span>
+        </div>
+        <div class="mt-1 flex items-center gap-1" *ngIf="gitBranches().length > 0">
+          <i class="pi pi-check-circle text-green-500 text-xs"></i>
+          <small class="text-green-500">Repository validated successfully</small>
+        </div>
+      </div>
+
+      <!-- Branch Selection Field -->
+      <div>
+        <label for="branch" class="block text-sm font-medium mb-2"> Branch </label>
+        <p-select
+          id="branch"
+          formControlName="branch"
+          [options]="gitBranches()"
+          [disabled]="gitBranches().length === 0"
+          placeholder="Select a branch"
+          [showClear]="false"
+          styleClass="w-full"
+          [style]="{ width: '100%' }"
+          optionLabel=""
+          optionValue=""
+          appendTo="body"
+        ></p-select>
+        <small
+          *ngIf="gitBranches().length === 0 && deploymentConfigForm.get('repoUrl')?.value"
+          class="text-gray-400"
+        >
+          No branches found or repository not accessible
+        </small>
+      </div>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-2">
+      <p-button
+        label="Cancel"
+        icon="pi pi-times"
+        styleClass="p-button-text"
+        (click)="deploymentNameDialogVisible.set(false)"
+      ></p-button>
+      <p-button
+        label="Deploy"
+        icon="pi pi-rocket"
+        [disabled]="deploymentConfigForm.get('name')?.invalid"
+        (click)="submitDeployment()"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>

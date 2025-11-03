@@ -1,0 +1,308 @@
+<!-- Loading State -->
+@if (isGenerating()) {
+  <div class="w-full min-h-[78vh] flex flex-col items-center justify-center sm:mt-0">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+      <h1 class="sm:text-4xl text-2xl font-bold text-white mb-4">Generating Color Palettes...</h1>
+    </div>
+
+    <div class="w-full max-w-7xl mx-auto">
+      <!-- Loading Carousel -->
+      <app-carousel
+        [items]="[1, 2, 3]"
+        [selectedItem]="null"
+        [trackByFn]="trackSkeleton"
+        [gridCols]="3"
+        [showDots]="true"
+        [showArrows]="false"
+        [infinite]="false"
+      >
+        <ng-template let-item>
+          <div class="p-4 sm:p-6 border-2 border-gray-700/50 glass rounded-xl">
+            <div class="h-6 bg-gray-700/50 rounded-lg animate-pulse mb-3"></div>
+            <div class="flex gap-2 mb-4">
+              @for (color of [1, 2, 3, 4]; track color) {
+                <div class="w-8 h-8 bg-gray-700/50 rounded-full animate-pulse"></div>
+              }
+            </div>
+            <div class="p-3 rounded-lg bg-gray-800/30">
+              <div class="h-4 bg-gray-700/50 rounded animate-pulse mb-2"></div>
+              <div class="flex gap-2">
+                <div class="w-16 h-6 bg-gray-700/50 rounded animate-pulse"></div>
+                <div class="w-12 h-6 bg-gray-700/50 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </app-carousel>
+    </div>
+
+    <!-- Tips Section -->
+    <div class="mt-12 text-center">
+      <div
+        class="bg-gray-900/30 backdrop-blur-sm border border-gray-700/30 rounded-xl p-6 max-w-2xl mx-auto"
+      >
+        <h3 class="text-lg font-semibold text-white mb-3">While you wait...</h3>
+        <p class="text-gray-300 text-sm leading-relaxed">
+          Our AI is analyzing your project requirements to create harmonious color palettes that
+          reflect your brand's personality and target audience. This process ensures each palette is
+          optimized for accessibility and visual impact.
+        </p>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Error State -->
+@if (error()) {
+  <div class="flex flex-col items-center justify-center min-h-[60vh] w-full px-4 sm:px-6 lg:px-8">
+    <div class="text-center max-w-md mx-auto">
+      <div class="mb-6">
+        <div
+          class="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4"
+        >
+          <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+        </div>
+        <h3 class="text-xl font-semibold text-white mb-2">Generation Failed</h3>
+        <p class="text-gray-400 mb-6">{{ error() }}</p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button
+          (click)="retryGeneration()"
+          class="flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            ></path>
+          </svg>
+          Try Again
+        </button>
+
+        <button
+          (click)="goToPreviousStep()"
+          class="flex items-center justify-center px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            ></path>
+          </svg>
+          Go Back
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Color Customizer Modal -->
+@if (showColorCustomizer() && getSelectedColor()) {
+  <app-color-customizer
+    [initialColors]="getSelectedColor()!"
+    (colorsUpdated)="onColorsCustomized($event)"
+    (closed)="closeColorCustomizer()"
+  ></app-color-customizer>
+}
+
+<!-- Success State - Color Selection -->
+@if (!isGenerating() && !error() && hasGenerated()) {
+  <section
+    class="sm:min-h-[78vh] flex flex-col items-center justify-center w-full px-4 mt-[80px] sm:mt-0"
+  >
+    <div class="text-center mb-8">
+      <h1
+        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
+      >
+        Select Your Brand Colors
+      </h1>
+      <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto mb-4">
+        Choose the color palette that best represents your brand's personality and values.
+      </p>
+
+      <!-- Customize Colors Button -->
+      @if (selectedColorId()) {
+        <div class="flex justify-center">
+          <button
+            (click)="openColorCustomizer()"
+            class="inner-button inline-flex items-center px-6 py-3"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+              />
+            </svg>
+            Customize Selected Colors
+          </button>
+        </div>
+      }
+    </div>
+
+    <div class="w-full max-w-7xl mx-auto">
+      <!-- Responsive Color Display -->
+      <app-carousel
+        [items]="colorPalettes()"
+        [selectedItem]="null"
+        [trackByFn]="trackColor"
+        [gridCols]="3"
+        [showDots]="true"
+        [showArrows]="true"
+        [infinite]="false"
+        (currentItemChanged)="onCarouselItemChanged($event)"
+      >
+        <ng-template let-color let-index="index" let-isSelected="isSelected">
+          <div
+            class="p-4 sm:p-6 border-2 border-transparent glass rounded-xl hover:shadow-lg hover:shadow-primary/30 hover:bg-gray-900/50 transition-all duration-300 cursor-pointer group relative hover:-translate-y-1"
+            [style.boxShadow]="
+              selectedColorId() === color.id ? '0 0 15px ' + color.colors.primary : 'none'
+            "
+            [class.border-primary]="selectedColorId() === color.id"
+            [class.bg-gray-900]="selectedColorId() === color.id"
+            [style.borderColor]="selectedColorId() === color.id ? color.colors.primary : ''"
+            (click)="selectColor(color.id)"
+          >
+            <div
+              class="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-300"
+              [style.backgroundImage]="
+                'linear-gradient(to bottom right, ' +
+                color.colors.primary +
+                ', ' +
+                color.colors.accent +
+                ')'
+              "
+              [class.opacity-20]="selectedColorId() === color.id"
+            ></div>
+
+            <div class="relative z-10">
+              <h3 class="text-white text-lg font-medium mb-3">{{ color.name }}</h3>
+
+              <div class="flex flex-wrap gap-2 sm:gap-3 mb-4">
+                <div
+                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-sm ring-2 ring-white/20"
+                  [style.backgroundColor]="color.colors.primary"
+                  title="Primary Color"
+                ></div>
+                <div
+                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-sm ring-2 ring-white/20"
+                  [style.backgroundColor]="color.colors.secondary"
+                  title="Secondary Color"
+                ></div>
+                <div
+                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-sm ring-2 ring-white/20"
+                  [style.backgroundColor]="color.colors.accent"
+                  title="Accent Color"
+                ></div>
+                <div
+                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-gray-500 shadow-sm"
+                  [style.backgroundColor]="color.colors.background"
+                  title="Background Color"
+                ></div>
+              </div>
+
+              <div
+                class="mt-3 p-3 sm:p-4 rounded-lg border border-gray-600/30"
+                [style.backgroundColor]="color.colors.background"
+              >
+                <p [style.color]="color.colors.text" class="font-medium text-sm sm:text-base mb-2">
+                  Sample Text
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    class="px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-all hover:scale-105 shadow-sm"
+                    [style.backgroundColor]="color.colors.primary"
+                    [style.color]="'white'"
+                  >
+                    Primary
+                  </button>
+                  <button
+                    class="px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-all hover:scale-105 shadow-sm"
+                    [style.backgroundColor]="color.colors.accent"
+                    [style.color]="color.colors.text"
+                  >
+                    Accent
+                  </button>
+                </div>
+              </div>
+
+              @if (selectedColorId() === color.id) {
+                <div class="absolute top-2 right-2">
+                  <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg
+                      class="w-4 h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      ></path>
+                    </svg>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </ng-template>
+      </app-carousel>
+
+      <!-- Navigation Hint -->
+      @if (selectedColorId()) {
+        <div class="text-center mt-8">
+          <p class="text-gray-400 text-sm">
+            Great choice! Click Next to continue to the next step.
+          </p>
+        </div>
+      }
+    </div>
+  </section>
+}
+
+<!-- Authentication Modal -->
+<p-dialog
+  [(visible)]="showLoginModal"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-full max-w-md"
+  header="Authentication Required"
+  (onHide)="closeLoginModal()"
+>
+  <div class="text-center mb-6">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-primary/20 rounded-full mb-4">
+      <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+        ></path>
+      </svg>
+    </div>
+    <h3 class="text-xl font-semibold text-white mb-2">Please Sign In</h3>
+    <p class="text-gray-400 text-sm">
+      You need to be authenticated to generate color palettes. Please sign in to continue.
+    </p>
+  </div>
+
+  <app-login-card (loginSuccess)="onLoginSuccess()"></app-login-card>
+</p-dialog>

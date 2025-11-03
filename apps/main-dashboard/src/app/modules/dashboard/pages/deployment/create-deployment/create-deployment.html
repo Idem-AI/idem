@@ -1,0 +1,84 @@
+<div class="max-w-7xl mx-auto sm:px-6 lg:px-8 text-gray-200 md:min-h-[75vh]">
+  @if (errorMessages().length > 0) {
+    <div
+      class="bg-red-500/10 border border-red-500/30 text-red-100 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6"
+    >
+      <span class="text-sm sm:text-base">{{ errorMessages().join(', ') }}</span>
+      <button
+        (click)="errorMessages.set([])"
+        class="text-red-300 hover:text-red-100 transition-colors"
+      >
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+  }
+  <div
+    class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2 sm:mb-8"
+  >
+    <h2
+      class="text-lg sm:text-xl lg:text-2xl font-semibold border-l-4 border-l-blue-500 pl-3 sm:pl-4"
+    >
+      @switch (deploymentMode()) {
+        @case ('beginner') {
+          Quick Deployment
+        }
+        @case ('ai-assistant') {
+          AI Assistant
+        }
+        @case ('template') {
+          Template Deployment
+        }
+        @case ('expert') {
+          Expert Deployment
+        }
+        @default {
+          <div
+            class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2 sm:mb-6"
+          >
+            <div>
+              <h1
+                class="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2"
+              >
+                Create Deployment
+              </h1>
+              <p class="text-gray-400 text-sm sm:text-base">
+                Design your ideal cloud infrastructure.
+              </p>
+            </div>
+          </div>
+        }
+      }
+    </h2>
+    <button
+      class="w-full sm:w-auto py-2 rounded-lg hover:bg-gray-800 text-gray-300 transition-all flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base"
+      (click)="resetView()"
+    >
+      <i class="pi pi-arrow-left"></i> Back
+    </button>
+  </div>
+
+  <!-- Mode Selection -->
+  @if (!deploymentMode()) {
+    <app-mode-selector (onModeSelect)="deploymentMode.set($event)" />
+  }
+
+  <!-- Quick Deployment -->
+  @if (deploymentMode() === 'beginner') {
+    <app-quick-deployment />
+  }
+
+  <!-- AI Assistant -->
+  @if (deploymentMode() === 'ai-assistant') {
+    <app-ai-assistant />
+  }
+
+  <!-- Template Deployment -->
+  @if (deploymentMode() === 'template') {
+    <app-template-deployment />
+  }
+
+  <!-- Expert Mode -->
+  @if (deploymentMode() === 'expert') {
+    <app-expert-deployment />
+  }
+</div>

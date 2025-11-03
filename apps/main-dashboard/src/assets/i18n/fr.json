@@ -1,0 +1,52 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "loading": "Chargement...",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "export": "Exporter",
+    "import": "Importer",
+    "refresh": "Actualiser"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "projects": "Projets",
+    "teams": "Équipes",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue sur votre tableau de bord",
+    "overview": "Aperçu",
+    "recentActivity": "Activité récente",
+    "statistics": "Statistiques"
+  },
+  "projects": {
+    "title": "Projets",
+    "createNew": "Créer un nouveau projet",
+    "myProjects": "Mes projets",
+    "noProjects": "Aucun projet trouvé",
+    "projectDetails": "Détails du projet"
+  },
+  "teams": {
+    "title": "Équipes",
+    "createNew": "Créer une nouvelle équipe",
+    "myTeams": "Mes équipes",
+    "noTeams": "Aucune équipe trouvée",
+    "teamDetails": "Détails de l'équipe"
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite",
+    "notFound": "Non trouvé",
+    "unauthorized": "Non autorisé",
+    "serverError": "Erreur serveur"
+  }
+}

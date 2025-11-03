@@ -1,0 +1,127 @@
+<div class="min-h-screen text-white flex flex-col mt-16">
+  <div class="flex-1 flex px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
+    <main
+      class="flex-1 space-y-6 sm:space-y-8 lg:space-y-10 overflow-y-auto max-w-7xl mx-auto w-full"
+    >
+      @if (isLoading()) {
+        <div class="flex justify-center items-center h-64">
+          <app-loader />
+        </div>
+      } @else if (errorMessage()) {
+        <div class="glass-card p-6 border border-red-500/50">
+          <div class="flex items-center gap-3 text-red-400">
+            <i class="pi pi-exclamation-triangle text-2xl"></i>
+            <div>
+              <h3 class="font-bold">Error</h3>
+              <p class="text-sm">{{ errorMessage() }}</p>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- Header -->
+        <section class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">My Teams</h1>
+            <button (click)="onCreateTeam()" class="inner-button">
+              <i class="pi pi-plus mr-2"></i>
+              Create Team
+            </button>
+          </div>
+          <p class="text-gray-400">Manage your teams and collaborate with others</p>
+        </section>
+
+        <!-- Recent Teams -->
+        @if (recentTeams().length > 0) {
+          <section class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary">
+                Recent Teams
+              </h2>
+            </div>
+
+            <div class="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              @for (team of recentTeams(); track team.id) {
+                <div
+                  (click)="onTeamClick(team.id!)"
+                  class="glass-card p-6 hover:shadow-[0_0_20px_-5px_var(--color-primary)] hover:scale-[1.01] transition-all duration-300 cursor-pointer group"
+                >
+                  <div class="flex items-start justify-between mb-4">
+                    <div
+                      class="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center group-hover:bg-accent/30 transition"
+                    >
+                      <i class="pi pi-users text-accent text-xl"></i>
+                    </div>
+                  </div>
+
+                  <h3 class="text-lg font-bold mb-2 truncate group-hover:text-primary transition">
+                    {{ team.name }}
+                  </h3>
+                  <p class="text-sm text-gray-400 mb-4 line-clamp-2">
+                    {{ team.description || 'No description' }}
+                  </p>
+
+                  <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <i class="pi pi-users"></i>
+                    <span>{{ team.members.length }} members</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- All Teams -->
+        <section class="space-y-4 sm:space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 class="text-xl sm:text-2xl font-semibold text-primary">All Teams</h2>
+          </div>
+
+          @if (teams().length > 0) {
+            <div class="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              @for (team of teams(); track team.id) {
+                <div
+                  (click)="onTeamClick(team.id!)"
+                  class="glass-card p-6 hover:shadow-[0_0_20px_-5px_var(--color-primary)] hover:scale-[1.01] transition-all duration-300 cursor-pointer group"
+                >
+                  <div class="flex items-start justify-between mb-4">
+                    <div
+                      class="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center group-hover:bg-accent/30 transition"
+                    >
+                      <i class="pi pi-users text-accent text-xl"></i>
+                    </div>
+                  </div>
+
+                  <h3 class="text-lg font-bold mb-2 truncate group-hover:text-primary transition">
+                    {{ team.name }}
+                  </h3>
+                  <p class="text-sm text-gray-400 mb-4 line-clamp-2">
+                    {{ team.description || 'No description' }}
+                  </p>
+
+                  <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <i class="pi pi-users"></i>
+                    <span>{{ team.members.length }} members</span>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div
+              class="text-center py-12 sm:py-16 border-2 border-dashed border-gray-800 rounded-xl glass"
+            >
+              <i class="pi pi-users text-3xl sm:text-4xl text-gray-600 mb-3"></i>
+              <div class="text-gray-400 text-sm sm:text-base mb-2">No teams available</div>
+              <button
+                (click)="onCreateTeam()"
+                class="text-primary text-sm sm:text-base inline-block transition-colors outer-button mt-4"
+              >
+                <i class="pi pi-plus mr-2"></i>
+                Create a new team
+              </button>
+            </div>
+          }
+        </section>
+      }
+    </main>
+  </div>
+</div>
