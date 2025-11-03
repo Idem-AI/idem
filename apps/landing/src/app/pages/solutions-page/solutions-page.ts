@@ -24,90 +24,90 @@ export class SolutionsPage implements OnInit {
 
   protected readonly solutions: Solution[] = [
     {
-      title: 'Website Generation',
-      description: 'Create professional, responsive websites with modern design and optimized code',
+      title: $localize`:@@solutions-page.solutions.website.title:Website Generation`,
+      description: $localize`:@@solutions-page.solutions.website.description:Create professional, responsive websites with modern design and optimized code`,
       icon: 'pi-globe',
       features: [
-        'Modern responsive design',
-        'SEO optimized',
-        'Fast loading times',
-        'Mobile-first approach',
-        'Customizable templates',
-        'Production-ready code',
+        $localize`:@@solutions-page.solutions.website.feature1:Modern responsive design`,
+        $localize`:@@solutions-page.solutions.website.feature2:SEO optimized`,
+        $localize`:@@solutions-page.solutions.website.feature3:Fast loading times`,
+        $localize`:@@solutions-page.solutions.website.feature4:Mobile-first approach`,
+        $localize`:@@solutions-page.solutions.website.feature5:Customizable templates`,
+        $localize`:@@solutions-page.solutions.website.feature6:Production-ready code`,
       ],
     },
     {
-      title: 'Logo & Brand Identity',
-      description: 'Generate unique logos and complete brand identity packages',
+      title: $localize`:@@solutions-page.solutions.logo.title:Logo & Brand Identity`,
+      description: $localize`:@@solutions-page.solutions.logo.description:Generate unique logos and complete brand identity packages`,
       icon: 'pi-palette',
       features: [
-        'Custom logo designs',
-        'Multiple variations',
-        'Color palette generation',
-        'Typography selection',
-        'Brand guidelines',
-        'Vector formats (SVG, PNG)',
+        $localize`:@@solutions-page.solutions.logo.feature1:Custom logo designs`,
+        $localize`:@@solutions-page.solutions.logo.feature2:Multiple variations`,
+        $localize`:@@solutions-page.solutions.logo.feature3:Color palette generation`,
+        $localize`:@@solutions-page.solutions.logo.feature4:Typography selection`,
+        $localize`:@@solutions-page.solutions.logo.feature5:Brand guidelines`,
+        $localize`:@@solutions-page.solutions.logo.feature6:Vector formats (SVG, PNG)`,
       ],
     },
     {
-      title: 'Business Plans',
-      description: 'Comprehensive business plans with market research and financial projections',
+      title: $localize`:@@solutions-page.solutions.businessPlan.title:Business Plans`,
+      description: $localize`:@@solutions-page.solutions.businessPlan.description:Comprehensive business plans with market research and financial projections`,
       icon: 'pi-chart-line',
       features: [
-        'Executive summary',
-        'Market analysis',
-        'Financial projections',
-        'Competitive analysis',
-        'Go-to-market strategy',
-        'Risk assessment',
+        $localize`:@@solutions-page.solutions.businessPlan.feature1:Executive summary`,
+        $localize`:@@solutions-page.solutions.businessPlan.feature2:Market analysis`,
+        $localize`:@@solutions-page.solutions.businessPlan.feature3:Financial projections`,
+        $localize`:@@solutions-page.solutions.businessPlan.feature4:Competitive analysis`,
+        $localize`:@@solutions-page.solutions.businessPlan.feature5:Go-to-market strategy`,
+        $localize`:@@solutions-page.solutions.businessPlan.feature6:Risk assessment`,
       ],
     },
     {
-      title: 'Brand Charter',
-      description: 'Complete brand guidelines and visual identity documentation',
+      title: $localize`:@@solutions-page.solutions.brandCharter.title:Brand Charter`,
+      description: $localize`:@@solutions-page.solutions.brandCharter.description:Complete brand guidelines and visual identity documentation`,
       icon: 'pi-book',
       features: [
-        'Brand positioning',
-        'Visual guidelines',
-        'Tone of voice',
-        'Usage examples',
-        "Do and don'ts",
-        'Brand story',
+        $localize`:@@solutions-page.solutions.brandCharter.feature1:Brand positioning`,
+        $localize`:@@solutions-page.solutions.brandCharter.feature2:Visual guidelines`,
+        $localize`:@@solutions-page.solutions.brandCharter.feature3:Tone of voice`,
+        $localize`:@@solutions-page.solutions.brandCharter.feature4:Usage examples`,
+        $localize`:@@solutions-page.solutions.brandCharter.feature5:Do and don'ts`,
+        $localize`:@@solutions-page.solutions.brandCharter.feature6:Brand story`,
       ],
     },
     {
-      title: 'Technical Architecture',
-      description: 'System architecture diagrams and technical documentation',
+      title: $localize`:@@solutions-page.solutions.architecture.title:Technical Architecture`,
+      description: $localize`:@@solutions-page.solutions.architecture.description:System architecture diagrams and technical documentation`,
       icon: 'pi-sitemap',
       features: [
-        'Architecture diagrams',
-        'Tech stack recommendations',
-        'Database schema',
-        'API documentation',
-        'Security considerations',
-        'Scalability planning',
+        $localize`:@@solutions-page.solutions.architecture.feature1:Architecture diagrams`,
+        $localize`:@@solutions-page.solutions.architecture.feature2:Tech stack recommendations`,
+        $localize`:@@solutions-page.solutions.architecture.feature3:Database schema`,
+        $localize`:@@solutions-page.solutions.architecture.feature4:API documentation`,
+        $localize`:@@solutions-page.solutions.architecture.feature5:Security considerations`,
+        $localize`:@@solutions-page.solutions.architecture.feature6:Scalability planning`,
       ],
     },
     {
-      title: 'Deployment Ready',
-      description: 'Deploy your projects to production with one click',
+      title: $localize`:@@solutions-page.solutions.deployment.title:Deployment Ready`,
+      description: $localize`:@@solutions-page.solutions.deployment.description:Deploy your projects to production with one click`,
       icon: 'pi-cloud-upload',
       features: [
-        'Automated deployment',
-        'Custom domains',
-        'SSL certificates',
-        'CDN integration',
-        'Performance optimization',
-        'Monitoring included',
+        $localize`:@@solutions-page.solutions.deployment.feature1:Automated deployment`,
+        $localize`:@@solutions-page.solutions.deployment.feature2:Custom domains`,
+        $localize`:@@solutions-page.solutions.deployment.feature3:SSL certificates`,
+        $localize`:@@solutions-page.solutions.deployment.feature4:CDN integration`,
+        $localize`:@@solutions-page.solutions.deployment.feature5:Performance optimization`,
+        $localize`:@@solutions-page.solutions.deployment.feature6:Monitoring included`,
       ],
     },
   ];
 
   protected readonly stats = [
-    { value: '6+', label: 'Solutions' },
-    { value: '1000+', label: 'Projects Created' },
-    { value: '99%', label: 'Success Rate' },
-    { value: '24/7', label: 'Available' },
+    { value: '6+', label: $localize`:@@solutions-page.stats.solutions:Solutions` },
+    { value: '1000+', label: $localize`:@@solutions-page.stats.projects:Projects Created` },
+    { value: '99%', label: $localize`:@@solutions-page.stats.successRate:Success Rate` },
+    { value: '24/7', label: $localize`:@@solutions-page.stats.available:Available` },
   ];
 
   ngOnInit(): void {
@@ -115,16 +115,14 @@ export class SolutionsPage implements OnInit {
   }
 
   private setupSeo(): void {
-    const title = 'AI Solutions | IDEM - Complete Project Generation Platform';
-    const description =
-      'IDEM offers complete AI solutions: website generation, logo design, business plans, brand charters, technical architecture, and deployment. Everything you need to launch your project.';
+    const title = $localize`:@@solutions-page.seo.title:AI Solutions | IDEM - Complete Project Generation Platform`;
+    const description = $localize`:@@solutions-page.seo.description:IDEM offers complete AI solutions: website generation, logo design, business plans, brand charters, technical architecture, and deployment. Everything you need to launch your project.`;
 
     const metaTags = [
       { name: 'description', content: description },
       {
         name: 'keywords',
-        content:
-          'AI website generator, logo generator, business plan AI, brand identity, technical architecture, automated deployment, project generation, startup tools, entrepreneur solutions',
+        content: $localize`:@@solutions-page.seo.keywords:AI website generator, logo generator, business plan AI, brand identity, technical architecture, automated deployment, project generation, startup tools, entrepreneur solutions`,
       },
     ];
 

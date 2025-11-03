@@ -22,13 +22,19 @@
         >
       </div>
 
-      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+      <h1
+        class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6"
+        i18n="@@architecture-page.title"
+      >
         Multi-Agent
         <br />
-        <span class="i-underline" i18n="@@architecture-page.architecture">AI Architecture</span>
+        <span class="i-underline">AI Architecture</span>
       </h1>
 
-      <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+      <p
+        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@architecture-page.description"
+      >
         IDEM uses specialized AI agents that work together intelligently. Each agent focuses on its
         expertise while the orchestrator coordinates everything for optimal results.
       </p>
@@ -41,7 +47,9 @@
           class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all hover:transform hover:scale-105"
         >
           <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
-          <div class="text-sm text-white font-semibold">{{ stat.label }}</div>
+          <div class="text-sm text-white font-semibold" i18n="@@architecture-page.stat.label">
+            {{ stat.label }}
+          </div>
         </div>
       }
     </div>
@@ -55,7 +63,10 @@
         >
           How It Works
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p
+          class="text-gray-400 max-w-2xl mx-auto"
+          i18n="@@architecture-page.howItWorks.description"
+        >
           Intelligent agents collaborate to deliver comprehensive project solutions
         </p>
       </div>
@@ -64,6 +75,7 @@
       <div class="mb-12 rounded-2xl overflow-hidden border border-white/10">
         <img
           src="assets/images/architecture-page/ai-network.webp"
+          i18n-alt="@@architecture-page.alt.aiNetwork"
           alt="AI and Technology Network"
           loading="lazy"
           class="w-full h-80 object-cover"
@@ -104,10 +116,12 @@
                 [class]="'pi ' + agent.icon + ' text-3xl mb-3 block'"
                 [style.color]="agent.color"
               ></i>
-              <h4 class="text-sm font-bold text-white mb-1">
+              <h4 class="text-sm font-bold text-white mb-1" i18n="@@architecture-page.agent.name">
                 {{ agent.name.replace(' Agent', '') }}
               </h4>
-              <p class="text-xs text-gray-400">{{ agent.role }}</p>
+              <p class="text-xs text-gray-400" i18n="@@architecture-page.agent.role">
+                {{ agent.role }}
+              </p>
             </div>
           }
         </div>
@@ -123,7 +137,10 @@
         >
           Specialized Agents
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p
+          class="text-gray-400 max-w-2xl mx-auto"
+          i18n="@@architecture-page.specializedAgents.description"
+        >
           Each agent is optimized for specific tasks with deep domain expertise
         </p>
       </div>
@@ -142,18 +159,28 @@
                 <i [class]="'pi ' + agent.icon + ' text-2xl'" [style.color]="agent.color"></i>
               </div>
               <div class="flex-1">
-                <h3 class="text-lg font-bold text-white mb-1">{{ agent.name }}</h3>
-                <div class="text-xs font-semibold mb-2" [style.color]="agent.color">
+                <h3 class="text-lg font-bold text-white mb-1" i18n="@@architecture-page.agent.name">
+                  {{ agent.name }}
+                </h3>
+                <div
+                  class="text-xs font-semibold mb-2"
+                  [style.color]="agent.color"
+                  i18n="@@architecture-page.agent.role"
+                >
                   {{ agent.role }}
                 </div>
               </div>
             </div>
-            <p class="text-sm text-gray-400 mb-4">{{ agent.description }}</p>
+            <p class="text-sm text-gray-400 mb-4" i18n="@@architecture-page.agent.description">
+              {{ agent.description }}
+            </p>
             <div class="space-y-2">
               @for (capability of agent.capabilities; track capability) {
                 <div class="flex items-center gap-2">
                   <i class="pi pi-check text-xs flex-shrink-0" [style.color]="agent.color"></i>
-                  <span class="text-xs text-gray-400">{{ capability }}</span>
+                  <span class="text-xs text-gray-400" i18n="@@architecture-page.agent.capability">{{
+                    capability
+                  }}</span>
                 </div>
               }
             </div>
@@ -171,7 +198,7 @@
         >
           Architecture Benefits
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">
+        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@architecture-page.benefits.description">
           Built for performance, reliability, and scalability
         </p>
       </div>
@@ -186,8 +213,12 @@
             >
               <i [class]="'pi ' + feature.icon + ' text-2xl text-primary'"></i>
             </div>
-            <h3 class="text-lg font-bold text-white mb-2">{{ feature.title }}</h3>
-            <p class="text-sm text-gray-400">{{ feature.description }}</p>
+            <h3 class="text-lg font-bold text-white mb-2" i18n="@@architecture-page.feature.title">
+              {{ feature.title }}
+            </h3>
+            <p class="text-sm text-gray-400" i18n="@@architecture-page.feature.description">
+              {{ feature.description }}
+            </p>
           </div>
         }
       </div>
@@ -204,7 +235,10 @@
             >
               Example Workflow
             </h2>
-            <p class="text-gray-400 leading-relaxed">
+            <p
+              class="text-gray-400 leading-relaxed"
+              i18n="@@architecture-page.workflow.description"
+            >
               See how agents collaborate to build a complete project. From initial planning to final
               delivery, our multi-agent system ensures quality and efficiency at every step.
             </p>
@@ -212,6 +246,7 @@
           <div class="rounded-xl overflow-hidden border border-white/10">
             <img
               src="assets/images/african-market-page/developer.webp"
+              i18n-alt="@@architecture-page.alt.workflow"
               alt="Team collaboration and workflow"
               loading="lazy"
               class="w-full h-64 object-cover"
@@ -230,7 +265,12 @@
               <h3 class="text-white font-semibold mb-1" i18n="@@architecture-page.user_input">
                 User Input
               </h3>
-              <p class="text-sm text-gray-400">You describe your project idea and requirements</p>
+              <p
+                class="text-sm text-gray-400"
+                i18n="@@architecture-page.workflow.step1.description"
+              >
+                You describe your project idea and requirements
+              </p>
             </div>
           </div>
 
@@ -247,7 +287,10 @@
               >
                 Orchestrator Planning
               </h3>
-              <p class="text-sm text-gray-400">
+              <p
+                class="text-sm text-gray-400"
+                i18n="@@architecture-page.workflow.step2.description"
+              >
                 Orchestrator analyzes requirements and creates execution plan
               </p>
             </div>
@@ -266,7 +309,10 @@
               >
                 Parallel Agent Execution
               </h3>
-              <p class="text-sm text-gray-400">
+              <p
+                class="text-sm text-gray-400"
+                i18n="@@architecture-page.workflow.step3.description"
+              >
                 Research, Business, Design, and Technical agents work simultaneously
               </p>
             </div>
@@ -279,8 +325,16 @@
               <span class="text-primary font-bold">4</span>
             </div>
             <div class="flex-1">
-              <h3 class="text-white font-semibold mb-1">Quality Validation</h3>
-              <p class="text-sm text-gray-400">
+              <h3
+                class="text-white font-semibold mb-1"
+                i18n="@@architecture-page.workflow.step4.title"
+              >
+                Quality Validation
+              </h3>
+              <p
+                class="text-sm text-gray-400"
+                i18n="@@architecture-page.workflow.step4.description"
+              >
                 Orchestrator validates outputs and ensures consistency
               </p>
             </div>
@@ -296,7 +350,10 @@
               <h3 class="text-white font-semibold mb-1" i18n="@@architecture-page.delivery">
                 Delivery
               </h3>
-              <p class="text-sm text-gray-400">
+              <p
+                class="text-sm text-gray-400"
+                i18n="@@architecture-page.workflow.step5.description"
+              >
                 Complete project delivered with all components integrated
               </p>
             </div>
@@ -311,6 +368,7 @@
         <div class="rounded-xl overflow-hidden border border-white/10">
           <img
             src="assets/images/architecture-page/ai-ml-tech.webp"
+            i18n-alt="@@architecture-page.alt.aiMl"
             alt="AI and Machine Learning Technology"
             loading="lazy"
             class="w-full h-64 object-cover"
@@ -319,6 +377,7 @@
         <div class="rounded-xl overflow-hidden border border-white/10">
           <img
             src="assets/images/architecture-page/cloud-architecture.webp"
+            i18n-alt="@@architecture-page.alt.cloud"
             alt="Cloud Architecture Diagram"
             loading="lazy"
             class="w-full h-64 object-cover"
@@ -335,17 +394,20 @@
       >
         Experience Multi-Agent AI
       </h2>
-      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+      <p
+        class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto"
+        i18n="@@architecture-page.cta.description"
+      >
         See how specialized agents work together to build your project faster and better
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-rocket mr-2"></i>
-          Start Building
+          <ng-container i18n="@@architecture-page.cta.startBuilding">Start Building</ng-container>
         </a>
         <a routerLink="/documentation" class="outer-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-book mr-2"></i>
-          Learn More
+          <ng-container i18n="@@architecture-page.cta.learnMore">Learn More</ng-container>
         </a>
       </div>
     </div>

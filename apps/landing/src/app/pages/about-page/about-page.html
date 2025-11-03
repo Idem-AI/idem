@@ -24,7 +24,10 @@
           >
         </h1>
 
-        <p class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed px-4">
+        <p
+          class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed px-4"
+          i18n="@@about-page.description"
+        >
           Founded in Cameroon with a mission to democratize tech entrepreneurship across Africa
           through open source AI technology.
         </p>
@@ -37,6 +40,7 @@
         >
           <img
             src="assets/images/about-page/team-collaboration.webp"
+            i18n-alt="@@about-page.alt.teamCollaboration"
             alt="African tech team collaboration"
             loading="lazy"
             class="w-full h-full object-cover min-h-[300px] sm:min-h-[400px] lg:min-h-[500px] group-hover:scale-105 transition-transform duration-500"
@@ -45,10 +49,16 @@
             class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"
           ></div>
           <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-            <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">
+            <h2
+              class="text-2xl sm:text-3xl font-bold text-white mb-2"
+              i18n="@@about-page.buildingTheFuture"
+            >
               Building the Future Together
             </h2>
-            <p class="text-sm sm:text-base text-white/90">
+            <p
+              class="text-sm sm:text-base text-white/90"
+              i18n="@@about-page.empoweringEntrepreneurs"
+            >
               Empowering African entrepreneurs with AI
             </p>
           </div>
@@ -57,6 +67,7 @@
           <div class="rounded-xl overflow-hidden border border-white/10 relative">
             <img
               src="assets/images/about-page/woman-entrepreneur.webp"
+              i18n-alt="@@about-page.alt.womanEntrepreneur"
               alt="African woman entrepreneur"
               loading="lazy"
               class="w-full h-48 sm:h-56 lg:h-60 object-cover"
@@ -82,7 +93,12 @@
             class="glass-card p-6 lg:p-8 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all"
           >
             <div class="text-3xl lg:text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
-            <div class="text-sm lg:text-base text-white font-semibold">{{ stat.label }}</div>
+            <div
+              class="text-sm lg:text-base text-white font-semibold"
+              i18n="@@about-page.stats.label"
+            >
+              {{ stat.label }}
+            </div>
           </div>
         }
       </div>
@@ -98,14 +114,23 @@
             <div class="inline-block px-4 py-2 bg-primary/20 rounded-full text-sm font-bold mb-6">
               <span class="text-primary" i18n="@@about-page.our_mission">Our Mission</span>
             </div>
-            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">
+            <h2
+              class="text-3xl sm:text-4xl font-bold text-white mb-6"
+              i18n="@@about-page.mission.title"
+            >
               Democratizing Tech Entrepreneurship in Africa
             </h2>
-            <p class="text-base sm:text-lg text-gray-400 mb-6 leading-relaxed">
+            <p
+              class="text-base sm:text-lg text-gray-400 mb-6 leading-relaxed"
+              i18n="@@about-page.mission.description1"
+            >
               We believe every African entrepreneur deserves access to world-class AI tools without
               the prohibitive costs and complexity of traditional solutions.
             </p>
-            <p class="text-base sm:text-lg text-gray-400 mb-8 leading-relaxed">
+            <p
+              class="text-base sm:text-lg text-gray-400 mb-8 leading-relaxed"
+              i18n="@@about-page.mission.description2"
+            >
               IDEM combines cutting-edge multi-agent AI architecture with open source principles to
               create a platform that's transparent, affordable, and built specifically for African
               needs.
@@ -117,7 +142,7 @@
                   <h3 class="text-white font-semibold mb-1" i18n="@@about-page.accessible_pricing">
                     Accessible Pricing
                   </h3>
-                  <p class="text-sm text-gray-400">
+                  <p class="text-sm text-gray-400" i18n="@@about-page.mission.pricing.description">
                     60-80% cheaper than international alternatives
                   </p>
                 </div>
@@ -150,6 +175,7 @@
           <div class="order-1 lg:order-2 relative">
             <img
               src="assets/images/about-page/business-team.webp"
+              i18n-alt="@@about-page.alt.businessTeam"
               alt="African business team celebrating"
               loading="lazy"
               class="w-full h-full object-cover min-h-[300px] lg:min-h-full"
@@ -168,7 +194,7 @@
         <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4" i18n="@@about-page.our_values">
           Our Values
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto px-4">
+        <p class="text-gray-400 max-w-2xl mx-auto px-4" i18n="@@about-page.values.description">
           The principles that guide everything we do at IDEM
         </p>
       </div>
@@ -181,8 +207,12 @@
             <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
               <i [class]="'pi ' + value.icon + ' text-2xl text-primary'"></i>
             </div>
-            <h3 class="text-xl font-bold text-white mb-3">{{ value.title }}</h3>
-            <p class="text-sm text-gray-400 leading-relaxed">{{ value.description }}</p>
+            <h3 class="text-xl font-bold text-white mb-3" i18n="@@about-page.value.title">
+              {{ value.title }}
+            </h3>
+            <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
+              {{ value.description }}
+            </p>
           </div>
         }
       </div>
@@ -194,7 +224,7 @@
         <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4" i18n="@@about-page.our_journey">
           Our Journey
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto px-4">
+        <p class="text-gray-400 max-w-2xl mx-auto px-4" i18n="@@about-page.journey.description">
           From inception to becoming Africa's leading sovereign AI platform
         </p>
       </div>
@@ -222,10 +252,16 @@
                 <div
                   class="flex-1 glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all"
                 >
-                  <h3 class="text-lg sm:text-xl font-bold text-white mb-2">
+                  <h3
+                    class="text-lg sm:text-xl font-bold text-white mb-2"
+                    i18n="@@about-page.milestone.title"
+                  >
                     {{ milestone.title }}
                   </h3>
-                  <p class="text-sm sm:text-base text-gray-400 leading-relaxed">
+                  <p
+                    class="text-sm sm:text-base text-gray-400 leading-relaxed"
+                    i18n="@@about-page.milestone.description"
+                  >
                     {{ milestone.description }}
                   </p>
                 </div>
@@ -241,6 +277,7 @@
       <div class="relative rounded-2xl lg:rounded-3xl overflow-hidden border border-white/10">
         <img
           src="assets/images/about-page/entrepreneur-vision.webp"
+          i18n-alt="@@about-page.alt.entrepreneurVision"
           alt="African entrepreneur vision"
           loading="lazy"
           class="w-full h-full object-cover min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]"
@@ -251,10 +288,16 @@
             <div class="inline-block px-4 py-2 bg-primary/90 rounded-full text-sm font-bold mb-6">
               <span class="text-white" i18n="@@about-page.our_vision">Our Vision</span>
             </div>
-            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
+            <h2
+              class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6"
+              i18n="@@about-page.vision.title"
+            >
               Empowering 1 Million African Entrepreneurs by 2035
             </h2>
-            <p class="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8">
+            <p
+              class="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8"
+              i18n="@@about-page.vision.description"
+            >
               We envision an Africa where every entrepreneur has the tools, knowledge, and support
               to transform their ideas into successful businesses using AI technology.
             </p>
@@ -263,7 +306,7 @@
               class="inner-button px-8 py-3 rounded-lg font-semibold inline-block"
             >
               <i class="pi pi-rocket mr-2"></i>
-              Join Our Mission
+              <ng-container i18n="@@about-page.joinMission">Join Our Mission</ng-container>
             </a>
           </div>
         </div>
@@ -278,13 +321,16 @@
       >
         Want to Learn More?
       </h2>
-      <p class="text-base sm:text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+      <p
+        class="text-base sm:text-lg text-gray-400 mb-8 max-w-2xl mx-auto"
+        i18n="@@about-page.contact.description"
+      >
         Get in touch with our team to discuss partnerships, collaborations, or just to say hello.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a routerLink="/contact" class="inner-button px-8 py-3 rounded-lg font-semibold">
           <i class="pi pi-envelope mr-2"></i>
-          Contact Us
+          <ng-container i18n="@@about-page.contact.button">Contact Us</ng-container>
         </a>
         <a
           href="https://github.com/Idem-AI"
@@ -292,7 +338,7 @@
           class="outer-button px-8 py-3 rounded-lg font-semibold"
         >
           <i class="pi pi-github mr-2"></i>
-          View on GitHub
+          <ng-container i18n="@@about-page.github.button">View on GitHub</ng-container>
         </a>
       </div>
     </div>
