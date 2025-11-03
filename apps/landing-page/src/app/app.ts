@@ -5,25 +5,24 @@ import { SplashScreenComponent } from './components/splash-screen/splash-screen'
 import { filter, map, startWith, distinctUntilChanged } from 'rxjs/operators';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { PublicLayoutComponent } from './layouts/public-layout/public-layout';
 
-import { EmptyLayout } from './layouts/empty-layout/empty-layout';
 import { NotificationContainerComponent } from './shared/components/notification-container/notification-container';
 import { QuotaWarningComponent } from './shared/components/quota-warning/quota-warning';
 import { AnalyticsService } from './shared/services/analytics.service';
+import { Header } from './components/header/header';
+import { Footer } from './components/footer/footer';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
     RouterOutlet,
-    PublicLayoutComponent,
-
     CommonModule,
-    EmptyLayout,
     SplashScreenComponent,
     NotificationContainerComponent,
     QuotaWarningComponent,
+    Header,
+    Footer,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',
@@ -40,7 +39,7 @@ export class App implements OnInit, OnDestroy {
   protected readonly isInitialLoading = signal(true);
 
   /** Layout courant selon la route active */
-  protected readonly currentLayout$: Observable<'public' | 'dashboard' | 'global' | 'empty'> =
+  protected readonly currentLayout$: Observable<'dashboard' | 'global' | 'empty'> =
     this.router.events.pipe(
       filter((event) => event instanceof NavigationEnd),
       startWith(null),
@@ -49,10 +48,7 @@ export class App implements OnInit, OnDestroy {
         while (route?.firstChild) {
           route = route.firstChild;
         }
-        return (
-          (route?.snapshot.data?.['layout'] as 'public' | 'dashboard' | 'global' | 'empty') ||
-          'public'
-        );
+        return (route?.snapshot.data?.['layout'] as 'dashboard' | 'global' | 'empty') || 'public';
       }),
       distinctUntilChanged()
     );
