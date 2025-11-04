@@ -1,20 +1,20 @@
 {
   "locale": "fr",
   "translations": {
-    "video-trailer.watch_demo": "Watch Demo",
+    "video-trailer.watch_demo": "Voir la Démo",
     "video-trailer.action": "Action",
-    "video-trailer.description": " Watch how IDEM transforms a simple idea into a complete brand and application in just minutes. Experience the power of AI-driven development. ",
-    "video-trailer.noVideoSupport": "Your browser does not support the video tag.",
-    "video-trailer.alt.poster": "Video poster",
-    "video-trailer.loading": "Loading video...",
-    "video-trailer.minutes_demo": " 3 Minutes Demo ",
-    "video-trailer.demo.description": " Complete walkthrough from idea to deployment ",
-    "video-trailer.realtime_process": " Real-time Process ",
-    "video-trailer.watch_generate_your": " Watch AI generate your brand and application live ",
-    "video-trailer.production_ready": " Production Ready ",
-    "video-trailer.see_the_final": " See the final result deployed and ready to use ",
-    "video-trailer.seo.name": "Idem Platform Demo",
-    "video-trailer.seo.description": "Interactive demo showcasing Idem's AI-powered brand creation and deployment capabilities",
+    "video-trailer.description": "Regardez comment IDEM transforme une simple idée en une marque et une application complètes en quelques minutes seulement. Découvrez la puissance du développement piloté par l'IA.",
+    "video-trailer.noVideoSupport": "Votre navigateur ne prend pas en charge la balise vidéo.",
+    "video-trailer.alt.poster": "Affiche de la vidéo",
+    "video-trailer.loading": "Chargement de la vidéo...",
+    "video-trailer.minutes_demo": "Démo de 3 Minutes",
+    "video-trailer.demo.description": "Présentation complète de l'idée au déploiement",
+    "video-trailer.realtime_process": "Processus en Temps Réel",
+    "video-trailer.watch_generate_your": "Regardez l'IA générer votre marque et votre application en direct",
+    "video-trailer.production_ready": "Prêt pour la Production",
+    "video-trailer.see_the_final": "Voyez le résultat final déployé et prêt à l'emploi",
+    "video-trailer.seo.name": "Démo de la Plateforme Idem",
+    "video-trailer.seo.description": "Démo interactive présentant les capacités de création de marque et de déploiement alimentées par l'IA d'Idem",
     "video-trailer.seo.publisher": "Idem"
   }
 }
