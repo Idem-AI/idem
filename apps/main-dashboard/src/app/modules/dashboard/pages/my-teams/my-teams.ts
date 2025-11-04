@@ -11,11 +11,12 @@ import { Router, RouterModule } from '@angular/router';
 import { TeamModel } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-my-teams',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader],
+  imports: [CommonModule, RouterModule, Loader, TranslateModule],
   templateUrl: './my-teams.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -23,6 +24,7 @@ export class MyTeams implements OnInit {
   // Services
   private readonly teamService = inject(TeamService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   // Signals
   protected readonly teams = signal<TeamModel[]>([]);
@@ -50,7 +52,6 @@ export class MyTeams implements OnInit {
    */
   private loadTeams(): void {
     this.isLoading.set(true);
-    this.errorMessage.set(null);
 
     this.teamService.getUserTeams().subscribe({
       next: (teams) => {
@@ -59,7 +60,7 @@ export class MyTeams implements OnInit {
       },
       error: (error) => {
         console.error('Error loading teams:', error);
-        this.errorMessage.set('Failed to load teams');
+        this.error.set(this.translate.instant('dashboard.myTeams.errors.failedToLoad'));
         this.isLoading.set(false);
       },
     });

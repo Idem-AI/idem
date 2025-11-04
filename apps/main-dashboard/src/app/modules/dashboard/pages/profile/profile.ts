@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { QuotaService } from '../../../../shared/services/quota.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import {
@@ -21,7 +22,7 @@ import {
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profile.html',
 })
@@ -29,6 +30,7 @@ export class ProfileComponent implements OnInit {
   private readonly quotaService = inject(QuotaService);
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   // Signals for reactive state management
   protected readonly quotaInfo = signal<QuotaInfoResponse | null>(null);
@@ -52,9 +54,9 @@ export class ProfileComponent implements OnInit {
         if (firebaseUser) {
           // Map Firebase user to our user info format
           const userInfo = {
-            name: firebaseUser.displayName || 'Not specified',
-            email: firebaseUser.email || 'Not specified',
-            accountType: 'free', // Default to free, could be enhanced with backend call
+            name: firebaseUser.displayName || this.translate.instant('common.notSpecified'),
+            email: firebaseUser.email || this.translate.instant('common.notSpecified'),
+            accountType: this.translate.instant('dashboard.profile.accountTypes.free'), // Default to free, could be enhanced with backend call
             createdAt: firebaseUser.metadata.creationTime
               ? new Date(firebaseUser.metadata.creationTime)
               : new Date(),

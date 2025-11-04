@@ -19,11 +19,20 @@ import { PdfViewerModule } from 'ng2-pdf-viewer';
 import { Dialog } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-show-branding',
   standalone: true,
-  imports: [CommonModule, BrandingDisplayComponent, Loader, PdfViewerModule, Dialog, ButtonModule],
+  imports: [
+    CommonModule,
+    BrandingDisplayComponent,
+    Loader,
+    PdfViewerModule,
+    Dialog,
+    ButtonModule,
+    TranslateModule,
+  ],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +42,7 @@ export class ShowBrandingComponent implements OnInit {
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   // Loading and error states
   protected readonly isLoading = signal<boolean>(true);
@@ -98,7 +108,7 @@ export class ShowBrandingComponent implements OnInit {
       error: (err: any) => {
         console.error('Error loading project data:', err);
         this.hasError.set(true);
-        this.errorMessage.set('Error loading project data.');
+        this.errorMessage.set(this.translate.instant('dashboard.showBranding.errors.loadProject'));
         this.isRetryable.set(true);
         this.isLoading.set(false);
       },
@@ -210,7 +220,9 @@ export class ShowBrandingComponent implements OnInit {
         if (err.message === 'DOWNLOAD_ERROR' || err.isRetryable === true) {
           this.hasError.set(true);
           this.isRetryable.set(true);
-          this.errorMessage.set('An error occurred while loading branding data.');
+          this.errorMessage.set(
+            this.translate.instant('dashboard.showBranding.errors.loadBranding'),
+          );
           console.log('Retryable error occurred, showing error message with retry button');
         } else {
           console.log('No branding PDF found, keeping existing data if any');
@@ -333,7 +345,7 @@ export class ShowBrandingComponent implements OnInit {
           this.visible = false;
         } else {
           console.error('Empty ZIP file received');
-          alert('Empty ZIP file received. Please try again.');
+          alert(this.translate.instant('dashboard.showBranding.errors.emptyZip'));
         }
       },
       error: (err: any) => {
@@ -344,11 +356,11 @@ export class ShowBrandingComponent implements OnInit {
 
         // Handle specific error cases
         if (err.message === 'LOGOS_NOT_FOUND') {
-          alert('No logo variations found for this project.');
+          alert(this.translate.instant('dashboard.showBranding.errors.noLogoVariations'));
         } else if (err.message === 'User not authenticated') {
-          alert('You must be logged in to download logos.');
+          alert(this.translate.instant('dashboard.showBranding.errors.authRequired'));
         } else {
-          alert('Error downloading logos ZIP file. Please try again.');
+          alert(this.translate.instant('dashboard.showBranding.errors.downloadZip'));
         }
       },
     });

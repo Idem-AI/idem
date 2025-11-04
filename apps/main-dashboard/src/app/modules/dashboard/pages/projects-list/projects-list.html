@@ -14,7 +14,7 @@
         <section class="space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary-500">
-              Recent Projects
+              {{ 'dashboard.projectsList.sections.recent' | translate }}
             </h2>
           </div>
 
@@ -29,11 +29,13 @@
               >
                 <i class="pi pi-plus text-secondary-500 text-2xl"></i>
               </div>
-              <div class="font-bold text-sm sm:text-base">Create a new project</div>
+              <div class="font-bold text-sm sm:text-base">
+                {{ 'dashboard.projectsList.cards.create.title' | translate }}
+              </div>
               <div
                 class="text-xs sm:text-sm text-gray-400 group-hover:text-white transition-colors"
               >
-                Start a new project
+                {{ 'dashboard.projectsList.cards.create.subtitle' | translate }}
               </div>
             </button>
 
@@ -47,7 +49,9 @@
         <!-- Tous les projets -->
         <section class="space-y-4 sm:space-y-6">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 class="text-xl sm:text-2xl font-semibold text-primary-500">All projects</h2>
+            <h2 class="text-xl sm:text-2xl font-semibold text-primary-500">
+              {{ 'dashboard.projectsList.sections.all' | translate }}
+            </h2>
             <div class="flex gap-2"></div>
           </div>
 
@@ -59,12 +63,14 @@
                 class="col-span-full text-center py-12 sm:py-16 border-2 border-dashed border-gray-800 rounded-xl"
               >
                 <i class="lucide lucide-folder-x text-3xl sm:text-4xl text-gray-600 mb-3"></i>
-                <div class="text-gray-400 text-sm sm:text-base mb-2">No project available</div>
+                <div class="text-gray-400 text-sm sm:text-base mb-2">
+                  {{ 'dashboard.projectsList.empty.noProjects' | translate }}
+                </div>
                 <button
                   (click)="openCreateProject()"
                   class="text-primary-500 text-sm sm:text-base inline-block transition-colors outer-button"
                 >
-                  Create a project
+                  {{ 'dashboard.projectsList.buttons.create' | translate }}
                 </button>
               </div>
             }
