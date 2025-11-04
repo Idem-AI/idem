@@ -1,0 +1,337 @@
+<div class="min-h-screen">
+  <!-- Hero Header with Yellow Background -->
+  <div class="bg-accent py-16 px-4 text-white mt-[70px]">
+    <div class="max-w-7xl mx-auto text-center">
+      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4" [attr.i18n]="titleI18n">
+        {{ title }}
+      </h1>
+      @if (subtitle) {
+        <p class="text-lg text-gray-800 max-w-3xl mx-auto" [attr.i18n]="subtitleI18n">
+          {{ subtitle }}
+        </p>
+      }
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="max-w-7xl mx-auto px-4 py-12">
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar Navigation -->
+      <aside class="hidden lg:block w-64 shrink-0">
+        <div class="sticky top-24 space-y-2">
+          <div class="bg-gray-800/50 rounded-lg p-4 backdrop-blur-sm border border-gray-700/50">
+            @if (showVersionSelector && versions.length > 0) {
+              <div class="mb-6">
+                <label
+                  class="block text-sm font-medium text-gray-400 mb-2"
+                  i18n="@@legal.see_all_versions"
+                >
+                  See all versions
+                </label>
+                <select
+                  class="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  [value]="currentVersion"
+                >
+                  @for (version of versions; track version) {
+                    <option [value]="version">{{ version }}</option>
+                  }
+                </select>
+              </div>
+            }
+
+            <nav class="space-y-1">
+              @for (navItem of navigation; track navItem.id) {
+                <div>
+                  <button
+                    (click)="scrollToSection(navItem.id)"
+                    [class.bg-primary]="activeSection === navItem.id"
+                    [class.text-white]="activeSection === navItem.id"
+                    class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white transition-colors"
+                    [attr.i18n]="navItem.titleI18n"
+                  >
+                    {{ navItem.title }}
+                  </button>
+                  @if (navItem.children && navItem.children.length > 0) {
+                    <div class="ml-4 mt-1 space-y-1">
+                      @for (child of navItem.children; track child.id) {
+                        <button
+                          (click)="scrollToSection(child.id)"
+                          [class.text-primary]="activeSection === child.id"
+                          class="w-full text-left px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-gray-700/30 transition-colors"
+                          [attr.i18n]="child.titleI18n"
+                        >
+                          {{ child.title }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </nav>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Mobile Navigation Toggle -->
+      <div class="lg:hidden fixed bottom-6 right-6 z-50">
+        <button
+          (click)="toggleMobileNav()"
+          class="bg-primary hover:bg-primary/90 text-white rounded-full p-4 shadow-lg transition-all"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mobile Navigation Menu -->
+      @if (showMobileNav) {
+        <div
+          class="lg:hidden fixed inset-0 bg-black/80 z-40 backdrop-blur-sm"
+          (click)="toggleMobileNav()"
+        >
+          <div
+            class="absolute right-0 top-0 bottom-0 w-80 bg-gray-900 shadow-2xl overflow-y-auto"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="p-6">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-white" i18n="@@legal.navigation">
+                  Navigation
+                </h3>
+                <button (click)="toggleMobileNav()" class="text-gray-400 hover:text-white">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <nav class="space-y-2">
+                @for (navItem of navigation; track navItem.id) {
+                  <button
+                    (click)="scrollToSection(navItem.id)"
+                    class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 transition-colors"
+                    [attr.i18n]="navItem.titleI18n"
+                  >
+                    {{ navItem.title }}
+                  </button>
+                }
+              </nav>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Main Content -->
+      <main class="flex-1 min-w-0">
+        <div class="mb-8">
+          <div
+            class="inline-flex items-center gap-2 bg-gray-800/50 rounded-lg px-4 py-2 border border-gray-700/50"
+          >
+            <svg
+              class="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            <span class="text-sm text-gray-300">
+              <span i18n="@@legal.effective_date">Effective Date</span>:
+              <span class="font-medium text-white" [attr.i18n]="effectiveDateI18n">{{
+                effectiveDate
+              }}</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="bg-gray-800/30 rounded-xl border border-gray-700/50 backdrop-blur-sm">
+          <div class="p-8 md:p-12 space-y-12">
+            @for (section of sections; track section.id) {
+              <section [id]="section.id" class="scroll-mt-24">
+                <h2
+                  class="text-2xl md:text-3xl font-bold text-white mb-6 pb-4 border-b border-gray-700"
+                  [attr.i18n]="section.titleI18n"
+                >
+                  {{ section.title }}
+                </h2>
+
+                @if (section.content) {
+                  <p
+                    class="text-gray-300 leading-relaxed mb-6 text-base md:text-lg"
+                    [attr.i18n]="section.contentI18n"
+                  >
+                    {{ section.content }}
+                  </p>
+                }
+
+                @if (section.warning) {
+                  <div
+                    class="rounded-lg p-6 mb-6 border"
+                    [ngClass]="getWarningClasses(section.warning.type)"
+                  >
+                    <div class="flex items-start gap-3">
+                      @if (section.warning.icon) {
+                        <span class="text-2xl flex-shrink-0">{{ section.warning.icon }}</span>
+                      }
+                      <div class="flex-1">
+                        <h3
+                          class="text-lg font-semibold mb-2"
+                          [attr.i18n]="section.warning.titleI18n"
+                        >
+                          {{ section.warning.title }}
+                        </h3>
+                        <p
+                          class="leading-relaxed"
+                          [ngClass]="getWarningContentClasses(section.warning.type)"
+                          [attr.i18n]="section.warning.contentI18n"
+                        >
+                          {{ section.warning.content }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                @if (section.list && section.list.length > 0) {
+                  <ul class="space-y-3 mb-6">
+                    @for (item of section.list; track $index) {
+                      <li class="flex items-start gap-3 text-gray-300">
+                        <svg
+                          class="w-5 h-5 text-primary flex-shrink-0 mt-0.5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd"
+                          />
+                        </svg>
+                        <span class="flex-1">
+                          @if (item.strong) {
+                            <strong class="text-white font-semibold" [attr.i18n]="item.strongI18n"
+                              >{{ item.strong }}:</strong
+                            >
+                          }
+                          <span [attr.i18n]="item.textI18n">{{ item.text }}</span>
+                        </span>
+                      </li>
+                    }
+                  </ul>
+                }
+
+                @if (section.subsections && section.subsections.length > 0) {
+                  <div class="space-y-8 mt-8">
+                    @for (subsection of section.subsections; track $index) {
+                      <div class="pl-6 border-l-2 border-gray-700">
+                        <h3
+                          class="text-xl font-semibold text-gray-200 mb-4"
+                          [attr.i18n]="subsection.titleI18n"
+                        >
+                          {{ subsection.title }}
+                        </h3>
+                        <p
+                          class="text-gray-300 leading-relaxed mb-4"
+                          [attr.i18n]="subsection.contentI18n"
+                        >
+                          {{ subsection.content }}
+                        </p>
+                        @if (subsection.list && subsection.list.length > 0) {
+                          <ul class="space-y-2">
+                            @for (item of subsection.list; track $index) {
+                              <li class="flex items-start gap-3 text-gray-300">
+                                <svg
+                                  class="w-4 h-4 text-primary flex-shrink-0 mt-1"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd"
+                                  />
+                                </svg>
+                                <span class="flex-1">
+                                  @if (item.strong) {
+                                    <strong
+                                      class="text-white font-semibold"
+                                      [attr.i18n]="item.strongI18n"
+                                      >{{ item.strong }}:</strong
+                                    >
+                                  }
+                                  <span [attr.i18n]="item.textI18n">{{ item.text }}</span>
+                                </span>
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </section>
+            }
+          </div>
+        </div>
+
+        <!-- Contact Section -->
+        <div
+          class="mt-12 bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-xl p-8 border border-primary/20"
+        >
+          <div class="flex items-start gap-4">
+            <svg
+              class="w-8 h-8 text-primary flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+            <div>
+              <h3 class="text-xl font-semibold text-white mb-2" i18n="@@legal.questions">
+                Questions about this document?
+              </h3>
+              <p class="text-gray-300 mb-4" i18n="@@legal.contact_message">
+                If you have any questions or concerns, please contact our legal team.
+              </p>
+              <a
+                href="mailto:legal@idem.africa"
+                class="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors"
+              >
+                legal&#64;idem.africa
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                  />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
