@@ -1,20 +1,20 @@
 {
   "locale": "fr",
   "translations": {
-    "video-trailer.watch_demo": "",
-    "video-trailer.action": "",
-    "video-trailer.description": "",
-    "video-trailer.noVideoSupport": "",
-    "video-trailer.alt.poster": "",
-    "video-trailer.loading": "",
-    "video-trailer.minutes_demo": "",
-    "video-trailer.demo.description": "",
-    "video-trailer.realtime_process": "",
-    "video-trailer.watch_generate_your": "",
-    "video-trailer.production_ready": "",
-    "video-trailer.see_the_final": "",
-    "video-trailer.seo.name": "",
-    "video-trailer.seo.description": "",
-    "video-trailer.seo.publisher": ""
+    "video-trailer.watch_demo": "Watch Demo",
+    "video-trailer.action": "Action",
+    "video-trailer.description": " Watch how IDEM transforms a simple idea into a complete brand and application in just minutes. Experience the power of AI-driven development. ",
+    "video-trailer.noVideoSupport": "Your browser does not support the video tag.",
+    "video-trailer.alt.poster": "Video poster",
+    "video-trailer.loading": "Loading video...",
+    "video-trailer.minutes_demo": " 3 Minutes Demo ",
+    "video-trailer.demo.description": " Complete walkthrough from idea to deployment ",
+    "video-trailer.realtime_process": " Real-time Process ",
+    "video-trailer.watch_generate_your": " Watch AI generate your brand and application live ",
+    "video-trailer.production_ready": " Production Ready ",
+    "video-trailer.see_the_final": " See the final result deployed and ready to use ",
+    "video-trailer.seo.name": "Idem Platform Demo",
+    "video-trailer.seo.description": "Interactive demo showcasing Idem's AI-powered brand creation and deployment capabilities",
+    "video-trailer.seo.publisher": "Idem"
   }
 }

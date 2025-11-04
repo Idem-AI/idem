@@ -1,10 +1,10 @@
 {
   "locale": "fr",
   "translations": {
-    "legal.see_all_versions": "",
-    "legal.navigation": "",
-    "legal.effective_date": "",
-    "legal.questions": "",
-    "legal.contact_message": ""
+    "legal.see_all_versions": " See all versions ",
+    "legal.navigation": " Navigation ",
+    "legal.effective_date": "Effective Date",
+    "legal.questions": " Questions about this document? ",
+    "legal.contact_message": " If you have any questions or concerns, please contact our legal team. "
   }
 }
