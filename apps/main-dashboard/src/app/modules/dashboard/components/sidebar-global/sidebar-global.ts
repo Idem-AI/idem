@@ -17,6 +17,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BetaBadgeComponent } from '../../../../shared/components/beta-badge/beta-badge';
 import { QuotaDisplayComponent } from '../../../../shared/components/quota-display/quota-display';
 import { QuotaService } from '../../../../shared/services/quota.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   QuotaInfoResponse,
   QuotaDisplayData,
@@ -29,7 +30,7 @@ import {
   templateUrl: './sidebar-global.html',
   styleUrls: ['./sidebar-global.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, BetaBadgeComponent, QuotaDisplayComponent],
+  imports: [CommonModule, RouterModule, BetaBadgeComponent, QuotaDisplayComponent, TranslateModule],
   animations: [
     trigger('slideInOut', [
       transition(':enter', [
@@ -90,23 +91,24 @@ export class SidebarGlobal {
   private readonly router = inject(Router);
   private readonly quotaService = inject(QuotaService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   // Navigation items for global dashboard
   protected readonly navigationItems = signal([
     {
-      label: 'Dashboard',
+      labelKey: 'dashboard.sidebarGlobal.dashboard',
       icon: 'pi pi-th-large',
       route: '/console',
       isActive: false,
     },
     {
-      label: 'Projects',
+      labelKey: 'dashboard.sidebarGlobal.projects',
       icon: 'pi pi-folder',
       route: '/console/projects',
       isActive: false,
     },
     {
-      label: 'Teams',
+      labelKey: 'dashboard.sidebarGlobal.teams',
       icon: 'pi pi-users',
       route: '/console/teams',
       isActive: false,

@@ -13,10 +13,10 @@
       <h1
         class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
       >
-        Generating Your Logos...
+        {{ 'dashboard.logoSelection.generating.title' | translate }}
       </h1>
       <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
-        Creating personalized logos based on your brand preferences.
+        {{ 'dashboard.logoSelection.generating.subtitle' | translate }}
       </p>
     </div>
 
@@ -49,10 +49,11 @@
       <div
         class="bg-gray-900/30 backdrop-blur-sm border border-gray-700/30 rounded-xl p-6 max-w-2xl mx-auto"
       >
-        <h3 class="text-lg font-semibold text-white mb-3">💡 While you wait...</h3>
+        <h3 class="text-lg font-semibold text-white mb-3">
+          💡 {{ 'dashboard.logoSelection.generating.whileYouWait' | translate }}
+        </h3>
         <p class="text-gray-300 text-sm leading-relaxed">
-          Our AI is analyzing your color palette and typography to create logos that perfectly match
-          your brand identity.
+          {{ 'dashboard.logoSelection.generating.tip' | translate }}
         </p>
       </div>
     </div>
@@ -75,7 +76,9 @@
               ></path>
             </svg>
           </div>
-          <h3 class="text-xl font-semibold text-white mb-2">Generation Failed</h3>
+          <h3 class="text-xl font-semibold text-white mb-2">
+            {{ 'dashboard.logoSelection.errors.title' | translate }}
+          </h3>
           <p class="text-gray-400 mb-6">{{ error() }}</p>
         </div>
 
@@ -92,7 +95,7 @@
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               ></path>
             </svg>
-            Retry
+            {{ 'common.retry' | translate }}
           </button>
         </div>
       </div>
@@ -104,10 +107,12 @@
     <div class="w-full max-w-7xl mx-auto mt-[50px] sm:mt-0">
       <!-- Header -->
       <div class="text-center mb-4">
-        <h1 class="text-2xl sm:text-4xl font-bold text-white mb-1">Choose Your Perfect Logo</h1>
+        <h1 class="text-2xl sm:text-4xl font-bold text-white mb-1">
+          {{ 'dashboard.logoSelection.success.title' | translate }}
+        </h1>
 
         <p class="text-xs md:text-xl text-gray-300 mb-4">
-          Select the logo that best represents your brand identity
+          {{ 'dashboard.logoSelection.success.subtitle' | translate }}
         </p>
 
         <!-- Action Buttons -->
@@ -125,7 +130,7 @@
                   d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
                 />
               </svg>
-              Edit with AI Assistant
+              {{ 'dashboard.logoSelection.buttons.editWithAI' | translate }}
             </button>
           }
           @if (displayedLogos().length > 0 && !isGenerating()) {
@@ -141,7 +146,7 @@
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              Regenerate Logos
+              {{ 'dashboard.logoSelection.buttons.regenerate' | translate }}
             </button>
           }
         </div>
@@ -190,7 +195,7 @@
 
               <!-- Background Gradient -->
               <div
-                class="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
+                class="absolute inset-0 bg-linear-to-br from-primary/10 to-secondary/10 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
                 [class.opacity-20]="selectedLogoComputed() === logo.id"
               ></div>
 
@@ -220,7 +225,9 @@
 
                   <!-- Color Palette -->
                   <div class="flex items-center justify-center space-x-2 mb-3">
-                    <span class="text-xs text-gray-500 mr-2">Colors:</span>
+                    <span class="text-xs text-gray-500 mr-2"
+                      >{{ 'dashboard.logoSelection.cards.colors' | translate }}:</span
+                    >
                     @for (color of logo.colors; track color) {
                       <div
                         class="w-4 h-4 rounded-full border-2 border-gray-600"
@@ -255,7 +262,7 @@
         />
       }
 
-      <!-- Retry Button (if generation failed) -->
+      <!-- {{ 'common.retry' | translate }} Button (if generation failed) -->
       @if (currentStep().includes('failed')) {
         <div class="text-center mt-12">
           <button
@@ -270,7 +277,7 @@
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               ></path>
             </svg>
-            Retry Generation
+            {{ 'common.retry' | translate }}
           </button>
         </div>
       }

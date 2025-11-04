@@ -18,6 +18,7 @@ import { LogoEditorChat } from '../logo-editor-chat/logo-editor-chat';
 
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectModel } from '../../../../models/project.model';
 
 @Component({
@@ -30,6 +31,7 @@ import { ProjectModel } from '../../../../models/project.model';
     CarouselComponent,
     LogoPreferences,
     LogoEditorChat,
+    TranslateModule,
   ],
   templateUrl: './logo-selection.html',
   styleUrl: './logo-selection.css',
@@ -38,6 +40,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   // Services
   private readonly brandingService = inject(BrandingService);
   private readonly destroy$ = new Subject<void>();
+  private readonly translate = inject(TranslateService);
 
   // Inputs
   readonly projectId = input<string>();
@@ -199,7 +202,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
     this.hasStartedGeneration.set(true);
     this.isGenerating.set(true);
-    this.currentStep.set('Initializing logo generation...');
+    this.currentStep.set(this.translate.instant('dashboard.logoSelection.progress.initializing'));
     this.generationProgress.set(0);
 
     this.simulateProgress();
@@ -209,7 +212,9 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     const selectedTypography = project?.analysisResultModel?.branding?.typography;
 
     if (!selectedColor || !selectedTypography) {
-      this.error.set('Color and typography must be selected before generating logos.');
+      this.error.set(
+        this.translate.instant('dashboard.logoSelection.errors.colorAndTypographyRequired'),
+      );
       this.isGenerating.set(false);
       return;
     }
@@ -240,11 +245,13 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
           this.isGenerating.set(false);
           this.generationProgress.set(100);
-          this.currentStep.set('Generation completed!');
+          this.currentStep.set(
+            this.translate.instant('dashboard.logoSelection.progress.completed'),
+          );
         },
         error: (error) => {
           console.error('Error in logo generation:', error);
-          this.error.set('Failed to generate logos. Please try again.');
+          this.error.set(this.translate.instant('dashboard.logoSelection.errors.generationFailed'));
           this.isGenerating.set(false);
         },
       });
@@ -254,12 +261,30 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
   private simulateProgress(): void {
     const steps = [
-      { progress: 10, step: 'Analyzing color palette and typography...' },
-      { progress: 25, step: 'Generating design concepts...' },
-      { progress: 45, step: 'Creating logo variations...' },
-      { progress: 65, step: 'Refining designs...' },
-      { progress: 80, step: 'Optimizing SVG graphics...' },
-      { progress: 95, step: 'Finalizing logos...' },
+      {
+        progress: 10,
+        step: this.translate.instant('dashboard.logoSelection.progress.analyzing'),
+      },
+      {
+        progress: 25,
+        step: this.translate.instant('dashboard.logoSelection.progress.generatingConcepts'),
+      },
+      {
+        progress: 45,
+        step: this.translate.instant('dashboard.logoSelection.progress.creatingVariations'),
+      },
+      {
+        progress: 65,
+        step: this.translate.instant('dashboard.logoSelection.progress.refining'),
+      },
+      {
+        progress: 80,
+        step: this.translate.instant('dashboard.logoSelection.progress.optimizing'),
+      },
+      {
+        progress: 95,
+        step: this.translate.instant('dashboard.logoSelection.progress.finalizing'),
+      },
     ];
 
     let currentStepIndex = 0;
@@ -359,7 +384,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
     if (!preferences) {
       console.error('❌ No preferences found. Showing error message.');
-      this.error.set('Logo preferences not found. Please restart the generation process.');
+      this.error.set(this.translate.instant('dashboard.logoSelection.errors.preferencesNotFound'));
       return;
     }
 

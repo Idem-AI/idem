@@ -5,15 +5,17 @@
       <!-- Header -->
       <div class="space-y-4">
         <div
-          class="w-20 h-20 mx-auto bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mb-6 glow-primary"
+          class="w-20 h-20 mx-auto bg-linear-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mb-6 glow-primary"
         >
           <i class="pi pi-palette text-3xl text-white"></i>
         </div>
 
-        <h1 class="text-4xl font-bold text-light-text text-glow-primary">Logo variations</h1>
+        <h1 class="text-4xl font-bold text-light-text text-glow-primary">
+          {{ 'dashboard.logoVariations.initial.title' | translate }}
+        </h1>
 
         <p class="text-xl text-light-text/80 leading-relaxed">
-          We will create several variations of your selected logo for different usage contexts.
+          {{ 'dashboard.logoVariations.initial.subtitle' | translate }}
         </p>
       </div>
 
@@ -22,13 +24,17 @@
         <div class="glass-card p-6 text-left">
           <div class="flex items-start space-x-4">
             <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 glow-primary"
+              class="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 glow-primary"
             >
               <i class="pi pi-sun text-primary text-xl"></i>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-light-text mb-2">Light Background</h3>
-              <p class="text-light-text/70 text-sm">Optimized for white and light backgrounds</p>
+              <h3 class="text-lg font-semibold text-light-text mb-2">
+                {{ 'dashboard.logoVariations.features.lightBackground.title' | translate }}
+              </h3>
+              <p class="text-light-text/70 text-sm">
+                {{ 'dashboard.logoVariations.features.lightBackground.description' | translate }}
+              </p>
             </div>
           </div>
         </div>
@@ -36,13 +42,17 @@
         <div class="glass-card p-6 text-left">
           <div class="flex items-start space-x-4">
             <div
-              class="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center flex-shrink-0 glow-accent"
+              class="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center shrink-0 glow-accent"
             >
               <i class="pi pi-moon text-accent text-xl"></i>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-light-text mb-2">Dark Background</h3>
-              <p class="text-light-text/70 text-sm">Optimized for dark and modern backgrounds</p>
+              <h3 class="text-lg font-semibold text-light-text mb-2">
+                {{ 'dashboard.logoVariations.features.darkBackground.title' | translate }}
+              </h3>
+              <p class="text-light-text/70 text-sm">
+                {{ 'dashboard.logoVariations.features.darkBackground.description' | translate }}
+              </p>
             </div>
           </div>
         </div>
@@ -50,13 +60,17 @@
         <div class="glass-card p-6 text-left">
           <div class="flex items-start space-x-4">
             <div
-              class="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center flex-shrink-0 glow-secondary"
+              class="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center shrink-0 glow-secondary"
             >
               <i class="pi pi-circle text-secondary text-xl"></i>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-light-text mb-2">Monochrome</h3>
-              <p class="text-light-text/70 text-sm">Version in black and white for all uses</p>
+              <h3 class="text-lg font-semibold text-light-text mb-2">
+                {{ 'dashboard.logoVariations.features.monochrome.title' | translate }}
+              </h3>
+              <p class="text-light-text/70 text-sm">
+                {{ 'dashboard.logoVariations.features.monochrome.description' | translate }}
+              </p>
             </div>
           </div>
         </div>
@@ -64,13 +78,17 @@
         <div class="glass-card p-6 text-left">
           <div class="flex items-start space-x-4">
             <div
-              class="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 glow-primary"
+              class="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center shrink-0 glow-primary"
             >
               <i class="pi pi-sparkles text-primary text-xl"></i>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-light-text mb-2">Multiple Formats</h3>
-              <p class="text-light-text/70 text-sm">With text and icon alone for all contexts</p>
+              <h3 class="text-lg font-semibold text-light-text mb-2">
+                {{ 'dashboard.logoVariations.features.multipleFormats.title' | translate }}
+              </h3>
+              <p class="text-light-text/70 text-sm">
+                {{ 'dashboard.logoVariations.features.multipleFormats.description' | translate }}
+              </p>
             </div>
           </div>
         </div>
@@ -80,14 +98,14 @@
       <div class="pt-8">
         <button (click)="startVariationGeneration()" class="inner-button px-8 py-4">
           <i class="pi pi-play mr-2"></i>
-          Generate Variations
+          {{ 'dashboard.logoVariations.buttons.generate' | translate }}
         </button>
       </div>
 
       <!-- Estimated Time -->
       <p class="text-sm text-light-text/60">
         <i class="pi pi-clock mr-1"></i>
-        Estimated time: {{ estimatedTime() }}
+        {{ 'dashboard.logoVariations.estimatedTime' | translate: { time: estimatedTime() } }}
       </p>
     </div>
   </div>
@@ -102,10 +120,10 @@
       <h1
         class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
       >
-        Generating Logo Variations...
+        {{ 'dashboard.logoVariations.generating.title' | translate }}
       </h1>
       <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
-        Creating different versions of your logo for various use cases.
+        {{ 'dashboard.logoVariations.generating.subtitle' | translate }}
       </p>
     </div>
 
@@ -142,7 +160,7 @@
       </div>
       <div class="w-full bg-gray-800 rounded-full h-3">
         <div
-          class="bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-500"
+          class="bg-linear-to-r from-primary to-secondary h-3 rounded-full transition-all duration-500"
           [style.width.%]="generationProgress()"
         ></div>
       </div>
@@ -156,7 +174,9 @@
         >
           <i class="pi pi-sun text-primary text-2xl"></i>
         </div>
-        <h3 class="text-lg font-semibold text-light-text mb-2">Light Background</h3>
+        <h3 class="text-lg font-semibold text-light-text mb-2">
+          {{ 'dashboard.logoVariations.features.lightBackground.title' | translate }}
+        </h3>
         <p class="text-sm text-light-text/70">Optimized for white and light backgrounds</p>
       </div>
 
@@ -166,7 +186,9 @@
         >
           <i class="pi pi-moon text-accent text-2xl"></i>
         </div>
-        <h3 class="text-lg font-semibold text-light-text mb-2">Dark Background</h3>
+        <h3 class="text-lg font-semibold text-light-text mb-2">
+          {{ 'dashboard.logoVariations.features.darkBackground.title' | translate }}
+        </h3>
         <p class="text-sm text-light-text/70">Optimized for dark and modern backgrounds</p>
       </div>
 
@@ -176,8 +198,12 @@
         >
           <i class="pi pi-circle text-secondary text-2xl"></i>
         </div>
-        <h3 class="text-lg font-semibold text-light-text mb-2">Monochrome</h3>
-        <p class="text-sm text-light-text/70">Universal black and white version</p>
+        <h3 class="text-lg font-semibold text-light-text mb-2">
+          {{ 'dashboard.logoVariations.features.monochrome.title' | translate }}
+        </h3>
+        <p class="text-sm text-light-text/70">
+          {{ 'dashboard.logoVariations.features.monochrome.description' | translate }}
+        </p>
       </div>
     </div>
   </section>
@@ -194,7 +220,9 @@
           <i class="pi pi-exclamation-triangle text-3xl text-danger"></i>
         </div>
 
-        <h2 class="text-3xl font-bold text-light-text">Generation Error</h2>
+        <h2 class="text-3xl font-bold text-light-text">
+          {{ 'dashboard.logoVariations.errors.title' | translate }}
+        </h2>
 
         <p class="text-lg text-danger">{{ error() }}</p>
       </div>
@@ -219,16 +247,24 @@
     <div class="max-w-6xl mx-auto space-y-8">
       <!-- Header -->
       <div class="text-center space-y-4">
-        <h2 class="text-3xl font-bold text-light-text text-glow-primary">Logo Variations</h2>
+        <h2 class="text-3xl font-bold text-light-text text-glow-primary">
+          {{ 'dashboard.logoVariations.success.title' | translate }}
+        </h2>
         <p class="text-lg text-light-text/80">
-          Select the variations you want to keep for your project.
+          {{ 'dashboard.logoVariations.success.subtitle' | translate }}
         </p>
       </div>
 
       <!-- Variations Display -->
       <div class="space-y-8">
         <!-- Group variations by category -->
-        @for (category of ['With Text', 'Icon Only']; track category) {
+        @for (
+          category of [
+            'dashboard.logoVariations.categories.withText' | translate,
+            'dashboard.logoVariations.categories.iconOnly' | translate,
+          ];
+          track category
+        ) {
           @if (hasVariationsForCategory(category)) {
             <div class="space-y-4">
               <h3 class="text-2xl font-bold text-light-text text-center">{{ category }}</h3>
@@ -290,7 +326,7 @@
                           <span
                             class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-glass-bg text-light-text/60 border border-glass-border"
                           >
-                            Click to select
+                            {{ 'dashboard.logoVariations.buttons.clickToSelect' | translate }}
                           </span>
                         }
                       </div>
@@ -308,7 +344,10 @@
         <div class="glass-card p-6 text-center">
           <p class="text-lg text-light-text mb-4">
             <i class="pi pi-check-circle text-success mr-2"></i>
-            {{ selectedVariations().length }} selection(s) made
+            {{
+              'dashboard.logoVariations.selectionsMade'
+                | translate: { count: selectedVariations().length }
+            }}
           </p>
 
           <button
@@ -317,13 +356,13 @@
             class="inner-button px-8 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <i class="pi pi-arrow-right mr-2"></i>
-            Proceed with selection
+            {{ 'dashboard.logoVariations.buttons.proceed' | translate }}
           </button>
         </div>
       } @else {
         <div class="glass-card p-6 text-center">
           <p class="text-lg text-light-text/70 mb-4">
-            Please select at least one variation to continue
+            {{ 'dashboard.logoVariations.errors.selectAtLeastOne' | translate }}
           </p>
         </div>
       }

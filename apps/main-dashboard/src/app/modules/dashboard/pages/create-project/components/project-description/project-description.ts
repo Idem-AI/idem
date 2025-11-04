@@ -1,5 +1,6 @@
 import { Component, input, output, signal, computed, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { ProjectModel } from '../../../../models/project.model';
 import { environment } from '../../../../../../../environments/environment';
@@ -8,7 +9,7 @@ import { AuthService } from '../../../../../auth/services/auth.service';
 @Component({
   selector: 'app-project-description',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, TranslateModule],
   templateUrl: './project-description.html',
   styleUrl: './project-description.css',
 })
@@ -18,6 +19,7 @@ export class ProjectDescriptionComponent implements OnInit {
   readonly projectUpdate = output<Partial<ProjectModel>>();
 
   private readonly authService = inject(AuthService);
+  private readonly translate = inject(TranslateService);
 
   protected isTextareaFocused = signal(false);
   protected characterCount = signal(0);
@@ -169,51 +171,58 @@ export class ProjectDescriptionComponent implements OnInit {
     }
   }
 
-  // African project examples
-  protected readonly africanProjectExamples = [
-    {
-      name: 'M-Pesa Clone',
-      description: 'A mobile money transfer and microfinancing service for African markets',
-      icon: 'pi pi-wallet',
-      prompt:
-        'A mobile money platform like M-Pesa with secure transactions, agent network management, and financial inclusion features for rural communities in Africa',
-    },
-    {
-      name: 'Agri-Tech Platform',
-      description: 'Farm management system for small-scale African farmers',
-      icon: 'pi pi-seedling',
-      prompt:
-        'An agricultural management platform for small-scale African farmers with weather forecasting, crop disease detection using AI, and marketplace for selling produce directly to buyers',
-    },
-    {
-      name: 'Solar Pay-as-you-go',
-      description: 'Solar energy payment and management system',
-      icon: 'pi pi-sun',
-      prompt:
-        'A pay-as-you-go solar energy management system for off-grid communities in Africa with mobile payments, usage tracking, and maintenance alerts',
-    },
-    {
-      name: 'Health Passport',
-      description: 'Digital health records for underserved communities',
-      icon: 'pi pi-heart',
-      prompt:
-        'A digital health passport app for underserved African communities that works offline, stores vaccination records, and connects patients with local healthcare providers',
-    },
-    {
-      name: 'African Artisan Marketplace',
-      description: 'E-commerce platform for African artisans',
-      icon: 'pi pi-shopping-bag',
-      prompt:
-        'An e-commerce platform connecting African artisans directly with global buyers, featuring secure payments, logistics management, and cultural storytelling for each product',
-    },
-    {
-      name: 'EdTech for Low Bandwidth',
-      description: 'Educational platform optimized for low connectivity',
-      icon: 'pi pi-book',
-      prompt:
-        'An educational platform designed for low-bandwidth African regions with offline content caching, SMS-based learning modules, and localized curriculum in multiple African languages',
-    },
-  ];
+  protected get africanProjectExamples() {
+    return [
+      {
+        name: this.translate.instant('dashboard.projectDescription.examples.mpesa.name'),
+        description: this.translate.instant(
+          'dashboard.projectDescription.examples.mpesa.description',
+        ),
+        icon: 'pi pi-wallet',
+        prompt: this.translate.instant('dashboard.projectDescription.examples.mpesa.prompt'),
+      },
+      {
+        name: this.translate.instant('dashboard.projectDescription.examples.agritech.name'),
+        description: this.translate.instant(
+          'dashboard.projectDescription.examples.agritech.description',
+        ),
+        icon: 'pi pi-seedling',
+        prompt: this.translate.instant('dashboard.projectDescription.examples.agritech.prompt'),
+      },
+      {
+        name: this.translate.instant('dashboard.projectDescription.examples.solar.name'),
+        description: this.translate.instant(
+          'dashboard.projectDescription.examples.solar.description',
+        ),
+        icon: 'pi pi-sun',
+        prompt: this.translate.instant('dashboard.projectDescription.examples.solar.prompt'),
+      },
+      {
+        name: this.translate.instant('dashboard.projectDescription.examples.health.name'),
+        description: this.translate.instant(
+          'dashboard.projectDescription.examples.health.description',
+        ),
+        icon: 'pi pi-heart',
+        prompt: this.translate.instant('dashboard.projectDescription.examples.health.prompt'),
+      },
+      {
+        name: this.translate.instant('dashboard.projectDescription.examples.artisan.name'),
+        description: this.translate.instant(
+          'dashboard.projectDescription.examples.artisan.description',
+        ),
+        icon: 'pi pi-shopping-bag',
+        prompt: this.translate.instant('dashboard.projectDescription.examples.artisan.prompt'),
+      },
+      {
+        name: this.translate.instant('dashboard.projectDescription.examples.edtech.name'),
+        description: this.translate.instant(
+          'dashboard.projectDescription.examples.edtech.description',
+        ),
+        icon: 'pi pi-book',
+        prompt: this.translate.instant('dashboard.projectDescription.examples.edtech.prompt'),
+      },
+    ];
+  }
 
   protected selectExample(example: string): void {
     const currentProject = this.project();

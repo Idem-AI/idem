@@ -10,7 +10,7 @@
         class="inline-flex items-center p-2 text-sm text-gray-400 rounded-lg md:hidden hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 mr-2 transition-all duration-200"
         (click)="toggleMobileDrawer()"
       >
-        <span class="sr-only">Open mobile menu</span>
+        <span class="sr-only">{{ 'dashboard.sidebar.sr.openMobileMenu' | translate }}</span>
         <i class="pi pi-bars text-lg"></i>
       </button>
 
@@ -20,17 +20,21 @@
         class="hidden md:inline-flex items-center p-2 text-sm text-gray-400 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 mr-2 transition-all duration-200"
         (click)="toggleSidebar()"
       >
-        <span class="sr-only">Toggle sidebar</span>
+        <span class="sr-only">{{ 'dashboard.sidebar.sr.toggleSidebar' | translate }}</span>
         <i class="pi pi-bars text-lg"></i>
       </button>
 
       <!-- Logo -->
-      <div class="flex-shrink-0 flex items-center">
+      <div class="shrink-0 flex items-center">
         <a
           routerLink="/"
           class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
         >
-          <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto" />
+          <img
+            src="/assets/icons/logo_white.png"
+            [alt]="'dashboard.sidebar.logoAlt' | translate"
+            class="sm:w-[120px] w-[50px] h-auto"
+          />
           <app-beta-badge></app-beta-badge>
         </a>
       </div>
@@ -44,7 +48,7 @@
           <div class="flex items-center gap-3">
             <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
             <span class="text-white font-medium truncate">
-              {{ selectedProject()?.name || 'Select Project' }}
+              {{ selectedProject()?.name || ('dashboard.sidebar.selectProject' | translate) }}
             </span>
           </div>
           <i
@@ -99,7 +103,7 @@
           >
             <img
               [src]="user()!.photoURL"
-              alt="Avatar"
+              [alt]="'dashboard.sidebar.userAvatarAlt' | translate"
               class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white/20"
             />
           </button>
@@ -120,7 +124,7 @@
                 class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
               >
                 <i class="pi pi-user text-primary"></i>
-                <span>Profile</span>
+                <span>{{ 'dashboard.sidebar.userMenu.profile' | translate }}</span>
               </a>
 
               <a
@@ -129,7 +133,7 @@
                 class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
               >
                 <i class="pi pi-th-large text-secondary"></i>
-                <span>Global Dashboard</span>
+                <span>{{ 'dashboard.sidebar.userMenu.globalDashboard' | translate }}</span>
               </a>
 
               <a
@@ -138,7 +142,7 @@
                 class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
               >
                 <i class="pi pi-cog text-secondary"></i>
-                <span>Settings</span>
+                <span>{{ 'dashboard.sidebar.userMenu.settings' | translate }}</span>
               </a>
 
               <hr class="border-white/10 my-2" />
@@ -148,7 +152,7 @@
                 class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 transition-all duration-200"
               >
                 <i class="pi pi-sign-out"></i>
-                <span>Logout</span>
+                <span>{{ 'dashboard.sidebar.userMenu.logout' | translate }}</span>
               </button>
             </div>
           }
@@ -198,7 +202,7 @@
         }
 
         <!-- Icon -->
-        <div class="flex-shrink-0 relative">
+        <div class="shrink-0 relative">
           <i [class]="item.icon" class="text-lg transition-all duration-200"></i>
           @if (item.isActive) {
             <div class="absolute inset-0 bg-primary/20 rounded-lg -z-10 animate-pulse"></div>
@@ -208,7 +212,7 @@
         <!-- Label -->
         @if (!isSidebarCollapsed()) {
           <span class="font-medium transition-all duration-200 group-hover:translate-x-1">
-            {{ item.label }}
+            {{ item.labelKey | translate }}
           </span>
         }
 
@@ -217,7 +221,7 @@
           <div
             class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50"
           >
-            {{ item.label }}
+            {{ item.labelKey | translate }}
           </div>
         }
       </a>
@@ -228,7 +232,7 @@
   <div class="p-4 border-t border-white/10">
     @if (!isSidebarCollapsed()) {
       <div class="text-center">
-        <p class="text-xs text-gray-400 mb-2">Powered by</p>
+        <p class="text-xs text-gray-400 mb-2">{{ 'dashboard.sidebar.poweredBy' | translate }}</p>
         <div class="text-primary font-bold text-sm">Idem</div>
       </div>
     } @else {
@@ -259,7 +263,11 @@
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-white/10">
         <a routerLink="/" class="flex items-center gap-2" (click)="toggleMobileDrawer()">
-          <img src="/assets/icons/logo_white.png" alt="Lexi" class="w-24 h-auto" />
+          <img
+            src="/assets/icons/logo_white.png"
+            [alt]="'dashboard.sidebar.logoAlt' | translate"
+            class="w-24 h-auto"
+          />
           <app-beta-badge></app-beta-badge>
         </a>
         <button
@@ -287,7 +295,9 @@
 
         <!-- Mobile Project Selector -->
         <div>
-          <h3 class="text-sm font-medium text-gray-400 mb-3">Current Project</h3>
+          <h3 class="text-sm font-medium text-gray-400 mb-3">
+            {{ 'dashboard.sidebar.mobile.currentProject' | translate }}
+          </h3>
           <div class="space-y-2">
             @for (project of dropDownProjects(); track project.code) {
               <button
@@ -311,7 +321,9 @@
 
         <!-- Mobile Navigation -->
         <div>
-          <h3 class="text-sm font-medium text-gray-400 mb-3">Navigation</h3>
+          <h3 class="text-sm font-medium text-gray-400 mb-3">
+            {{ 'dashboard.sidebar.mobile.navigation' | translate }}
+          </h3>
           <nav class="space-y-2">
             @for (item of navigationItems(); track item.route) {
               <a
@@ -324,7 +336,7 @@
                 [class.hover:bg-white]="!item.isActive"
               >
                 <i [class]="item.icon" class="text-lg"></i>
-                <span class="font-medium">{{ item.label }}</span>
+                <span class="font-medium">{{ item.labelKey | translate }}</span>
               </a>
             }
           </nav>

@@ -6,7 +6,7 @@
     @if (project()?.analysisResultModel?.branding?.logo) {
       <img
         [src]="project()?.analysisResultModel?.branding?.logo?.svg"
-        alt="Logo"
+        [alt]="'dashboard.projectCard.logoAlt' | translate"
         class="w-[120px] sm:w-[140px] lg:w-[160px] h-auto rounded-lg"
       />
     } @else {
@@ -31,7 +31,7 @@
     <button
       class="opacity-0 group-hover:opacity-100 transition text-primary-500 hover:text-primary-400"
     >
-      Open <i class="lucide lucide-arrow-right ml-1"></i>
+      {{ 'dashboard.projectCard.open' | translate }} <i class="lucide lucide-arrow-right ml-1"></i>
     </button>
   </div>
 </div>

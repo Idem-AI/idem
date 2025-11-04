@@ -28,6 +28,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BetaBadgeComponent } from '../../../../shared/components/beta-badge/beta-badge';
 import { QuotaDisplayComponent } from '../../../../shared/components/quota-display/quota-display';
 import { QuotaService } from '../../../../shared/services/quota.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   QuotaInfoResponse,
   QuotaDisplayData,
@@ -40,7 +41,14 @@ import {
   templateUrl: './sidebar-dashboard.html',
   styleUrls: ['./sidebar-dashboard.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BetaBadgeComponent, QuotaDisplayComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    BetaBadgeComponent,
+    QuotaDisplayComponent,
+    TranslateModule,
+  ],
   animations: [
     trigger('slideInOut', [
       transition(':enter', [
@@ -103,47 +111,48 @@ export class SidebarDashboard implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly quotaService = inject(QuotaService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   // Navigation items
   protected readonly navigationItems = signal([
     {
-      label: 'Project Home',
+      labelKey: 'dashboard.sidebar.projectHome',
       icon: 'pi pi-home',
       route: 'console/project/dashboard',
       isActive: false,
     },
     {
-      label: 'Teams',
+      labelKey: 'dashboard.sidebar.teams',
       icon: 'pi pi-users',
       route: 'console/project/teams',
       isActive: false,
     },
     {
-      label: 'Branding',
+      labelKey: 'dashboard.sidebar.branding',
       icon: 'pi pi-palette',
       route: 'console/project/branding',
       isActive: false,
     },
     {
-      label: 'Business Plan',
+      labelKey: 'dashboard.sidebar.businessPlan',
       icon: 'pi pi-calendar',
       route: 'console/project/business-plan',
       isActive: false,
     },
     {
-      label: 'Diagrams',
+      labelKey: 'dashboard.sidebar.diagrams',
       icon: 'pi pi-chart-line',
       route: 'console/project/diagrams',
       isActive: false,
     },
     {
-      label: 'Development',
+      labelKey: 'dashboard.sidebar.development',
       icon: 'pi pi-code',
       route: 'console/project/development',
       isActive: false,
     },
     {
-      label: 'Deployment',
+      labelKey: 'dashboard.sidebar.deployment',
       icon: 'pi pi-globe',
       route: 'console/project/deployments',
       isActive: false,
@@ -188,7 +197,7 @@ export class SidebarDashboard implements OnInit {
   dropDownProjects = computed(() => {
     // Add "View All Projects" as the first option
     const allProjectsOption = {
-      name: 'View All Projects',
+      name: this.translate.instant('dashboard.sidebar.viewAllProjects'),
       code: 'all-projects',
     };
 
@@ -260,7 +269,7 @@ export class SidebarDashboard implements OnInit {
         return;
       } else {
         console.warn(
-          `Project ID '${cookieId}' from cookie not found. Using first project instead.`,
+          this.translate.instant('dashboard.sidebar.errors.projectNotFound', { cookieId }),
         );
       }
     }
@@ -385,7 +394,9 @@ export class SidebarDashboard implements OnInit {
               const projectExists = projects.find((p) => p.id === initialCookieId);
               if (!projectExists) {
                 console.warn(
-                  `Initial project ID '${initialCookieId}' not found. Navigating to global dashboard.`,
+                  this.translate.instant('dashboard.sidebar.errors.initialProjectNotFound', {
+                    initialCookieId,
+                  }),
                 );
                 this.router.navigate([`/console`], { replaceUrl: true });
               }

@@ -1,9 +1,19 @@
-import { Component, input, output, signal, computed, inject, OnDestroy } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  signal,
+  computed,
+  inject,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
 import { LogoModel } from '../../../../models/logo.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 
 interface ChatMessage {
@@ -17,13 +27,14 @@ interface ChatMessage {
 @Component({
   selector: 'app-logo-editor-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, SafeHtmlPipe],
+  imports: [CommonModule, FormsModule, SafeHtmlPipe, TranslateModule],
   templateUrl: './logo-editor-chat.html',
   styleUrl: './logo-editor-chat.css',
 })
-export class LogoEditorChat implements OnDestroy {
+export class LogoEditorChat implements OnInit, OnDestroy {
   private readonly brandingService = inject(BrandingService);
   private readonly destroy$ = new Subject<void>();
+  private readonly translate = inject(TranslateService);
 
   // Inputs
   readonly projectId = input.required<string>();
@@ -51,7 +62,7 @@ export class LogoEditorChat implements OnDestroy {
       {
         id: 'initial',
         type: 'assistant',
-        content: 'Here is your selected logo. You can ask me to modify it!',
+        content: this.translate.instant('dashboard.logoEditor.initialGreeting'),
         timestamp: new Date(),
       },
       {
@@ -64,8 +75,7 @@ export class LogoEditorChat implements OnDestroy {
       {
         id: 'welcome',
         type: 'assistant',
-        content:
-          'Tell me what changes you\'d like to make. For example: "Make it more modern", "Change the colors to blue", "Add a gradient effect", etc.',
+        content: this.translate.instant('dashboard.logoEditor.welcomeMessage'),
         timestamp: new Date(),
       },
     ]);
@@ -100,7 +110,7 @@ export class LogoEditorChat implements OnDestroy {
       .find((msg) => msg.type === 'logo' && msg.logo);
 
     if (!lastLogoMessage || !lastLogoMessage.logo) {
-      this.error.set('No logo found to edit');
+      this.error.set(this.translate.instant('dashboard.logoEditor.errors.noLogoToEdit'));
       return;
     }
 
@@ -112,7 +122,7 @@ export class LogoEditorChat implements OnDestroy {
     const loadingMessage: ChatMessage = {
       id: `loading-${Date.now()}`,
       type: 'assistant',
-      content: 'Working on your modifications...',
+      content: this.translate.instant('dashboard.logoEditor.workingMessage'),
       timestamp: new Date(),
     };
     this.messages.update((msgs) => [...msgs, loadingMessage]);
@@ -130,7 +140,7 @@ export class LogoEditorChat implements OnDestroy {
           const successMessage: ChatMessage = {
             id: `assistant-${Date.now()}`,
             type: 'assistant',
-            content: 'Here is your modified logo!',
+            content: this.translate.instant('dashboard.logoEditor.modifiedLogo'),
             timestamp: new Date(),
           };
 
@@ -156,14 +166,13 @@ export class LogoEditorChat implements OnDestroy {
           const errorMessage: ChatMessage = {
             id: `error-${Date.now()}`,
             type: 'assistant',
-            content:
-              'Sorry, I encountered an error while modifying the logo. Please try again with a different prompt.',
+            content: this.translate.instant('dashboard.logoEditor.errors.modificationFailed'),
             timestamp: new Date(),
           };
           this.messages.update((msgs) => [...msgs, errorMessage]);
 
           this.isEditing.set(false);
-          this.error.set('Failed to edit logo');
+          this.error.set(this.translate.instant('dashboard.logoEditor.errors.failedToEdit'));
         },
       });
   }

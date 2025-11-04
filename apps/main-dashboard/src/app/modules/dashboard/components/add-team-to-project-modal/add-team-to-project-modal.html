@@ -12,10 +12,12 @@
     <div>
       <div class="flex items-center gap-3 mb-2">
         <i class="pi pi-users text-primary text-2xl"></i>
-        <h2 class="text-2xl font-bold text-white">Add Team to Project</h2>
+        <h2 class="text-2xl font-bold text-white">
+          {{ 'dashboard.addTeamToProjectModal.title' | translate }}
+        </h2>
       </div>
       <p class="text-sm text-gray-400">
-        Choose an existing team or create a new one to add to this project
+        {{ 'dashboard.addTeamToProjectModal.subtitle' | translate }}
       </p>
     </div>
   </ng-template>
@@ -31,7 +33,7 @@
         class="flex-1 px-4 py-3 rounded-md font-medium transition"
       >
         <i class="pi pi-users mr-2"></i>
-        Existing Team
+        {{ 'dashboard.addTeamToProjectModal.tabs.existingTeam' | translate }}
       </button>
       <button
         (click)="setSelectionMode('new')"
@@ -41,7 +43,7 @@
         class="flex-1 px-4 py-3 rounded-md font-medium transition"
       >
         <i class="pi pi-plus-circle mr-2"></i>
-        Create New Team
+        {{ 'dashboard.addTeamToProjectModal.tabs.createNewTeam' | translate }}
       </button>
     </div>
   </div>
@@ -50,7 +52,7 @@
   @if (errorMessage()) {
     <div class="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
       <div class="flex items-start gap-3">
-        <i class="pi pi-exclamation-circle text-red-500 text-lg flex-shrink-0 mt-0.5"></i>
+        <i class="pi pi-exclamation-circle text-red-500 text-lg shrink-0 mt-0.5"></i>
         <p class="text-sm text-red-300">{{ errorMessage() }}</p>
       </div>
     </div>
@@ -62,7 +64,8 @@
       <!-- Team Selection -->
       <div>
         <label class="block text-sm font-medium text-gray-300 mb-2">
-          Select Team <span class="text-red-500">*</span>
+          {{ 'dashboard.addTeamToProjectModal.fields.selectTeam' | translate }}
+          <span class="text-red-500">*</span>
         </label>
         @if (isLoadingTeams()) {
           <div class="flex items-center justify-center py-8">
@@ -71,15 +74,21 @@
         } @else if (availableTeams().length === 0) {
           <div class="text-center py-8 border-2 border-dashed border-gray-700 rounded-lg">
             <i class="pi pi-users text-3xl text-gray-600 mb-2"></i>
-            <p class="text-gray-400 text-sm">No teams available</p>
-            <p class="text-gray-500 text-xs mt-1">Create a new team to get started</p>
+            <p class="text-gray-400 text-sm">
+              {{ 'dashboard.addTeamToProjectModal.noTeamsAvailable' | translate }}
+            </p>
+            <p class="text-gray-500 text-xs mt-1">
+              {{ 'dashboard.addTeamToProjectModal.createNewTeamSuggestion' | translate }}
+            </p>
           </div>
         } @else {
           <select
             formControlName="teamId"
             class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
           >
-            <option value="" disabled selected>Choose a team...</option>
+            <option value="" disabled selected>
+              {{ 'dashboard.addTeamToProjectModal.placeholders.chooseTeam' | translate }}
+            </option>
             @for (team of availableTeams(); track team.id) {
               <option [value]="team.id" class="bg-gray-800">
                 {{ team.name }}
@@ -95,7 +104,8 @@
       <!-- Project Roles -->
       <div>
         <label class="block text-sm font-medium text-gray-300 mb-3">
-          Project Roles <span class="text-red-500">*</span>
+          {{ 'dashboard.addTeamToProjectModal.fields.projectRoles' | translate }}
+          <span class="text-red-500">*</span>
         </label>
         <div class="grid grid-cols-2 gap-3">
           @for (role of availableRoles; track role) {
@@ -120,12 +130,14 @@
                 }"
                 class="pi mr-2"
               ></i>
-              {{ roleLabels[role] }}
+              {{ getRoleLabel(role) }}
             </button>
           }
         </div>
         @if (existingTeamForm.get('roles')?.touched && existingTeamForm.get('roles')?.invalid) {
-          <p class="text-red-400 text-xs mt-2">Please select at least one role</p>
+          <p class="text-red-400 text-xs mt-2">
+            {{ 'validation.selectAtLeastOneRole' | translate }}
+          </p>
         }
       </div>
 
@@ -138,7 +150,7 @@
           [disabled]="isSubmitting()"
         >
           <i class="pi pi-times mr-2"></i>
-          Cancel
+          {{ 'common.cancel' | translate }}
         </button>
         <button
           type="submit"
@@ -147,10 +159,10 @@
         >
           @if (isSubmitting()) {
             <i class="pi pi-spin pi-spinner mr-2"></i>
-            Adding...
+            {{ 'common.adding' | translate }}
           } @else {
             <i class="pi pi-plus mr-2"></i>
-            Add Team
+            {{ 'dashboard.addTeamToProjectModal.buttons.addTeam' | translate }}
           }
         </button>
       </div>
@@ -163,29 +175,33 @@
       <!-- Team Name -->
       <div>
         <label class="block text-sm font-medium text-gray-300 mb-2">
-          Team Name <span class="text-red-500">*</span>
+          {{ 'dashboard.addTeamToProjectModal.fields.teamName' | translate }}
+          <span class="text-red-500">*</span>
         </label>
         <input
           pInputText
           type="text"
           formControlName="name"
-          placeholder="e.g., Frontend Team"
+          [placeholder]="'dashboard.addTeamToProjectModal.placeholders.teamName' | translate"
           class="w-full"
         />
         @if (newTeamForm.get('name')?.touched && newTeamForm.get('name')?.invalid) {
-          <p class="text-red-400 text-xs mt-2">Team name must be at least 3 characters</p>
+          <p class="text-red-400 text-xs mt-2">
+            {{ 'validation.teamNameMinLength' | translate: { min: 3 } }}
+          </p>
         }
       </div>
 
       <!-- Team Description -->
       <div>
         <label class="block text-sm font-medium text-gray-300 mb-2">
-          Description <span class="text-gray-500 text-xs">(Optional)</span>
+          {{ 'dashboard.addTeamToProjectModal.fields.description' | translate }}
+          <span class="text-gray-500 text-xs">({{ 'common.optional' | translate }})</span>
         </label>
         <textarea
           pTextarea
           formControlName="description"
-          placeholder="Brief description of the team's purpose..."
+          [placeholder]="'dashboard.addTeamToProjectModal.placeholders.description' | translate"
           rows="3"
           class="w-full"
         ></textarea>
@@ -194,7 +210,8 @@
       <!-- Project Roles -->
       <div>
         <label class="block text-sm font-medium text-gray-300 mb-3">
-          Project Roles <span class="text-red-500">*</span>
+          {{ 'dashboard.addTeamToProjectModal.fields.projectRoles' | translate }}
+          <span class="text-red-500">*</span>
         </label>
         <div class="grid grid-cols-2 gap-3">
           @for (role of availableRoles; track role) {
@@ -219,20 +236,22 @@
                 }"
                 class="pi mr-2"
               ></i>
-              {{ roleLabels[role] }}
+              {{ getRoleLabel(role) }}
             </button>
           }
         </div>
         @if (newTeamForm.get('roles')?.touched && newTeamForm.get('roles')?.invalid) {
-          <p class="text-red-400 text-xs mt-2">Please select at least one role</p>
+          <p class="text-red-400 text-xs mt-2">
+            {{ 'validation.selectAtLeastOneRole' | translate }}
+          </p>
         }
       </div>
 
       <!-- Info Box -->
       <div class="flex items-start gap-3 p-4 bg-primary/10 border border-primary/30 rounded-lg">
-        <i class="pi pi-info-circle text-primary text-lg flex-shrink-0"></i>
+        <i class="pi pi-info-circle text-primary text-lg shrink-0"></i>
         <p class="text-sm text-gray-300">
-          The team will be created and immediately added to this project with the selected roles.
+          {{ 'dashboard.addTeamToProjectModal.newTeamInfo' | translate }}
         </p>
       </div>
 
@@ -245,7 +264,7 @@
           [disabled]="isSubmitting()"
         >
           <i class="pi pi-times mr-2"></i>
-          Cancel
+          {{ 'common.cancel' | translate }}
         </button>
         <button
           type="submit"
@@ -254,10 +273,10 @@
         >
           @if (isSubmitting()) {
             <i class="pi pi-spin pi-spinner mr-2"></i>
-            Creating...
+            {{ 'common.creating' | translate }}
           } @else {
             <i class="pi pi-plus-circle mr-2"></i>
-            Create &amp; Add Team
+            {{ 'dashboard.addTeamToProjectModal.buttons.createAndAdd' | translate }}
           }
         </button>
       </div>

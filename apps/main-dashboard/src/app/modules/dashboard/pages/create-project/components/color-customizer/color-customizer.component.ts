@@ -1,7 +1,8 @@
-import { Component, input, output, signal, computed, effect } from '@angular/core';
+import { Component, input, output, signal, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ColorModel } from '../../../../models/brand-identity.model';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 interface ColorHSL {
   h: number;
@@ -12,7 +13,7 @@ interface ColorHSL {
 @Component({
   selector: 'app-color-customizer',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslateModule],
   templateUrl: './color-customizer.component.html',
   styleUrl: './color-customizer.component.css',
 })
@@ -36,6 +37,8 @@ export class ColorCustomizerComponent {
   protected readonly activeColor = signal<keyof ColorModel['colors'] | null>(null);
 
   // Color keys for iteration
+  private readonly translate = inject(TranslateService);
+
   protected readonly colorKeys: Array<keyof ColorModel['colors']> = [
     'primary',
     'secondary',
@@ -205,24 +208,10 @@ export class ColorCustomizerComponent {
   }
 
   protected getColorLabel(key: string): string {
-    const labels: Record<string, string> = {
-      primary: 'Primary Color',
-      secondary: 'Secondary Color',
-      accent: 'Accent Color',
-      background: 'Background Color',
-      text: 'Text Color',
-    };
-    return labels[key] || key;
+    return this.translate.instant(`dashboard.colorCustomizer.labels.${key}`);
   }
 
   protected getColorDescription(key: string): string {
-    const descriptions: Record<string, string> = {
-      primary: 'Main brand color used for buttons and key elements',
-      secondary: 'Supporting color that complements your primary',
-      accent: 'Highlighting color for calls-to-action',
-      background: 'Base background color for your designs',
-      text: 'Primary text color for readability',
-    };
-    return descriptions[key] || '';
+    return this.translate.instant(`dashboard.colorCustomizer.descriptions.${key}`);
   }
 }

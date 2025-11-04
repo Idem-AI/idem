@@ -6,19 +6,28 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { TeamService } from '../../services/team.service';
 import { TeamModel, ProjectRole, CreateTeamDTO } from '../../models/team.model';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 type SelectionMode = 'existing' | 'new';
 
 @Component({
   selector: 'app-add-team-to-project-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DialogModule, InputTextModule, TextareaModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    DialogModule,
+    InputTextModule,
+    TextareaModule,
+    TranslateModule,
+  ],
   templateUrl: './add-team-to-project-modal.html',
   styleUrl: './add-team-to-project-modal.css',
 })
 export class AddTeamToProjectModalComponent {
   private fb = inject(FormBuilder);
   private teamService = inject(TeamService);
+  private translate = inject(TranslateService);
 
   @Input() projectId!: string;
   @Output() close = new EventEmitter<void>();
@@ -46,14 +55,9 @@ export class AddTeamToProjectModalComponent {
     'contributor',
   ];
 
-  protected readonly roleLabels: Record<ProjectRole, string> = {
-    'project-owner': 'Project Owner',
-    'project-admin': 'Project Admin',
-    developer: 'Developer',
-    designer: 'Designer',
-    viewer: 'Viewer',
-    contributor: 'Contributor',
-  };
+  protected getRoleLabel(role: ProjectRole): string {
+    return this.translate.instant(`dashboard.addTeamToProjectModal.roles.${role}`);
+  }
 
   constructor() {
     // Initialize existing team form
@@ -85,7 +89,9 @@ export class AddTeamToProjectModalComponent {
       },
       error: (error: any) => {
         console.error('Error loading teams:', error);
-        this.errorMessage.set('Failed to load teams');
+        this.errorMessage.set(
+          this.translate.instant('dashboard.addTeamToProjectModal.errors.failedToLoadTeams'),
+        );
         this.isLoadingTeams.set(false);
       },
     });
@@ -142,7 +148,10 @@ export class AddTeamToProjectModalComponent {
       },
       error: (error) => {
         console.error('Error adding team to project:', error);
-        this.errorMessage.set(error.error?.error?.message || 'Failed to add team to project');
+        this.errorMessage.set(
+          error.error?.error?.message ||
+            this.translate.instant('dashboard.addTeamToProjectModal.errors.failedToAddTeam'),
+        );
         this.isSubmitting.set(false);
       },
     });
@@ -177,7 +186,10 @@ export class AddTeamToProjectModalComponent {
           error: (error) => {
             console.error('Error adding new team to project:', error);
             this.errorMessage.set(
-              error.error?.error?.message || 'Team created but failed to add to project',
+              error.error?.error?.message ||
+                this.translate.instant(
+                  'dashboard.addTeamToProjectModal.errors.teamCreatedButFailedToAdd',
+                ),
             );
             this.isSubmitting.set(false);
           },
@@ -185,7 +197,10 @@ export class AddTeamToProjectModalComponent {
       },
       error: (error) => {
         console.error('Error creating team:', error);
-        this.errorMessage.set(error.error?.error?.message || 'Failed to create team');
+        this.errorMessage.set(
+          error.error?.error?.message ||
+            this.translate.instant('dashboard.addTeamToProjectModal.errors.failedToCreateTeam'),
+        );
         this.isSubmitting.set(false);
       },
     });

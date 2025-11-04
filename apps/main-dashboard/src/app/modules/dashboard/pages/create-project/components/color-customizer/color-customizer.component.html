@@ -4,11 +4,13 @@
   >
     <!-- Header Minimal -->
     <div class="flex items-center justify-between px-5 py-4 border-b border-gray-700/50">
-      <h2 class="text-lg font-bold text-white">Edit Colors</h2>
+      <h2 class="text-lg font-bold text-white">
+        {{ 'dashboard.colorCustomizer.title' | translate }}
+      </h2>
       <button
         (click)="close()"
         class="text-gray-400 hover:text-white transition-colors p-1"
-        aria-label="Close"
+        [attr.aria-label]="'common.close' | translate"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -30,7 +32,7 @@
             [class.bg-gray-800]="activeColor() === colorKey"
           >
             <!-- Color Swatch with Visible Picker -->
-            <div class="relative flex-shrink-0">
+            <div class="relative shrink-0">
               <label class="cursor-pointer block">
                 <input
                   type="color"
@@ -56,7 +58,7 @@
                   <div
                     class="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    Pick
+                    {{ 'dashboard.colorCustomizer.pick' | translate }}
                   </div>
                 </div>
               </label>
@@ -98,13 +100,15 @@
           @if (activeColor() === colorKey) {
             <div class="mt-2 px-2 animate-in slide-in-from-top-2 duration-200">
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500">HEX:</span>
+                <span class="text-xs text-gray-500"
+                  >{{ 'dashboard.colorCustomizer.hex' | translate }}:</span
+                >
                 <input
                   type="text"
                   [value]="customColors()[colorKey]"
                   (input)="updateColor(colorKey, $event)"
                   class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-xs font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                  placeholder="#000000"
+                  [placeholder]="'dashboard.colorCustomizer.hexPlaceholder' | translate"
                   maxlength="7"
                 />
               </div>
@@ -118,7 +122,7 @@
       >
         <div class="flex items-center gap-2 mb-3">
           <svg
-            class="w-4 h-4 flex-shrink-0"
+            class="w-4 h-4 shrink-0"
             [style.color]="customColors().accent"
             fill="none"
             stroke="currentColor"
@@ -131,32 +135,30 @@
               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <span class="text-xs font-semibold" [style.color]="customColors().text">Preview</span>
+          <span class="text-xs font-semibold" [style.color]="customColors().text">{{
+            'dashboard.colorCustomizer.preview' | translate
+          }}</span>
         </div>
         <div class="flex gap-2">
           <div
             class="px-3 py-1.5 rounded-md text-xs font-medium text-white"
             [style.backgroundColor]="customColors().primary"
           >
-            Primary
+            {{ 'dashboard.colorCustomizer.labels.primary' | translate }}
           </div>
           <div
             class="px-3 py-1.5 rounded-md text-xs font-medium"
             [style.backgroundColor]="customColors().accent"
             [style.color]="customColors().text"
           >
-            Accent
+            {{ 'dashboard.colorCustomizer.labels.accent' | translate }}
           </div>
         </div>
       </div>
 
       <!-- Smart Tip -->
       <div class="flex items-start gap-2 p-3 bg-accent/10 rounded-lg border border-accent/20">
-        <svg
-          class="w-4 h-4 text-accent mt-0.5 flex-shrink-0"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
+        <svg class="w-4 h-4 text-accent mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path
             fill-rule="evenodd"
             d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
@@ -164,7 +166,7 @@
           />
         </svg>
         <p class="text-xs text-gray-400 leading-relaxed">
-          Click any color circle to open the picker. Related colors auto-adjust for harmony.
+          {{ 'dashboard.colorCustomizer.tip' | translate }}
         </p>
       </div>
     </div>
@@ -175,13 +177,13 @@
         (click)="resetColors()"
         class="flex-1 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
       >
-        Reset
+        {{ 'common.reset' | translate }}
       </button>
       <button
         (click)="applyColors()"
         class="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-lg transition-colors shadow-lg shadow-primary/20"
       >
-        Apply
+        {{ 'common.apply' | translate }}
       </button>
     </div>
   </div>
