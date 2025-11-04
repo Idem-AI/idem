@@ -13,6 +13,7 @@ import { Router } from '@angular/router';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { SkeletonModule } from 'primeng/skeleton';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { GenerationService } from '../../../../../../shared/services/generation.service';
@@ -22,7 +23,7 @@ import { BrandIdentityModel } from '../../../../models/brand-identity.model';
 @Component({
   selector: 'app-branding-generation',
   standalone: true,
-  imports: [DatePipe, SkeletonModule],
+  imports: [DatePipe, SkeletonModule, TranslateModule],
   templateUrl: './branding-generation.html',
   styleUrl: './branding-generation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,6 +33,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
   private readonly generationService = inject(GenerationService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
   private readonly destroy$ = new Subject<void>();
 
   // Outputs
@@ -40,7 +42,9 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
   // Signals for reactive state management
   protected readonly projectId = signal<string | null>(null);
   protected readonly isPostProcessing = signal<boolean>(false);
-  protected readonly postProcessingMessage = signal<string>('Finalizing branding generation...');
+  protected readonly postProcessingMessage = signal<string>(
+    this.translate.instant('dashboard.brandingGeneration.postProcessing'),
+  );
   protected readonly generationState = signal<SSEGenerationState>({
     steps: [],
     stepsInProgress: [],
@@ -109,7 +113,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
           console.error(`Error generating branding for project ID: ${this.projectId()}:`, err);
           this.generationState.update((state) => ({
             ...state,
-            error: 'Failed to generate branding',
+            error: this.translate.instant('dashboard.brandingGeneration.errors.failed'),
             isGenerating: false,
           }));
         },
@@ -142,7 +146,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
     this.generationState.update((state) => ({
       ...state,
       isGenerating: false,
-      error: 'Generation cancelled',
+      error: this.translate.instant('dashboard.brandingGeneration.cancelled'),
     }));
   }
 
@@ -154,7 +158,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
     // Start post-processing phase with loading
     this.isPostProcessing.set(true);
-    this.postProcessingMessage.set('Saving branding data...');
+    this.postProcessingMessage.set(this.translate.instant('dashboard.brandingGeneration.saving'));
 
     // Wait 4 seconds to allow backend to complete saving
     setTimeout(() => {

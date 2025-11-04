@@ -3,7 +3,7 @@
     [pdfSrc]="pdfSrc()"
     [isLoading]="isDownloadingPdf()"
     [error]="pdfError()"
-    [title]="'Branding Guide PDF'"
+    [title]="'dashboard.brandingDisplay.title' | translate"
     [showPagination]="true"
     (regenerateRequested)="regeneratePdf()"
     (downloadRequested)="downloadPdf()"
@@ -11,7 +11,7 @@
 } @else if (branding() && branding()!.sections && branding()!.sections.length > 0) {
   <div class="w-full h-64 sm:h-96 flex flex-col items-center justify-center">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-    <p class="text-gray-600">Preparing branding content...</p>
+    <p class="text-gray-600">{{ 'dashboard.brandingDisplay.loading' | translate }}</p>
   </div>
 } @else {
   <!-- Empty State with SVG Illustration -->
@@ -25,10 +25,11 @@
 
         <!-- Header Text -->
         <div class="space-y-4">
-          <h3 class="text-3xl font-bold text-white">Your Brand Identity Awaits</h3>
+          <h3 class="text-3xl font-bold text-white">
+            {{ 'dashboard.brandingDisplay.empty.title' | translate }}
+          </h3>
           <p class="text-lg text-gray-300 leading-relaxed">
-            Create a comprehensive brand guide with logos, color palettes, and typography that
-            perfectly represents your vision.
+            {{ 'dashboard.brandingDisplay.empty.subtitle' | translate }}
           </p>
         </div>
 
@@ -36,22 +37,34 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
           <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
             <div>
-              <h4 class="text-white font-semibold text-sm mb-1">Color Palette</h4>
-              <p class="text-gray-400 text-xs">Harmonious color schemes</p>
+              <h4 class="text-white font-semibold text-sm mb-1">
+                {{ 'dashboard.brandingDisplay.features.colors.title' | translate }}
+              </h4>
+              <p class="text-gray-400 text-xs">
+                {{ 'dashboard.brandingDisplay.features.colors.description' | translate }}
+              </p>
             </div>
           </div>
 
           <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
             <div>
-              <h4 class="text-white font-semibold text-sm mb-1">Logo Design</h4>
-              <p class="text-gray-400 text-xs">Professional variations</p>
+              <h4 class="text-white font-semibold text-sm mb-1">
+                {{ 'dashboard.brandingDisplay.features.logo.title' | translate }}
+              </h4>
+              <p class="text-gray-400 text-xs">
+                {{ 'dashboard.brandingDisplay.features.logo.description' | translate }}
+              </p>
             </div>
           </div>
 
           <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
             <div>
-              <h4 class="text-white font-semibold text-sm mb-1">Typography</h4>
-              <p class="text-gray-400 text-xs">Curated font pairings</p>
+              <h4 class="text-white font-semibold text-sm mb-1">
+                {{ 'dashboard.brandingDisplay.features.typography.title' | translate }}
+              </h4>
+              <p class="text-gray-400 text-xs">
+                {{ 'dashboard.brandingDisplay.features.typography.description' | translate }}
+              </p>
             </div>
           </div>
         </div>
@@ -65,13 +78,13 @@
             <!-- Button Content -->
             <span class="relative flex items-center space-x-3">
               <i class="pi pi-sparkles"></i>
-              <span>Generate Brand Identity</span>
+              <span>{{ 'dashboard.brandingDisplay.buttons.generate' | translate }}</span>
             </span>
           </button>
 
           <p class="text-gray-500 text-sm mt-4">
             <i class="pi pi-info-circle mr-1"></i>
-            Generation takes approximately 1-2 minutes
+            {{ 'dashboard.brandingDisplay.generationTime' | translate }}
           </p>
         </div>
       </div>

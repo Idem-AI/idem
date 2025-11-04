@@ -12,7 +12,7 @@
           <div class="flex items-center gap-3 text-red-400">
             <i class="pi pi-exclamation-triangle text-2xl"></i>
             <div>
-              <h3 class="font-bold">Error</h3>
+              <h3 class="font-bold">{{ 'common.error' | translate }}</h3>
               <p class="text-sm">{{ errorMessage() }}</p>
             </div>
           </div>
@@ -21,21 +21,23 @@
         <!-- Header -->
         <section class="space-y-4">
           <div class="flex items-center justify-between">
-            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">My Teams</h1>
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">
+              {{ 'dashboard.myTeams.title' | translate }}
+            </h1>
             <button (click)="onCreateTeam()" class="inner-button">
               <i class="pi pi-plus mr-2"></i>
-              Create Team
+              {{ 'dashboard.myTeams.buttons.create' | translate }}
             </button>
           </div>
-          <p class="text-gray-400">Manage your teams and collaborate with others</p>
+          <p class="text-gray-400">{{ 'dashboard.myTeams.subtitle' | translate }}</p>
         </section>
 
-        <!-- Recent Teams -->
+        <!-- {{ 'dashboard.myTeams.sections.recent' | translate }} -->
         @if (recentTeams().length > 0) {
           <section class="space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary">
-                Recent Teams
+                {{ 'dashboard.myTeams.sections.recent' | translate }}
               </h2>
             </div>
 
@@ -57,7 +59,7 @@
                     {{ team.name }}
                   </h3>
                   <p class="text-sm text-gray-400 mb-4 line-clamp-2">
-                    {{ team.description || 'No description' }}
+                    {{ team.description || ('common.noDescription' | translate) }}
                   </p>
 
                   <div class="flex items-center gap-2 text-xs text-gray-400">
@@ -70,10 +72,12 @@
           </section>
         }
 
-        <!-- All Teams -->
+        <!-- {{ 'dashboard.myTeams.sections.all' | translate }} -->
         <section class="space-y-4 sm:space-y-6">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 class="text-xl sm:text-2xl font-semibold text-primary">All Teams</h2>
+            <h2 class="text-xl sm:text-2xl font-semibold text-primary">
+              {{ 'dashboard.myTeams.sections.all' | translate }}
+            </h2>
           </div>
 
           @if (teams().length > 0) {
@@ -95,7 +99,7 @@
                     {{ team.name }}
                   </h3>
                   <p class="text-sm text-gray-400 mb-4 line-clamp-2">
-                    {{ team.description || 'No description' }}
+                    {{ team.description || ('common.noDescription' | translate) }}
                   </p>
 
                   <div class="flex items-center gap-2 text-xs text-gray-400">
@@ -110,13 +114,18 @@
               class="text-center py-12 sm:py-16 border-2 border-dashed border-gray-800 rounded-xl glass"
             >
               <i class="pi pi-users text-3xl sm:text-4xl text-gray-600 mb-3"></i>
-              <div class="text-gray-400 text-sm sm:text-base mb-2">No teams available</div>
+              <div class="font-bold text-sm sm:text-base">
+                {{ 'dashboard.myTeams.cards.create.title' | translate }}
+              </div>
+              <div class="text-gray-400 text-sm sm:text-base mb-2">
+                {{ 'dashboard.myTeams.empty.noTeams' | translate }}
+              </div>
               <button
                 (click)="onCreateTeam()"
                 class="text-primary text-sm sm:text-base inline-block transition-colors outer-button mt-4"
               >
                 <i class="pi pi-plus mr-2"></i>
-                Create a new team
+                {{ 'dashboard.myTeams.buttons.createNew' | translate }}
               </button>
             </div>
           }

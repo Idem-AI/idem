@@ -6,8 +6,8 @@
         <div class="mb-4">
           <app-loader />
         </div>
-        <h3 class="text-lg font-medium text-white mb-2">Loading...</h3>
-        <p class="text-gray-400">Checking for existing branding data</p>
+        <h3 class="text-lg font-medium text-white mb-2">{{ 'common.loading' | translate }}</h3>
+        <p class="text-gray-400">{{ 'dashboard.showBranding.loading.checking' | translate }}</p>
       </div>
     </div>
   } @else if (showBrandingGuide() && existingBranding()) {
@@ -20,7 +20,7 @@
         class="glass-card px-4 py-2 text-white hover:bg-white/20 transition-all duration-300"
       >
         <i class="pi pi-arrow-left mr-2"></i>
-        Back to Overview
+        {{ 'dashboard.showBranding.buttons.backToOverview' | translate }}
       </button>
     </div>
   } @else if (hasError() && isRetryable()) {
@@ -30,7 +30,7 @@
         <div class="mb-6">
           <i class="pi pi-exclamation-triangle text-6xl text-red-400 mb-4"></i>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-4">Loading Error</h3>
+        <h3 class="text-2xl font-bold text-white mb-4">{{ 'common.error' | translate }}</h3>
         <p class="text-gray-300 mb-8">{{ errorMessage() }}</p>
         <div class="flex gap-4 justify-center">
           <button class="inner-button" (click)="retryLoadBranding()">
@@ -42,7 +42,7 @@
             (click)="goToProjects()"
           >
             <i class="pi pi-arrow-left mr-2"></i>
-            Back to Projects
+            {{ 'dashboard.showBranding.buttons.backToProjects' | translate }}
           </button>
         </div>
       </div>
@@ -54,7 +54,9 @@
       <div class="glass-card p-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h1 class="text-3xl font-bold text-white mb-2">Brand Identity</h1>
+            <h1 class="text-3xl font-bold text-white mb-2">
+              {{ 'dashboard.showBranding.title' | translate }}
+            </h1>
             <p class="text-gray-300">
               @if (currentProject()) {
                 {{ currentProject()!.name }}
@@ -64,7 +66,7 @@
           @if (hasBrandingGuide()) {
             <button (click)="viewBrandingGuide()" class="inner-button">
               <i class="pi pi-file-pdf mr-2"></i>
-              Get a Graphic Charter
+              {{ 'dashboard.showBranding.buttons.getCharter' | translate }}
             </button>
           }
         </div>
@@ -76,8 +78,12 @@
         <div class="glass-card p-6">
           <div class="flex items-center justify-between mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">Logos</h3>
-              <p class="text-gray-400 text-sm">Visual identity</p>
+              <h3 class="text-xl font-semibold text-white">
+                {{ 'dashboard.showBranding.sections.logos.title' | translate }}
+              </h3>
+              <p class="text-gray-400 text-sm">
+                {{ 'dashboard.showBranding.sections.logos.subtitle' | translate }}
+              </p>
             </div>
             @if (
               existingBranding() &&
@@ -86,7 +92,7 @@
               <button
                 (click)="showDialog()"
                 class="glass-card px-4 py-2 text-white hover:bg-white/20 transition-all duration-300 rounded-lg flex items-center gap-2"
-                title="Download all logo variations as ZIP"
+                [title]="'dashboard.showBranding.tooltips.downloadZip' | translate"
               >
                 <i class="pi pi-download text-sm"></i>
                 <span class="text-sm">ZIP</span>
@@ -109,9 +115,14 @@
                     <img [src]="existingBranding()!.logo.svg" class="w-full h-full" />
                   </div>
                   <p class="text-white font-medium">
-                    {{ existingBranding()!.logo.name || 'Main Logo' }}
+                    {{
+                      existingBranding()!.logo.name ||
+                        ('dashboard.showBranding.sections.logos.main' | translate)
+                    }}
                   </p>
-                  <p class="text-gray-400 text-sm">Selected version</p>
+                  <p class="text-gray-400 text-sm">
+                    {{ 'dashboard.showBranding.sections.logos.selected' | translate }}
+                  </p>
                 </div>
               }
 
@@ -128,7 +139,9 @@
                           class="w-full h-full"
                         />
                       </div>
-                      <p class="text-white text-xs">Light background</p>
+                      <p class="text-white text-xs">
+                        {{ 'dashboard.showBranding.sections.logos.lightBg' | translate }}
+                      </p>
                     </div>
                   }
                   @if (existingBranding()!.logo.variations!.withText!.darkBackground) {
@@ -141,7 +154,9 @@
                           class="w-full h-full"
                         />
                       </div>
-                      <p class="text-white text-xs">Dark background</p>
+                      <p class="text-white text-xs">
+                        {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }}
+                      </p>
                     </div>
                   }
                   @if (existingBranding()!.logo.variations!.iconOnly!.lightBackground!) {
@@ -154,7 +169,9 @@
                           class="w-full h-full"
                         />
                       </div>
-                      <p class="text-white text-xs">Icon only</p>
+                      <p class="text-white text-xs">
+                        {{ 'dashboard.showBranding.sections.logos.iconOnly' | translate }}
+                      </p>
                     </div>
                   }
                   @if (existingBranding()!.logo.variations!.withText?.monochrome) {
@@ -167,7 +184,9 @@
                           class="w-full h-full"
                         />
                       </div>
-                      <p class="text-white text-xs">Monochrome</p>
+                      <p class="text-white text-xs">
+                        {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }}
+                      </p>
                     </div>
                   }
                 </div>
@@ -176,7 +195,7 @@
           } @else {
             <div class="text-center py-8">
               <i class="pi pi-image text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">No logos available</p>
+              <p class="text-gray-400">{{ 'dashboard.showBranding.empty.noLogos' | translate }}</p>
             </div>
           }
         </div>
@@ -185,8 +204,12 @@
         <div class="glass-card p-6">
           <div class="flex items-center mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">Colors</h3>
-              <p class="text-gray-400 text-sm">Color palette</p>
+              <h3 class="text-xl font-semibold text-white">
+                {{ 'dashboard.showBranding.sections.colors.title' | translate }}
+              </h3>
+              <p class="text-gray-400 text-sm">
+                {{ 'dashboard.showBranding.sections.colors.subtitle' | translate }}
+              </p>
             </div>
           </div>
 
@@ -200,7 +223,10 @@
                 <!-- Selected Color Palette -->
                 <div class="space-y-3">
                   <p class="text-white font-medium mb-3">
-                    {{ existingBranding()!.colors.name || 'Selected Palette' }}
+                    {{
+                      existingBranding()!.colors.name ||
+                        ('dashboard.showBranding.sections.colors.selected' | translate)
+                    }}
                   </p>
                   <div class="grid grid-cols-2 gap-3">
                     @if (existingBranding()!.colors.colors.primary) {
@@ -209,7 +235,9 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.primary"
                         ></div>
-                        <p class="text-white text-sm font-medium">Primary</p>
+                        <p class="text-white text-sm font-medium">
+                          {{ 'dashboard.showBranding.sections.colors.primary' | translate }}
+                        </p>
                         <p class="text-gray-400 text-xs">
                           {{ existingBranding()!.colors.colors.primary }}
                         </p>
@@ -221,7 +249,9 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.secondary"
                         ></div>
-                        <p class="text-white text-sm font-medium">Secondary</p>
+                        <p class="text-white text-sm font-medium">
+                          {{ 'dashboard.showBranding.sections.colors.secondary' | translate }}
+                        </p>
                         <p class="text-gray-400 text-xs">
                           {{ existingBranding()!.colors.colors.secondary }}
                         </p>
@@ -233,7 +263,9 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.accent"
                         ></div>
-                        <p class="text-white text-sm font-medium">Accent</p>
+                        <p class="text-white text-sm font-medium">
+                          {{ 'dashboard.showBranding.sections.colors.accent' | translate }}
+                        </p>
                         <p class="text-gray-400 text-xs">
                           {{ existingBranding()!.colors.colors.accent }}
                         </p>
@@ -245,7 +277,9 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.background"
                         ></div>
-                        <p class="text-white text-sm font-medium">Background</p>
+                        <p class="text-white text-sm font-medium">
+                          {{ 'dashboard.showBranding.sections.colors.background' | translate }}
+                        </p>
                         <p class="text-gray-400 text-xs">
                           {{ existingBranding()!.colors.colors.background }}
                         </p>
@@ -258,7 +292,7 @@
           } @else {
             <div class="text-center py-8">
               <i class="pi pi-palette text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">No color palette available</p>
+              <p class="text-gray-400">{{ 'dashboard.showBranding.empty.noColors' | translate }}</p>
             </div>
           }
         </div>
@@ -267,8 +301,12 @@
         <div class="glass-card p-6">
           <div class="flex items-center mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">Typography</h3>
-              <p class="text-gray-400 text-sm">Font families</p>
+              <h3 class="text-xl font-semibold text-white">
+                {{ 'dashboard.showBranding.sections.typography.title' | translate }}
+              </h3>
+              <p class="text-gray-400 text-sm">
+                {{ 'dashboard.showBranding.sections.typography.subtitle' | translate }}
+              </p>
             </div>
           </div>
 
@@ -283,7 +321,10 @@
                 <!-- Selected Typography -->
                 <div class="space-y-3">
                   <p class="text-white font-medium mb-3">
-                    {{ existingBranding()!.typography.name || 'Selected Typography' }}
+                    {{
+                      existingBranding()!.typography.name ||
+                        ('dashboard.showBranding.sections.typography.selected' | translate)
+                    }}
                   </p>
 
                   <!-- Primary Font -->
@@ -294,7 +335,9 @@
                     >
                       {{ existingBranding()!.typography.primaryFont }}
                     </h4>
-                    <p class="text-gray-400 text-sm mb-3">Primary font</p>
+                    <p class="text-gray-400 text-sm mb-3">
+                      {{ 'dashboard.showBranding.sections.typography.primary' | translate }}
+                    </p>
                     <div class="space-y-1">
                       <p
                         class="text-white text-lg font-bold"
@@ -326,7 +369,9 @@
                       >
                         {{ existingBranding()!.typography.secondaryFont }}
                       </h4>
-                      <p class="text-gray-400 text-sm mb-3">Secondary font</p>
+                      <p class="text-gray-400 text-sm mb-3">
+                        {{ 'dashboard.showBranding.sections.typography.secondary' | translate }}
+                      </p>
                       <div class="space-y-1">
                         <p
                           class="text-white text-base"
@@ -349,7 +394,9 @@
           } @else {
             <div class="text-center py-8">
               <i class="pi pi-font text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">No typography available</p>
+              <p class="text-gray-400">
+                {{ 'dashboard.showBranding.empty.noTypography' | translate }}
+              </p>
             </div>
           }
         </div>
@@ -362,11 +409,15 @@
         <div class="mb-6">
           <i class="pi pi-exclamation-triangle text-6xl text-gray-400 mb-4"></i>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-4">No Project Selected</h3>
-        <p class="text-gray-300 mb-8">Please select a project to view its brand identity.</p>
+        <h3 class="text-2xl font-bold text-white mb-4">
+          {{ 'dashboard.showBranding.empty.noProject.title' | translate }}
+        </h3>
+        <p class="text-gray-300 mb-8">
+          {{ 'dashboard.showBranding.empty.noProject.subtitle' | translate }}
+        </p>
         <button class="inner-button" (click)="goToProjects()">
           <i class="pi pi-folder mr-2"></i>
-          Select Project
+          {{ 'dashboard.showBranding.buttons.selectProject' | translate }}
         </button>
       </div>
     </div>
@@ -374,15 +425,15 @@
 
   <!-- Extension Selection Dialog -->
   <p-dialog
-    header="Choose Format"
+    [header]="'dashboard.showBranding.dialog.title' | translate"
     [modal]="true"
     [(visible)]="visible"
     [style]="{ width: '25rem' }"
     styleClass="extension-dialog centered-modal"
   >
-    <span class="p-text-secondary block mb-8"
-      >Select the desired format to download all logo variations.</span
-    >
+    <span class="p-text-secondary block mb-8">{{
+      'dashboard.showBranding.dialog.subtitle' | translate
+    }}</span>
 
     <!-- Extension Options -->
     <div class="space-y-3 mb-6">
@@ -403,8 +454,12 @@
               />
             </div>
             <div>
-              <h4 class="text-white font-medium">SVG</h4>
-              <p class="text-gray-400 text-sm">Vector format, scalable</p>
+              <h4 class="text-white font-medium">
+                {{ 'dashboard.showBranding.dialog.formats.svg.name' | translate }}
+              </h4>
+              <p class="text-gray-400 text-sm">
+                {{ 'dashboard.showBranding.dialog.formats.svg.description' | translate }}
+              </p>
             </div>
           </div>
           @if (selectedExtension === 'svg') {
@@ -430,8 +485,12 @@
               />
             </div>
             <div>
-              <h4 class="text-white font-medium">PNG</h4>
-              <p class="text-gray-400 text-sm">Bitmap format, high quality</p>
+              <h4 class="text-white font-medium">
+                {{ 'dashboard.showBranding.dialog.formats.png.name' | translate }}
+              </h4>
+              <p class="text-gray-400 text-sm">
+                {{ 'dashboard.showBranding.dialog.formats.png.description' | translate }}
+              </p>
             </div>
           </div>
           @if (selectedExtension === 'png') {
@@ -457,8 +516,12 @@
               />
             </div>
             <div>
-              <h4 class="text-white font-medium">PSD</h4>
-              <p class="text-gray-400 text-sm">Photoshop, editable layers</p>
+              <h4 class="text-white font-medium">
+                {{ 'dashboard.showBranding.dialog.formats.psd.name' | translate }}
+              </h4>
+              <p class="text-gray-400 text-sm">
+                {{ 'dashboard.showBranding.dialog.formats.psd.description' | translate }}
+              </p>
             </div>
           </div>
           @if (selectedExtension === 'psd') {
@@ -470,10 +533,10 @@
 
     <div class="flex justify-end gap-2">
       <button class="outer-button" (click)="visible = false" [disabled]="isDownloading()">
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button class="inner-button" (click)="downloadLogosZip()" [disabled]="isDownloading()">
-        {{ isDownloading() ? 'Downloading...' : 'Download' }}
+        {{ (isDownloading() ? 'common.downloading' : 'common.download') | translate }}
       </button>
     </div>
 
@@ -484,8 +547,12 @@
       >
         <div class="text-center">
           <app-loader />
-          <p class="text-white mt-4 font-medium">Preparing download...</p>
-          <p class="text-gray-400 text-sm">This may take a few moments</p>
+          <p class="text-white mt-4 font-medium">
+            {{ 'dashboard.showBranding.dialog.preparing' | translate }}
+          </p>
+          <p class="text-gray-400 text-sm">
+            {{ 'dashboard.showBranding.dialog.wait' | translate }}
+          </p>
         </div>
       </div>
     }

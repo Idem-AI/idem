@@ -34,6 +34,7 @@ export class GlobalDashboard implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly cookieService = inject(CookieService);
+  private readonly translate = inject(TranslateService);
 
   // Signals
   protected readonly projects = signal<ProjectModel[]>([]);

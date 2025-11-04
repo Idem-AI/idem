@@ -5,12 +5,14 @@
       <section class="space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">Project Teams</h1>
-            <p class="text-gray-400 mt-2">Manage teams assigned to this project</p>
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">
+              {{ 'dashboard.projectTeams.title' | translate }}
+            </h1>
+            <p class="text-gray-400 mt-2">{{ 'dashboard.projectTeams.subtitle' | translate }}</p>
           </div>
           <button (click)="addTeamToProject()" class="inner-button">
             <i class="pi pi-plus mr-2"></i>
-            Add Team
+            {{ 'dashboard.projectTeams.buttons.addTeam' | translate }}
           </button>
         </div>
       </section>
@@ -24,7 +26,7 @@
           <div class="flex items-center gap-3 text-red-400">
             <i class="pi pi-exclamation-triangle text-2xl"></i>
             <div>
-              <h3 class="font-bold">Error</h3>
+              <h3 class="font-bold">{{ 'common.error' | translate }}</h3>
               <p class="text-sm">{{ errorMessage() }}</p>
             </div>
           </div>
@@ -52,18 +54,24 @@
                       {{ projectTeam.team.name }}
                     </h3>
                     <p class="text-sm text-gray-400 mb-4 line-clamp-2">
-                      {{ projectTeam.team.description || 'No description' }}
+                      {{ projectTeam.team.description || '{{ 'common.noDescription' | translate }}'
+                      }}
                     </p>
 
                     <div class="flex items-center gap-2 text-xs text-gray-400 mb-3">
                       <i class="pi pi-users"></i>
-                      <span>{{ projectTeam.team.members.length }} members</span>
+                      <span>{{
+                        'dashboard.projectTeams.cards.members'
+                          | translate: { count: projectTeam.team.members.length }
+                      }}</span>
                     </div>
                   }
 
                   <!-- Project Roles -->
                   <div class="space-y-2">
-                    <p class="text-xs text-gray-400 font-medium">Project Roles:</p>
+                    <p class="text-xs text-gray-400 font-medium">
+                      {{ 'dashboard.projectTeams.cards.projectRoles' | translate }}:
+                    </p>
                     <div class="flex flex-wrap gap-2">
                       @for (role of projectTeam.roles; track role) {
                         <span
@@ -83,14 +91,14 @@
             >
               <i class="pi pi-users text-3xl sm:text-4xl text-gray-600 mb-3"></i>
               <div class="text-gray-400 text-sm sm:text-base mb-2">
-                No teams assigned to this project
+                {{ 'dashboard.projectTeams.empty.noTeams' | translate }}
               </div>
               <button
                 (click)="addTeamToProject()"
                 class="text-primary text-sm sm:text-base inline-block transition-colors outer-button mt-4"
               >
                 <i class="pi pi-plus mr-2"></i>
-                Add Team to Project
+                {{ 'dashboard.projectTeams.buttons.addTeamToProject' | translate }}
               </button>
             </div>
           }
@@ -100,7 +108,7 @@
   </div>
 </div>
 
-<!-- Add Team Modal -->
+<!-- {{ 'dashboard.projectTeams.buttons.addTeam' | translate }} Modal -->
 @if (showAddTeamModal()) {
   <app-add-team-to-project-modal
     [projectId]="projectId()!"

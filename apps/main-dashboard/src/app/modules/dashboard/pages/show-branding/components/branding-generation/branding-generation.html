@@ -12,21 +12,24 @@
           <div>
             <h2 class="text-xl font-bold text-white">
               @if (isPostProcessing()) {
-                Finalizing Brand Identity
+                {{ 'dashboard.brandingGeneration.finalizing' | translate }}
               } @else {
-                Generating Brand Identity
+                {{ 'dashboard.brandingGeneration.generating' | translate }}
               }
             </h2>
             <p class="text-gray-300 text-sm">
               @if (isPostProcessing()) {
                 {{ postProcessingMessage() }}
               } @else {
-                Creating your comprehensive brand identity...
+                {{ 'dashboard.brandingGeneration.creating' | translate }}
               }
             </p>
             @if (generationState().stepsInProgress.length > 0) {
               <p class="text-xs text-blue-400 mt-1">
-                Currently processing: {{ generationState().stepsInProgress.join(', ') }}
+                {{
+                  'dashboard.brandingGeneration.processing'
+                    | translate: { steps: generationState().stepsInProgress.join(', ') }
+                }}
               </p>
             }
           </div>
@@ -38,10 +41,12 @@
             <div class="text-2xl font-bold text-white">
               {{ generationState().completedSteps.length }}/{{ generationState().totalSteps }}
             </div>
-            <div class="text-sm text-gray-300">Steps Completed</div>
+            <div class="text-sm text-gray-300">
+              {{ 'dashboard.brandingGeneration.stepsCompleted' | translate }}
+            </div>
             @if (generationState().completedSteps.length > 0) {
               <div class="text-xs text-green-400 mt-1">
-                Last:
+                {{ 'dashboard.brandingGeneration.lastStep' | translate }}:
                 {{ generationState().completedSteps[generationState().completedSteps.length - 1] }}
               </div>
             }
@@ -91,7 +96,9 @@
                     <i class="pi pi-save animate-pulse text-white"></i>
                   </div>
                   <div>
-                    <h3 class="text-lg font-semibold text-white">Saving Data</h3>
+                    <h3 class="text-lg font-semibold text-white">
+                      {{ 'dashboard.brandingGeneration.savingData' | translate }}
+                    </h3>
                     <p class="text-gray-300 text-sm">{{ postProcessingMessage() }}</p>
                   </div>
                 </div>
@@ -109,7 +116,7 @@
               </div>
             </div>
             <div class="p-6 space-y-4">
-              <p class="text-gray-300">Please wait while we finalize your branding data...</p>
+              <p class="text-gray-300">{{ 'dashboard.brandingGeneration.wait' | translate }}</p>
               <div class="w-full bg-gray-700 rounded-full h-2">
                 <div
                   class="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full animate-pulse"
@@ -133,7 +140,7 @@
                     </div>
                     <div>
                       <h3 class="text-lg font-semibold text-white">{{ stepName }}</h3>
-                      <p class="text-gray-300 text-sm">In Progress...</p>
+                      <p class="text-gray-300 text-sm">{{ 'common.inProgress' | translate }}</p>
                     </div>
                   </div>
                   <div class="flex items-center space-x-2">
@@ -179,7 +186,10 @@
                       <div>
                         <h4 class="font-semibold text-white">{{ step.name }}</h4>
                         <p class="text-gray-400 text-sm">
-                          Completed {{ step.timestamp | date: 'short' }}
+                          {{
+                            'dashboard.brandingGeneration.stepCompletedAt'
+                              | translate: { time: (step.timestamp | date: 'short') }
+                          }}
                         </p>
                       </div>
                     </div>
@@ -215,9 +225,13 @@
             ></path>
           </svg>
         </div>
-        <h3 class="text-xl font-bold text-white mb-2">Generation Failed</h3>
+        <h3 class="text-xl font-bold text-white mb-2">
+          {{ 'dashboard.brandingGeneration.errors.title' | translate }}
+        </h3>
         <p class="text-gray-400 mb-6">{{ generationError() }}</p>
-        <button (click)="generateBranding()" class="w-full inner-button">Try Again</button>
+        <button (click)="generateBranding()" class="w-full inner-button">
+          {{ 'common.tryAgain' | translate }}
+        </button>
       </div>
     </div>
   </div>

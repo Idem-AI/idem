@@ -7,11 +7,12 @@ import { DeploymentModel } from '../../../models/deployment.model';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { DeploymentService } from '../../../services/deployment.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-deployment-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, Loader],
+  imports: [CommonModule, RouterLink, Loader, TranslateModule],
   templateUrl: './deployment-list.html',
   styleUrl: './deployment-list.css',
 })
@@ -26,6 +27,7 @@ export class DeploymentList implements OnInit {
   private readonly deploymentService = inject(DeploymentService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   ngOnInit(): void {
     // Get project ID from cookie
@@ -36,7 +38,7 @@ export class DeploymentList implements OnInit {
       this.fetchDeployments(projectId);
     } else {
       this.loading.set(false);
-      this.error.set('No active project selected');
+      this.error.set(this.translate.instant('dashboard.deploymentList.errors.noProjectSelected'));
     }
   }
 
@@ -90,7 +92,7 @@ export class DeploymentList implements OnInit {
         }),
         catchError((error) => {
           console.error('Error fetching deployments', error);
-          this.error.set('Failed to load deployments');
+          this.error.set(this.translate.instant('dashboard.deploymentList.errors.failedToLoad'));
           this.loading.set(false);
 
           // Fallback to mock data in development
@@ -183,12 +185,12 @@ export class DeploymentList implements OnInit {
   }
 
   protected formatDate(date: Date): string {
-    if (!date) return 'N/A';
+    if (!date) return this.translate.instant('common.notAvailable');
     return new Date(date).toLocaleString();
   }
 
   protected truncateUrl(url: string): string {
-    if (!url) return 'N/A';
+    if (!url) return this.translate.instant('common.notAvailable');
     return url.replace(/^https?:\/\/(www\.)?/, '');
   }
 }

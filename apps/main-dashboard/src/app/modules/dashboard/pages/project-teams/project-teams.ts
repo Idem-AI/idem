@@ -12,13 +12,14 @@ import { ProjectTeamModel, TeamModel } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { AddTeamToProjectModalComponent } from '../../components/add-team-to-project-modal/add-team-to-project-modal';
 
 @Component({
   selector: 'app-project-teams',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader, AddTeamToProjectModalComponent],
+  imports: [CommonModule, RouterModule, Loader, AddTeamToProjectModalComponent, TranslateModule],
   templateUrl: './project-teams.html',
   styleUrl: './project-teams.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,6 +29,7 @@ export class ProjectTeams implements OnInit {
   private readonly teamService = inject(TeamService);
   private readonly router = inject(Router);
   private readonly cookieService = inject(CookieService);
+  private readonly translate = inject(TranslateService);
 
   // Signals
   protected readonly projectTeams = signal<ProjectTeamModel[]>([]);
@@ -44,7 +46,9 @@ export class ProjectTeams implements OnInit {
   ngOnInit() {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
-      this.errorMessage.set('No project selected');
+      this.errorMessage.set(
+        this.translate.instant('dashboard.projectTeams.errors.noProjectSelected'),
+      );
       this.isLoading.set(false);
       this.router.navigate(['/console/projects']);
       return;
@@ -68,7 +72,7 @@ export class ProjectTeams implements OnInit {
       },
       error: (error) => {
         console.error('Error loading project teams:', error);
-        this.errorMessage.set('Failed to load teams');
+        this.errorMessage.set(this.translate.instant('dashboard.projectTeams.errors.failedToLoad'));
         this.isLoading.set(false);
       },
     });
@@ -147,7 +151,7 @@ export class ProjectTeams implements OnInit {
   protected removeTeam(teamId: string): void {
     if (!this.projectId()) return;
 
-    if (confirm('Are you sure you want to remove this team from the project?')) {
+    if (confirm(this.translate.instant('dashboard.projectTeams.confirm.removeTeam'))) {
       this.teamService.removeTeamFromProject(this.projectId()!, teamId).subscribe({
         next: () => {
           // Reload teams
@@ -155,7 +159,7 @@ export class ProjectTeams implements OnInit {
         },
         error: (error) => {
           console.error('Error removing team:', error);
-          alert('Failed to remove team from project');
+          alert(this.translate.instant('dashboard.projectTeams.errors.failedToRemove'));
         },
       });
     }

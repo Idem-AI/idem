@@ -2,8 +2,10 @@
   <div class="max-w-4xl mx-auto">
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white mb-2">User Profile</h1>
-      <p class="text-gray-400">Manage your account and view quota information</p>
+      <h1 class="text-3xl font-bold text-white mb-2">
+        {{ 'dashboard.profile.title' | translate }}
+      </h1>
+      <p class="text-gray-400">{{ 'dashboard.profile.subtitle' | translate }}</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -14,7 +16,7 @@
             @if (user.photoURL) {
               <img
                 [src]="user.photoURL"
-                [alt]="user.name + ' profile picture'"
+                [alt]="user.name + ('dashboard.profile.alt.profilePicture' | translate)"
                 class="w-12 h-12 rounded-full object-cover mr-4 border-2 border-white/20"
                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
               />
@@ -56,21 +58,29 @@
               </svg>
             </div>
           }
-          <h2 class="text-xl font-semibold text-white">Personal Information</h2>
+          <h2 class="text-xl font-semibold text-white">
+            {{ 'dashboard.profile.sections.personalInfo' | translate }}
+          </h2>
         </div>
 
         @if (userInfo(); as user) {
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Name</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1">{{
+                'dashboard.profile.fields.name' | translate
+              }}</label>
               <p class="text-white">{{ user.name || 'Not specified' }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Email</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1">{{
+                'dashboard.profile.fields.email' | translate
+              }}</label>
               <p class="text-white">{{ user.email || 'Not specified' }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Account Type</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1">{{
+                'dashboard.profile.fields.accountType' | translate
+              }}</label>
               <span
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                 [class]="
@@ -79,11 +89,18 @@
                     : 'bg-primary/20 text-primary'
                 "
               >
-                {{ user.accountType === 'premium' ? 'Premium' : 'Free' }}
+                {{
+                  (user.accountType === 'premium'
+                    ? 'dashboard.profile.accountTypes.premium'
+                    : 'dashboard.profile.accountTypes.free'
+                  ) | translate
+                }}
               </span>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Member Since</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1">{{
+                'dashboard.profile.fields.memberSince' | translate
+              }}</label>
               <p class="text-white">{{ formatDate(user.createdAt) }}</p>
             </div>
           </div>
@@ -111,31 +128,44 @@
                 ></path>
               </svg>
             </div>
-            <h2 class="text-xl font-semibold text-white">Beta Access</h2>
+            <h2 class="text-xl font-semibold text-white">
+              {{ 'dashboard.profile.sections.betaAccess' | translate }}
+            </h2>
           </div>
 
           <div class="space-y-4">
             <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
               <p class="text-orange-300 text-sm mb-2">
-                You have beta access to Lexi! Thank you for being an early adopter.
+                {{ 'dashboard.profile.beta.message' | translate }}
               </p>
             </div>
 
             @if (betaRestrictions(); as restrictions) {
               <div>
-                <h3 class="text-sm font-medium text-gray-400 mb-2">Beta Limitations</h3>
+                <h3 class="text-sm font-medium text-gray-400 mb-2">
+                  {{ 'dashboard.profile.beta.limitations' | translate }}
+                </h3>
                 <ul class="space-y-2 text-sm text-gray-300">
                   <li class="flex items-center">
                     <span class="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
-                    Maximum {{ restrictions.maxStyles }} styles per generation
+                    {{
+                      'dashboard.profile.beta.maxStyles'
+                        | translate: { count: restrictions.maxStyles }
+                    }}
                   </li>
                   <li class="flex items-center">
                     <span class="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
-                    Resolution limited to {{ restrictions.maxResolution }}
+                    {{
+                      'dashboard.profile.beta.resolution'
+                        | translate: { resolution: restrictions.maxResolution }
+                    }}
                   </li>
                   <li class="flex items-center">
                     <span class="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
-                    Maximum {{ restrictions.maxOutputTokens }} output tokens
+                    {{
+                      'dashboard.profile.beta.maxTokens'
+                        | translate: { count: restrictions.maxOutputTokens }
+                    }}
                   </li>
                 </ul>
               </div>
@@ -158,7 +188,9 @@
               ></path>
             </svg>
           </div>
-          <h2 class="text-xl font-semibold text-white">Quota Usage</h2>
+          <h2 class="text-xl font-semibold text-white">
+            {{ 'dashboard.profile.sections.quotaUsage' | translate }}
+          </h2>
         </div>
 
         @if (quotaInfo(); as quota) {
@@ -166,9 +198,12 @@
             <!-- Daily Quota -->
             <div class="space-y-3">
               <div class="flex justify-between items-center">
-                <h3 class="text-sm font-medium text-gray-400">Daily Quota</h3>
+                <h3 class="text-sm font-medium text-gray-400">
+                  {{ 'dashboard.profile.quota.daily' | translate }}
+                </h3>
                 <span class="text-sm" [class]="getDailyStatusClass()">
-                  {{ quota.remainingDaily }}/{{ quota.dailyLimit }} remaining
+                  {{ quota.remainingDaily }}/{{ quota.dailyLimit }}
+                  {{ 'common.remaining' | translate }}
                 </span>
               </div>
               <div class="w-full bg-gray-700 rounded-full h-2">
@@ -178,15 +213,20 @@
                   [style.width.%]="getDailyPercentage()"
                 ></div>
               </div>
-              <p class="text-xs text-gray-400">Used: {{ quota.dailyUsage }} credits today</p>
+              <p class="text-xs text-gray-400">
+                {{ 'dashboard.profile.quota.usedToday' | translate: { count: quota.dailyUsage } }}
+              </p>
             </div>
 
             <!-- Weekly Quota -->
             <div class="space-y-3">
               <div class="flex justify-between items-center">
-                <h3 class="text-sm font-medium text-gray-400">Weekly Quota</h3>
+                <h3 class="text-sm font-medium text-gray-400">
+                  {{ 'dashboard.profile.quota.weekly' | translate }}
+                </h3>
                 <span class="text-sm" [class]="getWeeklyStatusClass()">
-                  {{ quota.remainingWeekly }}/{{ quota.weeklyLimit }} remaining
+                  {{ quota.remainingWeekly }}/{{ quota.weeklyLimit }}
+                  {{ 'common.remaining' | translate }}
                 </span>
               </div>
               <div class="w-full bg-gray-700 rounded-full h-2">
@@ -196,7 +236,11 @@
                   [style.width.%]="getWeeklyPercentage()"
                 ></div>
               </div>
-              <p class="text-xs text-gray-400">Used: {{ quota.weeklyUsage }} credits this week</p>
+              <p class="text-xs text-gray-400">
+                {{
+                  'dashboard.profile.quota.usedThisWeek' | translate: { count: quota.weeklyUsage }
+                }}
+              </p>
             </div>
           </div>
 
@@ -216,7 +260,7 @@
                     ></path>
                   </svg>
                   <p class="text-yellow-300 text-sm">
-                    You're approaching your quota limits. Consider upgrading for more credits.
+                    {{ 'dashboard.profile.quota.warning' | translate }}
                   </p>
                 </div>
               </div>
@@ -234,7 +278,7 @@
                     ></path>
                   </svg>
                   <p class="text-red-300 text-sm">
-                    You've reached your quota limits. Upgrade your plan to continue using Lexi.
+                    {{ 'dashboard.profile.quota.exceeded' | translate }}
                   </p>
                 </div>
               </div>
@@ -255,10 +299,10 @@
       <button
         class="px-6 py-2 bg-gradient-to-r inner-button transition-all duration-200 font-medium"
       >
-        Upgrade Plan
+        {{ 'dashboard.profile.buttons.upgrade' | translate }}
       </button>
       <button class="px-6 py-2 glass outer-button transition-all duration-200 font-medium">
-        Account Settings
+        {{ 'dashboard.profile.buttons.settings' | translate }}
       </button>
     </div>
   </div>

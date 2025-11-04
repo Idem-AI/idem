@@ -15,6 +15,7 @@ import { AccordionModule } from 'primeng/accordion';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-deployment-details',
@@ -28,6 +29,7 @@ import { ScrollPanelModule } from 'primeng/scrollpanel';
     DialogModule,
     ButtonModule,
     ScrollPanelModule,
+    TranslateModule,
   ],
   templateUrl: './deployment-details.html',
 })
@@ -71,6 +73,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
   protected readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
+  private readonly translate = inject(TranslateService);
   private sseSubscription: any = null;
 
   ngOnInit(): void {
@@ -83,7 +86,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     const projectId = this.cookieService.get('projectId');
 
     if (!deploymentId || !projectId) {
-      this.error.set('Missing deployment ID or project ID');
+      this.error.set(this.translate.instant('dashboard.deploymentDetails.errors.missingIds'));
       this.loading.set(false);
       return;
     }
@@ -100,7 +103,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error fetching deployment details:', error);
-        this.error.set('Failed to load deployment details');
+        this.error.set(this.translate.instant('dashboard.deploymentDetails.errors.failedToLoad'));
         this.loading.set(false);
       },
     });
@@ -111,7 +114,9 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     const projectId = this.projectId();
 
     if (!deploymentId || !projectId) {
-      this.error.set('Cannot redeploy: Missing deployment ID or project ID');
+      this.error.set(
+        this.translate.instant('dashboard.deploymentDetails.errors.redeployMissingIds'),
+      );
       return;
     }
 
@@ -126,7 +131,9 @@ export class DeploymentDetails implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error redeploying:', error);
-        this.error.set('Failed to redeploy');
+        this.error.set(
+          this.translate.instant('dashboard.deploymentDetails.errors.failedToRedeploy'),
+        );
         this.loading.set(false);
       },
     });
@@ -137,7 +144,7 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     const projectId = this.projectId();
 
     if (!deploymentId || !projectId) {
-      this.error.set('Cannot cancel: Missing deployment ID or project ID');
+      this.error.set(this.translate.instant('dashboard.deploymentDetails.errors.cancelMissingIds'));
       return;
     }
 
@@ -152,14 +159,14 @@ export class DeploymentDetails implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error cancelling deployment:', error);
-        this.error.set('Failed to cancel deployment');
+        this.error.set(this.translate.instant('dashboard.deploymentDetails.errors.failedToCancel'));
         this.loading.set(false);
       },
     });
   }
 
   protected formatDate(date: Date | undefined): string {
-    if (!date) return 'N/A';
+    if (!date) return this.translate.instant('common.notAvailable');
     return new Date(date).toLocaleString();
   }
 
@@ -171,7 +178,9 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     const projectId = this.projectId();
 
     if (!deploymentId || !projectId) {
-      this.error.set('Cannot generate pipeline: Missing deployment ID or project ID');
+      this.error.set(
+        this.translate.instant('dashboard.deploymentDetails.errors.pipelineMissingIds'),
+      );
       return;
     }
 
@@ -186,7 +195,9 @@ export class DeploymentDetails implements OnInit, OnDestroy {
       },
       error: (error: Error) => {
         console.error('Error generating pipeline:', error);
-        this.error.set('Failed to generate deployment pipeline');
+        this.error.set(
+          this.translate.instant('dashboard.deploymentDetails.errors.failedToGeneratePipeline'),
+        );
         this.loading.set(false);
       },
     });
@@ -200,7 +211,9 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     const projectId = this.projectId();
 
     if (!deploymentId || !projectId) {
-      this.error.set('Cannot generate Terraform files: Missing deployment ID or project ID');
+      this.error.set(
+        this.translate.instant('dashboard.deploymentDetails.errors.terraformMissingIds'),
+      );
       return;
     }
 
@@ -215,7 +228,9 @@ export class DeploymentDetails implements OnInit, OnDestroy {
       },
       error: (error: Error) => {
         console.error('Error generating Terraform files:', error);
-        this.error.set('Failed to generate Terraform files');
+        this.error.set(
+          this.translate.instant('dashboard.deploymentDetails.errors.failedToGenerateTerraform'),
+        );
         this.loading.set(false);
       },
     });
@@ -263,7 +278,10 @@ export class DeploymentDetails implements OnInit, OnDestroy {
   protected startExecution(): void {
     const deploymentId = this.currentDeploymentId();
     if (!deploymentId) {
-      this.addExecutionLog('error', 'No deployment ID provided');
+      this.addExecutionLog(
+        'error',
+        this.translate.instant('dashboard.deploymentDetails.execution.noId'),
+      );
       return;
     }
 
@@ -272,8 +290,14 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     this.executionStartTime.set(new Date().toISOString());
     this.executionEndTime.set(null);
 
-    this.addExecutionLog('info', `Starting deployment execution for ID: ${deploymentId}`);
-    this.addExecutionLog('info', 'Connecting to deployment stream...');
+    this.addExecutionLog(
+      'info',
+      this.translate.instant('dashboard.deploymentDetails.execution.starting', { deploymentId }),
+    );
+    this.addExecutionLog(
+      'info',
+      this.translate.instant('dashboard.deploymentDetails.execution.connecting'),
+    );
 
     this.sseSubscription = this.deploymentService
       .executeDeploymentStream(deploymentId)
@@ -284,7 +308,12 @@ export class DeploymentDetails implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('SSE Error:', error);
-          this.addExecutionLog('error', `Connection error: ${error.message || 'Unknown error'}`);
+          this.addExecutionLog(
+            'error',
+            this.translate.instant('dashboard.deploymentDetails.execution.connectionError', {
+              error: error.message || 'Unknown error',
+            }),
+          );
           this.isExecuting.set(false);
           this.executionStatus.set('error');
           this.executionEndTime.set(new Date().toISOString());
@@ -293,7 +322,10 @@ export class DeploymentDetails implements OnInit, OnDestroy {
           console.log('SSE stream completed');
           if (this.executionStatus() === 'executing') {
             // Stream completed without explicit success/error
-            this.addExecutionLog('info', 'Deployment execution stream completed');
+            this.addExecutionLog(
+              'info',
+              this.translate.instant('dashboard.deploymentDetails.execution.streamCompleted'),
+            );
             this.isExecuting.set(false);
             this.executionEndTime.set(new Date().toISOString());
           }
@@ -317,7 +349,10 @@ export class DeploymentDetails implements OnInit, OnDestroy {
     this.executionStatus.set('error'); // Marquer comme annulé
 
     // Ajouter un log d'annulation
-    this.addExecutionLog('error', 'Deployment execution cancelled by user');
+    this.addExecutionLog(
+      'error',
+      this.translate.instant('dashboard.deploymentDetails.execution.cancelledByUser'),
+    );
 
     console.log('Deployment execution stopped by user');
   }
@@ -357,7 +392,12 @@ export class DeploymentDetails implements OnInit, OnDestroy {
 
       // Add error code if available
       if (event.errorCode) {
-        this.addExecutionLog('error', `Error Code: ${event.errorCode}`);
+        this.addExecutionLog(
+          'error',
+          this.translate.instant('dashboard.deploymentDetails.execution.errorCode', {
+            code: event.errorCode,
+          }),
+        );
       }
       return;
     }

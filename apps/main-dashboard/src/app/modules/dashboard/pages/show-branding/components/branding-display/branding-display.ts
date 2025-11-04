@@ -12,11 +12,12 @@ import { BrandingService } from '../../../../services/ai-agents/branding.service
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { TokenService } from '../../../../../../shared/services/token.service';
 import { PdfViewer } from '../../../../../../shared/components/pdf-viewer/pdf-viewer';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-branding-display',
   standalone: true,
-  imports: [PdfViewer],
+  imports: [PdfViewer, TranslateModule],
   templateUrl: './branding-display.html',
   styleUrl: './branding-display.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,6 +29,7 @@ export class BrandingDisplayComponent implements OnInit {
   private readonly brandingService = inject(BrandingService);
   private readonly cookieService = inject(CookieService);
   private readonly tokenService = inject(TokenService);
+  private readonly translate = inject(TranslateService);
 
   protected readonly pdfSrc = signal<string | null>(null);
   protected readonly isDownloadingPdf = signal<boolean>(false);
@@ -46,7 +48,7 @@ export class BrandingDisplayComponent implements OnInit {
         await this.loadPdfFromBackend();
       } catch (error: any) {
         console.error('Authentication error in ngOnInit:', error);
-        this.pdfError.set('Authentication failed. Please refresh the page and try again.');
+        this.pdfError.set(this.translate.instant('dashboard.brandingDisplay.errors.authFailed'));
       }
     }
   }
@@ -65,7 +67,7 @@ export class BrandingDisplayComponent implements OnInit {
       console.log('PDF loaded from provided blob (optimized)');
     } catch (error: any) {
       console.error('Error loading PDF from blob:', error);
-      this.pdfError.set('Failed to load PDF. Please try again.');
+      this.pdfError.set(this.translate.instant('dashboard.brandingDisplay.errors.loadPdf'));
     } finally {
       this.isDownloadingPdf.set(false);
     }
@@ -81,13 +83,15 @@ export class BrandingDisplayComponent implements OnInit {
 
       const projectId = this.cookieService.get('projectId');
       if (!projectId) {
-        throw new Error('Project ID not found');
+        throw new Error(
+          this.translate.instant('dashboard.brandingDisplay.errors.projectIdNotFound'),
+        );
       }
 
       // Verify authentication before making request
       const token = this.tokenService.getToken();
       if (!token) {
-        throw new Error('Authentication required. Please login again.');
+        throw new Error(this.translate.instant('dashboard.brandingDisplay.errors.authRequired'));
       }
 
       // Download PDF blob from backend
@@ -103,18 +107,18 @@ export class BrandingDisplayComponent implements OnInit {
       console.error('Error loading PDF from backend:', error);
 
       // Handle specific error types
-      let errorMessage = 'Failed to load PDF. Please try again.';
+      let errorMessage = this.translate.instant('dashboard.brandingDisplay.errors.loadPdf');
 
       if (
         error.status === 401 ||
         error.message.includes('Authentication') ||
         error.message.includes('not authenticated')
       ) {
-        errorMessage = 'Authentication failed. Please refresh the page and login again.';
+        errorMessage = this.translate.instant('dashboard.brandingDisplay.errors.authFailedRefresh');
       } else if (error.status === 404) {
-        errorMessage = 'PDF not found. The branding document may not have been generated yet.';
+        errorMessage = this.translate.instant('dashboard.brandingDisplay.errors.pdfNotFound');
       } else if (error.status === 500) {
-        errorMessage = 'Server error generating PDF. Please try regenerating the branding.';
+        errorMessage = this.translate.instant('dashboard.brandingDisplay.errors.pdfServerError');
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -133,7 +137,7 @@ export class BrandingDisplayComponent implements OnInit {
     } catch (error: any) {
       console.error('Error in regeneratePdf:', error);
       this.pdfError.set(
-        'Failed to regenerate PDF. Please check your authentication and try again.',
+        this.translate.instant('dashboard.brandingDisplay.errors.regenerateFailed'),
       );
     }
   }

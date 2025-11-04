@@ -17,10 +17,11 @@ import { Router } from '@angular/router';
 import { first, Observable } from 'rxjs';
 import { ProjectCard } from '../../components/project-card/project-card';
 import { CookieService } from '../../../../shared/services/cookie.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-projects-list',
-  imports: [Loader, AsyncPipe, ProjectCard],
+  imports: [Loader, AsyncPipe, ProjectCard, TranslateModule],
   templateUrl: './projects-list.html',
   styleUrl: './projects-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +31,7 @@ export class ProjectsList implements OnInit {
   private readonly projectService = inject(ProjectService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   // Data signals and state
   userProjects$!: Observable<ProjectModel[]>;
