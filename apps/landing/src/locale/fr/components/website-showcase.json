@@ -1,0 +1,26 @@
+{
+  "locale": "fr",
+  "translations": {
+    "website-showcase.title": "",
+    "website-showcase.description": "",
+    "website-showcase.viewLiveSite": "",
+    "website-showcase.stats.websitesCreated": "",
+    "website-showcase.stats.industriesServed": "",
+    "website-showcase.stats.clientSatisfaction": "",
+    "website-showcase.stats.averageDelivery": "",
+    "website-showcase.websites.techflow.category": "",
+    "website-showcase.websites.techflow.description": "",
+    "website-showcase.websites.ecogreen.category": "",
+    "website-showcase.websites.ecogreen.description": "",
+    "website-showcase.websites.healthcare.category": "",
+    "website-showcase.websites.healthcare.description": "",
+    "website-showcase.websites.edulearn.category": "",
+    "website-showcase.websites.edulearn.description": "",
+    "website-showcase.websites.fintech.category": "",
+    "website-showcase.websites.fintech.description": "",
+    "website-showcase.websites.creative.category": "",
+    "website-showcase.websites.creative.description": "",
+    "website-showcase.seo.name": "",
+    "website-showcase.seo.description": ""
+  }
+}

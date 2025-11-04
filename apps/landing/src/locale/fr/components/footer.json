@@ -1,0 +1,29 @@
+{
+  "locale": "fr",
+  "translations": {
+    "footer.description": "",
+    "footer.apache_license": "",
+    "footer.platform": "",
+    "footer.home": "",
+    "footer.documentation": "",
+    "footer.openSource": "",
+    "footer.betaProgram": "",
+    "footer.followUs": "",
+    "footer.aria.github": "",
+    "footer.aria.linkedin": "",
+    "footer.aria.facebook": "",
+    "footer.legal": "",
+    "footer.privacyPolicy": "",
+    "footer.termsOfService": "",
+    "footer.apacheLicense": "",
+    "footer.founders": "",
+    "footer.ceoName": "",
+    "footer.ceoTitle": "",
+    "footer.ctoName": "",
+    "footer.ctoTitle": "",
+    "footer.buildingAfrica": "",
+    "footer.2025_idem_all": "",
+    "footer.african_you_too": "",
+    "footer.madeInCameroon": ""
+  }
+}
