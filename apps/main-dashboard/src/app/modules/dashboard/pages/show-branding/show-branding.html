@@ -2,7 +2,7 @@
   @if (isLoading()) {
     <!-- Loading State -->
     <div class="max-w-7xl mx-auto">
-      <div class="text-center py-20">
+      <div class="bg-linear-to-r py-20">
         <div class="mb-4">
           <app-loader />
         </div>
@@ -23,7 +23,7 @@
         {{ 'dashboard.showBranding.buttons.backToOverview' | translate }}
       </button>
     </div>
-  } @else if (hasError() && isRetryable()) {
+  } @else if (hasError() && is{{ 'common.retry' | translate }}able()) {
     <!-- Error state with retry button -->
     <div class="max-w-4xl mx-auto text-center py-10">
       <div class="glass-card p-8">
@@ -35,7 +35,7 @@
         <div class="flex gap-4 justify-center">
           <button class="inner-button" (click)="retryLoadBranding()">
             <i class="pi pi-refresh mr-2"></i>
-            Retry
+            {{ 'common.retry' | translate }}
           </button>
           <button
             class="glass-card px-6 py-3 text-white hover:bg-white/20 transition-all duration-300 rounded-lg"
@@ -193,7 +193,7 @@
               }
             </div>
           } @else {
-            <div class="text-center py-8">
+            <div class="bg-linear-to-r py-8">
               <i class="pi pi-image text-4xl text-gray-500 mb-3"></i>
               <p class="text-gray-400">{{ 'dashboard.showBranding.empty.noLogos' | translate }}</p>
             </div>
@@ -290,7 +290,7 @@
               }
             </div>
           } @else {
-            <div class="text-center py-8">
+            <div class="bg-linear-to-r py-8">
               <i class="pi pi-palette text-4xl text-gray-500 mb-3"></i>
               <p class="text-gray-400">{{ 'dashboard.showBranding.empty.noColors' | translate }}</p>
             </div>
@@ -392,7 +392,7 @@
               }
             </div>
           } @else {
-            <div class="text-center py-8">
+            <div class="bg-linear-to-r py-8">
               <i class="pi pi-font text-4xl text-gray-500 mb-3"></i>
               <p class="text-gray-400">
                 {{ 'dashboard.showBranding.empty.noTypography' | translate }}
@@ -545,7 +545,7 @@
       <div
         class="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center"
       >
-        <div class="text-center">
+        <div class="bg-linear-to-r">
           <app-loader />
           <p class="text-white mt-4 font-medium">
             {{ 'dashboard.showBranding.dialog.preparing' | translate }}

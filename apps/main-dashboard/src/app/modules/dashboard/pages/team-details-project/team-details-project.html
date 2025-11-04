@@ -8,7 +8,7 @@
           class="flex items-center gap-2 text-gray-400 hover:text-white transition"
         >
           <i class="pi pi-arrow-left"></i>
-          <span>Back to Teams</span>
+          <span>{{ 'dashboard.teamDetailsProject.backToTeams' | translate }}</span>
         </button>
 
         @if (team()) {
@@ -19,7 +19,9 @@
               </div>
               <div>
                 <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">{{ team()!.name }}</h1>
-                <p class="text-gray-400 mt-1">{{ team()!.description || 'No description' }}</p>
+                <p class="text-gray-400 mt-1">
+                  {{ team()!.description || ('common.noDescription' | translate) }}
+                </p>
               </div>
             </div>
           </div>
@@ -35,7 +37,7 @@
           <div class="flex items-center gap-3 text-red-400">
             <i class="pi pi-exclamation-triangle text-2xl"></i>
             <div>
-              <h3 class="font-bold">Error</h3>
+              <h3 class="font-bold">{{ 'common.error' | translate }}</h3>
               <p class="text-sm">{{ errorMessage() }}</p>
             </div>
           </div>
@@ -44,7 +46,9 @@
         <!-- Team Members -->
         <section class="space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-xl sm:text-2xl font-semibold text-primary">Team Members</h2>
+            <h2 class="text-xl sm:text-2xl font-semibold text-primary">
+              {{ 'dashboard.teamDetailsProject.sections.teamMembers' | translate }}
+            </h2>
             <span class="text-gray-400">{{ team()!.members.length }} members</span>
           </div>
 
@@ -59,7 +63,7 @@
                       @if (member.photoURL) {
                         <img
                           [src]="member.photoURL"
-                          [alt]="member.displayName"
+                          [alt]="member.displayName + ' profile picture'"
                           class="w-12 h-12 rounded-full border-2 border-white/20"
                         />
                       } @else {
@@ -91,7 +95,10 @@
                     @if (member.joinedAt) {
                       <div class="text-xs text-gray-400">
                         <i class="pi pi-calendar mr-1"></i>
-                        Joined {{ member.joinedAt | date: 'MMM d, y' }}
+                        {{
+                          'dashboard.teamDetailsProject.cards.joined'
+                            | translate: { date: (member.joinedAt | date: 'MMM d, y') }
+                        }}
                       </div>
                     }
                   </div>
@@ -103,7 +110,7 @@
                       class="text-red-400 hover:text-red-300 text-sm transition"
                     >
                       <i class="pi pi-trash mr-1"></i>
-                      Remove from team
+                      {{ 'dashboard.teamDetailsProject.buttons.remove' | translate }}
                     </button>
                   </div>
                 </div>
@@ -112,7 +119,9 @@
           } @else {
             <div class="glass-card p-12 text-center">
               <i class="pi pi-users text-4xl text-gray-600 mb-4"></i>
-              <p class="text-gray-400">No members in this team yet</p>
+              <p class="text-gray-400">
+                {{ 'dashboard.teamDetailsProject.empty.noMembers' | translate }}
+              </p>
             </div>
           }
         </section>

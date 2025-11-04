@@ -26,7 +26,22 @@
     "complete": "Complete",
     "progress": "Progress",
     "retry": "Retry",
-    "selected": "Selected"
+    "selected": "Selected",
+    "notAvailable": "N/A",
+    "noDescription": "No description",
+    "error": "Error",
+    "notSpecified": "Not specified",
+    "uploading": "Uploading...",
+    "downloading": "Downloading...",
+    "download": "Download",
+    "send": "Send",
+    "pdf": "PDF",
+    "inProgress": "In Progress...",
+    "generating": "Generating...",
+    "noContent": "No content available",
+    "understood": "Understood",
+    "page": "Page",
+    "of": "of"
   },
   "validation": {
     "required": "{{fieldName}} is required",
@@ -35,7 +50,8 @@
     "maxLength": "Maximum {{max}} characters allowed",
     "selectAtLeastOneRole": "Please select at least one role",
     "teamNameMinLength": "Team name must be at least {{min}} characters",
-    "deploymentName": "Deployment name is required (minimum {{min}} characters)"
+    "deploymentName": "Deployment name is required (minimum {{min}} characters)",
+    "invalid": "Invalid field"
   },
   "navigation": {
     "dashboard": "Dashboard",

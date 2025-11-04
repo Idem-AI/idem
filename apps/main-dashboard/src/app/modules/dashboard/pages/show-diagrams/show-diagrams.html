@@ -6,8 +6,8 @@
         <div class="mb-4">
           <app-loader />
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Loading...</h3>
-        <p class="text-gray-600">Checking for existing diagrams</p>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ 'common.loading' | translate }}</h3>
+        <p class="text-gray-600">{{ 'dashboard.showDiagrams.loading.checking' | translate }}</p>
       </div>
     </div>
   } @else if (existingDiagram()) {
@@ -31,11 +31,15 @@
           ></path>
         </svg>
       </div>
-      <h3 class="text-2xl font-bold text-gray-900 mb-4">No diagrams found</h3>
+      <h3 class="text-2xl font-bold text-gray-900 mb-4">
+        {{ 'dashboard.showDiagrams.empty.title' | translate }}
+      </h3>
       <p class="text-gray-600 mb-8">
-        Start by generating your first diagrams to visualize your architecture.
+        {{ 'dashboard.showDiagrams.empty.subtitle' | translate }}
       </p>
-      <button class="inner-button" (click)="generateDiagrams()">Generate Diagrams</button>
+      <button class="inner-button" (click)="generateDiagrams()">
+        {{ 'dashboard.showDiagrams.buttons.generate' | translate }}
+      </button>
     </div>
   } @else {
     <!-- Empty State - No project ID -->
@@ -55,9 +59,15 @@
           />
         </svg>
       </div>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">No Project Selected</h3>
-      <p class="text-gray-600 mb-4">Please select a project first to view diagrams.</p>
-      <button class="inner-button" (click)="goToProjects()">Select Project</button>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">
+        {{ 'dashboard.showDiagrams.empty.noProject.title' | translate }}
+      </h3>
+      <p class="text-gray-600 mb-4">
+        {{ 'dashboard.showDiagrams.empty.noProject.subtitle' | translate }}
+      </p>
+      <button class="inner-button" (click)="goToProjects()">
+        {{ 'dashboard.showDiagrams.buttons.selectProject' | translate }}
+      </button>
     </div>
   }
 </div>

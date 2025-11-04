@@ -6,11 +6,12 @@ import { BusinessPlanService } from '../../services/ai-agents/business-plan.serv
 import { BusinessPlanModel } from '../../models/businessPlan.model';
 import { BusinessPlanDisplayComponent } from './components/business-plan-display/business-plan-display';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-show-business-plan',
   standalone: true,
-  imports: [CommonModule, BusinessPlanDisplayComponent, Loader],
+  imports: [CommonModule, BusinessPlanDisplayComponent, Loader, TranslateModule],
   templateUrl: './show-business-plan.html',
   styleUrls: ['./show-business-plan.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,6 +21,7 @@ export class ShowBusinessPlan implements OnInit {
   private readonly businessPlanService = inject(BusinessPlanService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   // Signals for state management
   protected readonly isLoading = signal<boolean>(true);
@@ -55,10 +57,10 @@ export class ShowBusinessPlan implements OnInit {
             projectId: projectId,
             sections: [
               {
-                name: 'Business Plan',
+                name: this.translate.instant('dashboard.showBusinessPlan.businessPlan.name'),
                 type: 'pdf',
-                data: 'PDF Available',
-                summary: 'Business plan PDF document',
+                data: this.translate.instant('dashboard.showBusinessPlan.businessPlan.data'),
+                summary: this.translate.instant('dashboard.showBusinessPlan.businessPlan.summary'),
               },
             ],
             createdAt: new Date(),
@@ -75,17 +77,19 @@ export class ShowBusinessPlan implements OnInit {
         this.isLoading.set(false);
       },
       error: (err: any) => {
-        console.error('Error loading business plan PDF:', err);
+        console.error(this.translate.instant('dashboard.showBusinessPlan.errorLoadingPdf'), err);
 
         // Check if this is a retryable error (other errors except 404)
         if (err.message === 'DOWNLOAD_ERROR' || err.isRetryable === true) {
           this.hasError.set(true);
           this.isRetryable.set(true);
-          this.errorMessage.set('Une erreur est survenue lors du téléchargement.');
-          console.log('Retryable error occurred, showing error message with retry button');
+          this.errorMessage.set(
+            this.translate.instant('dashboard.showBusinessPlan.errors.download'),
+          );
+          console.log(this.translate.instant('dashboard.showBusinessPlan.retryableErrorOccurred'));
         } else {
           // 404 or other non-retryable errors - show generate button
-          console.log('PDF not found (404) or non-retryable error, showing generate button');
+          console.log(this.translate.instant('dashboard.showBusinessPlan.pdfNotFound'));
           this.hasError.set(false);
         }
 

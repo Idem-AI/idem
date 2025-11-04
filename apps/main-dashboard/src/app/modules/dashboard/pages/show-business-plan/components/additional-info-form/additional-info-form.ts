@@ -17,6 +17,7 @@ import { CardModule } from 'primeng/card';
 import { DividerModule } from 'primeng/divider';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { TeamMember, ProjectModel } from '../../../../models/project.model';
 import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
@@ -34,6 +35,7 @@ import { CookieService } from '../../../../../../shared/services/cookie.service'
     DividerModule,
     MessageModule,
     SkeletonModule,
+    TranslateModule,
   ],
   templateUrl: './additional-info-form.html',
   styleUrl: './additional-info-form.css',
@@ -43,6 +45,7 @@ export class AdditionalInfoFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
+  private readonly translate = inject(TranslateService);
 
   // Outputs
   readonly formSubmitted = output<ProjectModel['additionalInfos']>();
@@ -114,7 +117,7 @@ export class AdditionalInfoFormComponent implements OnInit {
       }
     } catch (error) {
       console.error('Error loading project data:', error);
-      this.error.set('Error loading data');
+      this.error.set(this.translate.instant('dashboard.additionalInfoForm.errors.loadData'));
     } finally {
       this.isLoading.set(false);
     }
@@ -170,13 +173,13 @@ export class AdditionalInfoFormComponent implements OnInit {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      this.error.set('Only image files are allowed');
+      this.error.set(this.translate.instant('dashboard.additionalInfoForm.errors.onlyImages'));
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      this.error.set('File size must not exceed 5MB');
+      this.error.set(this.translate.instant('dashboard.additionalInfoForm.errors.fileSize'));
       return;
     }
 
@@ -194,7 +197,7 @@ export class AdditionalInfoFormComponent implements OnInit {
       this.error.set(null);
     } catch (error) {
       console.error('Error processing image:', error);
-      this.error.set('Error processing image');
+      this.error.set(this.translate.instant('dashboard.additionalInfoForm.errors.processImage'));
     } finally {
       this.uploadingMembers.update((set) => {
         const newSet = new Set(set);
@@ -255,7 +258,7 @@ export class AdditionalInfoFormComponent implements OnInit {
       this.formSubmitted.emit(additionalInfos);
     } catch (error) {
       console.error('Error submitting additional info:', error);
-      this.error.set('Error saving information');
+      this.error.set(this.translate.instant('dashboard.additionalInfoForm.errors.saveInfo'));
     } finally {
       this.isSubmitting.set(false);
     }
@@ -269,17 +272,19 @@ export class AdditionalInfoFormComponent implements OnInit {
     const field = this.additionalInfoForm.get(fieldPath);
     if (!field || !field.errors || !field.touched) return null;
 
-    if (field.errors['required']) return 'This field is required';
-    if (field.errors['email']) return 'Invalid email';
-    return 'Invalid field';
+    if (field.errors['required'])
+      return this.translate.instant('validation.required', { fieldName: '' });
+    if (field.errors['email']) return this.translate.instant('validation.email');
+    return this.translate.instant('validation.invalid');
   }
 
   protected getTeamMemberFieldError(memberIndex: number, fieldName: string): string | null {
     const field = this.teamMembersArray().at(memberIndex)?.get(fieldName);
     if (!field || !field.errors || !field.touched) return null;
 
-    if (field.errors['required']) return 'This field is required';
-    if (field.errors['email']) return 'Invalid email';
-    return 'Invalid field';
+    if (field.errors['required'])
+      return this.translate.instant('validation.required', { fieldName: '' });
+    if (field.errors['email']) return this.translate.instant('validation.email');
+    return this.translate.instant('validation.invalid');
   }
 }

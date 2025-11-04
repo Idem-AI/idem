@@ -4,11 +4,12 @@ import { BusinessPlanService } from '../../../../services/ai-agents/business-pla
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { TokenService } from '../../../../../../shared/services/token.service';
 import { PdfViewer } from '../../../../../../shared/components/pdf-viewer/pdf-viewer';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-business-plan-display',
   standalone: true,
-  imports: [PdfViewer],
+  imports: [PdfViewer, TranslateModule],
   templateUrl: './business-plan-display.html',
   styleUrl: './business-plan-display.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,6 +20,7 @@ export class BusinessPlanDisplayComponent implements OnInit {
   private readonly businessPlanService = inject(BusinessPlanService);
   private readonly cookieService = inject(CookieService);
   private readonly tokenService = inject(TokenService);
+  private readonly translate = inject(TranslateService);
 
   protected readonly pdfSrc = signal<string | null>(null);
   protected readonly isDownloadingPdf = signal<boolean>(false);
@@ -51,7 +53,7 @@ export class BusinessPlanDisplayComponent implements OnInit {
       console.log('PDF loaded from provided blob (optimized)');
     } catch (error: any) {
       console.error('Error loading PDF from blob:', error);
-      this.pdfError.set('Failed to load PDF. Please try again.');
+      this.pdfError.set(this.translate.instant('dashboard.businessPlanDisplay.errors.loadPdf'));
     } finally {
       this.isDownloadingPdf.set(false);
     }
@@ -67,7 +69,9 @@ export class BusinessPlanDisplayComponent implements OnInit {
 
       const projectId = this.cookieService.get('projectId');
       if (!projectId) {
-        throw new Error('Project ID not found');
+        throw new Error(
+          this.translate.instant('dashboard.businessPlanDisplay.errors.projectIdNotFound'),
+        );
       }
 
       // Download PDF blob from backend
@@ -81,7 +85,9 @@ export class BusinessPlanDisplayComponent implements OnInit {
       }
     } catch (error: any) {
       console.error('Error loading PDF from backend:', error);
-      this.pdfError.set(error.message || 'Failed to load PDF. Please try again.');
+      this.pdfError.set(
+        error.message || this.translate.instant('dashboard.businessPlanDisplay.errors.loadPdf'),
+      );
     } finally {
       this.isDownloadingPdf.set(false);
     }

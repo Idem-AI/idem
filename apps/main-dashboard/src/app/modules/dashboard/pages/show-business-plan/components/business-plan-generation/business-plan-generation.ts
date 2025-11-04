@@ -24,11 +24,12 @@ import { BusinessPlanModel } from '../../../../models/businessPlan.model';
 import { ProjectModel } from '../../../../models/project.model';
 import { AdditionalInfoFormComponent } from '../additional-info-form/additional-info-form';
 import { environment } from '../../../../../../../environments/environment';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-business-plan-generation',
   standalone: true,
-  imports: [DatePipe, SkeletonModule, AdditionalInfoFormComponent],
+  imports: [DatePipe, SkeletonModule, AdditionalInfoFormComponent, TranslateModule],
   templateUrl: './business-plan-generation.html',
   styleUrl: './business-plan-generation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +39,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   private readonly generationService = inject(GenerationService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
   private readonly destroy$ = new Subject<void>();
 
   // Outputs
@@ -139,7 +141,9 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     if (!this.projectId()) {
       console.error('Project ID not found');
       this.isSavingAdditionalInfo.set(false);
-      this.additionalInfoError.set('Project ID not found');
+      this.additionalInfoError.set(
+        this.translate.instant('dashboard.businessPlanGeneration.errors.projectIdNotFound'),
+      );
       return;
     }
 
@@ -182,7 +186,9 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
         error: (err) => {
           console.error(`Error generating business plan for project ID: ${this.projectId()}:`, err);
           this.isSavingAdditionalInfo.set(false);
-          this.additionalInfoError.set('Error saving additional information. Please try again.');
+          this.additionalInfoError.set(
+            this.translate.instant('dashboard.businessPlanGeneration.errors.saveAdditionalInfo'),
+          );
           this.showAdditionalInfoForm.set(true); // Show form again on error
           this.generationState.update((state) => ({
             ...state,
@@ -287,7 +293,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     this.generationState.update((state) => ({
       ...state,
       isGenerating: false,
-      error: 'Generation cancelled',
+      error: this.translate.instant('dashboard.businessPlanGeneration.cancelled'),
     }));
   }
 
@@ -299,7 +305,9 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
     // Start post-processing phase with loading
     this.isPostProcessing.set(true);
-    this.postProcessingMessage.set('Saving business plan data...');
+    this.postProcessingMessage.set(
+      this.translate.instant('dashboard.businessPlanGeneration.saving'),
+    );
 
     // Wait 4 seconds to allow backend to complete saving
     setTimeout(() => {

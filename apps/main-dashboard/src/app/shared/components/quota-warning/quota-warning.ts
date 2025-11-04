@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Router } from '@angular/router';
 import { QuotaService } from '../../services/quota.service';
 import { NotificationService } from '../../services/notification.service';
@@ -17,7 +18,7 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
 @Component({
   selector: 'app-quota-warning',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (shouldShowWarning(); as warning) {
@@ -45,7 +46,7 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
               <div class="space-y-2 text-xs">
                 @if (warning.dailyWarning) {
                   <div class="flex justify-between items-center">
-                    <span>Daily quota:</span>
+                    <span>{{ 'dashboard.quotaWarning.daily' | translate }}:</span>
                     <span class="font-medium"
                       >{{ warning.dailyUsage }}/{{ warning.dailyLimit }}</span
                     >
@@ -53,7 +54,7 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
                 }
                 @if (warning.weeklyWarning) {
                   <div class="flex justify-between items-center">
-                    <span>Weekly quota:</span>
+                    <span>{{ 'dashboard.quotaWarning.weekly' | translate }}:</span>
                     <span class="font-medium"
                       >{{ warning.weeklyUsage }}/{{ warning.weeklyLimit }}</span
                     >
@@ -67,13 +68,13 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
                   (click)="dismissWarning()"
                   class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
                 >
-                  Understood
+                  {{ 'common.understood' | translate }}
                 </button>
                 <button
                   (click)="showQuotaDetails()"
                   class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
                 >
-                  View Details
+                  {{ 'dashboard.quotaWarning.buttons.viewDetails' | translate }}
                 </button>
               </div>
             </div>
@@ -103,6 +104,7 @@ export class QuotaWarningComponent implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   private readonly DISMISS_COOKIE_NAME = 'quota_warning_dismissed';
   private warningDismissed = false;
@@ -140,15 +142,15 @@ export class QuotaWarningComponent implements OnInit {
       return;
     }
 
-    let title = 'Quota Nearly Reached';
-    let message = 'You are approaching your usage limits.';
+    let title = this.translate.instant('dashboard.quotaWarning.title');
+    let message = this.translate.instant('dashboard.quotaWarning.messages.approaching');
 
     if (dailyWarning && weeklyWarning) {
-      message = 'Your daily and weekly quotas are nearly reached.';
+      message = this.translate.instant('dashboard.quotaWarning.messages.dailyAndWeekly');
     } else if (dailyWarning) {
-      message = 'Your daily quota is nearly reached.';
+      message = this.translate.instant('dashboard.quotaWarning.messages.daily');
     } else if (weeklyWarning) {
-      message = 'Your weekly quota is nearly reached.';
+      message = this.translate.instant('dashboard.quotaWarning.messages.weekly');
     }
 
     this.shouldShowWarning.set({
@@ -265,7 +267,7 @@ export class QuotaWarningComponent implements OnInit {
         duration: 6000,
         actions: [
           {
-            label: 'View Details',
+            label: this.translate.instant('dashboard.quotaWarning.buttons.viewDetails'),
             action: () => this.showQuotaDetails(),
           },
         ],
