@@ -17,11 +17,12 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 
 import { AddTeamMemberModal } from '../../components/add-team-member-modal/add-team-member-modal';
 import { forkJoin } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-team-details-global',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader, AddTeamMemberModal],
+  imports: [CommonModule, RouterModule, Loader, AddTeamMemberModal, TranslateModule],
   templateUrl: './team-details-global.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -32,6 +33,7 @@ export class TeamDetailsGlobal implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly translate = inject(TranslateService);
 
   // Signals
   protected readonly team = signal<TeamModel | null>(null);
@@ -49,7 +51,9 @@ export class TeamDetailsGlobal implements OnInit {
     const teamId = this.route.snapshot.paramMap.get('teamId');
 
     if (!teamId) {
-      this.errorMessage.set('Team ID not found');
+      this.errorMessage.set(
+        this.translate.instant('dashboard.teamDetailsGlobal.errors.teamIdNotFound'),
+      );
       this.isLoading.set(false);
       return;
     }
@@ -76,7 +80,9 @@ export class TeamDetailsGlobal implements OnInit {
       },
       error: (error) => {
         console.error('Error loading team details:', error);
-        this.errorMessage.set('Failed to load team details');
+        this.errorMessage.set(
+          this.translate.instant('dashboard.teamDetailsGlobal.errors.failedToLoad'),
+        );
         this.isLoading.set(false);
       },
     });
@@ -143,7 +149,7 @@ export class TeamDetailsGlobal implements OnInit {
   protected removeMember(memberId: string): void {
     if (!this.teamId()) return;
 
-    if (confirm('Are you sure you want to remove this member from the team?')) {
+    if (confirm(this.translate.instant('dashboard.teamDetailsGlobal.confirm.removeMember'))) {
       this.teamService.removeMember(this.teamId()!, memberId).subscribe({
         next: () => {
           // Reload team details
@@ -151,7 +157,7 @@ export class TeamDetailsGlobal implements OnInit {
         },
         error: (error) => {
           console.error('Error removing member:', error);
-          alert('Failed to remove member from team');
+          alert(this.translate.instant('dashboard.teamDetailsGlobal.errors.failedToRemove'));
         },
       });
     }

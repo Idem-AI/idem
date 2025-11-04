@@ -27,6 +27,7 @@ import { SSEGenerationState } from '../../../../../../shared/models/sse-step.mod
 import { generatePdf } from '../../../../../../utils/pdf-generator';
 import { environment } from '../../../../../../../environments/environment';
 import { Router } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-diagram-generation',
@@ -39,6 +40,7 @@ import { Router } from '@angular/router';
     ProgressBarModule,
     ButtonModule,
     TagModule,
+    TranslateModule,
   ],
   templateUrl: './diagram-generation.html',
   styleUrls: ['./diagram-generation.css'],
@@ -49,6 +51,7 @@ export class DiagramGeneration implements OnInit, OnDestroy {
   private readonly generationService = inject(GenerationService);
   private readonly destroy$ = new Subject<void>();
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
   // ViewChild for scroll container
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
 
@@ -139,8 +142,10 @@ export class DiagramGeneration implements OnInit, OnDestroy {
           }
         },
         error: (error) => {
-          console.error('Diagram generation error:', error);
-          this.handleGenerationError(error.message || 'Generation failed');
+          console.error(this.translate.instant('dashboard.diagramGeneration.errors.failed'), error);
+          this.handleGenerationError(
+            error.message || this.translate.instant('dashboard.diagramGeneration.errors.failed'),
+          );
         },
         complete: () => {
           console.log('Diagram generation stream completed');
@@ -236,7 +241,7 @@ export class DiagramGeneration implements OnInit, OnDestroy {
     this.generationState.update((state) => ({
       ...state,
       isGenerating: false,
-      error: 'Generation cancelled',
+      error: this.translate.instant('dashboard.diagramGeneration.cancelled'),
     }));
   }
 

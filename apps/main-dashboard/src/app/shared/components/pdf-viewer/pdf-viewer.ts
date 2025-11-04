@@ -11,11 +11,12 @@ import {
 } from '@angular/core';
 import { NgxExtendedPdfViewerModule } from 'ngx-extended-pdf-viewer';
 import { DOCUMENT } from '@angular/common';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-pdf-viewer',
   standalone: true,
-  imports: [NgxExtendedPdfViewerModule],
+  imports: [NgxExtendedPdfViewerModule, TranslateModule],
   templateUrl: './pdf-viewer.html',
   styleUrl: './pdf-viewer.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +24,7 @@ import { DOCUMENT } from '@angular/common';
 export class PdfViewer implements OnInit, OnDestroy {
   private readonly document = inject(DOCUMENT);
   private resizeObserver?: ResizeObserver;
+  private readonly translate = inject(TranslateService);
   // Inputs
   readonly pdfSrc = input.required<string | null>();
   readonly isLoading = input<boolean>(false);

@@ -7,10 +7,10 @@
       <h1
         class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-4"
       >
-        Additional Information
+        {{ 'dashboard.additionalInfoForm.title' | translate }}
       </h1>
       <p class="text-light-text text-lg opacity-80">
-        Provide these details to enrich your business plan
+        {{ 'dashboard.additionalInfoForm.subtitle' | translate }}
       </p>
     </div>
 
@@ -28,18 +28,20 @@
         <div class="sm:glass sm:p-8">
           <h2 class="text-2xl font-semibold text-light-text mb-6 flex items-center gap-3">
             <i class="pi pi-building text-accent"></i>
-            Company Information
+            {{ 'dashboard.additionalInfoForm.sections.company' | translate }}
           </h2>
 
           <div class="grid grid-cols-1 md:grid-cols-2 sm:gap-6">
             <!-- Email -->
             <div class="form-field">
-              <label for="email" class="form-label">Business email *</label>
+              <label for="email" class="form-label"
+                >{{ 'dashboard.additionalInfoForm.fields.email' | translate }} *</label
+              >
               <input
                 pInputText
                 id="email"
                 formControlName="email"
-                placeholder="contact@company.com"
+                [placeholder]="'dashboard.additionalInfoForm.placeholders.email' | translate"
                 class="form-input w-full"
                 [class.error]="getFieldError('email')"
               />
@@ -50,12 +52,14 @@
 
             <!-- Phone -->
             <div class="form-field">
-              <label for="phone" class="form-label">Phone *</label>
+              <label for="phone" class="form-label"
+                >{{ 'dashboard.additionalInfoForm.fields.phone' | translate }} *</label
+              >
               <input
                 pInputText
                 id="phone"
                 formControlName="phone"
-                placeholder="+1 555 123 4567"
+                [placeholder]="'dashboard.additionalInfoForm.placeholders.phone' | translate"
                 class="form-input w-full"
                 [class.error]="getFieldError('phone')"
               />
@@ -66,12 +70,14 @@
 
             <!-- Address -->
             <div class="form-field">
-              <label for="address" class="form-label">Address *</label>
+              <label for="address" class="form-label"
+                >{{ 'dashboard.additionalInfoForm.fields.address' | translate }} *</label
+              >
               <input
                 pInputText
                 id="address"
                 formControlName="address"
-                placeholder="123 Innovation Street"
+                [placeholder]="'dashboard.additionalInfoForm.placeholders.address' | translate"
                 class="form-input w-full"
                 [class.error]="getFieldError('address')"
               />
@@ -82,12 +88,14 @@
 
             <!-- City -->
             <div class="form-field">
-              <label for="city" class="form-label">City *</label>
+              <label for="city" class="form-label"
+                >{{ 'dashboard.additionalInfoForm.fields.city' | translate }} *</label
+              >
               <input
                 pInputText
                 id="city"
                 formControlName="city"
-                placeholder="New York"
+                [placeholder]="'dashboard.additionalInfoForm.placeholders.city' | translate"
                 class="form-input w-full"
                 [class.error]="getFieldError('city')"
               />
@@ -98,12 +106,14 @@
 
             <!-- Country -->
             <div class="form-field">
-              <label for="country" class="form-label">Country *</label>
+              <label for="country" class="form-label"
+                >{{ 'dashboard.additionalInfoForm.fields.country' | translate }} *</label
+              >
               <input
                 pInputText
                 id="country"
                 formControlName="country"
-                placeholder="United States"
+                [placeholder]="'dashboard.additionalInfoForm.placeholders.country' | translate"
                 class="form-input w-full"
                 [class.error]="getFieldError('country')"
               />
@@ -114,12 +124,14 @@
 
             <!-- Zip Code -->
             <div class="form-field">
-              <label for="zipCode" class="form-label">ZIP code *</label>
+              <label for="zipCode" class="form-label"
+                >{{ 'dashboard.additionalInfoForm.fields.zipCode' | translate }} *</label
+              >
               <input
                 pInputText
                 id="zipCode"
                 formControlName="zipCode"
-                placeholder="10001"
+                [placeholder]="'dashboard.additionalInfoForm.placeholders.zipCode' | translate"
                 class="form-input w-full"
                 [class.error]="getFieldError('zipCode')"
               />
@@ -135,7 +147,7 @@
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-semibold text-light-text flex items-center gap-3">
               <i class="pi pi-users text-accent"></i>
-              Team Members
+              {{ 'dashboard.additionalInfoForm.sections.team' | translate }}
             </h2>
             <button
               type="button"
@@ -143,7 +155,7 @@
               pRipple
               class="p-button-outlined p-button-success"
               icon="pi pi-plus"
-              label="Add member"
+              [label]="'dashboard.additionalInfoForm.buttons.addMember' | translate"
               (click)="addTeamMember()"
             ></button>
           </div>
@@ -157,7 +169,7 @@
                 <div class="flex items-center justify-between mb-4">
                   <h3 class="text-lg font-medium text-light-text flex items-center gap-2">
                     <i class="pi pi-user text-primary"></i>
-                    Member {{ i + 1 }}
+                    {{ 'dashboard.additionalInfoForm.member' | translate: { index: i + 1 } }}
                   </h3>
                   @if (teamMembersArray().length > 1) {
                     <button
@@ -174,12 +186,16 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <!-- Name -->
                   <div class="form-field">
-                    <label [for]="'name-' + i" class="form-label">Full name *</label>
+                    <label [for]="'name-' + i" class="form-label"
+                      >{{ 'dashboard.additionalInfoForm.fields.fullName' | translate }} *</label
+                    >
                     <input
                       pInputText
                       [id]="'name-' + i"
                       formControlName="name"
-                      placeholder="John Smith"
+                      [placeholder]="
+                        'dashboard.additionalInfoForm.placeholders.fullName' | translate
+                      "
                       class="form-input w-full"
                       [class.error]="getTeamMemberFieldError(i, 'name')"
                     />
@@ -190,12 +206,14 @@
 
                   <!-- Role -->
                   <div class="form-field">
-                    <label [for]="'role-' + i" class="form-label">Role *</label>
+                    <label [for]="'role-' + i" class="form-label"
+                      >{{ 'dashboard.additionalInfoForm.fields.role' | translate }} *</label
+                    >
                     <input
                       pInputText
                       [id]="'role-' + i"
                       formControlName="role"
-                      placeholder="CEO & Founder"
+                      [placeholder]="'dashboard.additionalInfoForm.placeholders.role' | translate"
                       class="form-input w-full"
                       [class.error]="getTeamMemberFieldError(i, 'role')"
                     />
@@ -206,12 +224,16 @@
 
                   <!-- Email -->
                   <div class="form-field">
-                    <label [for]="'member-email-' + i" class="form-label">Email *</label>
+                    <label [for]="'member-email-' + i" class="form-label"
+                      >{{ 'dashboard.additionalInfoForm.fields.email' | translate }} *</label
+                    >
                     <input
                       pInputText
                       [id]="'member-email-' + i"
                       formControlName="email"
-                      placeholder="john.smith@company.com"
+                      [placeholder]="
+                        'dashboard.additionalInfoForm.placeholders.memberEmail' | translate
+                      "
                       class="form-input w-full"
                       [class.error]="getTeamMemberFieldError(i, 'email')"
                     />
@@ -227,7 +249,7 @@
                       @if (memberForm.get('pictureUrl')?.value) {
                         <img
                           [src]="memberForm.get('pictureUrl')?.value"
-                          alt="Profile picture"
+                          [alt]="'dashboard.additionalInfoForm.alt.profilePicture' | translate"
                           class="w-16 h-16 rounded-full object-cover border-2 border-primary"
                         />
                       } @else {
@@ -240,7 +262,7 @@
                       @if (isUploadingMember(i)) {
                         <div class="flex items-center gap-2 text-accent">
                           <i class="pi pi-spin pi-spinner"></i>
-                          <span class="text-sm">Uploading...</span>
+                          <span class="text-sm">{{ 'common.uploading' | translate }}</span>
                         </div>
                       } @else {
                         <p-fileUpload
@@ -248,7 +270,9 @@
                           name="memberImage"
                           accept="image/*"
                           maxFileSize="5000000"
-                          chooseLabel="Choose an image"
+                          [chooseLabel]="
+                            'dashboard.additionalInfoForm.buttons.chooseImage' | translate
+                          "
                           class="member-upload"
                           (onSelect)="onFileSelect($event, i)"
                         ></p-fileUpload>
@@ -259,12 +283,14 @@
 
                 <!-- Bio -->
                 <div class="form-field mt-6">
-                  <label [for]="'bio-' + i" class="form-label">Biography *</label>
+                  <label [for]="'bio-' + i" class="form-label"
+                    >{{ 'dashboard.additionalInfoForm.fields.bio' | translate }} *</label
+                  >
                   <textarea
                     pInputTextarea
                     [id]="'bio-' + i"
                     formControlName="bio"
-                    placeholder="Describe this member's experience and skills..."
+                    [placeholder]="'dashboard.additionalInfoForm.placeholders.bio' | translate"
                     rows="3"
                     class="form-input w-full resize-none p-4"
                     [class.error]="getTeamMemberFieldError(i, 'bio')"
@@ -278,7 +304,7 @@
                 <div class="mt-6" formGroupName="socialLinks">
                   <h4 class="text-md font-medium text-light-text mb-3 flex items-center gap-2">
                     <i class="pi pi-share-alt text-secondary"></i>
-                    Social links (optional)
+                    {{ 'dashboard.additionalInfoForm.sections.social' | translate }}
                   </h4>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- LinkedIn -->
@@ -292,7 +318,9 @@
                           pInputText
                           [id]="'linkedin-' + i"
                           formControlName="linkedin"
-                          placeholder="linkedin.com/in/..."
+                          [placeholder]="
+                            'dashboard.additionalInfoForm.placeholders.linkedin' | translate
+                          "
                           class="form-input w-full pl-10"
                         />
                       </div>
@@ -309,7 +337,9 @@
                           pInputText
                           [id]="'github-' + i"
                           formControlName="github"
-                          placeholder="github.com/..."
+                          [placeholder]="
+                            'dashboard.additionalInfoForm.placeholders.github' | translate
+                          "
                           class="form-input w-full pl-10"
                         />
                       </div>
@@ -326,7 +356,9 @@
                           pInputText
                           [id]="'twitter-' + i"
                           formControlName="twitter"
-                          placeholder="twitter.com/..."
+                          [placeholder]="
+                            'dashboard.additionalInfoForm.placeholders.twitter' | translate
+                          "
                           class="form-input w-full pl-10"
                         />
                       </div>
@@ -352,16 +384,16 @@
             (click)="cancel()"
             [disabled]="isSubmitting()"
           >
-            Cancel
+            {{ 'common.cancel' | translate }}
           </button>
 
           <button type="submit" pRipple class="inner-button">
             @if (isSubmitting()) {
               <i class="pi pi-spin pi-spinner mr-2"></i>
-              Saving...
+              {{ 'common.saving' | translate }}
             } @else {
               <i class="pi pi-check mr-2"></i>
-              Continue to generation
+              {{ 'dashboard.additionalInfoForm.buttons.continue' | translate }}
             }
           </button>
         </div>

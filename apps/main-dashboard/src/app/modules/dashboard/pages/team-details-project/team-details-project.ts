@@ -11,11 +11,12 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { TeamModel, TeamMemberModel, ProjectRole } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-team-details-project',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader],
+  imports: [CommonModule, RouterModule, Loader, TranslateModule],
   templateUrl: './team-details-project.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -24,6 +25,7 @@ export class TeamDetailsProject implements OnInit {
   private readonly teamService = inject(TeamService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly translate = inject(TranslateService);
 
   // Signals
   protected readonly team = signal<TeamModel | null>(null);
@@ -41,7 +43,9 @@ export class TeamDetailsProject implements OnInit {
     const projectId = this.route.snapshot.queryParamMap.get('projectId');
 
     if (!teamId) {
-      this.errorMessage.set('Team ID not found');
+      this.errorMessage.set(
+        this.translate.instant('dashboard.teamDetailsProject.errors.teamIdNotFound'),
+      );
       this.isLoading.set(false);
       return;
     }
@@ -65,7 +69,9 @@ export class TeamDetailsProject implements OnInit {
       },
       error: (error) => {
         console.error('Error loading team details:', error);
-        this.errorMessage.set('Failed to load team details');
+        this.errorMessage.set(
+          this.translate.instant('dashboard.teamDetailsProject.errors.failedToLoad'),
+        );
         this.isLoading.set(false);
       },
     });
@@ -120,7 +126,7 @@ export class TeamDetailsProject implements OnInit {
   protected removeMember(memberId: string): void {
     if (!this.teamId()) return;
 
-    if (confirm('Are you sure you want to remove this member from the team?')) {
+    if (confirm(this.translate.instant('dashboard.teamDetailsProject.confirm.removeMember'))) {
       this.teamService.removeMember(this.teamId()!, memberId).subscribe({
         next: () => {
           // Reload team details
@@ -128,7 +134,7 @@ export class TeamDetailsProject implements OnInit {
         },
         error: (error) => {
           console.error('Error removing member:', error);
-          alert('Failed to remove member from team');
+          alert(this.translate.instant('dashboard.teamDetailsProject.errors.failedToRemove'));
         },
       });
     }

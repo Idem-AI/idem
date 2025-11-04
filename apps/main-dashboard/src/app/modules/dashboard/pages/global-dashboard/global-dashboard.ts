@@ -22,7 +22,7 @@ import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-global-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader, ProjectCard],
+  imports: [CommonModule, RouterModule, Loader, ProjectCard, TranslateModule],
   templateUrl: './global-dashboard.html',
   styleUrl: './global-dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

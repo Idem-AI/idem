@@ -6,11 +6,12 @@ import { DiagramsService } from '../../services/ai-agents/diagrams.service';
 import { DiagramModel } from '../../models/diagram.model';
 import { DiagramDisplay } from './components/diagram-display/diagram-display';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-show-diagrams',
   standalone: true,
-  imports: [CommonModule, DiagramDisplay, Loader],
+  imports: [CommonModule, DiagramDisplay, Loader, TranslateModule],
   templateUrl: './show-diagrams.html',
   styleUrls: ['./show-diagrams.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,11 +21,13 @@ export class ShowDiagramsComponent implements OnInit {
   private readonly diagramsService = inject(DiagramsService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   // Signals for state management
   protected readonly isLoading = signal<boolean>(true);
   protected readonly existingDiagram = signal<DiagramModel | null>(null);
   protected readonly projectIdFromCookie = signal<string | null>(null);
+  protected readonly errorMessage = signal<string>('');
 
   // Temporary compatibility properties (will be removed after cache clears)
   protected readonly showDisplayComponent = signal<boolean>(false);
@@ -72,6 +75,7 @@ export class ShowDiagramsComponent implements OnInit {
       },
       error: (err: any) => {
         console.error('Error loading diagram:', err);
+        this.errorMessage.set(this.translate.instant('dashboard.showDiagrams.errors.loadProject'));
         // Error loading - show generate button (no redirect)
         console.log('Error loading diagram, showing generate button');
         this.existingDiagram.set(null);

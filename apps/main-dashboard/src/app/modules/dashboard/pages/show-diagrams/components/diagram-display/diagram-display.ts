@@ -5,11 +5,12 @@ import { DiagramModel } from '../../../../models/diagram.model';
 import { generatePdf } from '../../../../../../utils/pdf-generator';
 import { environment } from '../../../../../../../environments/environment';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-diagram-display',
   standalone: true,
-  imports: [CommonModule, MarkdownModule],
+  imports: [CommonModule, MarkdownModule, TranslateModule],
   templateUrl: './diagram-display.html',
   styleUrls: ['./diagram-display.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,6 +20,7 @@ export class DiagramDisplay {
   readonly diagram = input.required<DiagramModel>();
   readonly cookieService = inject(CookieService);
   readonly projectId = signal<string | null>(null);
+  private readonly translate = inject(TranslateService);
   // Environment URL for external services
   protected readonly diagenUrl = environment.services.diagen.url;
 

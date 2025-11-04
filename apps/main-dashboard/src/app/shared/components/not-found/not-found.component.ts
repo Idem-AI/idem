@@ -1,12 +1,13 @@
 import { Component, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-not-found',
   templateUrl: './not-found.component.html',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, TranslateModule],
 })
 export class NotFoundComponent {
   // Component state

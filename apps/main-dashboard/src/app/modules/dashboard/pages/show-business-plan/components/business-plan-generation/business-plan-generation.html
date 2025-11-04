@@ -16,9 +16,11 @@
         >
           <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
         </div>
-        <h3 class="text-xl font-bold text-white mb-2">Saving Additional Information</h3>
+        <h3 class="text-xl font-bold text-white mb-2">
+          {{ 'dashboard.businessPlanGeneration.saving.title' | translate }}
+        </h3>
         <p class="text-gray-400 mb-4">
-          We're securely saving your company details and team information...
+          {{ 'dashboard.businessPlanGeneration.saving.subtitle' | translate }}
         </p>
 
         @if (additionalInfoError()) {
@@ -57,21 +59,24 @@
           <div>
             <h2 class="text-xl font-bold text-white">
               @if (isPostProcessing()) {
-                Finalizing Business Plan
+                {{ 'dashboard.businessPlanGeneration.finalizing' | translate }}
               } @else {
-                Generating Business Plan
+                {{ 'dashboard.businessPlanGeneration.generating' | translate }}
               }
             </h2>
             <p class="text-gray-300 text-sm">
               @if (isPostProcessing()) {
                 {{ postProcessingMessage() }}
               } @else {
-                Creating your comprehensive business plan...
+                {{ 'dashboard.businessPlanGeneration.creating' | translate }}
               }
             </p>
             @if (generationState().stepsInProgress.length > 0) {
               <p class="text-xs text-blue-400 mt-1">
-                Currently processing: {{ generationState().stepsInProgress.join(', ') }}
+                {{
+                  'dashboard.businessPlanGeneration.processing'
+                    | translate: { steps: generationState().stepsInProgress.join(', ') }
+                }}
               </p>
             }
           </div>
@@ -83,10 +88,12 @@
             <div class="text-2xl font-bold text-white">
               {{ generationState().completedSteps.length }}/{{ generationState().totalSteps }}
             </div>
-            <div class="text-sm text-gray-300">Steps Completed</div>
+            <div class="text-sm text-gray-300">
+              {{ 'dashboard.businessPlanGeneration.stepsCompleted' | translate }}
+            </div>
             @if (generationState().completedSteps.length > 0) {
               <div class="text-xs text-green-400 mt-1">
-                Last:
+                {{ 'dashboard.businessPlanGeneration.lastStep' | translate }}:
                 {{ generationState().completedSteps[generationState().completedSteps.length - 1] }}
               </div>
             }
@@ -136,7 +143,9 @@
                     <i class="pi pi-save animate-pulse text-white"></i>
                   </div>
                   <div>
-                    <h3 class="text-lg font-semibold text-white">Saving Data</h3>
+                    <h3 class="text-lg font-semibold text-white">
+                      {{ 'dashboard.businessPlanGeneration.savingData' | translate }}
+                    </h3>
                     <p class="text-gray-300 text-sm">{{ postProcessingMessage() }}</p>
                   </div>
                 </div>
@@ -154,7 +163,7 @@
               </div>
             </div>
             <div class="p-6 space-y-4">
-              <p class="text-gray-300">Please wait while we finalize your business plan data...</p>
+              <p class="text-gray-300">{{ 'dashboard.businessPlanGeneration.wait' | translate }}</p>
               <div class="w-full bg-gray-700 rounded-full h-2">
                 <div
                   class="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full animate-pulse"
@@ -178,7 +187,7 @@
                     </div>
                     <div>
                       <h3 class="text-lg font-semibold text-white">{{ stepName }}</h3>
-                      <p class="text-gray-300 text-sm">In Progress...</p>
+                      <p class="text-gray-300 text-sm">{{ 'common.inProgress' | translate }}</p>
                     </div>
                   </div>
                   <div class="flex items-center space-x-2">
@@ -221,7 +230,10 @@
                       <div>
                         <h4 class="font-semibold text-white">{{ step.name }}</h4>
                         <p class="text-gray-400 text-sm">
-                          Completed {{ step.timestamp | date: 'short' }}
+                          {{
+                            'dashboard.businessPlanGeneration.stepCompletedAt'
+                              | translate: { time: (step.timestamp | date: 'short') }
+                          }}
                         </p>
                       </div>
                     </div>
@@ -258,9 +270,13 @@
             ></path>
           </svg>
         </div>
-        <h3 class="text-xl font-bold text-white mb-2">Generation Failed</h3>
+        <h3 class="text-xl font-bold text-white mb-2">
+          {{ 'dashboard.businessPlanGeneration.errors.title' | translate }}
+        </h3>
         <p class="text-gray-400 mb-6">{{ generationError() }}</p>
-        <button (click)="generateBusinessPlan()" class="w-full inner-button">Try Again</button>
+        <button (click)="generateBusinessPlan()" class="w-full inner-button">
+          {{ 'common.tryAgain' | translate }}
+        </button>
       </div>
     </div>
   </div>
@@ -286,12 +302,14 @@
             ></path>
           </svg>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-4">No business plan found</h3>
+        <h3 class="text-2xl font-bold text-white mb-4">
+          {{ 'dashboard.businessPlanGeneration.empty.title' | translate }}
+        </h3>
         <p class="text-gray-600 mb-8">
-          Start by generating your first business plan to outline your strategy and goals.
+          {{ 'dashboard.businessPlanGeneration.empty.subtitle' | translate }}
         </p>
         <button (click)="generateBusinessPlan()" class="w-full inner-button">
-          Generate Business Plan
+          {{ 'dashboard.businessPlanGeneration.buttons.generate' | translate }}
         </button>
       </div>
     </div>
