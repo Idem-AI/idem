@@ -1,0 +1,20 @@
+{
+  "locale": "fr",
+  "translations": {
+    "premium-beta-access.premium_beta_access": "",
+    "premium-beta-access.beta_tester": "",
+    "premium-beta-access.spotsLeft": "",
+    "premium-beta-access.join_waitlist": "",
+    "premium-beta-access.benefits.title": "",
+    "premium-beta-access.more_credits_than": "",
+    "premium-beta-access.early_access_new": "",
+    "premium-beta-access.priority_support_via": "",
+    "premium-beta-access.lifetime_discount_after": "",
+    "premium-beta-access.features.title": "",
+    "premium-beta-access.advanced_brand_generation": "",
+    "premium-beta-access.experimental_deployment_options": "",
+    "premium-beta-access.monthly_beta_tester": "",
+    "premium-beta-access.premium_spots_claimed": "",
+    "premium-beta-access.join_premium_waitlist": ""
+  }
+}

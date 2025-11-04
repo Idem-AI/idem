@@ -1,0 +1,29 @@
+{
+  "locale": "fr",
+  "translations": {
+    "header.alt.logo": "",
+    "header.aria.github": "",
+    "header.nav.dashboard.desktop": "",
+    "header.alt.avatar": "",
+    "header.nav.dashboard.dropdown": "",
+    "header.nav.settings": "",
+    "header.nav.logout.dropdown": "",
+    "header.nav.login.desktop": "",
+    "header.aria.toggleMenu": "",
+    "header.aria.closeMenu": "",
+    "header.nav.dashboard.mobile": "",
+    "header.nav.profile": "",
+    "header.nav.logout.mobile": "",
+    "header.nav.login.mobile": "",
+    "header.nav.github": "",
+    "header.nav.home": "",
+    "header.menu.product": "",
+    "header.menu.solutions": "",
+    "header.menu.architecture": "",
+    "header.menu.pricing": "",
+    "header.menu.company": "",
+    "header.menu.about": "",
+    "header.menu.vision": "",
+    "header.menu.openSource": ""
+  }
+}
