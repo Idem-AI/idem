@@ -38,10 +38,25 @@ import { environment } from '../../../environments/environment';
   animations: [
     trigger('slideInOut', [
       transition(':enter', [
-        style({ transform: 'translateY(-100%)' }),
-        animate('300ms ease-in', style({ transform: 'translateY(0%)' })),
+        style({ transform: 'translateX(-100%)', opacity: 0 }),
+        animate(
+          '400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          style({ transform: 'translateX(0)', opacity: 1 }),
+        ),
       ]),
-      transition(':leave', [animate('300ms ease-out', style({ transform: 'translateY(-100%)' }))]),
+      transition(':leave', [
+        animate(
+          '350ms cubic-bezier(0.55, 0.055, 0.675, 0.19)',
+          style({ transform: 'translateX(-100%)', opacity: 0 }),
+        ),
+      ]),
+    ]),
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('300ms cubic-bezier(0.4, 0, 0.2, 1)', style({ opacity: 1 })),
+      ]),
+      transition(':leave', [animate('250ms cubic-bezier(0.4, 0, 0.2, 1)', style({ opacity: 0 }))]),
     ]),
   ],
 })
@@ -55,6 +70,7 @@ export class Header implements OnInit {
   protected readonly isMenuOpen = signal(false);
   protected readonly isDropdownOpen = signal(false);
   protected readonly userRefresh = signal(0);
+  protected readonly activeDropdown = signal<string | null>(null);
 
   // User Data - Computed signal basé sur les cookies
   protected readonly user = computed(() => {
@@ -62,35 +78,32 @@ export class Header implements OnInit {
     return this.auth.getCurrentUser();
   });
 
-  // Navigation items
-  protected readonly items: MenuItem[] | undefined = [
+  // Navigation structure optimisée
+  protected readonly navItems = [
     {
-      label: $localize`:@@header.items.home:Home`,
-      icon: 'pi pi-home',
+      id: 'home',
+      label: $localize`:@@header.nav.home:Home`,
+      route: '/home',
+      type: 'link' as const,
     },
     {
-      label: $localize`:@@header.items.projects:Projects`,
-      icon: 'pi pi-search',
-      badge: '3',
+      id: 'product',
+      label: $localize`:@@header.menu.product:Product`,
+      type: 'dropdown' as const,
       items: [
-        {
-          label: $localize`:@@header.items.core:Core`,
-          icon: 'pi pi-bolt',
-          shortcut: '⌘+S',
-        },
-        {
-          label: $localize`:@@header.items.blocks:Blocks`,
-          icon: 'pi pi-server',
-          shortcut: '⌘+B',
-        },
-        {
-          separator: true,
-        },
-        {
-          label: $localize`:@@header.items.uiKit:UI Kit`,
-          icon: 'pi pi-pencil',
-          shortcut: '⌘+U',
-        },
+        { label: $localize`:@@header.menu.solutions:Solutions`, route: '/solutions' },
+        { label: $localize`:@@header.menu.architecture:Architecture`, route: '/architecture' },
+        { label: $localize`:@@header.menu.pricing:Pricing`, route: '/pricing' },
+      ],
+    },
+    {
+      id: 'company',
+      label: $localize`:@@header.menu.company:Company`,
+      type: 'dropdown' as const,
+      items: [
+        { label: $localize`:@@header.menu.about:About`, route: '/about' },
+        { label: $localize`:@@header.menu.vision:Vision`, route: '/african-market' },
+        { label: $localize`:@@header.menu.openSource:Open Source`, route: '/open-source' },
       ],
     },
   ];
@@ -119,6 +132,29 @@ export class Header implements OnInit {
    */
   protected toggleDropdown(): void {
     this.isDropdownOpen.update((open) => !open);
+  }
+
+  /**
+   * Toggle menu group dropdown
+   */
+  protected toggleMenuDropdown(groupName: string): void {
+    this.activeDropdown.update((current) => (current === groupName ? null : groupName));
+  }
+
+  /**
+   * Close all dropdowns
+   */
+  protected closeAllDropdowns(): void {
+    this.activeDropdown.set(null);
+  }
+
+  /**
+   * Navigate to route and close menus
+   */
+  protected navigateToRoute(route: string): void {
+    this.closeAllDropdowns();
+    this.isMenuOpen.set(false);
+    this.router.navigate([route]);
   }
 
   /**

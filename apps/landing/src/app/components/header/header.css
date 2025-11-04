@@ -1,114 +1,123 @@
-/* Ultra-modern glass header design */
+/* Modern Glass Header Design */
 
-/* Glass header container */
+/* Header Container */
 .glass-header {
-  background: rgba(10, 10, 20, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(10, 10, 20, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Glass navigation link */
+/* Navigation Links */
 .glass-nav-link {
   position: relative;
-  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-nav-link::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.8));
-  transition: all 0.3s ease;
-  transform: translateX(-50%);
-  border-radius: 2px;
-  opacity: 0;
+.glass-nav-link:hover {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.glass-nav-link:hover::after,
-.glass-nav-link.active::after {
-  width: 100%;
-  opacity: 1;
+.glass-nav-link.active {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-/* Glass button styling */
-.glass-button {
+/* Dropdown Menu */
+.glass-dropdown {
+  background: rgba(15, 15, 25, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.dropdown-link {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-link:hover {
   background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 1);
+}
+
+/* Mobile Sidebar */
+.glass-mobile-sidebar {
+  background: rgba(10, 10, 20, 0.98);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.mobile-nav-link {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.mobile-nav-link.active-mobile {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 1);
+  border-left: 3px solid rgba(255, 255, 255, 0.8);
+  padding-left: calc(1rem - 3px);
+}
+
+.mobile-nav-group {
+  margin-top: 1rem;
+}
+
+/* Glass Button */
+.glass-button {
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-button:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
 }
 
-/* Mobile menu glass styling */
-.glass-mobile-menu {
-  background: rgba(10, 10, 20, 0.85);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.glass-mobile-link {
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  transition: all 0.3s ease;
-}
-
-.glass-mobile-link:hover,
-.glass-mobile-link.active {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateX(3px);
-}
-
-/* Logo pulse animation */
+/* Logo Animation */
 @keyframes logoPulse {
-  0% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.03);
-  }
-  100% {
-    transform: scale(1);
+    transform: scale(1.02);
   }
 }
 
 .logo-pulse {
-  animation: logoPulse 3s infinite ease-in-out;
+  animation: logoPulse 4s infinite ease-in-out;
 }
 
-/* Ergonomic hover dot */
-.nav-dot {
-  position: absolute;
-  top: -2px;
-  right: -6px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: white;
-  opacity: 0;
-  transition: all 0.3s ease;
+/* Scrollbar for Mobile Sidebar */
+.glass-mobile-sidebar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.glass-nav-link:hover .nav-dot,
-.glass-nav-link.active .nav-dot {
-  opacity: 0.8;
+.glass-mobile-sidebar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.glass-mobile-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.glass-mobile-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
