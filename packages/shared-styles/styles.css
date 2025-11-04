@@ -30,9 +30,9 @@ body {
 /* Tailwind CSS 4 Theme Configuration */
 @theme {
   /* Core Colors - Using oklch for wider color gamut */
-  --color-primary: oklch(0.55 0.22 264);
-  --color-secondary: oklch(0.6 0.25 328);
-  --color-accent: oklch(0.75 0.15 195);
+  --color-primary: #1447e6;
+  --color-secondary: #000060;
+  --color-accent: #22d3ee;
 
   /* Background Colors */
   --color-bg-dark: oklch(0.1 0.01 264);
