@@ -1,0 +1,29 @@
+{
+  "locale": "en",
+  "translations": {
+    "header.alt.logo": "IDEM - Africa's sovereign open source AI platform",
+    "header.nav.solutions": "Solutions {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.architecture": "Architecture {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.vision": "Vision {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.openSource": "Open Source {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.pricing": "Pricing {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.enterprise": "Entreprise {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.aria.github": "Visit IDEM on GitHub",
+    "header.nav.dashboard.desktop": " Dashboard {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.alt.avatar": "Avatar",
+    "header.nav.dashboard.dropdown": " Dashboard ",
+    "header.nav.settings": "Settings ",
+    "header.nav.logout.dropdown": "Logout ",
+    "header.nav.login.desktop": "Login ",
+    "header.nav.home": "Home {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.dashboard.mobile": "Dashboard {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.profile": "Profile {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.logout.mobile": "Logout {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.nav.login.mobile": "Login {$START_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "header.items.home": "Home",
+    "header.items.projects": "Projects",
+    "header.items.core": "Core",
+    "header.items.blocks": "Blocks",
+    "header.items.uiKit": "UI Kit"
+  }
+}
