@@ -5,11 +5,12 @@ import { ProjectModel } from '../../../../models/project.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
 import { Subject } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-typography-selection',
   standalone: true,
-  imports: [CommonModule, CarouselComponent],
+  imports: [CommonModule, CarouselComponent, TranslateModule],
   templateUrl: './typography-selection.html',
   styleUrl: './typography-selection.css',
 })
@@ -17,6 +18,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   // Services
   private readonly brandingService = inject(BrandingService);
   private readonly destroy$ = new Subject<void>();
+  private readonly translate = inject(TranslateService);
 
   // Inputs
   readonly project = input.required<ProjectModel>();
@@ -52,9 +54,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
           'No typography options found in project data:',
           this.project().analysisResultModel?.branding,
         );
-        this.error.set(
-          'No typography options available. Please go back to the color selection step.',
-        );
+        this.error.set(this.translate.instant('dashboard.typographySelection.errors.noOptions'));
       }
       this.isLoading.set(false);
     }, 2000);

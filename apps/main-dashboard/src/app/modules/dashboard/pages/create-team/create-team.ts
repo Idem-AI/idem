@@ -4,13 +4,21 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { TeamService } from '../../services/team.service';
 import { CreateTeamDTO } from '../../models/team.model';
 
 @Component({
   selector: 'app-create-team',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, InputTextModule, TextareaModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule,
+    InputTextModule,
+    TextareaModule,
+    TranslateModule,
+  ],
   templateUrl: './create-team.html',
   styleUrl: './create-team.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,6 +27,7 @@ export class CreateTeam {
   private readonly fb = inject(FormBuilder);
   private readonly teamService = inject(TeamService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
@@ -56,7 +65,10 @@ export class CreateTeam {
       },
       error: (error) => {
         console.error('Error creating team:', error);
-        this.errorMessage.set(error.error?.error?.message || 'Failed to create team');
+        this.errorMessage.set(
+          error.error?.error?.message ||
+            this.translate.instant('dashboard.createTeam.errors.failedToCreate'),
+        );
         this.isSubmitting.set(false);
       },
     });
@@ -84,16 +96,20 @@ export class CreateTeam {
     const field = this.teamForm.get(fieldName);
     if (!field) return '';
 
+    const fieldNameKey = `dashboard.createTeam.fields.${fieldName}`;
+
     if (field.hasError('required')) {
-      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required`;
+      return this.translate.instant('validation.required', {
+        fieldName: this.translate.instant(fieldNameKey),
+      });
     }
     if (field.hasError('minlength')) {
       const minLength = field.getError('minlength').requiredLength;
-      return `Minimum ${minLength} characters required`;
+      return this.translate.instant('validation.minLength', { min: minLength });
     }
     if (field.hasError('maxlength')) {
       const maxLength = field.getError('maxlength').requiredLength;
-      return `Maximum ${maxLength} characters allowed`;
+      return this.translate.instant('validation.maxLength', { max: maxLength });
     }
     return '';
   }

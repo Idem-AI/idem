@@ -8,13 +8,15 @@
           class="flex items-center gap-2 text-gray-400 hover:text-white transition"
         >
           <i class="pi pi-arrow-left"></i>
-          <span>Back to Teams</span>
+          <span>{{ 'dashboard.createTeam.backToTeams' | translate }}</span>
         </button>
 
         <div>
-          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">Create New Team</h1>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">
+            {{ 'dashboard.createTeam.title' | translate }}
+          </h1>
           <p class="text-gray-400 mt-2">
-            Create a team to collaborate with others on your projects
+            {{ 'dashboard.createTeam.subtitle' | translate }}
           </p>
         </div>
       </section>
@@ -35,14 +37,15 @@
           <!-- Team Name -->
           <div class="space-y-2">
             <label for="name" class="block text-sm font-medium text-gray-300">
-              Team Name <span class="text-red-400">*</span>
+              {{ 'dashboard.createTeam.fields.name' | translate }}
+              <span class="text-red-400">*</span>
             </label>
             <input
               pInputText
               id="name"
               type="text"
               formControlName="name"
-              placeholder="Enter team name"
+              [placeholder]="'dashboard.createTeam.placeholders.name' | translate"
               class="w-full"
               [class.ng-invalid]="
                 hasError('name', 'required') ||
@@ -64,17 +67,17 @@
             }
           </div>
 
-          <!-- Description -->
+          <!-- {{ 'dashboard.createTeam.fields.description' | translate }} -->
           <div class="space-y-2">
             <label for="description" class="block text-sm font-medium text-gray-300">
-              Description
+              {{ 'dashboard.createTeam.fields.description' | translate }}
             </label>
             <textarea
               pTextarea
               id="description"
               formControlName="description"
               rows="4"
-              placeholder="Describe your team's purpose and goals"
+              [placeholder]="'dashboard.createTeam.placeholders.description' | translate"
               class="w-full"
               [class.ng-invalid]="hasError('description', 'maxlength')"
               [class.ng-dirty]="hasError('description', 'maxlength')"
@@ -87,10 +90,12 @@
           <!-- Info Box -->
           <div class="bg-primary/10 border border-primary/30 rounded-lg p-4">
             <div class="flex gap-3">
-              <i class="pi pi-info-circle text-primary text-xl flex-shrink-0"></i>
+              <i class="pi pi-info-circle text-primary text-xl shrink-0"></i>
               <div class="text-sm text-gray-300">
-                <p class="font-medium text-white mb-1">After creating the team</p>
-                <p>You can add members and assign the team to projects.</p>
+                <p class="font-medium text-white mb-1">
+                  {{ 'dashboard.createTeam.info.afterCreationTitle' | translate }}
+                </p>
+                <p>{{ 'dashboard.createTeam.info.afterCreationBody' | translate }}</p>
               </div>
             </div>
           </div>
@@ -105,7 +110,7 @@
             [disabled]="isSubmitting()"
           >
             <i class="pi pi-times mr-2"></i>
-            Cancel
+            {{ 'common.cancel' | translate }}
           </button>
           <button
             type="submit"
@@ -114,10 +119,10 @@
           >
             @if (isSubmitting()) {
               <i class="pi pi-spin pi-spinner mr-2"></i>
-              Creating...
+              {{ 'common.creating' | translate }}
             } @else {
               <i class="pi pi-check mr-2"></i>
-              Create Team
+              {{ 'dashboard.createTeam.buttons.create' | translate }}
             }
           </button>
         </div>

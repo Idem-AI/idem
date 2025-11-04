@@ -10,9 +10,11 @@
         ></div>
       </div>
       <div class="space-y-2">
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Creating Your Project</h3>
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+          {{ 'dashboard.createProject.loading.title' | translate }}
+        </h3>
         <p class="text-gray-600 dark:text-gray-400">
-          Please wait while we finalize your project...
+          {{ 'dashboard.createProject.loading.subtitle' | translate }}
         </p>
       </div>
     </div>
@@ -122,7 +124,7 @@
                   d="M15 19l-7-7 7-7"
                 ></path>
               </svg>
-              Previous
+              {{ 'common.previous' | translate }}
             </button>
 
             <div class="flex items-center space-x-2">
@@ -141,7 +143,7 @@
                 [disabled]="!canGoNext()"
                 class="flex items-center px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Next
+                {{ 'common.next' | translate }}
                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"

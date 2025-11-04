@@ -5,7 +5,7 @@
       <!-- Chat Messages Display -->
       <div
         #chatContainer
-        class="flex-grow overflow-y-auto sm:pr-4 space-y-4 sm:space-y-6 custom-scrollbar"
+        class="grow overflow-y-auto sm:pr-4 space-y-4 sm:space-y-6 custom-scrollbar"
       >
         @for (message of chatMessages(); track $index) {
           <div
@@ -14,7 +14,7 @@
           >
             @if (message.sender === 'ai') {
               <div
-                class="w-6 h-6 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0 mt-1"
+                class="w-6 h-6 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center text-white shrink-0 mt-1"
               >
                 <i class="pi pi-sparkles text-xs sm:text-sm"></i>
               </div>
@@ -46,14 +46,15 @@
                   <div class="mt-4 animate-fade-in">
                     <div class="flex items-center gap-2 mb-3 text-yellow-400">
                       <i class="pi pi-shield"></i>
-                      <h4 class="font-medium">Sensitive Variables Required</h4>
+                      <h4 class="font-medium">
+                        {{ 'dashboard.aiAssistant.sensitiveVariables.title' | translate }}
+                      </h4>
                     </div>
 
                     <div class="glass-dark border border-secondary/30 rounded-lg p-4 mb-4">
                       <p class="text-sm text-yellow-200 mb-3">
                         <i class="pi pi-info-circle mr-2"></i>
-                        The AI needs some sensitive information to complete your deployment
-                        configuration. These values will be stored securely and encrypted.
+                        {{ 'dashboard.aiAssistant.sensitiveVariables.description' | translate }}
                       </p>
 
                       <div class="space-y-2">
@@ -79,7 +80,7 @@
                             >
                               {{ variable.type | titlecase }}
                               @if (variable.required) {
-                                • Required
+                                • {{ 'common.required' | translate }}
                               }
                             </span>
                           </div>
@@ -94,7 +95,9 @@
                         class="px-4 py-2 bg-secondary hover:bg-secondary/90 rounded-lg text-white font-medium flex items-center gap-2 transition-all text-sm"
                       >
                         <i class="pi pi-shield"></i>
-                        <span>Enter Sensitive Variables</span>
+                        <span>{{
+                          'dashboard.aiAssistant.buttons.enterSensitiveVariables' | translate
+                        }}</span>
                       </button>
 
                       <button
@@ -104,10 +107,12 @@
                       >
                         @if (storingSensitiveVariables()) {
                           <i class="pi pi-spinner animate-spin"></i>
-                          <span>Submitting...</span>
+                          <span>{{ 'common.submitting' | translate }}</span>
                         } @else {
                           <i class="pi pi-send"></i>
-                          <span>Submit Variables</span>
+                          <span>{{
+                            'dashboard.aiAssistant.buttons.submitVariables' | translate
+                          }}</span>
                         }
                       </button>
                     </div>
@@ -123,7 +128,9 @@
                   <div class="mt-4 animate-fade-in">
                     <div class="flex items-center gap-2 mb-3 text-primary">
                       <i class="pi pi-sitemap"></i>
-                      <h4 class="font-medium">Proposed Architecture</h4>
+                      <h4 class="font-medium">
+                        {{ 'dashboard.aiAssistant.architecture.title' | translate }}
+                      </h4>
                     </div>
 
                     <!-- Mermaid Architecture Diagram -->
@@ -131,7 +138,9 @@
                       <div class="mb-4 p-4 glass-dark rounded-lg">
                         <div class="flex items-center gap-2 mb-3 text-gray-300">
                           <i class="pi pi-share-alt"></i>
-                          <h5 class="text-sm font-medium">Architecture Diagram</h5>
+                          <h5 class="text-sm font-medium">
+                            {{ 'dashboard.aiAssistant.architecture.diagram' | translate }}
+                          </h5>
                         </div>
                         <div class="bg-white rounded-lg p-4 overflow-x-auto">
                           <markdown
@@ -198,7 +207,9 @@
                         class="px-3 py-1.5 sm:px-4 sm:py-2 inner-button text-white text-sm sm:text-base font-medium flex items-center gap-2 transition-all"
                       >
                         <i class="pi pi-check"></i>
-                        <span>Accept Architecture</span>
+                        <span>{{
+                          'dashboard.aiAssistant.buttons.acceptArchitecture' | translate
+                        }}</span>
                       </button>
                     </div>
                   </div>
@@ -212,7 +223,7 @@
         @if (aiIsThinking()) {
           <div class="flex gap-2 sm:gap-4 animate-fade-in w-full">
             <div
-              class="w-6 h-6 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0 mt-1"
+              class="w-6 h-6 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center text-white shrink-0 mt-1"
             >
               <i class="pi pi-sparkles text-xs sm:text-sm"></i>
             </div>
@@ -220,7 +231,7 @@
               class="flex-1 p-3 sm:p-4 rounded-xl glass-dark text-gray-300 border border-primary/20 flex items-center gap-2 sm:gap-3 text-sm sm:text-base"
             >
               <i class="pi pi-spin pi-spinner"></i>
-              <span>Thinking...</span>
+              <span>{{ 'common.thinking' | translate }}</span>
             </div>
           </div>
         }
@@ -233,7 +244,7 @@
           (input)="updatePrompt($any($event.target).value)"
           (keyup.enter)="sendAiPrompt()"
           type="text"
-          placeholder="Describe your infrastructure needs..."
+          [placeholder]="'dashboard.aiAssistant.placeholders.prompt' | translate"
           class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-2 sm:p-3 text-xs sm:text-base focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-gray-400"
         />
         <button
@@ -242,7 +253,7 @@
           [disabled]="!aiPrompt() || aiIsThinking()"
         >
           <i class="pi pi-send"></i>
-          <span class="hidden sm:block">Send</span>
+          <span class="hidden sm:block">{{ 'common.send' | translate }}</span>
         </button>
       </div>
     </div>
@@ -265,9 +276,10 @@
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="{{ activeProposedComponent()?.icon }}"></i>
-      <span class="text-xl font-semibold text-white"
-        >Configure {{ activeProposedComponent()?.name }}</span
-      >
+      <span class="text-xl font-semibold text-white">{{
+        'dashboard.aiAssistant.configure.title'
+          | translate: { componentName: activeProposedComponent()?.name }
+      }}</span>
     </div>
   </ng-template>
 
@@ -341,7 +353,7 @@
         (click)="configurationDialogVisible.set(false)"
         class="px-6 py-2.5 outer-button transition-all"
       >
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button
         (click)="saveComponentConfiguration()"
@@ -349,7 +361,7 @@
         [disabled]="getActiveComponentForm()?.invalid"
       >
         <i class="pi pi-check"></i>
-        <span>Save Configuration</span>
+        <span>{{ 'dashboard.aiAssistant.buttons.saveConfiguration' | translate }}</span>
       </button>
     </div>
   </ng-template>
@@ -365,14 +377,16 @@
   [maximizable]="false"
   [closeOnEscape]="true"
   [dismissableMask]="true"
-  header="Deployment Configuration"
+  [header]="'dashboard.aiAssistant.deploymentConfig.title' | translate"
   styleClass="deployment-config-dialog"
   [style]="{ width: '90vw', maxWidth: '600px' }"
 >
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="pi pi-cog text-primary"></i>
-      <span class="text-xl font-semibold text-white">Deployment Configuration</span>
+      <span class="text-xl font-semibold text-white">{{
+        'dashboard.aiAssistant.deploymentConfig.title' | translate
+      }}</span>
     </div>
   </ng-template>
 
@@ -380,60 +394,71 @@
     <form [formGroup]="deploymentConfigForm" class="space-y-4">
       <div>
         <label for="name" class="block text-sm font-medium text-gray-200 mb-2">
-          Deployment Name
+          {{ 'dashboard.aiAssistant.deploymentConfig.fields.name' | translate }}
         </label>
         <input
           type="text"
           id="name"
           formControlName="name"
-          placeholder="My AI-Generated App"
+          [placeholder]="'dashboard.aiAssistant.deploymentConfig.placeholders.name' | translate"
           class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-gray-400"
         />
       </div>
 
       <div>
         <label for="environment" class="block text-sm font-medium text-gray-200 mb-2">
-          Environment
+          {{ 'dashboard.aiAssistant.deploymentConfig.fields.environment' | translate }}
         </label>
         <select
           id="environment"
           formControlName="environment"
           class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
         >
-          <option value="development">Development</option>
-          <option value="staging">Staging</option>
-          <option value="production">Production</option>
+          <option value="development">
+            {{ 'dashboard.aiAssistant.deploymentConfig.environments.development' | translate }}
+          </option>
+          <option value="staging">
+            {{ 'dashboard.aiAssistant.deploymentConfig.environments.staging' | translate }}
+          </option>
+          <option value="production">
+            {{ 'dashboard.aiAssistant.deploymentConfig.environments.production' | translate }}
+          </option>
         </select>
       </div>
 
       <div class="p-4 glass-dark rounded-lg border border-primary/20">
         <h4 class="text-sm font-medium text-primary-300 mb-4 flex items-center gap-2">
-          <i class="pi pi-code"></i> Git Repository (Optional)
+          <i class="pi pi-code"></i>
+          {{ 'dashboard.aiAssistant.deploymentConfig.git.title' | translate }}
         </h4>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label for="repoUrl" class="block font-medium text-gray-300 mb-1 text-sm">
-              Repository URL
+              {{ 'dashboard.aiAssistant.deploymentConfig.git.repoUrl' | translate }}
             </label>
             <input
               id="repoUrl"
               type="text"
               formControlName="repoUrl"
-              placeholder="https://github.com/user/repo.git"
+              [placeholder]="
+                'dashboard.aiAssistant.deploymentConfig.placeholders.repoUrl' | translate
+              "
               class="w-full glass border border-primary/20 focus:border-primary text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all text-sm placeholder-gray-400"
             />
           </div>
 
           <div>
             <label for="branch" class="block font-medium text-gray-300 mb-1 text-sm">
-              Branch
+              {{ 'dashboard.aiAssistant.deploymentConfig.git.branch' | translate }}
             </label>
             <input
               id="branch"
               type="text"
               formControlName="branch"
-              placeholder="main"
+              [placeholder]="
+                'dashboard.aiAssistant.deploymentConfig.placeholders.branch' | translate
+              "
               class="w-full glass border border-primary/20 focus:border-primary text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all text-sm placeholder-gray-400"
             />
           </div>
@@ -460,7 +485,7 @@
         class="px-6 py-2.5 outer-button transition-all"
         [disabled]="creatingDeployment()"
       >
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button
         (click)="saveDeploymentConfig()"
@@ -469,10 +494,10 @@
       >
         @if (creatingDeployment()) {
           <i class="pi pi-spinner animate-spin"></i>
-          <span>Creating...</span>
+          <span>{{ 'common.creating' | translate }}</span>
         } @else {
           <i class="pi pi-save"></i>
-          <span>Save & Continue</span>
+          <span>{{ 'dashboard.aiAssistant.buttons.saveAndContinue' | translate }}</span>
         }
       </button>
     </div>
@@ -489,14 +514,16 @@
   [maximizable]="false"
   [closeOnEscape]="true"
   [dismissableMask]="true"
-  header="Secure Variables Configuration"
+  [header]="'dashboard.aiAssistant.sensitiveVariables.dialogTitle' | translate"
   styleClass="sensitive-variables-dialog"
   [style]="{ width: '90vw', maxWidth: '600px' }"
 >
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="pi pi-shield text-yellow-400"></i>
-      <span class="text-xl font-semibold text-white">Secure Variables Configuration</span>
+      <span class="text-xl font-semibold text-white">{{
+        'dashboard.aiAssistant.sensitiveVariables.dialogTitle' | translate
+      }}</span>
     </div>
   </ng-template>
 
@@ -504,10 +531,11 @@
     <div class="flex items-start gap-3">
       <i class="pi pi-shield text-yellow-400 mt-1"></i>
       <div>
-        <h4 class="text-sm font-medium text-yellow-200 mb-2">Security Notice</h4>
+        <h4 class="text-sm font-medium text-yellow-200 mb-2">
+          {{ 'dashboard.aiAssistant.sensitiveVariables.securityNotice.title' | translate }}
+        </h4>
         <p class="text-xs text-yellow-300">
-          These sensitive values will be encrypted and stored securely. They will only be used for
-          your deployment configuration and will never be logged or exposed.
+          {{ 'dashboard.aiAssistant.sensitiveVariables.securityNotice.body' | translate }}
         </p>
       </div>
     </div>
@@ -575,7 +603,7 @@
                 This field is required.
               }
               @if (sensitiveVariablesForm()?.get(variable.name)?.errors?.['minlength']) {
-                Password must be at least 8 characters long.
+                {{ 'validation.minLength' | translate: { min: 8 } }}
               }
             </p>
           }
@@ -602,7 +630,7 @@
         class="px-6 py-2.5 outer-button transition-all"
         [disabled]="storingSensitiveVariables()"
       >
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button
         (click)="validateSensitiveVariables()"
@@ -610,7 +638,7 @@
         [disabled]="!sensitiveVariablesForm()"
       >
         <i class="pi pi-check"></i>
-        <span>Validate Fields</span>
+        <span>{{ 'dashboard.aiAssistant.buttons.validateFields' | translate }}</span>
       </button>
     </div>
   </ng-template>

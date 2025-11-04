@@ -13,7 +13,29 @@
     "filter": "Filter",
     "export": "Export",
     "import": "Import",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "adding": "Adding...",
+    "optional": "Optional",
+    "creating": "Creating...",
+    "completed": "Completed",
+    "ready": "Ready",
+    "submitting": "Submitting...",
+    "saving": "Saving...",
+    "deploying": "Deploying...",
+    "oops": "Oops!",
+    "complete": "Complete",
+    "progress": "Progress",
+    "retry": "Retry",
+    "selected": "Selected"
+  },
+  "validation": {
+    "required": "{{fieldName}} is required",
+    "email": "Please enter a valid email address",
+    "minLength": "Minimum {{min}} characters required",
+    "maxLength": "Maximum {{max}} characters allowed",
+    "selectAtLeastOneRole": "Please select at least one role",
+    "teamNameMinLength": "Team name must be at least {{min}} characters",
+    "deploymentName": "Deployment name is required (minimum {{min}} characters)"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -27,7 +49,735 @@
     "welcome": "Welcome to your dashboard",
     "overview": "Overview",
     "recentActivity": "Recent Activity",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "addMemberModal": {
+      "title": "Add Team Member",
+      "fields": {
+        "email": "Email Address",
+        "displayName": "Display Name",
+        "role": "Role"
+      },
+      "placeholders": {
+        "email": "member@example.com",
+        "displayName": "John Doe"
+      },
+      "roles": {
+        "admin": {
+          "label": "Admin",
+          "description": "Can manage team and members"
+        },
+        "member": {
+          "label": "Member",
+          "description": "Can view and contribute"
+        },
+        "viewer": {
+          "label": "Viewer",
+          "description": "Can only view"
+        }
+      },
+      "invitationInfo": "An invitation will be sent to the member's email address.",
+      "addMemberButton": "Add Member",
+      "errors": {
+        "failedToAddMember": "Failed to add member"
+      }
+    },
+    "addTeamToProjectModal": {
+      "title": "Add Team to Project",
+      "subtitle": "Choose an existing team or create a new one to add to this project",
+      "tabs": {
+        "existingTeam": "Existing Team",
+        "createNewTeam": "Create New Team"
+      },
+      "fields": {
+        "selectTeam": "Select Team",
+        "projectRoles": "Project Roles",
+        "teamName": "Team Name",
+        "description": "Description"
+      },
+      "placeholders": {
+        "chooseTeam": "Choose a team...",
+        "teamName": "e.g., Frontend Team",
+        "description": "Brief description of the team's purpose..."
+      },
+      "noTeamsAvailable": "No teams available",
+      "createNewTeamSuggestion": "Create a new team to get started",
+      "buttons": {
+        "addTeam": "Add Team",
+        "createAndAdd": "Create & Add Team"
+      },
+      "newTeamInfo": "The team will be created and immediately added to this project with the selected roles.",
+      "errors": {
+        "failedToLoadTeams": "Failed to load teams",
+        "failedToAddTeam": "Failed to add team to project",
+        "teamCreatedButFailedToAdd": "Team created but failed to add to project",
+        "failedToCreateTeam": "Failed to create team"
+      },
+      "roles": {
+        "project-owner": "Project Owner",
+        "project-admin": "Project Admin",
+        "developer": "Developer",
+        "designer": "Designer",
+        "viewer": "Viewer",
+        "contributor": "Contributor"
+      }
+    },
+    "projectCard": {
+      "logoAlt": "Logo",
+      "open": "Open"
+    },
+    "sidebar": {
+      "projectHome": "Project Home",
+      "teams": "Teams",
+      "branding": "Branding",
+      "businessPlan": "Business Plan",
+      "diagrams": "Diagrams",
+      "development": "Development",
+      "deployment": "Deployment",
+      "viewAllProjects": "View All Projects",
+      "sr": {
+        "openMobileMenu": "Open mobile menu",
+        "toggleSidebar": "Toggle sidebar"
+      },
+      "logoAlt": "Lexi",
+      "selectProject": "Select Project",
+      "userAvatarAlt": "Avatar",
+      "userMenu": {
+        "profile": "Profile",
+        "globalDashboard": "Global Dashboard",
+        "settings": "Settings",
+        "logout": "Logout"
+      },
+      "poweredBy": "Powered by",
+      "mobile": {
+        "currentProject": "Current Project",
+        "navigation": "Navigation"
+      },
+      "errors": {
+        "projectNotFound": "Project ID '{{cookieId}}' from cookie not found. Using first project instead.",
+        "initialProjectNotFound": "Initial project ID '{{initialCookieId}}' not found. Navigating to global dashboard."
+      }
+    },
+    "sidebarGlobal": {
+      "dashboard": "Dashboard",
+      "projects": "Projects",
+      "teams": "Teams",
+      "sr": {
+        "openMobileMenu": "Open mobile menu",
+        "toggleSidebar": "Toggle sidebar"
+      },
+      "logoAlt": "Lexi",
+      "userAvatarAlt": "Avatar",
+      "userMenu": {
+        "profile": "Profile",
+        "settings": "Settings",
+        "logout": "Logout"
+      },
+      "poweredBy": "Powered by",
+      "mobile": {
+        "navigation": "Navigation"
+      }
+    },
+    "colorCustomizer": {
+      "title": "Edit Colors",
+      "pick": "Pick",
+      "hex": "HEX",
+      "hexPlaceholder": "#000000",
+      "preview": "Preview",
+      "tip": "Click any color circle to open the picker. Related colors auto-adjust for harmony.",
+      "labels": {
+        "primary": "Primary Color",
+        "secondary": "Secondary Color",
+        "accent": "Accent Color",
+        "background": "Background Color",
+        "text": "Text Color"
+      },
+      "descriptions": {
+        "primary": "Main brand color used for buttons and key elements",
+        "secondary": "Supporting color that complements your primary",
+        "accent": "Highlighting color for calls-to-action",
+        "background": "Base background color for your designs",
+        "text": "Primary text color for readability"
+      }
+    },
+    "colorSelection": {
+      "generating": {
+        "title": "Generating Color Palettes...",
+        "whileYouWait": "While you wait...",
+        "tip": "Our AI is analyzing your project requirements to create harmonious color palettes that reflect your brand's personality and target audience. This process ensures each palette is optimized for accessibility and visual impact."
+      },
+      "errors": {
+        "title": "Generation Failed",
+        "generationFailed": "Failed to generate color palettes. Please try again.",
+        "noOptions": "No typography options available. Please go back to the color selection step."
+      },
+      "success": {
+        "title": "Select Your Brand Colors",
+        "subtitle": "Choose the color palette that best represents your brand's personality and values.",
+        "greatChoice": "Great choice! Click Next to continue to the next step."
+      },
+      "buttons": {
+        "customize": "Customize Selected Colors"
+      },
+      "tooltips": {
+        "primary": "Primary Color",
+        "secondary": "Secondary Color",
+        "accent": "Accent Color",
+        "background": "Background Color"
+      },
+      "preview": {
+        "sampleText": "Sample Text",
+        "primary": "Primary",
+        "accent": "Accent"
+      },
+      "auth": {
+        "header": "Authentication Required",
+        "title": "Please Sign In",
+        "message": "You need to be authenticated to generate color palettes. Please sign in to continue."
+      }
+    },
+    "logoEditor": {
+      "title": "Logo Editor Assistant",
+      "subtitle": "AI-powered logo modifications",
+      "initialGreeting": "Here is your selected logo. You can ask me to modify it!",
+      "welcomeMessage": "Tell me what changes you'd like to make. For example: \"Make it more modern\", \"Change the colors to blue\", \"Add a gradient effect\", etc.",
+      "workingMessage": "Working on your modifications...",
+      "modifiedLogo": "Here is your modified logo!",
+      "pressEnterToSend": "Press Enter to send",
+      "buttons": {
+        "choose": "Choose This Logo"
+      },
+      "placeholders": {
+        "prompt": "Describe the changes you want... (Press Enter to send)"
+      },
+      "quickSuggestions": {
+        "title": "Quick suggestions:",
+        "modern": "More modern",
+        "gradient": "Add gradient",
+        "simplify": "Simplify",
+        "professional": "More professional"
+      },
+      "errors": {
+        "noLogoToEdit": "No logo found to edit",
+        "modificationFailed": "Sorry, I encountered an error while modifying the logo. Please try again with a different prompt.",
+        "failedToEdit": "Failed to edit logo"
+      }
+    },
+    "logoPreferences": {
+      "steps": {
+        "type": {
+          "title": "Choose Logo Type",
+          "subtitle": "Select one logo type"
+        },
+        "mode": {
+          "title": "How to create your logo?",
+          "subtitle": "AI generation or custom description"
+        },
+        "description": {
+          "title": "Describe Your Logo",
+          "subtitle": "Tell us what you want"
+        }
+      },
+      "types": {
+        "icon": {
+          "title": "Icon Based",
+          "description": "An easy to remember shape in the center of your logo design",
+          "example": "Apple, Nike, Twitter"
+        },
+        "name": {
+          "title": "Name Based",
+          "description": "Your company name as a key element of your logo design",
+          "example": "Coca-Cola, Google, FedEx"
+        },
+        "initial": {
+          "title": "Initial Based",
+          "description": "Initials as the main element of your logo design",
+          "example": "IBM, HP, CNN"
+        }
+      },
+      "modes": {
+        "ai": {
+          "title": "AI Generation",
+          "description": "AI creates unique logos based on your brand"
+        },
+        "custom": {
+          "title": "Custom Description",
+          "description": "Describe exactly how you want your logo"
+        }
+      },
+      "fields": {
+        "description": {
+          "label": "Logo Description",
+          "placeholder": "Example: Minimalist logo with a mountain peak, blue and white colors, adventure and trust...",
+          "charCount": "characters (min {{min}})"
+        }
+      },
+      "buttons": {
+        "generate": "Generate Logos"
+      }
+    },
+    "logoSelection": {
+      "generating": {
+        "title": "Generating Your Logos...",
+        "subtitle": "Creating personalized logos based on your brand preferences.",
+        "whileYouWait": "While you wait...",
+        "tip": "Our AI is analyzing your color palette and typography to create logos that perfectly match your brand identity."
+      },
+      "errors": {
+        "title": "Generation Failed",
+        "colorAndTypographyRequired": "Color and typography must be selected before generating logos.",
+        "generationFailed": "Failed to generate logos. Please try again.",
+        "preferencesNotFound": "Logo preferences not found. Please restart the generation process."
+      },
+      "success": {
+        "title": "Choose Your Perfect Logo",
+        "subtitle": "Select the logo that best represents your brand identity",
+        "greatChoice": "Great choice! Click Next to continue to the next step."
+      },
+      "buttons": {
+        "editWithAI": "Edit with AI Assistant",
+        "regenerate": "Regenerate Logos"
+      },
+      "cards": {
+        "colors": "Colors"
+      }
+    },
+    "logoVariations": {
+      "initial": {
+        "title": "Logo variations",
+        "subtitle": "We will create several variations of your selected logo for different usage contexts."
+      },
+      "features": {
+        "lightBackground": {
+          "title": "Light Background",
+          "description": "Optimized for white and light backgrounds"
+        },
+        "darkBackground": {
+          "title": "Dark Background",
+          "description": "Optimized for dark and modern backgrounds"
+        },
+        "monochrome": {
+          "title": "Monochrome",
+          "description": "Version in black and white for all uses"
+        },
+        "multipleFormats": {
+          "title": "Multiple Formats",
+          "description": "With text and icon alone for all contexts"
+        }
+      },
+      "buttons": {
+        "generate": "Generate Variations",
+        "clickToSelect": "Click to select",
+        "proceed": "Proceed with selection"
+      },
+      "estimatedTime": "Estimated time: {{time}}",
+      "generating": {
+        "title": "Generating Logo Variations...",
+        "subtitle": "Creating different versions of your logo for various use cases."
+      },
+      "progress": {
+        "initializing": "Initializing logo variation generation...",
+        "analyzing": "Analyzing selected logo design...",
+        "generatingLight": "Generating light background variation...",
+        "generatingDark": "Creating dark background version...",
+        "generatingMonochrome": "Producing monochrome variant...",
+        "optimizing": "Optimizing SVG outputs...",
+        "finalizing": "Finalizing variations...",
+        "completed": "Generation completed!"
+      },
+      "errors": {
+        "title": "Generation Error",
+        "generationFailed": "Failed to generate logo variations. Please try again.",
+        "selectAtLeastOne": "Please select at least one variation to continue"
+      },
+      "success": {
+        "title": "Logo Variations",
+        "subtitle": "Select the variations you want to keep for your project."
+      },
+      "categories": {
+        "withText": "With Text",
+        "iconOnly": "Icon Only"
+      },
+      "labels": {
+        "withTextLight": "With Text - Light Background",
+        "withTextDark": "With Text - Dark Background",
+        "withTextMonochrome": "With Text - Monochrome",
+        "iconOnlyLight": "Icon Only - Light Background",
+        "iconOnlyDark": "Icon Only - Dark Background",
+        "iconOnlyMonochrome": "Icon Only - Monochrome"
+      },
+      "descriptions": {
+        "withTextLight": "Full logo optimized for light backgrounds",
+        "withTextDark": "Full logo optimized for dark backgrounds",
+        "withTextMonochrome": "Full logo in monochrome version",
+        "iconOnlyLight": "Icon only optimized for light backgrounds",
+        "iconOnlyDark": "Icon only optimized for dark backgrounds",
+        "iconOnlyMonochrome": "Icon only in monochrome version"
+      },
+      "selectionsMade": "{{count}} selection(s) made"
+    },
+    "projectDescription": {
+      "hello": "Hello",
+      "whatToBuild": "What do you want to build ?",
+      "tellUsMore": "Tell us more about your project idea",
+      "placeholder": "An app that generates poems from photos",
+      "buttons": {
+        "improvePrompt": "Improve prompt",
+        "feelingLucky": "I'm Feeling Lucky"
+      },
+      "needInspiration": "Need Inspiration?",
+      "examples": {
+        "mpesa": {
+          "name": "M-Pesa Clone",
+          "description": "A mobile money transfer and microfinancing service for African markets",
+          "prompt": "A mobile money platform like M-Pesa with secure transactions, agent network management, and financial inclusion features for rural communities in Africa"
+        },
+        "agritech": {
+          "name": "Agri-Tech Platform",
+          "description": "Farm management system for small-scale African farmers",
+          "prompt": "An agricultural management platform for small-scale African farmers with weather forecasting, crop disease detection using AI, and marketplace for selling produce directly to buyers"
+        },
+        "solar": {
+          "name": "Solar Pay-as-you-go",
+          "description": "Solar energy payment and management system",
+          "prompt": "A pay-as-you-go solar energy management system for off-grid communities in Africa with mobile payments, usage tracking, and maintenance alerts"
+        },
+        "health": {
+          "name": "Health Passport",
+          "description": "Digital health records for underserved communities",
+          "prompt": "A digital health passport app for underserved African communities that works offline, stores vaccination records, and connects patients with local healthcare providers"
+        },
+        "artisan": {
+          "name": "African Artisan Marketplace",
+          "description": "E-commerce platform for African artisans",
+          "prompt": "An e-commerce platform connecting African artisans directly with global buyers, featuring secure payments, logistics management, and cultural storytelling for each product"
+        },
+        "edtech": {
+          "name": "EdTech for Low Bandwidth",
+          "description": "Educational platform optimized for low connectivity",
+          "prompt": "An educational platform designed for low-bandwidth African regions with offline content caching, SMS-based learning modules, and localized curriculum in multiple African languages"
+        }
+      }
+    },
+    "projectDetails": {
+      "title": "Before continuing, we need more information about your project",
+      "sections": {
+        "details": "Project Details",
+        "businessOptions": "Business Options"
+      },
+      "fields": {
+        "projectName": "Project Name",
+        "projectType": "Project Type",
+        "projectScope": "Project Scope",
+        "projectTarget": "Main Project Target"
+      },
+      "placeholders": {
+        "selectType": "Select a type",
+        "selectScope": "Select a scope",
+        "selectTarget": "Select a target"
+      }
+    },
+    "projectSummary": {
+      "loading": "Finalizing your project...",
+      "title": "Check all your choices and finalize your project",
+      "sections": {
+        "projectInfo": "Project Information",
+        "visualIdentity": "Visual Identity",
+        "legal": "Legal & Privacy"
+      },
+      "subsections": {
+        "details": "Project Details",
+        "businessInfo": "Business Informations",
+        "logo": "Logo",
+        "colorPalette": "Color Palette",
+        "typography": "Typography"
+      },
+      "fields": {
+        "name": "Name",
+        "type": "Type",
+        "teamSize": "Team Size",
+        "scope": "Scope",
+        "budget": "Budget",
+        "target": "Target"
+      },
+      "agreements": {
+        "iAgreeTo": "I agree to the",
+        "privacyPolicy": "Privacy Policy",
+        "termsOfService": "Terms of Service",
+        "betaTerms": "Beta Program Terms",
+        "marketing": "I agree to receive marketing communications about products, services, and promotions"
+      },
+      "errors": {
+        "requiredFields": "Required fields must be accepted to continue"
+      },
+      "buttons": {
+        "create": "Create Project",
+        "acceptPolicies": "Accept Required Policies"
+      }
+    },
+    "typographySelection": {
+      "errors": {
+        "title": "Typography Not Available",
+        "noOptions": "No typography options available. Please go back to the color selection step."
+      },
+      "loading": {
+        "title": "Loading Typography Options",
+        "subtitle": "Please wait while we prepare your typography selections..."
+      },
+      "success": {
+        "title": "Choose Your Typography",
+        "subtitle": "Select the typography style that best complements your brand's voice and personality.",
+        "perfectChoice": "Perfect choice! Click Next to continue to the next step."
+      },
+      "preview": {
+        "brandName": "Your Brand Name",
+        "subtitle": "This is how your content will look with this typography combination.",
+        "primary": "Primary",
+        "secondary": "Secondary"
+      }
+    },
+    "createProject": {
+      "loading": {
+        "title": "Creating Your Project",
+        "subtitle": "Please wait while we finalize your project..."
+      },
+      "steps": {
+        "description": "Project Description",
+        "details": "Project Details",
+        "colors": "Color Selection",
+        "typography": "Typography Selection",
+        "logo": "Logo Selection",
+        "variations": "Logo Variations",
+        "summary": "Summary"
+      },
+      "ai": {
+        "initialGreeting": "Bonjour ! Décrivez-moi l'infrastructure que vous souhaitez.",
+        "recommendation": "Excellent ! Basé sur votre demande \"{{prompt}}\", je recommande une architecture avec AWS EC2, RDS et CloudFront."
+      },
+      "errors": {
+        "noActiveProject": "No active project found. Please select a project first."
+      }
+    },
+    "createTeam": {
+      "backToTeams": "Back to Teams",
+      "title": "Create New Team",
+      "subtitle": "Create a team to collaborate with others on your projects",
+      "fields": {
+        "name": "Team Name",
+        "description": "Description"
+      },
+      "placeholders": {
+        "name": "Enter team name",
+        "description": "Describe your team's purpose and goals"
+      },
+      "info": {
+        "afterCreationTitle": "After creating the team",
+        "afterCreationBody": "You can add members and assign the team to projects."
+      },
+      "buttons": {
+        "create": "Create Team"
+      },
+      "errors": {
+        "failedToCreate": "Failed to create team"
+      }
+    },
+    "aiAssistant": {
+      "initialGreeting": "Hello! I'm your AI assistant. Describe the infrastructure you'd like to deploy.",
+      "architectureAccepted": "Great! The architecture has been accepted. Now let me check if any sensitive variables are needed for this deployment...",
+      "architectureAcceptedMessage": "The architecture has been accepted. Please analyze the components and let me know if any sensitive variables (API keys, passwords, database credentials, etc.) are needed for this deployment.",
+      "greeting": "Hello! {{userName}}, I'm IDEM DevOps Assistant. I can generate and deploy your project or infrastructure for you, and manage responsive deployments. How can I help you today?",
+      "buttons": {
+        "enterSensitiveVariables": "Enter Sensitive Variables",
+        "submitVariables": "Submit Variables",
+        "acceptArchitecture": "Accept Architecture",
+        "saveConfiguration": "Save Configuration",
+        "saveAndContinue": "Save & Continue",
+        "validateFields": "Validate Fields"
+      },
+      "sensitiveVariables": {
+        "title": "Sensitive Variables Required",
+        "description": "The AI needs some sensitive information to complete your deployment configuration. These values will be stored securely and encrypted.",
+        "validated": "✅ Sensitive variables validated and ready to submit. You can now click the \"Submit Variables\" button to store them securely.",
+        "storedSuccessfully": "✅ Successfully stored {{count}} sensitive variables securely. Your deployment configuration is now complete.",
+        "creatingAndStoring": "🔄 Creating deployment and storing sensitive variables securely...",
+        "dialogTitle": "Secure Variables Configuration",
+        "securityNotice": {
+          "title": "Security Notice",
+          "body": "These sensitive values will be encrypted and stored securely. They will only be used for your deployment configuration and will never be logged or exposed."
+        }
+      },
+      "architecture": {
+        "title": "Proposed Architecture",
+        "diagram": "Architecture Diagram"
+      },
+      "placeholders": {
+        "prompt": "Describe your infrastructure needs..."
+      },
+      "pressEnterToSend": "Press Enter to send",
+      "configure": {
+        "title": "Configure {{componentName}}"
+      },
+      "deploymentConfig": {
+        "title": "Deployment Configuration",
+        "fields": {
+          "name": "Deployment Name",
+          "environment": "Environment"
+        },
+        "placeholders": {
+          "name": "My AI-Generated App"
+        },
+        "environments": {
+          "development": "Development",
+          "staging": "Staging",
+          "production": "Production"
+        },
+        "git": {
+          "title": "Git Repository (Optional)",
+          "repoUrl": "Repository URL",
+          "branch": "Branch"
+        }
+      },
+      "errors": {
+        "noProjectSelected": "No project selected. Please select a project first.",
+        "requestProcessing": "Sorry, I encountered an error processing your request. Please try again.",
+        "apiError": "Failed to get AI response",
+        "noInteraction": "Please interact with the AI assistant before creating a deployment",
+        "formNotInitialized": "Form not initialized.",
+        "fillRequiredFields": "Please fill in all required fields correctly.",
+        "validationFailed": "Validation failed: ",
+        "formHasErrors": "Form has validation errors. ",
+        "variablesNotValidated": "Variables not validated. ",
+        "failedToCreateDeployment": "Failed to create deployment",
+        "failedToStoreVariables": "Failed to store sensitive variables: missing form or deployment ID",
+        "failedToStoreSecurely": "Failed to store sensitive variables securely",
+        "communicationFailed": "Failed to communicate with AI assistant",
+        "configureComponents": "Please configure all {{count}} component(s) before accepting the architecture"
+      }
+    },
+    "expertDeployment": {
+      "yourArchitecture": "Your Architecture",
+      "notConfigured": "Not configured",
+      "buttons": {
+        "saveConfigs": "Save configs"
+      },
+      "empty": {
+        "startBuilding": "Start building",
+        "addComponents": "Add components from the catalog."
+      },
+      "properties": {
+        "title": "Properties",
+        "selectComponent": "Select a component to configure it."
+      },
+      "dialog": {
+        "header": "Enter Deployment Name"
+      },
+      "fields": {
+        "name": "Deployment Name",
+        "branch": "Branch"
+      },
+      "placeholders": {
+        "name": "Enter a name for your deployment",
+        "repoUrl": "https://github.com/username/repository.git",
+        "branch": "Select a branch"
+      },
+      "tooltips": {
+        "repoUrl": "Enter a valid Git repository URL to fetch available branches"
+      },
+      "repoValidated": "Repository validated successfully",
+      "errors": {
+        "noBranches": "No branches found or repository not accessible",
+        "failedToCreate": "Failed to create deployment"
+      }
+    },
+    "modeSelector": {
+      "quick": {
+        "title": "Quick Deployment",
+        "description": "The simplest way: a repository link, a branch, and you're done.",
+        "button": "Quick Launch"
+      },
+      "ai": {
+        "title": "AI Assistant",
+        "description": "Describe your infrastructure needs in natural language.",
+        "button": "Start Chat"
+      },
+      "templates": {
+        "title": "Architecture Templates",
+        "description": "Start with proven, production-ready architectures.",
+        "button": "Browse Templates"
+      },
+      "expert": {
+        "title": "Expert Mode",
+        "description": "Build your custom architecture with full control.",
+        "button": "Build Architecture"
+      }
+    },
+    "quickDeployment": {
+      "title": "Quick Deployment",
+      "subtitle": "Fast and simple deployment setup",
+      "fields": {
+        "name": "Deployment Name",
+        "environment": "Environment",
+        "branch": "Branch"
+      },
+      "placeholders": {
+        "name": "My Quick Deployment",
+        "repoUrl": "https://github.com/user/repo.git",
+        "branch": "main"
+      },
+      "environments": {
+        "development": "Development",
+        "staging": "Staging",
+        "production": "Production"
+      },
+      "git": {
+        "title": "Git Repository (Optional)",
+        "repoUrl": "Repository URL"
+      },
+      "buttons": {
+        "create": "Create Deployment"
+      },
+      "errors": {
+        "noProjectSelected": "No project selected. Please select a project first.",
+        "invalidRepoUrl": "Please enter a valid repository URL",
+        "fillRequiredFields": "Please fill in all required fields.",
+        "failedToCreate": "Failed to create quick deployment"
+      }
+    },
+    "templateDeployment": {
+      "template": "Template",
+      "fields": {
+        "name": "Deployment Name",
+        "environment": "Environment",
+        "branch": "Branch"
+      },
+      "placeholders": {
+        "name": "My Template Deployment",
+        "repoUrl": "https://github.com/user/repo.git",
+        "branch": "main"
+      },
+      "environments": {
+        "development": "Development",
+        "staging": "Staging",
+        "production": "Production"
+      },
+      "git": {
+        "title": "Git Repository (Optional)",
+        "repoUrl": "Repository URL"
+      },
+      "buttons": {
+        "changeTemplate": "Change Template",
+        "save": "Save Template"
+      },
+      "errors": {
+        "noProjectSelected": "No project selected. Please select a project first.",
+        "noTemplateSelected": "Please select an architecture template",
+        "fillRequiredFields": "Please fill in all required fields.",
+        "failedToCreate": "Failed to create template deployment"
+      }
+    },
+    "terraformFiles": {
+      "title": "Terraform Configuration",
+      "subtitle": "Edit your Terraform variables file directly in the application. Changes can be downloaded or saved to your deployment."
+    }
   },
   "projects": {
     "title": "Projects",

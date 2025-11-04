@@ -7,69 +7,77 @@
 
   <div class="relative z-10">
     <div class="flex items-center gap-4 mb-6">
-      <div class="bg-gradient-to-br from-teal-400 to-teal-600 p-3 rounded-lg shadow-lg">
+      <div class="bg-linear-to-br from-teal-400 to-teal-600 p-3 rounded-lg shadow-lg">
         <i class="pi pi-bolt text-xl text-white"></i>
       </div>
       <div>
-        <h3 class="text-xl font-semibold text-white">Quick Deployment</h3>
-        <p class="text-teal-200 text-sm">Fast and simple deployment setup</p>
+        <h3 class="text-xl font-semibold text-white">
+          {{ 'dashboard.quickDeployment.title' | translate }}
+        </h3>
+        <p class="text-teal-200 text-sm">{{ 'dashboard.quickDeployment.subtitle' | translate }}</p>
       </div>
     </div>
 
     <form [formGroup]="deploymentForm" class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label for="name" class="block text-sm font-medium text-gray-200 mb-2"
-            >Deployment Name</label
-          >
+          <label for="name" class="block text-sm font-medium text-gray-200 mb-2">{{
+            'dashboard.quickDeployment.fields.name' | translate
+          }}</label>
           <input
             id="name"
             type="text"
             formControlName="name"
             class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-teal-500 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all placeholder-gray-500"
-            placeholder="My Quick Deployment"
+            [placeholder]="'dashboard.quickDeployment.placeholders.name' | translate"
           />
         </div>
 
         <div>
-          <label for="environment" class="block text-sm font-medium text-gray-200 mb-2"
-            >Environment</label
-          >
+          <label for="environment" class="block text-sm font-medium text-gray-200 mb-2">{{
+            'dashboard.quickDeployment.fields.environment' | translate
+          }}</label>
           <select
             id="environment"
             formControlName="environment"
             class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-teal-500 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all"
           >
-            <option value="development">Development</option>
-            <option value="staging">Staging</option>
-            <option value="production">Production</option>
+            <option value="development">
+              {{ 'dashboard.quickDeployment.environments.development' | translate }}
+            </option>
+            <option value="staging">
+              {{ 'dashboard.quickDeployment.environments.staging' | translate }}
+            </option>
+            <option value="production">
+              {{ 'dashboard.quickDeployment.environments.production' | translate }}
+            </option>
           </select>
         </div>
       </div>
 
       <div class="p-4 backdrop-blur-md bg-teal-500/5 rounded-lg border border-teal-500/20">
         <h4 class="text-sm font-medium text-teal-300 mb-4 flex items-center gap-2">
-          <i class="pi pi-code"></i> Git Repository (Optional)
+          <i class="pi pi-code"></i> {{ 'dashboard.quickDeployment.git.title' | translate }}
         </h4>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="repoUrl" class="block text-xs font-medium text-gray-300 mb-1"
-              >Repository URL</label
-            >
+            <label for="repoUrl" class="block text-xs font-medium text-gray-300 mb-1">{{
+              'dashboard.quickDeployment.git.repoUrl' | translate
+            }}</label>
             <div class="flex gap-2">
               <input
                 id="repoUrl"
                 type="text"
                 formControlName="repoUrl"
-                placeholder="https://github.com/user/repo.git"
+                [placeholder]="'dashboard.quickDeployment.placeholders.repoUrl' | translate"
                 class="w-full backdrop-blur-md bg-gray-800/60 border border-gray-700/50 focus:border-teal-500 text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all text-sm"
               />
               <button
                 type="button"
                 (click)="fetchGitBranches()"
                 [disabled]="!deploymentForm.get('repoUrl')?.value || loadingGitInfo()"
-                class="px-3 py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 rounded-lg text-white transition-all flex items-center justify-center min-w-[40px]"
+                class="px-3 py-2 bg-linear-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 rounded-lg text-white transition-all flex items-center justify-center min-w-[40px]"
               >
                 @if (loadingGitInfo()) {
                   <i class="pi pi-spinner animate-spin"></i>
@@ -81,7 +89,9 @@
           </div>
 
           <div>
-            <label for="branch" class="block text-xs font-medium text-gray-300 mb-1">Branch</label>
+            <label for="branch" class="block text-xs font-medium text-gray-300 mb-1">{{
+              'dashboard.quickDeployment.fields.branch' | translate
+            }}</label>
             <select
               id="branch"
               formControlName="branch"
@@ -124,15 +134,16 @@
       <div class="flex justify-end gap-4 pt-6 border-t border-gray-700/30">
         <button
           (click)="createDeployment()"
-          class="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 rounded-lg text-white font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-500/20 transition-all"
+          class="px-6 py-2.5 bg-linear-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 rounded-lg text-white font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-500/20 transition-all"
           [disabled]="
             deploymentForm.invalid || validationErrors().length > 0 || loadingDeployment()
           "
         >
           @if (loadingDeployment()) {
-            <i class="pi pi-spinner animate-spin"></i> Deploying...
+            <i class="pi pi-spinner animate-spin"></i> {{ 'common.deploying' | translate }}
           } @else {
-            <i class="pi pi-rocket"></i> Create Deployment
+            <i class="pi pi-rocket"></i>
+            {{ 'dashboard.quickDeployment.buttons.create' | translate }}
           }
         </button>
       </div>

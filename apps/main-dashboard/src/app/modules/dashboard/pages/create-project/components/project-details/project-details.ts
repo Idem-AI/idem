@@ -7,11 +7,20 @@ import { Select } from 'primeng/select';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { ProjectModel } from '../../../../models/project.model';
 import { SelectElement } from '../../datas';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-project-details',
   standalone: true,
-  imports: [FormsModule, CommonModule, InputTextModule, FloatLabel, Select, MultiSelectModule],
+  imports: [
+    FormsModule,
+    CommonModule,
+    InputTextModule,
+    FloatLabel,
+    Select,
+    MultiSelectModule,
+    TranslateModule,
+  ],
   templateUrl: './project-details.html',
   styleUrl: './project-details.css',
 })

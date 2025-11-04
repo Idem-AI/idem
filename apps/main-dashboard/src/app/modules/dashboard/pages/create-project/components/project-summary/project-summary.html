@@ -5,62 +5,86 @@
   >
     <div class="text-center space-y-6 max-w-md mx-auto px-6">
       <app-loader></app-loader>
-      <p class="text-gray-300 text-sm">Finalizing your project...</p>
+      <p class="text-gray-300 text-sm">{{ 'dashboard.projectSummary.loading' | translate }}</p>
     </div>
   </div>
 } @else {
   <section class="flex flex-col items-center min-h-[78vh] justify-center text-gray-100 w-full">
     <h1 class="text-2xl md:text-5xl text-center font-bold text-gray-100 mb-8 pb-2 sm:w-[60%]">
-      Check all your choices and finalize your project
+      {{ 'dashboard.projectSummary.title' | translate }}
     </h1>
     <div class="card flex justify-center w-full">
       <div class="max-w-4xl mx-auto p-6 w-full">
-        <!-- Project Information Summary -->
+        <!-- {{ 'dashboard.projectSummary.sections.projectInfo' | translate }} Summary -->
         <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
           <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
-            Project Information
+            {{ 'dashboard.projectSummary.sections.projectInfo' | translate }}
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 class="text-lg font-semibold text-gray-300 mb-2">Project Details</h3>
+              <h3 class="text-lg font-semibold text-gray-300 mb-2">
+                {{ 'dashboard.projectSummary.subsections.details' | translate }}
+              </h3>
               <div class="space-y-2">
                 <p class="text-gray-300">
-                  <span class="text-gray-400">Name:</span> {{ project().name }}
+                  <span class="text-gray-400"
+                    >{{ 'dashboard.projectSummary.fields.name' | translate }}:</span
+                  >
+                  {{ project().name }}
                 </p>
                 <p class="text-gray-300">
-                  <span class="text-gray-400">Type:</span> {{ project().type }}
+                  <span class="text-gray-400"
+                    >{{ 'dashboard.projectSummary.fields.type' | translate }}:</span
+                  >
+                  {{ project().type }}
                 </p>
               </div>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-300 mb-2">Business Informations</h3>
+              <h3 class="text-lg font-semibold text-gray-300 mb-2">
+                {{ 'dashboard.projectSummary.subsections.businessInfo' | translate }}
+              </h3>
               <div class="space-y-2">
                 <p class="text-gray-300">
-                  <span class="text-gray-400">Team Size:</span> {{ project().teamSize }}
+                  <span class="text-gray-400"
+                    >{{ 'dashboard.projectSummary.fields.teamSize' | translate }}:</span
+                  >
+                  {{ project().teamSize }}
                 </p>
                 <p class="text-gray-300">
-                  <span class="text-gray-400">Scope:</span> {{ project().scope }}
+                  <span class="text-gray-400"
+                    >{{ 'dashboard.projectSummary.fields.scope' | translate }}:</span
+                  >
+                  {{ project().scope }}
                 </p>
                 <p class="text-gray-300">
-                  <span class="text-gray-400">Budget:</span> {{ project().budgetIntervals }}
+                  <span class="text-gray-400"
+                    >{{ 'dashboard.projectSummary.fields.budget' | translate }}:</span
+                  >
+                  {{ project().budgetIntervals }}
                 </p>
                 <p class="text-gray-300">
-                  <span class="text-gray-400">Target:</span> {{ project().targets }}
+                  <span class="text-gray-400"
+                    >{{ 'dashboard.projectSummary.fields.target' | translate }}:</span
+                  >
+                  {{ project().targets }}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Visual Identity Summary -->
+        <!-- {{ 'dashboard.projectSummary.sections.visualIdentity' | translate }} Summary -->
         <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
           <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
-            Visual Identity
+            {{ 'dashboard.projectSummary.sections.visualIdentity' | translate }}
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Logo Preview -->
             <div class="bg-gray-700/30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-4">Logo</h3>
+              <h3 class="text-lg font-semibold text-gray-300 mb-4">
+                {{ 'dashboard.projectSummary.subsections.logo' | translate }}
+              </h3>
               @if (getSelectedLogo()) {
                 <div class="flex flex-col items-center justify-center">
                   <div
@@ -74,7 +98,9 @@
 
             <!-- Color Palette Preview -->
             <div class="bg-gray-700/30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-4">Color Palette</h3>
+              <h3 class="text-lg font-semibold text-gray-300 mb-4">
+                {{ 'dashboard.projectSummary.subsections.colorPalette' | translate }}
+              </h3>
               @if (getSelectedColor()) {
                 <div class="space-y-3">
                   <p class="text-gray-300">{{ getSelectedColor()?.name }}</p>
@@ -98,7 +124,9 @@
 
             <!-- Typography Preview -->
             <div class="bg-gray-700/30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-4">Typography</h3>
+              <h3 class="text-lg font-semibold text-gray-300 mb-4">
+                {{ 'dashboard.projectSummary.subsections.typography' | translate }}
+              </h3>
               @if (getSelectedTypography()) {
                 <div class="space-y-3">
                   <p class="text-gray-300">{{ getSelectedTypography()?.name }}</p>
@@ -123,7 +151,7 @@
         <!-- Privacy Policy and Terms -->
         <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
           <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
-            Legal & Privacy
+            {{ 'dashboard.projectSummary.sections.legal' | translate }}
           </h2>
           <div class="space-y-4">
             <!-- Privacy Policy (Required) -->
@@ -137,12 +165,13 @@
                 required
               />
               <label for="privacyPolicy" class="text-sm text-gray-300">
-                <span class="text-red-400">*</span> I agree to the
+                <span class="text-red-400">*</span>
+                {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
                 <a
                   routerLink="/privacy-policy"
                   class="text-blue-400 hover:underline"
                   target="_blank"
-                  >Privacy Policy</a
+                  >{{ 'dashboard.projectSummary.agreements.privacyPolicy' | translate }}</a
                 >
               </label>
             </div>
@@ -158,12 +187,13 @@
                 required
               />
               <label for="termsOfService" class="text-sm text-gray-300">
-                <span class="text-red-400">*</span> I agree to the
+                <span class="text-red-400">*</span>
+                {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
                 <a
                   routerLink="/terms-of-service"
                   class="text-blue-400 hover:underline"
                   target="_blank"
-                  >Terms of Service</a
+                  >{{ 'dashboard.projectSummary.agreements.termsOfService' | translate }}</a
                 >
               </label>
             </div>
@@ -180,12 +210,13 @@
                   required
                 />
                 <label for="betaPolicy" class="text-sm text-gray-300">
-                  <span class="text-red-400">*</span> I agree to the
+                  <span class="text-red-400">*</span>
+                  {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
                   <a
                     routerLink="/beta-policy"
                     class="text-yellow-400 hover:underline"
                     target="_blank"
-                    >Beta Program Terms</a
+                    >{{ 'dashboard.projectSummary.agreements.betaTerms' | translate }}</a
                   >
                   <span
                     class="inline-flex items-center px-2 py-1 ml-2 text-xs font-medium bg-yellow-900/30 text-yellow-300 rounded-full"
@@ -206,15 +237,16 @@
                 class="mt-1 accent-green-500"
               />
               <label for="marketingConsent" class="text-sm text-gray-300">
-                I agree to receive marketing communications about products, services, and promotions
-                <span class="text-gray-500">(optional)</span>
+                {{ 'dashboard.projectSummary.agreements.marketing' | translate }}
+                <span class="text-gray-500">({{ 'common.optional' | translate }})</span>
               </label>
             </div>
 
             <!-- Required fields notice -->
             <div class="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded-lg">
               <p class="text-sm text-blue-200">
-                <span class="text-red-400">*</span> Required fields must be accepted to continue
+                <span class="text-red-400">*</span>
+                {{ 'dashboard.projectSummary.errors.requiredFields' | translate }}
               </p>
             </div>
           </div>
@@ -230,9 +262,9 @@
               class="px-8 py-3 rounded-lg font-semibold transition-all duration-200 min-w-[200px]"
             >
               @if (canSubmit()) {
-                Create Project
+                {{ 'dashboard.projectSummary.buttons.create' | translate }}
               } @else {
-                Accept Required Policies
+                {{ 'dashboard.projectSummary.buttons.acceptPolicies' | translate }}
               }
             </button>
           </div>

@@ -15,11 +15,12 @@ import {
 } from '../../../../../models/api/deployments/deployments.api.model';
 import { CookieService } from '../../../../../../../shared/services/cookie.service';
 import { DeploymentService } from '../../../../../services/deployment.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-quick-deployment',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule],
   templateUrl: './quick-deployment.html',
   styleUrl: './quick-deployment.css',
 })
@@ -42,6 +43,7 @@ export class QuickDeployment implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly deploymentService = inject(DeploymentService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   constructor() {
     this.deploymentForm = this.formBuilder.group({
@@ -57,7 +59,9 @@ export class QuickDeployment implements OnInit {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
       console.error('No project ID found in cookies');
-      this.errorMessages.set(['No project selected. Please select a project first.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.quickDeployment.errors.noProjectSelected'),
+      ]);
     } else {
       this.projectId.set(projectId);
       console.log('Quick deployment initialized with project ID:', projectId);
@@ -82,7 +86,9 @@ export class QuickDeployment implements OnInit {
   protected fetchGitBranches(): void {
     const repoUrl = this.deploymentForm.get('repoUrl')?.value;
     if (!repoUrl) {
-      this.errorMessages.set(['Please enter a valid repository URL']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.quickDeployment.errors.invalidRepoUrl'),
+      ]);
       return;
     }
 
@@ -133,13 +139,17 @@ export class QuickDeployment implements OnInit {
   protected createDeployment(): void {
     // Validate project ID
     if (!this.projectId()) {
-      this.errorMessages.set(['No project selected. Please select a project first.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.quickDeployment.errors.noProjectSelected'),
+      ]);
       return;
     }
 
     // Validate form
     if (!this.deploymentForm.valid) {
-      this.errorMessages.set(['Please fill in all required fields.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.quickDeployment.errors.fillRequiredFields'),
+      ]);
       return;
     }
 
@@ -181,7 +191,10 @@ export class QuickDeployment implements OnInit {
       error: (error: any) => {
         console.error('Error creating quick deployment:', error);
         this.loadingDeployment.set(false);
-        this.errorMessages.set([error.message || 'Failed to create quick deployment']);
+        this.errorMessages.set([
+          error.message ||
+            this.translate.instant('dashboard.quickDeployment.errors.failedToCreate'),
+        ]);
       },
     });
   }

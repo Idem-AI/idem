@@ -25,6 +25,7 @@ import { Router } from '@angular/router';
 import { CookieService } from '../../../../../../../shared/services/cookie.service';
 import { Select } from 'primeng/select';
 import { ALL_COMPONENTS_LIST } from './datas';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-expert-deployment',
@@ -37,6 +38,7 @@ import { ALL_COMPONENTS_LIST } from './datas';
     InputTextModule,
     ButtonModule,
     Select,
+    TranslateModule,
   ],
   templateUrl: './expert-deployment.html',
   styleUrl: './expert-deployment.css',
@@ -48,6 +50,7 @@ export class ExpertDeployment {
   protected readonly expertArchitecture = signal<ArchitectureComponent[]>([]);
   protected readonly activeExpertComponent = signal<ArchitectureComponent | null>(null);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly translate = inject(TranslateService);
   // Forms
   protected deploymentConfigForm: FormGroup;
   protected expertForm: FormGroup;
@@ -161,7 +164,10 @@ export class ExpertDeployment {
       error: (error) => {
         console.error('Error creating deployment:', error);
         this.loadingDeployment.set(false);
-        this.errorMessages.set([error.message || 'Failed to create deployment']);
+        this.errorMessages.set([
+          error.message ||
+            this.translate.instant('dashboard.expertDeployment.errors.failedToCreate'),
+        ]);
       },
     });
   }

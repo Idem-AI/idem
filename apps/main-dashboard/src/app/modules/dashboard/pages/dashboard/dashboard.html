@@ -1,14 +1,14 @@
 @if (isLoading()) {
   <div class="flex justify-center items-center h-[90vh] flex-col">
     <app-loader />
-    <p class="text-gray-400 text-xl">Loading your workspace...</p>
+    <p class="text-gray-400 text-xl">{{ 'dashboard.dashboard.loading' | translate }}</p>
   </div>
 } @else if (error()) {
   <div class="glass-card p-6 mx-4 my-8 border-red-500/20">
     <div class="flex items-center space-x-3">
       <i class="pi pi-exclamation-triangle text-red-400 text-2xl"></i>
       <div>
-        <p class="font-bold text-red-300">Oops!</p>
+        <p class="font-bold text-red-300">{{ 'common.oops' | translate }}</p>
         <p class="text-red-200">{{ error() }}</p>
       </div>
     </div>
@@ -21,10 +21,13 @@
         <div class="hero-content">
           <!-- Left: Project Info -->
           <div class="hero-left">
-            <div class="project-badge">Active Project</div>
+            <div class="project-badge">
+              {{ 'dashboard.dashboard.hero.activeProject' | translate }}
+            </div>
             <h1 class="hero-title">{{ currentProject.name }}</h1>
             <p class="hero-description">
-              {{ currentProject.description || "Let's build something amazing together" }}
+              {{ currentProject.description || "{{ 'dashboard.dashboard.hero.defaultDescription' | translate
+              }}" }}
             </p>
 
             <!-- Stats Row -->
@@ -48,7 +51,9 @@
                   <div class="stat-value-inline">
                     {{ currentProject.createdAt | date: 'MMM d, yyyy' }}
                   </div>
-                  <div class="stat-label-inline">Created</div>
+                  <div class="stat-label-inline">
+                    {{ 'dashboard.dashboard.hero.stats.created' | translate }}
+                  </div>
                 </div>
               </div>
 
@@ -69,7 +74,9 @@
                 </svg>
                 <div>
                   <div class="stat-value-inline">{{ currentProject.targets.name }}</div>
-                  <div class="stat-label-inline">Team</div>
+                  <div class="stat-label-inline">
+                    {{ 'dashboard.dashboard.hero.stats.team' | translate }}
+                  </div>
                 </div>
               </div>
 
@@ -88,7 +95,9 @@
                 </svg>
                 <div>
                   <div class="stat-value-inline">{{ currentProject.scope.name }}</div>
-                  <div class="stat-label-inline">Scope</div>
+                  <div class="stat-label-inline">
+                    {{ 'dashboard.dashboard.hero.stats.scope' | translate }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -111,7 +120,7 @@
                 <div class="progress-value">
                   {{ (getCompletedSteps() / 5) * 100 | number: '1.0-0' }}%
                 </div>
-                <div class="progress-label">Complete</div>
+                <div class="progress-label">{{ 'common.complete' | translate }}</div>
               </div>
             </div>
 
@@ -124,7 +133,7 @@
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
                 </div>
-                <span>Brand Identity</span>
+                <span>{{ 'dashboard.dashboard.milestones.brandIdentity' | translate }}</span>
               </div>
 
               <div
@@ -134,7 +143,7 @@
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
                 </div>
-                <span>Business Plan</span>
+                <span>{{ 'dashboard.dashboard.milestones.businessPlan' | translate }}</span>
               </div>
 
               <div
@@ -144,7 +153,7 @@
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
                 </div>
-                <span>System Design</span>
+                <span>{{ 'dashboard.dashboard.milestones.systemDesign' | translate }}</span>
               </div>
 
               <div
@@ -154,14 +163,14 @@
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
                 </div>
-                <span>Development</span>
+                <span>{{ 'dashboard.dashboard.milestones.development' | translate }}</span>
               </div>
 
               <div class="milestone-item">
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
                 </div>
-                <span>Launch</span>
+                <span>{{ 'dashboard.dashboard.milestones.launch' | translate }}</span>
               </div>
             </div>
           </div>
@@ -185,9 +194,18 @@
           <!-- Left Side: Title & Progress -->
           <div class="journey-left">
             <div class="journey-header-modern">
-              <span class="journey-label">Your Path</span>
-              <h2 class="journey-title-modern">Creative Journey</h2>
-              <p class="journey-subtitle">{{ getCompletedSteps() }} of 5 milestones completed</p>
+              <span class="journey-label">{{
+                'dashboard.dashboard.journey.yourPath' | translate
+              }}</span>
+              <h2 class="journey-title-modern">
+                {{ 'dashboard.dashboard.journey.title' | translate }}
+              </h2>
+              <p class="journey-subtitle">
+                {{
+                  'dashboard.dashboard.journey.subtitle'
+                    | translate: { completed: getCompletedSteps(), total: 5 }
+                }}
+              </p>
 
               <!-- Vertical Progress Bar -->
               <div class="vertical-progress-container">
@@ -222,7 +240,7 @@
                   <div class="step-icon-modern brand-icon">
                     <img
                       src="assets/images/dashboard/brand.jpg"
-                      alt="Brand Identity"
+                      [alt]="'dashboard.dashboard.steps.brand.alt' | translate"
                       class="step-illustration object-cover"
                     />
                   </div>
@@ -231,20 +249,22 @@
                   <div class="step-header-row">
                     <div class="step-info">
                       <span class="step-number-badge">Step 01</span>
-                      <h3 class="step-title-modern">Brand Identity</h3>
+                      <h3 class="step-title-modern">
+                        {{ 'dashboard.dashboard.steps.brand.title' | translate }}
+                      </h3>
                     </div>
                   </div>
                   <p class="step-description-modern">
-                    Define your brand colors, logo, and visual style
+                    {{ 'dashboard.dashboard.steps.brand.description' | translate }}
                   </p>
                   @if (currentProject.analysisResultModel!.branding.sections.length > 0) {
                     <div class="step-badge completed-badge">
                       <i class="pi pi-check"></i>
-                      <span>Completed</span>
+                      <span>{{ 'common.completed' | translate }}</span>
                     </div>
                   } @else {
                     <div class="step-badge pending-badge">
-                      <span>Start now</span>
+                      <span>{{ 'dashboard.dashboard.steps.startNow' | translate }}</span>
                       <i class="pi pi-arrow-right"></i>
                     </div>
                   }
@@ -262,7 +282,7 @@
                   <div class="step-icon-modern business-icon">
                     <img
                       src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&h=400&fit=crop"
-                      alt="Business Plan"
+                      [alt]="'dashboard.dashboard.steps.business.alt' | translate"
                       class="step-illustration object-cover"
                     />
                   </div>
@@ -271,18 +291,22 @@
                   <div class="step-header-row">
                     <div class="step-info">
                       <span class="step-number-badge">Step 02</span>
-                      <h3 class="step-title-modern">Business Plan</h3>
+                      <h3 class="step-title-modern">
+                        {{ 'dashboard.dashboard.steps.business.title' | translate }}
+                      </h3>
                     </div>
                   </div>
-                  <p class="step-description-modern">Plan your strategy, goals, and roadmap</p>
+                  <p class="step-description-modern">
+                    {{ 'dashboard.dashboard.steps.business.description' | translate }}
+                  </p>
                   @if (currentProject.analysisResultModel!.businessPlan) {
                     <div class="step-badge completed-badge">
                       <i class="pi pi-check"></i>
-                      <span>Completed</span>
+                      <span>{{ 'common.completed' | translate }}</span>
                     </div>
                   } @else {
                     <div class="step-badge pending-badge">
-                      <span>Next step</span>
+                      <span>{{ 'dashboard.dashboard.steps.nextStep' | translate }}</span>
                       <i class="pi pi-arrow-right"></i>
                     </div>
                   }
@@ -300,7 +324,7 @@
                   <div class="step-icon-modern design-icon">
                     <img
                       src="https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=400&h=400&fit=crop"
-                      alt="System Design"
+                      [alt]="'dashboard.dashboard.steps.design.alt' | translate"
                       class="step-illustration object-cover"
                     />
                   </div>
@@ -309,18 +333,22 @@
                   <div class="step-header-row">
                     <div class="step-info">
                       <span class="step-number-badge">Step 03</span>
-                      <h3 class="step-title-modern">System Design</h3>
+                      <h3 class="step-title-modern">
+                        {{ 'dashboard.dashboard.steps.design.title' | translate }}
+                      </h3>
                     </div>
                   </div>
-                  <p class="step-description-modern">Visualize your project architecture</p>
+                  <p class="step-description-modern">
+                    {{ 'dashboard.dashboard.steps.design.description' | translate }}
+                  </p>
                   @if (currentProject.analysisResultModel!.design) {
                     <div class="step-badge completed-badge">
                       <i class="pi pi-check"></i>
-                      <span>Completed</span>
+                      <span>{{ 'common.completed' | translate }}</span>
                     </div>
                   } @else {
                     <div class="step-badge pending-badge">
-                      <span>Coming up</span>
+                      <span>{{ 'dashboard.dashboard.steps.comingUp' | translate }}</span>
                       <i class="pi pi-arrow-right"></i>
                     </div>
                   }
@@ -338,7 +366,7 @@
                   <div class="step-icon-modern code-icon">
                     <img
                       src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=400&fit=crop"
-                      alt="Development"
+                      [alt]="'dashboard.dashboard.steps.development.alt' | translate"
                       class="step-illustration object-cover"
                     />
                   </div>
@@ -347,18 +375,22 @@
                   <div class="step-header-row">
                     <div class="step-info">
                       <span class="step-number-badge">Step 04</span>
-                      <h3 class="step-title-modern">Development</h3>
+                      <h3 class="step-title-modern">
+                        {{ 'dashboard.dashboard.steps.development.title' | translate }}
+                      </h3>
                     </div>
                   </div>
-                  <p class="step-description-modern">Build your application with code</p>
+                  <p class="step-description-modern">
+                    {{ 'dashboard.dashboard.steps.development.description' | translate }}
+                  </p>
                   @if (currentProject.analysisResultModel!.development) {
                     <div class="step-badge completed-badge">
                       <i class="pi pi-check"></i>
-                      <span>Completed</span>
+                      <span>{{ 'common.completed' | translate }}</span>
                     </div>
                   } @else {
                     <div class="step-badge pending-badge">
-                      <span>Almost there</span>
+                      <span>{{ 'dashboard.dashboard.steps.almostThere' | translate }}</span>
                       <i class="pi pi-arrow-right"></i>
                     </div>
                   }
@@ -375,7 +407,7 @@
                   <div class="step-icon-modern deploy-icon">
                     <img
                       src="https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=400&h=400&fit=crop"
-                      alt="Launch"
+                      [alt]="'dashboard.dashboard.steps.launch.alt' | translate"
                       class="step-illustration object-cover"
                     />
                   </div>
@@ -384,12 +416,16 @@
                   <div class="step-header-row">
                     <div class="step-info">
                       <span class="step-number-badge">Step 05</span>
-                      <h3 class="step-title-modern">Launch</h3>
+                      <h3 class="step-title-modern">
+                        {{ 'dashboard.dashboard.steps.launch.title' | translate }}
+                      </h3>
                     </div>
                   </div>
-                  <p class="step-description-modern">Deploy your project to the world</p>
+                  <p class="step-description-modern">
+                    {{ 'dashboard.dashboard.steps.launch.description' | translate }}
+                  </p>
                   <div class="step-badge pending-badge">
-                    <span>Final step</span>
+                    <span>{{ 'dashboard.dashboard.steps.finalStep' | translate }}</span>
                     <i class="pi pi-arrow-right"></i>
                   </div>
                 </div>
@@ -421,7 +457,7 @@
             </svg>
           </div>
           <div class="info-content">
-            <p class="info-label">Created</p>
+            <p class="info-label">{{ 'dashboard.dashboard.info.created' | translate }}</p>
             <p class="info-value">{{ currentProject.createdAt | date: 'MMM d, y' }}</p>
           </div>
         </div>
@@ -446,7 +482,7 @@
             </svg>
           </div>
           <div class="info-content">
-            <p class="info-label">Team</p>
+            <p class="info-label">{{ 'dashboard.dashboard.info.team' | translate }}</p>
             <p class="info-value">{{ currentProject.targets.name }}</p>
           </div>
         </div>
@@ -469,7 +505,7 @@
             </svg>
           </div>
           <div class="info-content">
-            <p class="info-label">Scope</p>
+            <p class="info-label">{{ 'dashboard.dashboard.info.scope' | translate }}</p>
             <p class="info-value">{{ currentProject.scope.name.toString() }}</p>
           </div>
         </div>
@@ -492,7 +528,7 @@
             </svg>
           </div>
           <div class="info-content">
-            <p class="info-label">Last Update</p>
+            <p class="info-label">{{ 'dashboard.dashboard.info.lastUpdate' | translate }}</p>
             <p class="info-value">{{ currentProject.updatedAt | date: 'MMM d' }}</p>
           </div>
         </div>
@@ -518,9 +554,11 @@
             <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
             <line x1="12" x2="12" y1="22.08" y2="12" />
           </svg>
-          <h2 class="empty-title">No Project Found</h2>
-          <p class="empty-description">We couldn't find any project data to display</p>
-          <button class="inner-button" [routerLink]="['/console/projects']">Go to Projects</button>
+          <h2 class="empty-title">{{ 'dashboard.dashboard.empty.title' | translate }}</h2>
+          <p class="empty-description">{{ 'dashboard.dashboard.empty.description' | translate }}</p>
+          <button class="inner-button" [routerLink]="['/console/projects']">
+            {{ 'dashboard.dashboard.empty.goToProjects' | translate }}
+          </button>
         </div>
       </div>
     }
