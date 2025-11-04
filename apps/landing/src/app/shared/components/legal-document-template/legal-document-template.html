@@ -186,7 +186,7 @@
                   >
                     <div class="flex items-start gap-3">
                       @if (section.warning.icon) {
-                        <span class="text-2xl flex-shrink-0">{{ section.warning.icon }}</span>
+                        <span class="text-2xl shrink-0">{{ section.warning.icon }}</span>
                       }
                       <div class="flex-1">
                         <h3
@@ -212,7 +212,7 @@
                     @for (item of section.list; track $index) {
                       <li class="flex items-start gap-3 text-gray-300">
                         <svg
-                          class="w-5 h-5 text-primary flex-shrink-0 mt-0.5"
+                          class="w-5 h-5 text-primary shrink-0 mt-0.5"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -256,7 +256,7 @@
                             @for (item of subsection.list; track $index) {
                               <li class="flex items-start gap-3 text-gray-300">
                                 <svg
-                                  class="w-4 h-4 text-primary flex-shrink-0 mt-1"
+                                  class="w-4 h-4 text-primary shrink-0 mt-1"
                                   fill="currentColor"
                                   viewBox="0 0 20 20"
                                 >
@@ -291,11 +291,11 @@
 
         <!-- Contact Section -->
         <div
-          class="mt-12 bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-xl p-8 border border-primary/20"
+          class="mt-12 bg-linear-gradient-to-r from-primary/10 to-purple-500/10 rounded-xl p-8 border border-primary/20"
         >
           <div class="flex items-start gap-4">
             <svg
-              class="w-8 h-8 text-primary flex-shrink-0"
+              class="w-8 h-8 text-primary shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

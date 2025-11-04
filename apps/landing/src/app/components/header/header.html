@@ -102,7 +102,7 @@
             <button
               (click)="navigateToDashboard()"
               class="glass-nav-link hover:text-white transition duration-300 relative py-1 px-2 text-sm"
-              i18n="@@header.nav.dashboard"
+              i18n="@@header.nav.dashboard.desktop"
             >
               Dashboard
               <span class="nav-dot"></span>
@@ -126,7 +126,7 @@
                   <button
                     (click)="navigateToDashboard()"
                     class="dropdown-item p-3 hover:bg-primary/20 rounded-lg cursor-pointer text-white transition-colors w-full text-left"
-                    i18n="@@header.nav.dashboard"
+                    i18n="@@header.nav.dashboard.dropdown"
                   >
                     Dashboard
                   </button>
@@ -140,7 +140,7 @@
                   <a
                     (click)="logout()"
                     class="dropdown-item border-t border-white/10 p-3 hover:bg-primary/20 cursor-pointer text-white transition-colors mt-1 pt-3"
-                    i18n="@@header.nav.logout"
+                    i18n="@@header.nav.logout.dropdown"
                     >Logout
                   </a>
                 </div>
@@ -151,7 +151,7 @@
             <a
               routerLink="/login"
               class="inner-button text-white px-6 py-2 rounded-lg hover:text-white transition text-sm"
-              i18n="@@header.nav.login"
+              i18n="@@header.nav.login.desktop"
               >Login
             </a>
           }
@@ -256,7 +256,7 @@
             (click)="toggleMenu()"
             routerLinkActive="active"
             class="glass-mobile-link flex items-center px-4 py-2.5 rounded-lg text-base font-medium text-white hover:text-white transition duration-300"
-            i18n="@@header.nav.dashboard"
+            i18n="@@header.nav.dashboard.mobile"
             >Dashboard
             <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
           </a>
@@ -272,7 +272,7 @@
           <a
             (click)="logout()"
             class="inner-button flex items-center justify-center mt-2 px-4 py-2.5 rounded-lg transition duration-300 text-center"
-            i18n="@@header.nav.logout"
+            i18n="@@header.nav.logout.mobile"
             >Logout
             <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
           </a>
@@ -281,7 +281,7 @@
             routerLink="/login"
             (click)="toggleMenu()"
             class="inner-button flex items-center justify-center mt-2 px-4 py-2.5 rounded-lg transition duration-300 text-center"
-            i18n="@@header.nav.login"
+            i18n="@@header.nav.login.mobile"
             >Login
             <span class="w-1.5 h-1.5 bg-white rounded-full mr-3 opacity-70"></span>
           </a>
