@@ -31,7 +31,6 @@
     "african-market.stats.techStartups.description": "In Cameroon, Nigeria, Kenya, South Africa",
     "african-market.stats.potentialEntrepreneurs.label": "Potential Entrepreneurs",
     "african-market.stats.potentialEntrepreneurs.description": "Across African markets",
-    "african--market.stats.smesDigitalizing.label": "SMEs Digitalizing",
     "african-market.stats.smesDigitalizing.description": "African businesses going digital",
     "african-market.stats.techProfessionals.label": "Tech Professionals",
     "african-market.stats.techProfessionals.description": "Developers and digital agencies",
@@ -1730,6 +1729,7 @@
     "terms.changes.title": "13. CHANGES TO THESE TERMS",
     "terms.changes.content": "We reserve the right to modify these Terms of Service at any time. We will provide notice of material changes by posting the updated terms on this page and updating the \"Effective Date\" at the top. For significant changes, we may provide additional notice such as an email notification or in-app message. Your continued use of the Service after changes take effect constitutes acceptance of the modified terms. If you do not agree to the changes, you must stop using the Service and may terminate your account.",
     "terms.contact.title": "14. CONTACT INFORMATION",
-    "terms.contact.content": "If you have any questions, concerns, or requests regarding these Terms of Service, please contact us at:"
+    "terms.contact.content": "If you have any questions, concerns, or requests regarding these Terms of Service, please contact us at:",
+    "african--market.stats.smesDigitalizing.label": "SMEs Digitalizing"
   }
 }
