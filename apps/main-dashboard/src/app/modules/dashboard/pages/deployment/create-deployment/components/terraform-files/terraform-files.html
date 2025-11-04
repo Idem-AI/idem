@@ -1,10 +1,11 @@
 @if (showComponent()) {
   <div class="w-full">
     <div class="mb-4">
-      <h2 class="text-xl font-semibold mb-2 text-gray-200">Terraform Configuration</h2>
+      <h2 class="text-xl font-semibold mb-2 text-gray-200">
+        {{ 'dashboard.terraformFiles.title' | translate }}
+      </h2>
       <p class="text-gray-400 text-sm">
-        Edit your Terraform variables file directly in the application. Changes can be downloaded or
-        saved to your deployment.
+        {{ 'dashboard.terraformFiles.subtitle' | translate }}
       </p>
     </div>
 

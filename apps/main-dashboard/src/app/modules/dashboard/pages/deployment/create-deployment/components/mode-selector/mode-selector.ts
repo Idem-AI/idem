@@ -1,11 +1,12 @@
 import { Component, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DeploymentMode } from '../../../../../models/deployment.model';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-mode-selector',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   templateUrl: './mode-selector.html',
   styleUrl: './mode-selector.css',
 })

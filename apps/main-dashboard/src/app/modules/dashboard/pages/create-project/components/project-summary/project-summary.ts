@@ -10,11 +10,12 @@ import { environment } from '../../../../../../../environments/environment';
 import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-project-summary',
   standalone: true,
-  imports: [CommonModule, FormsModule, SafeHtmlPipe, RouterModule, Loader],
+  imports: [CommonModule, FormsModule, SafeHtmlPipe, RouterModule, Loader, TranslateModule],
   templateUrl: './project-summary.html',
   styleUrl: './project-summary.css',
 })

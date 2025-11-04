@@ -5,11 +5,12 @@ import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '../../models/project.model';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, Loader],
+  imports: [CommonModule, RouterLink, DatePipe, Loader, TranslateModule],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,6 +20,7 @@ export class DashboardComponent implements OnInit {
   protected readonly projectService = inject(ProjectService);
   protected readonly router = inject(Router);
   protected readonly route = inject(ActivatedRoute);
+  private readonly translate = inject(TranslateService);
 
   readonly project = signal<ProjectModel | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -32,7 +34,7 @@ export class DashboardComponent implements OnInit {
     console.log('projectId from cookie:', projectId);
 
     if (!projectId) {
-      this.error.set('No project selected. Please select a project to view the dashboard.');
+      this.error.set(this.translate.instant('dashboard.dashboard.errors.noProjectSelected'));
       this.isLoading.set(false);
       this.router.navigate(['/console/projects']);
       return;
@@ -43,13 +45,15 @@ export class DashboardComponent implements OnInit {
         if (projectData) {
           this.project.set(projectData);
         } else {
-          this.error.set(`Project with ID ${projectId} not found.`);
+          this.error.set(
+            this.translate.instant('dashboard.dashboard.errors.projectNotFound', { projectId }),
+          );
         }
         this.isLoading.set(false);
       },
       error: (err) => {
         console.error('Error fetching project data for dashboard:', err);
-        this.error.set('Failed to load project data. Please try again later.');
+        this.error.set(this.translate.instant('dashboard.dashboard.errors.failedToLoad'));
         this.isLoading.set(false);
       },
     });

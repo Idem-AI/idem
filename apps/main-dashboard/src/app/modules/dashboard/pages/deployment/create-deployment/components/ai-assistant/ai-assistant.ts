@@ -36,6 +36,7 @@ import { CookieService } from '../../../../../../../shared/services/cookie.servi
 import { DeploymentService } from '../../../../../services/deployment.service';
 import { AuthService } from '../../../../../../auth/services/auth.service';
 import { MarkdownModule } from 'ngx-markdown';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 // Import Prism core only - specific languages are already imported in app.config.ts
 import 'prismjs';
@@ -43,7 +44,14 @@ import 'prismjs';
 @Component({
   selector: 'app-ai-assistant',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MarkdownModule, DialogModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MarkdownModule,
+    DialogModule,
+    TranslateModule,
+  ],
   templateUrl: './ai-assistant.html',
   styleUrl: './ai-assistant.css',
 })
@@ -105,6 +113,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
   private readonly deploymentService = inject(DeploymentService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   constructor() {
     this.deploymentConfigForm = this.formBuilder.group({
@@ -124,7 +133,9 @@ export class AiAssistant implements OnInit, AfterViewInit {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
       console.error('No project ID found in cookies');
-      this.errorMessages.set(['No project selected. Please select a project first.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.aiAssistant.errors.noProjectSelected'),
+      ]);
     } else {
       this.projectId.set(projectId);
       console.log('AI Assistant initialized with project ID:', projectId);
@@ -151,7 +162,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
     this.chatMessages.set([
       {
         sender: 'ai',
-        text: "Hello! I'm your AI assistant. Describe the infrastructure you'd like to deploy.",
+        text: this.translate.instant('dashboard.aiAssistant.initialGreeting'),
         timestamp: new Date(),
       },
     ]);
@@ -175,8 +186,6 @@ export class AiAssistant implements OnInit, AfterViewInit {
   protected updatePrompt(prompt: string): void {
     this.aiPrompt.set(prompt);
   }
-
-  // Removed toggleDeploymentForm method - no longer needed
 
   /**
    * Scrolls the chat container to the bottom
@@ -311,7 +320,9 @@ export class AiAssistant implements OnInit, AfterViewInit {
       ).length;
 
       this.errorMessages.set([
-        `Please configure all ${unconfiguredCount} component(s) before accepting the architecture`,
+        this.translate.instant('dashboard.aiAssistant.errors.configureComponents', {
+          count: unconfiguredCount,
+        }),
       ]);
       return;
     }
@@ -334,7 +345,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
         ...messages,
         {
           sender: 'ai',
-          text: 'Great! The architecture has been accepted. Now let me check if any sensitive variables are needed for this deployment...',
+          text: this.translate.instant('dashboard.aiAssistant.architectureAccepted'),
           timestamp: new Date(),
         },
       ]);
@@ -408,7 +419,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
           ...messages,
           {
             sender: 'ai',
-            text: 'Sorry, I encountered an error processing your request. Please try again.',
+            text: this.translate.instant('dashboard.aiAssistant.errors.requestProcessing'),
             timestamp: new Date(),
           },
         ]);
@@ -419,7 +430,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
         // Add to error messages
         this.errorMessages.update((msgs) => [
           ...msgs,
-          error.message || 'Failed to get AI response',
+          error.message || this.translate.instant('dashboard.aiAssistant.errors.apiError'),
         ]);
       },
     });
@@ -468,7 +479,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
     // AI-specific validation
     if (this.chatMessages().length <= 1) {
       // Only the welcome message
-      errors.push('Please interact with the AI assistant before creating a deployment');
+      errors.push(this.translate.instant('dashboard.aiAssistant.errors.noInteraction'));
     }
 
     this.validationErrors.set(errors);
@@ -514,7 +525,9 @@ export class AiAssistant implements OnInit, AfterViewInit {
     const form = this.sensitiveVariablesForm();
 
     if (!form) {
-      this.errorMessages.set(['Form not initialized.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.aiAssistant.errors.formNotInitialized'),
+      ]);
       return;
     }
 
@@ -533,12 +546,14 @@ export class AiAssistant implements OnInit, AfterViewInit {
         ...messages,
         {
           sender: 'ai',
-          text: `✅ Sensitive variables validated and ready to submit. You can now click the "Submit Variables" button to store them securely.`,
+          text: this.translate.instant('dashboard.aiAssistant.sensitiveVariables.validated'),
           timestamp: new Date(),
         },
       ]);
     } else {
-      this.errorMessages.set(['Please fill in all required fields correctly.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.aiAssistant.errors.fillRequiredFields'),
+      ]);
     }
   }
 
@@ -549,10 +564,13 @@ export class AiAssistant implements OnInit, AfterViewInit {
     const form = this.sensitiveVariablesForm();
 
     if (!form || !form.valid || !this.sensitiveVariablesReady()) {
-      let errorMsg = 'Validation failed: ';
-      if (!form) errorMsg += 'Form not initialized. ';
-      if (form && !form.valid) errorMsg += 'Form has validation errors. ';
-      if (!this.sensitiveVariablesReady()) errorMsg += 'Variables not validated. ';
+      let errorMsg = this.translate.instant('dashboard.aiAssistant.errors.validationFailed');
+      if (!form)
+        errorMsg += this.translate.instant('dashboard.aiAssistant.errors.formNotInitialized');
+      if (form && !form.valid)
+        errorMsg += this.translate.instant('dashboard.aiAssistant.errors.formHasErrors');
+      if (!this.sensitiveVariablesReady())
+        errorMsg += this.translate.instant('dashboard.aiAssistant.errors.variablesNotValidated');
 
       this.errorMessages.set([errorMsg]);
       return;
@@ -576,14 +594,16 @@ export class AiAssistant implements OnInit, AfterViewInit {
   protected saveDeploymentConfig(): void {
     // Validate form
     if (!this.deploymentConfigForm.valid) {
-      this.errorMessages.set(['Please fill in all required fields.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.aiAssistant.errors.fillRequiredFields'),
+      ]);
       return;
     }
 
     // Validate AI interaction
     if (this.chatMessages().length <= 1) {
       this.errorMessages.set([
-        'Please interact with the AI assistant before creating a deployment',
+        this.translate.instant('dashboard.aiAssistant.errors.noInteraction'),
       ]);
       return;
     }
@@ -633,7 +653,10 @@ export class AiAssistant implements OnInit, AfterViewInit {
       error: (error) => {
         console.error('Error creating deployment:', error);
         this.creatingDeployment.set(false);
-        this.errorMessages.set([error.message || 'Failed to create deployment']);
+        this.errorMessages.set([
+          error.message ||
+            this.translate.instant('dashboard.aiAssistant.errors.failedToCreateDeployment'),
+        ]);
       },
     });
   }
@@ -647,7 +670,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
     if (!form || !deploymentId) {
       this.storingSensitiveVariables.set(false);
       this.errorMessages.set([
-        'Failed to store sensitive variables: missing form or deployment ID',
+        this.translate.instant('dashboard.aiAssistant.errors.failedToStoreVariables'),
       ]);
       return;
     }
@@ -681,7 +704,12 @@ export class AiAssistant implements OnInit, AfterViewInit {
             ...messages,
             {
               sender: 'ai',
-              text: `✅ Successfully stored ${response.storedCount} sensitive variables securely. Your deployment configuration is now complete.`,
+              text: this.translate.instant(
+                'dashboard.aiAssistant.sensitiveVariables.storedSuccessfully',
+                {
+                  count: response.storedCount,
+                },
+              ),
               timestamp: new Date(),
             },
           ]);
@@ -701,7 +729,10 @@ export class AiAssistant implements OnInit, AfterViewInit {
         error: (error) => {
           console.error('Error storing sensitive variables:', error);
           this.storingSensitiveVariables.set(false);
-          this.errorMessages.set([error.message || 'Failed to store sensitive variables securely']);
+          this.errorMessages.set([
+            error.message ||
+              this.translate.instant('dashboard.aiAssistant.errors.failedToStoreSecurely'),
+          ]);
         },
       });
   }
@@ -712,8 +743,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
   private requestSensitiveVariablesFromAI(): void {
     console.log('Requesting sensitive variables from AI after architecture acceptance...');
 
-    const messageText =
-      'The architecture has been accepted. Please analyze the components and let me know if any sensitive variables (API keys, passwords, database credentials, etc.) are needed for this deployment.';
+    const messageText = this.translate.instant('dashboard.aiAssistant.architectureAccepted');
 
     // Create ChatMessage object
     const chatMessage: ChatMessage = {
@@ -748,7 +778,10 @@ export class AiAssistant implements OnInit, AfterViewInit {
         this.aiIsThinking.set(false);
 
         console.error('Error sending message to AI:', error);
-        this.errorMessages.set([error.message || 'Failed to communicate with AI assistant']);
+        this.errorMessages.set([
+          error.message ||
+            this.translate.instant('dashboard.aiAssistant.errors.communicationFailed'),
+        ]);
       },
     });
   }
@@ -768,7 +801,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
       ...messages,
       {
         sender: 'ai',
-        text: `🔄 Creating deployment and storing sensitive variables securely...`,
+        text: this.translate.instant('dashboard.aiAssistant.sensitiveVariables.creatingAndStoring'),
         timestamp: new Date(),
       },
     ]);
@@ -794,7 +827,7 @@ export class AiAssistant implements OnInit, AfterViewInit {
         const userName = user.displayName || 'there';
         const greetingMessage: ChatMessage = {
           sender: 'ai',
-          text: `Hello! ${userName}, I'm IDEM DevOps Assistant. I can generate and deploy your project or infrastructure for you, and manage responsive deployments. How can I help you today?`,
+          text: this.translate.instant('dashboard.aiAssistant.greeting', { userName }),
           timestamp: new Date(),
         };
 

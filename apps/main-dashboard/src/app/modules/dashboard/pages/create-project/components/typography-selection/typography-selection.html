@@ -15,7 +15,9 @@
             ></path>
           </svg>
         </div>
-        <h3 class="text-xl font-semibold text-white mb-2">Typography Not Available</h3>
+        <h3 class="text-xl font-semibold text-white mb-2">
+          {{ 'dashboard.typographySelection.errors.title' | translate }}
+        </h3>
         <p class="text-gray-400 mb-6">{{ error() }}</p>
       </div>
 
@@ -32,7 +34,7 @@
               d="M15 19l-7-7 7-7"
             ></path>
           </svg>
-          Go Back
+          {{ 'common.goBack' | translate }}
         </button>
       </div>
     </div>
@@ -48,10 +50,10 @@
       <h1
         class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
       >
-        Loading Typography Options
+        {{ 'dashboard.typographySelection.loading.title' | translate }}
       </h1>
       <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
-        Please wait while we prepare your typography selections...
+        {{ 'dashboard.typographySelection.loading.subtitle' | translate }}
       </p>
     </div>
 
@@ -103,10 +105,10 @@
       <h1
         class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
       >
-        Choose Your Typography
+        {{ 'dashboard.typographySelection.success.title' | translate }}
       </h1>
       <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
-        Select the typography style that best complements your brand's voice and personality.
+        {{ 'dashboard.typographySelection.success.subtitle' | translate }}
       </p>
     </div>
 
@@ -136,7 +138,7 @@
             (click)="selectTypography(typography.id)"
           >
             <div
-              class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
+              class="absolute inset-0 bg-linear-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
               [class.opacity-20]="selectedTypographyId() === typography.id"
             ></div>
 
@@ -150,10 +152,10 @@
                     [style.fontFamily]="typography.primaryFont"
                     class="text-white text-xl font-bold mb-2"
                   >
-                    Your Brand Name
+                    {{ 'dashboard.typographySelection.preview.brandName' | translate }}
                   </h4>
                   <p [style.fontFamily]="typography.secondaryFont" class="text-gray-300 text-sm">
-                    This is how your content will look with this typography combination.
+                    {{ 'dashboard.typographySelection.preview.subtitle' | translate }}
                   </p>
                 </div>
               </div>
@@ -161,11 +163,15 @@
               <!-- Font Details -->
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between">
-                  <span class="text-gray-400">Primary:</span>
+                  <span class="text-gray-400"
+                    >{{ 'dashboard.typographySelection.preview.primary' | translate }}:</span
+                  >
                   <span class="text-white font-medium">{{ typography.primaryFont }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-400">Secondary:</span>
+                  <span class="text-gray-400"
+                    >{{ 'dashboard.typographySelection.preview.secondary' | translate }}:</span
+                  >
                   <span class="text-white font-medium">{{ typography.secondaryFont }}</span>
                 </div>
               </div>
@@ -198,7 +204,7 @@
       @if (selectedTypographyId()) {
         <div class="text-center mt-8">
           <p class="text-gray-400 text-sm">
-            Perfect choice! Click Next to continue to the next step.
+            {{ 'dashboard.typographySelection.success.perfectChoice' | translate }}
           </p>
         </div>
       }

@@ -16,6 +16,7 @@ import { LogoSelectionComponent } from './components/logo-selection/logo-selecti
 import { LogoVariationsComponent } from './components/logo-variations/logo-variations';
 import { ProjectSummaryComponent } from './components/project-summary/project-summary';
 import { SkeletonModule } from 'primeng/skeleton';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 // Simple step configuration
 interface Step {
@@ -37,6 +38,7 @@ interface Step {
     TypographySelectionComponent,
     LogoVariationsComponent,
     ProjectSummaryComponent,
+    TranslateModule,
   ],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
@@ -46,6 +48,7 @@ export class CreateProjectComponent implements OnInit {
   private readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
   private readonly cookieService = inject(CookieService);
+  private readonly translate = inject(TranslateService);
 
   // Core state
   protected readonly currentStepIndex = signal<number>(0);
@@ -53,23 +56,45 @@ export class CreateProjectComponent implements OnInit {
   protected readonly isLoading = signal<boolean>(false);
 
   // Step configuration
-  protected readonly steps: Step[] = [
-    {
-      id: 'description',
-      title: 'Project Description',
-      component: 'description',
-    },
-    { id: 'details', title: 'Project Details', component: 'details' },
-    { id: 'colors', title: 'Color Selection', component: 'colors' },
-    {
-      id: 'typography',
-      title: 'Typography Selection',
-      component: 'typography',
-    },
-    { id: 'logo', title: 'Logo Selection', component: 'logo' },
-    { id: 'variations', title: 'Logo Variations', component: 'variations' },
-    { id: 'summary', title: 'Summary', component: 'summary' },
-  ];
+  protected get steps(): Step[] {
+    return [
+      {
+        id: 'description',
+        title: this.translate.instant('dashboard.createProject.steps.description'),
+        component: 'description',
+      },
+      {
+        id: 'details',
+        title: this.translate.instant('dashboard.createProject.steps.details'),
+        component: 'details',
+      },
+      {
+        id: 'colors',
+        title: this.translate.instant('dashboard.createProject.steps.colors'),
+        component: 'colors',
+      },
+      {
+        id: 'typography',
+        title: this.translate.instant('dashboard.createProject.steps.typography'),
+        component: 'typography',
+      },
+      {
+        id: 'logo',
+        title: this.translate.instant('dashboard.createProject.steps.logo'),
+        component: 'logo',
+      },
+      {
+        id: 'variations',
+        title: this.translate.instant('dashboard.createProject.steps.variations'),
+        component: 'variations',
+      },
+      {
+        id: 'summary',
+        title: this.translate.instant('dashboard.createProject.steps.summary'),
+        component: 'summary',
+      },
+    ];
+  }
 
   // Computed properties
   protected readonly currentStep = computed(() => this.steps[this.currentStepIndex()]);

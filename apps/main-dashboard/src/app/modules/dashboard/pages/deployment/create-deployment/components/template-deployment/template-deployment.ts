@@ -18,6 +18,7 @@ import {
 } from '../../../../../models/api/deployments/deployments.api.model';
 import { CookieService } from '../../../../../../../shared/services/cookie.service';
 import { DeploymentService } from '../../../../../services/deployment.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 const MOCK_TEMPLATES: ArchitectureTemplate[] = [
   {
@@ -51,7 +52,7 @@ const MOCK_TEMPLATES: ArchitectureTemplate[] = [
 @Component({
   selector: 'app-template-deployment',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule],
   templateUrl: './template-deployment.html',
   styleUrl: './template-deployment.css',
 })
@@ -75,6 +76,7 @@ export class TemplateDeployment implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly deploymentService = inject(DeploymentService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   constructor() {
     this.deploymentConfigForm = this.formBuilder.group({
@@ -90,7 +92,9 @@ export class TemplateDeployment implements OnInit {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
       console.error('No project ID found in cookies');
-      this.errorMessages.set(['No project selected. Please select a project first.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.templateDeployment.errors.noProjectSelected'),
+      ]);
     } else {
       this.projectId.set(projectId);
       console.log('Template deployment initialized with project ID:', projectId);
@@ -159,7 +163,7 @@ export class TemplateDeployment implements OnInit {
 
     // Template validation
     if (!this.selectedTemplate()) {
-      errors.push('Please select an architecture template');
+      errors.push(this.translate.instant('dashboard.templateDeployment.errors.noTemplateSelected'));
     }
 
     this.validationErrors.set(errors);
@@ -168,19 +172,25 @@ export class TemplateDeployment implements OnInit {
   protected createDeployment(): void {
     // Validate project ID
     if (!this.projectId()) {
-      this.errorMessages.set(['No project selected. Please select a project first.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.templateDeployment.errors.noProjectSelected'),
+      ]);
       return;
     }
 
     // Validate form
     if (!this.deploymentConfigForm.valid) {
-      this.errorMessages.set(['Please fill in all required fields.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.templateDeployment.errors.fillRequiredFields'),
+      ]);
       return;
     }
 
     // Validate template selection
     if (!this.selectedTemplate()) {
-      this.errorMessages.set(['Please select a template.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.templateDeployment.errors.noTemplateSelected'),
+      ]);
       return;
     }
 
@@ -231,7 +241,10 @@ export class TemplateDeployment implements OnInit {
       error: (error) => {
         console.error('Error creating template deployment:', error);
         this.loadingDeployment.set(false);
-        this.errorMessages.set([error.message || 'Failed to create template deployment']);
+        this.errorMessages.set([
+          error.message ||
+            this.translate.instant('dashboard.templateDeployment.errors.failedToCreate'),
+        ]);
       },
     });
   }

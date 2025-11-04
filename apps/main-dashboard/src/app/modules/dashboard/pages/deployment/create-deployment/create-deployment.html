@@ -20,16 +20,16 @@
     >
       @switch (deploymentMode()) {
         @case ('beginner') {
-          Quick Deployment
+          {{ 'dashboard.createDeployment.modes.beginner' | translate }}
         }
         @case ('ai-assistant') {
-          AI Assistant
+          {{ 'dashboard.createDeployment.modes.ai-assistant' | translate }}
         }
         @case ('template') {
-          Template Deployment
+          {{ 'dashboard.createDeployment.modes.template' | translate }}
         }
         @case ('expert') {
-          Expert Deployment
+          {{ 'dashboard.createDeployment.modes.expert' | translate }}
         }
         @default {
           <div
@@ -39,10 +39,10 @@
               <h1
                 class="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2"
               >
-                Create Deployment
+                {{ 'dashboard.createDeployment.title' | translate }}
               </h1>
               <p class="text-gray-400 text-sm sm:text-base">
-                Design your ideal cloud infrastructure.
+                {{ 'dashboard.createDeployment.subtitle' | translate }}
               </p>
             </div>
           </div>
@@ -53,7 +53,7 @@
       class="w-full sm:w-auto py-2 rounded-lg hover:bg-gray-800 text-gray-300 transition-all flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base"
       (click)="resetView()"
     >
-      <i class="pi pi-arrow-left"></i> Back
+      <i class="pi pi-arrow-left"></i> {{ 'common.back' | translate }}
     </button>
   </div>
 
@@ -62,17 +62,17 @@
     <app-mode-selector (onModeSelect)="deploymentMode.set($event)" />
   }
 
-  <!-- Quick Deployment -->
+  <!-- {{ 'dashboard.createDeployment.modes.quick' | translate }} -->
   @if (deploymentMode() === 'beginner') {
     <app-quick-deployment />
   }
 
-  <!-- AI Assistant -->
+  <!-- {{ 'dashboard.createDeployment.modes.ai' | translate }} -->
   @if (deploymentMode() === 'ai-assistant') {
     <app-ai-assistant />
   }
 
-  <!-- Template Deployment -->
+  <!-- {{ 'dashboard.createDeployment.modes.template' | translate }} -->
   @if (deploymentMode() === 'template') {
     <app-template-deployment />
   }

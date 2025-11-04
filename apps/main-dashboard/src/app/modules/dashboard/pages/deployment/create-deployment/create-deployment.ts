@@ -27,6 +27,7 @@ import { QuickDeployment } from './components/quick-deployment/quick-deployment'
 import { AiAssistant } from './components/ai-assistant/ai-assistant';
 import { TemplateDeployment } from './components/template-deployment/template-deployment';
 import { ExpertDeployment } from './components/expert-deployment/expert-deployment';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-create-deployment',
@@ -40,6 +41,7 @@ import { ExpertDeployment } from './components/expert-deployment/expert-deployme
     AiAssistant,
     TemplateDeployment,
     ExpertDeployment,
+    TranslateModule,
   ],
   templateUrl: './create-deployment.html',
   styleUrl: './create-deployment.css',
@@ -60,12 +62,7 @@ export class CreateDeployment implements OnInit {
   // AI Assistant state
   protected readonly aiPrompt = signal<string>('');
   protected readonly aiIsThinking = signal<boolean>(false);
-  protected readonly chatMessages = signal<ChatMessage[]>([
-    {
-      sender: 'ai',
-      text: "Bonjour ! Décrivez-moi l'infrastructure que vous souhaitez.",
-    },
-  ]);
+  protected readonly chatMessages = signal<ChatMessage[]>([]);
 
   // Template mode state
   protected readonly availableTemplates = signal<ArchitectureTemplate[]>([]);
@@ -109,6 +106,7 @@ export class CreateDeployment implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly cookieService = inject(CookieService);
+  private readonly translate = inject(TranslateService);
 
   constructor() {
     this.deploymentConfigForm = this.formBuilder.group({
@@ -119,13 +117,22 @@ export class CreateDeployment implements OnInit {
     });
 
     this.expertForm = this.formBuilder.group({});
+
+    this.chatMessages.set([
+      {
+        sender: 'ai',
+        text: this.translate.instant('dashboard.createDeployment.ai.initialGreeting'),
+      },
+    ]);
   }
 
   ngOnInit(): void {
     // Get project ID from cookies
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
-      this.errorMessages.set(['No active project found. Please select a project first.']);
+      this.errorMessages.set([
+        this.translate.instant('dashboard.createDeployment.errors.noActiveProject'),
+      ]);
       this.router.navigate(['/projects']);
       return;
     }
@@ -199,7 +206,7 @@ export class CreateDeployment implements OnInit {
         ...messages,
         {
           sender: 'ai',
-          text: `Excellent ! Basé sur votre demande "${prompt}", je recommande une architecture avec AWS EC2, RDS et CloudFront.`,
+          text: this.translate.instant('dashboard.createDeployment.ai.recommendation', { prompt }),
         },
       ]);
       this.aiIsThinking.set(false);

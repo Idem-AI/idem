@@ -32,7 +32,7 @@
         ><input
           [(ngModel)]="expertSearchTerm"
           type="text"
-          placeholder="Rechercher..."
+          [placeholder]="'common.search' | translate"
           class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 pl-9 focus:outline-none focus:border-purple-500"
         />
       </div>
@@ -54,7 +54,7 @@
                 <button
                   (click)="addComponentToArchitecture(component.id)"
                   class="p-2 h-8 w-8 flex items-center justify-center rounded-md bg-purple-600/30 hover:bg-purple-600/50 text-purple-300"
-                  title="Ajouter"
+                  [title]="'common.add' | translate"
                 >
                   <i class="pi pi-plus"></i>
                 </button>
@@ -71,13 +71,20 @@
     class="col-span-12 lg:col-span-5 bg-gray-900/50 rounded-xl border border-gray-800 flex flex-col"
   >
     <div class="p-4 border-b border-gray-700 flex justify-between items-center">
-      <h3 class="text-lg font-semibold">Your Architecture</h3>
+      <h3 class="text-lg font-semibold">
+        {{ 'dashboard.expertDeployment.yourArchitecture' | translate }}
+      </h3>
       <button
         class="px-4 py-2 inner-button rounded-lg text-white font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-indigo-600/50"
         [disabled]="expertArchitecture().length === 0 || loadingDeployment()"
         (click)="openDeploymentNameDialog()"
       >
-        <i class="pi pi-rocket"></i>{{ loadingDeployment() ? 'Saving configs...' : 'Save configs' }}
+        <i class="pi pi-rocket"></i
+        >{{
+          loadingDeployment()
+            ? ('common.saving' | translate)
+            : ('dashboard.expertDeployment.buttons.saveConfigs' | translate)
+        }}
       </button>
     </div>
     <div class="overflow-y-auto p-4 flex-grow space-y-3 custom-scrollbar">
@@ -94,12 +101,13 @@
             @if (expertForm.get(component.instanceId)?.invalid) {
               <span
                 class="text-xs text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded-full flex items-center gap-1"
-                ><i class="pi pi-exclamation-triangle text-xs"></i> Not configured</span
+                ><i class="pi pi-exclamation-triangle text-xs"></i>
+                {{ 'dashboard.expertDeployment.notConfigured' | translate }}</span
               >
             } @else {
               <span
                 class="text-xs text-green-400 bg-green-900/50 px-2 py-0.5 rounded-full flex items-center gap-1"
-                ><i class="pi pi-check-circle text-xs"></i> Ready</span
+                ><i class="pi pi-check-circle text-xs"></i> {{ 'common.ready' | translate }}</span
               >
             }
           </div>
@@ -118,8 +126,10 @@
           class="h-full flex flex-col items-center justify-center text-center text-gray-500 border-2 border-dashed border-gray-700 rounded-lg p-8"
         >
           <i class="pi pi-sitemap text-4xl mb-4"></i>
-          <h4 class="font-semibold text-lg text-gray-400">Start building</h4>
-          <p>Add components from the catalog.</p>
+          <h4 class="font-semibold text-lg text-gray-400">
+            {{ 'dashboard.expertDeployment.empty.startBuilding' | translate }}
+          </h4>
+          <p>{{ 'dashboard.expertDeployment.empty.addComponents' | translate }}</p>
         </div>
       }
     </div>
@@ -132,7 +142,11 @@
     @if (activeExpertComponent(); as activeComponent) {
       <div class="p-4 border-b border-gray-700">
         <h3 class="text-lg font-semibold flex items-center gap-3">
-          <i class="{{ activeComponent.icon }}"></i> Configuration: {{ activeComponent.name }}
+          <i class="{{ activeComponent.icon }}"></i>
+          {{
+            'dashboard.expertDeployment.configuration.title'
+              | translate: { componentName: activeComponent.name }
+          }}
         </h3>
       </div>
       <div
@@ -192,7 +206,9 @@
               getActiveComponentForm()?.get(option.name)?.invalid &&
               getActiveComponentForm()?.get(option.name)?.touched
             ) {
-              <p class="text-red-400 text-sm mt-1">This field is required.</p>
+              <p class="text-red-400 text-sm mt-1">
+                {{ 'validation.required' | translate: { fieldName: '' } }}
+              </p>
             }
           </div>
         }
@@ -200,8 +216,10 @@
     } @else {
       <div class="h-full flex flex-col items-center justify-center text-center text-gray-500 p-8">
         <i class="pi pi-sliders-h text-4xl mb-4"></i>
-        <h4 class="font-semibold text-lg text-gray-400">Properties</h4>
-        <p>Select a component to configure it.</p>
+        <h4 class="font-semibold text-lg text-gray-400">
+          {{ 'dashboard.expertDeployment.properties.title' | translate }}
+        </h4>
+        <p>{{ 'dashboard.expertDeployment.properties.selectComponent' | translate }}</p>
       </div>
     }
   </div>
@@ -212,7 +230,7 @@
   [visible]="deploymentNameDialogVisible()"
   (onHide)="deploymentNameDialogVisible.set(false)"
   [style]="{ width: '450px' }"
-  header="Enter Deployment Name"
+  [header]="'dashboard.expertDeployment.dialog.header' | translate"
   [modal]="true"
   [draggable]="false"
   [resizable]="false"
@@ -225,7 +243,8 @@
       <!-- Deployment Name Field -->
       <div>
         <label for="name" class="text-sm font-medium mb-2 flex items-center gap-1">
-          Deployment Name <span class="text-red-400">*</span>
+          {{ 'dashboard.expertDeployment.fields.name' | translate }}
+          <span class="text-red-400">*</span>
         </label>
         <div class="relative">
           <span class="p-input-icon-left w-full">
@@ -236,7 +255,7 @@
               type="text"
               formControlName="name"
               class="w-full p-inputtext"
-              placeholder="Enter a name for your deployment"
+              [placeholder]="'dashboard.expertDeployment.placeholders.name' | translate"
             />
           </span>
         </div>
@@ -247,17 +266,17 @@
           class="text-red-400 mt-1 flex items-center gap-1"
         >
           <i class="pi pi-exclamation-circle"></i>
-          Deployment name is required (minimum 3 characters)
+          {{ 'validation.deploymentName' | translate: { min: 3 } }}
         </small>
       </div>
 
-      <!-- Git Repository URL Field -->
+      <!-- Git {{ 'dashboard.expertDeployment.deploymentConfig.git.repoUrl' | translate }} Field -->
       <div>
         <label for="repoUrl" class="text-sm font-medium mb-2 flex items-center gap-1">
-          Git Repository URL
+          Git {{ 'dashboard.expertDeployment.deploymentConfig.git.repoUrl' | translate }}
           <i
             class="pi pi-info-circle text-gray-500 text-xs"
-            title="Enter a valid Git repository URL to fetch available branches"
+            [title]="'dashboard.expertDeployment.tooltips.repoUrl' | translate"
           ></i>
         </label>
         <div class="relative">
@@ -269,7 +288,7 @@
               type="text"
               formControlName="repoUrl"
               class="w-full p-inputtext"
-              placeholder="https://github.com/username/repository.git"
+              [placeholder]="'dashboard.expertDeployment.placeholders.repoUrl' | translate"
               (blur)="fetchGitBranches()"
             />
             <i *ngIf="loadingGitInfo()" class="pi pi-spin pi-spinner text-blue-500"></i>
@@ -277,19 +296,23 @@
         </div>
         <div class="mt-1 flex items-center gap-1" *ngIf="gitBranches().length > 0">
           <i class="pi pi-check-circle text-green-500 text-xs"></i>
-          <small class="text-green-500">Repository validated successfully</small>
+          <small class="text-green-500">{{
+            'dashboard.expertDeployment.repoValidated' | translate
+          }}</small>
         </div>
       </div>
 
-      <!-- Branch Selection Field -->
+      <!-- {{ 'dashboard.expertDeployment.fields.branch' | translate }} Selection Field -->
       <div>
-        <label for="branch" class="block text-sm font-medium mb-2"> Branch </label>
+        <label for="branch" class="block text-sm font-medium mb-2">
+          {{ 'dashboard.expertDeployment.fields.branch' | translate }}
+        </label>
         <p-select
           id="branch"
           formControlName="branch"
           [options]="gitBranches()"
           [disabled]="gitBranches().length === 0"
-          placeholder="Select a branch"
+          [placeholder]="'dashboard.expertDeployment.placeholders.branch' | translate"
           [showClear]="false"
           styleClass="w-full"
           [style]="{ width: '100%' }"
@@ -301,7 +324,7 @@
           *ngIf="gitBranches().length === 0 && deploymentConfigForm.get('repoUrl')?.value"
           class="text-gray-400"
         >
-          No branches found or repository not accessible
+          {{ 'dashboard.expertDeployment.errors.noBranches' | translate }}
         </small>
       </div>
     </div>
@@ -309,13 +332,13 @@
   <ng-template pTemplate="footer">
     <div class="flex justify-end gap-2">
       <p-button
-        label="Cancel"
+        [label]="'common.cancel' | translate"
         icon="pi pi-times"
         styleClass="p-button-text"
-        (click)="deploymentNameDialogVisible.set(false)"
+        (click)="onCancel()"
       ></p-button>
       <p-button
-        label="Deploy"
+        [label]="'common.deploy' | translate"
         icon="pi pi-rocket"
         [disabled]="deploymentConfigForm.get('name')?.invalid"
         (click)="submitDeployment()"

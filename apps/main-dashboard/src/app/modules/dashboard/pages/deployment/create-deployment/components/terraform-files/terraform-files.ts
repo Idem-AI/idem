@@ -6,11 +6,12 @@ import {
   FileContent,
   FileContentConfig,
 } from '../../../../../models/deployment.model';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-terraform-files',
   standalone: true,
-  imports: [CommonModule, FileContentEditor],
+  imports: [CommonModule, FileContentEditor, TranslateModule],
   templateUrl: './terraform-files.html',
 })
 export class TerraformFiles implements OnInit {
