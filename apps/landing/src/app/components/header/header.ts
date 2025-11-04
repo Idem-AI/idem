@@ -66,6 +66,7 @@ export class Header implements OnInit {
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
 
+  protected readonly dashboardUrl = environment.services.dashboard.url;
   // UI State Signals
   protected readonly isMenuOpen = signal(false);
   protected readonly isDropdownOpen = signal(false);
@@ -101,10 +102,22 @@ export class Header implements OnInit {
       label: $localize`:@@header.menu.company:Company`,
       type: 'dropdown' as const,
       items: [
-        { label: $localize`:@@header.menu.about:About`, route: '/about' },
         { label: $localize`:@@header.menu.vision:Vision`, route: '/african-market' },
         { label: $localize`:@@header.menu.openSource:Open Source`, route: '/open-source' },
+        { label: $localize`:@@header.menu.about:About`, route: '/about' },
       ],
+    },
+    {
+      id: 'about',
+      label: $localize`:@@header.nav.about:About`,
+      route: '/about',
+      type: 'link' as const,
+    },
+    {
+      id: 'contact',
+      label: $localize`:@@header.nav.contact:Contact`,
+      route: '/contact',
+      type: 'link' as const,
     },
   ];
 

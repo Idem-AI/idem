@@ -1,8 +1,8 @@
 <nav class="glass-header text-white fixed w-full z-50 top-0">
   <div class="mx-auto px-[3%] sm:px-6 lg:px-8">
-    <div class="flex items-center h-16 gap-8">
+    <div class="flex items-center justify-center h-16 gap-8">
       <!-- Logo -->
-      <div class="flex items-center relative gap-2 flex-shrink-0">
+      <div class="flex items-center relative gap-2 shrink-0">
         <div
           class="absolute w-12 h-12 rounded-full bg-white opacity-5 blur-xl -left-6 top-1/2 transform -translate-y-1/2"
         ></div>
@@ -21,7 +21,7 @@
       </div>
 
       <!-- Desktop Navigation -->
-      <div class="hidden lg:flex items-center gap-1 flex-1">
+      <div class="hidden lg:flex items-center justify-center gap-1 flex-1">
         @for (item of navItems; track item.id) {
           @if (item.type === 'link') {
             <a
@@ -144,11 +144,18 @@
           </div>
         } @else {
           <a
-            routerLink="/login"
-            class="inner-button text-white px-6 py-2 rounded-lg hover:text-white transition text-sm font-medium"
+            href="{{ dashboardUrl }}/login"
+            class="outer-button text-white px-6 py-2 rounded-lg hover:text-white transition text-sm font-medium"
             i18n="@@header.nav.login.desktop"
           >
             Login
+          </a>
+          <a
+            href="{{ dashboardUrl }}/create-project"
+            class="inner-button text-white px-6 py-2 rounded-lg hover:text-white transition text-sm font-medium"
+            i18n="@@header.nav.createProject.desktop"
+          >
+            Try for free
           </a>
         }
       </div>
@@ -284,10 +291,18 @@
             <a
               routerLink="/login"
               (click)="toggleMenu()"
-              class="inner-button block text-center px-4 py-3 rounded-lg transition-all font-medium"
+              class="outer-button block text-center px-4 py-3 rounded-lg transition-all font-medium"
               i18n="@@header.nav.login.mobile"
             >
               Login
+            </a>
+            <a
+              href="{{ dashboardUrl }}/create-project"
+              (click)="toggleMenu()"
+              class="inner-button block text-center px-4 py-3 rounded-lg transition-all font-medium"
+              i18n="@@header.nav.createProject.mobile"
+            >
+              Try for free
             </a>
           }
 

@@ -9,14 +9,14 @@ import {
   PLATFORM_ID,
   OnInit,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { SeoService } from '../../shared/services/seo.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-cta',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: './cta.html',
   styleUrl: './cta.css',
 })
@@ -25,7 +25,7 @@ export class Cta implements OnInit, AfterViewInit, OnDestroy {
   protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
   private readonly elementRef = inject(ElementRef);
   private readonly seoService = inject(SeoService);
-
+  protected readonly dashboardUrl = environment.services.dashboard.url;
   // Apply animation class binding
   @HostBinding('class.animate-in')
   protected readonly animateIn = signal(false);

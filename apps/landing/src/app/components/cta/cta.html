@@ -16,17 +16,17 @@
       <div class="gap-4 flex reveal-left" style="transition-delay: 200ms">
         <a
           class="inner-button cta-primary-button px-6 py-3 rounded-xl text-white font-semibold"
-          routerLink="/login"
+          href="{{ dashboardUrl }}/login"
           i18n="@@cta.signUpButton"
           >Sign Up</a
         >
-        <button
-          routerLink="/console/create-project"
+        <a
+          href="{{ dashboardUrl }}/create-project"
           class="outer-button cta-secondary-button px-6 py-3 rounded-xl font-semibold text-white"
           i18n="@@cta.getStartedButton"
         >
           Get Started
-        </button>
+        </a>
       </div>
     </div>
     <div class="md:w-1/2 reveal-right">
