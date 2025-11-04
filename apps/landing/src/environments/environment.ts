@@ -17,7 +17,7 @@ export const environment = {
   services: {
     domain: 'https://idem.africa',
     dashboard: {
-      url: 'https://dashboard.idem.africa',
+      url: 'https://console.idem.africa',
     },
     api: {
       url: 'https://api.idem.africa',
