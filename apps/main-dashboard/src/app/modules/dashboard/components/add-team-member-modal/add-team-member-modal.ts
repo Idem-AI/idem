@@ -4,13 +4,22 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { RadioButtonModule } from 'primeng/radiobutton';
+import { TranslateModule } from '@ngx-translate/core';
 import { TeamService } from '../../services/team.service';
 import { AddTeamMemberDTO } from '../../models/team.model';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-add-team-member-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DialogModule, InputTextModule, RadioButtonModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    DialogModule,
+    InputTextModule,
+    RadioButtonModule,
+    TranslateModule,
+  ],
   templateUrl: './add-team-member-modal.html',
   styleUrl: './add-team-member-modal.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,6 +27,7 @@ import { AddTeamMemberDTO } from '../../models/team.model';
 export class AddTeamMemberModal {
   private readonly fb = inject(FormBuilder);
   private readonly teamService = inject(TeamService);
+  private readonly translate = inject(TranslateService);
 
   // Inputs
   readonly isOpen = input.required<boolean>();
@@ -33,9 +43,21 @@ export class AddTeamMemberModal {
 
   // Available roles
   protected readonly roles = [
-    { value: 'admin', label: 'Admin', description: 'Can manage team and members' },
-    { value: 'member', label: 'Member', description: 'Can view and contribute' },
-    { value: 'viewer', label: 'Viewer', description: 'Can only view' },
+    {
+      value: 'admin',
+      labelKey: 'dashboard.addMemberModal.roles.admin.label',
+      descriptionKey: 'dashboard.addMemberModal.roles.admin.description',
+    },
+    {
+      value: 'member',
+      labelKey: 'dashboard.addMemberModal.roles.member.label',
+      descriptionKey: 'dashboard.addMemberModal.roles.member.description',
+    },
+    {
+      value: 'viewer',
+      labelKey: 'dashboard.addMemberModal.roles.viewer.label',
+      descriptionKey: 'dashboard.addMemberModal.roles.viewer.description',
+    },
   ];
 
   protected readonly memberForm: FormGroup = this.fb.group({
@@ -73,7 +95,10 @@ export class AddTeamMemberModal {
       },
       error: (error) => {
         console.error('Error adding member:', error);
-        this.errorMessage.set(error.error?.error?.message || 'Failed to add member');
+        this.errorMessage.set(
+          error.error?.error?.message ||
+            this.translate.instant('dashboard.addMemberModal.errors.failedToAddMember'),
+        );
         this.isSubmitting.set(false);
       },
     });
@@ -104,14 +129,17 @@ export class AddTeamMemberModal {
     if (!field) return '';
 
     if (field.hasError('required')) {
-      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required`;
+      const fieldNameKey = `dashboard.addMemberModal.fields.${fieldName}`;
+      return this.translate.instant('validation.required', {
+        fieldName: this.translate.instant(fieldNameKey),
+      });
     }
     if (field.hasError('email')) {
-      return 'Please enter a valid email address';
+      return this.translate.instant('validation.email');
     }
     if (field.hasError('minlength')) {
       const minLength = field.getError('minlength').requiredLength;
-      return `Minimum ${minLength} characters required`;
+      return this.translate.instant('validation.minLength', { min: minLength });
     }
     return '';
   }

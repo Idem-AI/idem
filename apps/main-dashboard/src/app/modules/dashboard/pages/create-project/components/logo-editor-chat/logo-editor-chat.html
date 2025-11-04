@@ -6,7 +6,7 @@
     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700/50">
       <div class="flex items-center gap-3">
         <div
-          class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center"
+          class="w-10 h-10 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center"
         >
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -18,8 +18,10 @@
           </svg>
         </div>
         <div>
-          <h2 class="text-lg font-bold text-white">Logo Editor Assistant</h2>
-          <p class="text-xs text-gray-400">AI-powered logo modifications</p>
+          <h2 class="text-lg font-bold text-white">
+            {{ 'dashboard.logoEditor.title' | translate }}
+          </h2>
+          <p class="text-xs text-gray-400">{{ 'dashboard.logoEditor.subtitle' | translate }}</p>
         </div>
       </div>
       <button
@@ -44,7 +46,7 @@
           <!-- Assistant Message -->
           <div class="flex items-start gap-3">
             <div
-              class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0"
+              class="w-8 h-8 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center shrink-0"
             >
               <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -75,9 +77,7 @@
                 <p class="text-sm text-white">{{ message.content }}</p>
               </div>
             </div>
-            <div
-              class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"
-            >
+            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
               <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fill-rule="evenodd"
@@ -117,7 +117,7 @@
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  Choose This Logo
+                  {{ 'dashboard.logoEditor.buttons.choose' | translate }}
                 </button>
               </div>
 
@@ -134,7 +134,7 @@
       @if (isEditing()) {
         <div class="flex items-center gap-3">
           <div
-            class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0"
+            class="w-8 h-8 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center shrink-0"
           >
             <svg class="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
               <circle
@@ -180,11 +180,13 @@
             [disabled]="isEditing()"
             class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
             rows="2"
-            placeholder="Describe the changes you want... (Press Enter to send)"
+            [placeholder]="'dashboard.logoEditor.placeholders.prompt' | translate"
           ></textarea>
 
           <!-- Character hint -->
-          <div class="absolute bottom-2 right-2 text-xs text-gray-600">Press Enter to send</div>
+          <div class="absolute bottom-2 right-2 text-xs text-gray-600">
+            {{ 'dashboard.logoEditor.pressEnterToSend' | translate }}
+          </div>
         </div>
 
         <button
@@ -200,40 +202,42 @@
               d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
             />
           </svg>
-          Send
+          {{ 'common.send' | translate }}
         </button>
       </div>
 
       <!-- Quick Suggestions -->
       <div class="mt-3 flex flex-wrap gap-2">
-        <span class="text-xs text-gray-500">Quick suggestions:</span>
+        <span class="text-xs text-gray-500">{{
+          'dashboard.logoEditor.quickSuggestions.title' | translate
+        }}</span>
         <button
           (click)="userPrompt.set('Make it more modern and minimalist')"
           [disabled]="isEditing()"
           class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
         >
-          More modern
+          {{ 'dashboard.logoEditor.quickSuggestions.modern' | translate }}
         </button>
         <button
           (click)="userPrompt.set('Add a gradient effect')"
           [disabled]="isEditing()"
           class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
         >
-          Add gradient
+          {{ 'dashboard.logoEditor.quickSuggestions.gradient' | translate }}
         </button>
         <button
           (click)="userPrompt.set('Simplify the design')"
           [disabled]="isEditing()"
           class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
         >
-          Simplify
+          {{ 'dashboard.logoEditor.quickSuggestions.simplify' | translate }}
         </button>
         <button
           (click)="userPrompt.set('Make it more professional')"
           [disabled]="isEditing()"
           class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
         >
-          More professional
+          {{ 'dashboard.logoEditor.quickSuggestions.professional' | translate }}
         </button>
       </div>
     </div>

@@ -5,7 +5,7 @@
   <h1
     class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-white bg-clip-text text-transparent mb-3 sm:mb-4 leading-tight"
   >
-    Hello,
+    {{ 'dashboard.projectDescription.hello' | translate }},
     <span
       class="bg-primary text-white px-2 py-1 sm:px-3 sm:py-2 text-center inline-block mt-1 sm:mt-0"
       >{{ userName() }}</span
@@ -13,10 +13,14 @@
   </h1>
 
   <!-- Subtitle -->
-  <h2 class="text-lg sm:text-xl text-gray-400 mb-6 sm:mb-8">What do you want to build ?</h2>
+  <h2 class="text-lg sm:text-xl text-gray-400 mb-6 sm:mb-8">
+    {{ 'dashboard.projectDescription.whatToBuild' | translate }}
+  </h2>
 
   <!-- Prototype Label -->
-  <p class="text-gray-400 text-sm mb-3 sm:mb-4">Tell us more about your project idea</p>
+  <p class="text-gray-400 text-sm mb-3 sm:mb-4">
+    {{ 'dashboard.projectDescription.tellUsMore' | translate }}
+  </p>
 
   <!-- Input Field -->
   <div class="w-full mb-4">
@@ -31,7 +35,7 @@
         [class.border]="!hasContent()"
         [class.border-[var(--glass-border)]]="!hasContent()"
         [class.border-primary]="hasContent()"
-        placeholder="An app that generates poems from photos"
+        [placeholder]="'dashboard.projectDescription.placeholder' | translate"
         (input)="autoResize($event)"
         (focus)="onTextareaFocus()"
         (blur)="onTextareaBlur()"
@@ -53,14 +57,16 @@
         class="flex items-center justify-center gap-2 text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 transition-colors py-1 px-2 text-xs sm:text-sm"
       >
         <i class="pi pi-sparkles text-sm"></i>
-        <span class="text-sm">Improve prompt</span>
+        <span class="text-sm">{{
+          'dashboard.projectDescription.buttons.improvePrompt' | translate
+        }}</span>
       </button>
 
       <button
         class="inner-button flex items-center justify-center gap-1 sm:gap-2 py-1 px-3 sm:py-2 sm:px-4 text-xs sm:text-sm"
         (click)="goToNextStep()"
       >
-        <span class="text-sm sm:text-base">Continue</span>
+        <span class="text-sm sm:text-base">{{ 'common.continue' | translate }}</span>
         <i class="pi pi-arrow-right text-sm"></i>
       </button>
     </div>
@@ -72,7 +78,7 @@
     <h3
       class="text-base sm:text-lg font-medium text-gray-300 mb-4 sm:mb-6 text-center sm:text-left"
     >
-      Need Inspiration?
+      {{ 'dashboard.projectDescription.needInspiration' | translate }}
     </h3>
 
     <!-- African Projects Section -->
@@ -91,7 +97,9 @@
           (click)="selectExample('I am feeling lucky - surprise me with a random project idea')"
         >
           <i class="pi pi-sparkles text-xs flex-shrink-0 text-secondary"></i>
-          <span class="truncate text-center sm:text-left">I'm Feeling Lucky</span>
+          <span class="truncate text-center sm:text-left">{{
+            'dashboard.projectDescription.buttons.feelingLucky' | translate
+          }}</span>
         </button>
       </div>
     </div>

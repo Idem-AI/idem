@@ -11,7 +11,9 @@
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="pi pi-user-plus text-primary text-2xl"></i>
-      <h2 class="text-2xl font-bold text-white">Add Team Member</h2>
+      <h2 class="text-2xl font-bold text-white">
+        {{ 'dashboard.addMemberModal.title' | translate }}
+      </h2>
     </div>
   </ng-template>
 
@@ -30,14 +32,15 @@
     <!-- Email -->
     <div class="space-y-2">
       <label for="email" class="block text-sm font-medium text-gray-300">
-        Email Address <span class="text-red-400">*</span>
+        {{ 'dashboard.addMemberModal.fields.email' | translate }}
+        <span class="text-red-400">*</span>
       </label>
       <input
         pInputText
         id="email"
         type="email"
         formControlName="email"
-        placeholder="member@example.com"
+        [placeholder]="'dashboard.addMemberModal.placeholders.email' | translate"
         class="w-full"
         [class.ng-invalid]="hasError('email', 'required') || hasError('email', 'email')"
         [class.ng-dirty]="hasError('email', 'required') || hasError('email', 'email')"
@@ -50,14 +53,15 @@
     <!-- Display Name -->
     <div class="space-y-2">
       <label for="displayName" class="block text-sm font-medium text-gray-300">
-        Display Name <span class="text-red-400">*</span>
+        {{ 'dashboard.addMemberModal.fields.displayName' | translate }}
+        <span class="text-red-400">*</span>
       </label>
       <input
         pInputText
         id="displayName"
         type="text"
         formControlName="displayName"
-        placeholder="John Doe"
+        [placeholder]="'dashboard.addMemberModal.placeholders.displayName' | translate"
         class="w-full"
         [class.ng-invalid]="
           hasError('displayName', 'required') || hasError('displayName', 'minlength')
@@ -74,7 +78,7 @@
     <!-- Role -->
     <div class="space-y-2">
       <label class="block text-sm font-medium text-gray-300">
-        Role <span class="text-red-400">*</span>
+        {{ 'dashboard.addMemberModal.fields.role' | translate }} <span class="text-red-400">*</span>
       </label>
       <div class="space-y-2">
         @for (role of roles; track role.value) {
@@ -92,8 +96,8 @@
               styleClass="mt-1"
             />
             <div class="flex-1">
-              <div class="font-medium text-white">{{ role.label }}</div>
-              <div class="text-sm text-gray-400">{{ role.description }}</div>
+              <div class="font-medium text-white">{{ role.labelKey | translate }}</div>
+              <div class="text-sm text-gray-400">{{ role.descriptionKey | translate }}</div>
             </div>
           </label>
         }
@@ -103,9 +107,9 @@
     <!-- Info Box -->
     <div class="bg-primary/10 border border-primary/30 rounded-lg p-4">
       <div class="flex gap-3">
-        <i class="pi pi-info-circle text-primary text-lg flex-shrink-0"></i>
+        <i class="pi pi-info-circle text-primary text-lg shrink-0"></i>
         <p class="text-sm text-gray-300">
-          An invitation will be sent to the member's email address.
+          {{ 'dashboard.addMemberModal.invitationInfo' | translate }}
         </p>
       </div>
     </div>
@@ -119,7 +123,7 @@
         [disabled]="isSubmitting()"
       >
         <i class="pi pi-times mr-2"></i>
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button
         type="submit"
@@ -128,10 +132,10 @@
       >
         @if (isSubmitting()) {
           <i class="pi pi-spin pi-spinner mr-2"></i>
-          Adding...
+          {{ 'common.adding' | translate }}
         } @else {
           <i class="pi pi-user-plus mr-2"></i>
-          Add Member
+          {{ 'dashboard.addMemberModal.addMemberButton' | translate }}
         }
       </button>
     </div>

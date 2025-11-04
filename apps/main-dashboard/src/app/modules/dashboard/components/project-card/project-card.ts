@@ -3,10 +3,12 @@ import { ProjectModel } from '../../models/project.model';
 import { Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { CookieService } from '../../../../shared/services/cookie.service';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-project-card',
-  imports: [DatePipe],
+  standalone: true,
+  imports: [DatePipe, TranslateModule],
   templateUrl: './project-card.html',
   styleUrl: './project-card.css',
 })

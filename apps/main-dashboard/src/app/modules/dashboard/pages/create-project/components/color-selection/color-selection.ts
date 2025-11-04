@@ -8,6 +8,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../../../../../auth/services/auth.service';
 import { LoginCardComponent } from '../../../../../auth/components/login-card/login-card';
 import { DialogModule } from 'primeng/dialog';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ColorCustomizerComponent } from '../color-customizer/color-customizer.component';
 
 @Component({
@@ -19,6 +20,7 @@ import { ColorCustomizerComponent } from '../color-customizer/color-customizer.c
     DialogModule,
     LoginCardComponent,
     ColorCustomizerComponent,
+    TranslateModule,
   ],
   templateUrl: './color-selection.html',
   styleUrl: './color-selection.css',
@@ -28,6 +30,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   private readonly brandingService = inject(BrandingService);
   private readonly authService = inject(AuthService);
   private readonly destroy$ = new Subject<void>();
+  private readonly translate = inject(TranslateService);
 
   // Inputs
   readonly project = input.required<ProjectModel>();
@@ -140,13 +143,15 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Error generating colors and typography:', error);
-            this.error.set('Failed to generate color palettes. Please try again.');
+            this.error.set(
+              this.translate.instant('dashboard.colorSelection.errors.generationFailed'),
+            );
             this.isGenerating.set(false);
           },
         });
     } catch (error) {
       console.error('Error in color generation:', error);
-      this.error.set('Failed to generate color palettes. Please try again.');
+      this.error.set(this.translate.instant('dashboard.colorSelection.errors.generationFailed'));
       this.isGenerating.set(false);
     }
   }

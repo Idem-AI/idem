@@ -1,4 +1,5 @@
 import { Component, output, signal, computed, inject } from '@angular/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LogoType, LogoPreferencesModel } from '../../../../models/logo.model';
@@ -6,7 +7,7 @@ import { LogoType, LogoPreferencesModel } from '../../../../models/logo.model';
 @Component({
   selector: 'app-logo-preferences',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslateModule],
   templateUrl: './logo-preferences.html',
   styleUrl: './logo-preferences.css',
 })
@@ -35,21 +36,21 @@ export class LogoPreferences {
   protected readonly logoTypes = [
     {
       type: 'icon' as LogoType,
-      title: 'Icon Based',
-      description: 'An easy to remember shape in the center of your logo design',
-      example: 'Apple, Nike, Twitter',
+      titleKey: 'dashboard.logoPreferences.types.icon.title',
+      descriptionKey: 'dashboard.logoPreferences.types.icon.description',
+      exampleKey: 'dashboard.logoPreferences.types.icon.example',
     },
     {
       type: 'name' as LogoType,
-      title: 'Name Based',
-      description: 'Your company name as a key element of your logo design',
-      example: 'Coca-Cola, Google, FedEx',
+      titleKey: 'dashboard.logoPreferences.types.name.title',
+      descriptionKey: 'dashboard.logoPreferences.types.name.description',
+      exampleKey: 'dashboard.logoPreferences.types.name.example',
     },
     {
       type: 'initial' as LogoType,
-      title: 'Initial Based',
-      description: 'Initials as the main element of your logo design',
-      example: 'IBM, HP, CNN',
+      titleKey: 'dashboard.logoPreferences.types.initial.title',
+      descriptionKey: 'dashboard.logoPreferences.types.initial.description',
+      exampleKey: 'dashboard.logoPreferences.types.initial.example',
     },
   ];
 

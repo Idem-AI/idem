@@ -17,6 +17,7 @@ import { CarouselComponent } from '../../../../../../shared/components/carousel/
 
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 interface DisplayVariation {
   id: string;
@@ -32,7 +33,7 @@ interface DisplayVariation {
 @Component({
   selector: 'app-logo-variations',
   standalone: true,
-  imports: [CommonModule, FormsModule, SafeHtmlPipe, CarouselComponent],
+  imports: [CommonModule, FormsModule, SafeHtmlPipe, CarouselComponent, TranslateModule],
   templateUrl: './logo-variations.html',
   styleUrl: './logo-variations.css',
 })
@@ -40,6 +41,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   // Services
   private readonly brandingService = inject(BrandingService);
   private readonly destroy$ = new Subject<void>();
+  private readonly translate = inject(TranslateService);
 
   // Inputs
   readonly selectedLogo = input.required<LogoModel>();
@@ -109,7 +111,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
 
     this.hasStartedGeneration.set(true);
     this.isGenerating.set(true);
-    this.currentStep.set('Initializing logo variation generation...');
+    this.currentStep.set(this.translate.instant('dashboard.logoVariations.progress.initializing'));
     this.generationProgress.set(0);
     this.error.set(null);
 
@@ -136,11 +138,13 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 id: 'withText-lightBackground',
                 type: 'withText',
                 background: 'lightBackground',
-                label: 'Avec Texte - Fond Clair',
+                label: this.translate.instant('dashboard.logoVariations.labels.withTextLight'),
                 svgContent: withText.lightBackground,
-                description: 'Logo complet optimisé pour les arrière-plans clairs',
+                description: this.translate.instant(
+                  'dashboard.logoVariations.descriptions.withTextLight',
+                ),
                 backgroundColor: '#ffffff',
-                category: 'Avec Texte',
+                category: this.translate.instant('dashboard.logoVariations.categories.withText'),
               });
             }
 
@@ -149,11 +153,13 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 id: 'withText-darkBackground',
                 type: 'withText',
                 background: 'darkBackground',
-                label: 'Avec Texte - Fond Sombre',
+                label: this.translate.instant('dashboard.logoVariations.labels.withTextDark'),
                 svgContent: withText.darkBackground,
-                description: 'Logo complet optimisé pour les arrière-plans sombres',
+                description: this.translate.instant(
+                  'dashboard.logoVariations.descriptions.withTextDark',
+                ),
                 backgroundColor: '#1f2937',
-                category: 'Avec Texte',
+                category: this.translate.instant('dashboard.logoVariations.categories.withText'),
               });
             }
 
@@ -162,11 +168,13 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 id: 'withText-monochrome',
                 type: 'withText',
                 background: 'monochrome',
-                label: 'Avec Texte - Monochrome',
+                label: this.translate.instant('dashboard.logoVariations.labels.withTextMonochrome'),
                 svgContent: withText.monochrome,
-                description: 'Logo complet en version monochrome',
+                description: this.translate.instant(
+                  'dashboard.logoVariations.descriptions.withTextMonochrome',
+                ),
                 backgroundColor: '#f3f4f6',
-                category: 'Avec Texte',
+                category: this.translate.instant('dashboard.logoVariations.categories.withText'),
               });
             }
           }
@@ -180,11 +188,13 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 id: 'iconOnly-lightBackground',
                 type: 'iconOnly',
                 background: 'lightBackground',
-                label: 'Icône Seule - Fond Clair',
+                label: this.translate.instant('dashboard.logoVariations.labels.iconOnlyLight'),
                 svgContent: iconOnly.lightBackground,
-                description: 'Icône seule optimisée pour les arrière-plans clairs',
+                description: this.translate.instant(
+                  'dashboard.logoVariations.descriptions.iconOnlyLight',
+                ),
                 backgroundColor: '#ffffff',
-                category: 'Icône Seule',
+                category: this.translate.instant('dashboard.logoVariations.categories.iconOnly'),
               });
             }
 
@@ -193,11 +203,13 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 id: 'iconOnly-darkBackground',
                 type: 'iconOnly',
                 background: 'darkBackground',
-                label: 'Icône Seule - Fond Sombre',
+                label: this.translate.instant('dashboard.logoVariations.labels.iconOnlyDark'),
                 svgContent: iconOnly.darkBackground,
-                description: 'Icône seule optimisée pour les arrière-plans sombres',
+                description: this.translate.instant(
+                  'dashboard.logoVariations.descriptions.iconOnlyDark',
+                ),
                 backgroundColor: '#1f2937',
-                category: 'Icône Seule',
+                category: this.translate.instant('dashboard.logoVariations.categories.iconOnly'),
               });
             }
 
@@ -206,11 +218,13 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
                 id: 'iconOnly-monochrome',
                 type: 'iconOnly',
                 background: 'monochrome',
-                label: 'Icône Seule - Monochrome',
+                label: this.translate.instant('dashboard.logoVariations.labels.iconOnlyMonochrome'),
                 svgContent: iconOnly.monochrome,
-                description: 'Icône seule en version monochrome',
+                description: this.translate.instant(
+                  'dashboard.logoVariations.descriptions.iconOnlyMonochrome',
+                ),
                 backgroundColor: '#f3f4f6',
-                category: 'Icône Seule',
+                category: this.translate.instant('dashboard.logoVariations.categories.iconOnly'),
               });
             }
           }
@@ -222,14 +236,18 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
           // Update generation state
           this.isGenerating.set(false);
           this.generationProgress.set(100);
-          this.currentStep.set('Generation completed!');
+          this.currentStep.set(
+            this.translate.instant('dashboard.logoVariations.progress.completed'),
+          );
 
           // Auto-select all variations by default
           this.selectedVariations.set(variations.map((v) => v.id));
         },
         error: (error) => {
           console.error('Error in logo variation generation:', error);
-          this.error.set('Failed to generate logo variations. Please try again.');
+          this.error.set(
+            this.translate.instant('dashboard.logoVariations.errors.generationFailed'),
+          );
           this.isGenerating.set(false);
         },
       });
@@ -252,11 +270,11 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   }
 
   protected getVariationsByCategory(category: string): DisplayVariation[] {
-    const categoryMap = {
-      'Avec Texte': 'withText',
-      'Icône Seule': 'iconOnly',
+    const categoryMap: { [key: string]: 'withText' | 'iconOnly' } = {
+      [this.translate.instant('dashboard.logoVariations.categories.withText')]: 'withText',
+      [this.translate.instant('dashboard.logoVariations.categories.iconOnly')]: 'iconOnly',
     };
-    const mappedCategory = categoryMap[category as keyof typeof categoryMap];
+    const mappedCategory = categoryMap[category];
     return this.generatedVariations().filter((v) => v.type === mappedCategory);
   }
 
@@ -329,12 +347,30 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
 
   private simulateProgress(): void {
     const steps = [
-      { progress: 15, step: 'Analyzing selected logo design...' },
-      { progress: 35, step: 'Generating light background variation...' },
-      { progress: 55, step: 'Creating dark background version...' },
-      { progress: 75, step: 'Producing monochrome variant...' },
-      { progress: 90, step: 'Optimizing SVG outputs...' },
-      { progress: 95, step: 'Finalizing variations...' },
+      {
+        progress: 15,
+        step: this.translate.instant('dashboard.logoVariations.progress.analyzing'),
+      },
+      {
+        progress: 35,
+        step: this.translate.instant('dashboard.logoVariations.progress.generatingLight'),
+      },
+      {
+        progress: 55,
+        step: this.translate.instant('dashboard.logoVariations.progress.generatingDark'),
+      },
+      {
+        progress: 75,
+        step: this.translate.instant('dashboard.logoVariations.progress.generatingMonochrome'),
+      },
+      {
+        progress: 90,
+        step: this.translate.instant('dashboard.logoVariations.progress.optimizing'),
+      },
+      {
+        progress: 95,
+        step: this.translate.instant('dashboard.logoVariations.progress.finalizing'),
+      },
     ];
 
     let currentStepIndex = 0;

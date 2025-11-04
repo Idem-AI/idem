@@ -4,9 +4,11 @@
     <div class="w-full max-h-[50vh] sm:max-h-[74vh] max-w-6xl mx-auto">
       <div class="text-center mb-4 sm:mb-8">
         <h1 class="text-2xl sm:text-4xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
-          Choose Logo Type
+          {{ 'dashboard.logoPreferences.steps.type.title' | translate }}
         </h1>
-        <p class="text-sm sm:text-lg lg:text-xl text-gray-300">Select one logo type</p>
+        <p class="text-sm sm:text-lg lg:text-xl text-gray-300">
+          {{ 'dashboard.logoPreferences.steps.type.subtitle' | translate }}
+        </p>
       </div>
 
       <div class="grid grid-cols-3 gap-2 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
@@ -68,15 +70,15 @@
               </div>
 
               <h3 class="text-xs sm:text-base lg:text-xl font-bold text-white mb-1 sm:mb-2">
-                {{ option.title }}
+                {{ option.titleKey | translate }}
               </h3>
               <p
                 class="text-[10px] sm:text-xs lg:text-sm text-gray-400 mb-1 sm:mb-2 leading-tight hidden sm:block"
               >
-                {{ option.description }}
+                {{ option.descriptionKey | translate }}
               </p>
               <p class="text-[9px] sm:text-xs text-gray-500 italic hidden lg:block">
-                {{ option.example }}
+                {{ option.exampleKey | translate }}
               </p>
 
               @if (selectedType() === option.type) {
@@ -105,7 +107,7 @@
           [disabled]="!canProceed()"
           class="inner-button px-6 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
         >
-          Continue
+          {{ 'common.continue' | translate }}
         </button>
       </div>
     </div>
@@ -116,10 +118,10 @@
     <div class="w-full max-w-6xl mx-auto">
       <div class="text-center mb-4 sm:mb-8">
         <h1 class="text-xl sm:text-3xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
-          How to create your logo?
+          {{ 'dashboard.logoPreferences.steps.mode.title' | translate }}
         </h1>
         <p class="text-xs sm:text-base lg:text-xl text-gray-300">
-          AI generation or custom description
+          {{ 'dashboard.logoPreferences.steps.mode.subtitle' | translate }}
         </p>
       </div>
 
@@ -149,12 +151,12 @@
               </svg>
             </div>
             <h3 class="text-base sm:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 lg:mb-4">
-              AI Generation
+              {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
             </h3>
             <p
               class="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-tight sm:leading-relaxed"
             >
-              AI creates unique logos based on your brand
+              {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
             </p>
 
             @if (generationMode() === 'ai') {
@@ -200,12 +202,12 @@
               </svg>
             </div>
             <h3 class="text-base sm:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 lg:mb-4">
-              Custom Description
+              {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
             </h3>
             <p
               class="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-tight sm:leading-relaxed"
             >
-              Describe exactly how you want your logo
+              {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
             </p>
 
             @if (generationMode() === 'custom') {
@@ -232,14 +234,14 @@
           (click)="goBack()"
           class="outer-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
         >
-          Back
+          {{ 'common.back' | translate }}
         </button>
         <button
           (click)="goToDescription()"
           [disabled]="!canProceed()"
           class="inner-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
         >
-          Continue
+          {{ 'common.continue' | translate }}
         </button>
       </div>
     </div>
@@ -250,26 +252,29 @@
     <div class="w-full sm:max-w-5xl mx-auto">
       <div class="text-center mb-3 sm:mb-6">
         <h1 class="text-xl sm:text-3xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
-          Describe Your Logo
+          {{ 'dashboard.logoPreferences.steps.description.title' | translate }}
         </h1>
-        <p class="text-xs sm:text-base lg:text-xl text-gray-300">Tell us what you want</p>
+        <p class="text-xs sm:text-base lg:text-xl text-gray-300">
+          {{ 'dashboard.logoPreferences.steps.description.subtitle' | translate }}
+        </p>
       </div>
 
       <div class="glass-card p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6">
         <label
           class="block text-white font-bold text-sm sm:text-lg lg:text-xl mb-2 sm:mb-3 text-left"
         >
-          Logo Description
+          {{ 'dashboard.logoPreferences.fields.description.label' | translate }}
         </label>
         <textarea
           [value]="customDescription()"
           (input)="updateDescription($event)"
           class="input w-full h-32 sm:h-48 lg:h-64 resize-none text-xs sm:text-base lg:text-lg"
-          placeholder="Example: Minimalist logo with a mountain peak, blue and white colors, adventure and trust..."
+          [placeholder]="'dashboard.logoPreferences.fields.description.placeholder' | translate"
         ></textarea>
         <div class="text-right mt-2">
           <span class="text-xs sm:text-sm lg:text-base text-gray-400">
-            {{ customDescription().length }} characters (min 10)
+            {{ customDescription().length }}
+            {{ 'dashboard.logoPreferences.fields.description.charCount' | translate }}
           </span>
         </div>
       </div>
@@ -279,14 +284,14 @@
           (click)="goBack()"
           class="outer-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
         >
-          Back
+          {{ 'common.back' | translate }}
         </button>
         <button
           (click)="completePreferences()"
           [disabled]="!canProceed()"
           class="inner-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
         >
-          Generate Logos
+          {{ 'dashboard.logoPreferences.buttons.generate' | translate }}
         </button>
       </div>
     </div>
