@@ -223,39 +223,58 @@ console.log('📝 Creating English (en) files:');
 const mappedEn = mapKeysToComponents(messages.translations);
 writeComponentFiles('en', mappedEn);
 
-// Create French templates (empty translations)
-console.log('\n📝 Creating French (fr) template files:');
-const mappedFr = JSON.parse(JSON.stringify(mappedEn)); // Deep clone
+// Load existing French translations or use English as base
+console.log('\n📝 Creating French (fr) files:');
 
-// Empty all translations for French
-function emptyTranslations(obj) {
-  if (obj.translations) {
-    Object.keys(obj.translations).forEach((key) => {
-      obj.translations[key] = '';
-    });
+// Try to load existing messages.fr.json
+let existingFrTranslations = {};
+const frMessagesPath = path.join(__dirname, '../src/locale/messages.fr.json');
+if (fs.existsSync(frMessagesPath)) {
+  try {
+    const frMessages = JSON.parse(fs.readFileSync(frMessagesPath, 'utf8'));
+    existingFrTranslations = frMessages.translations || {};
+    console.log(
+      `✅ Loaded ${Object.keys(existingFrTranslations).length} existing French translations`,
+    );
+  } catch (error) {
+    console.warn('⚠️  Could not load messages.fr.json, using English as base');
   }
-  return obj;
 }
 
-// Empty French translations
+// Create French mapped structure
+const mappedFr = JSON.parse(JSON.stringify(mappedEn)); // Deep clone structure
+
+// Function to merge existing French translations with English structure
+function mergeFrenchTranslations(translations, existingFr) {
+  const merged = {};
+  Object.keys(translations).forEach((key) => {
+    // Use existing French translation if available, otherwise use English value
+    merged[key] =
+      existingFr[key] !== undefined && existingFr[key] !== '' ? existingFr[key] : translations[key];
+  });
+  return merged;
+}
+
+// Merge French translations for all sections
 Object.keys(mappedFr.components).forEach((comp) => {
-  Object.keys(mappedFr.components[comp]).forEach((key) => {
-    mappedFr.components[comp][key] = '';
-  });
+  mappedFr.components[comp] = mergeFrenchTranslations(
+    mappedFr.components[comp],
+    existingFrTranslations,
+  );
 });
+
 Object.keys(mappedFr.pages).forEach((page) => {
-  Object.keys(mappedFr.pages[page]).forEach((key) => {
-    mappedFr.pages[page][key] = '';
-  });
+  mappedFr.pages[page] = mergeFrenchTranslations(mappedFr.pages[page], existingFrTranslations);
 });
+
 Object.keys(mappedFr.shared.components).forEach((comp) => {
-  Object.keys(mappedFr.shared.components[comp]).forEach((key) => {
-    mappedFr.shared.components[comp][key] = '';
-  });
+  mappedFr.shared.components[comp] = mergeFrenchTranslations(
+    mappedFr.shared.components[comp],
+    existingFrTranslations,
+  );
 });
-Object.keys(mappedFr.common).forEach((key) => {
-  mappedFr.common[key] = '';
-});
+
+mappedFr.common = mergeFrenchTranslations(mappedFr.common, existingFrTranslations);
 
 writeComponentFiles('fr', mappedFr);
 

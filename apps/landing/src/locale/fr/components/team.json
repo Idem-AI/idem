@@ -1,14 +1,14 @@
 {
   "locale": "fr",
   "translations": {
-    "team.meet_the_cameroonian": "",
-    "team.description": "",
-    "team.arolle_aguekeng": "",
-    "team.arolle.title": "",
-    "team.arolle.description": "",
-    "team.cameroon": "",
-    "team.romuald_djeteje": "",
-    "team.romuald.title": "",
-    "team.romuald.description": ""
+    "team.meet_the_cameroonian": " Meet the Cameroonian Founders ",
+    "team.description": " Two Cameroonian entrepreneurs combining technical excellence and strategic vision to build Africa's first sovereign AI platform ",
+    "team.arolle_aguekeng": " Arolle Aguekeng ",
+    "team.arolle.title": " CEO & Co-Founder ",
+    "team.arolle.description": " Senior Software Engineer and entrepreneur behind IDEM's vision. Brings strategic vision and deep understanding of African entrepreneurial ecosystems. ",
+    "team.cameroon": "🇨🇲 Cameroon",
+    "team.romuald_djeteje": " Romuald Djeteje ",
+    "team.romuald.title": " CTO & Co-Founder ",
+    "team.romuald.description": " DevSecOps Engineer with expertise in security, cloud architecture, and automation. Ensures IDEM's technical excellence, scalability, and data security. "
   }
 }
