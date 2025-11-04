@@ -11,11 +11,14 @@
     "serve:ssr:landing": "node dist/landing/server/server.mjs",
     "i18n:extract": "ng extract-i18n",
     "i18n:extract:json": "ng extract-i18n --format=json --output-path=src/locale",
+    "i18n:organize": "node scripts/organize-i18n-by-components.js",
+    "i18n:merge": "node scripts/merge-i18n-components.js",
+    "i18n:workflow": "npm run i18n:extract:json && npm run i18n:organize",
     "start:fr": "ng serve --configuration=fr --host 0.0.0.0 --port 4201",
     "start:en": "ng serve --configuration=en --host 0.0.0.0 --port 4201",
     "build:fr": "ng build --configuration=production-fr",
     "build:en": "ng build --configuration=production-en",
-    "build:all-locales": "npm run build:en && npm run build:fr"
+    "build:all-locales": "npm run i18n:merge && npm run build:en && npm run build:fr"
   },
   "prettier": {
     "printWidth": 100,
