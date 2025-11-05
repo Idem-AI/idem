@@ -837,6 +837,164 @@
       "title": "Terraform Configuration",
       "subtitle": "Edit your Terraform variables file directly in the application. Changes can be downloaded or saved to your deployment."
     },
+    "createDeployment": {
+      "title": "Create Deployment",
+      "subtitle": "Deploy your application to the cloud",
+      "modes": {
+        "beginner": "Quick Deployment",
+        "ai-assistant": "AI-Assisted Deployment",
+        "template": "Template-Based Deployment",
+        "expert": "Expert Mode"
+      }
+    },
+    "deploymentList": {
+      "title": "Deployments",
+      "subtitle": "Manage your application deployments",
+      "loading": "Loading deployments...",
+      "buttons": {
+        "new": "New Deployment",
+        "create": "Create First Deployment"
+      },
+      "empty": {
+        "title": "No Deployments Yet",
+        "subtitle": "Create your first deployment to get started with cloud hosting"
+      },
+      "table": {
+        "name": "Name",
+        "environment": "Environment",
+        "status": "Status",
+        "version": "Version",
+        "url": "URL",
+        "created": "Created",
+        "lastUpdated": "Last Updated",
+        "actions": "Actions"
+      },
+      "actions": {
+        "viewDetails": "View Details",
+        "viewLogs": "View Logs",
+        "redeploy": "Redeploy"
+      }
+    },
+    "createDevelopment": {
+      "title": "Development Configuration",
+      "subtitle": "Configure your application development settings",
+      "errors": {
+        "submissionTitle": "There were errors with your submission"
+      },
+      "modeSelection": {
+        "title": "Choose Your Development Mode",
+        "subtitle": "Select how you want to configure your application",
+        "quick": {
+          "title": "Quick",
+          "subtitle": "Pre-configured setup with React, Express.js, and Supabase",
+          "features": {
+            "react": "React",
+            "express": "Express.js"
+          }
+        },
+        "advanced": {
+          "title": "Advanced",
+          "subtitle": "Full control over all technology choices and settings",
+          "features": {
+            "custom": "Custom",
+            "fullControl": "Full Control"
+          }
+        }
+      },
+      "generationType": {
+        "title": "What do you want to generate?",
+        "subtitle": "Choose the type of application you want to create",
+        "landing": {
+          "title": "Landing",
+          "subtitle": "A beautiful standalone marketing website to showcase your product or service",
+          "badge": "Marketing"
+        },
+        "app": {
+          "title": "Web App",
+          "subtitle": "A full-featured web application with user authentication and database",
+          "badge": "App"
+        },
+        "integrated": {
+          "title": "Integrated",
+          "subtitle": "Landing page integrated within the web application for seamless user experience",
+          "badge": "Unified"
+        },
+        "both": {
+          "title": "Complete",
+          "subtitle": "Separate landing page + web application for maximum flexibility and scalability",
+          "badge": "Full Stack"
+        }
+      },
+      "configuration": {
+        "title": "Configuration Summary",
+        "subtitle": "Review your quick generation settings",
+        "generationType": "Generation Type",
+        "techStack": "Technology Stack",
+        "features": {
+          "react": "React Frontend",
+          "express": "Express.js Backend",
+          "supabase": "Supabase Database"
+        },
+        "buttons": {
+          "generate": "Generate Application",
+          "save": "Save configs"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Configuration",
+        "subtitle": "Configure all aspects of your application",
+        "tabs": {
+          "frontend": "Frontend",
+          "backend": "Backend",
+          "database": "Database",
+          "deployment": "Deployment"
+        }
+      }
+    },
+    "showDevelopment": {
+      "title": "Configuration Ready",
+      "subtitle": "Your tech stack is configured. Launch the generation to create your full application.",
+      "buttons": {
+        "generate": "Generate Application",
+        "preview": "Preview",
+        "export": "Export Config",
+        "edit": "Edit Config"
+      },
+      "sections": {
+        "frontend": "Frontend",
+        "backend": "Backend",
+        "database": "Database",
+        "projectConfig": "Project Configuration",
+        "constraints": "Constraints"
+      },
+      "techStack": {
+        "styling": "Styling",
+        "stateManagement": "State Management",
+        "features": "Features",
+        "orm": "ORM",
+        "noFeatures": "No features configured"
+      },
+      "projectFeatures": {
+        "seo": "SEO",
+        "contactForm": "Contact Form",
+        "analytics": "Analytics",
+        "i18n": "i18n",
+        "performance": "Performance",
+        "authentication": "Authentication",
+        "authorization": "Authorization",
+        "uiTheme": "UI Theme",
+        "payment": "Payment",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "optimized": "Optimized",
+        "standard": "Standard",
+        "integrated": "Integrated",
+        "notIntegrated": "Not Integrated",
+        "modern": "Modern"
+      },
+      "customOptions": "Custom Options",
+      "technicalDetails": "Technical Details"
+    },
     "globalDashboard": {
       "title": "Dashboard",
       "tabs": {
