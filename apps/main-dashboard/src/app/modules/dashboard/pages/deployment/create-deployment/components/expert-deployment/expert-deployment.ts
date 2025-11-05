@@ -120,6 +120,10 @@ export class ExpertDeployment {
     this.deploymentNameDialogVisible.set(true);
   }
 
+  protected onCancel(): void {
+    this.deploymentNameDialogVisible.set(false);
+  }
+
   protected submitDeployment(): void {
     if (this.deploymentConfigForm.invalid) {
       // Mark form controls as touched to show validation errors
@@ -252,7 +256,7 @@ export class ExpertDeployment {
     const term = this.expertSearchTerm().toLowerCase();
 
     const filteredComponents = ALL_COMPONENTS_LIST.filter(
-      (c) =>
+      (c: CloudComponentDetailed) =>
         c.provider === provider &&
         (c.name.toLowerCase().includes(term) ||
           c.description.toLowerCase().includes(term) ||
@@ -260,7 +264,7 @@ export class ExpertDeployment {
     );
 
     return filteredComponents.reduce(
-      (acc, comp) => {
+      (acc: { [cat: string]: CloudComponentDetailed[] }, comp: CloudComponentDetailed) => {
         (acc[comp.category] = acc[comp.category] || []).push(comp);
         return acc;
       },

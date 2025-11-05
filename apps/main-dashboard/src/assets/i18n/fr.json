@@ -41,7 +41,8 @@
     "noContent": "Aucun contenu disponible",
     "understood": "Compris",
     "page": "Page",
-    "of": "sur"
+    "of": "sur",
+    "changeLanguage": "Changer de langue"
   },
   "validation": {
     "required": "{{fieldName}} est requis",

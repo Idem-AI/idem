@@ -41,7 +41,8 @@
     "noContent": "No content available",
     "understood": "Understood",
     "page": "Page",
-    "of": "of"
+    "of": "of",
+    "changeLanguage": "Change language"
   },
   "validation": {
     "required": "{{fieldName}} is required",

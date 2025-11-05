@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
 import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { BetaBadgeComponent } from '../../shared/components/beta-badge/beta-badge';
+import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 import { QuotaDisplayComponent } from '../../shared/components/quota-display/quota-display';
 import { AuthService } from '../../modules/auth/services/auth.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -17,7 +18,14 @@ import {
 @Component({
   selector: 'app-empty-layout',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, RouterLink, BetaBadgeComponent, QuotaDisplayComponent],
+  imports: [
+    RouterOutlet,
+    CommonModule,
+    RouterLink,
+    BetaBadgeComponent,
+    QuotaDisplayComponent,
+    LanguageSelectorComponent,
+  ],
   templateUrl: './empty-layout.html',
   styleUrl: './empty-layout.css',
 })

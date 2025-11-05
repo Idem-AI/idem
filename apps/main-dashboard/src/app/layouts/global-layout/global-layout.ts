@@ -2,11 +2,12 @@ import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarGlobal } from '../../modules/dashboard/components/sidebar-global/sidebar-global';
+import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 
 @Component({
   selector: 'app-global-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarGlobal, CommonModule],
+  imports: [RouterOutlet, SidebarGlobal, CommonModule, LanguageSelectorComponent],
   templateUrl: './global-layout.html',
   styleUrl: './global-layout.css',
 })
