@@ -1,0 +1,22 @@
+{
+  "quick": {
+    "title": "Quick Deployment",
+    "description": "The simplest way: a repository link, a branch, and you're done.",
+    "button": "Quick Launch"
+  },
+  "ai": {
+    "title": "AI Assistant",
+    "description": "Describe your infrastructure needs in natural language.",
+    "button": "Start Chat"
+  },
+  "templates": {
+    "title": "Architecture Templates",
+    "description": "Start with proven, production-ready architectures.",
+    "button": "Browse Templates"
+  },
+  "expert": {
+    "title": "Expert Mode",
+    "description": "Build your custom architecture with full control.",
+    "button": "Build Architecture"
+  }
+}

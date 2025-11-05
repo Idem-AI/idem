@@ -1,72 +1,5 @@
 {
-  "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "create": "Create",
-    "back": "Back",
-    "next": "Next",
-    "previous": "Previous",
-    "loading": "Loading...",
-    "search": "Search",
-    "filter": "Filter",
-    "export": "Export",
-    "import": "Import",
-    "refresh": "Refresh",
-    "adding": "Adding...",
-    "optional": "Optional",
-    "creating": "Creating...",
-    "completed": "Completed",
-    "ready": "Ready",
-    "submitting": "Submitting...",
-    "saving": "Saving...",
-    "deploying": "Deploying...",
-    "oops": "Oops!",
-    "complete": "Complete",
-    "progress": "Progress",
-    "retry": "Retry",
-    "selected": "Selected",
-    "notAvailable": "N/A",
-    "noDescription": "No description",
-    "error": "Error",
-    "notSpecified": "Not specified",
-    "uploading": "Uploading...",
-    "downloading": "Downloading...",
-    "download": "Download",
-    "send": "Send",
-    "pdf": "PDF",
-    "inProgress": "In Progress...",
-    "generating": "Generating...",
-    "noContent": "No content available",
-    "understood": "Understood",
-    "page": "Page",
-    "of": "of",
-    "changeLanguage": "Change language"
-  },
-  "validation": {
-    "required": "{{fieldName}} is required",
-    "email": "Please enter a valid email address",
-    "minLength": "Minimum {{min}} characters required",
-    "maxLength": "Maximum {{max}} characters allowed",
-    "selectAtLeastOneRole": "Please select at least one role",
-    "teamNameMinLength": "Team name must be at least {{min}} characters",
-    "deploymentName": "Deployment name is required (minimum {{min}} characters)",
-    "invalid": "Invalid field"
-  },
-  "navigation": {
-    "dashboard": "Dashboard",
-    "projects": "Projects",
-    "teams": "Teams",
-    "profile": "Profile",
-    "settings": "Settings",
-    "logout": "Logout"
-  },
   "dashboard": {
-    "welcome": "Welcome to your dashboard",
-    "overview": "Overview",
-    "recentActivity": "Recent Activity",
-    "statistics": "Statistics",
     "addMemberModal": {
       "title": "Add Team Member",
       "fields": {
@@ -192,6 +125,50 @@
       "poweredBy": "Powered by",
       "mobile": {
         "navigation": "Navigation"
+      }
+    },
+    "addTeamToProject": {
+      "backToProjectTeams": "Back to Project Teams",
+      "title": "Add Team to Project",
+      "subtitle": "Select a team and assign roles for this project",
+      "selectTeam": "Select Team",
+      "assignRoles": "Assign Project Roles",
+      "assignRolesDescription": "Select one or more roles for",
+      "inThisProject": "in this project",
+      "noTeamsYet": "You don't have any teams yet",
+      "createTeamButton": "Create Team",
+      "members": "members",
+      "selectAtLeastOneRole": "Please select at least one role",
+      "cancel": "Cancel",
+      "addingTeam": "Adding Team...",
+      "addTeamToProject": "Add Team to Project",
+      "loading": "Loading...",
+      "error": "Error",
+      "roles": {
+        "project-owner": {
+          "label": "Project Owner",
+          "description": "Full control over the project"
+        },
+        "project-admin": {
+          "label": "Project Admin",
+          "description": "Manage project settings and members"
+        },
+        "developer": {
+          "label": "Developer",
+          "description": "Write and review code"
+        },
+        "designer": {
+          "label": "Designer",
+          "description": "Create and manage designs"
+        },
+        "viewer": {
+          "label": "Viewer",
+          "description": "View project content only"
+        },
+        "contributor": {
+          "label": "Contributor",
+          "description": "Contribute to project tasks"
+        }
       }
     },
     "colorCustomizer": {
@@ -597,6 +574,71 @@
         "failedToCreate": "Failed to create team"
       }
     },
+    "dashboard": {
+      "loading": "Loading your dashboard...",
+      "hero": {
+        "activeProject": "Active Project",
+        "defaultDescription": "Transform your ideas into reality with our comprehensive project management tools",
+        "stats": {
+          "created": "Created",
+          "team": "Team",
+          "scope": "Scope"
+        }
+      },
+      "milestones": {
+        "brandIdentity": "Brand Identity",
+        "businessPlan": "Business Plan",
+        "systemDesign": "System Design",
+        "development": "Development",
+        "launch": "Launch"
+      },
+      "journey": {
+        "yourPath": "Your Path",
+        "title": "Project Journey",
+        "subtitle": "{{completed}} of {{total}} steps completed"
+      },
+      "steps": {
+        "brand": {
+          "title": "Brand Identity",
+          "description": "Define your brand's visual identity, colors, and typography",
+          "alt": "Brand Identity"
+        },
+        "business": {
+          "title": "Business Plan",
+          "description": "Create a comprehensive business strategy and roadmap",
+          "alt": "Business Plan"
+        },
+        "design": {
+          "title": "System Design",
+          "description": "Design your system architecture and technical specifications",
+          "alt": "System Design"
+        },
+        "development": {
+          "title": "Development",
+          "description": "Build and implement your project with modern technologies",
+          "alt": "Development"
+        },
+        "launch": {
+          "title": "Launch & Deploy",
+          "description": "Deploy your project and make it live for the world",
+          "alt": "Launch"
+        },
+        "comingUp": "Coming Up",
+        "almostThere": "Almost There",
+        "finalStep": "Final Step"
+      },
+      "info": {
+        "created": "Created",
+        "team": "Team",
+        "scope": "Scope",
+        "lastUpdate": "Last Update"
+      },
+      "empty": {
+        "title": "No Active Project",
+        "description": "Select a project to get started with your journey",
+        "goToProjects": "Go to Projects"
+      }
+    },
     "aiAssistant": {
       "initialGreeting": "Hello! I'm your AI assistant. Describe the infrastructure you'd like to deploy.",
       "architectureAccepted": "Great! The architecture has been accepted. Now let me check if any sensitive variables are needed for this deployment...",
@@ -794,6 +836,175 @@
     "terraformFiles": {
       "title": "Terraform Configuration",
       "subtitle": "Edit your Terraform variables file directly in the application. Changes can be downloaded or saved to your deployment."
+    },
+    "globalDashboard": {
+      "title": "Dashboard",
+      "tabs": {
+        "projects": "Projects",
+        "teams": "Teams"
+      },
+      "sections": {
+        "recentProjects": "Recent Projects",
+        "allProjects": "All Projects",
+        "recentTeams": "Recent Teams",
+        "allTeams": "All Teams"
+      },
+      "cards": {
+        "createProject": {
+          "title": "Create New Project",
+          "subtitle": "Start building something amazing"
+        },
+        "createTeam": {
+          "title": "Create New Team",
+          "subtitle": "Build your dream team"
+        }
+      },
+      "empty": {
+        "noProjects": "No projects yet",
+        "noTeams": "No teams yet",
+        "noDescription": "No description"
+      },
+      "buttons": {
+        "createProject": "Create your first project",
+        "createTeam": "Create your first team"
+      },
+      "members": "members"
+    },
+    "myTeams": {
+      "title": "My Teams",
+      "subtitle": "Manage and collaborate with your teams",
+      "buttons": {
+        "create": "Create Team",
+        "createNew": "Create New Team"
+      },
+      "sections": {
+        "recent": "Recent Teams",
+        "all": "All Teams"
+      },
+      "cards": {
+        "create": {
+          "title": "Create your first team"
+        }
+      },
+      "empty": {
+        "noTeams": "You don't have any teams yet. Create one to get started!"
+      },
+      "members": "members"
+    },
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Manage your account settings and preferences",
+      "alt": {
+        "profilePicture": "'s profile picture"
+      },
+      "sections": {
+        "personalInfo": "Personal Information",
+        "betaAccess": "Beta Access",
+        "quotaUsage": "Quota Usage"
+      },
+      "fields": {
+        "name": "Name",
+        "email": "Email",
+        "accountType": "Account Type",
+        "memberSince": "Member Since"
+      },
+      "accountTypes": {
+        "free": "Free",
+        "premium": "Premium"
+      },
+      "beta": {
+        "message": "You are part of our Beta program with special access and limitations.",
+        "limitations": "Beta Limitations",
+        "maxStyles": "Maximum {{count}} styles per generation",
+        "resolution": "Maximum {{resolution}} resolution",
+        "maxTokens": "Maximum {{count}} output tokens"
+      },
+      "quota": {
+        "daily": "Daily Quota",
+        "weekly": "Weekly Quota",
+        "usedToday": "Used today: {{count}} requests",
+        "usedThisWeek": "Used this week: {{count}} requests",
+        "warning": "You're approaching your quota limit. Consider upgrading for unlimited access.",
+        "exceeded": "You've exceeded your quota limit. Please upgrade or wait for the next reset."
+      },
+      "buttons": {
+        "upgrade": "Upgrade to Premium",
+        "settings": "Account Settings"
+      }
+    },
+    "projectTeams": {
+      "title": "Project Teams",
+      "subtitle": "Manage teams assigned to this project",
+      "buttons": {
+        "addTeam": "Add Team",
+        "addTeamToProject": "Add Team to Project"
+      },
+      "cards": {
+        "members": "{{count}} members",
+        "projectRoles": "Project Roles"
+      },
+      "empty": {
+        "noTeams": "No teams assigned to this project yet"
+      }
+    },
+    "projectsList": {
+      "sections": {
+        "recent": "Recent Projects",
+        "all": "All Projects"
+      },
+      "cards": {
+        "create": {
+          "title": "Create New Project",
+          "subtitle": "Start building something amazing"
+        }
+      },
+      "empty": {
+        "noProjects": "No projects yet. Create your first project to get started!"
+      },
+      "buttons": {
+        "create": "Create your first project"
+      }
+    },
+    "showTests": {
+      "works": "Show tests works!"
+    },
+    "teamDetailsGlobal": {
+      "backToTeams": "Back to Teams",
+      "assignedProjects": "Assigned Projects",
+      "projects": "projects",
+      "teamMembers": "Team Members",
+      "members": "members",
+      "buttons": {
+        "addMember": "Add Member",
+        "addFirstMember": "Add First Member",
+        "remove": "Remove"
+      },
+      "cards": {
+        "teamRoles": "Team Roles",
+        "teamRole": "Team Role",
+        "joined": "Joined {{date}}"
+      },
+      "empty": {
+        "noProjects": "This team is not assigned to any projects yet",
+        "noMembers": "No members in this team yet"
+      }
+    },
+    "teamDetailsProject": {
+      "backToTeams": "Back to Project Teams",
+      "sections": {
+        "teamMembers": "Team Members"
+      },
+      "cards": {
+        "teamRole": "Team Role",
+        "joined": "Joined {{date}}"
+      },
+      "buttons": {
+        "remove": "Remove"
+      },
+      "empty": {
+        "noMembers": "No members in this team"
+      },
+      "members": "members"
     }
   },
   "projects": {
@@ -810,10 +1021,73 @@
     "noTeams": "No teams found",
     "teamDetails": "Team Details"
   },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "adding": "Adding...",
+    "optional": "Optional",
+    "creating": "Creating...",
+    "completed": "Completed",
+    "ready": "Ready",
+    "submitting": "Submitting...",
+    "saving": "Saving...",
+    "deploying": "Deploying...",
+    "oops": "Oops!",
+    "complete": "Complete",
+    "progress": "Progress",
+    "retry": "Retry",
+    "selected": "Selected",
+    "notAvailable": "N/A",
+    "noDescription": "No description",
+    "error": "Error",
+    "notSpecified": "Not specified",
+    "uploading": "Uploading...",
+    "downloading": "Downloading...",
+    "download": "Download",
+    "send": "Send",
+    "pdf": "PDF",
+    "inProgress": "In Progress...",
+    "generating": "Generating...",
+    "noContent": "No content available",
+    "understood": "Understood",
+    "page": "Page",
+    "of": "of",
+    "changeLanguage": "Change language"
+  },
   "errors": {
     "generic": "An error occurred",
     "notFound": "Not found",
     "unauthorized": "Unauthorized",
     "serverError": "Server error"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "teams": "Teams",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "validation": {
+    "required": "{{fieldName}} is required",
+    "email": "Please enter a valid email address",
+    "minLength": "Minimum {{min}} characters required",
+    "maxLength": "Maximum {{max}} characters allowed",
+    "selectAtLeastOneRole": "Please select at least one role",
+    "teamNameMinLength": "Team name must be at least {{min}} characters",
+    "deploymentName": "Deployment name is required (minimum {{min}} characters)",
+    "invalid": "Invalid field"
   }
 }

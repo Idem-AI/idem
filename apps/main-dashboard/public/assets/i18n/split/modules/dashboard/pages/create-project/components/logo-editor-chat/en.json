@@ -1,0 +1,27 @@
+{
+  "title": "Logo Editor Assistant",
+  "subtitle": "AI-powered logo modifications",
+  "initialGreeting": "Here is your selected logo. You can ask me to modify it!",
+  "welcomeMessage": "Tell me what changes you'd like to make. For example: \"Make it more modern\", \"Change the colors to blue\", \"Add a gradient effect\", etc.",
+  "workingMessage": "Working on your modifications...",
+  "modifiedLogo": "Here is your modified logo!",
+  "pressEnterToSend": "Press Enter to send",
+  "buttons": {
+    "choose": "Choose This Logo"
+  },
+  "placeholders": {
+    "prompt": "Describe the changes you want... (Press Enter to send)"
+  },
+  "quickSuggestions": {
+    "title": "Quick suggestions:",
+    "modern": "More modern",
+    "gradient": "Add gradient",
+    "simplify": "Simplify",
+    "professional": "More professional"
+  },
+  "errors": {
+    "noLogoToEdit": "No logo found to edit",
+    "modificationFailed": "Sorry, I encountered an error while modifying the logo. Please try again with a different prompt.",
+    "failedToEdit": "Failed to edit logo"
+  }
+}
