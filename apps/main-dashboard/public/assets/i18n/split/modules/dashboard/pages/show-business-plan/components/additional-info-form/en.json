@@ -1,0 +1,41 @@
+{
+  "title": "Additional Information",
+  "subtitle": "Help us create a more accurate business plan by providing additional details",
+  "sections": {
+    "company": "Company Information",
+    "market": "Market Information",
+    "financial": "Financial Information"
+  },
+  "fields": {
+    "email": "Email",
+    "phone": "Phone",
+    "website": "Website",
+    "address": "Address",
+    "city": "City",
+    "country": "Country",
+    "targetMarket": "Target Market",
+    "competitors": "Main Competitors",
+    "budget": "Initial Budget",
+    "fundingNeeds": "Funding Needs"
+  },
+  "placeholders": {
+    "email": "company@example.com",
+    "phone": "+1 234 567 8900",
+    "website": "https://www.example.com",
+    "address": "123 Main Street",
+    "city": "New York",
+    "country": "United States",
+    "targetMarket": "Describe your target market",
+    "competitors": "List your main competitors",
+    "budget": "Enter your initial budget",
+    "fundingNeeds": "Describe your funding needs"
+  },
+  "buttons": {
+    "submit": "Generate Business Plan",
+    "skip": "Skip for Now"
+  },
+  "validation": {
+    "emailRequired": "Email is required",
+    "emailInvalid": "Please enter a valid email address"
+  }
+}

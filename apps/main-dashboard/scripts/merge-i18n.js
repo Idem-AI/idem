@@ -72,6 +72,18 @@ const CONFIG = {
     'modules/dashboard/pages/show-tests': 'dashboard.showTests',
     'modules/dashboard/pages/team-details-global': 'dashboard.teamDetailsGlobal',
     'modules/dashboard/pages/team-details-project': 'dashboard.teamDetailsProject',
+
+    // Dashboard pages - Show pages
+    'modules/dashboard/pages/show-branding': 'dashboard.showBranding',
+    'modules/dashboard/pages/show-business-plan': 'dashboard.showBusinessPlan',
+    'modules/dashboard/pages/show-business-plan/components/business-plan-generation':
+      'dashboard.businessPlanGeneration',
+    'modules/dashboard/pages/show-business-plan/components/additional-info-form':
+      'dashboard.additionalInfoForm',
+    'modules/dashboard/pages/show-diagrams': 'dashboard.showDiagrams',
+    'modules/dashboard/pages/show-diagrams/components/diagram-generation':
+      'dashboard.diagramGeneration',
+    'modules/dashboard/pages/show-diagrams/components/diagram-display': 'dashboard.diagramDisplay',
   },
 };
 

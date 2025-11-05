@@ -1,0 +1,48 @@
+{
+  "title": "Brand Identity",
+  "loading": {
+    "checking": "Checking your brand identity..."
+  },
+  "buttons": {
+    "backToOverview": "Back to Overview",
+    "backToProjects": "Back to Projects",
+    "getCharter": "Get Brand Charter",
+    "downloadZip": "Download all logos as ZIP"
+  },
+  "tooltips": {
+    "downloadZip": "Download all logos in a ZIP file"
+  },
+  "sections": {
+    "logos": {
+      "title": "Logos",
+      "subtitle": "Your brand logo variations",
+      "main": "Main Logo",
+      "selected": "Selected",
+      "lightBg": "Light Background",
+      "darkBg": "Dark Background",
+      "iconOnly": "Icon Only",
+      "monochrome": "Monochrome"
+    },
+    "colors": {
+      "title": "Color Palette",
+      "subtitle": "Your brand colors",
+      "selected": "Selected Palette",
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "accent": "Accent",
+      "background": "Background"
+    },
+    "typography": {
+      "title": "Typography",
+      "subtitle": "Your brand fonts",
+      "heading": "Heading Font",
+      "body": "Body Font",
+      "selected": "Selected Typography"
+    }
+  },
+  "empty": {
+    "noLogos": "No logos available",
+    "noColors": "No color palette defined",
+    "noTypography": "No typography defined"
+  }
+}
