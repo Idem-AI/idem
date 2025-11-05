@@ -60,7 +60,7 @@ export class MyTeams implements OnInit {
       },
       error: (error) => {
         console.error('Error loading teams:', error);
-        this.error.set(this.translate.instant('dashboard.myTeams.errors.failedToLoad'));
+        this.errorMessage.set(this.translate.instant('dashboard.myTeams.errors.failedToLoad'));
         this.isLoading.set(false);
       },
     });

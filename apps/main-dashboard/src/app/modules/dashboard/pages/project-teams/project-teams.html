@@ -54,7 +54,10 @@
                       {{ projectTeam.team.name }}
                     </h3>
                     <p class="text-sm text-gray-400 mb-4 line-clamp-2">
-                      {{ projectTeam.team.description || '{{ 'common.noDescription' | translate }}'
+                      {{
+                        projectTeam.team.description
+                          ? projectTeam.team.description
+                          : ('common.noDescription' | translate)
                       }}
                     </p>
 

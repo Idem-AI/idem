@@ -23,7 +23,7 @@
         {{ 'dashboard.showBranding.buttons.backToOverview' | translate }}
       </button>
     </div>
-  } @else if (hasError() && is{{ 'common.retry' | translate }}able()) {
+  } @else if (hasError() && isRetryable()) {
     <!-- Error state with retry button -->
     <div class="max-w-4xl mx-auto text-center py-10">
       <div class="glass-card p-8">

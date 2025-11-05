@@ -24,6 +24,9 @@
 
     <!-- Right section -->
     <div class="flex items-center gap-4">
+      <!-- Language Selector -->
+      <app-language-selector />
+
       @if (user()) {
         <!-- Quota Display - Desktop only -->
         <div class="hidden md:block">

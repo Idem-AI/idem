@@ -18,6 +18,7 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { ProjectCard } from '../../components/project-card/project-card';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { forkJoin } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-global-dashboard',
