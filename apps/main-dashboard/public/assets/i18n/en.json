@@ -1350,6 +1350,11 @@
         "noMembers": "No members in this team"
       },
       "members": "members"
+    },
+    "pdfViewer": {
+      "loading": "Loading PDF...",
+      "wait": "Please wait while we load your document",
+      "noContent": "No PDF to display"
     }
   },
   "projects": {
@@ -1410,6 +1415,14 @@
     "page": "Page",
     "of": "of",
     "changeLanguage": "Change language"
+  },
+  "notFound": {
+    "title": "Page Not Found",
+    "subtitle": "The page you're looking for doesn't exist or has been moved.",
+    "buttons": {
+      "home": "Go Home",
+      "dashboard": "Go to Dashboard"
+    }
   },
   "errors": {
     "generic": "An error occurred",

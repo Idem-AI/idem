@@ -1350,6 +1350,11 @@
         "noMembers": "Aucun membre dans cette équipe"
       },
       "members": "membres"
+    },
+    "pdfViewer": {
+      "loading": "Chargement du PDF...",
+      "wait": "Veuillez patienter pendant le chargement de votre document",
+      "noContent": "Aucun PDF à afficher"
     }
   },
   "projects": {
@@ -1410,6 +1415,14 @@
     "page": "Page",
     "of": "sur",
     "changeLanguage": "Changer de langue"
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "subtitle": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "buttons": {
+      "home": "Aller à l'accueil",
+      "dashboard": "Aller au tableau de bord"
+    }
   },
   "errors": {
     "generic": "Une erreur est survenue",
