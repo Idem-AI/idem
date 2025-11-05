@@ -93,6 +93,10 @@ const CONFIG = {
     // Dashboard pages - Development
     'dashboard.createDevelopment': 'modules/dashboard/pages/development/create-development',
     'dashboard.showDevelopment': 'modules/dashboard/pages/development/show-development',
+
+    // Shared components
+    notFound: 'shared/components/not-found',
+    'dashboard.pdfViewer': 'shared/components/pdf-viewer',
   },
 };
 
