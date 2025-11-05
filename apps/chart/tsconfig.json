@@ -12,7 +12,16 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "strictNullChecks": true,
-    "types": ["vitest/importMeta", "@playwright/test"]
+    "types": ["vitest/importMeta", "@playwright/test"],
+    "baseUrl": ".",
+    "paths": {
+      "@idem/shared-models": ["../../packages/shared-models/src"],
+      "@idem/shared-models/*": ["../../packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["../../packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["../../packages/shared-auth-client/src/*"],
+      "@idem/shared-styles": ["../../packages/shared-styles"],
+      "@idem/shared-styles/*": ["../../packages/shared-styles/*"]
+    }
   },
   "extends": "./.svelte-kit/tsconfig.json"
 }

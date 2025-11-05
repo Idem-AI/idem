@@ -1,0 +1,299 @@
+<section class="flex flex-col items-center justify-center w-full px-0 sm:px-6 lg:px-8 py-0 sm:py-8">
+  <!-- Step 1: Logo Type Selection -->
+  @if (currentStep() === 'type') {
+    <div class="w-full max-h-[50vh] sm:max-h-[74vh] max-w-6xl mx-auto">
+      <div class="text-center mb-4 sm:mb-8">
+        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
+          {{ 'dashboard.logoPreferences.steps.type.title' | translate }}
+        </h1>
+        <p class="text-sm sm:text-lg lg:text-xl text-gray-300">
+          {{ 'dashboard.logoPreferences.steps.type.subtitle' | translate }}
+        </p>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+        @for (option of logoTypes; track option.type) {
+          <div
+            (click)="selectType(option.type)"
+            class="glass-card p-3 sm:p-6 lg:p-8 cursor-pointer transition-all duration-300 hover:scale-[1.02]"
+            [class.border-2]="selectedType() === option.type"
+            [class.border-primary]="selectedType() === option.type"
+          >
+            <div class="text-center">
+              <div class="mb-2 sm:mb-4 flex items-center justify-center">
+                @if (option.type === 'icon') {
+                  <svg
+                    class="w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-primary"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                  </svg>
+                }
+                @if (option.type === 'name') {
+                  <svg
+                    class="w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-secondary"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M4 4h16v4H4V4zm0 6h16v4H4v-4zm0 6h16v4H4v-4z" />
+                  </svg>
+                }
+                @if (option.type === 'initial') {
+                  <svg
+                    class="w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-accent"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <text
+                      x="50%"
+                      y="50%"
+                      text-anchor="middle"
+                      dominant-baseline="middle"
+                      font-size="16"
+                      fill="currentColor"
+                    >
+                      A
+                    </text>
+                    <rect
+                      x="2"
+                      y="2"
+                      width="20"
+                      height="20"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      rx="4"
+                    />
+                  </svg>
+                }
+              </div>
+
+              <h3 class="text-xs sm:text-base lg:text-xl font-bold text-white mb-1 sm:mb-2">
+                {{ option.titleKey | translate }}
+              </h3>
+              <p
+                class="text-[10px] sm:text-xs lg:text-sm text-gray-400 mb-1 sm:mb-2 leading-tight hidden sm:block"
+              >
+                {{ option.descriptionKey | translate }}
+              </p>
+              <p class="text-[9px] sm:text-xs text-gray-500 italic hidden lg:block">
+                {{ option.exampleKey | translate }}
+              </p>
+
+              @if (selectedType() === option.type) {
+                <div class="mt-1 sm:mt-3 flex items-center justify-center">
+                  <svg
+                    class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-primary"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="flex justify-center">
+        <button
+          (click)="goToModeSelection()"
+          [disabled]="!canProceed()"
+          class="inner-button px-6 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
+        >
+          {{ 'common.continue' | translate }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 2: Generation Mode Selection -->
+  @if (currentStep() === 'mode') {
+    <div class="w-full max-w-6xl mx-auto">
+      <div class="text-center mb-4 sm:mb-8">
+        <h1 class="text-xl sm:text-3xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
+          {{ 'dashboard.logoPreferences.steps.mode.title' | translate }}
+        </h1>
+        <p class="text-xs sm:text-base lg:text-xl text-gray-300">
+          {{ 'dashboard.logoPreferences.steps.mode.subtitle' | translate }}
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:gap-8 mb-4 sm:mb-8">
+        <div
+          (click)="selectGenerationMode('ai')"
+          class="glass-card p-4 sm:p-8 lg:p-12 cursor-pointer transition-all duration-300 hover:scale-[1.02]"
+          [class.border-2]="generationMode() === 'ai'"
+          [class.border-primary]="generationMode() === 'ai'"
+        >
+          <div class="text-center">
+            <div
+              class="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 mx-auto mb-3 sm:mb-6 lg:mb-8 rounded-full bg-primary/20 flex items-center justify-center"
+            >
+              <svg
+                class="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-base sm:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 lg:mb-4">
+              {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
+            </h3>
+            <p
+              class="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-tight sm:leading-relaxed"
+            >
+              {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
+            </p>
+
+            @if (generationMode() === 'ai') {
+              <div class="mt-3 sm:mt-5 lg:mt-6 flex items-center justify-center">
+                <svg
+                  class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-primary"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div
+          (click)="selectGenerationMode('custom')"
+          class="glass-card p-4 sm:p-8 lg:p-12 cursor-pointer transition-all duration-300 hover:scale-[1.02]"
+          [class.border-2]="generationMode() === 'custom'"
+          [class.border-secondary]="generationMode() === 'custom'"
+        >
+          <div class="text-center">
+            <div
+              class="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 mx-auto mb-3 sm:mb-6 lg:mb-8 rounded-full bg-secondary/20 flex items-center justify-center"
+            >
+              <svg
+                class="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-base sm:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 lg:mb-4">
+              {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
+            </h3>
+            <p
+              class="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-tight sm:leading-relaxed"
+            >
+              {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
+            </p>
+
+            @if (generationMode() === 'custom') {
+              <div class="mt-3 sm:mt-5 lg:mt-6 flex items-center justify-center">
+                <svg
+                  class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-2 sm:gap-4">
+        <button
+          (click)="goBack()"
+          class="outer-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
+        >
+          {{ 'common.back' | translate }}
+        </button>
+        <button
+          (click)="goToDescription()"
+          [disabled]="!canProceed()"
+          class="inner-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
+        >
+          {{ 'common.continue' | translate }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 3: Custom Description -->
+  @if (currentStep() === 'description') {
+    <div class="w-full sm:max-w-5xl mx-auto">
+      <div class="text-center mb-3 sm:mb-6">
+        <h1 class="text-xl sm:text-3xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
+          {{ 'dashboard.logoPreferences.steps.description.title' | translate }}
+        </h1>
+        <p class="text-xs sm:text-base lg:text-xl text-gray-300">
+          {{ 'dashboard.logoPreferences.steps.description.subtitle' | translate }}
+        </p>
+      </div>
+
+      <div class="glass-card p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6">
+        <label
+          class="block text-white font-bold text-sm sm:text-lg lg:text-xl mb-2 sm:mb-3 text-left"
+        >
+          {{ 'dashboard.logoPreferences.fields.description.label' | translate }}
+        </label>
+        <textarea
+          [value]="customDescription()"
+          (input)="updateDescription($event)"
+          class="input w-full h-32 sm:h-48 lg:h-64 resize-none text-xs sm:text-base lg:text-lg"
+          [placeholder]="'dashboard.logoPreferences.fields.description.placeholder' | translate"
+        ></textarea>
+        <div class="text-right mt-2">
+          <span class="text-xs sm:text-sm lg:text-base text-gray-400">
+            {{ customDescription().length }}
+            {{ 'dashboard.logoPreferences.fields.description.charCount' | translate }}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-2 sm:gap-4">
+        <button
+          (click)="goBack()"
+          class="outer-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
+        >
+          {{ 'common.back' | translate }}
+        </button>
+        <button
+          (click)="completePreferences()"
+          [disabled]="!canProceed()"
+          class="inner-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
+        >
+          {{ 'dashboard.logoPreferences.buttons.generate' | translate }}
+        </button>
+      </div>
+    </div>
+  }
+</section>

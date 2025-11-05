@@ -1,0 +1,29 @@
+{
+  "locale": "en",
+  "translations": {
+    "header.alt.logo": "IDEM - Africa's sovereign open source AI platform",
+    "header.aria.github": "Visit IDEM on GitHub",
+    "header.nav.dashboard.desktop": " Dashboard ",
+    "header.alt.avatar": "Avatar",
+    "header.nav.dashboard.dropdown": " Dashboard ",
+    "header.nav.settings": " Settings ",
+    "header.nav.logout.dropdown": " Logout ",
+    "header.nav.login.desktop": " Login ",
+    "header.aria.toggleMenu": "Toggle menu",
+    "header.aria.closeMenu": "Close menu",
+    "header.nav.dashboard.mobile": " Dashboard ",
+    "header.nav.profile": " Profile ",
+    "header.nav.logout.mobile": " Logout ",
+    "header.nav.login.mobile": " Login ",
+    "header.nav.github": "GitHub",
+    "header.nav.home": "Home",
+    "header.menu.product": "Product",
+    "header.menu.solutions": "Solutions",
+    "header.menu.architecture": "Architecture",
+    "header.menu.pricing": "Pricing",
+    "header.menu.company": "Company",
+    "header.menu.about": "About",
+    "header.menu.vision": "Vision",
+    "header.menu.openSource": "Open Source"
+  }
+}

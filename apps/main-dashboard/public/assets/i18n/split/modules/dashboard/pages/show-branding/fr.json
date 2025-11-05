@@ -1,0 +1,48 @@
+{
+  "title": "Identité de marque",
+  "loading": {
+    "checking": "Vérification de votre identité de marque..."
+  },
+  "buttons": {
+    "backToOverview": "Retour à l'aperçu",
+    "backToProjects": "Retour aux projets",
+    "getCharter": "Obtenir la charte graphique",
+    "downloadZip": "Télécharger tous les logos en ZIP"
+  },
+  "tooltips": {
+    "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
+  },
+  "sections": {
+    "logos": {
+      "title": "Logos",
+      "subtitle": "Variations de votre logo",
+      "main": "Logo principal",
+      "selected": "Sélectionné",
+      "lightBg": "Fond clair",
+      "darkBg": "Fond sombre",
+      "iconOnly": "Icône seule",
+      "monochrome": "Monochrome"
+    },
+    "colors": {
+      "title": "Palette de couleurs",
+      "subtitle": "Les couleurs de votre marque",
+      "selected": "Palette sélectionnée",
+      "primary": "Primaire",
+      "secondary": "Secondaire",
+      "accent": "Accent",
+      "background": "Arrière-plan"
+    },
+    "typography": {
+      "title": "Typographie",
+      "subtitle": "Les polices de votre marque",
+      "heading": "Police de titre",
+      "body": "Police de corps",
+      "selected": "Typographie sélectionnée"
+    }
+  },
+  "empty": {
+    "noLogos": "Aucun logo disponible",
+    "noColors": "Aucune palette de couleurs définie",
+    "noTypography": "Aucune typographie définie"
+  }
+}

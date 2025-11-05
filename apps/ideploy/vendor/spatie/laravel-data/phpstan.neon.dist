@@ -1,0 +1,11 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    paths:
+        - src
+        - config
+        - types
+    tmpDir: build/phpstan
+    reportUnmatchedIgnoredErrors: true

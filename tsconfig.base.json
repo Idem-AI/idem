@@ -5,7 +5,6 @@
     "sourceMap": true,
     "declaration": false,
     "moduleResolution": "node",
-    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
@@ -15,8 +14,12 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@idem/shared/*": ["libs/shared/*"],
-      "@idem/types/*": ["libs/types/*"]
+      "@idem/shared-models": ["packages/shared-models/src"],
+      "@idem/shared-models/*": ["packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["packages/shared-auth-client/src/*"],
+      "@idem/shared-styles": ["packages/shared-styles"],
+      "@idem/shared-styles/*": ["packages/shared-styles/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

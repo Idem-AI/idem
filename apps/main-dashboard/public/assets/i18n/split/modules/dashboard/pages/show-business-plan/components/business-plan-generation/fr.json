@@ -1,0 +1,28 @@
+{
+  "saving": {
+    "title": "Enregistrement de votre plan d'affaires",
+    "subtitle": "Veuillez patienter pendant l'enregistrement de votre plan d'affaires..."
+  },
+  "finalizing": "Finalisation de votre plan d'affaires",
+  "generating": "Génération de votre plan d'affaires",
+  "creating": "Création d'un plan d'affaires complet pour votre projet",
+  "processing": "Traitement : {{steps}}",
+  "stepsCompleted": "étapes terminées",
+  "lastStep": "Dernière étape",
+  "savingData": "Enregistrement des données",
+  "wait": "Veuillez patienter pendant la finalisation de votre plan d'affaires...",
+  "stepCompletedAt": "Terminé à {{time}}",
+  "errors": {
+    "title": "Échec de la génération"
+  },
+  "empty": {
+    "title": "Aucun plan d'affaires pour le moment",
+    "subtitle": "Commencez à générer votre plan d'affaires complet",
+    "buttons": {
+      "generate": "Générer le plan d'affaires"
+    }
+  },
+  "buttons": {
+    "generate": "Générer le plan d'affaires"
+  }
+}

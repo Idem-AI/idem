@@ -12,7 +12,7 @@
 
 IDEM is a revolutionary open-source platform that leverages artificial intelligence to generate all elements of the software development lifecycle. From initial business planning to deployment, IDEM streamlines the creation process for developers, entrepreneurs, and product managers while making the entire software development process accessible to users of all technical backgrounds.
 
-**Frontend Demo:** [https://idem-ai.com](https://idem-ai.com)
+**Frontend Demo:** [https://idem.africa](https://idem.africa)
 
 ## Features
 
@@ -148,4 +148,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 - Project Creator: [arolleaguekeng](https://github.com/arolleaguekeng)
-- Website: [https://idem-ai.com](https://idem-ai.com)
+- Website: [https://idem.africa](https://idem.africa)
