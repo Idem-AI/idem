@@ -5,8 +5,6 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /assets/private/
-Disallow: /console/
-Disallow: /auth/
 Disallow: /*.json$
 Disallow: /*?*
 
@@ -14,15 +12,19 @@ Disallow: /*?*
 Allow: /assets/seo/
 Allow: /assets/icons/
 Allow: /assets/images/
+Allow: /assets/i18n/
 Allow: /sitemap.xml
+Allow: /sitemap-*.xml
 Allow: /robots.txt
+
+# Allow localized content
+Allow: /en/
+Allow: /fr/
 
 # Crawl delay to be respectful
 Crawl-delay: 1
 
-# Sitemap location
+# Sitemap locations (multilingual)
 Sitemap: https://idem.africa/sitemap.xml
-
-# Additional sitemaps (if needed in the future)
-# Sitemap: https://idem.africa/sitemap-pages.xml
-# Sitemap: https://idem.africa/sitemap-blog.xml
+Sitemap: https://idem.africa/sitemap-en.xml
+Sitemap: https://idem.africa/sitemap-fr.xml
