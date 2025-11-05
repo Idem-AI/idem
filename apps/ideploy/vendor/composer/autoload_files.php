@@ -79,5 +79,5 @@ return array(
     '72b1e3f4a2af9b30b3f137b3ec2057fc' => $vendorDir . '/spatie/laravel-activitylog/src/helpers.php',
     '320163ac6b93aebe3dc25b60a0533d56' => $vendorDir . '/spatie/laravel-ignition/src/helpers.php',
     '5eb6a52b704e40d41cd1a684b0932be1' => $vendorDir . '/visus/cuid2/src/compat.php',
-    'ce941c96a2d7119e3334ea09a6361605' => $baseDir . '/bootstrap/includeHelpers.php',
+    '0e5d7599d99a03ddf940232832ccd1a6' => $baseDir . '/bootstrap/includeHelpers.php',
 );

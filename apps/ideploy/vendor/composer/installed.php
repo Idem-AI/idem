@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
-        'name' => 'coollabsio/coolify',
-        'pretty_version' => '4.x-dev',
-        'version' => '4.9999999.9999999.9999999-dev',
-        'reference' => 'ac1d98f6035caff10f36fa10508326b4791dec07',
+        'name' => 'coollabsio/ideploy',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => 'fd64e7d3605955537c450db149682e6ef97a8100',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -172,10 +172,10 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'coollabsio/coolify' => array(
-            'pretty_version' => '4.x-dev',
-            'version' => '4.9999999.9999999.9999999-dev',
-            'reference' => 'ac1d98f6035caff10f36fa10508326b4791dec07',
+        'coollabsio/ideploy' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'fd64e7d3605955537c450db149682e6ef97a8100',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -405,6 +405,15 @@
             'install_path' => __DIR__ . '/../hamcrest/hamcrest-php',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'idem/shared-auth-php' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'abd7ba482e16cb9358c5ca7cbee021985a2b6d5e',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../idem/shared-auth-php',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'illuminate/auth' => array(
             'dev_requirement' => false,

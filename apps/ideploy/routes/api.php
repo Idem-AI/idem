@@ -22,6 +22,9 @@ use App\Jobs\PushServerUpdateJob;
 use App\Models\Server;
 use Illuminate\Support\Facades\Route;
 
+// Test routes pour le package shared-auth-php
+require __DIR__ . '/test-auth.php';
+
 Route::get('/health', [OtherController::class, 'healthcheck']);
 Route::group([
     'prefix' => 'v1',
