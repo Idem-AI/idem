@@ -13,11 +13,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | JWT Authentication
+    | Central API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | URL of the central IDEM API for authentication and authorization
+    |
+    */
+    'api_url' => env('IDEM_API_URL', 'http://localhost:3001'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | JWT Authentication (Legacy)
     |--------------------------------------------------------------------------
     |
     | JWT secret key shared between main API and IDEM services
     | This should be the same across all integrated systems
+    | NOTE: This is being replaced by Firebase Authentication
     |
     */
     'jwt_secret' => env('JWT_SECRET', env('APP_KEY')),
