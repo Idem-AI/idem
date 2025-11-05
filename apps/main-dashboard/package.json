@@ -6,7 +6,10 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "i18n:split": "node scripts/split-i18n.js",
+    "i18n:merge": "node scripts/merge-i18n.js",
+    "i18n:split-merge": "npm run i18n:split && npm run i18n:merge"
   },
   "prettier": {
     "printWidth": 100,

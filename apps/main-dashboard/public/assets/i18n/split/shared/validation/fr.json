@@ -1,0 +1,10 @@
+{
+  "required": "{{fieldName}} est requis",
+  "email": "Veuillez saisir une adresse e-mail valide",
+  "minLength": "Minimum {{min}} caractères requis",
+  "maxLength": "Maximum {{max}} caractères autorisés",
+  "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
+  "teamNameMinLength": "Le nom de l'équipe doit comporter au moins {{min}} caractères",
+  "deploymentName": "Le nom du déploiement est requis (minimum {{min}} caractères)",
+  "invalid": "Champ invalide"
+}

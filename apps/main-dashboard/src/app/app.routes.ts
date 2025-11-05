@@ -27,7 +27,7 @@ export const routes: Routes = [
         (m) => m.GlobalDashboard,
       ),
     canActivate: [authGuard],
-    data: { layout: 'global' },
+    data: { layout: 'empty' },
   },
   {
     path: 'console/dashboard',

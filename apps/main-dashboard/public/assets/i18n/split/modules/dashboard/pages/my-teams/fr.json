@@ -1,0 +1,21 @@
+{
+  "title": "Mes équipes",
+  "subtitle": "Gérez et collaborez avec vos équipes",
+  "buttons": {
+    "create": "Créer une équipe",
+    "createNew": "Créer une nouvelle équipe"
+  },
+  "sections": {
+    "recent": "Équipes récentes",
+    "all": "Toutes les équipes"
+  },
+  "cards": {
+    "create": {
+      "title": "Créez votre première équipe"
+    }
+  },
+  "empty": {
+    "noTeams": "Vous n'avez pas encore d'équipes. Créez-en une pour commencer !"
+  },
+  "members": "membres"
+}

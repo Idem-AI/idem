@@ -1,0 +1,15 @@
+{
+  "title": "Équipes du projet",
+  "subtitle": "Gérez les équipes assignées à ce projet",
+  "buttons": {
+    "addTeam": "Ajouter une équipe",
+    "addTeamToProject": "Ajouter une équipe au projet"
+  },
+  "cards": {
+    "members": "{{count}} membres",
+    "projectRoles": "Rôles du projet"
+  },
+  "empty": {
+    "noTeams": "Aucune équipe assignée à ce projet pour le moment"
+  }
+}

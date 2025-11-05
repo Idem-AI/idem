@@ -1,0 +1,26 @@
+{
+  "generating": {
+    "title": "Generating Your Logos...",
+    "subtitle": "Creating personalized logos based on your brand preferences.",
+    "whileYouWait": "While you wait...",
+    "tip": "Our AI is analyzing your color palette and typography to create logos that perfectly match your brand identity."
+  },
+  "errors": {
+    "title": "Generation Failed",
+    "colorAndTypographyRequired": "Color and typography must be selected before generating logos.",
+    "generationFailed": "Failed to generate logos. Please try again.",
+    "preferencesNotFound": "Logo preferences not found. Please restart the generation process."
+  },
+  "success": {
+    "title": "Choose Your Perfect Logo",
+    "subtitle": "Select the logo that best represents your brand identity",
+    "greatChoice": "Great choice! Click Next to continue to the next step."
+  },
+  "buttons": {
+    "editWithAI": "Edit with AI Assistant",
+    "regenerate": "Regenerate Logos"
+  },
+  "cards": {
+    "colors": "Colors"
+  }
+}
