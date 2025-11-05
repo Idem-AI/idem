@@ -84,6 +84,14 @@ const CONFIG = {
     'modules/dashboard/pages/show-diagrams/components/diagram-generation':
       'dashboard.diagramGeneration',
     'modules/dashboard/pages/show-diagrams/components/diagram-display': 'dashboard.diagramDisplay',
+
+    // Dashboard pages - Deployment
+    'modules/dashboard/pages/deployment/create-deployment': 'dashboard.createDeployment',
+    'modules/dashboard/pages/deployment/deployment-list': 'dashboard.deploymentList',
+
+    // Dashboard pages - Development
+    'modules/dashboard/pages/development/create-development': 'dashboard.createDevelopment',
+    'modules/dashboard/pages/development/show-development': 'dashboard.showDevelopment',
   },
 };
 
