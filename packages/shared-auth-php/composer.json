@@ -29,6 +29,13 @@
       "Idem\\SharedAuth\\Tests\\": "tests/"
     }
   },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Idem\\SharedAuth\\Laravel\\IdemAuthServiceProvider"
+      ]
+    }
+  },
   "minimum-stability": "stable",
   "prefer-stable": true
 }
