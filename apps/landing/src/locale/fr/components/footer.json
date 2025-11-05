@@ -1,0 +1,29 @@
+{
+  "locale": "fr",
+  "translations": {
+    "footer.description": "La première plateforme IA open source souveraine d'Afrique. Conçue au Cameroun 🇨🇲 pour l'entrepreneuriat technologique panafricain.",
+    "footer.apache_license": "Licence Apache 2.0",
+    "footer.platform": "{$START_TAG_SPAN}{$CLOSE_TAG_SPAN} Plateforme ",
+    "footer.home": "Accueil",
+    "footer.documentation": "Documentation",
+    "footer.openSource": "Open Source",
+    "footer.betaProgram": "Programme Bêta",
+    "footer.followUs": "{$START_TAG_SPAN}{$CLOSE_TAG_SPAN} Suivez-nous ",
+    "footer.aria.github": "Visitez Idem Engine sur GitHub",
+    "footer.aria.linkedin": "Visitez Idem Engine sur LinkedIn",
+    "footer.aria.facebook": "Visitez Idem Engine sur Facebook",
+    "footer.legal": "{$START_TAG_SPAN}{$CLOSE_TAG_SPAN} Légal ",
+    "footer.privacyPolicy": "Politique de Confidentialité",
+    "footer.termsOfService": "Conditions d'Utilisation",
+    "footer.apacheLicense": "Licence Apache 2.0",
+    "footer.founders": "{$START_TAG_SPAN}{$CLOSE_TAG_SPAN} Fondateurs Camerounais ",
+    "footer.ceoName": "Arolle Dubois Aguekeng",
+    "footer.ceoTitle": "PDG & Co-Fondateur",
+    "footer.ctoName": "Romuald Djeteje",
+    "footer.ctoTitle": "CTO & Co-Fondateur",
+    "footer.buildingAfrica": "Construire l'avenir technologique de l'Afrique depuis le Cameroun 🇨🇲",
+    "footer.2025_idem_all": "© 2025 IDEM. Tous droits réservés.",
+    "footer.african_you_too": "Africain, toi aussi tu peux construire",
+    "footer.madeInCameroon": "• Fait avec ❤️ au Cameroun 🇨🇲"
+  }
+}

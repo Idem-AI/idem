@@ -1,0 +1,70 @@
+{
+    "name": "phpdocumentor/reflection",
+    "description": "Reflection library to do Static Analysis for PHP Projects",
+    "keywords": ["phpdoc", "phpDocumentor", "reflection", "static analysis"],
+    "homepage": "http://www.phpdoc.org",
+    "license": "MIT",
+    "autoload": {
+        "files": [
+            "src/php-parser/Modifiers.php"
+        ],
+        "psr-4": {
+            "phpDocumentor\\": "src/phpDocumentor"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "phpDocumentor\\": [
+                "tests/unit/phpDocumentor",
+                "tests/bench/"
+            ],
+            "phpDocumentor\\Reflection\\": [
+                "tests/integration"
+            ]
+        }
+    },
+    "require": {
+        "php": "8.1.*|8.2.*|8.3.*|8.4.*",
+        "composer-runtime-api": "^2",
+        "nikic/php-parser": "~4.18 || ^5.0",
+        "phpdocumentor/reflection-common": "^2.1",
+        "phpdocumentor/reflection-docblock": "^5",
+        "phpdocumentor/type-resolver": "^1.2",
+        "symfony/polyfill-php80": "^1.28",
+        "webmozart/assert": "^1.7"
+    },
+    "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "doctrine/coding-standard": "^13.0",
+        "eliashaeussler/phpunit-attributes": "^1.7",
+        "mikey179/vfsstream": "~1.2",
+        "mockery/mockery": "~1.6.0",
+        "phpspec/prophecy-phpunit": "^2.0",
+        "phpstan/extension-installer": "^1.1",
+        "phpstan/phpstan": "^1.8",
+        "phpstan/phpstan-webmozart-assert": "^1.2",
+        "phpunit/phpunit": "^10.0",
+        "psalm/phar": "^6.0",
+        "rector/rector": "^1.0.0",
+        "squizlabs/php_codesniffer": "^3.8"
+    },
+    "config": {
+        "preferred-install": {
+            "*": "dist"
+        },
+        "sort-packages": true,
+        "platform": {
+            "php": "8.1.0"
+        },
+        "allow-plugins": {
+            "phpstan/extension-installer": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-5.x": "5.3.x-dev",
+            "dev-6.x": "6.0.x-dev"
+        }
+    }
+}

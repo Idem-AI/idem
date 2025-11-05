@@ -1,0 +1,17 @@
+{
+  "locale": "fr",
+  "translations": {
+    "hero.title": "{$START_TAG_SPAN}L'IA{$CLOSE_TAG_SPAN} qui donne vie aux startups {$LINE_BREAK}{$START_TAG_SPAN}Africaines{$CLOSE_TAG_SPAN}",
+    "hero.description": "À partir d'une simple idée, IDEM construit une entreprise complète. {$START_TAG_SPAN}Stratégie, marque, produit, application, tout{$CLOSE_TAG_SPAN}. Conçu pour l'Afrique, pour permettre à chaque créateur de construire, croître et prospérer en toute indépendance.",
+    "hero.tryForFree": "Essayez gratuitement",
+    "hero.viewOnGithub": "Voir sur GitHub",
+    "hero.open_source": "Open Source",
+    "hero.200_agents": "+200 Agents IA",
+    "hero.made_cameroon": "🇨🇲 Fait au Cameroun",
+    "hero.alt.projectBuilder": "Interface du constructeur de projet alimenté par l'IA d'Idem montrant les fonctionnalités de génération de logo, de création de business plan et de développement d'applications web",
+    "hero.seo.appCategory": "ApplicationCommerciale",
+    "hero.seo.description": "Plateforme alimentée par l'IA pour la création instantanée de marque et le déploiement d'applications",
+    "hero.seo.os": "Navigateur Web",
+    "hero.seo.creatorName": "Équipe Idem"
+  }
+}

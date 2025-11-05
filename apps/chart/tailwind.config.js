@@ -1,8 +1,15 @@
+/**
+ * Tailwind CSS 4 Configuration for Chart (Svelte 5)
+ * Extends @idem/shared-styles
+ */
+
+import sharedConfig from '@idem/shared-styles/tailwind.config';
 import tailwindcssAnimate from 'tailwindcss-animate';
 import { fontFamily } from 'tailwindcss/defaultTheme';
 
 /** @type {import('tailwindcss').Config} */
 const config = {
+  ...sharedConfig,
   darkMode: ['class'],
   content: ['./src/**/*.{html,js,svelte,ts}'],
   safelist: ['dark'],
@@ -15,32 +22,15 @@ const config = {
       }
     },
     extend: {
+      ...sharedConfig.theme.extend,
+      // Keep chart-specific colors for UI components
       colors: {
+        ...sharedConfig.theme.extend.colors,
         border: 'hsl(var(--border) / <alpha-value>)',
         input: 'hsl(var(--input) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',
         background: 'hsl(var(--background) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
-        primary: {
-          DEFAULT: '#1447e6',
-          foreground: '#f5f5f5'
-        },
-        secondary: {
-          DEFAULT: '#2563eb',
-          foreground: '#f5f5f5'
-        },
-        success: {
-          DEFAULT: '#219653',
-          foreground: '#f5f5f5'
-        },
-        danger: {
-          DEFAULT: '#d34053',
-          foreground: '#f5f5f5'
-        },
-        warning: {
-          DEFAULT: '#ffa70b',
-          foreground: '#f5f5f5'
-        },
         destructive: {
           DEFAULT: 'hsl(var(--destructive) / <alpha-value>)',
           foreground: 'hsl(var(--destructive-foreground) / <alpha-value>)'
@@ -81,12 +71,6 @@ const config = {
       fontFamily: {
         sans: ['Jura', ...fontFamily.sans],
         raleway: ['Raleway', ...fontFamily.sans]
-      },
-      fontSize: {
-        title: '5.4rem',
-        'title-mobile': '1.4rem',
-        subtitle: '1.7rem',
-        'light-text': '1rem'
       },
       keyframes: {
         'accordion-down': {

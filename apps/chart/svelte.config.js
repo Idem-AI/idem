@@ -12,7 +12,11 @@ const config = {
   ],
   kit: {
     alias: {
-      '$/*': './src/lib/*'
+      '$/*': './src/lib/*',
+      '@idem/shared-models': '../../packages/shared-models/src',
+      '@idem/shared-models/*': '../../packages/shared-models/src/*',
+      '@idem/shared-auth-client': '../../packages/shared-auth-client/src',
+      '@idem/shared-auth-client/*': '../../packages/shared-auth-client/src/*'
     },
     adapter: adapter({
       pages: 'docs',
