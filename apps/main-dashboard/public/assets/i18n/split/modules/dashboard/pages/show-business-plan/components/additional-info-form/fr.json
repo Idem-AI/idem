@@ -1,0 +1,41 @@
+{
+  "title": "Informations complémentaires",
+  "subtitle": "Aidez-nous à créer un plan d'affaires plus précis en fournissant des détails supplémentaires",
+  "sections": {
+    "company": "Informations sur l'entreprise",
+    "market": "Informations sur le marché",
+    "financial": "Informations financières"
+  },
+  "fields": {
+    "email": "Email",
+    "phone": "Téléphone",
+    "website": "Site web",
+    "address": "Adresse",
+    "city": "Ville",
+    "country": "Pays",
+    "targetMarket": "Marché cible",
+    "competitors": "Principaux concurrents",
+    "budget": "Budget initial",
+    "fundingNeeds": "Besoins de financement"
+  },
+  "placeholders": {
+    "email": "entreprise@exemple.com",
+    "phone": "+33 1 23 45 67 89",
+    "website": "https://www.exemple.com",
+    "address": "123 Rue Principale",
+    "city": "Paris",
+    "country": "France",
+    "targetMarket": "Décrivez votre marché cible",
+    "competitors": "Listez vos principaux concurrents",
+    "budget": "Entrez votre budget initial",
+    "fundingNeeds": "Décrivez vos besoins de financement"
+  },
+  "buttons": {
+    "submit": "Générer le plan d'affaires",
+    "skip": "Passer pour l'instant"
+  },
+  "validation": {
+    "emailRequired": "L'email est requis",
+    "emailInvalid": "Veuillez entrer une adresse email valide"
+  }
+}

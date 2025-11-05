@@ -965,6 +965,193 @@
         "create": "Créer votre premier projet"
       }
     },
+    "showBranding": {
+      "title": "Identité de marque",
+      "loading": {
+        "checking": "Vérification de votre identité de marque..."
+      },
+      "buttons": {
+        "backToOverview": "Retour à l'aperçu",
+        "backToProjects": "Retour aux projets",
+        "getCharter": "Obtenir la charte graphique",
+        "downloadZip": "Télécharger tous les logos en ZIP"
+      },
+      "tooltips": {
+        "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
+      },
+      "sections": {
+        "logos": {
+          "title": "Logos",
+          "subtitle": "Variations de votre logo",
+          "main": "Logo principal",
+          "selected": "Sélectionné",
+          "lightBg": "Fond clair",
+          "darkBg": "Fond sombre",
+          "iconOnly": "Icône seule",
+          "monochrome": "Monochrome"
+        },
+        "colors": {
+          "title": "Palette de couleurs",
+          "subtitle": "Les couleurs de votre marque",
+          "selected": "Palette sélectionnée",
+          "primary": "Primaire",
+          "secondary": "Secondaire",
+          "accent": "Accent",
+          "background": "Arrière-plan"
+        },
+        "typography": {
+          "title": "Typographie",
+          "subtitle": "Les polices de votre marque",
+          "heading": "Police de titre",
+          "body": "Police de corps",
+          "selected": "Typographie sélectionnée"
+        }
+      },
+      "empty": {
+        "noLogos": "Aucun logo disponible",
+        "noColors": "Aucune palette de couleurs définie",
+        "noTypography": "Aucune typographie définie"
+      }
+    },
+    "additionalInfoForm": {
+      "title": "Informations complémentaires",
+      "subtitle": "Aidez-nous à créer un plan d'affaires plus précis en fournissant des détails supplémentaires",
+      "sections": {
+        "company": "Informations sur l'entreprise",
+        "market": "Informations sur le marché",
+        "financial": "Informations financières"
+      },
+      "fields": {
+        "email": "Email",
+        "phone": "Téléphone",
+        "website": "Site web",
+        "address": "Adresse",
+        "city": "Ville",
+        "country": "Pays",
+        "targetMarket": "Marché cible",
+        "competitors": "Principaux concurrents",
+        "budget": "Budget initial",
+        "fundingNeeds": "Besoins de financement"
+      },
+      "placeholders": {
+        "email": "entreprise@exemple.com",
+        "phone": "+33 1 23 45 67 89",
+        "website": "https://www.exemple.com",
+        "address": "123 Rue Principale",
+        "city": "Paris",
+        "country": "France",
+        "targetMarket": "Décrivez votre marché cible",
+        "competitors": "Listez vos principaux concurrents",
+        "budget": "Entrez votre budget initial",
+        "fundingNeeds": "Décrivez vos besoins de financement"
+      },
+      "buttons": {
+        "submit": "Générer le plan d'affaires",
+        "skip": "Passer pour l'instant"
+      },
+      "validation": {
+        "emailRequired": "L'email est requis",
+        "emailInvalid": "Veuillez entrer une adresse email valide"
+      }
+    },
+    "businessPlanGeneration": {
+      "saving": {
+        "title": "Enregistrement de votre plan d'affaires",
+        "subtitle": "Veuillez patienter pendant l'enregistrement de votre plan d'affaires..."
+      },
+      "finalizing": "Finalisation de votre plan d'affaires",
+      "generating": "Génération de votre plan d'affaires",
+      "creating": "Création d'un plan d'affaires complet pour votre projet",
+      "processing": "Traitement : {{steps}}",
+      "stepsCompleted": "étapes terminées",
+      "lastStep": "Dernière étape",
+      "savingData": "Enregistrement des données",
+      "wait": "Veuillez patienter pendant la finalisation de votre plan d'affaires...",
+      "stepCompletedAt": "Terminé à {{time}}",
+      "errors": {
+        "title": "Échec de la génération"
+      },
+      "empty": {
+        "title": "Aucun plan d'affaires pour le moment",
+        "subtitle": "Commencez à générer votre plan d'affaires complet",
+        "buttons": {
+          "generate": "Générer le plan d'affaires"
+        }
+      },
+      "buttons": {
+        "generate": "Générer le plan d'affaires"
+      }
+    },
+    "showBusinessPlan": {
+      "loading": {
+        "checking": "Vérification de votre plan d'affaires..."
+      },
+      "buttons": {
+        "backToProjects": "Retour aux projets",
+        "generate": "Générer le plan d'affaires",
+        "selectProject": "Sélectionner un projet"
+      },
+      "empty": {
+        "title": "Aucun plan d'affaires pour le moment",
+        "subtitle": "Générez un plan d'affaires complet pour votre projet",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
+        }
+      }
+    },
+    "diagramDisplay": {
+      "actions": {
+        "add": "Ajouter un diagramme",
+        "addNew": "Ajouter un nouveau diagramme",
+        "download": "Télécharger",
+        "downloadPdf": "Télécharger en PDF",
+        "edit": "Modifier",
+        "editDiagrams": "Modifier les diagrammes"
+      },
+      "available": {
+        "title": "Diagrammes disponibles"
+      }
+    },
+    "diagramGeneration": {
+      "inProgress": {
+        "title": "Génération des diagrammes",
+        "stepsCompleted": "étapes terminées",
+        "current": "En cours : {{steps}}"
+      },
+      "steps": {
+        "analyzing": "Analyse de la structure du projet",
+        "architecture": "Création du diagramme d'architecture",
+        "database": "Conception du schéma de base de données",
+        "api": "Cartographie des points de terminaison API",
+        "deployment": "Planification de la stratégie de déploiement",
+        "security": "Définition des mesures de sécurité"
+      },
+      "stepCompletedAt": "Terminé à {{time}}",
+      "errors": {
+        "title": "Échec de la génération"
+      },
+      "available": {
+        "title": "Diagrammes disponibles"
+      }
+    },
+    "showDiagrams": {
+      "loading": {
+        "checking": "Vérification de vos diagrammes..."
+      },
+      "buttons": {
+        "generate": "Générer les diagrammes",
+        "selectProject": "Sélectionner un projet"
+      },
+      "empty": {
+        "title": "Aucun diagramme pour le moment",
+        "subtitle": "Générez des diagrammes d'architecture système pour votre projet",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Veuillez sélectionner un projet pour voir ou générer ses diagrammes"
+        }
+      }
+    },
     "showTests": {
       "works": "Les tests fonctionnent !"
     },
