@@ -18,6 +18,7 @@ class AuthClient
     private Client $httpClient;
     private string $apiBaseUrl;
     private ?string $authToken = null;
+    private ?string $cookieHeader = null;
 
     public function __construct(string $apiBaseUrl, ?string $authToken = null)
     {
@@ -57,6 +58,15 @@ class AuthClient
     }
 
     /**
+     * Définir les cookies depuis une chaîne Cookie header
+     */
+    public function setCookieHeader(string $cookieHeader): void
+    {
+        // Les cookies seront envoyés via le header Cookie
+        $this->cookieHeader = $cookieHeader;
+    }
+
+    /**
      * Effectuer une requête HTTP
      */
     private function request(string $method, string $endpoint, array $options = []): array
@@ -66,6 +76,11 @@ class AuthClient
                 $options['headers'] ?? [],
                 $this->getAuthHeaders()
             );
+
+            // Ajouter le header Cookie si défini
+            if ($this->cookieHeader) {
+                $options['headers']['Cookie'] = $this->cookieHeader;
+            }
 
             $response = $this->httpClient->request($method, $endpoint, $options);
             

@@ -4,7 +4,16 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": "../../",
+    "paths": {
+      "@idem/shared-models": ["packages/shared-models/dist"],
+      "@idem/shared-models/*": ["packages/shared-models/dist/*"],
+      "@idem/shared-auth-client": ["packages/shared-auth-client/dist"],
+      "@idem/shared-auth-client/*": ["packages/shared-auth-client/dist/*"],
+      "@idem/shared-styles": ["packages/shared-styles"],
+      "@idem/shared-styles/*": ["packages/shared-styles/*"]
+    }
   },
   "files": ["src/main.ts"],
   "include": ["src/**/*.d.ts"]
