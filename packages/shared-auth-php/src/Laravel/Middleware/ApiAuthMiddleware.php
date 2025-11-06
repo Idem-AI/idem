@@ -32,11 +32,8 @@ class ApiAuthMiddleware
             $apiUrl = config('idem.api_url', 'http://localhost:3001');
             $authClient = new AuthClient($apiUrl);
             
-            // Transférer les cookies via le header Cookie
-            $cookieHeader = $this->getCookieHeaderFromRequest($request);
-            if ($cookieHeader) {
-                $authClient->setCookieHeader($cookieHeader);
-            }
+            // Injecter les cookies de la requête dans le CookieJar
+            $this->injectCookiesIntoAuthClient($authClient, $request);
             
             // Vérifier l'authentification via l'API centrale
             // L'API centrale vérifie le cookie de session
@@ -103,24 +100,18 @@ class ApiAuthMiddleware
     }
 
     /**
-     * Obtenir le header Cookie depuis la requête
+     * Injecter les cookies de la requête Laravel dans le CookieJar de l'AuthClient
      */
-    private function getCookieHeaderFromRequest(Request $request): ?string
+    private function injectCookiesIntoAuthClient(AuthClient $authClient, Request $request): void
     {
-        // Récupérer tous les cookies de la requête
         $cookies = $request->cookies->all();
         
         if (empty($cookies)) {
-            return null;
+            return;
         }
         
-        // Construire le header Cookie au format: "name1=value1; name2=value2"
-        $cookiePairs = [];
-        foreach ($cookies as $name => $value) {
-            $cookiePairs[] = "{$name}={$value}";
-        }
-        
-        return implode('; ', $cookiePairs);
+        // Injecter chaque cookie dans le CookieJar
+        $authClient->injectCookies($cookies);
     }
 
     /**

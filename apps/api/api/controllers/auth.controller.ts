@@ -57,7 +57,7 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       httpOnly: true,
       // In production we must use Secure + SameSite=None for cross-site cookies
       secure: true,
-      sameSite: 'none',
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
     };
 

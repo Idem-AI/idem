@@ -4,6 +4,7 @@ namespace Idem\SharedAuth;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Cookie\CookieJar;
 use Idem\SharedAuth\Models\UserModel;
 use Idem\SharedAuth\Models\TeamModel;
 use Idem\SharedAuth\Exceptions\AuthException;
@@ -19,11 +20,15 @@ class AuthClient
     private string $apiBaseUrl;
     private ?string $authToken = null;
     private ?string $cookieHeader = null;
+    private CookieJar $cookieJar;
 
     public function __construct(string $apiBaseUrl, ?string $authToken = null)
     {
         $this->apiBaseUrl = rtrim($apiBaseUrl, '/');
         $this->authToken = $authToken;
+        
+        // Créer un CookieJar pour gérer les cookies (équivalent de withCredentials: true)
+        $this->cookieJar = new CookieJar();
         
         $this->httpClient = new Client([
             'base_uri' => $this->apiBaseUrl,
@@ -32,6 +37,9 @@ class AuthClient
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ],
+            // Équivalent de withCredentials: true
+            // Permet d'envoyer et recevoir les cookies automatiquement
+            'cookies' => $this->cookieJar,
         ]);
     }
 
@@ -67,6 +75,25 @@ class AuthClient
     }
 
     /**
+     * Injecter des cookies dans le CookieJar
+     * Équivalent de withCredentials: true avec cookies pré-existants
+     */
+    public function injectCookies(array $cookies): void
+    {
+        $apiUrl = parse_url($this->apiBaseUrl);
+        $domain = $apiUrl['host'] ?? 'localhost';
+        
+        foreach ($cookies as $name => $value) {
+            $this->cookieJar->setCookie(new \GuzzleHttp\Cookie\SetCookie([
+                'Name' => $name,
+                'Value' => $value,
+                'Domain' => $domain,
+                'Path' => '/',
+            ]));
+        }
+    }
+
+    /**
      * Effectuer une requête HTTP
      */
     private function request(string $method, string $endpoint, array $options = []): array
@@ -77,11 +104,7 @@ class AuthClient
                 $this->getAuthHeaders()
             );
 
-            // Ajouter le header Cookie si défini
-            if ($this->cookieHeader) {
-                $options['headers']['Cookie'] = $this->cookieHeader;
-            }
-
+            // Le CookieJar gère automatiquement les cookies (withCredentials: true)
             $response = $this->httpClient->request($method, $endpoint, $options);
             
             return $this->parseResponse($response);
