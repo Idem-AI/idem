@@ -14,7 +14,6 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\IdemAdminController;
 use App\Http\Controllers\Api\IdemSubscriptionController;
 use App\Http\Controllers\Api\IdemStripeController;
-use App\Http\Controllers\Api\AuthController;
 use App\Http\Middleware\ApiAllowed;
 use App\Http\Middleware\IdemAdminAuth;
 use App\Http\Middleware\CheckIdemQuota;
@@ -31,15 +30,9 @@ Route::group([
 
 Route::post('/feedback', [OtherController::class, 'feedback']);
 
-// IDEM Authentication routes (JWT)
-Route::prefix('v1/auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', [AuthController::class, 'logout']);
-});
-
-// IDEM SaaS Routes (JWT Authentication)
+// IDEM SaaS Routes (Authentification centralisée via shared-auth-php)
 Route::group([
-    'middleware' => [\App\Http\Middleware\SharedJwtAuth::class],
+    'middleware' => ['idem.auth'],
     'prefix' => 'v1',
 ], function () {
     // Client Subscription Routes
@@ -75,14 +68,14 @@ Route::group([
 });
 
 Route::group([
-    'middleware' => ['auth:sanctum', 'api.ability:write'],
+    'middleware' => ['idem.auth', 'api.ability:write'],
     'prefix' => 'v1',
 ], function () {
     Route::get('/enable', [OtherController::class, 'enable_api']);
     Route::get('/disable', [OtherController::class, 'disable_api']);
 });
 Route::group([
-    'middleware' => ['auth:sanctum', ApiAllowed::class, 'api.sensitive'],
+    'middleware' => ['idem.auth', ApiAllowed::class, 'api.sensitive'],
     'prefix' => 'v1',
 ], function () {
 
@@ -246,6 +239,11 @@ Route::group([
         return response()->json(['message' => 'ok'], 200);
     });
 });
+
+// ============================================
+// Routes de Test - Package shared-auth-php
+// ============================================
+require __DIR__ . '/test-auth.php';
 
 Route::any('/{any}', function () {
     return response()->json(['message' => 'Not found.', 'docs' => 'https://ideploy.io/docs'], 404);

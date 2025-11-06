@@ -87,23 +87,21 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 Route::get('/admin', AdminIndex::class)->name('admin.index');
 
-Route::post('/forgot-password', [Controller::class, 'forgot_password'])->name('password.forgot')->middleware('throttle:forgot-password');
-Route::get('/realtime', [Controller::class, 'realtime_test'])->middleware('auth');
-Route::get('/verify', [Controller::class, 'verify'])->middleware('auth')->name('verify.email');
-Route::get('/email/verify/{id}/{hash}', [Controller::class, 'email_verify'])->middleware(['auth'])->name('verify.verify');
-Route::middleware(['throttle:login'])->group(function () {
-    Route::get('/auth/link', [Controller::class, 'link'])->name('auth.link');
-});
+// Routes supprimées - Authentification centralisée via dashboard
+// Plus de login/register local
 
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
+
+// Page d'accueil - Dashboard Ideploy (avec authentification)
+Route::get('/', Dashboard::class)->middleware(['idem.auth'])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['throttle:force-password-reset'])->group(function () {
         Route::get('/force-password-reset', ForcePasswordReset::class)->name('auth.force-password-reset');
     });
 
-    Route::get('/', Dashboard::class)->name('dashboard');
+    Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/onboarding', BoardingIndex::class)->name('onboarding');
 
     Route::get('/subscription', SubscriptionShow::class)->name('subscription.show');
@@ -383,11 +381,12 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 require __DIR__.'/idem.php';
 
-// Catch-all route (must be last)
+// Catch-all route - Afficher la page d'authentification
+// Exclure les routes API et test
 Route::any('/{any}', function () {
-    if (auth()->user()) {
-        return redirect(RouteServiceProvider::HOME);
-    }
-
-    return redirect()->route('login');
-})->where('any', '.*');
+    // Afficher la page d'authentification au lieu de rediriger
+    $dashboardUrl = config('idem.dashboard_url', 'http://localhost:4200');
+    return view('idem-auth::unauthenticated', [
+        'dashboardUrl' => $dashboardUrl
+    ]);
+})->where('any', '^(?!api|test).*');

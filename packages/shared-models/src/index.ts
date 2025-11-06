@@ -35,6 +35,6 @@ export interface ApiResponse<T> {
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: string;
   };
 }

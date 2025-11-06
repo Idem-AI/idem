@@ -188,6 +188,7 @@ return [
          * Package Service Providers...
          */
         \SocialiteProviders\Manager\ServiceProvider::class,
+        \Idem\SharedAuth\Laravel\IdemAuthServiceProvider::class,
 
         /*
          * Application Service Providers...
