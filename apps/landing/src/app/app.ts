@@ -1,10 +1,8 @@
-import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, Router, ActivatedRoute, NavigationEnd } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { SplashScreenComponent } from './components/splash-screen/splash-screen';
-import { filter, map, startWith, distinctUntilChanged } from 'rxjs/operators';
-import { Observable, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { filter } from 'rxjs/operators';
 
 import { AnalyticsService } from './shared/services/analytics.service';
 import { Header } from './components/header/header';

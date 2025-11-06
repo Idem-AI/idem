@@ -47,14 +47,9 @@ export class AuthService {
       );
       console.log('CurrentUser', user);
       this.currentUserSubject.next(user);
-    } catch (error: any) {
-      if (error.status === 401 || error.status === 403) {
-        // Utilisateur non authentifié
-        this.currentUserSubject.next(null);
-      } else {
-        console.error('Error fetching current user:', error);
-        this.currentUserSubject.next(null);
-      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      this.currentUserSubject.next(null);
     }
   }
 
