@@ -17,8 +17,6 @@ import { BusinessPlan } from '../../components/business-plan/business-plan';
 import { Diagrams } from '../../components/diagrams/diagrams';
 import { DeploymentScreenshots } from '../../components/deployment-screenshots/deployment-screenshots';
 import { AfricanMarketComponent } from '../../components/african-market/african-market';
-import { Pricing } from '../../components/pricing/pricing';
-import { CtaSection } from '../../components/cta-section/cta-section';
 import { Cta } from '../../components/cta/cta';
 
 @Component({

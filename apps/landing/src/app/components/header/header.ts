@@ -15,7 +15,6 @@ import { BadgeModule } from 'primeng/badge';
 import { AvatarModule } from 'primeng/avatar';
 import { InputTextModule } from 'primeng/inputtext';
 import { CommonModule } from '@angular/common';
-import { MenuItem } from 'primeng/api';
 import { BetaBadgeComponent } from '../../shared/components/beta-badge/beta-badge';
 import { ButtonModule } from 'primeng/button';
 import { DOCUMENT } from '@angular/common';

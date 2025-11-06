@@ -170,7 +170,7 @@ export class BrandCharter implements OnInit {
       hasOfferCatalog: {
         '@type': 'OfferCatalog',
         name: $localize`:@@brand-charter.seo.offerCatalogName:Brand Elements`,
-        itemListElement: this.brandElements().map((element, index) => ({
+        itemListElement: this.brandElements().map((element) => ({
           '@type': 'Offer',
           itemOffered: {
             '@type': 'Service',

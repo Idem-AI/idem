@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
+import { Component, signal, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { SeoService } from '../../shared/services/seo.service';
 
@@ -212,7 +212,7 @@ export class BusinessPlan implements OnInit {
       hasOfferCatalog: {
         '@type': 'OfferCatalog',
         name: $localize`:@@business-plan.seo.offerCatalogName:Business Plan Components`,
-        itemListElement: this.planSections().map((section, index) => ({
+        itemListElement: this.planSections().map((section) => ({
           '@type': 'Offer',
           itemOffered: {
             '@type': 'Service',
