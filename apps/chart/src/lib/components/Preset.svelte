@@ -225,7 +225,7 @@ packet-beta
         return code
           .replace(/^```mermaid\s*/i, '')
           .replace(/\s*```$/i, '')
-          .replace(/ {3,}/g, '\n');
+          .replaceAll(/ {3,}/g, '\n');
       }
 
       samples.Class = stripMermaid(diagrams.classDiagram.content);

@@ -1,4 +1,4 @@
-import type { SectionModel } from "./section.model";
+import type { SectionModel } from './section.model';
 
 export interface DiagramModel {
   id?: string;

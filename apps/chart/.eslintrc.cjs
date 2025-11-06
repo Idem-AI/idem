@@ -11,15 +11,7 @@ module.exports = {
     'plugin:svelte/prettier',
     'prettier'
   ],
-  plugins: [
-    'tailwindcss',
-    '@typescript-eslint',
-    'es',
-    'vitest',
-    'no-only-tests',
-    'sort-keys',
-    'unicorn'
-  ],
+  plugins: ['@typescript-eslint', 'es', 'vitest', 'no-only-tests', 'sort-keys', 'unicorn'],
   ignorePatterns: [
     'docs/*',
     '*.cjs',

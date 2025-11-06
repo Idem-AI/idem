@@ -5,11 +5,11 @@
   import { stateStore, updateCode } from '$lib/util/state';
   import Loader from '$/components/ui/Loader.svelte';
 
-  export let diagram: DiagramModel | undefined = undefined;
+  export let diagram: DiagramModel | undefined;
   export let selectedSection: string = '';
 
   let sections: SectionModel[] = [];
-  let currentSection: SectionModel | undefined = undefined;
+  let currentSection: SectionModel | undefined;
 
   $: if (diagram?.sections) {
     sections = diagram.sections;
@@ -19,7 +19,7 @@
   }
 
   $: if (selectedSection && sections.length > 0) {
-    currentSection = sections.find(section => section.name === selectedSection);
+    currentSection = sections.find((section) => section.name === selectedSection);
     if (currentSection?.data) {
       // Format the diagram data with proper mermaid syntax
       const formattedData = formatDiagramData(currentSection.data);
@@ -30,13 +30,13 @@
 
   function formatDiagramData(data: string): string {
     // Remove any existing backticks and trim whitespace
-    let cleanData = data.replace(/^```[\s\S]*?```$/g, '').trim();
-    
+    let cleanData = data.replaceAll(/^```[\S\s]*?```$/g, '').trim();
+
     // Remove "mermaid" keyword if it exists at the beginning
     if (cleanData.toLowerCase().startsWith('mermaid')) {
-      cleanData = cleanData.substring(7).trim(); // Remove "mermaid" and trim
+      cleanData = cleanData.slice(7).trim(); // Remove "mermaid" and trim
     }
-    
+
     // Return clean data without any formatting
     return cleanData;
   }
@@ -68,12 +68,11 @@
           {#each sections as section}
             <button
               on:click={() => selectSection(section.name)}
-              class="whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors
+              class="border-b-2 px-1 py-2 text-sm font-medium whitespace-nowrap transition-colors
                 {selectedSection === section.name
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
-              aria-current={selectedSection === section.name ? 'page' : undefined}
-            >
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
+              aria-current={selectedSection === section.name ? 'page' : undefined}>
               {getSectionDisplayName(section.name)}
             </button>
           {/each}
@@ -82,8 +81,8 @@
 
       <!-- Current section info -->
       {#if currentSection}
-        <div class="mb-4 rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+        <div class="mb-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+          <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
             {getSectionDisplayName(currentSection.name)}
           </h3>
           {#if currentSection.summary}
@@ -95,18 +94,16 @@
       {/if}
     {:else if diagram.content}
       <!-- Fallback for projects with content but no sections -->
-      <div class="mb-4 rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      <div class="mb-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+        <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
           {diagram.title || 'Project diagram'}
         </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          Main project diagram
-        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Main project diagram</p>
       </div>
     {:else}
       <!-- No diagram data available -->
-      <div class="mb-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 p-4">
-        <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+      <div class="mb-4 rounded-lg bg-yellow-50 p-4 dark:bg-yellow-900/20">
+        <h3 class="mb-2 text-lg font-semibold text-yellow-800 dark:text-yellow-200">
           No diagram available
         </h3>
         <p class="text-sm text-yellow-600 dark:text-yellow-300">

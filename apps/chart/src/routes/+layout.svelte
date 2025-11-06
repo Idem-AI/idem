@@ -19,7 +19,7 @@
   onMount(() => {
     // Hide the initial global loader once Svelte is ready
     const hideInitialLoader = () => {
-      const loader = document.getElementById('initial-loader');
+      const loader = document.querySelector('#initial-loader');
       if (loader) {
         loader.style.opacity = '0';
         setTimeout(() => {
@@ -60,13 +60,13 @@
 <ModeWatcher />
 <Toaster />
 
-<main class="h-screen bg-background">
+<main class="bg-background h-screen">
   {@render children()}
 </main>
 
 {#if $loadingStateStore.loading}
   <div
-    class="absolute left-0 top-0 z-50 flex h-screen w-screen justify-center bg-gray-600 align-middle opacity-50">
+    class="absolute top-0 left-0 z-50 flex h-screen w-screen justify-center bg-gray-600 align-middle opacity-50">
     <div class="my-auto text-4xl font-bold text-indigo-100">
       <div class="loader mx-auto"></div>
       <div>{$loadingStateStore.message}</div>
