@@ -37,11 +37,19 @@ class IdemAuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Charger les vues
+        $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'idem-auth');
+
         // Publier la configuration
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__ . '/../../config/idem-auth.php' => config_path('idem-auth.php'),
             ], 'idem-auth-config');
+
+            // Publier les vues
+            $this->publishes([
+                __DIR__ . '/../../resources/views' => resource_path('views/vendor/idem-auth'),
+            ], 'idem-auth-views');
         }
 
         // Enregistrer le middleware

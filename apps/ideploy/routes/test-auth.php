@@ -39,6 +39,13 @@ Route::get('/test/api-health', function (AuthClient $authClient) {
     }
 });
 
+// Test de la page HTML d'erreur (sans authentification)
+Route::get('/test/auth/page', function () {
+    return view('idem-auth::unauthenticated', [
+        'dashboardUrl' => config('idem.dashboard_url', 'http://localhost:4200')
+    ]);
+});
+
 // Test avec authentification
 Route::middleware(['idem.auth'])->group(function () {
     

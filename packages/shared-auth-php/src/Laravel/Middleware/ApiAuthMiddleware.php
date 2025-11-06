@@ -9,7 +9,6 @@ use Idem\SharedAuth\AuthClient;
 use Idem\SharedAuth\Models\UserModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Middleware Laravel pour authentifier via l'API centrale
@@ -19,51 +18,38 @@ use Illuminate\Support\Facades\Cache;
  */
 class ApiAuthMiddleware
 {
-    private AuthClient $authClient;
-
-    public function __construct()
-    {
-        $apiUrl = config('idem.api_url', 'http://localhost:3001');
-        $this->authClient = new AuthClient($apiUrl);
-    }
+    private Request $request;
 
     /**
      * Handle an incoming request.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Récupérer le token d'authentification
-        $token = $this->extractToken($request);
-
-        if (!$token) {
-            Log::warning('Authentication failed: No token provided', [
-                'ip' => $request->ip(),
-                'path' => $request->path(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: No authentication credentials provided'
-            ], 401);
-        }
+        $this->request = $request;
 
         try {
-            // Configurer le token pour l'AuthClient
-            $this->authClient->setAuthToken($token);
-
-            // Récupérer le profil utilisateur depuis l'API centrale
-            // L'API centrale vérifie le token Firebase en interne
-            $userProfile = $this->getUserProfileFromApi();
+            // Créer l'AuthClient
+            $apiUrl = config('idem.api_url', 'http://localhost:3001');
+            $authClient = new AuthClient($apiUrl);
+            
+            // Transférer les cookies via le header Cookie
+            $cookieHeader = $this->getCookieHeaderFromRequest($request);
+            if ($cookieHeader) {
+                $authClient->setCookieHeader($cookieHeader);
+            }
+            
+            // Vérifier l'authentification via l'API centrale
+            // L'API centrale vérifie le cookie de session
+            $userProfile = $authClient->getUserProfile();
 
             if (!$userProfile) {
-                Log::warning('Authentication failed: Invalid token or user not found', [
+                Log::warning('Authentication failed: No valid session', [
                     'ip' => $request->ip(),
+                    'path' => $request->path(),
                 ]);
 
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized: Invalid authentication credentials'
-                ], 401);
+                // Retourner une page HTML au lieu de JSON
+                return $this->unauthenticatedResponse();
             }
 
             // Synchroniser l'utilisateur localement
@@ -85,57 +71,56 @@ class ApiAuthMiddleware
             Log::error('Authentication error: ' . $e->getMessage(), [
                 'stack' => $e->getTraceAsString(),
             ]);
+
+            return $this->unauthenticatedResponse();
         }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Unauthorized: Authentication failed'
-        ], 401);
+        return $this->unauthenticatedResponse();
     }
 
     /**
-     * Extraire le token d'authentification de la requête
+     * Retourner une réponse pour utilisateur non authentifié
      */
-    private function extractToken(Request $request): ?string
+    private function unauthenticatedResponse(): Response
     {
-        // 1. Essayer le cookie de session
-        $sessionCookie = $request->cookie('session');
-        if ($sessionCookie) {
-            return $sessionCookie;
+        $dashboardUrl = config('idem.dashboard_url', 'http://localhost:4200');
+
+        // Si c'est une requête API (JSON), retourner du JSON
+        if ($this->request->expectsJson() || $this->request->is('api/*')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: No valid session',
+                'redirect_url' => $dashboardUrl
+            ], 401);
         }
 
-        // 2. Essayer le header Authorization
-        $authHeader = $request->header('Authorization');
-        if ($authHeader && str_starts_with($authHeader, 'Bearer ')) {
-            return substr($authHeader, 7);
-        }
+        // Sinon, retourner une page HTML
+        $html = view('idem-auth::unauthenticated', [
+            'dashboardUrl' => $dashboardUrl
+        ])->render();
 
-        return null;
+        return response($html, 401);
     }
 
     /**
-     * Récupérer le profil utilisateur depuis l'API centrale (avec cache)
+     * Obtenir le header Cookie depuis la requête
      */
-    private function getUserProfileFromApi(): ?UserModel
+    private function getCookieHeaderFromRequest(Request $request): ?string
     {
-        try {
-            // L'API centrale vérifie le token Firebase et retourne le profil
-            $profile = $this->authClient->getUserProfile();
-            
-            if ($profile) {
-                // Mettre en cache pour 5 minutes
-                Cache::put(
-                    "user_profile_{$profile->uid}",
-                    $profile,
-                    now()->addMinutes(5)
-                );
-            }
-
-            return $profile;
-        } catch (\Exception $e) {
-            Log::warning('Failed to fetch user profile from API: ' . $e->getMessage());
+        // Récupérer tous les cookies de la requête
+        $cookies = $request->cookies->all();
+        
+        if (empty($cookies)) {
             return null;
         }
+        
+        // Construire le header Cookie au format: "name1=value1; name2=value2"
+        $cookiePairs = [];
+        foreach ($cookies as $name => $value) {
+            $cookiePairs[] = "{$name}={$value}";
+        }
+        
+        return implode('; ', $cookiePairs);
     }
 
     /**

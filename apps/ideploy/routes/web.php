@@ -93,11 +93,8 @@ Route::get('/admin', AdminIndex::class)->name('admin.index');
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
 
-// Redirection racine vers le dashboard
-Route::get('/', function () {
-    $dashboardUrl = config('idem.dashboard_url', 'http://localhost:4200');
-    return redirect($dashboardUrl);
-});
+// Page d'accueil - Dashboard Ideploy (avec authentification)
+Route::get('/', Dashboard::class)->middleware(['idem.auth'])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['throttle:force-password-reset'])->group(function () {
@@ -384,10 +381,12 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 require __DIR__.'/idem.php';
 
-// Catch-all route - Redirection vers le dashboard
+// Catch-all route - Afficher la page d'authentification
 // Exclure les routes API et test
 Route::any('/{any}', function () {
-    // Rediriger vers le dashboard pour l'authentification
+    // Afficher la page d'authentification au lieu de rediriger
     $dashboardUrl = config('idem.dashboard_url', 'http://localhost:4200');
-    return redirect($dashboardUrl);
+    return view('idem-auth::unauthenticated', [
+        'dashboardUrl' => $dashboardUrl
+    ]);
 })->where('any', '^(?!api|test).*');
