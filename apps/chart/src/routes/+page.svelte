@@ -18,6 +18,6 @@
 </script>
 
 <!-- Show loading state during redirect -->
-<div class="flex h-screen items-center justify-center bg-background">
+<div class="bg-background flex h-screen items-center justify-center">
   <Loader size="lg" message="Redirection..." />
 </div>

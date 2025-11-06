@@ -20,7 +20,7 @@
   }
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
   <div class="w-full max-w-md rounded-lg bg-white p-6">
     <h2 class="mb-4 text-2xl font-bold">Create Team</h2>
     <form on:submit|preventDefault={handleSubmit}>
@@ -29,7 +29,7 @@
         <input
           type="text"
           bind:value={name}
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="Enter team name"
           required />
       </div>
@@ -38,7 +38,7 @@
         <label class="mb-2 block text-sm font-medium text-gray-700"> Description </label>
         <textarea
           bind:value={description}
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="Enter team description"
           rows="3" />
       </div>

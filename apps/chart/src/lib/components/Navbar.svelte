@@ -63,7 +63,7 @@
 </script>
 
 {#if activePromotion}
-  <div class="top-bar z-10 flex h-fit w-full bg-primary">
+  <div class="top-bar bg-primary z-10 flex h-fit w-full">
     <div
       class="flex flex-grow"
       role="button"
@@ -95,7 +95,7 @@
       id="switcher"
       class="flex items-center justify-center gap-4 font-medium"
       class:flex-row-reverse={isReferral}>
-      <a href="/" class="whitespace-nowrap text-subtitle text-primary">
+      <a href="/" class="text-subtitle text-primary whitespace-nowrap">
         {#if !isReferral}
           <b>IDEM</b> Mermaid
         {/if}
