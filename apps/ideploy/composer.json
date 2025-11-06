@@ -10,8 +10,18 @@
     "self-hosted",
     "server"
   ],
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../../packages/shared-auth-php",
+      "options": {
+        "symlink": true
+      }
+    }
+  ],
   "require": {
     "php": "^8.4",
+    "idem/shared-auth-php": "@dev",
     "danharrin/livewire-rate-limiting": "^2.1.0",
     "doctrine/dbal": "^4.3.0",
     "guzzlehttp/guzzle": "^7.9.3",
