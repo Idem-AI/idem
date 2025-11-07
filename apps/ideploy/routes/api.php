@@ -30,9 +30,9 @@ Route::group([
 
 Route::post('/feedback', [OtherController::class, 'feedback']);
 
-// IDEM SaaS Routes (Authentification centralisée via shared-auth-php)
+// IDEM SaaS Routes (Authentification Laravel standard)
 Route::group([
-    'middleware' => ['idem.auth'],
+    'middleware' => ['auth:sanctum'],
     'prefix' => 'v1',
 ], function () {
     // Client Subscription Routes
@@ -68,14 +68,14 @@ Route::group([
 });
 
 Route::group([
-    'middleware' => ['idem.auth', 'api.ability:write'],
+    'middleware' => ['auth:sanctum', 'api.ability:write'],
     'prefix' => 'v1',
 ], function () {
     Route::get('/enable', [OtherController::class, 'enable_api']);
     Route::get('/disable', [OtherController::class, 'disable_api']);
 });
 Route::group([
-    'middleware' => ['idem.auth', ApiAllowed::class, 'api.sensitive'],
+    'middleware' => ['auth:sanctum', ApiAllowed::class, 'api.sensitive'],
     'prefix' => 'v1',
 ], function () {
 
@@ -239,11 +239,6 @@ Route::group([
         return response()->json(['message' => 'ok'], 200);
     });
 });
-
-// ============================================
-// Routes de Test - Package shared-auth-php
-// ============================================
-require __DIR__ . '/test-auth.php';
 
 Route::any('/{any}', function () {
     return response()->json(['message' => 'Not found.', 'docs' => 'https://ideploy.io/docs'], 404);
