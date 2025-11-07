@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\IdemAdminController;
 use App\Http\Controllers\Api\IdemSubscriptionController;
 use App\Http\Controllers\Api\IdemStripeController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Middleware\ApiAllowed;
 use App\Http\Middleware\IdemAdminAuth;
 use App\Http\Middleware\CheckIdemQuota;
@@ -30,9 +31,15 @@ Route::group([
 
 Route::post('/feedback', [OtherController::class, 'feedback']);
 
-// IDEM SaaS Routes (Authentification Laravel standard)
+// IDEM Authentication routes (JWT)
+Route::prefix('v1/auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
+
+// IDEM SaaS Routes (JWT Authentication)
 Route::group([
-    'middleware' => ['auth:sanctum'],
+    'middleware' => [\App\Http\Middleware\SharedJwtAuth::class],
     'prefix' => 'v1',
 ], function () {
     // Client Subscription Routes
@@ -45,7 +52,7 @@ Route::group([
         Route::get('/upgrade-suggestions', [IdemSubscriptionController::class, 'getUpgradeSuggestions']);
         Route::get('/preflight/app', [IdemSubscriptionController::class, 'checkCanDeploy']);
         Route::get('/preflight/server', [IdemSubscriptionController::class, 'checkCanAddServer']);
-
+        
         // Stripe routes
         Route::post('/stripe/checkout', [IdemStripeController::class, 'createCheckoutSession']);
         Route::get('/stripe/success', [IdemStripeController::class, 'checkoutSuccess']);
@@ -241,5 +248,5 @@ Route::group([
 });
 
 Route::any('/{any}', function () {
-    return response()->json(['message' => 'Not found.', 'docs' => 'https://ideploy.io/docs'], 404);
+    return response()->json(['message' => 'Not found.', 'docs' => 'https://coolify.io/docs'], 404);
 })->where('any', '.*');

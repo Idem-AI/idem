@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
-        {{ data_get_str($project, 'name')->limit(10) }} > Resources | Ideploy
+        {{ data_get_str($project, 'name')->limit(10) }} > Resources | Coolify
     </x-slot>
     <div class="flex flex-col">
         <div class="flex items-center gap-2 mb-4">
@@ -146,7 +146,7 @@
                                         </div>
                                     </div>
                                 </div>
-
+                                
                                 {{-- Content --}}
                                 <div class="p-4 flex-grow">
                                     <div class="space-y-2">
@@ -166,7 +166,7 @@
                                         </template>
                                     </div>
                                 </div>
-
+                                
                                 {{-- Footer with Tags --}}
                                 <div class="px-4 py-3 bg-gray-900/20 border-t border-gray-700/50">
                                     <div class="flex items-center gap-1.5 flex-wrap">

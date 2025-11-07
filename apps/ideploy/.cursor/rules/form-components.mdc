@@ -8,7 +8,7 @@ alwaysApply: true
 
 ## Overview
 
-Ideploy's form components now feature **built-in authorization** that automatically handles permission-based UI control, dramatically reducing code duplication and improving security consistency.
+Coolify's form components now feature **built-in authorization** that automatically handles permission-based UI control, dramatically reducing code duplication and improving security consistency.
 
 ## Enhanced Components
 
@@ -34,7 +34,7 @@ public bool $autoDisable = true;       // Automatically disable if no permission
 // Automatic authorization logic in each component
 if ($this->canGate && $this->canResource && $this->autoDisable) {
     $hasPermission = Gate::allows($this->canGate, $this->canResource);
-
+    
     if (! $hasPermission) {
         $this->disabled = true;
         // For Checkbox: also sets $this->instantSave = false;
@@ -72,37 +72,37 @@ if ($this->canGate && $this->canResource && $this->autoDisable) {
 #### Input Fields
 ```html
 <!-- Basic input with authorization -->
-<x-forms.input
-    canGate="update"
-    :canResource="$application"
-    id="application.name"
+<x-forms.input 
+    canGate="update" 
+    :canResource="$application" 
+    id="application.name" 
     label="Application Name" />
 
 <!-- Password input with authorization -->
-<x-forms.input
+<x-forms.input 
     type="password"
-    canGate="update"
-    :canResource="$application"
-    id="application.database_password"
+    canGate="update" 
+    :canResource="$application" 
+    id="application.database_password" 
     label="Database Password" />
 
 <!-- Required input with authorization -->
-<x-forms.input
+<x-forms.input 
     required
-    canGate="update"
-    :canResource="$application"
-    id="application.fqdn"
+    canGate="update" 
+    :canResource="$application" 
+    id="application.fqdn" 
     label="Domain" />
 ```
 
 #### Select Dropdowns
 ```html
 <!-- Build pack selection -->
-<x-forms.select
-    canGate="update"
-    :canResource="$application"
-    id="application.build_pack"
-    label="Build Pack"
+<x-forms.select 
+    canGate="update" 
+    :canResource="$application" 
+    id="application.build_pack" 
+    label="Build Pack" 
     required>
     <option value="nixpacks">Nixpacks</option>
     <option value="static">Static</option>
@@ -110,10 +110,10 @@ if ($this->canGate && $this->canResource && $this->autoDisable) {
 </x-forms.select>
 
 <!-- Server selection -->
-<x-forms.select
-    canGate="createAnyResource"
-    :canResource="auth()->user()->currentTeam"
-    id="server_id"
+<x-forms.select 
+    canGate="createAnyResource" 
+    :canResource="auth()->user()->currentTeam" 
+    id="server_id" 
     label="Target Server">
     @foreach($servers as $server)
         <option value="{{ $server->id }}">{{ $server->name }}</option>
@@ -124,78 +124,78 @@ if ($this->canGate && $this->canResource && $this->autoDisable) {
 #### Checkboxes with InstantSave
 ```html
 <!-- Static site toggle -->
-<x-forms.checkbox
-    instantSave
-    canGate="update"
-    :canResource="$application"
-    id="application.settings.is_static"
-    label="Is it a static site?"
+<x-forms.checkbox 
+    instantSave 
+    canGate="update" 
+    :canResource="$application" 
+    id="application.settings.is_static" 
+    label="Is it a static site?" 
     helper="Enable if your application serves static files" />
 
 <!-- Debug mode toggle -->
-<x-forms.checkbox
-    instantSave
-    canGate="update"
-    :canResource="$application"
-    id="application.settings.is_debug_enabled"
-    label="Debug Mode"
+<x-forms.checkbox 
+    instantSave 
+    canGate="update" 
+    :canResource="$application" 
+    id="application.settings.is_debug_enabled" 
+    label="Debug Mode" 
     helper="Enable debug logging for troubleshooting" />
 
 <!-- Build server toggle -->
-<x-forms.checkbox
-    instantSave
-    canGate="update"
-    :canResource="$application"
-    id="application.settings.is_build_server_enabled"
-    label="Use Build Server"
+<x-forms.checkbox 
+    instantSave 
+    canGate="update" 
+    :canResource="$application" 
+    id="application.settings.is_build_server_enabled" 
+    label="Use Build Server" 
     helper="Use a dedicated build server for compilation" />
 ```
 
 #### Textareas
 ```html
 <!-- Configuration textarea -->
-<x-forms.textarea
-    canGate="update"
-    :canResource="$application"
-    id="application.docker_compose_raw"
-    label="Docker Compose Configuration"
-    rows="10"
-    monacoEditorLanguage="yaml"
+<x-forms.textarea 
+    canGate="update" 
+    :canResource="$application" 
+    id="application.docker_compose_raw" 
+    label="Docker Compose Configuration" 
+    rows="10" 
+    monacoEditorLanguage="yaml" 
     useMonacoEditor />
 
 <!-- Custom commands -->
-<x-forms.textarea
-    canGate="update"
-    :canResource="$application"
-    id="application.post_deployment_command"
-    label="Post-Deployment Commands"
-    placeholder="php artisan migrate"
+<x-forms.textarea 
+    canGate="update" 
+    :canResource="$application" 
+    id="application.post_deployment_command" 
+    label="Post-Deployment Commands" 
+    placeholder="php artisan migrate" 
     helper="Commands to run after deployment" />
 ```
 
 #### Buttons
 ```html
 <!-- Save button -->
-<x-forms.button
-    canGate="update"
-    :canResource="$application"
+<x-forms.button 
+    canGate="update" 
+    :canResource="$application" 
     type="submit">
     Save Configuration
 </x-forms.button>
 
 <!-- Deploy button -->
-<x-forms.button
-    canGate="deploy"
-    :canResource="$application"
+<x-forms.button 
+    canGate="deploy" 
+    :canResource="$application" 
     wire:click="deploy">
     Deploy Application
 </x-forms.button>
 
 <!-- Delete button -->
-<x-forms.button
-    canGate="delete"
-    :canResource="$application"
-    wire:click="confirmDelete"
+<x-forms.button 
+    canGate="delete" 
+    :canResource="$application" 
+    wire:click="confirmDelete" 
     class="button-danger">
     Delete Application
 </x-forms.button>
@@ -206,33 +206,33 @@ if ($this->canGate && $this->canResource && $this->autoDisable) {
 ### Custom Authorization Logic
 ```html
 <!-- Disable auto-control for complex permissions -->
-<x-forms.input
-    canGate="update"
-    :canResource="$application"
+<x-forms.input 
+    canGate="update" 
+    :canResource="$application" 
     autoDisable="false"
     :disabled="$application->is_deployed || !$application->canModifySettings()"
-    id="deployment.setting"
+    id="deployment.setting" 
     label="Advanced Setting" />
 ```
 
 ### Multiple Permission Checks
 ```html
 <!-- Combine multiple authorization requirements -->
-<x-forms.checkbox
-    canGate="deploy"
-    :canResource="$application"
+<x-forms.checkbox 
+    canGate="deploy" 
+    :canResource="$application" 
     autoDisable="false"
     :disabled="!$application->hasDockerfile() || !Gate::allows('deploy', $application)"
-    id="docker.setting"
+    id="docker.setting" 
     label="Docker-Specific Setting" />
 ```
 
 ### Conditional Resources
 ```html
 <!-- Different resources based on context -->
-<x-forms.button
+<x-forms.button 
     :canGate="$isEditing ? 'update' : 'view'"
-    :canResource="$resource"
+    :canResource="$resource" 
     type="submit">
     {{ $isEditing ? 'Save Changes' : 'View Details' }}
 </x-forms.button>
@@ -339,28 +339,28 @@ When authorization fails:
 test('input component respects authorization', function () {
     $user = User::factory()->member()->create();
     $application = Application::factory()->create();
-
+    
     // Member should see disabled input
     $component = Livewire::actingAs($user)
         ->test(TestComponent::class, [
             'canGate' => 'update',
             'canResource' => $application
         ]);
-
+    
     expect($component->get('disabled'))->toBeTrue();
 });
 
 test('checkbox disables instantSave for unauthorized users', function () {
     $user = User::factory()->member()->create();
     $application = Application::factory()->create();
-
+    
     $component = Livewire::actingAs($user)
         ->test(CheckboxComponent::class, [
             'instantSave' => true,
             'canGate' => 'update',
             'canResource' => $application
         ]);
-
+    
     expect($component->get('disabled'))->toBeTrue();
     expect($component->get('instantSave'))->toBeFalse();
 });
@@ -372,7 +372,7 @@ test('checkbox disables instantSave for unauthorized users', function () {
 test('application form respects member permissions', function () {
     $member = User::factory()->member()->create();
     $application = Application::factory()->create();
-
+    
     $this->actingAs($member)
         ->get(route('application.edit', $application))
         ->assertSee('disabled')

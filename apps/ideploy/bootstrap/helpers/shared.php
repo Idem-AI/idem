@@ -57,7 +57,7 @@ use Visus\Cuid2\Cuid2;
 
 function base_configuration_dir(): string
 {
-    return '/data/ideploy';
+    return '/data/coolify';
 }
 function application_configuration_dir(): string
 {
@@ -230,21 +230,21 @@ function get_route_parameters(): array
 function get_latest_sentinel_version(): string
 {
     try {
-        $response = Http::get('https://cdn.coollabs.io/ideploy/versions.json');
+        $response = Http::get('https://cdn.coollabs.io/coolify/versions.json');
         $versions = $response->json();
 
-        return data_get($versions, 'ideploy.sentinel.version');
+        return data_get($versions, 'coolify.sentinel.version');
     } catch (\Throwable) {
         return '0.0.0';
     }
 }
-function get_latest_version_of_ideploy(): string
+function get_latest_version_of_coolify(): string
 {
     try {
         $versions = File::get(base_path('versions.json'));
         $versions = json_decode($versions, true);
 
-        return data_get($versions, 'ideploy.v4.version');
+        return data_get($versions, 'coolify.v4.version');
     } catch (\Throwable $e) {
 
         return '0.0.0';
@@ -271,14 +271,14 @@ function generateSSHKey(string $type = 'rsa')
 
         return [
             'private' => $key->toString('PKCS1'),
-            'public' => $key->getPublicKey()->toString('OpenSSH', ['comment' => 'ideploy-generated-ssh-key']),
+            'public' => $key->getPublicKey()->toString('OpenSSH', ['comment' => 'coolify-generated-ssh-key']),
         ];
     } elseif ($type === 'ed25519') {
         $key = EC::createKey('Ed25519');
 
         return [
             'private' => $key->toString('OpenSSH'),
-            'public' => $key->getPublicKey()->toString('OpenSSH', ['comment' => 'ideploy-generated-ssh-key']),
+            'public' => $key->getPublicKey()->toString('OpenSSH', ['comment' => 'coolify-generated-ssh-key']),
         ];
     }
     throw new Exception('Invalid key type');
@@ -380,7 +380,7 @@ function isDev(): bool
 
 function isCloud(): bool
 {
-    return ! config('constants.ideploy.self_hosted');
+    return ! config('constants.coolify.self_hosted');
 }
 
 function translate_cron_expression($expression_to_validate): string
@@ -474,7 +474,7 @@ function generateFqdn(Server $server, string $random, bool $forceHttps = false, 
         $scheme = 'https';
     }
 
-    if ($parserVersion >= 5 && version_compare(config('constants.ideploy.version'), '4.0.0-beta.420.7', '>=')) {
+    if ($parserVersion >= 5 && version_compare(config('constants.coolify.version'), '4.0.0-beta.420.7', '>=')) {
         return "{$random}.$host$path";
     }
 
@@ -1444,7 +1444,7 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                 $savedService->save();
 
                 if (! $hasValidNetworkMode) {
-                    // Add Ideploy specific networks
+                    // Add Coolify specific networks
                     $definedNetworkExists = $topLevelNetworks->contains(function ($value, $_) use ($definedNetwork) {
                         return $value == $definedNetwork;
                     });
@@ -1936,8 +1936,8 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                 return $service;
             });
 
-            $envs_from_ideploy = $resource->environment_variables()->get();
-            $services = collect($services)->map(function ($service, $serviceName) use ($resource, $envs_from_ideploy) {
+            $envs_from_coolify = $resource->environment_variables()->get();
+            $services = collect($services)->map(function ($service, $serviceName) use ($resource, $envs_from_coolify) {
                 $serviceVariables = collect(data_get($service, 'environment', []));
                 $parsedServiceVariables = collect([]);
                 foreach ($serviceVariables as $key => $value) {
@@ -1955,26 +1955,26 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                         $parsedServiceVariables->put($key, $value);
                     }
                 }
-                $parsedServiceVariables->put('IDEPLOY_RESOURCE_UUID', "{$resource->uuid}");
-                $parsedServiceVariables->put('IDEPLOY_CONTAINER_NAME', "$serviceName-{$resource->uuid}");
+                $parsedServiceVariables->put('COOLIFY_RESOURCE_UUID', "{$resource->uuid}");
+                $parsedServiceVariables->put('COOLIFY_CONTAINER_NAME', "$serviceName-{$resource->uuid}");
 
                 // TODO: move this in a shared function
-                if (! $parsedServiceVariables->has('IDEPLOY_APP_NAME')) {
-                    $parsedServiceVariables->put('IDEPLOY_APP_NAME', "\"{$resource->name}\"");
+                if (! $parsedServiceVariables->has('COOLIFY_APP_NAME')) {
+                    $parsedServiceVariables->put('COOLIFY_APP_NAME', "\"{$resource->name}\"");
                 }
-                if (! $parsedServiceVariables->has('IDEPLOY_SERVER_IP')) {
-                    $parsedServiceVariables->put('IDEPLOY_SERVER_IP', "\"{$resource->destination->server->ip}\"");
+                if (! $parsedServiceVariables->has('COOLIFY_SERVER_IP')) {
+                    $parsedServiceVariables->put('COOLIFY_SERVER_IP', "\"{$resource->destination->server->ip}\"");
                 }
-                if (! $parsedServiceVariables->has('IDEPLOY_ENVIRONMENT_NAME')) {
-                    $parsedServiceVariables->put('IDEPLOY_ENVIRONMENT_NAME', "\"{$resource->environment->name}\"");
+                if (! $parsedServiceVariables->has('COOLIFY_ENVIRONMENT_NAME')) {
+                    $parsedServiceVariables->put('COOLIFY_ENVIRONMENT_NAME', "\"{$resource->environment->name}\"");
                 }
-                if (! $parsedServiceVariables->has('IDEPLOY_PROJECT_NAME')) {
-                    $parsedServiceVariables->put('IDEPLOY_PROJECT_NAME', "\"{$resource->project()->name}\"");
+                if (! $parsedServiceVariables->has('COOLIFY_PROJECT_NAME')) {
+                    $parsedServiceVariables->put('COOLIFY_PROJECT_NAME', "\"{$resource->project()->name}\"");
                 }
 
-                $parsedServiceVariables = $parsedServiceVariables->map(function ($value, $key) use ($envs_from_ideploy) {
+                $parsedServiceVariables = $parsedServiceVariables->map(function ($value, $key) use ($envs_from_coolify) {
                     if (! str($value)->startsWith('$')) {
-                        $found_env = $envs_from_ideploy->where('key', $key)->first();
+                        $found_env = $envs_from_coolify->where('key', $key)->first();
                         if ($found_env) {
                             return $found_env->value;
                         }
@@ -2758,7 +2758,7 @@ function generate_fluentd_configuration(): array
             'fluentd-async' => 'true',
             'fluentd-sub-second-precision' => 'true',
             // env vars are used in the LogDrain configurations
-            'env' => 'IDEPLOY_APP_NAME,IDEPLOY_PROJECT_NAME,IDEPLOY_SERVER_IP,IDEPLOY_ENVIRONMENT_NAME',
+            'env' => 'COOLIFY_APP_NAME,COOLIFY_PROJECT_NAME,COOLIFY_SERVER_IP,COOLIFY_ENVIRONMENT_NAME',
         ],
     ];
 }
@@ -2782,14 +2782,14 @@ function isAssociativeArray($array)
 
 /**
  * This method adds the default environment variables to the resource.
- * - IDEPLOY_APP_NAME
- * - IDEPLOY_PROJECT_NAME
- * - IDEPLOY_SERVER_IP
- * - IDEPLOY_ENVIRONMENT_NAME
+ * - COOLIFY_APP_NAME
+ * - COOLIFY_PROJECT_NAME
+ * - COOLIFY_SERVER_IP
+ * - COOLIFY_ENVIRONMENT_NAME
  *
  *  Theses variables are added in place to the $where_to_add array.
  */
-function add_ideploy_default_environment_variables(StandaloneRedis|StandalonePostgresql|StandaloneMongodb|StandaloneMysql|StandaloneMariadb|StandaloneKeydb|StandaloneDragonfly|StandaloneClickhouse|Application|Service $resource, Collection &$where_to_add, ?Collection $where_to_check = null)
+function add_coolify_default_environment_variables(StandaloneRedis|StandalonePostgresql|StandaloneMongodb|StandaloneMysql|StandaloneMariadb|StandaloneKeydb|StandaloneDragonfly|StandaloneClickhouse|Application|Service $resource, Collection &$where_to_add, ?Collection $where_to_check = null)
 {
     // Currently disabled
     return;
@@ -2803,32 +2803,32 @@ function add_ideploy_default_environment_variables(StandaloneRedis|StandalonePos
     } else {
         $isAssociativeArray = false;
     }
-    if ($where_to_check != null && $where_to_check->where('key', 'IDEPLOY_APP_NAME')->isEmpty()) {
+    if ($where_to_check != null && $where_to_check->where('key', 'COOLIFY_APP_NAME')->isEmpty()) {
         if ($isAssociativeArray) {
-            $where_to_add->put('IDEPLOY_APP_NAME', "\"{$resource->name}\"");
+            $where_to_add->put('COOLIFY_APP_NAME', "\"{$resource->name}\"");
         } else {
-            $where_to_add->push("IDEPLOY_APP_NAME=\"{$resource->name}\"");
+            $where_to_add->push("COOLIFY_APP_NAME=\"{$resource->name}\"");
         }
     }
-    if ($where_to_check != null && $where_to_check->where('key', 'IDEPLOY_SERVER_IP')->isEmpty()) {
+    if ($where_to_check != null && $where_to_check->where('key', 'COOLIFY_SERVER_IP')->isEmpty()) {
         if ($isAssociativeArray) {
-            $where_to_add->put('IDEPLOY_SERVER_IP', "\"{$ip}\"");
+            $where_to_add->put('COOLIFY_SERVER_IP', "\"{$ip}\"");
         } else {
-            $where_to_add->push("IDEPLOY_SERVER_IP=\"{$ip}\"");
+            $where_to_add->push("COOLIFY_SERVER_IP=\"{$ip}\"");
         }
     }
-    if ($where_to_check != null && $where_to_check->where('key', 'IDEPLOY_ENVIRONMENT_NAME')->isEmpty()) {
+    if ($where_to_check != null && $where_to_check->where('key', 'COOLIFY_ENVIRONMENT_NAME')->isEmpty()) {
         if ($isAssociativeArray) {
-            $where_to_add->put('IDEPLOY_ENVIRONMENT_NAME', "\"{$resource->environment->name}\"");
+            $where_to_add->put('COOLIFY_ENVIRONMENT_NAME', "\"{$resource->environment->name}\"");
         } else {
-            $where_to_add->push("IDEPLOY_ENVIRONMENT_NAME=\"{$resource->environment->name}\"");
+            $where_to_add->push("COOLIFY_ENVIRONMENT_NAME=\"{$resource->environment->name}\"");
         }
     }
-    if ($where_to_check != null && $where_to_check->where('key', 'IDEPLOY_PROJECT_NAME')->isEmpty()) {
+    if ($where_to_check != null && $where_to_check->where('key', 'COOLIFY_PROJECT_NAME')->isEmpty()) {
         if ($isAssociativeArray) {
-            $where_to_add->put('IDEPLOY_PROJECT_NAME', "\"{$resource->project()->name}\"");
+            $where_to_add->put('COOLIFY_PROJECT_NAME', "\"{$resource->project()->name}\"");
         } else {
-            $where_to_add->push("IDEPLOY_PROJECT_NAME=\"{$resource->project()->name}\"");
+            $where_to_add->push("COOLIFY_PROJECT_NAME=\"{$resource->project()->name}\"");
         }
     }
 }
@@ -2888,7 +2888,7 @@ function loadConfigFromGit(string $repository, string $branch, string $base_dire
     $uuid = new Cuid2;
     $cloneCommand = "git clone --no-checkout -b $branch $repository .";
     $workdir = rtrim($base_directory, '/');
-    $fileList = collect([".$workdir/ideploy.json"]);
+    $fileList = collect([".$workdir/coolify.json"]);
     $commands = collect([
         "rm -rf /tmp/{$uuid}",
         "mkdir -p /tmp/{$uuid}",
@@ -2897,7 +2897,7 @@ function loadConfigFromGit(string $repository, string $branch, string $base_dire
         'git sparse-checkout init --cone',
         "git sparse-checkout set {$fileList->implode(' ')}",
         'git read-tree -mu HEAD',
-        "cat .$workdir/ideploy.json",
+        "cat .$workdir/coolify.json",
         'rm -rf /tmp/{$uuid}',
     ]);
     try {

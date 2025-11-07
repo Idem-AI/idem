@@ -121,7 +121,7 @@ class PrivateKey extends BaseModel
             $instance = new self;
             $instance->rateLimit(10);
             $name = generate_random_name();
-            $description = 'Created by Ideploy';
+            $description = 'Created by Coolify';
             $keyPair = generateSSHKey($type === 'ed25519' ? 'ed25519' : 'rsa');
 
             return [

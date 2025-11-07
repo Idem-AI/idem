@@ -1,4 +1,4 @@
-<div wire:key="{{ rand() }}" class="ideploy-monaco-editor flex-1">
+<div wire:key="{{ rand() }}" class="coolify-monaco-editor flex-1">
     <div x-ref="monacoRef" x-data="{
         monacoVersion: '0.52.2',
         monacoContent: @entangle($id),
@@ -60,7 +60,7 @@
                         renderLineHighlight: '{{ $readonly ?? false }} ? none : all',
                         stickyScroll: { enabled: false }
                     });
-
+        
                     const observer = new MutationObserver((mutations) => {
                         mutations.forEach((mutation) => {
                             if (mutation.attributeName === 'class') {
@@ -69,14 +69,14 @@
                             }
                         });
                     });
-
+        
                     observer.observe(document.documentElement, {
                         attributes: true,
                         attributeFilter: ['class']
                     });
-
+        
                     monacoEditor(editor);
-
+        
                     document.getElementById(monacoId).editor = editor;
                     document.getElementById(monacoId).addEventListener('monaco-editor-focused', (event) => {
                         editor.focus();
@@ -88,18 +88,18 @@
                     // Auto-focus the editor
                     setTimeout(() => editor.focus(), 100);
                     @endif
-
+        
                     $watch('monacoContent', value => {
                         if (editor.getValue() !== value) {
                             editor.setValue(value);
                         }
                     });
-
-
+        
+        
                 });
                 clearInterval(monacoLoaderInterval);
                 monacoLoader = false;
-
+        
             }
         }, 5);" :id="monacoId">
         </div>

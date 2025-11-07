@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\IdeployTask;
+namespace App\Actions\CoolifyTask;
 
 use App\Enums\ActivityTypes;
 use App\Enums\ProcessStatus;

@@ -3,18 +3,18 @@ description: High-level project mission, core concepts, and architectural overvi
 globs: README.md, CONTRIBUTING.md, CHANGELOG.md, *.md
 alwaysApply: false
 ---
-# Ideploy Project Overview
+# Coolify Project Overview
 
-## What is Ideploy?
+## What is Coolify?
 
-Ideploy is an **open-source & self-hostable alternative to Heroku / Netlify / Vercel**. It's a comprehensive deployment platform that helps you manage servers, applications, and databases on your own hardware with just an SSH connection.
+Coolify is an **open-source & self-hostable alternative to Heroku / Netlify / Vercel**. It's a comprehensive deployment platform that helps you manage servers, applications, and databases on your own hardware with just an SSH connection.
 
 ## Core Mission
 
-**"Imagine having the ease of a cloud but with your own servers. That is Ideploy."**
+**"Imagine having the ease of a cloud but with your own servers. That is Coolify."**
 
 - **No vendor lock-in** - All configurations saved to your servers
-- **Self-hosted** - Complete control over your infrastructure
+- **Self-hosted** - Complete control over your infrastructure  
 - **SSH-only requirement** - Works with VPS, Bare Metal, Raspberry PIs, anything
 - **Docker-first** - Container-based deployment architecture
 
@@ -90,7 +90,7 @@ Ideploy is an **open-source & self-hostable alternative to Heroku / Netlify / Ve
 - No feature restrictions
 
 ### **Cloud Version (Paid)**
-- Managed Ideploy instance
+- Managed Coolify instance
 - High availability
 - Premium support
 - Email notifications included
@@ -119,7 +119,7 @@ Ideploy is an **open-source & self-hostable alternative to Heroku / Netlify / Ve
 ## Project Structure
 
 ```
-ideploy/
+coolify/
 ├── app/                    # Laravel application core
 │   ├── Models/            # Domain models (Application, Server, Service)
 │   ├── Livewire/          # Frontend components

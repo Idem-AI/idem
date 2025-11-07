@@ -158,7 +158,6 @@ return array(
     'Illuminate\\Support\\' => array($vendorDir . '/laravel/framework/src/Illuminate/Macroable', $vendorDir . '/laravel/framework/src/Illuminate/Collections', $vendorDir . '/laravel/framework/src/Illuminate/Conditionable'),
     'Illuminate\\Foundation\\Auth\\' => array($vendorDir . '/laravel/ui/auth-backend'),
     'Illuminate\\' => array($vendorDir . '/laravel/framework/src/Illuminate'),
-    'Idem\\SharedAuth\\' => array($vendorDir . '/idem/shared-auth-php/src'),
     'GuzzleHttp\\UriTemplate\\' => array($vendorDir . '/guzzlehttp/uri-template/src'),
     'GuzzleHttp\\Psr7\\' => array($vendorDir . '/guzzlehttp/psr7/src'),
     'GuzzleHttp\\Promise\\' => array($vendorDir . '/guzzlehttp/promises/src'),

@@ -53,7 +53,7 @@ class NewDynamicConfiguration extends Component
                 if (! str($this->fileName)->endsWith('.yaml') && ! str($this->fileName)->endsWith('.yml')) {
                     $this->fileName = "{$this->fileName}.yaml";
                 }
-                if ($this->fileName === 'ideploy.yaml') {
+                if ($this->fileName === 'coolify.yaml') {
                     $this->dispatch('error', 'File name is reserved.');
 
                     return;

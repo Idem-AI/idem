@@ -3,7 +3,7 @@ description: Development setup, coding standards, contribution guidelines, and b
 globs: **/*.php, composer.json, package.json, *.md, .env.example
 alwaysApply: false
 ---
-# Ideploy Development Workflow
+# Coolify Development Workflow
 
 ## Development Environment Setup
 
@@ -19,8 +19,8 @@ alwaysApply: false
 #### Using Docker (Recommended)
 ```bash
 # Clone the repository
-git clone https://github.com/coollabsio/ideploy.git
-cd ideploy
+git clone https://github.com/coollabsio/coolify.git
+cd coolify
 
 # Copy environment configuration
 cp .env.example .env
@@ -57,7 +57,7 @@ cp .env.example .env
 php artisan key:generate
 
 # Setup database
-createdb ideploy_dev
+createdb coolify_dev
 php artisan migrate
 php artisan db:seed
 
@@ -135,7 +135,7 @@ class ApplicationDeploymentService
         private readonly DockerService $dockerService,
         private readonly ConfigurationGenerator $configGenerator
     ) {}
-
+    
     public function deploy(Application $application): ApplicationDeploymentQueue
     {
         return DB::transaction(function () use ($application) {
@@ -143,9 +143,9 @@ class ApplicationDeploymentService
                 'status' => 'queued',
                 'commit_sha' => $application->getLatestCommitSha(),
             ]);
-
+            
             DeployApplicationJob::dispatch($deployment);
-
+            
             return $deployment;
         });
     }
@@ -161,20 +161,20 @@ class Application extends Model
     protected $fillable = [
         'name', 'git_repository', 'git_branch', 'fqdn'
     ];
-
+    
     // Type casting
     protected $casts = [
         'environment_variables' => 'array',
         'build_pack' => BuildPack::class,
         'created_at' => 'datetime',
     ];
-
+    
     // Relationships
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);
     }
-
+    
     public function deployments(): HasMany
     {
         return $this->hasMany(ApplicationDeploymentQueue::class);
@@ -189,11 +189,11 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('deploymentMonitor', () => ({
         status: 'idle',
         logs: [],
-
+        
         init() {
             this.connectWebSocket();
         },
-
+        
         connectWebSocket() {
             Echo.private(`application.${this.applicationId}`)
                 .listen('DeploymentStarted', (e) => {
@@ -241,12 +241,12 @@ class CreateApplicationDeploymentQueuesTable extends Migration
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
             $table->timestamps();
-
+            
             $table->index(['application_id', 'status']);
             $table->index('created_at');
         });
     }
-
+    
     public function down(): void
     {
         Schema::dropIfExists('application_deployment_queues');
@@ -260,7 +260,7 @@ class CreateApplicationDeploymentQueuesTable extends Migration
 class ApplicationFactory extends Factory
 {
     protected $model = Application::class;
-
+    
     public function definition(): array
     {
         return [
@@ -273,7 +273,7 @@ class ApplicationFactory extends Factory
             'environment_id' => Environment::factory(),
         ];
     }
-
+    
     public function withCustomDomain(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -294,7 +294,7 @@ class ApplicationController extends Controller
         $this->middleware('auth:sanctum');
         $this->middleware('team.access');
     }
-
+    
     public function index(Request $request): AnonymousResourceCollection
     {
         $applications = $request->user()
@@ -302,27 +302,27 @@ class ApplicationController extends Controller
             ->applications()
             ->with(['server', 'environment', 'latestDeployment'])
             ->paginate();
-
+            
         return ApplicationResource::collection($applications);
     }
-
+    
     public function store(StoreApplicationRequest $request): ApplicationResource
     {
         $application = $request->user()
             ->currentTeam
             ->applications()
             ->create($request->validated());
-
+            
         return new ApplicationResource($application);
     }
-
+    
     public function deploy(Application $application): JsonResponse
     {
         $this->authorize('deploy', $application);
-
+        
         $deployment = app(ApplicationDeploymentService::class)
             ->deploy($application);
-
+            
         return response()->json([
             'message' => 'Deployment started successfully',
             'deployment_id' => $deployment->id,
@@ -347,12 +347,12 @@ class ApplicationResource extends JsonResource
             'build_pack' => $this->build_pack,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-
+            
             // Conditional relationships
             'server' => new ServerResource($this->whenLoaded('server')),
             'environment' => new EnvironmentResource($this->whenLoaded('environment')),
             'latest_deployment' => new DeploymentResource($this->whenLoaded('latestDeployment')),
-
+            
             // Computed attributes
             'deployment_url' => $this->getDeploymentUrl(),
             'can_deploy' => $this->canDeploy(),
@@ -369,40 +369,40 @@ class ApplicationShow extends Component
 {
     public Application $application;
     public bool $showLogs = false;
-
+    
     protected $listeners = [
         'deployment.started' => 'refreshDeploymentStatus',
         'deployment.completed' => 'refreshDeploymentStatus',
     ];
-
+    
     public function mount(Application $application): void
     {
         $this->authorize('view', $application);
         $this->application = $application;
     }
-
+    
     public function deploy(): void
     {
         $this->authorize('deploy', $this->application);
-
+        
         try {
             app(ApplicationDeploymentService::class)->deploy($this->application);
-
+            
             $this->dispatch('deployment.started', [
                 'application_id' => $this->application->id
             ]);
-
+            
             session()->flash('success', 'Deployment started successfully');
         } catch (Exception $e) {
             session()->flash('error', 'Failed to start deployment: ' . $e->getMessage());
         }
     }
-
+    
     public function refreshDeploymentStatus(): void
     {
         $this->application->refresh();
     }
-
+    
     public function render(): View
     {
         return view('livewire.application.show', [
@@ -423,54 +423,54 @@ class ApplicationShow extends Component
 class DeployApplicationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
+    
     public int $tries = 3;
     public int $maxExceptions = 1;
-
+    
     public function __construct(
         public ApplicationDeploymentQueue $deployment
     ) {}
-
+    
     public function handle(
         DockerService $dockerService,
         ConfigurationGenerator $configGenerator
     ): void {
         $this->deployment->update(['status' => 'running', 'started_at' => now()]);
-
+        
         try {
             // Generate configuration
             $config = $configGenerator->generateDockerCompose($this->deployment->application);
-
+            
             // Build and deploy
             $imageTag = $dockerService->buildImage($this->deployment->application);
             $dockerService->deployContainer($this->deployment->application, $imageTag);
-
+            
             $this->deployment->update([
                 'status' => 'success',
                 'finished_at' => now()
             ]);
-
+            
             // Broadcast success
             broadcast(new DeploymentCompleted($this->deployment));
-
+            
         } catch (Exception $e) {
             $this->deployment->update([
                 'status' => 'failed',
                 'error_message' => $e->getMessage(),
                 'finished_at' => now()
             ]);
-
+            
             broadcast(new DeploymentFailed($this->deployment));
-
+            
             throw $e;
         }
     }
-
+    
     public function backoff(): array
     {
         return [1, 5, 10];
     }
-
+    
     public function failed(Throwable $exception): void
     {
         $this->deployment->update([
@@ -492,21 +492,21 @@ test('user can deploy application via API', function () {
     $application = Application::factory()->create([
         'team_id' => $user->currentTeam->id
     ]);
-
+    
     // Mock external services
     $this->mock(DockerService::class, function ($mock) {
         $mock->shouldReceive('buildImage')->andReturn('app:latest');
         $mock->shouldReceive('deployContainer')->andReturn(true);
     });
-
+    
     $response = $this->actingAs($user)
         ->postJson("/api/v1/applications/{$application->id}/deploy");
-
+    
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'Deployment started successfully'
         ]);
-
+    
     expect($application->deployments()->count())->toBe(1);
     expect($application->deployments()->first()->status)->toBe('queued');
 });
@@ -518,14 +518,14 @@ test('user can deploy application via API', function () {
 ```php
 /**
  * Deploy an application to the specified server.
- *
+ * 
  * This method creates a new deployment queue entry and dispatches
  * a background job to handle the actual deployment process.
- *
+ * 
  * @param Application $application The application to deploy
  * @param array $options Additional deployment options
  * @return ApplicationDeploymentQueue The created deployment queue entry
- *
+ * 
  * @throws DeploymentException When deployment cannot be started
  * @throws ServerConnectionException When server is unreachable
  */

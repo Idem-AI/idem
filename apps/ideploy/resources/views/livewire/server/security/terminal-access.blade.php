@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($server, 'name')->limit(10) }} > Terminal Access | Ideploy
+        {{ data_get_str($server, 'name')->limit(10) }} > Terminal Access | Coolify
     </x-slot>
     <livewire:server.navbar :server="$server" />
     <div x-data="{ activeTab: window.location.hash ? window.location.hash.substring(1) : 'general' }" class="flex flex-col h-full gap-8 sm:flex-row">

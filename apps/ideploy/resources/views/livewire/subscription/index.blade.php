@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Subscribe | Ideploy
+        Subscribe | Coolify
     </x-slot>
     @if (auth()->user()->isAdminFromSession())
         @if (request()->query->get('cancelled'))
@@ -24,7 +24,7 @@
         @else
             @if ($isUnpaid)
                 <div class="mb-6 rounded-sm alert-error">
-                    <span>Your last payment was failed for Ideploy Cloud.</span>
+                    <span>Your last payment was failed for Coolify Cloud.</span>
                 </div>
                 <div>
                     <p class="mb-2">Open the following link, navigate to the button and pay your unpaid/past due
@@ -42,7 +42,7 @@
                             <div class="alert-error">
                                 <span>It looks like your previous subscription has been cancelled, because you forgot to
                                     pay
-                                    the bills.<br />Please subscribe again to continue using Ideploy.</span>
+                                    the bills.<br />Please subscribe again to continue using Coolify.</span>
                             </div>
                         @endif
                     </div>

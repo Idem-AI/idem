@@ -16,7 +16,7 @@ class CaSslCertSeeder extends Seeder
 
                 if (! $existingCaCert) {
                     $caCert = SslHelper::generateSslCertificate(
-                        commonName: 'Ideploy CA Certificate',
+                        commonName: 'Coolify CA Certificate',
                         serverId: $server->id,
                         isCaCertificate: true,
                         validityDays: 10 * 365
@@ -24,15 +24,15 @@ class CaSslCertSeeder extends Seeder
                 } else {
                     $caCert = $existingCaCert;
                 }
-                $caCertPath = config('constants.ideploy.base_config_path').'/ssl/';
+                $caCertPath = config('constants.coolify.base_config_path').'/ssl/';
 
                 $commands = collect([
                     "mkdir -p $caCertPath",
                     "chown -R 9999:root $caCertPath",
                     "chmod -R 700 $caCertPath",
-                    "rm -rf $caCertPath/ideploy-ca.crt",
-                    "echo '{$caCert->ssl_certificate}' > $caCertPath/ideploy-ca.crt",
-                    "chmod 644 $caCertPath/ideploy-ca.crt",
+                    "rm -rf $caCertPath/coolify-ca.crt",
+                    "echo '{$caCert->ssl_certificate}' > $caCertPath/coolify-ca.crt",
+                    "chmod 644 $caCertPath/coolify-ca.crt",
                 ]);
 
                 remote_process($commands, $server);

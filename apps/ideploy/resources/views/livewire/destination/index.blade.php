@@ -1,8 +1,8 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
-        Destinations | Ideploy
+        Destinations | Coolify
     </x-slot>
-
+    
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center gap-3 mb-2">
@@ -51,7 +51,7 @@
                                         </svg>
                                     @endif
                                 </div>
-
+                                
                                 {{-- Destination Info --}}
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
@@ -70,7 +70,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        
                         {{-- Footer --}}
                         <div class="px-5 py-4 bg-gray-900/20">
                             <div class="flex items-center justify-between text-xs">

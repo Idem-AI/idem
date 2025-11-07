@@ -1,6 +1,6 @@
-# Guide d'installation locale de Ideploy (sans Docker)
+# Guide d'installation locale de Coolify (sans Docker)
 
-Ce guide vous permet d'exécuter Ideploy directement sur macOS sans utiliser Docker.
+Ce guide vous permet d'exécuter Coolify directement sur macOS sans utiliser Docker.
 
 ## 📋 Prérequis
 
@@ -205,7 +205,7 @@ brew services stop redis
 
 ## ⚠️ Limitations en mode local
 
-Ideploy est conçu pour gérer des conteneurs Docker sur des serveurs distants. En mode local sans Docker :
+Coolify est conçu pour gérer des conteneurs Docker sur des serveurs distants. En mode local sans Docker :
 
 - ❌ **Déploiement d'applications** : Non fonctionnel (nécessite Docker)
 - ❌ **Gestion de serveurs distants** : Limitée
@@ -254,7 +254,7 @@ chmod -R 775 storage bootstrap/cache
 ## 📚 Ressources
 
 - [Documentation Laravel](https://laravel.com/docs)
-- [Documentation Ideploy](https://ideploy.io/docs)
+- [Documentation Coolify](https://ideploy.io/docs)
 - [Livewire Documentation](https://livewire.laravel.com/docs)
 
 ## 🆘 Support

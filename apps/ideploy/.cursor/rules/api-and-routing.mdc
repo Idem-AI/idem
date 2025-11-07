@@ -3,11 +3,11 @@ description: RESTful API design, routing patterns, webhooks, and HTTP communicat
 globs: routes/*.php, app/Http/Controllers/**/*.php, app/Http/Resources/*.php, app/Http/Requests/*.php
 alwaysApply: false
 ---
-# Ideploy API & Routing Architecture
+# Coolify API & Routing Architecture
 
 ## Routing Structure
 
-Ideploy implements **multi-layered routing** with web interfaces, RESTful APIs, webhook endpoints, and real-time communication channels.
+Coolify implements **multi-layered routing** with web interfaces, RESTful APIs, webhook endpoints, and real-time communication channels.
 
 ## Route Files
 
@@ -79,7 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-
+    
     // Team-scoped resources
     Route::middleware('team.access')->group(function () {
         Route::apiResource('applications', ApplicationController::class);
@@ -96,7 +96,7 @@ Route::prefix('applications')->group(function () {
     Route::get('/{application}', [ApplicationController::class, 'show']);
     Route::patch('/{application}', [ApplicationController::class, 'update']);
     Route::delete('/{application}', [ApplicationController::class, 'destroy']);
-
+    
     // Deployment operations
     Route::post('/{application}/deploy', [ApplicationController::class, 'deploy']);
     Route::post('/{application}/restart', [ApplicationController::class, 'restart']);
@@ -114,7 +114,7 @@ Route::prefix('servers')->group(function () {
     Route::get('/{server}', [ServerController::class, 'show']);
     Route::patch('/{server}', [ServerController::class, 'update']);
     Route::delete('/{server}', [ServerController::class, 'destroy']);
-
+    
     // Server actions
     Route::post('/{server}/validate', [ServerController::class, 'validate']);
     Route::get('/{server}/usage', [ServerController::class, 'usage']);
@@ -131,7 +131,7 @@ Route::prefix('databases')->group(function () {
     Route::get('/{database}', [DatabaseController::class, 'show']);
     Route::patch('/{database}', [DatabaseController::class, 'update']);
     Route::delete('/{database}', [DatabaseController::class, 'destroy']);
-
+    
     // Database actions
     Route::post('/{database}/backup', [DatabaseController::class, 'backup']);
     Route::post('/{database}/restore', [DatabaseController::class, 'restore']);
@@ -222,20 +222,20 @@ class ApplicationController extends Controller
                 ->paginate()
         );
     }
-
+    
     public function store(StoreApplicationRequest $request)
     {
         $application = $request->user()->currentTeam
             ->applications()
             ->create($request->validated());
-
+            
         return new ApplicationResource($application);
     }
-
+    
     public function deploy(Application $application)
     {
         $deployment = $application->deploy();
-
+        
         return response()->json([
             'message' => 'Deployment started',
             'deployment_id' => $deployment->id
@@ -277,12 +277,12 @@ Route::post('/auth/tokens', function (Request $request) {
         'name' => 'required|string',
         'abilities' => 'array'
     ]);
-
+    
     $token = $request->user()->createToken(
         $request->name,
         $request->abilities ?? []
     );
-
+    
     return response()->json([
         'token' => $token->plainTextToken,
         'abilities' => $token->accessToken->abilities
@@ -298,11 +298,11 @@ class EnsureTeamAccess
     public function handle($request, Closure $next)
     {
         $teamId = $request->route('team');
-
+        
         if (!$request->user()->teams->contains('id', $teamId)) {
             abort(403, 'Access denied to team resources');
         }
-
+        
         return $next($request);
     }
 }
@@ -391,7 +391,7 @@ class ApiExceptionHandler
                 'timestamp' => now()->toISOString()
             ], $this->getStatusCode($exception));
         }
-
+        
         return parent::render($request, $exception);
     }
 }
@@ -412,7 +412,7 @@ class StoreApplicationRequest extends FormRequest
             'environment_id' => 'required|exists:environments,id'
         ];
     }
-
+    
     public function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(
@@ -434,7 +434,7 @@ class DeploymentStarted implements ShouldBroadcast
 {
     public $application;
     public $deployment;
-
+    
     public function broadcastOn()
     {
         return [
@@ -442,7 +442,7 @@ class DeploymentStarted implements ShouldBroadcast
             new PrivateChannel("team.{$this->application->team->id}")
         ];
     }
-
+    
     public function broadcastWith()
     {
         return [

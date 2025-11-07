@@ -8,7 +8,7 @@ use Carbon\CarbonImmutable;
 
 class SslHelper
 {
-    private const DEFAULT_ORGANIZATION_NAME = 'Ideploy';
+    private const DEFAULT_ORGANIZATION_NAME = 'Coolify';
 
     private const DEFAULT_COUNTRY_NAME = 'XX';
 
@@ -98,7 +98,7 @@ class SslHelper
 
                 [ distinguished_name ]
                 CN = $commonName
-
+                
                 [ req_ext ]
                 basicConstraints = $basicConstraints
                 keyUsage = $keyUsage

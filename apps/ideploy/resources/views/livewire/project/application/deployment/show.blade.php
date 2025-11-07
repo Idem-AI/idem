@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($application, 'name')->limit(10) }} > Deployment | Ideploy
+        {{ data_get_str($application, 'name')->limit(10) }} > Deployment | Coolify
     </x-slot>
     <h1 class="py-0">Deployment</h1>
     <livewire:project.shared.configuration-checker :resource="$application" />
@@ -19,7 +19,7 @@
         },
         toggleScroll() {
             this.alwaysScroll = !this.alwaysScroll;
-
+    
             if (this.alwaysScroll) {
                 this.intervalId = setInterval(() => {
                     const screen = document.getElementById('screen');

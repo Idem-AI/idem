@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        API Tokens | Ideploy
+        API Tokens | Coolify
     </x-slot>
     <x-security.navbar />
     <div class="pb-4">
