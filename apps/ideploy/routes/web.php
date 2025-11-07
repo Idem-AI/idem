@@ -87,28 +87,23 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 Route::get('/admin', AdminIndex::class)->name('admin.index');
 
-// Routes d'authentification IDEM (client-side)
-Route::get('/auth/verify', [\App\Http\Controllers\Auth\IdemAuthController::class, 'showVerifying'])->name('auth.verify');
-Route::get('/auth/error', [\App\Http\Controllers\Auth\IdemAuthController::class, 'showError'])->name('auth.error');
-Route::post('/api/auth/sync', [\App\Http\Controllers\Auth\IdemAuthController::class, 'sync'])->name('auth.sync');
-Route::get('/api/auth/check', [\App\Http\Controllers\Auth\IdemAuthController::class, 'check'])->name('auth.check');
-Route::post('/api/auth/logout', [\App\Http\Controllers\Auth\IdemAuthController::class, 'logout'])->name('auth.logout');
+Route::post('/forgot-password', [Controller::class, 'forgot_password'])->name('password.forgot')->middleware('throttle:forgot-password');
+Route::get('/realtime', [Controller::class, 'realtime_test'])->middleware('auth');
+Route::get('/verify', [Controller::class, 'verify'])->middleware('auth')->name('verify.email');
+Route::get('/email/verify/{id}/{hash}', [Controller::class, 'email_verify'])->middleware(['auth'])->name('verify.verify');
+Route::middleware(['throttle:login'])->group(function () {
+    Route::get('/auth/link', [Controller::class, 'link'])->name('auth.link');
+});
 
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
-
-// Page d'accueil - Rediriger vers la vérification d'authentification
-Route::get('/', function () {
-    return redirect()->route('auth.verify');
-})->name('home');
-
-// Dashboard accessible sans middleware auth (authentification gérée côté client)
-Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['throttle:force-password-reset'])->group(function () {
         Route::get('/force-password-reset', ForcePasswordReset::class)->name('auth.force-password-reset');
     });
+
+    Route::get('/', Dashboard::class)->name('dashboard');
     Route::get('/onboarding', BoardingIndex::class)->name('onboarding');
 
     Route::get('/subscription', SubscriptionShow::class)->name('subscription.show');
@@ -388,11 +383,11 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 require __DIR__.'/idem.php';
 
-// Catch-all route - Rediriger vers la vérification d'authentification
-// Exclure les routes API, test et auth
+// Catch-all route (must be last)
 Route::any('/{any}', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
+    if (auth()->user()) {
+        return redirect(RouteServiceProvider::HOME);
     }
-    return redirect()->route('auth.verify');
-})->where('any', '^(?!api|test|auth).*');
+
+    return redirect()->route('login');
+})->where('any', '.*');

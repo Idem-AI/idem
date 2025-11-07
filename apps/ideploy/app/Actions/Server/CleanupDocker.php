@@ -14,21 +14,21 @@ class CleanupDocker
     public function handle(Server $server, bool $deleteUnusedVolumes = false, bool $deleteUnusedNetworks = false)
     {
         $settings = instanceSettings();
-        $realtimeImage = config('constants.ideploy.realtime_image');
-        $realtimeImageVersion = config('constants.ideploy.realtime_version');
+        $realtimeImage = config('constants.coolify.realtime_image');
+        $realtimeImageVersion = config('constants.coolify.realtime_version');
         $realtimeImageWithVersion = "$realtimeImage:$realtimeImageVersion";
-        $realtimeImageWithoutPrefix = 'coollabsio/ideploy-realtime';
-        $realtimeImageWithoutPrefixVersion = "coollabsio/ideploy-realtime:$realtimeImageVersion";
+        $realtimeImageWithoutPrefix = 'coollabsio/coolify-realtime';
+        $realtimeImageWithoutPrefixVersion = "coollabsio/coolify-realtime:$realtimeImageVersion";
 
         $helperImageVersion = data_get($settings, 'helper_version');
-        $helperImage = config('constants.ideploy.helper_image');
+        $helperImage = config('constants.coolify.helper_image');
         $helperImageWithVersion = "$helperImage:$helperImageVersion";
-        $helperImageWithoutPrefix = 'coollabsio/ideploy-helper';
-        $helperImageWithoutPrefixVersion = "coollabsio/ideploy-helper:$helperImageVersion";
+        $helperImageWithoutPrefix = 'coollabsio/coolify-helper';
+        $helperImageWithoutPrefixVersion = "coollabsio/coolify-helper:$helperImageVersion";
 
         $commands = [
-            'docker container prune -f --filter "label=ideploy.managed=true" --filter "label!=ideploy.proxy=true"',
-            'docker image prune -af --filter "label!=ideploy.managed=true"',
+            'docker container prune -f --filter "label=coolify.managed=true" --filter "label!=coolify.proxy=true"',
+            'docker image prune -af --filter "label!=coolify.managed=true"',
             'docker builder prune -af',
             "docker images --filter before=$helperImageWithVersion --filter reference=$helperImage | grep $helperImage | awk '{print $3}' | xargs -r docker rmi -f",
             "docker images --filter before=$realtimeImageWithVersion --filter reference=$realtimeImage | grep $realtimeImage | awk '{print $3}' | xargs -r docker rmi -f",

@@ -198,7 +198,7 @@ class SshMultiplexingHelper
 
     private static function isMultiplexingEnabled(): bool
     {
-        return config('constants.ssh.mux_enabled') && ! config('constants.ideploy.is_windows_docker_desktop');
+        return config('constants.ssh.mux_enabled') && ! config('constants.coolify.is_windows_docker_desktop');
     }
 
     private static function validateSshKey(PrivateKey $privateKey): void

@@ -299,12 +299,12 @@ class General extends Component
             // Only update custom labels if user has permission
             try {
                 $this->authorize('update', $this->application);
-                $this->customLabels = str(implode('|ideploy|', generateLabelsApplication($this->application)))->replace('|ideploy|', "\n");
+                $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
                 $this->application->custom_labels = base64_encode($this->customLabels);
                 $this->application->save();
             } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
                 // User doesn't have update permission, just use existing labels
-                // $this->customLabels = str(implode('|ideploy|', generateLabelsApplication($this->application)))->replace('|ideploy|', "\n");
+                // $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
             }
         }
         $this->initialDockerComposeLocation = $this->application->docker_compose_location;
@@ -615,7 +615,7 @@ class General extends Component
             if (! $this->is_container_label_readonly_enabled && ! $manualReset) {
                 return;
             }
-            $this->customLabels = str(implode('|ideploy|', generateLabelsApplication($this->application)))->replace('|ideploy|', "\n");
+            $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
             $this->custom_labels = base64_encode($this->customLabels);
             $this->syncToModel();
             $this->application->save();
@@ -637,7 +637,7 @@ class General extends Component
             if ($this->application->additional_servers->count() === 0) {
                 foreach ($domains as $domain) {
                     if (! validateDNSEntry($domain, $this->application->destination->server)) {
-                        $showToaster && $this->dispatch('error', 'Validating DNS failed.', "Make sure you have added the DNS records correctly.<br><br>$domain->{$this->application->destination->server->ip}<br><br>Check this <a target='_blank' class='underline dark:text-white' href='https://ideploy.io/docs/knowledge-base/dns-configuration'>documentation</a> for further help.");
+                        $showToaster && $this->dispatch('error', 'Validating DNS failed.', "Make sure you have added the DNS records correctly.<br><br>$domain->{$this->application->destination->server->ip}<br><br>Check this <a target='_blank' class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/dns-configuration'>documentation</a> for further help.");
                     }
                 }
             }
@@ -732,7 +732,7 @@ class General extends Component
 
             $this->application->save();
             if (! $this->customLabels && $this->application->destination->server->proxyType() !== 'NONE' && ! $this->application->settings->is_container_label_readonly_enabled) {
-                $this->customLabels = str(implode('|ideploy|', generateLabelsApplication($this->application)))->replace('|ideploy|', "\n");
+                $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
                 $this->application->custom_labels = base64_encode($this->customLabels);
                 $this->application->save();
             }
@@ -779,7 +779,7 @@ class General extends Component
                         $domain = data_get($service, 'domain');
                         if ($domain) {
                             if (! validateDNSEntry($domain, $this->application->destination->server)) {
-                                $showToaster && $this->dispatch('error', 'Validating DNS failed.', "Make sure you have added the DNS records correctly.<br><br>$domain->{$this->application->destination->server->ip}<br><br>Check this <a target='_blank' class='underline dark:text-white' href='https://ideploy.io/docs/knowledge-base/dns-configuration'>documentation</a> for further help.");
+                                $showToaster && $this->dispatch('error', 'Validating DNS failed.', "Make sure you have added the DNS records correctly.<br><br>$domain->{$this->application->destination->server->ip}<br><br>Check this <a target='_blank' class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/dns-configuration'>documentation</a> for further help.");
                             }
                         }
                     }

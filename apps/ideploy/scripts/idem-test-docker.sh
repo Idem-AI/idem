@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.dev.yml}"
-CONTAINER="${CONTAINER:-ideploy}"
+CONTAINER="${CONTAINER:-coolify}"
 
 # Test counter
 TESTS_PASSED=0
@@ -29,9 +29,9 @@ TESTS_FAILED=0
 run_test() {
     local test_name=$1
     local command=$2
-
+    
     echo -e "${BLUE}🔹 Test: $test_name${NC}"
-
+    
     if eval "$command" > /dev/null 2>&1; then
         echo -e "${GREEN}  ✅ PASS${NC}"
         ((TESTS_PASSED++))
@@ -39,7 +39,7 @@ run_test() {
         echo -e "${RED}  ❌ FAIL${NC}"
         ((TESTS_FAILED++))
     fi
-
+    
     echo ""
 }
 
@@ -60,8 +60,8 @@ echo ""
 run_test "Services Docker actifs" \
     "docker compose -f $COMPOSE_FILE ps | grep -q 'Up'"
 
-run_test "Conteneur ideploy accessible" \
-    "docker compose -f $COMPOSE_FILE exec -T ideploy echo 'ok'"
+run_test "Conteneur coolify accessible" \
+    "docker compose -f $COMPOSE_FILE exec -T coolify echo 'ok'"
 
 run_test "Conteneur postgres accessible" \
     "docker compose -f $COMPOSE_FILE exec -T postgres echo 'ok'"
@@ -79,16 +79,16 @@ run_test "Connexion PostgreSQL" \
     "docker_exec php artisan db:show"
 
 run_test "Table users existe" \
-    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U ideploy -c '\d users'"
+    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U coolify -c '\d users'"
 
 run_test "Table teams existe" \
-    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U ideploy -c '\d teams'"
+    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U coolify -c '\d teams'"
 
 run_test "Table servers existe" \
-    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U ideploy -c '\d servers'"
+    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U coolify -c '\d servers'"
 
 run_test "Table idem_subscription_plans existe" \
-    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U ideploy -c '\d idem_subscription_plans'"
+    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U coolify -c '\d idem_subscription_plans'"
 
 # Section 3: IDEM Database Tests
 echo -e "${BLUE}═══════════════════════════════════${NC}"
@@ -97,16 +97,16 @@ echo -e "${BLUE}═════════════════════�
 echo ""
 
 run_test "Colonne users.idem_role existe" \
-    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U ideploy -c '\d users' | grep -q 'idem_role'"
+    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U coolify -c '\d users' | grep -q 'idem_role'"
 
 run_test "Colonne teams.idem_subscription_plan existe" \
-    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U ideploy -c '\d teams' | grep -q 'idem_subscription_plan'"
+    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U coolify -c '\d teams' | grep -q 'idem_subscription_plan'"
 
 run_test "Colonne servers.idem_managed existe" \
-    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U ideploy -c '\d servers' | grep -q 'idem_managed'"
+    "docker compose -f $COMPOSE_FILE exec -T postgres psql -U coolify -c '\d servers' | grep -q 'idem_managed'"
 
 run_test "4 plans d'abonnement présents" \
-    "test \$(docker compose -f $COMPOSE_FILE exec -T postgres psql -U ideploy -t -c 'SELECT COUNT(*) FROM idem_subscription_plans;' | tr -d ' \n') -eq 4"
+    "test \$(docker compose -f $COMPOSE_FILE exec -T postgres psql -U coolify -t -c 'SELECT COUNT(*) FROM idem_subscription_plans;' | tr -d ' \n') -eq 4"
 
 # Section 4: IDEM Services Tests
 echo -e "${BLUE}═══════════════════════════════════${NC}"

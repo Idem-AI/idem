@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Project Variables | Ideploy
+        Project Variables | Coolify
     </x-slot>
     <div class="flex gap-2">
         <h1>Projects</h1>

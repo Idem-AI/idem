@@ -6,11 +6,11 @@ GREEN := \033[0;32m
 NC := \033[0m # No Color
 
 help: ## Afficher l'aide
-	@echo "$(BLUE)Commandes disponibles pour Ideploy (mode local):$(NC)"
+	@echo "$(BLUE)Commandes disponibles pour Coolify (mode local):$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
 
-install: ## Installer et configurer Ideploy
-	@echo "$(BLUE)🚀 Installation de Ideploy...$(NC)"
+install: ## Installer et configurer Coolify
+	@echo "$(BLUE)🚀 Installation de Coolify...$(NC)"
 	./scripts/run-local.sh
 
 start: ## Démarrer tous les services

@@ -30,7 +30,7 @@ class SendMessageToSlackJob implements ShouldQueue
                     'type' => 'section',
                     'text' => [
                         'type' => 'plain_text',
-                        'text' => 'Ideploy Notification',
+                        'text' => 'Coolify Notification',
                     ],
                 ],
             ],

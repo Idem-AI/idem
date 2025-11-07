@@ -322,7 +322,7 @@ class StandaloneMongodb extends BaseModel
         $server = $this->destination->server;
         $container_name = $this->uuid;
         $from = now()->subMinutes($mins)->toIso8601ZuluString();
-        $metrics = instant_remote_process(["docker exec ideploy-sentinel sh -c 'curl -H \"Authorization: Bearer {$server->settings->sentinel_token}\" http://localhost:8888/api/container/{$container_name}/cpu/history?from=$from'"], $server, false);
+        $metrics = instant_remote_process(["docker exec coolify-sentinel sh -c 'curl -H \"Authorization: Bearer {$server->settings->sentinel_token}\" http://localhost:8888/api/container/{$container_name}/cpu/history?from=$from'"], $server, false);
         if (str($metrics)->contains('error')) {
             $error = json_decode($metrics, true);
             $error = data_get($error, 'error', 'Something is not okay, are you okay?');
@@ -344,7 +344,7 @@ class StandaloneMongodb extends BaseModel
         $server = $this->destination->server;
         $container_name = $this->uuid;
         $from = now()->subMinutes($mins)->toIso8601ZuluString();
-        $metrics = instant_remote_process(["docker exec ideploy-sentinel sh -c 'curl -H \"Authorization: Bearer {$server->settings->sentinel_token}\" http://localhost:8888/api/container/{$container_name}/memory/history?from=$from'"], $server, false);
+        $metrics = instant_remote_process(["docker exec coolify-sentinel sh -c 'curl -H \"Authorization: Bearer {$server->settings->sentinel_token}\" http://localhost:8888/api/container/{$container_name}/memory/history?from=$from'"], $server, false);
         if (str($metrics)->contains('error')) {
             $error = json_decode($metrics, true);
             $error = data_get($error, 'error', 'Something is not okay, are you okay?');
@@ -370,7 +370,7 @@ class StandaloneMongodb extends BaseModel
     {
         return $this->morphMany(EnvironmentVariable::class, 'resourceable')
             ->orderByRaw("
-                CASE
+                CASE 
                     WHEN LOWER(key) LIKE 'service_%' THEN 1
                     WHEN is_required = true AND (value IS NULL OR value = '') THEN 2
                     ELSE 3

@@ -18,7 +18,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Configuration
-IDEPLOY_URL="${IDEPLOY_URL:-http://localhost:8000}"
+COOLIFY_URL="${COOLIFY_URL:-http://localhost:8000}"
 API_TOKEN="${API_TOKEN:-}"
 
 if [ -z "$API_TOKEN" ]; then
@@ -37,24 +37,24 @@ run_test() {
     local url=$2
     local method=${3:-GET}
     local data=${4:-}
-
+    
     echo -e "${BLUE}🔹 Test: $test_name${NC}"
-
-    local cmd="curl -s -X $method \"${IDEPLOY_URL}${url}\""
-
+    
+    local cmd="curl -s -X $method \"${COOLIFY_URL}${url}\""
+    
     if [ ! -z "$API_TOKEN" ]; then
         cmd="$cmd -H \"Authorization: Bearer ${API_TOKEN}\""
     fi
-
+    
     cmd="$cmd -H \"Accept: application/json\""
-
+    
     if [ ! -z "$data" ]; then
         cmd="$cmd -H \"Content-Type: application/json\" -d '$data'"
     fi
-
+    
     # Execute
     response=$(eval $cmd)
-
+    
     # Check if contains "success": true or valid JSON
     if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
         if [ "$(echo "$response" | jq -r '.success')" = "true" ]; then
@@ -72,7 +72,7 @@ run_test() {
         echo "$response"
         ((TESTS_FAILED++))
     fi
-
+    
     echo ""
 }
 
@@ -98,16 +98,16 @@ if [ ! -z "$ADMIN_TOKEN" ]; then
     echo -e "${BLUE}   Tests API Admin${NC}"
     echo -e "${BLUE}═══════════════════════════════════${NC}"
     echo ""
-
+    
     # Temporarily switch to admin token
     ORIGINAL_TOKEN=$API_TOKEN
     API_TOKEN=$ADMIN_TOKEN
-
+    
     run_test "Admin dashboard" "/api/v1/idem/admin/dashboard"
     run_test "Get managed servers" "/api/v1/idem/admin/servers/managed"
     run_test "Get teams" "/api/v1/idem/admin/teams"
     run_test "Export data (teams)" "/api/v1/idem/admin/export?type=teams"
-
+    
     # Restore original token
     API_TOKEN=$ORIGINAL_TOKEN
 fi

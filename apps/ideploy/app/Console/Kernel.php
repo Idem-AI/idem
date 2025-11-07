@@ -11,7 +11,7 @@ use App\Jobs\PullTemplatesFromCDN;
 use App\Jobs\RegenerateSslCertJob;
 use App\Jobs\ScheduledJobManager;
 use App\Jobs\ServerManagerJob;
-use App\Jobs\UpdateIdeployJob;
+use App\Jobs\UpdateCoolifyJob;
 use App\Models\InstanceSettings;
 use App\Models\Server;
 use App\Models\Team;
@@ -123,7 +123,7 @@ class Kernel extends ConsoleKernel
 
         if ($this->settings->is_auto_update_enabled) {
             $autoUpdateFrequency = $this->settings->auto_update_frequency;
-            $this->scheduleInstance->job(new UpdateIdeployJob)
+            $this->scheduleInstance->job(new UpdateCoolifyJob)
                 ->cron($autoUpdateFrequency)
                 ->timezone($this->instanceTimezone)
                 ->onOneServer();

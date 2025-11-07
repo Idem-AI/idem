@@ -11,7 +11,7 @@ class OtherController extends Controller
 {
     #[OA\Get(
         summary: 'Version',
-        description: 'Get Ideploy version.',
+        description: 'Get Coolify version.',
         path: '/version',
         operationId: 'version',
         security: [
@@ -38,7 +38,7 @@ class OtherController extends Controller
     )]
     public function version(Request $request)
     {
-        return response(config('constants.ideploy.version'));
+        return response(config('constants.coolify.version'));
     }
 
     #[OA\Get(

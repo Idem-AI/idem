@@ -11,7 +11,7 @@
         @if (!isCloud())
             <div class="w-48">
                 <x-forms.checkbox id="is_system_wide" label="System Wide"
-                    helper="If checked, this GitHub App will be available for everyone in this Ideploy instance." />
+                    helper="If checked, this GitHub App will be available for everyone in this Coolify instance." />
             </div>
         @endif
         <div x-data="{

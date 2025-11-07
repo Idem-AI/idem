@@ -480,13 +480,13 @@ class ByHetzner extends Component
         // Normalize server name to lowercase for RFC 1123 compliance
         $normalizedServerName = strtolower(trim($this->server_name));
 
-        // Prepare SSH keys array: Ideploy key + user-selected Hetzner keys
+        // Prepare SSH keys array: Coolify key + user-selected Hetzner keys
         $sshKeys = array_merge(
-            [$sshKeyId], // Ideploy key (always included)
+            [$sshKeyId], // Coolify key (always included)
             $this->selectedHetznerSshKeyIds // User-selected Hetzner keys
         );
 
-        // Remove duplicates in case the Ideploy key was also selected
+        // Remove duplicates in case the Coolify key was also selected
         $sshKeys = array_unique($sshKeys);
         $sshKeys = array_values($sshKeys); // Re-index array
 
@@ -529,7 +529,7 @@ class ByHetzner extends Component
             // IDEM: Admins peuvent ajouter des serveurs sans limite
             $user = auth()->user();
             $isIdemAdmin = $user && $user->idem_role === 'admin';
-
+            
             if (!$isIdemAdmin && Team::serverLimitReached()) {
                 return $this->dispatch('error', 'You have reached the server limit for your subscription.');
             }
@@ -562,7 +562,7 @@ class ByHetzner extends Component
                 throw new \Exception('No public IP address available. Enable at least one of IPv4 or IPv6.');
             }
 
-            // Create server in Ideploy database
+            // Create server in Coolify database
             $server = Server::create([
                 'name' => $this->server_name,
                 'ip' => $ipAddress,
@@ -573,7 +573,7 @@ class ByHetzner extends Component
                 'cloud_provider_token_id' => $this->selected_token_id,
                 'hetzner_server_id' => $hetznerServer['id'],
             ]);
-
+            
             // IDEM: Si créé par un admin, marquer comme serveur IDEM managed
             if ($isIdemAdmin) {
                 $server->idem_managed = true;

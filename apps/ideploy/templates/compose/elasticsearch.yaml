@@ -14,7 +14,7 @@ services:
       - ES_JAVA_OPTS=-Xms512m -Xmx512m # memory set to 512MB
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      - xpack.security.http.ssl.enabled=false # Ideploy handles SSL
+      - xpack.security.http.ssl.enabled=false # Coolify handles SSL
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
     healthcheck:

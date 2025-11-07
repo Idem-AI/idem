@@ -52,9 +52,9 @@ class DeleteUserServers
 
         foreach ($servers as $server) {
             try {
-                // Skip the default server (ID 0) which is the Ideploy host
+                // Skip the default server (ID 0) which is the Coolify host
                 if ($server->id === 0) {
-                    \Log::info('Skipping deletion of Ideploy host server (ID: 0)');
+                    \Log::info('Skipping deletion of Coolify host server (ID: 0)');
 
                     continue;
                 }

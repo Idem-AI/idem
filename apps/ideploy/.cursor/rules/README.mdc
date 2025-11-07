@@ -1,13 +1,13 @@
 ---
-description: Complete guide to Ideploy Cursor rules and development patterns
+description: Complete guide to Coolify Cursor rules and development patterns
 globs: .cursor/rules/*.mdc
 alwaysApply: false
 ---
-# Ideploy Cursor Rules - Complete Guide
+# Coolify Cursor Rules - Complete Guide
 
 ## Overview
 
-This comprehensive set of Cursor Rules provides deep insights into **Ideploy**, an open-source self-hostable alternative to Heroku/Netlify/Vercel. These rules will help you understand, navigate, and contribute to this complex Laravel-based deployment platform.
+This comprehensive set of Cursor Rules provides deep insights into **Coolify**, an open-source self-hostable alternative to Heroku/Netlify/Vercel. These rules will help you understand, navigate, and contribute to this complex Laravel-based deployment platform.
 
 > **Cross-Reference**: This directory is for **detailed, topic-specific rules** used by Cursor IDE and other AI assistants. For Claude Code specifically, also see **[CLAUDE.md](mdc:CLAUDE.md)** which provides a condensed, workflow-focused guide. Both systems share core principles but are optimized for their respective tools.
 >
@@ -16,7 +16,7 @@ This comprehensive set of Cursor Rules provides deep insights into **Ideploy**, 
 ## Rule Categories
 
 ### 🏗️ Architecture & Foundation
-- **[project-overview.mdc](mdc:.cursor/rules/project-overview.mdc)** - What Ideploy is and its core mission
+- **[project-overview.mdc](mdc:.cursor/rules/project-overview.mdc)** - What Coolify is and its core mission
 - **[technology-stack.mdc](mdc:.cursor/rules/technology-stack.mdc)** - Complete technology stack and dependencies
 - **[application-architecture.mdc](mdc:.cursor/rules/application-architecture.mdc)** - Laravel application structure and patterns
 
@@ -62,7 +62,7 @@ This comprehensive set of Cursor Rules provides deep insights into **Ideploy**, 
 ## Key Concepts to Understand
 
 ### 1. Multi-Tenant Architecture
-Ideploy uses a **team-based multi-tenancy** model where:
+Coolify uses a **team-based multi-tenancy** model where:
 - Users belong to multiple teams
 - Resources are scoped to teams
 - Access control is team-based
@@ -93,8 +93,8 @@ Ideploy uses a **team-based multi-tenancy** model where:
 ### Local Setup
 ```bash
 # Clone and setup
-git clone https://github.com/coollabsio/ideploy.git
-cd ideploy
+git clone https://github.com/coollabsio/coolify.git
+cd coolify
 cp .env.example .env
 
 # Docker development (recommended)
@@ -123,12 +123,12 @@ docker-compose exec app php artisan migrate
 class ApplicationShow extends Component
 {
     public Application $application;
-
+    
     protected $listeners = [
         'deployment.started' => 'refresh',
         'deployment.completed' => 'refresh',
     ];
-
+    
     public function deploy(): void
     {
         $this->authorize('deploy', $this->application);
@@ -146,7 +146,7 @@ class ApplicationController extends Controller
         $this->middleware('auth:sanctum');
         $this->middleware('team.access');
     }
-
+    
     public function deploy(Application $application): JsonResponse
     {
         $this->authorize('deploy', $application);
@@ -163,7 +163,7 @@ class DeployApplicationJob implements ShouldQueue
     public function handle(DockerService $dockerService): void
     {
         $this->deployment->update(['status' => 'running']);
-
+        
         try {
             $dockerService->deployContainer($this->deployment->application);
             $this->deployment->update(['status' => 'success']);
@@ -182,10 +182,10 @@ class DeployApplicationJob implements ShouldQueue
 test('user can deploy application via API', function () {
     $user = User::factory()->create();
     $application = Application::factory()->create(['team_id' => $user->currentTeam->id]);
-
+    
     $response = $this->actingAs($user)
         ->postJson("/api/v1/applications/{$application->id}/deploy");
-
+    
     $response->assertStatus(200);
     expect($application->deployments()->count())->toBe(1);
 });
@@ -195,7 +195,7 @@ test('user can deploy application via API', function () {
 ```php
 test('user can create application through UI', function () {
     $user = User::factory()->create();
-
+    
     $this->browse(function (Browser $browser) use ($user) {
         $browser->loginAs($user)
             ->visit('/applications/create')
@@ -274,10 +274,10 @@ npm run dev
 
 ### Production
 ```bash
-# Install Ideploy
-curl -fsSL https://cdn.coollabs.io/ideploy/install.sh | bash
+# Install Coolify
+curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
 
-# Update Ideploy
+# Update Coolify
 ./scripts/upgrade.sh
 ```
 
@@ -294,4 +294,4 @@ curl -fsSL https://cdn.coollabs.io/ideploy/install.sh | bash
 - **[database/migrations/](mdc:database/migrations)** - Database schema
 - **[tests/](mdc:tests)** - Test suite
 
-This comprehensive rule set provides everything needed to understand, develop, and contribute to the Ideploy project effectively. Each rule focuses on specific aspects while maintaining connections to the broader architecture.
+This comprehensive rule set provides everything needed to understand, develop, and contribute to the Coolify project effectively. Each rule focuses on specific aspects while maintaining connections to the broader architecture.
