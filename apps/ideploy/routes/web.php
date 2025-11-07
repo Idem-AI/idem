@@ -87,21 +87,28 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 Route::get('/admin', AdminIndex::class)->name('admin.index');
 
-// Routes supprimées - Authentification centralisée via dashboard
-// Plus de login/register local
+// Routes d'authentification IDEM (client-side)
+Route::get('/auth/verify', [\App\Http\Controllers\Auth\IdemAuthController::class, 'showVerifying'])->name('auth.verify');
+Route::get('/auth/error', [\App\Http\Controllers\Auth\IdemAuthController::class, 'showError'])->name('auth.error');
+Route::post('/api/auth/sync', [\App\Http\Controllers\Auth\IdemAuthController::class, 'sync'])->name('auth.sync');
+Route::get('/api/auth/check', [\App\Http\Controllers\Auth\IdemAuthController::class, 'check'])->name('auth.check');
+Route::post('/api/auth/logout', [\App\Http\Controllers\Auth\IdemAuthController::class, 'logout'])->name('auth.logout');
 
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
 
-// Page d'accueil - Dashboard Ideploy (avec authentification)
-Route::get('/', Dashboard::class)->middleware(['idem.auth'])->name('home');
+// Page d'accueil - Rediriger vers la vérification d'authentification
+Route::get('/', function () {
+    return redirect()->route('auth.verify');
+})->name('home');
+
+// Dashboard accessible sans middleware auth (authentification gérée côté client)
+Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['throttle:force-password-reset'])->group(function () {
         Route::get('/force-password-reset', ForcePasswordReset::class)->name('auth.force-password-reset');
     });
-
-    Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/onboarding', BoardingIndex::class)->name('onboarding');
 
     Route::get('/subscription', SubscriptionShow::class)->name('subscription.show');
@@ -381,12 +388,11 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 require __DIR__.'/idem.php';
 
-// Catch-all route - Afficher la page d'authentification
-// Exclure les routes API et test
+// Catch-all route - Rediriger vers la vérification d'authentification
+// Exclure les routes API, test et auth
 Route::any('/{any}', function () {
-    // Afficher la page d'authentification au lieu de rediriger
-    $dashboardUrl = config('idem.dashboard_url', 'http://localhost:4200');
-    return view('idem-auth::unauthenticated', [
-        'dashboardUrl' => $dashboardUrl
-    ]);
-})->where('any', '^(?!api|test).*');
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('auth.verify');
+})->where('any', '^(?!api|test|auth).*');
