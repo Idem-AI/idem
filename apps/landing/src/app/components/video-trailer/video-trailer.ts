@@ -166,7 +166,7 @@ export class VideoTrailer implements OnInit, AfterViewInit {
       '@type': 'VideoObject',
       name: $localize`:@@video-trailer.seo.name:Idem Platform Demo`,
       description: $localize`:@@video-trailer.seo.description:Interactive demo showcasing Idem's AI-powered brand creation and deployment capabilities`,
-      thumbnailUrl: `${this.seoService.domain}/assets/video/demo-thumbnail.jpg`,
+      thumbnailUrl: `${this.seoService.domain}/assets/video/demo-thumbnail.webp`,
       uploadDate: new Date().toISOString(),
       duration: 'PT3M45S',
       contentUrl: `${this.seoService.domain}/assets/video/idem-demo.mp4`,

@@ -18,7 +18,7 @@ export class OpenSourceSovereigntyComponent {
         $localize`:@@open-source-sovereignty.features.suite.benefit2:Business plans`,
         $localize`:@@open-source-sovereignty.features.suite.benefit3:Full-stack web apps`,
       ],
-      image: 'https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg',
+      image: '/assets/images/open-source-sovereignty-component/business-suite.jpeg',
       imagePosition: 'left' as const,
     },
     {
@@ -29,7 +29,7 @@ export class OpenSourceSovereigntyComponent {
         $localize`:@@open-source-sovereignty.features.deploy.benefit2:Zero vendor lock-in`,
         $localize`:@@open-source-sovereignty.features.deploy.benefit3:Complete sovereignty`,
       ],
-      image: 'https://images.pexels.com/photos/1148820/pexels-photo-1148820.jpeg',
+      image: '/assets/images/open-source-sovereignty-component/deploy-anywhere.jpeg',
       imagePosition: 'right' as const,
     },
     {
@@ -40,7 +40,7 @@ export class OpenSourceSovereigntyComponent {
         $localize`:@@open-source-sovereignty.features.launch.benefit2:No subscriptions`,
         $localize`:@@open-source-sovereignty.features.launch.benefit3:Start earning fast`,
       ],
-      image: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg',
+      image: '/assets/images/open-source-sovereignty-component/launch-in-days.jpeg',
       imagePosition: 'left' as const,
     },
   ];

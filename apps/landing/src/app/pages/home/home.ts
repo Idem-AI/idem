@@ -93,7 +93,7 @@ export class Home implements OnInit {
       { property: 'og:locale', content: 'en_US' },
       {
         property: 'og:image',
-        content: `${this.seoService.domain}/assets/seo/og-image.jpg`,
+        content: `${this.seoService.domain}/assets/seo/og-image.webp`,
       },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
@@ -148,7 +148,7 @@ export class Home implements OnInit {
         $localize`:@@home.structured.feature7:Technical Architecture Design`,
         $localize`:@@home.structured.feature8:Brand Identity Development`,
       ],
-      screenshot: `${this.seoService.domain}/assets/images/app-screenshot.jpg`,
+      screenshot: `${this.seoService.domain}/assets/images/app-screenshot.webp`,
       aggregateRating: {
         '@type': 'AggregateRating',
         ratingValue: '4.8',
