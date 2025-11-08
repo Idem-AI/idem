@@ -8,7 +8,6 @@ import {
   verifySessionController,
 } from '../controllers/auth.controller';
 import { authenticate } from '../services/auth.service';
-import { verifyApiKey } from '../middleware/verifyApiKey';
 
 export const authRoutes = Router();
 
@@ -259,4 +258,4 @@ authRoutes.get('/refresh-tokens', authenticate, getRefreshTokensController);
  *       '403':
  *         description: Invalid API key
  */
-authRoutes.post('/verify-session', verifyApiKey, verifySessionController);
+authRoutes.post('/verify-session', verifySessionController);

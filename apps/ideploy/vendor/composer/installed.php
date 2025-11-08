@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'coollabsio/coolify',
-        'pretty_version' => '4.x-dev',
-        'version' => '4.9999999.9999999.9999999-dev',
-        'reference' => 'ac1d98f6035caff10f36fa10508326b4791dec07',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '152d96278aea5ed318f2aaa1d29c49cb18cbcb5c',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -173,9 +173,9 @@
             'dev_requirement' => false,
         ),
         'coollabsio/coolify' => array(
-            'pretty_version' => '4.x-dev',
-            'version' => '4.9999999.9999999.9999999-dev',
-            'reference' => 'ac1d98f6035caff10f36fa10508326b4791dec07',
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '152d96278aea5ed318f2aaa1d29c49cb18cbcb5c',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

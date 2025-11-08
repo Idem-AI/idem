@@ -56,7 +56,7 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       maxAge: expiresIn,
       httpOnly: true,
       // In production we must use Secure + SameSite=None for cross-site cookies
-      secure: true,
+      secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
     };

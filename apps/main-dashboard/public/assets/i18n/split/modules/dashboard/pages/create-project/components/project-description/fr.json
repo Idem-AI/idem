@@ -5,7 +5,8 @@
   "placeholder": "Une application qui génère des poèmes à partir de photos",
   "buttons": {
     "improvePrompt": "Améliorer l'invite",
-    "feelingLucky": "J'ai de la chance"
+    "feelingLucky": "J'ai de la chance",
+    "continue": "Continuer"
   },
   "needInspiration": "Besoin d'inspiration ?",
   "examples": {

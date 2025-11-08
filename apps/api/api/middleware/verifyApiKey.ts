@@ -11,6 +11,8 @@ export const verifyApiKey = (req: Request, res: Response, next: NextFunction): v
 
   logger.info('API Key verification attempt', {
     hasApiKey: !!apiKey,
+    apiKeyLength: apiKey ? apiKey.length : 0,
+    allHeaders: Object.keys(req.headers),
     path: req.path,
     method: req.method,
   });

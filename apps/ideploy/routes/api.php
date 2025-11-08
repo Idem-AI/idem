@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\IdemAdminController;
 use App\Http\Controllers\Api\IdemSubscriptionController;
 use App\Http\Controllers\Api\IdemStripeController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AuthCheckController;
 use App\Http\Middleware\ApiAllowed;
 use App\Http\Middleware\IdemAdminAuth;
 use App\Http\Middleware\CheckIdemQuota;
@@ -23,6 +24,11 @@ use App\Models\Server;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', [OtherController::class, 'healthcheck']);
+
+// Express Auth Check - Endpoint pour vérifier l'authentification
+Route::middleware(['express.auth'])->group(function () {
+    Route::get('/auth/check', [AuthCheckController::class, 'check']);
+});
 Route::group([
     'prefix' => 'v1',
 ], function () {

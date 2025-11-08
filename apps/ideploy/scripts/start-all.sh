@@ -10,7 +10,20 @@ echo "🚀 Démarrage de tous les services Coolify..."
 # Couleurs
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
 NC='\033[0m'
+
+# Vérifier que la base de données est initialisée
+echo -e "${BLUE}🔍 Vérification de la base de données...${NC}"
+if ! php artisan tinker --execute="echo App\Models\InstanceSettings::find(0) ? 'OK' : 'MISSING';" 2>/dev/null | grep -q "OK"; then
+    echo -e "${RED}❌ Erreur: La base de données n'est pas initialisée${NC}"
+    echo -e "${BLUE}📝 Veuillez exécuter les migrations et seeders:${NC}"
+    echo -e "   php artisan migrate:fresh --seed"
+    echo -e "\n${BLUE}💡 Ou utilisez le script de configuration:${NC}"
+    echo -e "   ./scripts/run-local.sh"
+    exit 1
+fi
+echo -e "${GREEN}✅ Base de données initialisée${NC}"
 
 # Créer un répertoire pour les logs
 mkdir -p storage/logs/services
