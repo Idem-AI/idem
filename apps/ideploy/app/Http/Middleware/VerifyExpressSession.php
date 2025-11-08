@@ -25,10 +25,28 @@ class VerifyExpressSession
 
     /**
      * Handle an incoming request.
+     * 
+     * Pour les requêtes API (/api/auth/check), on vérifie la session.
+     * Pour les autres requêtes, on laisse passer et le JavaScript côté client vérifiera.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
+    {
+        // Si c'est une requête API (notamment /api/auth/check), on vérifie la session
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return $this->verifySession($request, $next);
+        }
+
+        // Pour les requêtes HTML normales, on laisse passer
+        // Le JavaScript côté client vérifiera l'authentification
+        return $next($request);
+    }
+
+    /**
+     * Vérifier la session pour les requêtes API
+     */
+    private function verifySession(Request $request, Closure $next): Response
     {
         // Get session cookie from request
         $sessionCookie = $request->cookie('session');
@@ -36,15 +54,10 @@ class VerifyExpressSession
         if (!$sessionCookie) {
             Log::warning('[Express Auth] No session cookie found');
             
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthenticated'
-                ], 401);
-            }
-
-            // Redirect to welcome page instead of login
-            return redirect()->route('welcome');
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated'
+            ], 401);
         }
 
         try {
@@ -54,15 +67,10 @@ class VerifyExpressSession
             if (!$userData) {
                 Log::warning('[Express Auth] Session verification failed');
                 
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Invalid or expired session'
-                    ], 401);
-                }
-
-                // Redirect to welcome page with error message
-                return redirect()->route('welcome')->with('error', 'Session invalide ou expirée');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid or expired session'
+                ], 401);
             }
 
             // Sync user with local database
@@ -71,15 +79,10 @@ class VerifyExpressSession
             if (!$user) {
                 Log::error('[Express Auth] Failed to sync user', ['uid' => $userData['uid'] ?? 'unknown']);
                 
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'User synchronization failed'
-                    ], 500);
-                }
-
-                // Redirect to welcome page with error message
-                return redirect()->route('welcome')->with('error', 'Erreur de synchronisation utilisateur');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User synchronization failed'
+                ], 500);
             }
 
             // Log the user in
@@ -102,15 +105,10 @@ class VerifyExpressSession
                 'trace' => $e->getTraceAsString()
             ]);
 
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Authentication error'
-                ], 500);
-            }
-
-            // Redirect to welcome page with error message
-            return redirect()->route('welcome')->with('error', 'Erreur d\'authentification');
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication error'
+            ], 500);
         }
     }
 
@@ -133,7 +131,7 @@ class VerifyExpressSession
 
             // Find user by Firebase UID first, then by email
             $user = User::where('firebase_uid', $uid)->first();
-            
+
             if (!$user) {
                 $user = User::where('email', $email)->first();
             }

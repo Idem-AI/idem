@@ -1,4 +1,5 @@
 import { initializeTerminalComponent } from './terminal.js';
+import './auth-check.js';
 
 ['livewire:navigated', 'alpine:init'].forEach((event) => {
   document.addEventListener(event, () => {
