@@ -29,6 +29,7 @@ Route::get('/health', [OtherController::class, 'healthcheck']);
 Route::middleware(['express.auth'])->group(function () {
     Route::get('/auth/check', [AuthCheckController::class, 'check']);
 });
+
 Route::group([
     'prefix' => 'v1',
 ], function () {
