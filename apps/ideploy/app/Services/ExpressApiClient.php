@@ -13,18 +13,12 @@ use Illuminate\Support\Facades\Cache;
 class ExpressApiClient
 {
     private string $baseUrl;
-    private string $apiKey;
     private int $timeout;
 
     public function __construct()
     {
         $this->baseUrl = config('idem.api_url', env('IDEM_API_URL', 'http://localhost:3001'));
-        $this->apiKey = env('EXPRESS_API_KEY', '');
         $this->timeout = 30;
-
-        if (empty($this->apiKey)) {
-            Log::warning('EXPRESS_API_KEY not configured. Inter-service communication may fail.');
-        }
     }
 
     /**
@@ -40,7 +34,6 @@ class ExpressApiClient
 
             $response = Http::timeout($this->timeout)
                 ->withHeaders([
-                    'X-API-Key' => $this->apiKey,
                     'Content-Type' => 'application/json',
                 ])
                 ->withCookies(['session' => $sessionCookie], parse_url($this->baseUrl, PHP_URL_HOST))
@@ -87,9 +80,6 @@ class ExpressApiClient
                 Log::info('[Express API] Fetching user profile', ['uid' => $uid]);
 
                 $response = Http::timeout($this->timeout)
-                    ->withHeaders([
-                        'X-API-Key' => $this->apiKey,
-                    ])
                     ->get("{$this->baseUrl}/auth/profile");
 
                 if ($response->successful()) {
@@ -120,9 +110,6 @@ class ExpressApiClient
             Log::info('[Express API] Fetching user teams', ['user_id' => $userId]);
 
             $response = Http::timeout($this->timeout)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey,
-                ])
                 ->withCookies(['session' => $sessionCookie], parse_url($this->baseUrl, PHP_URL_HOST))
                 ->get("{$this->baseUrl}/api/teams/user/{$userId}");
 
@@ -154,9 +141,6 @@ class ExpressApiClient
             Log::info('[Express API] Fetching team', ['team_id' => $teamId]);
 
             $response = Http::timeout($this->timeout)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey,
-                ])
                 ->withCookies(['session' => $sessionCookie], parse_url($this->baseUrl, PHP_URL_HOST))
                 ->get("{$this->baseUrl}/api/teams/{$teamId}");
 
@@ -188,9 +172,6 @@ class ExpressApiClient
             Log::info('[Express API] Creating team', ['name' => $teamData['name'] ?? 'unknown']);
 
             $response = Http::timeout($this->timeout)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey,
-                ])
                 ->withCookies(['session' => $sessionCookie], parse_url($this->baseUrl, PHP_URL_HOST))
                 ->post("{$this->baseUrl}/api/teams", $teamData);
 
@@ -225,9 +206,6 @@ class ExpressApiClient
             ]);
 
             $response = Http::timeout($this->timeout)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey,
-                ])
                 ->withCookies(['session' => $sessionCookie], parse_url($this->baseUrl, PHP_URL_HOST))
                 ->post("{$this->baseUrl}/api/teams/{$teamId}/members", $memberData);
 

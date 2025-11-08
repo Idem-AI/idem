@@ -27,7 +27,7 @@
     "lcobucci/jwt": "^5.5.0",
     "league/flysystem-aws-s3-v3": "^3.29",
     "league/flysystem-sftp-v3": "^3.30",
-    "livewire/livewire": "^3.6.4",
+    "livewire/livewire": "^3.6",
     "log1x/laravel-webfonts": "^2.0.1",
     "lorisleiva/laravel-actions": "^2.9.0",
     "nubs/random-name-generator": "^2.2",

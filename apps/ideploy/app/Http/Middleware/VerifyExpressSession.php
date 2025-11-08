@@ -43,7 +43,8 @@ class VerifyExpressSession
                 ], 401);
             }
 
-            return redirect()->route('login');
+            // Redirect to welcome page instead of login
+            return redirect()->route('welcome');
         }
 
         try {
@@ -60,7 +61,8 @@ class VerifyExpressSession
                     ], 401);
                 }
 
-                return redirect()->route('login');
+                // Redirect to welcome page with error message
+                return redirect()->route('welcome')->with('error', 'Session invalide ou expirée');
             }
 
             // Sync user with local database
@@ -76,7 +78,8 @@ class VerifyExpressSession
                     ], 500);
                 }
 
-                return redirect()->route('login');
+                // Redirect to welcome page with error message
+                return redirect()->route('welcome')->with('error', 'Erreur de synchronisation utilisateur');
             }
 
             // Log the user in
@@ -106,7 +109,8 @@ class VerifyExpressSession
                 ], 500);
             }
 
-            return redirect()->route('login');
+            // Redirect to welcome page with error message
+            return redirect()->route('welcome')->with('error', 'Erreur d\'authentification');
         }
     }
 
@@ -127,28 +131,29 @@ class VerifyExpressSession
                 return null;
             }
 
-            // Find or create user
-            $user = User::where('email', $email)->first();
+            // Find user by Firebase UID first, then by email
+            $user = User::where('firebase_uid', $uid)->first();
+            
+            if (!$user) {
+                $user = User::where('email', $email)->first();
+            }
 
             if (!$user) {
-                Log::info('[Express Auth] Creating new user', ['email' => $email]);
+                Log::info('[Express Auth] Creating new user', ['email' => $email, 'firebase_uid' => $uid]);
 
                 $user = User::create([
                     'name' => $userData['displayName'] ?? $email,
                     'email' => $email,
                     'password' => bcrypt(str()->random(32)), // Random password, not used
                     'email_verified_at' => now(),
+                    'firebase_uid' => $uid,
                 ]);
             } else {
                 // Update user data
                 $user->update([
                     'name' => $userData['displayName'] ?? $user->name,
+                    'firebase_uid' => $uid,
                 ]);
-            }
-
-            // Store Firebase UID for reference
-            if (!$user->firebase_uid) {
-                $user->update(['firebase_uid' => $uid]);
             }
 
             Log::info('[Express Auth] User synced successfully', [

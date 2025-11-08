@@ -416,7 +416,8 @@
       "placeholder": "An app that generates poems from photos",
       "buttons": {
         "improvePrompt": "Improve prompt",
-        "feelingLucky": "I'm Feeling Lucky"
+        "feelingLucky": "I'm Feeling Lucky",
+        "continue": "Continue"
       },
       "needInspiration": "Need Inspiration?",
       "examples": {
@@ -1414,7 +1415,10 @@
     "understood": "Understood",
     "page": "Page",
     "of": "of",
-    "changeLanguage": "Change language"
+    "changeLanguage": "Change language",
+    "continue": "Continue",
+    "apply": "Apply",
+    "reset": "Reset"
   },
   "notFound": {
     "title": "Page Not Found",
