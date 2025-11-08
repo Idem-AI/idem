@@ -134,10 +134,11 @@ class TeamService {
    */
   async updateMemberRole(
     teamId: string,
+    userId: string,
     updatedBy: string,
     data: UpdateTeamMemberRoleDTO
   ): Promise<TeamModel | null> {
-    logger.info(`Updating role for user ${data.userId} in team ${teamId}`);
+    logger.info(`Updating role for user ${userId} in team ${teamId}`);
 
     const team = await this.getTeamById(teamId);
     if (!team) {
@@ -151,7 +152,7 @@ class TeamService {
     }
 
     // Ne pas permettre de changer le rôle du owner
-    const targetMember = team.members.find((m) => m.userId === data.userId);
+    const targetMember = team.members.find((m) => m.userId === userId);
     if (!targetMember) {
       throw new Error('Member not found in team');
     }
@@ -161,9 +162,7 @@ class TeamService {
     }
 
     // Mettre à jour le rôle
-    team.members = team.members.map((m) =>
-      m.userId === data.userId ? { ...m, role: data.role } : m
-    );
+    team.members = team.members.map((m) => (m.userId === userId ? { ...m, role: data.role } : m));
     team.updatedAt = new Date();
 
     return await this.repository.update(teamId, { members: team.members }, TEAMS_COLLECTION);
@@ -230,6 +229,26 @@ class TeamService {
     team.updatedAt = new Date();
 
     return await this.repository.update(teamId, { members: team.members }, TEAMS_COLLECTION);
+  }
+
+  /**
+   * Supprimer une équipe
+   */
+  async deleteTeam(teamId: string, userId: string): Promise<void> {
+    logger.info(`Deleting team ${teamId} by user ${userId}`);
+
+    const team = await this.getTeamById(teamId);
+    if (!team) {
+      throw new Error('Team not found');
+    }
+
+    // Seul le owner peut supprimer l'équipe
+    if (team.ownerId !== userId) {
+      throw new Error('Only team owner can delete the team');
+    }
+
+    await this.repository.delete(teamId, TEAMS_COLLECTION);
+    logger.info(`Team ${teamId} deleted successfully`);
   }
 }
 
