@@ -35,6 +35,7 @@ import {
   BetaRestrictions,
   QuotaStatus,
 } from '../../../../shared/models/quota.model';
+import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/components/language-selector/language-selector';
 
 @Component({
   selector: 'app-sidebar-dashboard',
@@ -48,6 +49,7 @@ import {
     BetaBadgeComponent,
     QuotaDisplayComponent,
     TranslateModule,
+    LanguageSelectorComponent,
   ],
   animations: [
     trigger('slideInOut', [
