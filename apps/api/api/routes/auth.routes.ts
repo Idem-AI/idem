@@ -5,8 +5,10 @@ import {
   logoutController,
   logoutAllController,
   getRefreshTokensController,
+  verifySessionController,
 } from '../controllers/auth.controller';
 import { authenticate } from '../services/auth.service';
+import { verifyApiKey } from '../middleware/verifyApiKey';
 
 export const authRoutes = Router();
 
@@ -217,3 +219,44 @@ authRoutes.post('/logout-all', authenticate, logoutAllController);
  *         description: User not authenticated
  */
 authRoutes.get('/refresh-tokens', authenticate, getRefreshTokensController);
+
+/**
+ * @openapi
+ * /verify-session:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Verify session cookie and return user data
+ *     description: Used by external services (like Laravel) to verify Firebase sessions
+ *     security:
+ *       - apiKey: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sessionCookie:
+ *                 type: string
+ *                 description: Firebase session cookie (can also be sent via cookie header)
+ *     responses:
+ *       '200':
+ *         description: Session verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   description: User profile data
+ *       '401':
+ *         description: Invalid or expired session
+ *       '403':
+ *         description: Invalid API key
+ */
+authRoutes.post('/verify-session', verifyApiKey, verifySessionController);

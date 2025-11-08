@@ -201,6 +201,7 @@ return [
         App\Providers\RouteServiceProvider::class,
         App\Providers\ConfigurationServiceProvider::class,
         App\Providers\IdemServiceProvider::class,
+        App\Providers\ExpressApiServiceProvider::class,
     ],
 
     /*
