@@ -15,17 +15,13 @@ This folder contains GitHub Actions workflows with an intelligent CI/CD system f
 
 **Jobs**:
 
-1. 🔍 **detect-changes** - Detects modified applications with `dorny/paths-filter@v3`
-2. 🔧 **setup** - Installs dependencies (only if changes detected)
-3. ✅ **quality** - Runs format check and linting (only if changes detected)
-4. 🔨 **build-api** - Builds API if `apps/api/**` modified
-5. 🔨 **build-main-app** - Builds Main App if `apps/main-app/**` modified
-6. 🔨 **build-chart** - Builds Chart if `apps/chart/**` modified
-7. 🔨 **build-appgen** - Builds AppGen if `apps/appgen/**` modified
-8. 🚀 **deploy-api** - Deploys API (only on push to main/dev/master)
-9. 🚀 **deploy-main-app** - Deploys Main App (only on push to main/dev/master)
-10. 🚀 **deploy-chart** - Deploys Chart (only on push to main/master)
-11. 📊 **summary** - Generates build and deployment summary
+1. 🔍 **detect-changes** - Detects modified applications and packages with `dorny/paths-filter@v3`
+2. ✅ **quality** - Runs format check and linting (only if changes detected)
+3. 🚀 **deploy-api** - Deploys API (only on push to main/dev/master)
+4. 🚀 **deploy-landing** - Deploys Landing Page (only on push to main/dev/master)
+5. 🚀 **deploy-main-dashboard** - Deploys Main Dashboard (only on push to main/dev/master)
+6. 🚀 **deploy-chart** - Deploys Chart (only on push to main/master)
+7. 📊 **summary** - Generates build and deployment summary
 
 **Benefits**:
 
@@ -40,15 +36,18 @@ This folder contains GitHub Actions workflows with an intelligent CI/CD system f
 ```
 📊 CI/CD Summary
 
-Applications Built:
-- API: ✅ Built
-- Main App: ⏭️ Skipped
-- Chart: ⏭️ Skipped
-- AppGen: ⏭️ Skipped
+Changes Detected:
+- API: ✅ Changed
+- Landing Page: ⏭️ No changes
+- Main Dashboard: ⏭️ No changes
+- Chart: ⏭️ No changes
+- AppGen: ⏭️ No changes
+- Packages: ⏭️ No changes
 
 Deployments:
 - API: ✅ Deployed
-- Main App: ⏭️ Skipped
+- Landing Page: ⏭️ Skipped
+- Main Dashboard: ⏭️ Skipped
 - Chart: ⏭️ Skipped
 ```
 
@@ -96,16 +95,16 @@ SSH_PRIVATE_KEY    # SSH private key
 
 ---
 
-### 4. `deploy-main-app.yml` - 🚀 Main Application Deployment
+### 4. `deploy-landing.yml` - 🚀 Landing Page Deployment
 
 **Type**: Reusable workflow (`workflow_call`)
 
 **Trigger**:
 
-- Called by `ci.yml` (when Main App changes detected on push to main/dev/master)
+- Called by `ci.yml` (when Landing Page changes detected on push to main/dev/master)
 - Manual via `workflow_dispatch`
 
-**Description**: Deploys the main Angular application
+**Description**: Deploys the landing page (Angular with SSR and @angular/localize)
 
 **Jobs**:
 
@@ -128,7 +127,39 @@ SSH_PRIVATE_KEY    # SSH private key
 
 ---
 
-### 5. `deploy-chart.yml` - 🚀 Chart Editor Deployment
+### 5. `deploy-main-dashboard.yml` - 🚀 Main Dashboard Deployment
+
+**Type**: Reusable workflow (`workflow_call`)
+
+**Trigger**:
+
+- Called by `ci.yml` (when Main Dashboard changes detected on push to main/dev/master)
+- Manual via `workflow_dispatch`
+
+**Description**: Deploys the main dashboard (Angular with ngx-translate)
+
+**Jobs**:
+
+- 🔧 **build** - Build Docker image on remote server
+- 📤 **push** - Push image to GitHub Container Registry
+- 🚀 **deploy** - Deployment with docker-compose
+
+**Environments**:
+
+- `production` (`main` branch)
+- `staging` (`dev` branch)
+
+**Required Secrets**:
+
+```bash
+SERVER_HOST        # Server host
+SERVER_USER        # SSH user
+SSH_PRIVATE_KEY    # SSH private key
+```
+
+---
+
+### 6. `deploy-chart.yml` - 🚀 Chart Editor Deployment
 
 **Type**: Reusable workflow (`workflow_call`)
 
@@ -192,6 +223,7 @@ id-token: write
 | 1 modified project  | 15 min | **3-5 min**   | **70%** ⚡ |
 | 2 modified projects | 15 min | **6-8 min**   | **50%** ⚡ |
 | All projects        | 15 min | **12-15 min** | **0-20%**  |
+| Packages only       | 15 min | **2-3 min**   | **85%** ⚡ |
 | No changes          | 15 min | **1-2 min**   | **90%** ⚡ |
 
 ### Savings
@@ -217,7 +249,7 @@ GITHUB_TOKEN  # Provided by GitHub Actions
 #### To Configure
 
 ```bash
-# For API and Main App
+# For API, Landing Page, and Main Dashboard
 SERVER_HOST        # Deployment server host
 SERVER_USER        # SSH user
 SSH_PRIVATE_KEY    # SSH private key
@@ -297,15 +329,18 @@ graph LR
 ```bash
 🔍 Changes detected:
 - apps/api/** : true
-- apps/main-app/** : false
+- apps/landing/** : false
+- apps/main-dashboard/** : false
 - apps/chart/** : false
 - apps/appgen/** : false
+- packages/** : false
 
 Jobs executed:
 ✅ deploy-api : Build, Push, Deploy
 
 Jobs skipped:
-⏭️ deploy-main-app
+⏭️ deploy-landing
+⏭️ deploy-main-dashboard
 ⏭️ deploy-chart
 
 ⏱️ Time: 5-7 minutes (vs 15-20 minutes)
@@ -322,8 +357,11 @@ Legacy workflows have been disabled and renamed with the `.disabled` extension:
 apps/api/.github/workflows/
 └── deploy.yml.disabled           # ❌ Disabled
 
-apps/main-app/.github/workflows/
-└── deploy.yml.disabled           # ❌ Disabled
+apps/landing/.github/workflows/
+└── (no legacy workflows)         # ✅ New application
+
+apps/main-dashboard/.github/workflows/
+└── (no legacy workflows)         # ✅ New application
 
 apps/chart/.github/workflows/
 ├── deploy.yml.disabled           # ❌ Disabled

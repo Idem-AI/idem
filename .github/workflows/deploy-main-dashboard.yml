@@ -1,4 +1,4 @@
-name: Deploy Main App
+name: Deploy Main Dashboard
 
 on:
   workflow_call:
@@ -27,11 +27,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app/idem
+            cd /root/Idem-app/idem-dashboard
 
             BRANCH="${{ github.ref_name }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-ai:$COMMIT_ID"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-dashboard:$COMMIT_ID"
 
             echo "📍 BRANCH: $BRANCH"
             echo "📍 COMMIT_ID: $COMMIT_ID"
@@ -42,7 +42,7 @@ jobs:
             git reset --hard origin/$BRANCH
 
             echo "🔨 Build Docker image $IMAGE_NAME"
-            docker build -t $IMAGE_NAME .
+            docker build -f apps/main-dashboard/Dockerfile -t $IMAGE_NAME .
 
   push:
     name: 📤 Push Docker image to GitHub Container Registry
@@ -58,10 +58,10 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app/idem
+            cd /root/Idem-app/idem-dashboard
 
             COMMIT_ID="${{ needs.build.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-ai:$COMMIT_ID"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-dashboard:$COMMIT_ID"
 
             echo "📤 Push Docker image $IMAGE_NAME"
             docker push $IMAGE_NAME
@@ -84,7 +84,7 @@ jobs:
 
             BRANCH="${{ github.ref_name }}"
             COMMIT_ID="${{ needs.build.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-ai:$COMMIT_ID"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-dashboard:$COMMIT_ID"
 
             if [ "$BRANCH" = "main" ]; then
               COMPOSE_FILE="docker-compose.prod.yml"
@@ -93,7 +93,7 @@ jobs:
             fi
 
             echo "🔁 Mise à jour de l'image dans $COMPOSE_FILE"
-            sed -i "s|image: ghcr.io/.*/idem-ai:.*|image: $IMAGE_NAME|" "$COMPOSE_FILE"
+            sed -i "s|image: ghcr.io/.*/idem-dashboard:.*|image: $IMAGE_NAME|" "$COMPOSE_FILE"
 
             echo "♻️ Restarting docker-compose using $COMPOSE_FILE with $IMAGE_NAME image"
-            docker-compose -f "$COMPOSE_FILE" up -d idem
+            docker-compose -f "$COMPOSE_FILE" up -d idem-dashboard
