@@ -103,6 +103,7 @@ class IdemAuthService
             $uid = $userData['uid'] ?? null;
             $email = $userData['email'] ?? null;
             $displayName = $userData['displayName'] ?? null;
+            $photoURL = $userData['photoURL'] ?? null;
 
             if (!$uid || !$email) {
                 Log::error('[IDEM Auth] Missing required user data', [
@@ -115,6 +116,7 @@ class IdemAuthService
             Log::info('[IDEM Auth] Synchronizing user from API', [
                 'uid' => $uid,
                 'email' => $email,
+                'has_photo' => !empty($photoURL),
             ]);
 
             // Try to find user by idem_uid first
@@ -125,6 +127,7 @@ class IdemAuthService
                 $user->update([
                     'name' => $displayName ?? $user->name,
                     'email' => $email,
+                    'photo_url' => $photoURL,
                     'email_verified_at' => $user->email_verified_at ?? now(),
                 ]);
 
@@ -142,6 +145,7 @@ class IdemAuthService
                     $user->update([
                         'idem_uid' => $uid,
                         'name' => $displayName ?? $user->name,
+                        'photo_url' => $photoURL,
                         'email_verified_at' => $user->email_verified_at ?? now(),
                     ]);
 
@@ -156,6 +160,7 @@ class IdemAuthService
                         'idem_uid' => $uid,
                         'name' => $displayName ?? explode('@', $email)[0],
                         'email' => $email,
+                        'photo_url' => $photoURL,
                         'email_verified_at' => now(),
                         'password' => null, // No password needed for IDEM auth
                     ]);

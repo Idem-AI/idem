@@ -70,11 +70,23 @@
         {{-- User Profile Dropdown --}}
         <div x-data="{ open: false }" class="relative">
             <button @click="open = !open" class="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-lg transition-colors">
-                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span class="text-sm font-bold text-white">
-                        {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
-                    </span>
-                </div>
+                @if(auth()->user()->photo_url)
+                    <img src="{{ auth()->user()->photo_url }}" 
+                         alt="{{ auth()->user()->name }}" 
+                         class="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500/30"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full items-center justify-center hidden">
+                        <span class="text-sm font-bold text-white">
+                            {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                        </span>
+                    </div>
+                @else
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-bold text-white">
+                            {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                        </span>
+                    </div>
+                @endif
                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
