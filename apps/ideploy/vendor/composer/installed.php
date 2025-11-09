@@ -3,7 +3,7 @@
         'name' => 'coollabsio/coolify',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'aad158bc3eb535c714484c74827efdd90bdc1a53',
+        'reference' => 'fb66b6fa6c9c9999f8a46f8f0183306d3c1304ca',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -175,7 +175,7 @@
         'coollabsio/coolify' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'aad158bc3eb535c714484c74827efdd90bdc1a53',
+            'reference' => 'fb66b6fa6c9c9999f8a46f8f0183306d3c1304ca',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

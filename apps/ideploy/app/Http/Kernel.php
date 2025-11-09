@@ -34,6 +34,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
+            \App\Http\Middleware\IdemAuthMiddleware::class, // IDEM API authentication - DOIT être après StartSession
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -74,5 +75,6 @@ class Kernel extends HttpKernel
         'can.create.resources' => \App\Http\Middleware\CanCreateResources::class,
         'can.update.resource' => \App\Http\Middleware\CanUpdateResource::class,
         'can.access.terminal' => \App\Http\Middleware\CanAccessTerminal::class,
+        'idem.admin' => \App\Http\Middleware\IdemAdminMiddleware::class,
     ];
 }
