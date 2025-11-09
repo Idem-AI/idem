@@ -383,6 +383,13 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 require __DIR__.'/idem.php';
 
+// ============================================
+// IDEM Auth Test Routes (Development only)
+// ============================================
+if (app()->environment('local', 'development')) {
+    require __DIR__.'/test-auth.php';
+}
+
 // Catch-all route (must be last)
 Route::any('/{any}', function () {
     if (auth()->user()) {
