@@ -13,27 +13,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Express API Configuration
-    |--------------------------------------------------------------------------
-    |
-    | URL of the Express API service for centralized authentication
-    |
-    */
-    'api_url' => env('IDEM_API_URL', 'http://localhost:3001'),
-    'api_key' => env('EXPRESS_API_KEY', ''),
-    
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard URL
-    |--------------------------------------------------------------------------
-    |
-    | URL of the main dashboard (Angular app) for authentication
-    |
-    */
-    'dashboard_url' => env('IDEM_DASHBOARD_URL', 'http://localhost:4200'),
-
-    /*
-    |--------------------------------------------------------------------------
     | JWT Authentication
     |--------------------------------------------------------------------------
     |

@@ -3,7 +3,6 @@
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OauthController;
 use App\Http\Controllers\UploadController;
-use App\Http\Controllers\WelcomeController;
 use App\Livewire\Admin\Index as AdminIndex;
 use App\Livewire\Boarding\Index as BoardingIndex;
 use App\Livewire\Dashboard;
@@ -86,9 +85,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-// Page d'accueil - Vérifie auth Express et redirige
-Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
-
 Route::get('/admin', AdminIndex::class)->name('admin.index');
 
 Route::post('/forgot-password', [Controller::class, 'forgot_password'])->name('password.forgot')->middleware('throttle:forgot-password');
@@ -102,13 +98,12 @@ Route::middleware(['throttle:login'])->group(function () {
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
 
-// Routes protégées par Express Auth
-Route::middleware(['express.auth'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['throttle:force-password-reset'])->group(function () {
         Route::get('/force-password-reset', ForcePasswordReset::class)->name('auth.force-password-reset');
     });
 
-    Route::get('/dashboard', Dashboard::class)->name('dashboard');
+    Route::get('/', Dashboard::class)->name('dashboard');
     Route::get('/onboarding', BoardingIndex::class)->name('onboarding');
 
     Route::get('/subscription', SubscriptionShow::class)->name('subscription.show');
@@ -394,5 +389,5 @@ Route::any('/{any}', function () {
         return redirect(RouteServiceProvider::HOME);
     }
 
-    return redirect()->route('welcome');
+    return redirect()->route('login');
 })->where('any', '.*');
