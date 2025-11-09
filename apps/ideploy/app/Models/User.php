@@ -57,18 +57,6 @@ class User extends Authenticatable implements SendsEmail
     ];
 
     /**
-     * The attributes that should be fillable for mass assignment.
-     * Includes firebase_uid for Express authentication integration.
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'firebase_uid',
-        'email_verified_at',
-    ];
-
-    /**
      * Set the email attribute to lowercase.
      */
     public function setEmailAttribute($value)

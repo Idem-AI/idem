@@ -7,23 +7,21 @@ set -e
 
 echo "🚀 Démarrage de tous les services Coolify..."
 
+# Options
+START_VITE=true
+
+for arg in "$@"; do
+    case "$arg" in
+        --no-vite|--skip-vite)
+            START_VITE=false
+            ;;
+    esac
+done
+
 # Couleurs
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-RED='\033[0;31m'
 NC='\033[0m'
-
-# Vérifier que la base de données est initialisée
-echo -e "${BLUE}🔍 Vérification de la base de données...${NC}"
-if ! php artisan tinker --execute="echo App\Models\InstanceSettings::find(0) ? 'OK' : 'MISSING';" 2>/dev/null | grep -q "OK"; then
-    echo -e "${RED}❌ Erreur: La base de données n'est pas initialisée${NC}"
-    echo -e "${BLUE}📝 Veuillez exécuter les migrations et seeders:${NC}"
-    echo -e "   php artisan migrate:fresh --seed"
-    echo -e "\n${BLUE}💡 Ou utilisez le script de configuration:${NC}"
-    echo -e "   ./scripts/run-local.sh"
-    exit 1
-fi
-echo -e "${GREEN}✅ Base de données initialisée${NC}"
 
 # Créer un répertoire pour les logs
 mkdir -p storage/logs/services
@@ -49,13 +47,15 @@ HORIZON_PID=$!
 echo $HORIZON_PID > storage/logs/services/horizon.pid
 echo -e "${GREEN}✅ Horizon démarré (PID: $HORIZON_PID)${NC}"
 
-# Démarrer Vite en mode dev (optionnel)
-if [ "$1" = "--dev" ]; then
+# Démarrer Vite en mode dev
+if [ "$START_VITE" = true ]; then
     echo -e "${BLUE}⚡ Démarrage de Vite dev server...${NC}"
     npm run dev > storage/logs/services/vite.log 2>&1 &
     VITE_PID=$!
     echo $VITE_PID > storage/logs/services/vite.pid
     echo -e "${GREEN}✅ Vite démarré (PID: $VITE_PID)${NC}"
+else
+    echo -e "${BLUE}⚡ Vite dev server non démarré (--no-vite)${NC}"
 fi
 
 echo -e "\n${GREEN}=================================================="
@@ -68,7 +68,7 @@ echo -e "\n${BLUE}Logs:${NC}"
 echo -e "  Web:         tail -f storage/logs/services/web.log"
 echo -e "  Queue:       tail -f storage/logs/services/queue.log"
 echo -e "  Horizon:     tail -f storage/logs/services/horizon.log"
-if [ "$1" = "--dev" ]; then
+if [ "$START_VITE" = true ]; then
     echo -e "  Vite:        tail -f storage/logs/services/vite.log"
 fi
 echo -e "\n${BLUE}Pour arrêter tous les services:${NC}"
