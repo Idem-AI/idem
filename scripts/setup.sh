@@ -124,7 +124,7 @@ fi
 if [ -d "apps/api" ]; then
     info "Installing idem-api dependencies..."
     cd apps/api
-    sudo npm install
+    npm install
     cd ../..
     success "idem-api configured"
 fi
@@ -133,26 +133,26 @@ fi
 if [ -d "apps/chart" ]; then
     info "Installing chart dependencies..."
     cd apps/chart
-    sudo pnpm install
+    pnpm install
     cd ../..
     success "chart configured"
 fi
 
 # appgen we-dev-next
-if [ -d "apps/appgen" ]; then
-    info "Installing appgen dependencies..."
+if [ -d "apps/appgen/apps/we-dev-next" ]; then
+    info "Installing appgen we-dev-next dependencies..."
     cd apps/appgen/apps/we-dev-next
-    sudo pnpm install
-    cd ../..
+    pnpm install
+    cd ../../../..
     success "appgen we-dev-next configured"
 fi
 
 # appgen we-dev-client
-if [ -d "apps/appgen" ]; then
-    info "Installing appgen dependencies..."
+if [ -d "apps/appgen/apps/we-dev-client" ]; then
+    info "Installing appgen we-dev-client dependencies..."
     cd apps/appgen/apps/we-dev-client
-    sudo pnpm install
-    cd ../..
+    pnpm install
+    cd ../../../..
     success "appgen we-dev-client configured"
 fi
 

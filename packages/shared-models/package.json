@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist tsconfig.tsbuildinfo || sudo rm -rf dist tsconfig.tsbuildinfo"
   },
   "keywords": [
     "idem",

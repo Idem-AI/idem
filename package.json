@@ -14,7 +14,7 @@
     "packages/shared-styles"
   ],
   "scripts": {
-    "postinstall": "husky install || true && npm run build:shared && npm run build:shared-auth",
+    "postinstall": "husky install || true",
     "install:all": "npm install --workspaces",
     "prepare:packages": "npm run build:shared && npm run build:shared-auth",
     "dev:chart": "pnpm run dev --workspace=mermaid-live-editor",

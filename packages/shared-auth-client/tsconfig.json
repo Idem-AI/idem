@@ -16,8 +16,8 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@idem/shared-models": ["../shared-models/src"],
-      "@idem/shared-models/*": ["../shared-models/src/*"]
+      "@idem/shared-models": ["../shared-models/dist"],
+      "@idem/shared-models/*": ["../shared-models/dist/*"]
     }
   },
   "references": [{ "path": "../shared-models" }],
