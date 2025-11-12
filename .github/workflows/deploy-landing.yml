@@ -43,6 +43,7 @@ jobs:
             # Update repository
             cd $REPO_DIR
             git fetch origin
+            git reset --hard origin/$BRANCH
             git checkout $BRANCH
             git pull origin $BRANCH
             
