@@ -37,7 +37,7 @@ export class AfricanMarketPage implements OnInit {
   protected readonly regions: MarketRegion[] = [
     {
       region: $localize`:@@african-market-page.regions.central.region:Central Africa (Cameroon)`,
-      flag: '🇨🇲',
+      flag: '',
       status: $localize`:@@african-market-page.regions.central.status:Live Now - Our Home Base`,
       description: $localize`:@@african-market-page.regions.central.description:Cameroon is our founding market and the birthplace of IDEM. We understand the local ecosystem, regulatory environment, and entrepreneurial challenges firsthand.`,
       color: '#10b981',
