@@ -13,7 +13,7 @@ services:
         condition: service_healthy
     environment:
       - SERVICE_URL_SEARXNG_8080
-      - INSTANCE_NAME=${INSTANCE_NAME:-ideploy}
+      - INSTANCE_NAME=${INSTANCE_NAME:-coolify}
       - BASE_URL=${SERVICE_URL_SEARXNG_8080}
       - SEARXNG_URL=${SERVICE_URL_SEARXNG_8080}
       - SEARXNG_BIND_ADDRESS=${SEARXNG_BIND_ADDRESS:-0.0.0.0}

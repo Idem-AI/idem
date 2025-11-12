@@ -66,11 +66,11 @@ class Init extends Command
 
         // Backward compatibility
         $this->replaceSlashInEnvironmentName();
-        $this->restoreIdeployDbBackup();
+        $this->restoreCoolifyDbBackup();
         $this->updateUserEmails();
         //
         $this->updateTraefikLabels();
-        $this->cleanupUnusedNetworkFromIdeployProxy();
+        $this->cleanupUnusedNetworkFromCoolifyProxy();
 
         try {
             $this->call('cleanup:redis');
@@ -111,8 +111,8 @@ class Init extends Command
             echo "Could not setup dynamic configuration: {$e->getMessage()}\n";
         }
 
-        if (! is_null(config('constants.ideploy.autoupdate', null))) {
-            if (config('constants.ideploy.autoupdate') == true) {
+        if (! is_null(config('constants.coolify.autoupdate', null))) {
+            if (config('constants.coolify.autoupdate') == true) {
                 echo "Enabling auto-update\n";
                 $this->settings->update(['is_auto_update_enabled' => true]);
             } else {
@@ -166,7 +166,7 @@ class Init extends Command
         }
     }
 
-    private function cleanupUnusedNetworkFromIdeployProxy()
+    private function cleanupUnusedNetworkFromCoolifyProxy()
     {
         foreach ($this->servers as $server) {
             if (! $server->isFunctional()) {
@@ -182,15 +182,15 @@ class Init extends Command
                 foreach ($removeNetworks as $network) {
                     $out = instant_remote_process(["docker network inspect -f json $network | jq '.[].Containers | if . == {} then null else . end'"], $server, false);
                     if (empty($out)) {
-                        $commands->push("docker network disconnect $network ideploy-proxy >/dev/null 2>&1 || true");
+                        $commands->push("docker network disconnect $network coolify-proxy >/dev/null 2>&1 || true");
                         $commands->push("docker network rm $network >/dev/null 2>&1 || true");
                     } else {
                         $data = collect(json_decode($out, true));
                         if ($data->count() === 1) {
-                            // If only ideploy-proxy itself is connected to that network (it should not be possible, but who knows)
-                            $isIdeployProxyItself = data_get($data->first(), 'Name') === 'ideploy-proxy';
-                            if ($isIdeployProxyItself) {
-                                $commands->push("docker network disconnect $network ideploy-proxy >/dev/null 2>&1 || true");
+                            // If only coolify-proxy itself is connected to that network (it should not be possible, but who knows)
+                            $isCoolifyProxyItself = data_get($data->first(), 'Name') === 'coolify-proxy';
+                            if ($isCoolifyProxyItself) {
+                                $commands->push("docker network disconnect $network coolify-proxy >/dev/null 2>&1 || true");
                                 $commands->push("docker network rm $network >/dev/null 2>&1 || true");
                             }
                         }
@@ -200,14 +200,14 @@ class Init extends Command
                     remote_process(command: $commands, type: ActivityTypes::INLINE->value, server: $server, ignore_errors: false);
                 }
             } catch (\Throwable $e) {
-                echo "Error in cleaning up unused networks from ideploy proxy: {$e->getMessage()}\n";
+                echo "Error in cleaning up unused networks from coolify proxy: {$e->getMessage()}\n";
             }
         }
     }
 
-    private function restoreIdeployDbBackup()
+    private function restoreCoolifyDbBackup()
     {
-        if (version_compare('4.0.0-beta.179', config('constants.ideploy.version'), '<=')) {
+        if (version_compare('4.0.0-beta.179', config('constants.coolify.version'), '<=')) {
             try {
                 $database = StandalonePostgresql::withTrashed()->find(0);
                 if ($database && $database->trashed()) {
@@ -226,7 +226,7 @@ class Init extends Command
                     }
                 }
             } catch (\Throwable $e) {
-                echo "Error in restoring ideploy db backup: {$e->getMessage()}\n";
+                echo "Error in restoring coolify db backup: {$e->getMessage()}\n";
             }
         }
     }
@@ -234,9 +234,9 @@ class Init extends Command
     private function sendAliveSignal()
     {
         $id = config('app.id');
-        $version = config('constants.ideploy.version');
+        $version = config('constants.coolify.version');
         try {
-            Http::get("https://undead.ideploy.io/v4/alive?appId=$id&version=$version");
+            Http::get("https://undead.coolify.io/v4/alive?appId=$id&version=$version");
         } catch (\Throwable $e) {
             echo "Error in sending live signal: {$e->getMessage()}\n";
         }
@@ -244,7 +244,7 @@ class Init extends Command
 
     private function replaceSlashInEnvironmentName()
     {
-        if (version_compare('4.0.0-beta.298', config('constants.ideploy.version'), '<=')) {
+        if (version_compare('4.0.0-beta.298', config('constants.coolify.version'), '<=')) {
             $environments = Environment::all();
             foreach ($environments as $environment) {
                 if (str_contains($environment->name, '/')) {

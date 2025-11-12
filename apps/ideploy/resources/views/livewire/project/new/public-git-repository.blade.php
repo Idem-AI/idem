@@ -25,7 +25,7 @@
                     </svg>
                     <div class="text-sm text-gray-300">
                         For example application deployments, checkout <a class="text-[#4F46E5] hover:text-[#6366F1] underline font-medium"
-                            href="https://github.com/coollabsio/ideploy-examples/" target="_blank">Ideploy Examples</a>.
+                            href="https://github.com/coollabsio/coolify-examples/" target="_blank">Coolify Examples</a>.
                     </div>
                 </div>
             </div>

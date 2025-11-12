@@ -8,6 +8,6 @@
   let { children }: Props = $props();
 </script>
 
-<div class="hidden h-12 items-center justify-between gap-2 rounded-2xl bg-muted p-3 md:flex">
+<div class="bg-muted hidden h-12 items-center justify-between gap-2 rounded-2xl p-3 md:flex">
   {@render children()}
 </div>

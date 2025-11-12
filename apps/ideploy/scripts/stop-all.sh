@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Script pour arrêter tous les services Ideploy
+# Script pour arrêter tous les services Coolify
 # Usage: ./scripts/stop-all.sh
 
 set -e
 
-echo "🛑 Arrêt de tous les services Ideploy..."
+echo "🛑 Arrêt de tous les services Coolify..."
 
 # Couleurs
 RED='\033[0;31m'
@@ -19,7 +19,7 @@ PID_DIR="storage/logs/services"
 stop_service() {
     local service_name=$1
     local pid_file="$PID_DIR/${service_name}.pid"
-
+    
     if [ -f "$pid_file" ]; then
         local pid=$(cat "$pid_file")
         if ps -p $pid > /dev/null 2>&1; then

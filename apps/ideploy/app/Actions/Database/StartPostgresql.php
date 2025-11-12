@@ -28,7 +28,7 @@ class StartPostgresql
         $container_name = $this->database->uuid;
         $this->configuration_dir = database_configuration_dir().'/'.$container_name;
         if (isDev()) {
-            $this->configuration_dir = '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/databases/'.$container_name;
+            $this->configuration_dir = '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/databases/'.$container_name;
         }
 
         $this->commands = [
@@ -290,7 +290,7 @@ class StartPostgresql
             $environment_variables->push("POSTGRES_DB={$this->database->postgres_db}");
         }
 
-        add_ideploy_default_environment_variables($this->database, $environment_variables, $environment_variables);
+        add_coolify_default_environment_variables($this->database, $environment_variables, $environment_variables);
 
         return $environment_variables->all();
     }

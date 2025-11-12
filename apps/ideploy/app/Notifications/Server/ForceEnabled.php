@@ -24,7 +24,7 @@ class ForceEnabled extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject("Ideploy: Server ({$this->server->name}) enabled again!");
+        $mail->subject("Coolify: Server ({$this->server->name}) enabled again!");
         $mail->view('emails.server-force-enabled', [
             'name' => $this->server->name,
         ]);
@@ -44,7 +44,7 @@ class ForceEnabled extends CustomEmailNotification
     public function toTelegram(): array
     {
         return [
-            'message' => "Ideploy: Server ({$this->server->name}) enabled again!",
+            'message' => "Coolify: Server ({$this->server->name}) enabled again!",
         ];
     }
 

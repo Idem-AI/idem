@@ -110,7 +110,7 @@ export class CarouselComponent<T> implements OnInit, OnDestroy {
     return this.items || [];
   }
   @Input() selectedItem: T | null = null;
-  @Input() trackByFn: (index: number, item: T) => any = (index, item) => index;
+  @Input() trackByFn: (index: number, item: T) => unknown = (_index, item) => item;
   @Input() autoPlay = false;
   @Input() autoPlayInterval = 3000;
   @Input() infinite = true;
@@ -122,7 +122,7 @@ export class CarouselComponent<T> implements OnInit, OnDestroy {
   @Output() readonly slideChanged = new EventEmitter<number>();
   @Output() readonly currentItemChanged = new EventEmitter<T>();
 
-  @ContentChild(TemplateRef) itemTemplate!: TemplateRef<any>;
+  @ContentChild(TemplateRef) itemTemplate!: TemplateRef<unknown>;
   @ViewChild('carouselContainer') carouselContainer!: ElementRef;
   @ViewChild('carouselTrack') carouselTrack!: ElementRef;
 

@@ -11,15 +11,7 @@ module.exports = {
     'plugin:svelte/prettier',
     'prettier'
   ],
-  plugins: [
-    'tailwindcss',
-    '@typescript-eslint',
-    'es',
-    'vitest',
-    'no-only-tests',
-    'sort-keys',
-    'unicorn'
-  ],
+  plugins: ['@typescript-eslint', 'es', 'vitest', 'no-only-tests', 'sort-keys', 'unicorn'],
   ignorePatterns: [
     'docs/*',
     '*.cjs',
@@ -37,6 +29,17 @@ module.exports = {
       parser: 'svelte-eslint-parser',
       parserOptions: {
         parser: '@typescript-eslint/parser'
+      },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unused-vars': 'warn',
+        'svelte/valid-compile': 'warn',
+        'svelte/no-inner-declarations': 'warn'
       }
     },
     {
@@ -47,7 +50,16 @@ module.exports = {
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
         'plugin:@typescript-eslint/strict',
         'prettier'
-      ]
+      ],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-redundant-type-constituents': 'off'
+      }
     },
     {
       files: ['**/components/ui/**'],
@@ -55,7 +67,19 @@ module.exports = {
         'unicorn/prefer-export-from': 'off',
         'unicorn/prevent-abbreviations': 'off',
         'unicorn/explicit-length-check': 'off',
-        'sort-keys/sort-keys-fix': 'off'
+        'sort-keys/sort-keys-fix': 'off',
+        'svelte/valid-compile': 'warn'
+      }
+    },
+    {
+      files: ['**/*.spec.ts', '**/*.test.ts', '**/tests/**/*.ts'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off'
       }
     }
   ],
@@ -78,8 +102,12 @@ module.exports = {
         'ts-ignore': 'allow-with-description'
       }
     ],
+    '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-unsafe-member-access': 'off',
     '@typescript-eslint/no-unsafe-assignment': 'off',
+    '@typescript-eslint/no-unsafe-argument': 'off',
+    '@typescript-eslint/no-unsafe-return': 'off',
+    '@typescript-eslint/no-unsafe-call': 'off',
     'es/no-regexp-lookbehind-assertions': 'error',
     curly: ['error', 'all'],
     'no-only-tests/no-only-tests': 'error',

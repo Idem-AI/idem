@@ -39,7 +39,7 @@ const verifyClient = async (info, callback) => {
 
   try {
     // Authenticate with Laravel backend
-    const response = await axios.post(`http://ideploy:8080/terminal/auth`, null, {
+    const response = await axios.post(`http://coolify:8080/terminal/auth`, null, {
       headers: {
         Cookie: `${sessionCookieName}=${laravelSession}`,
         'X-XSRF-TOKEN': xsrfToken,
@@ -70,7 +70,7 @@ wss.on('connection', async (ws, req) => {
     ws.close(401, 'Unauthorized: Missing required tokens');
     return;
   }
-  const response = await axios.post(`http://ideploy:8080/terminal/auth/ips`, null, {
+  const response = await axios.post(`http://coolify:8080/terminal/auth/ips`, null, {
     headers: {
       Cookie: `${sessionCookieName}=${laravelSession}`,
       'X-XSRF-TOKEN': xsrfToken,
@@ -164,7 +164,7 @@ async function handleCommand(ws, command, userId) {
   };
 
   // NOTE: - Initiates a process within the Terminal container
-  //         Establishes an SSH connection to root@ideploy with RequestTTY enabled
+  //         Establishes an SSH connection to root@coolify with RequestTTY enabled
   //         Executes the 'docker exec' command to connect to a specific container
   const ptyProcess = pty.spawn('ssh', sshArgs.concat([hereDocContent]), options);
 
@@ -329,5 +329,5 @@ function extractHereDocContent(commandString) {
 }
 
 server.listen(6002, () => {
-  console.log('Ideploy realtime terminal server listening on port 6002. Let the hacking begin!');
+  console.log('Coolify realtime terminal server listening on port 6002. Let the hacking begin!');
 });

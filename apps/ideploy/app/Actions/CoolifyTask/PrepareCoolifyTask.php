@@ -1,23 +1,23 @@
 <?php
 
-namespace App\Actions\IdeployTask;
+namespace App\Actions\CoolifyTask;
 
-use App\Data\IdeployTaskArgs;
-use App\Jobs\IdeployTask;
+use App\Data\CoolifyTaskArgs;
+use App\Jobs\CoolifyTask;
 use Spatie\Activitylog\Models\Activity;
 
 /**
- * The initial step to run a `IdeployTask`: a remote SSH process
+ * The initial step to run a `CoolifyTask`: a remote SSH process
  * with monitoring/tracking/trace feature. Such thing is made
  * possible using an Activity model and some attributes.
  */
-class PrepareIdeployTask
+class PrepareCoolifyTask
 {
     protected Activity $activity;
 
-    protected IdeployTaskArgs $remoteProcessArgs;
+    protected CoolifyTaskArgs $remoteProcessArgs;
 
-    public function __construct(IdeployTaskArgs $remoteProcessArgs)
+    public function __construct(CoolifyTaskArgs $remoteProcessArgs)
     {
         $this->remoteProcessArgs = $remoteProcessArgs;
 
@@ -40,7 +40,7 @@ class PrepareIdeployTask
 
     public function __invoke(): Activity
     {
-        $job = new IdeployTask(
+        $job = new CoolifyTask(
             activity: $this->activity,
             ignore_errors: $this->remoteProcessArgs->ignore_errors,
             call_event_on_finish: $this->remoteProcessArgs->call_event_on_finish,

@@ -110,8 +110,8 @@ export async function addTeamMember(req: CustomRequest, res: Response): Promise<
  */
 export async function updateMemberRole(req: CustomRequest, res: Response): Promise<void> {
   try {
-    const userId = req.user?.uid;
-    if (!userId) {
+    const updatedBy = req.user?.uid;
+    if (!updatedBy) {
       res.status(401).json({
         success: false,
         error: { code: 'UNAUTHORIZED', message: 'User not authenticated' },
@@ -122,7 +122,7 @@ export async function updateMemberRole(req: CustomRequest, res: Response): Promi
     const { teamId } = req.params;
     const data: UpdateTeamMemberRoleDTO = req.body;
 
-    const team = await teamService.updateMemberRole(teamId, userId, data);
+    const team = await teamService.updateMemberRole(teamId, data.userId, updatedBy, data);
     res.status(200).json({ success: true, data: team });
   } catch (error: any) {
     logger.error(`Error updating member role: ${error.message}`);

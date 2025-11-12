@@ -1,0 +1,77 @@
+name: Deploy Main Dashboard
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: 🚀 Build & Deploy Dashboard
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get commit info
+        id: vars
+        run: |
+          echo "commit_id=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+
+      - name: Build, Push & Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            
+            # Variables
+            REPO_DIR="/root/idem"
+            BRANCH="${{ steps.vars.outputs.branch }}"
+            COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-main-dashboard:$COMMIT_ID"
+            IMAGE_LATEST="ghcr.io/idem-ai/idem-main-dashboard:latest"
+            
+            echo "📍 Branch: $BRANCH"
+            echo "📍 Commit: $COMMIT_ID"
+            echo "📍 Image: $IMAGE_NAME"
+            
+            # Update repository
+            cd $REPO_DIR
+            git fetch origin
+            git checkout $BRANCH
+            git pull origin $BRANCH
+            
+            # Build image
+            echo "🔨 Building Docker image..."
+            docker build -f Dockerfile.main-dashboard -t $IMAGE_NAME -t $IMAGE_LATEST .
+            
+            # Login to GitHub Container Registry
+            echo "🔑 Logging in to GHCR..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Push images
+            echo "📤 Pushing images..."
+            docker push $IMAGE_NAME
+            docker push $IMAGE_LATEST
+            
+            # Update docker-compose
+            COMPOSE_FILE="docker-compose.yml"
+            echo "🔁 Updating $COMPOSE_FILE..."
+            sed -i "s|image: ghcr.io/idem-ai/idem-main-dashboard:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+            sed -i "s|image: ghcr.io/idem-ai/idem:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+            
+            # Deploy
+            echo "♻️ Deploying..."
+            docker-compose pull idem
+            docker-compose up -d idem
+            
+            # Cleanup
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+            
+            echo "✅ Dashboard deployed successfully!"

@@ -3,11 +3,11 @@ description: Database architecture, models, migrations, relationships, and data 
 globs: app/Models/*.php, database/migrations/*.php, database/seeders/*.php, app/Actions/Database/*.php
 alwaysApply: false
 ---
-# Ideploy Database Architecture & Patterns
+# Coolify Database Architecture & Patterns
 
 ## Database Strategy
 
-Ideploy uses **PostgreSQL 15** as the primary database with **Redis 7** for caching and real-time features. The architecture supports managing multiple external databases across different servers.
+Coolify uses **PostgreSQL 15** as the primary database with **Redis 7** for caching and real-time features. The architecture supports managing multiple external databases across different servers.
 
 ## Primary Database (PostgreSQL)
 
@@ -47,7 +47,7 @@ Each database type has its own dedicated model with specific configurations:
 
 #### SQL Databases
 - **[StandalonePostgresql.php](mdc:app/Models/StandalonePostgresql.php)** - PostgreSQL instances
-- **[StandaloneMysql.php](mdc:app/Models/StandaloneMysql.php)** - MySQL instances
+- **[StandaloneMysql.php](mdc:app/Models/StandaloneMysql.php)** - MySQL instances  
 - **[StandaloneMariadb.php](mdc:app/Models/StandaloneMariadb.php)** - MariaDB instances
 
 #### NoSQL & Analytics
@@ -66,7 +66,7 @@ Each database type has its own dedicated model with specific configurations:
 - **[SharedEnvironmentVariable.php](mdc:app/Models/SharedEnvironmentVariable.php)** - Shared across applications
 
 ### Settings Hierarchy
-- **[InstanceSettings.php](mdc:app/Models/InstanceSettings.php)** - Global Ideploy instance settings
+- **[InstanceSettings.php](mdc:app/Models/InstanceSettings.php)** - Global Coolify instance settings
 - **[ServerSetting.php](mdc:app/Models/ServerSetting.php)** - Server-specific settings
 - **[ProjectSetting.php](mdc:app/Models/ProjectSetting.php)** - Project-level settings
 - **[ApplicationSetting.php](mdc:app/Models/ApplicationSetting.php)** - Application settings
@@ -117,7 +117,7 @@ Each database type has its own dedicated model with specific configurations:
 
 #### Migration Patterns
 ```php
-// Typical Ideploy migration structure
+// Typical Coolify migration structure
 Schema::create('applications', function (Blueprint $table) {
     $table->id();
     $table->string('name');
@@ -174,17 +174,17 @@ class Application extends Model
     {
         return $this->belongsTo(Server::class);
     }
-
+    
     public function environment()
     {
         return $this->belongsTo(Environment::class);
     }
-
+    
     public function deployments()
     {
         return $this->hasMany(ApplicationDeploymentQueue::class);
     }
-
+    
     public function environmentVariables()
     {
         return $this->hasMany(EnvironmentVariable::class);
@@ -211,10 +211,10 @@ use HasUuids;
 
 ### Cache Keys Structure
 ```
-ideploy:session:{session_id}
-ideploy:server:{server_id}:status
-ideploy:deployment:{deployment_id}:logs
-ideploy:user:{user_id}:teams
+coolify:session:{session_id}
+coolify:server:{server_id}:status
+coolify:deployment:{deployment_id}:logs
+coolify:user:{user_id}:teams
 ```
 
 ## Query Optimization Patterns

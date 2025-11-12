@@ -57,6 +57,7 @@ import teamRoutes from './routes/team.routes';
 import invitationRoutes from './routes/invitation.routes';
 import projectTeamRoutes from './routes/project-team.routes';
 import migrationRoutes from './routes/migration.routes';
+import { teamsRoutes } from './routes/teams.routes';
 
 const app: Express = express();
 
@@ -109,6 +110,7 @@ app.use(
       'Referer',
       'Origin',
       'X-Requested-With',
+      'X-API-Key',
     ],
     exposedHeaders: ['Content-Type', 'Cache-Control', 'Connection', 'X-Accel-Buffering'],
   })
@@ -131,6 +133,7 @@ app.use('/project', policyRoutes);
 
 // Authorization routes
 app.use('/teams', teamRoutes);
+app.use('/api/teams', teamsRoutes); // New centralized teams API
 app.use('/invitations', invitationRoutes);
 app.use('/projects', projectTeamRoutes);
 app.use('/migration', migrationRoutes);

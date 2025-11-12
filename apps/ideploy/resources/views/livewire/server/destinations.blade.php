@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white">
     <x-slot:title>
-        {{ data_get_str($server, 'name')->limit(10) }} > Destinations | Ideploy
+        {{ data_get_str($server, 'name')->limit(10) }} > Destinations | Coolify
     </x-slot>
     <livewire:server.navbar :server="$server" />
     <div class="flex flex-col h-full gap-8 sm:flex-row">
@@ -28,7 +28,7 @@
                     </div>
                     <p class="text-sm text-gray-400">Destinations are used to segregate resources by network.</p>
                 </div>
-
+                
                 {{-- Available Destinations --}}
                 @if ($server->standaloneDockers->count() > 0 || $server->swarmDockers->count() > 0)
                     <div class="mb-8">
@@ -77,7 +77,7 @@
                         </div>
                     </div>
                 @endif
-
+                
                 {{-- Found Destinations --}}
                 @if ($networks->count() > 0)
                     <div>

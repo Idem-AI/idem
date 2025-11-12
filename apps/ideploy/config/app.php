@@ -17,7 +17,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Ideploy'),
+    'name' => env('APP_NAME', 'Coolify'),
 
     /*
     |--------------------------------------------------------------------------
@@ -188,7 +188,6 @@ return [
          * Package Service Providers...
          */
         \SocialiteProviders\Manager\ServiceProvider::class,
-        \Idem\SharedAuth\Laravel\IdemAuthServiceProvider::class,
 
         /*
          * Application Service Providers...

@@ -301,7 +301,7 @@
                                             <div class="flex items-center gap-2 mb-2">
                                                 <span x-show="entry.title"
                                                     class="px-2 py-1 text-xs font-semibold dark:bg-coolgray-300 dark:text-neutral-200 rounded-sm"><a
-                                                        :href="`https://github.com/coollabsio/ideploy/releases/tag/${entry.tag_name}`"
+                                                        :href="`https://github.com/coollabsio/coolify/releases/tag/${entry.tag_name}`"
                                                         target="_blank"
                                                         class="inline-flex items-center gap-1 hover:text-coolgray-500">
                                                         <span x-text="entry.title"></span>

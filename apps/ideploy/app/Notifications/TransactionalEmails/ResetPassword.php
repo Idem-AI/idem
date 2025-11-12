@@ -55,7 +55,7 @@ class ResetPassword extends Notification
     protected function buildMailMessage($url)
     {
         $mail = new MailMessage;
-        $mail->subject('Ideploy: Reset Password');
+        $mail->subject('Coolify: Reset Password');
         $mail->view('emails.reset-password', ['url' => $url, 'count' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire')]);
 
         return $mail;

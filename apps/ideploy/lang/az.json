@@ -31,7 +31,7 @@
   "input.code": "Bir dəfəlik kod",
   "input.recovery_code": "Bərpa kodu",
   "button.save": "Yadda saxla",
-  "repository.url": "<span class='text-helper'>Nümunələr</span><br>Publik repozitoriyalar üçün <span class='text-helper'>https://...</span> istifadə edin.<br>Özəl repozitoriyalar üçün <span class='text-helper'>git@...</span> istifadə edin.<br><br>https://github.com/coollabsio/ideploy-examples <span class='text-helper'>main</span> branch-ı seçiləcək<br>https://github.com/coollabsio/ideploy-examples/tree/nodejs-fastify <span class='text-helper'>nodejs-fastify</span> branch-ı seçiləcək.<br>https://gitea.com/sedlav/expressjs.git <span class='text-helper'>main</span> branch-ı seçiləcək.<br>https://gitlab.com/andrasbacsai/nodejs-example.git <span class='text-helper'>main</span> branch-ı seçiləcək.",
+  "repository.url": "<span class='text-helper'>Nümunələr</span><br>Publik repozitoriyalar üçün <span class='text-helper'>https://...</span> istifadə edin.<br>Özəl repozitoriyalar üçün <span class='text-helper'>git@...</span> istifadə edin.<br><br>https://github.com/coollabsio/coolify-examples <span class='text-helper'>main</span> branch-ı seçiləcək<br>https://github.com/coollabsio/coolify-examples/tree/nodejs-fastify <span class='text-helper'>nodejs-fastify</span> branch-ı seçiləcək.<br>https://gitea.com/sedlav/expressjs.git <span class='text-helper'>main</span> branch-ı seçiləcək.<br>https://gitlab.com/andrasbacsai/nodejs-example.git <span class='text-helper'>main</span> branch-ı seçiləcək.",
   "service.stop": "Bu xidmət dayandırılacaq.",
   "resource.docker_cleanup": "Docker təmizlənməsini işə salın (istifadə olunmayan şəkillər və builder keşini silin).",
   "resource.non_persistent": "Bütün qeyri-daimi məlumatlar silinəcək.",

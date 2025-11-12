@@ -160,7 +160,7 @@ class StartClickhouse
             $environment_variables->push("CLICKHOUSE_ADMIN_PASSWORD={$this->database->clickhouse_admin_password}");
         }
 
-        add_ideploy_default_environment_variables($this->database, $environment_variables, $environment_variables);
+        add_coolify_default_environment_variables($this->database, $environment_variables, $environment_variables);
 
         return $environment_variables->all();
     }

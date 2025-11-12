@@ -1,27 +1,10 @@
 {
-  "include": [
-    "src/**/*.d.ts",
-    "src/**/*.ts",
-    "src/**/*.svelte",
-    "static/**/*.js",
-    "static/**/*.json",
-    "playwright.config.ts",
-    "tests/**/*.ts"
-  ],
+  "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "strictNullChecks": true,
-    "types": ["vitest/importMeta", "@playwright/test"],
-    "baseUrl": ".",
-    "paths": {
-      "@idem/shared-models": ["../../packages/shared-models/src"],
-      "@idem/shared-models/*": ["../../packages/shared-models/src/*"],
-      "@idem/shared-auth-client": ["../../packages/shared-auth-client/src"],
-      "@idem/shared-auth-client/*": ["../../packages/shared-auth-client/src/*"],
-      "@idem/shared-styles": ["../../packages/shared-styles"],
-      "@idem/shared-styles/*": ["../../packages/shared-styles/*"]
-    }
-  },
-  "extends": "./.svelte-kit/tsconfig.json"
+    "moduleResolution": "bundler",
+    "types": ["vitest/importMeta", "@playwright/test"]
+  }
 }

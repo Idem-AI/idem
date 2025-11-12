@@ -231,14 +231,13 @@
   <!-- Sidebar Footer -->
   <div class="p-4 border-t border-white/10">
     @if (!isSidebarCollapsed()) {
-      <div class="text-center">
-        <p class="text-xs text-gray-400 mb-2">{{ 'dashboard.sidebar.poweredBy' | translate }}</p>
-        <div class="text-primary font-bold text-sm">Idem</div>
+      <div class="z-50">
+        <app-language-selector />
       </div>
     } @else {
       <div class="flex justify-center">
         <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
-          <i class="pi pi-bolt text-primary text-sm"></i>
+          <i class="pi pi-globe text-primary text-sm"></i>
         </div>
       </div>
     }

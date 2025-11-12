@@ -17,3 +17,4 @@
 /playwright/.cache/
 .mf_temp
 .__mf__temp
+/node-compile-cache

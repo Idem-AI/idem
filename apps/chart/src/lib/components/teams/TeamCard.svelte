@@ -26,7 +26,7 @@
       {#each team.members.slice(0, 3) as member (member.userId)}
         <div class="flex items-center justify-between text-sm">
           <span class="text-gray-700">{member.displayName}</span>
-          <span class="rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600">
+          <span class="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 capitalize">
             {member.role}
           </span>
         </div>

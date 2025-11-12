@@ -31,7 +31,7 @@
   "input.code": "Código de uso único",
   "input.recovery_code": "Código de recuperação",
   "button.save": "Salvar",
-  "repository.url": "<span class='text-helper'>Exemplos</span><br>Para repositórios públicos, use <span class='text-helper'>https://...</span>.<br>Para repositórios privados, use <span class='text-helper'>git@...</span>.<br><br>https://github.com/coollabsio/ideploy-examples <span class='text-helper'>main</span> branch será selecionado<br>https://github.com/coollabsio/ideploy-examples/tree/nodejs-fastify <span class='text-helper'>nodejs-fastify</span> branch será selecionado.<br>https://gitea.com/sedlav/expressjs.git <span class='text-helper'>main</span> branch será selecionado.<br>https://gitlab.com/andrasbacsai/nodejs-example.git <span class='text-helper'>main</span> branch será selecionado.",
+  "repository.url": "<span class='text-helper'>Exemplos</span><br>Para repositórios públicos, use <span class='text-helper'>https://...</span>.<br>Para repositórios privados, use <span class='text-helper'>git@...</span>.<br><br>https://github.com/coollabsio/coolify-examples <span class='text-helper'>main</span> branch será selecionado<br>https://github.com/coollabsio/coolify-examples/tree/nodejs-fastify <span class='text-helper'>nodejs-fastify</span> branch será selecionado.<br>https://gitea.com/sedlav/expressjs.git <span class='text-helper'>main</span> branch será selecionado.<br>https://gitlab.com/andrasbacsai/nodejs-example.git <span class='text-helper'>main</span> branch será selecionado.",
   "service.stop": "Este serviço será parado.",
   "resource.docker_cleanup": "Executar limpeza do Docker (remover imagens não utilizadas e cache de build).",
   "resource.non_persistent": "Todos os dados não persistentes serão excluídos.",

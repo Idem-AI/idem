@@ -41,5 +41,8 @@
   "understood": "Understood",
   "page": "Page",
   "of": "of",
-  "changeLanguage": "Change language"
+  "changeLanguage": "Change language",
+  "continue": "Continue",
+  "apply": "Apply",
+  "reset": "Reset"
 }

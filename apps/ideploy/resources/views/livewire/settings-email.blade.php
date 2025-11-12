@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Transactional Email | Ideploy
+        Transactional Email | Coolify
     </x-slot>
     <x-settings.navbar />
     <form wire:submit='submit' class="flex flex-col gap-2 pb-4">

@@ -1,6 +1,5 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-not-found',

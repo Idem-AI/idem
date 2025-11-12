@@ -37,7 +37,7 @@ class Help extends Component
 
             // Sending feedback through Cloud API
             if (blank($type)) {
-                $url = 'https://app.ideploy.io/api/feedback';
+                $url = 'https://app.coolify.io/api/feedback';
                 Http::post($url, [
                     'content' => 'User: `'.auth()->user()?->email.'` with subject: `'.$this->subject.'` has the following problem: `'.$this->description.'`',
                 ]);

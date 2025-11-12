@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\IdemAdminController;
 use App\Http\Controllers\Api\IdemSubscriptionController;
 use App\Http\Controllers\Api\IdemStripeController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Middleware\ApiAllowed;
 use App\Http\Middleware\IdemAdminAuth;
 use App\Http\Middleware\CheckIdemQuota;
@@ -30,9 +31,15 @@ Route::group([
 
 Route::post('/feedback', [OtherController::class, 'feedback']);
 
-// IDEM SaaS Routes (Authentification centralisée via shared-auth-php)
+// IDEM Authentication routes (JWT)
+Route::prefix('v1/auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
+
+// IDEM SaaS Routes (JWT Authentication)
 Route::group([
-    'middleware' => ['idem.auth'],
+    'middleware' => [\App\Http\Middleware\SharedJwtAuth::class],
     'prefix' => 'v1',
 ], function () {
     // Client Subscription Routes
@@ -45,7 +52,7 @@ Route::group([
         Route::get('/upgrade-suggestions', [IdemSubscriptionController::class, 'getUpgradeSuggestions']);
         Route::get('/preflight/app', [IdemSubscriptionController::class, 'checkCanDeploy']);
         Route::get('/preflight/server', [IdemSubscriptionController::class, 'checkCanAddServer']);
-
+        
         // Stripe routes
         Route::post('/stripe/checkout', [IdemStripeController::class, 'createCheckoutSession']);
         Route::get('/stripe/success', [IdemStripeController::class, 'checkoutSuccess']);
@@ -68,14 +75,14 @@ Route::group([
 });
 
 Route::group([
-    'middleware' => ['idem.auth', 'api.ability:write'],
+    'middleware' => ['auth:sanctum', 'api.ability:write'],
     'prefix' => 'v1',
 ], function () {
     Route::get('/enable', [OtherController::class, 'enable_api']);
     Route::get('/disable', [OtherController::class, 'disable_api']);
 });
 Route::group([
-    'middleware' => ['idem.auth', ApiAllowed::class, 'api.sensitive'],
+    'middleware' => ['auth:sanctum', ApiAllowed::class, 'api.sensitive'],
     'prefix' => 'v1',
 ], function () {
 
@@ -240,11 +247,6 @@ Route::group([
     });
 });
 
-// ============================================
-// Routes de Test - Package shared-auth-php
-// ============================================
-require __DIR__ . '/test-auth.php';
-
 Route::any('/{any}', function () {
-    return response()->json(['message' => 'Not found.', 'docs' => 'https://ideploy.io/docs'], 404);
+    return response()->json(['message' => 'Not found.', 'docs' => 'https://coolify.io/docs'], 404);
 })->where('any', '.*');
