@@ -6,7 +6,7 @@ COPY package*.json tsconfig.json ./
 RUN npm install
 RUN npm install @modelcontextprotocol/sdk && npm install fs-extra
 
-
+COPY ./api ./api
 COPY . .
 RUN npm run build
 
