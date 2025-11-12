@@ -24,7 +24,7 @@
                         if (checkNumber > 5) {
                             this.popups.realtime = true;
                             console.error(
-                                'Ideploy could not connect to its real-time service. This will cause unusual problems on the UI if not fixed! Please check the related documentation (https://ideploy.io/docs/knowledge-base/cloudflare/tunnels/overview) or get help on Discord (https://coollabs.io/discord).)'
+                                'Coolify could not connect to its real-time service. This will cause unusual problems on the UI if not fixed! Please check the related documentation (https://coolify.io/docs/knowledge-base/cloudflare/tunnels/overview) or get help on Discord (https://coollabs.io/discord).)'
                             );
                         }
 
@@ -74,7 +74,7 @@
                         <div>This will cause unusual problems on the
                             UI! <br><br>
                             Please ensure that you have opened the
-                            <a class="underline" href='https://ideploy.io/docs/knowledge-base/server/firewall'
+                            <a class="underline" href='https://coolify.io/docs/knowledge-base/server/firewall'
                                 target='_blank'>required ports</a> or get
                             help on <a class="underline" href='https://coollabs.io/discord' target='_blank'>Discord</a>.
                         </div>
@@ -96,7 +96,7 @@
                             <img src="{{ asset('heart.png') }}" class="w-20 h-20">
                         </div>
                         <div class="flex flex-col gap-2 lg:px-10 px-1">
-                            <div class="lg:text-xl text-md dark:text-white font-bold">Love Ideploy? Support our work.
+                            <div class="lg:text-xl text-md dark:text-white font-bold">Love Coolify? Support our work.
                             </div>
                             <div class="lg:text-sm text-xs dark:text-white">
                                 We are already profitable thanks to <span class="font-bold text-pink-500">YOU</span>

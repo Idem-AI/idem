@@ -4,13 +4,6 @@ import { RouterLink } from '@angular/router';
 import { SeoService } from '../../shared/services/seo.service';
 import { Team } from '../../components/team/team';
 
-interface TeamMember {
-  name: string;
-  role: string;
-  bio: string;
-  image: string;
-}
-
 interface Value {
   title: string;
   description: string;

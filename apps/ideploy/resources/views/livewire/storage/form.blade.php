@@ -24,7 +24,7 @@
             @can('delete', $storage)
                 <x-modal-confirmation title="Confirm Storage Deletion?" isErrorButton buttonTitle="Delete"
                     submitAction="delete({{ $storage->id }})" :actions="[
-                        'The selected storage location will be permanently deleted from Ideploy.',
+                        'The selected storage location will be permanently deleted from Coolify.',
                         'If the storage location is in use by any backup jobs those backup jobs will only store the backup locally on the server.',
                     ]" confirmationText="{{ $storage->name }}"
                     confirmationLabel="Please confirm the execution of the actions by entering the Storage Name below"

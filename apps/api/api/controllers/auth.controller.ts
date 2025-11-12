@@ -56,7 +56,7 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       maxAge: expiresIn,
       httpOnly: true,
       // In production we must use Secure + SameSite=None for cross-site cookies
-      secure: true,
+      secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
     };
@@ -292,6 +292,48 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
 /**
  * Contrôleur pour obtenir les informations des refresh tokens d'un utilisateur
  */
+/**
+ * Verify session cookie and return user data
+ * This endpoint is used by Laravel to verify Firebase sessions
+ */
+export const verifySessionController = async (req: Request, res: Response): Promise<void> => {
+  const sessionCookie = req.cookies.session || req.headers.authorization?.replace('Bearer ', '');
+
+  logger.info('Verifying session for external service', {
+    hasSessionCookie: !!sessionCookie,
+    source: req.cookies.session ? 'cookie' : 'authorization header',
+  });
+
+  if (!sessionCookie) {
+    logger.warn('Session verification failed: No session cookie provided');
+    res.status(401).json({
+      success: false,
+      message: 'No session cookie provided',
+    });
+    return;
+  }
+
+  try {
+    const profile = await userService.getUserProfile(sessionCookie);
+
+    logger.info(`Session verified successfully for user: ${profile.uid}`);
+    res.status(200).json({
+      success: true,
+      user: profile,
+    });
+  } catch (error: any) {
+    logger.error('Session verification failed:', {
+      errorMessage: error.message,
+      errorStack: error.stack,
+    });
+    res.status(401).json({
+      success: false,
+      message: 'Invalid or expired session',
+      error: error.message,
+    });
+  }
+};
+
 export const getRefreshTokensController = async (
   req: CustomRequest,
   res: Response

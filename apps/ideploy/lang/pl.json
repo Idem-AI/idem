@@ -32,7 +32,7 @@
   "input.code": "Jednorazowy kod",
   "input.recovery_code": "Kod odzyskiwania",
   "button.save": "Zapisz",
-  "repository.url": "<span class='text-helper'>Przykłady</span><br>Dla publicznych repozytoriów użyj <span class='text-helper'>https://...</span>.<br>Dla prywatnych repozytoriów, użyj <span class='text-helper'>git@...</span>.<br><br>https://github.com/coollabsio/ideploy-examples - zostanie wybrany branch <span class='text-helper'>main</span><br>https://github.com/coollabsio/ideploy-examples/tree/nodejs-fastify - zostanie wybrany branch <span class='text-helper'>nodejs-fastify</span><br>https://gitea.com/sedlav/expressjs.git - zostanie wybrany branch <span class='text-helper'>main</span><br>https://gitlab.com/andrasbacsai/nodejs-example.git - zostanie wybrany branch <span class='text-helper'>main</span>",
+  "repository.url": "<span class='text-helper'>Przykłady</span><br>Dla publicznych repozytoriów użyj <span class='text-helper'>https://...</span>.<br>Dla prywatnych repozytoriów, użyj <span class='text-helper'>git@...</span>.<br><br>https://github.com/coollabsio/coolify-examples - zostanie wybrany branch <span class='text-helper'>main</span><br>https://github.com/coollabsio/coolify-examples/tree/nodejs-fastify - zostanie wybrany branch <span class='text-helper'>nodejs-fastify</span><br>https://gitea.com/sedlav/expressjs.git - zostanie wybrany branch <span class='text-helper'>main</span><br>https://gitlab.com/andrasbacsai/nodejs-example.git - zostanie wybrany branch <span class='text-helper'>main</span>",
   "service.stop": "Ten serwis zostanie zatrzymany.",
   "resource.docker_cleanup": "Uruchom Docker Cleanup (usunie nieużywane obrazy i cache buildera).",
   "resource.non_persistent": "Wszystkie nietrwałe dane zostaną usunięte.",

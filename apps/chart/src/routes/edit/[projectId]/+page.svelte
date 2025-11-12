@@ -76,8 +76,12 @@
     const target = event.currentTarget as HTMLElement;
     const relatedTarget = event.relatedTarget as HTMLElement | null;
 
-    if (!target) return;
-    if (relatedTarget && target.contains(relatedTarget)) return;
+    if (!target) {
+      return;
+    }
+    if (relatedTarget && target.contains(relatedTarget)) {
+      return;
+    }
 
     isDropdownOpen = false;
   };
@@ -88,12 +92,12 @@
     textarea.style.height = textarea.scrollHeight + 'px';
   }
   const { projectId } = get(page).params;
-  
+
   // Reactive statement to sync project description changes
   $: if (project && projectDescription !== project.description) {
     project.description = projectDescription;
   }
-  
+
   async function loadProject() {
     if (!projectId) {
       loadError = true;
@@ -101,20 +105,20 @@
       isLoading = false;
       return;
     }
-    
+
     try {
       isLoading = true;
       loadError = false;
       const projectData = await projectService.getUserProject(projectId);
-      
-      if (!projectData) {
-        loadError = true;
-        errorMessage = "Project not found. Please verify the project ID and your permissions.";
-      } else {
+
+      if (projectData) {
         project = projectData;
         projectDescription = projectData.description || '';
         // Load project data into the editor state if needed
         // You can add logic here to populate the diagram with project data
+      } else {
+        loadError = true;
+        errorMessage = 'Project not found. Please verify the project ID and your permissions.';
       }
     } catch (error) {
       console.error('Error loading project:', error);
@@ -124,13 +128,13 @@
       isLoading = false;
     }
   }
-  
+
   onMount(async () => {
     try {
       await initHandler();
       const user: UserModel | null = await getCurrentUser();
       currentUser.set(user);
-      
+
       // Load project after user is authenticated
       if (user) {
         await loadProject();
@@ -176,11 +180,11 @@
           {#if isDropdownOpen}
             <div
               class="dropdown-content absolute right-0 z-50 mt-2 w-48 rounded-lg border border-gray-200 bg-gradient-to-r from-gray-900 to-gray-800 p-2 shadow-lg">
-              <a href="/profile" class="dropdown-item block rounded-2xl p-3 hover:bg-primary"
+              <a href="/profile" class="dropdown-item hover:bg-primary block rounded-2xl p-3"
                 >Profile</a>
-              <a href="/settings" class="dropdown-item block rounded-2xl p-3 hover:bg-primary"
+              <a href="/settings" class="dropdown-item hover:bg-primary block rounded-2xl p-3"
                 >Settings</a>
-              <a href="/logout" class="dropdown-item block rounded-2xl p-3 hover:bg-primary"
+              <a href="/logout" class="dropdown-item hover:bg-primary block rounded-2xl p-3"
                 >Logout</a>
             </div>
           {/if}
@@ -206,8 +210,8 @@
     <SkeletonLoader />
   {:else if loadError}
     <div class="flex flex-1 items-center justify-center">
-      <ErrorMessage 
-        title="Loading error" 
+      <ErrorMessage
+        title="Loading error"
         message={errorMessage}
         showRetry={true}
         onRetry={loadProject} />
@@ -268,10 +272,10 @@
         <Resizable.Handle class="mr-1 opacity-0" />
         <Resizable.Pane minSize={15} class="relative flex h-full flex-1 flex-col overflow-hidden">
           <View {panZoomState} shouldShowGrid={$stateStore.grid} />
-          <div class="absolute right-0 top-0"><PanZoomToolbar {panZoomState} /></div>
-          <div class="absolute bottom-0 right-0"><VersionSecurityToolbar /></div>
+          <div class="absolute top-0 right-0"><PanZoomToolbar {panZoomState} /></div>
+          <div class="absolute right-0 bottom-0"><VersionSecurityToolbar /></div>
           <div class="absolute bottom-0 left-5"><SyncRoughToolbar /></div>
-          <div class="rounded bg-primary p-2 text-center shadow md:hidden">
+          <div class="bg-primary rounded p-2 text-center shadow md:hidden">
             Code editing not supported on mobile. Please use a desktop browser.
           </div>
         </Resizable.Pane>

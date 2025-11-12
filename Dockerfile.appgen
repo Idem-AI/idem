@@ -1,0 +1,62 @@
+FROM node:20.18-alpine AS builder
+
+WORKDIR /app
+
+# Installer pnpm
+RUN npm install -g pnpm
+
+# Copier tout le projet appgen
+COPY ./apps/appgen ./
+
+# Builder l'application we-dev-next
+WORKDIR /app/apps/we-dev-next
+
+# Installer les dépendances
+RUN pnpm install --no-frozen-lockfile
+
+# Créer un fichier .env avec les variables nécessaires pour le build
+RUN echo 'NEXT_PUBLIC_FIREBASE_API_KEY="build-dummy-key"' > .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="build-dummy.firebaseapp.com"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_PROJECT_ID="build-dummy"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="build-dummy.appspot.com"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="000000000000"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_APP_ID="1:000000000000:web:dummy"' >> .env.local && \
+    echo 'FIREBASE_STORAGE_BUCKET="build-dummy.appspot.com"' >> .env.local && \
+    echo 'FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIBogIBAAJBAKj34GkxFhD90vcNLYLI\n-----END PRIVATE KEY-----"' >> .env.local && \
+    echo 'FIREBASE_CLIENT_EMAIL="firebase-adminsdk@build-dummy.iam.gserviceaccount.com"' >> .env.local
+
+# Builder l'application
+RUN pnpm build
+
+# Stage de production
+FROM node:20.18-alpine AS production
+
+WORKDIR /app
+
+# Installer pnpm
+RUN npm install -g pnpm
+
+# Copier les fichiers nécessaires depuis le builder
+COPY --from=builder /app/apps/we-dev-next/package.json ./
+COPY --from=builder /app/apps/we-dev-next/.next ./.next
+COPY --from=builder /app/apps/we-dev-next/next.config.js ./
+COPY --from=builder /app/apps/we-dev-next/node_modules ./node_modules
+
+# Créer dossier public (Next.js le gère)
+RUN mkdir -p ./public
+
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Créer un utilisateur non-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Changer les permissions
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+EXPOSE 3000
+
+CMD ["pnpm", "start"]

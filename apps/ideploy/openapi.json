@@ -1,13 +1,13 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Ideploy",
+    "title": "Coolify",
     "version": "0.1"
   },
   "servers": [
     {
-      "url": "https:\/\/app.ideploy.io\/api\/v1",
-      "description": "Ideploy Cloud API. Change the host to your own instance if you are self-hosting."
+      "url": "https:\/\/app.coolify.io\/api\/v1",
+      "description": "Coolify Cloud API. Change the host to your own instance if you are self-hosting."
     }
   ],
   "paths": {
@@ -6085,7 +6085,7 @@
     "\/version": {
       "get": {
         "summary": "Version",
-        "description": "Get Ideploy version.",
+        "description": "Get Coolify version.",
         "operationId": "version",
         "responses": {
           "200": {
@@ -9141,7 +9141,7 @@
           },
           "compose_parsing_version": {
             "type": "string",
-            "description": "How Ideploy parse the compose file."
+            "description": "How Coolify parse the compose file."
           },
           "custom_nginx_configuration": {
             "type": "string",
@@ -9610,7 +9610,7 @@
           },
           "docker_compose": {
             "type": "string",
-            "description": "The docker-compose.yml file that is parsed and modified by Ideploy."
+            "description": "The docker-compose.yml file that is parsed and modified by Coolify."
           },
           "destination_type": {
             "type": "string",

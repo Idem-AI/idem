@@ -1,6 +1,6 @@
 <form>
     <x-slot:title>
-        {{ data_get_str($project, 'name')->limit(10) }} > Clone | Ideploy
+        {{ data_get_str($project, 'name')->limit(10) }} > Clone | Coolify
     </x-slot>
     <div class="flex flex-col">
         <h1>Clone</h1>

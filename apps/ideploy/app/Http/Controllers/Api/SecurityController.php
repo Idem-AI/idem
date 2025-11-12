@@ -197,7 +197,7 @@ class SecurityController extends Controller
             $request->offsetSet('name', generate_random_name());
         }
         if (! $request->description) {
-            $request->offsetSet('description', 'Created by Ideploy via API');
+            $request->offsetSet('description', 'Created by Coolify via API');
         }
 
         $isPrivateKeyString = str_starts_with($request->private_key, '-----BEGIN');

@@ -8,7 +8,7 @@ import { environment } from '../../../../environments/environment';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (isBeta == true) {
+    @if (isBeta === true) {
       <div
         class="inline-flex items-center py-1 px-2 rounded-full text-xs font-medium bg-gradient-to-r glass"
       >

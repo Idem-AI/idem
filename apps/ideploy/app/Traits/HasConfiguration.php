@@ -15,8 +15,8 @@ trait HasConfiguration
             mkdir($configDir, 0755, true);
         }
 
-        $generator->saveJson($configDir.'/ideploy.json');
-        $generator->saveYaml($configDir.'/ideploy.yaml');
+        $generator->saveJson($configDir.'/coolify.json');
+        $generator->saveYaml($configDir.'/coolify.yaml');
 
         // Generate a README file with basic information
         file_put_contents(

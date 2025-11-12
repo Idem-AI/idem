@@ -18,7 +18,7 @@ class ServerPatchCheck extends CustomEmailNotification
         $this->onQueue('high');
         $this->serverUrl = route('server.security.patches', ['server_uuid' => $this->server->uuid]);
         if (isDev()) {
-            $this->serverUrl = 'https://staging-but-dev.ideploy.io/server/'.$this->server->uuid.'/security/patches';
+            $this->serverUrl = 'https://staging-but-dev.coolify.io/server/'.$this->server->uuid.'/security/patches';
         }
     }
 
@@ -33,7 +33,7 @@ class ServerPatchCheck extends CustomEmailNotification
 
         // Handle error case
         if (isset($this->patchData['error'])) {
-            $mail->subject("Ideploy: [ERROR] Failed to check patches on {$this->server->name}");
+            $mail->subject("Coolify: [ERROR] Failed to check patches on {$this->server->name}");
             $mail->view('emails.server-patches-error', [
                 'name' => $this->server->name,
                 'error' => $this->patchData['error'],
@@ -46,7 +46,7 @@ class ServerPatchCheck extends CustomEmailNotification
         }
 
         $totalUpdates = $this->patchData['total_updates'] ?? 0;
-        $mail->subject("Ideploy: [ACTION REQUIRED] {$totalUpdates} server patches available on {$this->server->name}");
+        $mail->subject("Coolify: [ACTION REQUIRED] {$totalUpdates} server patches available on {$this->server->name}");
         $mail->view('emails.server-patches', [
             'name' => $this->server->name,
             'total_updates' => $totalUpdates,
@@ -75,7 +75,7 @@ class ServerPatchCheck extends CustomEmailNotification
             $description .= "[Manage Server]($this->serverUrl)";
 
             return new DiscordMessage(
-                title: ':x: Ideploy: [ERROR] Failed to check patches on '.$this->server->name,
+                title: ':x: Coolify: [ERROR] Failed to check patches on '.$this->server->name,
                 description: $description,
                 color: DiscordMessage::errorColor(),
             );
@@ -118,7 +118,7 @@ class ServerPatchCheck extends CustomEmailNotification
         }
 
         return new DiscordMessage(
-            title: ':warning: Ideploy: [ACTION REQUIRED] Server patches available on '.$this->server->name,
+            title: ':warning: Coolify: [ACTION REQUIRED] Server patches available on '.$this->server->name,
             description: $description,
             color: DiscordMessage::errorColor(),
         );
@@ -133,7 +133,7 @@ class ServerPatchCheck extends CustomEmailNotification
             $packageManager = $this->patchData['package_manager'] ?? 'unknown';
             $error = $this->patchData['error'];
 
-            $message = "❌ Ideploy: [ERROR] Failed to check patches on {$this->server->name}!\n\n";
+            $message = "❌ Coolify: [ERROR] Failed to check patches on {$this->server->name}!\n\n";
             $message .= "📊 Error Details:\n";
             $message .= '• OS: '.ucfirst($osId)."\n";
             $message .= "• Package Manager: {$packageManager}\n";
@@ -155,7 +155,7 @@ class ServerPatchCheck extends CustomEmailNotification
         $osId = $this->patchData['osId'] ?? 'unknown';
         $packageManager = $this->patchData['package_manager'] ?? 'unknown';
 
-        $message = "🔧 Ideploy: [ACTION REQUIRED] {$totalUpdates} server patches available on {$this->server->name}!\n\n";
+        $message = "🔧 Coolify: [ACTION REQUIRED] {$totalUpdates} server patches available on {$this->server->name}!\n\n";
         $message .= "📊 Summary:\n";
         $message .= '• OS: '.ucfirst($osId)."\n";
         $message .= "• Package Manager: {$packageManager}\n";
@@ -291,7 +291,7 @@ class ServerPatchCheck extends CustomEmailNotification
             $description .= "\n:link: <{$this->serverUrl}|Manage Server>";
 
             return new SlackMessage(
-                title: 'Ideploy: [ERROR] Server patch check failed',
+                title: 'Coolify: [ERROR] Server patch check failed',
                 description: $description,
                 color: SlackMessage::errorColor()
             );
@@ -340,7 +340,7 @@ class ServerPatchCheck extends CustomEmailNotification
         $description .= "\n:link: <{$this->serverUrl}|Manage Server Patches>";
 
         return new SlackMessage(
-            title: 'Ideploy: [ACTION REQUIRED] Server patches available',
+            title: 'Coolify: [ACTION REQUIRED] Server patches available',
             description: $description,
             color: SlackMessage::errorColor()
         );

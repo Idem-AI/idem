@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ca3c8d7500ec4e6e61aeb6eda6d42ef2",
+    "content-hash": "a993799242581bd06b5939005ee458d9",
     "packages": [
         {
             "name": "amphp/amp",
@@ -2492,50 +2492,6 @@
                 }
             ],
             "time": "2025-02-03T10:55:03+00:00"
-        },
-        {
-            "name": "idem/shared-auth-php",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "../../packages/shared-auth-php",
-                "reference": "abd7ba482e16cb9358c5ca7cbee021985a2b6d5e"
-            },
-            "require": {
-                "guzzlehttp/guzzle": "^7.8",
-                "illuminate/http": "^10.0|^11.0|^12.0",
-                "illuminate/support": "^10.0|^11.0|^12.0",
-                "php": "^8.1"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^8.0|^9.0",
-                "phpunit/phpunit": "^10.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Idem\\SharedAuth\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "Idem\\SharedAuth\\Tests\\": "tests/"
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Idem Team",
-                    "email": "dev@idem.africa"
-                }
-            ],
-            "description": "Shared authentication and authorization package for Idem PHP backends",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
         },
         {
             "name": "jean85/pretty-package-versions",
@@ -16211,9 +16167,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "idem/shared-auth-php": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

@@ -21,7 +21,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}📝 Step 1: Updating configuration...${NC}"
 echo ""
 echo -e "${YELLOW}Please manually update your .env file:${NC}"
-echo "Change: APP_NAME=\"Ideploy Development\""
+echo "Change: APP_NAME=\"Coolify Development\""
 echo "To:     APP_NAME=\"IDEM SaaS\""
 echo ""
 echo -e "Press ENTER after you've updated .env, or Ctrl+C to cancel..."
@@ -33,10 +33,10 @@ echo -e "${BLUE}📍 Step 2: Configuring routes...${NC}"
 # Check if routes/idem.php is already included in web.php
 if ! grep -q "routes/idem.php" routes/web.php; then
     echo "Adding IDEM routes to routes/web.php..."
-
+    
     # Find the line before the catch-all route
     LINE_NUM=$(grep -n "Route::any('/{any}'" routes/web.php | head -1 | cut -d: -f1)
-
+    
     if [ -z "$LINE_NUM" ]; then
         # If catch-all not found, append at end
         cat >> routes/web.php << 'EOF'
@@ -61,7 +61,7 @@ EOF
         } > routes/web.php.tmp
         mv routes/web.php.tmp routes/web.php
     fi
-
+    
     echo -e "${GREEN}✅ Routes configured${NC}"
 else
     echo -e "${GREEN}✅ Routes already configured${NC}"
@@ -85,17 +85,17 @@ if [ "$CREATE_USERS" = "y" ]; then
             'password' => Hash::make('password123'),
             'idem_role' => 'admin'
         ]);
-
+        
         // Create team for admin
         \$adminTeam = App\\Models\\Team::create(['name' => 'Admin Team']);
         \$adminTeam->members()->attach(\$admin->id, ['role' => 'owner']);
         \$admin->update(['current_team_id' => \$adminTeam->id]);
-
+        
         echo 'Admin created: admin@idem.test / password123\n';
     } else {
         echo 'Admin already exists: admin@idem.test\n';
     }
-
+    
     // Client user
     if (App\\Models\\User::where('email', 'client@idem.test')->count() == 0) {
         \$client = App\\Models\\User::create([
@@ -104,18 +104,18 @@ if [ "$CREATE_USERS" = "y" ]; then
             'password' => Hash::make('password123'),
             'idem_role' => 'member'
         ]);
-
+        
         // Create team for client
         \$clientTeam = App\\Models\\Team::create(['name' => 'Client Team']);
         \$clientTeam->members()->attach(\$client->id, ['role' => 'owner']);
         \$client->update(['current_team_id' => \$clientTeam->id]);
-
+        
         echo 'Client created: client@idem.test / password123\n';
     } else {
         echo 'Client already exists: client@idem.test\n';
     }
     "
-
+    
     echo -e "${GREEN}✅ Test users created${NC}"
 else
     echo "Skipping test users creation"

@@ -414,7 +414,7 @@ export class AnalyticsService {
   /**
    * Generic event tracking method
    */
-  private trackEvent(eventName: string, params: Record<string, any>): void {
+  private trackEvent(eventName: string, params: Record<string, unknown>): void {
     if (!this.canTrack() || !this.analytics) return;
 
     logEvent(this.analytics!, eventName, params);
@@ -423,7 +423,7 @@ export class AnalyticsService {
   /**
    * Track custom event with any parameters
    */
-  trackCustomEvent(eventName: string, params?: Record<string, any>): void {
+  trackCustomEvent(eventName: string, params?: Record<string, unknown>): void {
     this.trackEvent(eventName, params || {});
   }
 }

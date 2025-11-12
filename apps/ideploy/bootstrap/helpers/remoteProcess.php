@@ -1,7 +1,7 @@
 <?php
 
-use App\Actions\IdeployTask\PrepareIdeployTask;
-use App\Data\IdeployTaskArgs;
+use App\Actions\CoolifyTask\PrepareCoolifyTask;
+use App\Data\CoolifyTaskArgs;
 use App\Enums\ActivityTypes;
 use App\Helpers\SshMultiplexingHelper;
 use App\Models\Application;
@@ -44,8 +44,8 @@ function remote_process(
 
     SshMultiplexingHelper::ensureMultiplexedConnection($server);
 
-    return resolve(PrepareIdeployTask::class, [
-        'remoteProcessArgs' => new IdeployTaskArgs(
+    return resolve(PrepareCoolifyTask::class, [
+        'remoteProcessArgs' => new CoolifyTaskArgs(
             server_uuid: $server->uuid,
             command: $command_string,
             type: $type,

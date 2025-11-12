@@ -22,12 +22,12 @@ class CheckForUpdatesJob implements ShouldBeEncrypted, ShouldQueue
                 return;
             }
             $settings = instanceSettings();
-            $response = Http::retry(3, 1000)->get('https://cdn.coollabs.io/ideploy/versions.json');
+            $response = Http::retry(3, 1000)->get('https://cdn.coollabs.io/coolify/versions.json');
             if ($response->successful()) {
                 $versions = $response->json();
 
-                $latest_version = data_get($versions, 'ideploy.v4.version');
-                $current_version = config('constants.ideploy.version');
+                $latest_version = data_get($versions, 'coolify.v4.version');
+                $current_version = config('constants.coolify.version');
 
                 if (version_compare($latest_version, $current_version, '>')) {
                     // New version available

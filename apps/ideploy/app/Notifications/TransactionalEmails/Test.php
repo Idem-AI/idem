@@ -21,7 +21,7 @@ class Test extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject('Ideploy: Test Email');
+        $mail->subject('Coolify: Test Email');
         $mail->view('emails.test');
 
         return $mail;

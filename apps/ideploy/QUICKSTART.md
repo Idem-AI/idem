@@ -1,4 +1,4 @@
-# 🚀 Démarrage Rapide - Ideploy Local (Sans Docker)
+# 🚀 Démarrage Rapide - Coolify Local (Sans Docker)
 
 ## Installation en 3 étapes
 
@@ -8,7 +8,7 @@
 brew install php@8.4 postgresql@15 redis composer
 ```
 
-### 2️⃣ Configurer et installer Ideploy
+### 2️⃣ Configurer et installer Coolify
 
 ```bash
 ./scripts/run-local.sh

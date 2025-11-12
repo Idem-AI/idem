@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($server, 'name')->limit(10) }} > Docker Cleanup | Ideploy
+        {{ data_get_str($server, 'name')->limit(10) }} > Docker Cleanup | Coolify
     </x-slot>
     <livewire:server.navbar :server="$server" />
     <div x-data="{ activeTab: window.location.hash ? window.location.hash.substring(1) : 'general' }" class="flex flex-col h-full gap-8 sm:flex-row">
@@ -14,10 +14,10 @@
                         @can('update', $server)
                             <x-modal-confirmation title="Confirm Docker Cleanup?" buttonTitle="Trigger Manual Cleanup"
                                 isHighlightedButton submitAction="manualCleanup" :actions="[
-                                    'Permanently deletes all stopped containers managed by Ideploy (as containers are non-persistent, no data will be lost)',
+                                    'Permanently deletes all stopped containers managed by Coolify (as containers are non-persistent, no data will be lost)',
                                     'Permanently deletes all unused images',
                                     'Clears build cache',
-                                    'Removes old versions of the Ideploy helper image',
+                                    'Removes old versions of the Coolify helper image',
                                     'Optionally permanently deletes all unused volumes (if enabled in advanced options).',
                                     'Optionally permanently deletes all unused networks (if enabled in advanced options).',
                                 ]" :confirmWithText="false"
@@ -45,10 +45,10 @@
                         <x-forms.checkbox canGate="update" :canResource="$server"
                             helper="Enabling Force Docker Cleanup or manually triggering a cleanup will perform the following actions:
                             <ul class='list-disc pl-4 mt-2'>
-                                <li>Removes stopped containers managed by Ideploy (as containers are non-persistent, no data will be lost).</li>
+                                <li>Removes stopped containers managed by Coolify (as containers are non-persistent, no data will be lost).</li>
                                 <li>Deletes unused images.</li>
                                 <li>Clears build cache.</li>
-                                <li>Removes old versions of the Ideploy helper image.</li>
+                                <li>Removes old versions of the Coolify helper image.</li>
                                 <li>Optionally delete unused volumes (if enabled in advanced options).</li>
                                 <li>Optionally remove unused networks (if enabled in advanced options).</li>
                             </ul>"

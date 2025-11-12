@@ -31,7 +31,7 @@ class TaskSuccess extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject("Ideploy: Scheduled task ({$this->task->name}) succeeded.");
+        $mail->subject("Coolify: Scheduled task ({$this->task->name}) succeeded.");
         $mail->view('emails.scheduled-task-success', [
             'task' => $this->task,
             'url' => $this->url,
@@ -58,10 +58,10 @@ class TaskSuccess extends CustomEmailNotification
 
     public function toTelegram(): array
     {
-        $message = "Ideploy: Scheduled task ({$this->task->name}) succeeded.";
+        $message = "Coolify: Scheduled task ({$this->task->name}) succeeded.";
         if ($this->url) {
             $buttons[] = [
-                'text' => 'Open task in Ideploy',
+                'text' => 'Open task in Coolify',
                 'url' => (string) $this->url,
             ];
         }
@@ -73,11 +73,11 @@ class TaskSuccess extends CustomEmailNotification
 
     public function toPushover(): PushoverMessage
     {
-        $message = "Ideploy: Scheduled task ({$this->task->name}) succeeded.";
+        $message = "Coolify: Scheduled task ({$this->task->name}) succeeded.";
         $buttons = [];
         if ($this->url) {
             $buttons[] = [
-                'text' => 'Open task in Ideploy',
+                'text' => 'Open task in Coolify',
                 'url' => (string) $this->url,
             ];
         }

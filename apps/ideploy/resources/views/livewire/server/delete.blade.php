@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($server, 'name')->limit(10) }} > Delete Server | Ideploy
+        {{ data_get_str($server, 'name')->limit(10) }} > Delete Server | Coolify
     </x-slot>
     <livewire:server.navbar :server="$server" />
     <div class="flex flex-col h-full gap-8 sm:flex-row">
@@ -10,7 +10,7 @@
                 <h2>Danger Zone</h2>
                 <div class="">Woah. I hope you know what are you doing.</div>
                 <h4 class="pt-4">Delete Server</h4>
-                <div class="pb-4">This will remove this server from Ideploy. Beware! There is no coming
+                <div class="pb-4">This will remove this server from Coolify. Beware! There is no coming
                     back!
                 </div>
                 @if ($server->definedResources()->count() > 0)
@@ -19,7 +19,7 @@
 
                 <x-modal-confirmation title="Confirm Server Deletion?" isErrorButton buttonTitle="Delete"
                     submitAction="delete"
-                    :actions="['This server will be permanently deleted from Ideploy.']"
+                    :actions="['This server will be permanently deleted from Coolify.']"
                     :checkboxes="$checkboxes"
                     confirmationText="{{ $server->name }}"
                     confirmationLabel="Please confirm the execution of the actions by entering the Server Name below"

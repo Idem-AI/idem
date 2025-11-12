@@ -50,7 +50,7 @@
             @endif
         </div>
         <x-forms.input
-            helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up Ideploy's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://ideploy.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
+            helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up Coolify's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
             placeholder="--cap-add SYS_ADMIN --device=/dev/fuse --security-opt apparmor:unconfined --ulimit nofile=1024:1024 --tmpfs /run:rw,noexec,nosuid,size=65536k"
             id="customDockerRunOptions" label="Custom Docker Options" canGate="update" :canResource="$database" />
         <div class="flex flex-col gap-2">
@@ -139,7 +139,7 @@
 # maxmemory-policy allkeys-lru
 # timeout 300"
             helper="You only need to provide the Redis directives you want to override — Redis will use default values for everything else. <br/><br/>
-⚠️ <strong>Important:</strong> Ideploy automatically applies the requirepass directive using the password shown in the Password field above. If you override requirepass in your custom configuration, make sure it matches the password field to avoid authentication issues. <br/><br/>
+⚠️ <strong>Important:</strong> Coolify automatically applies the requirepass directive using the password shown in the Password field above. If you override requirepass in your custom configuration, make sure it matches the password field to avoid authentication issues. <br/><br/>
 🔗 <strong>Tip:</strong> <a target='_blank' class='underline dark:text-white' href='https://raw.githubusercontent.com/redis/redis/7.2/redis.conf'>View the full Redis default configuration</a> to see what options are available."
             label="Custom Redis Configuration" rows="10" id="redisConf" canGate="update"
             :canResource="$database" />

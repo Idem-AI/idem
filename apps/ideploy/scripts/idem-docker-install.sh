@@ -88,10 +88,10 @@ echo ""
 # Step 4: Install Stripe SDK
 echo -e "${BLUE}📦 Installation de Stripe SDK...${NC}"
 
-if docker compose -f "$COMPOSE_FILE" exec -T ideploy composer show stripe/stripe-php &> /dev/null; then
+if docker compose -f "$COMPOSE_FILE" exec -T coolify composer show stripe/stripe-php &> /dev/null; then
     echo -e "${YELLOW}⚠️  Stripe SDK déjà installé${NC}"
 else
-    docker compose -f "$COMPOSE_FILE" exec -T ideploy composer require stripe/stripe-php --no-interaction
+    docker compose -f "$COMPOSE_FILE" exec -T coolify composer require stripe/stripe-php --no-interaction
     echo -e "${GREEN}✅ Stripe SDK installé${NC}"
 fi
 
@@ -100,7 +100,7 @@ echo ""
 # Step 5: Run migrations
 echo -e "${BLUE}🗄️  Exécution des migrations...${NC}"
 
-docker compose -f "$COMPOSE_FILE" exec -T ideploy php artisan migrate --force
+docker compose -f "$COMPOSE_FILE" exec -T coolify php artisan migrate --force
 
 echo -e "${GREEN}✅ Migrations exécutées${NC}"
 echo ""
@@ -109,14 +109,14 @@ echo ""
 echo -e "${BLUE}👤 Configuration du premier administrateur...${NC}"
 
 # Check if any user exists
-USER_COUNT=$(docker compose -f "$COMPOSE_FILE" exec -T ideploy php artisan tinker --execute="echo App\\Models\\User::count();" 2>&1 | grep -o '[0-9]' | head -1)
+USER_COUNT=$(docker compose -f "$COMPOSE_FILE" exec -T coolify php artisan tinker --execute="echo App\\Models\\User::count();" 2>&1 | grep -o '[0-9]' | head -1)
 
 if [ "$USER_COUNT" -gt 0 ]; then
     echo "Promotion du premier utilisateur en admin..."
-    docker compose -f "$COMPOSE_FILE" exec -T ideploy php artisan tinker --execute="App\\Models\\User::first()->update(['idem_role' => 'admin']);"
-
-    ADMIN_EMAIL=$(docker compose -f "$COMPOSE_FILE" exec -T ideploy php artisan tinker --execute="echo App\\Models\\User::first()->email;" 2>&1 | grep -E '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
-
+    docker compose -f "$COMPOSE_FILE" exec -T coolify php artisan tinker --execute="App\\Models\\User::first()->update(['idem_role' => 'admin']);"
+    
+    ADMIN_EMAIL=$(docker compose -f "$COMPOSE_FILE" exec -T coolify php artisan tinker --execute="echo App\\Models\\User::first()->email;" 2>&1 | grep -E '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
+    
     echo -e "${GREEN}✅ Admin créé: $ADMIN_EMAIL${NC}"
 else
     echo -e "${YELLOW}⚠️  Aucun utilisateur trouvé. Créez un compte via l'interface web puis relancez ce script.${NC}"
@@ -127,7 +127,7 @@ echo ""
 # Step 7: Sync quotas
 echo -e "${BLUE}🔄 Synchronisation des quotas...${NC}"
 
-docker compose -f "$COMPOSE_FILE" exec -T ideploy php artisan idem:sync-quotas
+docker compose -f "$COMPOSE_FILE" exec -T coolify php artisan idem:sync-quotas
 
 echo -e "${GREEN}✅ Quotas synchronisés${NC}"
 echo ""
@@ -136,7 +136,7 @@ echo ""
 echo -e "${BLUE}📊 Statistiques de la plateforme:${NC}"
 echo ""
 
-docker compose -f "$COMPOSE_FILE" exec ideploy php artisan idem:stats
+docker compose -f "$COMPOSE_FILE" exec coolify php artisan idem:stats
 
 echo ""
 echo -e "${GREEN}🎉 Installation Docker terminée avec succès!${NC}"
@@ -155,10 +155,10 @@ echo "  # Voir les logs"
 echo "  docker compose -f $COMPOSE_FILE logs -f"
 echo ""
 echo "  # Accéder au conteneur"
-echo "  docker compose -f $COMPOSE_FILE exec ideploy bash"
+echo "  docker compose -f $COMPOSE_FILE exec coolify bash"
 echo ""
 echo "  # Stats IDEM"
-echo "  docker compose -f $COMPOSE_FILE exec ideploy php artisan idem:stats"
+echo "  docker compose -f $COMPOSE_FILE exec coolify php artisan idem:stats"
 echo ""
 echo "  # Arrêter"
 echo "  docker compose -f $COMPOSE_FILE down"

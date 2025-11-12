@@ -124,10 +124,10 @@ function checkDomainUsage(ServiceApplication|Application|null $resource = null, 
             if ($domains->contains($naked_domain)) {
                 $conflicts[] = [
                     'domain' => $naked_domain,
-                    'resource_name' => 'Ideploy Instance',
+                    'resource_name' => 'Coolify Instance',
                     'resource_link' => '#',
                     'resource_type' => 'instance',
-                    'message' => "Domain $naked_domain is already in use by this Ideploy instance",
+                    'message' => "Domain $naked_domain is already in use by this Coolify instance",
                 ];
             }
         }
@@ -222,10 +222,10 @@ function checkIfDomainIsAlreadyUsedViaAPI(Collection|array $domains, ?string $te
         if ($domains->contains($naked_domain)) {
             $conflicts[] = [
                 'domain' => $naked_domain,
-                'resource_name' => 'Ideploy Instance',
+                'resource_name' => 'Coolify Instance',
                 'resource_uuid' => null,
                 'resource_type' => 'instance',
-                'message' => "Domain $naked_domain is already in use by this Ideploy instance",
+                'message' => "Domain $naked_domain is already in use by this Coolify instance",
             ];
         }
     }

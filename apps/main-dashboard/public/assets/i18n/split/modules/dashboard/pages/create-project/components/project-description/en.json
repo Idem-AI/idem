@@ -5,7 +5,8 @@
   "placeholder": "An app that generates poems from photos",
   "buttons": {
     "improvePrompt": "Improve prompt",
-    "feelingLucky": "I'm Feeling Lucky"
+    "feelingLucky": "I'm Feeling Lucky",
+    "continue": "Continue"
   },
   "needInspiration": "Need Inspiration?",
   "examples": {

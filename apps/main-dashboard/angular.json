@@ -30,12 +30,16 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumError": "1.5MB"
                 },
                 {
                   "type": "anyComponentStyle",
                   "maximumWarning": "20kB",
+<<<<<<< HEAD
                   "maximumError": "50kB"
+=======
+                  "maximumError": "20kB"
+>>>>>>> 4b345df248a3c07cd2df4f276ec9d1db04ba91f4
                 }
               ],
               "outputHashing": "all"

@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Actions\IdeployTask\RunRemoteProcess;
+use App\Actions\CoolifyTask\RunRemoteProcess;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Spatie\Activitylog\Models\Activity;
 
-class IdeployTask implements ShouldBeEncrypted, ShouldQueue
+class CoolifyTask implements ShouldBeEncrypted, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

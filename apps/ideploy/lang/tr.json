@@ -30,7 +30,7 @@
   "input.code": "Tek Kullanımlık Kod",
   "input.recovery_code": "Kurtarma Kodu",
   "button.save": "Kaydet",
-  "repository.url": "<span class='text-helper'>Örnekler</span><br>Halka açık depolar için <span class='text-helper'>https://...</span> kullanın.<br>Özel depolar için <span class='text-helper'>git@...</span> kullanın.<br><br>https://github.com/coollabsio/ideploy-examples <span class='text-helper'>main</span> dalı seçilecek<br>https://github.com/coollabsio/ideploy-examples/tree/nodejs-fastify <span class='text-helper'>nodejs-fastify</span> dalı seçilecek.<br>https://gitea.com/sedlav/expressjs.git <span class='text-helper'>main</span> dalı seçilecek.<br>https://gitlab.com/andrasbacsai/nodejs-example.git <span class='text-helper'>main</span> dalı seçilecek.",
+  "repository.url": "<span class='text-helper'>Örnekler</span><br>Halka açık depolar için <span class='text-helper'>https://...</span> kullanın.<br>Özel depolar için <span class='text-helper'>git@...</span> kullanın.<br><br>https://github.com/coollabsio/coolify-examples <span class='text-helper'>main</span> dalı seçilecek<br>https://github.com/coollabsio/coolify-examples/tree/nodejs-fastify <span class='text-helper'>nodejs-fastify</span> dalı seçilecek.<br>https://gitea.com/sedlav/expressjs.git <span class='text-helper'>main</span> dalı seçilecek.<br>https://gitlab.com/andrasbacsai/nodejs-example.git <span class='text-helper'>main</span> dalı seçilecek.",
   "service.stop": "Bu servis durdurulacak.",
   "resource.docker_cleanup": "Docker temizliği çalıştır (kullanılmayan imajları ve oluşturucu önbelleğini kaldır).",
   "resource.non_persistent": "Tüm kalıcı olmayan veriler silinecek.",

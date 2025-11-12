@@ -51,7 +51,7 @@
     href={options.href}
     target="_blank"
     class={cn(
-      'flex items-center justify-start gap-2 border-b bg-muted p-2 px-3 hover:bg-background',
+      'bg-muted hover:bg-background flex items-center justify-start gap-2 border-b p-2 px-3',
       options.class
     )}>
     <options.icon class="size-5" />
@@ -68,7 +68,7 @@
       {@render menuItem(item)}
     {/each}
 
-    <div class="flex items-center justify-between border-b bg-muted px-3 py-2 hover:bg-background">
+    <div class="bg-muted hover:bg-background flex items-center justify-between border-b px-3 py-2">
       <span class="flex items-center gap-2">
         <ThemeIcon />
         Dark Mode

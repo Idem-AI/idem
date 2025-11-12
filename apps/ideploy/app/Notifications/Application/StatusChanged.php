@@ -46,7 +46,7 @@ class StatusChanged extends CustomEmailNotification
     {
         $mail = new MailMessage;
         $fqdn = $this->fqdn;
-        $mail->subject("Ideploy: {$this->resource_name} has been stopped");
+        $mail->subject("Coolify: {$this->resource_name} has been stopped");
         $mail->view('emails.application-status-changes', [
             'name' => $this->resource_name,
             'fqdn' => $fqdn,
@@ -60,7 +60,7 @@ class StatusChanged extends CustomEmailNotification
     {
         return new DiscordMessage(
             title: ':cross_mark: Application stopped',
-            description: '[Open Application in Ideploy]('.$this->resource_url.')',
+            description: '[Open Application in Coolify]('.$this->resource_url.')',
             color: DiscordMessage::errorColor(),
             isCritical: true,
         );
@@ -68,13 +68,13 @@ class StatusChanged extends CustomEmailNotification
 
     public function toTelegram(): array
     {
-        $message = 'Ideploy: '.$this->resource_name.' has been stopped.';
+        $message = 'Coolify: '.$this->resource_name.' has been stopped.';
 
         return [
             'message' => $message,
             'buttons' => [
                 [
-                    'text' => 'Open Application in Ideploy',
+                    'text' => 'Open Application in Coolify',
                     'url' => $this->resource_url,
                 ],
             ],
@@ -91,7 +91,7 @@ class StatusChanged extends CustomEmailNotification
             message: $message,
             buttons: [
                 [
-                    'text' => 'Open Application in Ideploy',
+                    'text' => 'Open Application in Coolify',
                     'url' => $this->resource_url,
                 ],
             ],

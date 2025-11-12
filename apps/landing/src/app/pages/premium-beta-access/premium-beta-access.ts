@@ -1,7 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { environment } from '../../../environments/environment';
-import { signal } from '@angular/core';
 
 @Component({
   selector: 'app-premium-beta-access',

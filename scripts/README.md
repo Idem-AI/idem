@@ -1,5 +1,13 @@
 # Scripts Idem
 
+## 📚 Scripts Disponibles
+
+- **setup.sh** - Configuration automatique du workspace
+- **clean-all.sh** - Nettoyage complet du workspace
+- **check-packages.sh** - Vérification des package.json
+
+---
+
 ## setup.sh
 
 Script de configuration automatique du workspace Idem.
@@ -123,49 +131,147 @@ npm run test:all         # Tests
 npm run lint:all         # Linting
 ```
 
-### 🔧 Dépannage
+---
 
-#### Erreur "Project idem does not exist"
+## clean-all.sh
 
-**Cause :** Cache Angular CLI obsolète
+Script de nettoyage complet du workspace.
 
-**Solution :**
+### 🧹 Fonctionnalités
+
+- Supprime tous les `node_modules/`
+- Supprime tous les `package-lock.json` et `pnpm-lock.yaml`
+- Supprime tous les dossiers de build (`dist/`, `.angular/`, `.next/`, etc.)
+- Nettoie la racine et tous les packages/apps
+
+### 📋 Utilisation
 
 ```bash
-# Nettoyer complètement
-find . -name "node_modules" -type d -prune -exec rm -rf {} +
-find . -name ".angular" -type d -prune -exec rm -rf {} +
-find . -name "package-lock.json" -type f -delete
-npm cache clean --force
+./scripts/clean-all.sh
+```
 
-# Réinstaller
+**Quand l'utiliser :**
+
+- Avant une réinstallation complète
+- Après des erreurs de dépendances
+- Pour libérer de l'espace disque
+- Avant de changer de branche
+
+---
+
+## check-packages.sh
+
+Script de vérification des fichiers package.json.
+
+### 🔍 Fonctionnalités
+
+- Vérifie la validité JSON de tous les package.json
+- Détecte les versions invalides (espaces, vides)
+- Vérifie les champs obligatoires (name, version)
+- Scanne tous les packages et applications
+
+### 📋 Utilisation
+
+```bash
+./scripts/check-packages.sh
+```
+
+**Prérequis :** `jq` doit être installé
+
+```bash
+# macOS
+brew install jq
+
+# Linux
+apt-get install jq  # ou yum install jq
+```
+
+**Sortie :**
+
+- ✅ Aucun problème trouvé
+- ❌ Liste des erreurs avec fichiers concernés
+
+---
+
+## TROUBLESHOOTING.md
+
+Guide de dépannage complet avec solutions détaillées.
+
+### 📖 Contenu
+
+1. **"npm error Invalid Version"**
+   - Cause et solution
+   - Correction manuelle
+
+2. **Dépendances des packages partagés non trouvées**
+   - Ordre d'installation correct
+   - Commandes de rebuild
+
+3. **Erreurs lors de npm install**
+   - Nettoyage des caches
+   - Options --legacy-peer-deps
+
+4. **pnpm vs npm**
+   - Applications par gestionnaire
+   - Installation de pnpm
+
+5. **Permissions refusées**
+   - Correction des permissions
+   - Éviter sudo
+
+6. **Builds échouent**
+   - Par package (shared-models, shared-auth-client, shared-styles)
+   - Par application (Angular, Svelte, Next.js, Vite)
+
+7. **Commandes utiles**
+   - Vérification
+   - Nettoyage
+   - Build
+   - Développement
+
+8. **Workflow recommandé**
+   - Installation initiale
+   - Après modification d'un package
+   - Avant de commit
+
+### 📋 Utilisation
+
+```bash
+# Lire le guide
+cat scripts/TROUBLESHOOTING.md
+
+# Ou ouvrir dans un éditeur
+code scripts/TROUBLESHOOTING.md
+```
+
+---
+
+## 🔧 Dépannage Rapide
+
+### Problème : "npm error Invalid Version"
+
+```bash
+./scripts/check-packages.sh  # Identifier le problème
+./scripts/clean-all.sh       # Nettoyer
+./scripts/setup.sh           # Réinstaller
+```
+
+### Problème : Dépendances manquantes
+
+```bash
+npm run build:shared
+npm run build:shared-auth
+cd apps/landing && npm install
+```
+
+### Problème : Tout est cassé
+
+```bash
+./scripts/clean-all.sh
 ./scripts/setup.sh
 ```
 
-#### Erreur de dépendances manquantes
-
-**Cause :** Packages partagés non buildés
-
-**Solution :**
-
-```bash
-# Rebuilder les packages
-npm run build:shared
-npm run build:shared-auth
-
-# Puis réinstaller les apps
-cd apps/landing && npm install
-cd apps/main-dashboard && npm install
-```
-
-#### Erreur de permissions
-
-**Cause :** Certaines commandes utilisent `sudo`
-
-**Solution :**
-
-- Supprimer `sudo` des commandes npm dans le script
-- Ou exécuter le script avec les bonnes permissions
+**Pour plus de détails, consultez `scripts/TROUBLESHOOTING.md`**
 
 ### 📚 Documentation Associée
 
@@ -228,10 +334,11 @@ Pour mettre à jour le script après ajout d'une nouvelle application :
 ### 📝 Notes
 
 - Les packages sont buildés **avant** les apps (ordre critique)
-- `sudo` est utilisé pour certaines installations (peut être supprimé)
+- ❌ `sudo` a été supprimé (pas nécessaire)
 - Le script utilise npm workspaces (pas Nx)
 - Les couleurs dans le terminal facilitent le suivi
 - La vérification finale valide la configuration
+- Utilise npm pour Angular/Node.js, pnpm pour Svelte/Next.js/Vite
 
 ### 🎉 Résultat
 

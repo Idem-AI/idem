@@ -24,7 +24,7 @@
   }
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
   <div class="w-full max-w-md rounded-lg bg-white p-6">
     <h2 class="mb-4 text-2xl font-bold">Invite User</h2>
     <form on:submit|preventDefault={handleSubmit}>
@@ -33,7 +33,7 @@
         <input
           type="email"
           bind:value={email}
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="user@example.com"
           required />
       </div>
@@ -43,7 +43,7 @@
         <input
           type="text"
           bind:value={displayName}
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="John Doe"
           required />
       </div>
@@ -52,7 +52,7 @@
         <label class="mb-2 block text-sm font-medium text-gray-700"> Role * </label>
         <select
           bind:value={role}
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
           <option value="member">Member</option>
           <option value="admin">Admin</option>
           <option value="viewer">Viewer</option>

@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\LaravelData\Data;
 
 /**
- * The parameters to execute a IdeployTask, organized in a DTO.
+ * The parameters to execute a CoolifyTask, organized in a DTO.
  */
-class IdeployTaskArgs extends Data
+class CoolifyTaskArgs extends Data
 {
     public function __construct(
         public string $server_uuid,

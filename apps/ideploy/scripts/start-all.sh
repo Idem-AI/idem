@@ -1,11 +1,22 @@
 #!/bin/bash
 
-# Script pour démarrer tous les services Ideploy en arrière-plan
+# Script pour démarrer tous les services Coolify en arrière-plan
 # Usage: ./scripts/start-all.sh
 
 set -e
 
-echo "🚀 Démarrage de tous les services Ideploy..."
+echo "🚀 Démarrage de tous les services Coolify..."
+
+# Options
+START_VITE=true
+
+for arg in "$@"; do
+    case "$arg" in
+        --no-vite|--skip-vite)
+            START_VITE=false
+            ;;
+    esac
+done
 
 # Couleurs
 GREEN='\033[0;32m'
@@ -36,13 +47,15 @@ HORIZON_PID=$!
 echo $HORIZON_PID > storage/logs/services/horizon.pid
 echo -e "${GREEN}✅ Horizon démarré (PID: $HORIZON_PID)${NC}"
 
-# Démarrer Vite en mode dev (optionnel)
-if [ "$1" = "--dev" ]; then
+# Démarrer Vite en mode dev
+if [ "$START_VITE" = true ]; then
     echo -e "${BLUE}⚡ Démarrage de Vite dev server...${NC}"
     npm run dev > storage/logs/services/vite.log 2>&1 &
     VITE_PID=$!
     echo $VITE_PID > storage/logs/services/vite.pid
     echo -e "${GREEN}✅ Vite démarré (PID: $VITE_PID)${NC}"
+else
+    echo -e "${BLUE}⚡ Vite dev server non démarré (--no-vite)${NC}"
 fi
 
 echo -e "\n${GREEN}=================================================="
@@ -55,7 +68,7 @@ echo -e "\n${BLUE}Logs:${NC}"
 echo -e "  Web:         tail -f storage/logs/services/web.log"
 echo -e "  Queue:       tail -f storage/logs/services/queue.log"
 echo -e "  Horizon:     tail -f storage/logs/services/horizon.log"
-if [ "$1" = "--dev" ]; then
+if [ "$START_VITE" = true ]; then
     echo -e "  Vite:        tail -f storage/logs/services/vite.log"
 fi
 echo -e "\n${BLUE}Pour arrêter tous les services:${NC}"

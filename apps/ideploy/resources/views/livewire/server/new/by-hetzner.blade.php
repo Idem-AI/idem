@@ -72,7 +72,7 @@
                                     @if (isset($serverType['cpu_vendor_info']) && $serverType['cpu_vendor_info'])
                                         ({{ $serverType['cpu_vendor_info'] }})
                                     @endif
-                                    , {{ $serverType['memory'] }}GB RAM,
+                                    , {{ $serverType['memory'] }}GB RAM, 
                                     {{ $serverType['disk'] }}GB
                                     @if (isset($serverType['architecture']))
                                         [{{ $serverType['architecture'] }}]
@@ -136,7 +136,7 @@
                     </div>
                     <div>
                         <x-forms.datalist label="Additional SSH Keys (from Hetzner)" id="selectedHetznerSshKeyIds"
-                            helper="Select existing SSH keys from your Hetzner account to add to this server. The Ideploy SSH key will be automatically added."
+                            helper="Select existing SSH keys from your Hetzner account to add to this server. The Coolify SSH key will be automatically added."
                             :multiple="true" :disabled="count($hetznerSshKeys) === 0" :placeholder="count($hetznerSshKeys) > 0
                                 ? 'Search and select SSH keys...'
                                 : 'No SSH keys found in Hetzner account'">

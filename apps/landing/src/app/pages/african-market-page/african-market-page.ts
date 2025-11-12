@@ -334,7 +334,7 @@ export class AfricanMarketPage implements OnInit {
       { property: 'og:locale:alternate', content: 'fr_FR' },
       {
         property: 'og:image',
-        content: `${this.seoService.domain}/assets/seo/african-market-og.jpg`,
+        content: `${this.seoService.domain}/assets/seo/african-market-og.webp`,
       },
     ];
 

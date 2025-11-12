@@ -219,7 +219,7 @@ export class Diagrams implements OnInit, OnDestroy {
       hasOfferCatalog: {
         '@type': 'OfferCatalog',
         name: $localize`:@@diagrams.seo.offerCatalogName:UML Diagram Types`,
-        itemListElement: this.diagramTypes().map((diagram, index) => ({
+        itemListElement: this.diagramTypes().map((diagram) => ({
           '@type': 'Offer',
           itemOffered: {
             '@type': 'Service',

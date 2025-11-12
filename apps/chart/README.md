@@ -44,17 +44,20 @@ You can try out a live version [here](https://mermaid.live/).
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/yourusername/idem-chart.git
    cd idem-chart
    ```
 
 2. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 3. Start the development server:
+
    ```bash
    pnpm dev -- --open
    ```
