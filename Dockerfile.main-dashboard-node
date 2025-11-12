@@ -1,0 +1,39 @@
+# Dockerfile.main-dashboard-node
+# Version avec serveur Node.js au lieu de nginx
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copier les fichiers de configuration racine
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Copier les packages partagés (dépendances)
+COPY ./packages/shared-models ./packages/shared-models
+COPY ./packages/shared-auth-client ./packages/shared-auth-client
+COPY ./packages/shared-styles ./packages/shared-styles
+
+# Copier l'application main-dashboard
+COPY ./apps/main-dashboard ./apps/main-dashboard
+
+RUN node -r dotenv/config ./apps/main-dashboard/mynode.js
+
+# Installer les dépendances globales sans scripts
+RUN npm install --legacy-peer-deps --ignore-scripts
+
+# Installer les dépendances de l'application main-dashboard
+WORKDIR /app/apps/main-dashboard
+RUN npm install --legacy-peer-deps --ignore-scripts
+
+# Installer les dépendances manquantes
+RUN npm install marked --legacy-peer-deps --no-save
+
+# Builder l'application main-dashboard
+RUN npm run build
+
+# Installer serve pour servir l'application
+RUN npm install -g serve
+
+EXPOSE 4200
+
+# Servir l'application avec serve
+CMD ["serve", "-s", "dist/main-dashboard/browser", "-l", "4200"]

@@ -1,4 +1,4 @@
-name: Deploy API
+name: Deploy AppGen
 
 on:
   workflow_call:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-and-deploy:
-    name: 🚀 Build & Deploy API
+    name: 🚀 Build & Deploy AppGen
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
@@ -33,8 +33,8 @@ jobs:
             REPO_DIR="/root/idem"
             BRANCH="${{ steps.vars.outputs.branch }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-api:$COMMIT_ID"
-            IMAGE_LATEST="ghcr.io/idem-ai/idem-api:latest"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-appgen:$COMMIT_ID"
+            IMAGE_LATEST="ghcr.io/idem-ai/idem-appgen:latest"
             
             echo "📍 Branch: $BRANCH"
             echo "📍 Commit: $COMMIT_ID"
@@ -49,7 +49,7 @@ jobs:
             
             # Build image
             echo "🔨 Building Docker image..."
-            docker build -f Dockerfile.api -t $IMAGE_NAME -t $IMAGE_LATEST .
+            docker build -f Dockerfile.appgen -t $IMAGE_NAME -t $IMAGE_LATEST .
             
             # Login to GitHub Container Registry
             echo "🔑 Logging in to GHCR..."
@@ -63,15 +63,15 @@ jobs:
             # Update docker-compose
             COMPOSE_FILE="docker-compose.yml"
             echo "🔁 Updating $COMPOSE_FILE..."
-            sed -i "s|image: ghcr.io/idem-ai/idem-api:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+            sed -i "s|image: ghcr.io/idem-ai/idem-appgen:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
             
             # Deploy
             echo "♻️ Deploying..."
-            docker-compose pull idem-api
-            docker-compose up -d idem-api
+            docker-compose pull idem-webgen
+            docker-compose up -d idem-webgen
             
             # Cleanup
             echo "🧹 Cleaning up old images..."
             docker image prune -f
             
-            echo "✅ API deployed successfully!"
+            echo "✅ AppGen deployed successfully!"

@@ -5,90 +5,79 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
+    name: 🚀 Build & Deploy Chart
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: 'apps/chart/.node-version'
-          cache: pnpm
-          cache-dependency-path: 'apps/chart/pnpm-lock.yaml'
-
-      # Cache pnpm store
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
+      - name: Get commit info
+        id: vars
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+          echo "commit_id=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
+      - name: Build, Push & Deploy
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-chart-${{ hashFiles('apps/chart/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-chart-
-            ${{ runner.os }}-pnpm-store-
-
-      # Cache node_modules
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: apps/chart/node_modules
-          key: ${{ runner.os }}-chart-modules-${{ hashFiles('apps/chart/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-chart-modules-
-
-      # Cache SvelteKit build
-      - name: Cache SvelteKit build
-        uses: actions/cache@v4
-        with:
-          path: |
-            apps/chart/.svelte-kit
-            apps/chart/build
-          key: ${{ runner.os }}-svelte-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-svelte-build-
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          static_site_generator: sveltekit
-
-      - name: Build & Deploy
-        working-directory: apps/chart
-        env:
-          MERMAID_DOMAIN: 'mermaid.live'
-          MERMAID_ANALYTICS_URL: 'https://p.mermaid.live'
-          MERMAID_RENDERER_URL: 'https://mermaid.ink'
-          MERMAID_KROKI_RENDERER_URL: 'https://kroki.io'
-          MERMAID_IS_ENABLED_MERMAID_CHART_LINKS: 'true'
-        run: |
-          export DEPLOY=true
-          [ "$GITHUB_EVENT_NAME" != "pull_request" ] && rm -rf docs/_app/
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./apps/chart/docs
-
-  deploy:
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: build
-    runs-on: ubuntu-latest
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
-    permissions:
-      pages: write # to deploy to Pages
-      id-token: write # to verify the deployment originates from an appropriate source
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            
+            # Variables
+            REPO_DIR="/root/idem"
+            BRANCH="${{ steps.vars.outputs.branch }}"
+            COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
+            IMAGE_NAME="ghcr.io/idem-ai/idem-chart:$COMMIT_ID"
+            IMAGE_LATEST="ghcr.io/idem-ai/idem-chart:latest"
+            
+            echo "📍 Branch: $BRANCH"
+            echo "📍 Commit: $COMMIT_ID"
+            echo "📍 Image: $IMAGE_NAME"
+            
+            # Update repository
+            cd $REPO_DIR
+            git fetch origin
+            git reset --hard origin/$BRANCH
+            git checkout $BRANCH
+            git pull origin $BRANCH
+            
+            # Build image
+            echo "🔨 Building Docker image..."
+            docker build -f Dockerfile.chart \
+              --build-arg MERMAID_DOMAIN='mermaid.live' \
+              --build-arg MERMAID_ANALYTICS_URL='https://p.mermaid.live' \
+              --build-arg MERMAID_RENDERER_URL='https://mermaid.ink' \
+              --build-arg MERMAID_KROKI_RENDERER_URL='https://kroki.io' \
+              --build-arg MERMAID_IS_ENABLED_MERMAID_CHART_LINKS='true' \
+              -t $IMAGE_NAME -t $IMAGE_LATEST .
+            
+            # Login to GitHub Container Registry
+            echo "🔑 Logging in to GHCR..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Push images
+            echo "📤 Pushing images..."
+            docker push $IMAGE_NAME
+            docker push $IMAGE_LATEST
+            
+            # Update docker-compose
+            COMPOSE_FILE="docker-compose.yml"
+            echo "🔁 Updating $COMPOSE_FILE..."
+            sed -i "s|image: ghcr.io/idem-ai/idem-chart:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+            
+            # Deploy
+            echo "♻️ Deploying..."
+            docker-compose pull idem-chart
+            docker-compose up -d idem-chart
+            
+            # Cleanup
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+            
+            echo "✅ Chart deployed successfully!"
