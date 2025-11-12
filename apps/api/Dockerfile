@@ -7,9 +7,7 @@ RUN npm install
 RUN npm install @modelcontextprotocol/sdk && npm install fs-extra
 
 
-COPY ./api ./api
-COPY ./public ./public
-
+COPY . .
 RUN npm run build
 
 FROM node:20-alpine AS production
