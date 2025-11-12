@@ -1,7 +1,7 @@
 {
   "locale": "fr",
   "translations": {
-    "footer.description": "La première plateforme IA open source souveraine d'Afrique. Conçue au Cameroun 🇨🇲 pour l'entrepreneuriat technologique panafricain.",
+    "footer.description": "La première plateforme IA open source souveraine d'Afrique. Conçue au Cameroun  pour l'entrepreneuriat technologique panafricain.",
     "footer.apache_license": "Licence Apache 2.0",
     "footer.platform": "{$START_TAG_SPAN}{$CLOSE_TAG_SPAN} Plateforme ",
     "footer.home": "Accueil",
@@ -21,9 +21,9 @@
     "footer.ceoTitle": "PDG & Co-Fondateur",
     "footer.ctoName": "Romuald Djeteje",
     "footer.ctoTitle": "CTO & Co-Fondateur",
-    "footer.buildingAfrica": "Construire l'avenir technologique de l'Afrique depuis le Cameroun 🇨🇲",
+    "footer.buildingAfrica": "Construire l'avenir technologique de l'Afrique depuis le Cameroun ",
     "footer.2025_idem_all": "© 2025 IDEM. Tous droits réservés.",
     "footer.african_you_too": "Africain, toi aussi tu peux construire",
-    "footer.madeInCameroon": "• Fait avec ❤️ au Cameroun 🇨🇲"
+    "footer.madeInCameroon": "• Fait avec ❤️ au Cameroun "
   }
 }

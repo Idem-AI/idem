@@ -13,7 +13,7 @@ export class AfricanMarketComponent {
   protected readonly markets = [
     {
       region: 'Cameroon',
-      flag: '🇨🇲',
+      flag: '',
       status: 'Live Now',
       description: 'Our home base and launch market',
       color: '#10b981',

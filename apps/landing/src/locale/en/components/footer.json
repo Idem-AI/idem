@@ -1,7 +1,7 @@
 {
   "locale": "en",
   "translations": {
-    "footer.description": " Africa's first sovereign open source AI platform. Built in Cameroon 🇨🇲 for pan-African tech entrepreneurship. ",
+    "footer.description": " Africa's first sovereign open source AI platform. Built in Cameroon  for pan-African tech entrepreneurship. ",
     "footer.apache_license": "Apache 2.0 License",
     "footer.platform": "{$START_TAG_SPAN}{$CLOSE_TAG_SPAN} Platform ",
     "footer.home": "Home",
@@ -21,9 +21,9 @@
     "footer.ceoTitle": "CEO & Co-Founder",
     "footer.ctoName": "Romuald Djeteje",
     "footer.ctoTitle": "CTO & Co-Founder",
-    "footer.buildingAfrica": " Building Africa's tech future from Cameroon 🇨🇲 ",
+    "footer.buildingAfrica": " Building Africa's tech future from Cameroon  ",
     "footer.2025_idem_all": " © 2025 IDEM. All rights reserved. ",
     "footer.african_you_too": "African, you too can build",
-    "footer.madeInCameroon": "• Made with ❤️ in Cameroon 🇨🇲"
+    "footer.madeInCameroon": "• Made with ❤️ in Cameroon "
   }
 }
