@@ -17,7 +17,7 @@
         </div>
 
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-          Africa's First
+          <span i18n="@@about-page.africa_first">Africa's First</span>
           <br />
           <span class="i-underline" i18n="@@about-page.sovereign_platform"
             >Sovereign AI Platform</span
@@ -192,29 +192,179 @@
     <div class="mb-16 lg:mb-20">
       <div class="text-center mb-12">
         <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4" i18n="@@about-page.our_values">
-          Our Values
+          Nos Valeurs
         </h2>
         <p class="text-gray-400 max-w-2xl mx-auto px-4" i18n="@@about-page.values.description">
-          The principles that guide everything we do at IDEM
+          Les principes qui guident tout ce que nous faisons chez IDEM
         </p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        @for (value of values; track value.title) {
+      <!-- Asymmetric Layout: 1 large left + 4 grid right -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Large Featured Value - Souveraineté Africaine -->
+        <div
+          class="glass-card p-8 lg:p-10 rounded-2xl border border-primary/30 hover:border-primary/50 transition-all relative overflow-hidden group"
+        >
+          <!-- Background Gradient -->
           <div
-            class="glass-card p-6 lg:p-8 rounded-xl border border-white/10 hover:border-primary/50 transition-all hover:transform hover:scale-[1.02]"
-          >
-            <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
-              <i [class]="'pi ' + value.icon + ' text-2xl text-primary'"></i>
+            class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          ></div>
+
+          <div class="relative z-10">
+            <!-- Icon -->
+            <div
+              class="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300"
+            >
+              <!-- Shield with Africa SVG -->
+              <svg
+                class="w-12 h-12 text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
+              </svg>
             </div>
-            <h3 class="text-xl font-bold text-white mb-3" i18n="@@about-page.value.title">
-              {{ value.title }}
+
+            <h3
+              class="text-2xl lg:text-3xl font-bold text-white mb-4"
+              i18n="@@about-page.value.title"
+            >
+              {{ values[0].title }}
+            </h3>
+            <p
+              class="text-base lg:text-lg text-gray-300 leading-relaxed"
+              i18n="@@about-page.value.description"
+            >
+              {{ values[0].description }}
+            </p>
+
+            <!-- Decorative Element -->
+            <div
+              class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Grid of 4 Values -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <!-- Discipline -->
+          <div
+            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
+          >
+            <div
+              class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors"
+            >
+              <!-- Target/Precision SVG -->
+              <svg
+                class="w-8 h-8 text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2" i18n="@@about-page.value.title">
+              {{ values[1].title }}
             </h3>
             <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
-              {{ value.description }}
+              {{ values[1].description }}
             </p>
           </div>
-        }
+
+          <!-- Passion -->
+          <div
+            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
+          >
+            <div
+              class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors"
+            >
+              <!-- Fire/Heart SVG -->
+              <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2" i18n="@@about-page.value.title">
+              {{ values[2].title }}
+            </h3>
+            <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
+              {{ values[2].description }}
+            </p>
+          </div>
+
+          <!-- Patience -->
+          <div
+            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
+          >
+            <div
+              class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors"
+            >
+              <!-- Hourglass/Clock SVG -->
+              <svg
+                class="w-8 h-8 text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2" i18n="@@about-page.value.title">
+              {{ values[3].title }}
+            </h3>
+            <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
+              {{ values[3].description }}
+            </p>
+          </div>
+
+          <!-- Persévérance -->
+          <div
+            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
+          >
+            <div
+              class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors"
+            >
+              <!-- Mountain/Peak SVG -->
+              <svg
+                class="w-8 h-8 text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2" i18n="@@about-page.value.title">
+              {{ values[4].title }}
+            </h3>
+            <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
+              {{ values[4].description }}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
 

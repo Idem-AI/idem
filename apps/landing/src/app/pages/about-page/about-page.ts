@@ -29,24 +29,29 @@ export class AboutPage implements OnInit {
 
   protected readonly values: Value[] = [
     {
-      title: $localize`:@@about-page.values.africanFirst.title:African First`,
-      description: $localize`:@@about-page.values.africanFirst.description:Built in Cameroon for Africa. Every decision prioritizes African entrepreneurs and their unique needs.`,
-      icon: 'pi-flag',
+      title: $localize`:@@about-page.values.sovereignty.title:Souveraineté Africaine`,
+      description: $localize`:@@about-page.values.sovereignty.description:Chaque décision est évaluée selon son impact sur la mission de démocratiser l'entrepreneuriat et de renforcer la souveraineté numérique africaine.`,
+      icon: 'sovereignty',
     },
     {
-      title: $localize`:@@about-page.values.openSource.title:Open Source`,
-      description: $localize`:@@about-page.values.openSource.description:Complete transparency with Apache 2.0 license. No vendor lock-in, full control over your data.`,
-      icon: 'pi-code',
+      title: $localize`:@@about-page.values.discipline.title:Discipline`,
+      description: $localize`:@@about-page.values.discipline.description:Rigueur dans l'exécution, excellence technique, code review systématique, respect des processus et des engagements.`,
+      icon: 'discipline',
     },
     {
-      title: $localize`:@@about-page.values.innovation.title:Innovation`,
-      description: $localize`:@@about-page.values.innovation.description:Pushing boundaries with multi-agent AI architecture and cutting-edge technology.`,
-      icon: 'pi-bolt',
+      title: $localize`:@@about-page.values.passion.title:Passion`,
+      description: $localize`:@@about-page.values.passion.description:Engagement total envers la mission, énergie contagieuse, fierté du travail accompli, enthousiasme pour l'innovation technologique africaine.`,
+      icon: 'passion',
     },
     {
-      title: $localize`:@@about-page.values.community.title:Community`,
-      description: $localize`:@@about-page.values.community.description:Building together with African developers, entrepreneurs, and tech enthusiasts.`,
-      icon: 'pi-users',
+      title: $localize`:@@about-page.values.patience.title:Patience`,
+      description: $localize`:@@about-page.values.patience.description:Construction solide sur le long terme, apprentissage continu, acceptation des échecs comme opportunités, croissance durable plutôt que raccourcis.`,
+      icon: 'patience',
+    },
+    {
+      title: $localize`:@@about-page.values.perseverance.title:Persévérance`,
+      description: $localize`:@@about-page.values.perseverance.description:Détermination face aux obstacles, résilience dans l'adversité, engagement inébranlable envers la vision, refus d'abandonner malgré les défis.`,
+      icon: 'perseverance',
     },
   ];
 
