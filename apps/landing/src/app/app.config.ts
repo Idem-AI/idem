@@ -1,3 +1,4 @@
+import { provideAnimations } from '@angular/platform-browser/animations';
 import {
   ApplicationConfig,
   provideBrowserGlobalErrorListeners,
@@ -32,6 +33,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
     provideHttpClient(withFetch()),
+    provideAnimations(),
     provideFirebaseApp(() => {
       return initializeApp(firebaseConfig);
     }),

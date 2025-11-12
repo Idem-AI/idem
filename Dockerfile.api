@@ -1,0 +1,63 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copier les fichiers de configuration racine
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Copier les packages partagés
+COPY ./packages/shared-models ./packages/shared-models
+COPY ./packages/shared-auth-client ./packages/shared-auth-client
+COPY ./packages/shared-styles ./packages/shared-styles
+
+# Copier l'application API
+COPY ./apps/api ./apps/api
+
+# Installer les dépendances globales
+RUN npm install --legacy-peer-deps --ignore-scripts
+
+# Installer les dépendances de l'API
+WORKDIR /app/apps/api
+RUN npm install --legacy-peer-deps && \
+    npm install @modelcontextprotocol/sdk fs-extra --legacy-peer-deps
+
+# Builder l'application
+RUN npm run build
+
+# Stage de production
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Installer les dépendances système pour Puppeteer/Chrome
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    && rm -rf /var/cache/apk/*
+
+# Définir le chemin vers Chromium pour Puppeteer
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Copier les fichiers buildés et node_modules
+COPY --from=builder /app/apps/api/package*.json ./
+COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/apps/api/public ./public
+COPY --from=builder /app/apps/api/node_modules ./node_modules
+
+# Créer un utilisateur non-root pour la sécurité
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S apiuser -u 1001
+
+# Changer les permissions
+RUN chown -R apiuser:nodejs /app
+USER apiuser
+
+EXPOSE 3000
+
+CMD ["node", "./dist/index.js"]
