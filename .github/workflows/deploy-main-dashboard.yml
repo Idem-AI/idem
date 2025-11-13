@@ -60,7 +60,7 @@ jobs:
             COMPOSE_FILE="docker-compose.yml"
             echo "Updating $COMPOSE_FILE..."
 
-            sed -i "s|image: ghcr.io/idem-ai/idem:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+            sed -i "s|image: ghcr.io/idem-ai/idem-main-dashboard:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
             
             # Deploy
             echo "Deploying..."
