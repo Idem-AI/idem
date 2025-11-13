@@ -18,7 +18,7 @@ export class OpenSourceSovereigntyComponent {
         $localize`:@@open-source-sovereignty.features.suite.benefit2:Business plans`,
         $localize`:@@open-source-sovereignty.features.suite.benefit3:Full-stack web apps`,
       ],
-      image: '/assets/images/open-source-sovereignty-component/business-suite.jpeg',
+      image: '/assets/images/open-source-sovereignty-component/business-suite.webp',
       imagePosition: 'left' as const,
     },
     {
@@ -29,7 +29,7 @@ export class OpenSourceSovereigntyComponent {
         $localize`:@@open-source-sovereignty.features.deploy.benefit2:Zero vendor lock-in`,
         $localize`:@@open-source-sovereignty.features.deploy.benefit3:Complete sovereignty`,
       ],
-      image: '/assets/images/open-source-sovereignty-component/deploy-anywhere.jpeg',
+      image: '/assets/images/open-source-sovereignty-component/deploy-anywhere.webp',
       imagePosition: 'right' as const,
     },
     {
@@ -40,7 +40,7 @@ export class OpenSourceSovereigntyComponent {
         $localize`:@@open-source-sovereignty.features.launch.benefit2:No subscriptions`,
         $localize`:@@open-source-sovereignty.features.launch.benefit3:Start earning fast`,
       ],
-      image: '/assets/images/open-source-sovereignty-component/launch-in-days.jpeg',
+      image: '/assets/images/open-source-sovereignty-component/launch-in-days.webp',
       imagePosition: 'left' as const,
     },
   ];
