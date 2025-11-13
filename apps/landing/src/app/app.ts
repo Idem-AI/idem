@@ -48,23 +48,25 @@ export class App implements OnInit {
   }
 
   private hideInitialSplashScreen(): void {
-    // Attendre que les composants soient initialisés
-    if (document.readyState === 'complete') {
-      // Page déjà chargée, masquer immédiatement
+    const MIN_SPLASH_DURATION = 2000; // Durée minimale de 2 secondes
+    const startTime = Date.now();
+
+    const hideSplash = () => {
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, MIN_SPLASH_DURATION - elapsedTime);
+
       setTimeout(() => {
         this.isInitialLoading.set(false);
-      }, 100);
+      }, remainingTime);
+    };
+
+    // Attendre que les composants soient initialisés
+    if (document.readyState === 'complete') {
+      // Page déjà chargée
+      hideSplash();
     } else {
       // Attendre le chargement complet
-      window.addEventListener(
-        'load',
-        () => {
-          setTimeout(() => {
-            this.isInitialLoading.set(false);
-          }, 500);
-        },
-        { once: true },
-      );
+      window.addEventListener('load', hideSplash, { once: true });
     }
   }
 

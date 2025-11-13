@@ -46,7 +46,7 @@
   opacity: 0;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  animation: fadeInUp 0.8s ease-out 0.6s forwards;
+  animation: fadeInUp 0.8s ease-out 0.3s forwards; /* Délai réduit de 0.6s à 0.3s */
 }
 
 /* Progress elements */
