@@ -9,12 +9,14 @@
     "header.nav.settings": "Paramètres",
     "header.nav.logout.dropdown": "Déconnexion",
     "header.nav.login.desktop": "Connexion",
+    "header.nav.createProject.desktop": " Try for free ",
     "header.aria.toggleMenu": "Basculer le menu",
     "header.aria.closeMenu": "Fermer le menu",
     "header.nav.dashboard.mobile": "Tableau de bord",
     "header.nav.profile": "Profil",
     "header.nav.logout.mobile": "Déconnexion",
     "header.nav.login.mobile": "Connexion",
+    "header.nav.createProject.mobile": " Try for free ",
     "header.nav.github": "GitHub",
     "header.nav.home": "Accueil",
     "header.menu.product": "Produit",
@@ -22,8 +24,10 @@
     "header.menu.architecture": "Architecture",
     "header.menu.pricing": "Tarifs",
     "header.menu.company": "Entreprise",
-    "header.menu.about": "À propos",
     "header.menu.vision": "Vision",
-    "header.menu.openSource": "Open Source"
+    "header.menu.openSource": "Open Source",
+    "header.menu.about": "À propos",
+    "header.nav.about": "About",
+    "header.nav.contact": "Contact"
   }
 }

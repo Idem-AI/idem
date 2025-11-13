@@ -105,7 +105,7 @@
           <div class="relative">
             <button (click)="toggleDropdown()" class="flex items-center">
               <img
-                [src]="user()!.photoURL || '/assets/icons/default-avatar.png'"
+                [src]="user()!.photoURL || '/assets/icons/default-avatar.webp'"
                 i18n-alt="@@header.alt.avatar"
                 alt="Avatar"
                 class="w-9 h-9 rounded-full cursor-pointer border-2 border-white/20 hover:border-primary transition-colors"
@@ -195,19 +195,19 @@
     <div
       [@fadeIn]
       (click)="toggleMenu()"
-      class="fixed inset-0 bg-secondary backdrop-blur-sm z-[9998] lg:hidden"
+      class="fixed inset-0 bg-gradient-to-br from-primary to-secondary/50 backdrop-blur-sm z-9998 lg:hidden"
     ></div>
 
     <div
       [@slideInOut]
-      class="fixed top-0 left-0 h-screen bg-secondary w-80 glass-mobile-sidebar z-[9999] lg:hidden flex flex-col"
+      class="fixed top-0 left-0 h-screen bg-secondary w-80 glass-mobile-sidebar z-9999 lg:hidden flex flex-col"
       #menu
     >
       <!-- Header fixe -->
-      <div class="flex-shrink-0 p-6 bg-secondary border-b border-white/10">
+      <div class="flex-shrink-0 p-6 border-b border-white/10">
         <div class="flex items-center justify-between">
           <img
-            src="/assets/icons/logo_white.png"
+            src="/assets/icons/logo_white.webp"
             i18n-alt="@@header.alt.logo"
             alt="IDEM Logo"
             class="md:w-24 w-16 h-auto"
@@ -288,22 +288,24 @@
               Logout
             </button>
           } @else {
-            <a
-              routerLink="/login"
-              (click)="toggleMenu()"
-              class="outer-button block text-center px-4 py-3 rounded-lg transition-all font-medium"
-              i18n="@@header.nav.login.mobile"
-            >
-              Login
-            </a>
-            <a
-              href="{{ dashboardUrl }}/create-project"
-              (click)="toggleMenu()"
-              class="inner-button block text-center px-4 py-3 rounded-lg transition-all font-medium"
-              i18n="@@header.nav.createProject.mobile"
-            >
-              Try for free
-            </a>
+            <div class="flex flex-col gap-2">
+              <a
+                routerLink="/login"
+                (click)="toggleMenu()"
+                class="outer-button block text-center px-4 py-3 rounded-lg transition-all font-medium"
+                i18n="@@header.nav.login.mobile"
+              >
+                Login
+              </a>
+              <a
+                href="{{ dashboardUrl }}/create-project"
+                (click)="toggleMenu()"
+                class="inner-button block text-center px-4 py-3 rounded-lg transition-all font-medium"
+                i18n="@@header.nav.createProject.mobile"
+              >
+                Try for free
+              </a>
+            </div>
           }
 
           <a
