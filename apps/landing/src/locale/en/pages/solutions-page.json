@@ -1,9 +1,9 @@
 {
   "locale": "en",
   "translations": {
-    "solutions-page.everything_you_need.hero": "Everything You Need to Launch Your",
-    "solutions-page.enterprise": "Enterprise",
-    "solutions-page.launch_your_project.hero": "Launch Your Project",
+    "solutions-page.complete_solutions": "Complete Solutions",
+    "solutions-page.everything_you_need.hero": "Everything You Need To Launch Your",
+    "solutions-page.enterprise.hero": "Enterprise",
     "solutions-page.description": " From concept to deployment, IDEM provides all the tools and solutions to bring your ideas to life. No technical skills required. ",
     "solutions-page.stat.label": " {$INTERPOLATION} ",
     "solutions-page.our_solutions": " Our Solutions ",
