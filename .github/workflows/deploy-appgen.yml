@@ -42,8 +42,6 @@ jobs:
             
             # Update repository
             cd $REPO_DIR
-            git fetch origin
-            git reset --hard origin/$BRANCH
             git checkout $BRANCH
             git pull origin $BRANCH
             
@@ -52,12 +50,8 @@ jobs:
             docker build -f Dockerfile.appgen -t $IMAGE_NAME -t $IMAGE_LATEST .
             
             # Login to GitHub Container Registry
-            echo "Logging in to GHCR..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
             # Push images
             echo "Pushing images..."
-            docker push $IMAGE_NAME
             docker push $IMAGE_LATEST
             
             # Update docker-compose
