@@ -1,6 +1,6 @@
 # Main Dashboard - Idem Platform
 
-Application de dashboard privée pour la plateforme Idem. Cette application gère toutes les fonctionnalités du console utilisateur, incluant la gestion de projets, équipes, déploiements, et plus.
+Application de dashboard privée pour la plateforme Idem. Cette application gère toutes les fonctionnalités du console utilisateur, incluant la gestion de projets, équipes, déploiements, et bien plus.
 
 ## 🚀 Caractéristiques
 
