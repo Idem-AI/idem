@@ -7,10 +7,10 @@
     "types": ["node", "@angular/localize"],
     "baseUrl": "../../",
     "paths": {
-      "@idem/shared-models": ["packages/shared-models/dist"],
-      "@idem/shared-models/*": ["packages/shared-models/dist/*"],
-      "@idem/shared-auth-client": ["packages/shared-auth-client/dist"],
-      "@idem/shared-auth-client/*": ["packages/shared-auth-client/dist/*"],
+      "@idem/shared-models": ["packages/shared-models/src"],
+      "@idem/shared-models/*": ["packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["packages/shared-auth-client/src/*"],
       "@idem/shared-styles": ["packages/shared-styles"],
       "@idem/shared-styles/*": ["packages/shared-styles/*"]
     }
