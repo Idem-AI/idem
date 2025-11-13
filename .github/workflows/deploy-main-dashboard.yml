@@ -42,9 +42,7 @@ jobs:
             
             # Update repository
             cd $REPO_DIR
-            git fetch origin
-            git reset --hard origin/$BRANCH
-            git checkout $BRANCH
+
             git pull origin $BRANCH
             
             # Build image
@@ -52,8 +50,6 @@ jobs:
             docker build -f Dockerfile.main-dashboard -t $IMAGE_NAME -t $IMAGE_LATEST .
             
             # Login to GitHub Container Registry
-            echo "Logging in to GHCR..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Push images
             echo "Pushing images..."
@@ -63,12 +59,11 @@ jobs:
             # Update docker-compose
             COMPOSE_FILE="docker-compose.yml"
             echo "Updating $COMPOSE_FILE..."
-            sed -i "s|image: ghcr.io/idem-ai/idem-main-dashboard:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+
             sed -i "s|image: ghcr.io/idem-ai/idem:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
             
             # Deploy
             echo "Deploying..."
-            docker-compose pull idem
             docker-compose up -d idem
             
             # Cleanup

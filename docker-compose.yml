@@ -32,8 +32,15 @@ services:
 ############################### IDEM FRONTEND ###########################################
 
   idem: 
-    image: ghcr.io/idem-ai/idem:1.0
+    image: ghcr.io/idem-ai/idem-main-dashboard:d1ad0841
     container_name: idem
+    restart: always
+    networks:
+      - idem
+
+  idem-landing: 
+    image: ghcr.io/idem-ai/idem-main-dashboard:d1ad0841
+    container_name: idem-landing
     restart: always
     networks:
       - idem
@@ -57,7 +64,7 @@ services:
       FIREBASE_APP_ID: "${FIREBASE_APP_ID}"
       FIREBASE_PRIVATE_KEY: "${FIREBASE_PRIVATE_KEY}"
       FIREBASE_CLIENT_EMAIL: "${FIREBASE_CLIENT_EMAIL}"
-      CORS_ALLOWED_ORIGINS: "https://api.idem-ai.com,https://webgen.idem-ai.com, https://appgen.idem-ai.com, http://chart.idem-ai.com,https://idem-ai.com"
+      CORS_ALLOWED_ORIGINS: "https://api.idem-ai.com,https://webgen.idem-ai.com, https://appgen.idem-ai.com, http://chart.idem-ai.com,https://idem-ai.com, https://api.idem.africa, https://appgen.idem.africa"
     ports:
       - "${PORT}:${PORT}"
     restart: unless-stopped

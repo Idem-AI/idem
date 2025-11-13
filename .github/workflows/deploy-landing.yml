@@ -42,18 +42,11 @@ jobs:
             
             # Update repository
             cd $REPO_DIR
-            git fetch origin
-            git reset --hard origin/$BRANCH
-            git checkout $BRANCH
             git pull origin $BRANCH
             
             # Build image
             echo "Building Docker image..."
             docker build -f Dockerfile.landing -t $IMAGE_NAME -t $IMAGE_LATEST .
-            
-            # Login to GitHub Container Registry
-            echo "Logging in to GHCR..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Push images
             echo "Pushing images..."
@@ -67,7 +60,6 @@ jobs:
             
             # Deploy
             echo "Deploying..."
-            docker-compose pull idem-landing
             docker-compose up -d idem-landing
             
             # Cleanup
