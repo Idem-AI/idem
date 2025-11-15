@@ -78,3 +78,11 @@ lerna-debug.log*
 .turbo
 node-compile-cache
 nginx-certbot/
+
+# SSL/TLS Certificates and Scripts
+*-letsencrypt*.sh
+init-letsencrypt.sh
+data/
+
+# Docker Compose temporary files
+.docker-compose.yml
