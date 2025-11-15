@@ -55,9 +55,12 @@ jobs:
             
             # Update repository
             cd $REPO_DIR
-            git fetch origin
+            
+            # Remove git lock if exists (parallel workflows)
+            rm -f .git/index.lock
+            
             git checkout $BRANCH
-            git reset --hard origin/$BRANCH
+            git pull origin $BRANCH
             
             # Build image
             echo "Building Docker image..."
