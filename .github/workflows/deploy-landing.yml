@@ -46,12 +46,17 @@ jobs:
             REPO_DIR="/root/idem"
             BRANCH="${{ steps.vars.outputs.branch }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-landing:$COMMIT_ID"
-            IMAGE_LATEST="ghcr.io/idem-ai/idem-landing:latest"
+            
+            # Different tags for staging and production
+            if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+              IMAGE_TAG="ghcr.io/idem-ai/idem-landing:$COMMIT_ID"
+            else
+              IMAGE_TAG="ghcr.io/idem-ai/idem-landing:$COMMIT_ID-staging"
+            fi
             
             echo "Branch: $BRANCH"
             echo "Commit: $COMMIT_ID"
-            echo "Image: $IMAGE_NAME"
+            echo "Image: $IMAGE_TAG"
             
             # Update repository
             cd $REPO_DIR
@@ -66,18 +71,16 @@ jobs:
             
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.landing -t $IMAGE_NAME -t $IMAGE_LATEST .
+            docker build -f Dockerfile.landing -t $IMAGE_TAG .
             
-            # Push images
-            echo "Pushing images to registry..."
-            docker push $IMAGE_NAME
-            docker push $IMAGE_LATEST
+            # Push image
+            echo "Pushing image to registry..."
+            docker push $IMAGE_TAG
             
             # Determine environment and deploy
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
               # Production deployment
               COMPOSE_FILE="docker-compose.prod.yml"
-              IMAGE_TAG="$IMAGE_NAME"
               SERVICE_NAME="idem-landing"
               
               echo "Updating $COMPOSE_FILE..."
@@ -87,17 +90,12 @@ jobs:
               docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
               docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             else
-              # Staging deployment (dev branch)
+              # Staging deployment
               COMPOSE_FILE="docker-compose.staging.yml"
-              IMAGE_TAG_STAGING="ghcr.io/idem-ai/idem-landing:staging-latest"
               SERVICE_NAME="idem-landing-staging"
               
-              # Tag image for staging
-              docker tag $IMAGE_NAME $IMAGE_TAG_STAGING
-              docker push $IMAGE_TAG_STAGING
-              
               echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/idem-landing:.*|image: $IMAGE_TAG_STAGING|" $COMPOSE_FILE
+              sed -i "s|image: ghcr.io/idem-ai/idem-landing:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
               
               echo "Deploying to staging..."
               docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME

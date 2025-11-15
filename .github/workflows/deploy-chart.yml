@@ -46,12 +46,17 @@ jobs:
             REPO_DIR="/root/idem"
             BRANCH="${{ steps.vars.outputs.branch }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-            IMAGE_NAME="ghcr.io/idem-ai/idem-chart:$COMMIT_ID"
-            IMAGE_LATEST="ghcr.io/idem-ai/idem-chart:latest"
+            
+            # Different tags for staging and production
+            if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+              IMAGE_TAG="ghcr.io/idem-ai/idem-chart:$COMMIT_ID"
+            else
+              IMAGE_TAG="ghcr.io/idem-ai/idem-chart:$COMMIT_ID-staging"
+            fi
             
             echo "Branch: $BRANCH"
             echo "Commit: $COMMIT_ID"
-            echo "Image: $IMAGE_NAME"
+            echo "Image: $IMAGE_TAG"
             
             # Update repository
             cd $REPO_DIR
@@ -72,31 +77,39 @@ jobs:
               --build-arg MERMAID_RENDERER_URL='https://mermaid.ink' \
               --build-arg MERMAID_KROKI_RENDERER_URL='https://kroki.io' \
               --build-arg MERMAID_IS_ENABLED_MERMAID_CHART_LINKS='true' \
-              -t $IMAGE_NAME -t $IMAGE_LATEST .
+              -t $IMAGE_TAG .
             
             # Login to GitHub Container Registry
             echo "Logging in to GHCR..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Push images
-            echo "Pushing images..."
-            docker push $IMAGE_LATEST
+            # Push image
+            echo "Pushing image..."
+            docker push $IMAGE_TAG
             
             # Determine environment and deploy
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
               # Production deployment
               COMPOSE_FILE="docker-compose.prod.yml"
+              SERVICE_NAME="idem-chart"
+              
               echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/idem-chart:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+              sed -i "s|image: ghcr.io/idem-ai/idem-chart:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
               
               echo "Deploying to production..."
-              docker-compose -f $COMPOSE_FILE pull idem-chart
-              docker-compose -f $COMPOSE_FILE up -d idem-chart
+              docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
+              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             else
-              # Staging deployment (dev branch)
-              echo "Building and deploying to staging..."
-              docker-compose -f docker-compose.staging.yml build idem-chart-staging
-              docker-compose -f docker-compose.staging.yml up -d idem-chart-staging
+              # Staging deployment
+              COMPOSE_FILE="docker-compose.staging.yml"
+              SERVICE_NAME="idem-chart-staging"
+              
+              echo "Updating $COMPOSE_FILE..."
+              sed -i "s|image: ghcr.io/idem-ai/idem-chart:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
+              
+              echo "Deploying to staging..."
+              docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
+              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             fi
             
             # Cleanup
