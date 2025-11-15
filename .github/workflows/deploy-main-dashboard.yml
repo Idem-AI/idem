@@ -59,7 +59,11 @@ jobs:
             
             # Update repository
             cd $REPO_DIR
-
+            
+            # Remove git lock if exists (parallel workflows)
+            rm -f .git/index.lock
+            
+            git checkout $BRANCH
             git pull origin $BRANCH
             
             # Build image
