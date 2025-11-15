@@ -77,3 +77,4 @@ lerna-debug.log*
 .prettiercache
 .turbo
 node-compile-cache
+nginx-certbot/

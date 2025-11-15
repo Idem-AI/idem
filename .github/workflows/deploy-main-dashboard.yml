@@ -1,13 +1,18 @@
 name: Deploy Main Dashboard
 
 on:
-  workflow_call:
+  push:
+    branches: [ dev ]
+  pull_request:
+    types: [ closed ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     name: Build & Deploy Dashboard
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     steps:
@@ -42,29 +47,32 @@ jobs:
             
             # Update repository
             cd $REPO_DIR
-
+            git checkout $BRANCH
             git pull origin $BRANCH
             
             # Build image
             echo "Building Docker image..."
             docker build -f Dockerfile.main-dashboard -t $IMAGE_NAME -t $IMAGE_LATEST .
             
-            # Login to GitHub Container Registry
-            
             # Push images
             echo "Pushing images..."
-            docker push $IMAGE_NAME
             docker push $IMAGE_LATEST
             
-            # Update docker-compose
-            COMPOSE_FILE="docker-compose.yml"
-            echo "Updating $COMPOSE_FILE..."
-
-            sed -i "s|image: ghcr.io/idem-ai/idem-main-dashboard:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
-            
-            # Deploy
-            echo "Deploying..."
-            docker-compose up -d idem
+            # Determine environment and deploy
+            if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+              # Production deployment
+              COMPOSE_FILE="docker-compose.prod.yml"
+              echo "Updating $COMPOSE_FILE..."
+              sed -i "s|image: ghcr.io/idem-ai/idem-main-dashboard:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+              
+              echo "Deploying to production..."
+              docker-compose -f $COMPOSE_FILE up -d idem
+            else
+              # Staging deployment (dev branch)
+              echo "Building and deploying to staging..."
+              docker-compose -f docker-compose.staging.yml build idem-staging
+              docker-compose -f docker-compose.staging.yml up -d idem-staging
+            fi
             
             # Cleanup
             echo "Cleaning up old images..."
