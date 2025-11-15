@@ -59,9 +59,8 @@ jobs:
             
             # Update repository
             cd $REPO_DIR
-            git fetch origin
-            git checkout $BRANCH
-            git reset --hard origin/$BRANCH
+
+            git pull origin $BRANCH
             
             # Build image
             echo "Building Docker image..."
