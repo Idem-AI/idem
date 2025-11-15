@@ -3,9 +3,17 @@ name: Deploy AppGen
 on:
   push:
     branches: [ dev ]
+    paths:
+      - 'apps/appgen/**'
+      - 'Dockerfile.appgen'
+      - '.github/workflows/deploy-appgen.yml'
   pull_request:
     types: [ closed ]
     branches: [ main ]
+    paths:
+      - 'apps/appgen/**'
+      - 'Dockerfile.appgen'
+      - '.github/workflows/deploy-appgen.yml'
   workflow_dispatch:
 
 jobs:
@@ -54,26 +62,40 @@ jobs:
             echo "Building Docker image..."
             docker build -f Dockerfile.appgen -t $IMAGE_NAME -t $IMAGE_LATEST .
             
-            # Login to GitHub Container Registry
             # Push images
-            echo "Pushing images..."
+            echo "Pushing images to registry..."
+            docker push $IMAGE_NAME
             docker push $IMAGE_LATEST
             
             # Determine environment and deploy
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
               # Production deployment
               COMPOSE_FILE="docker-compose.prod.yml"
+              IMAGE_TAG="$IMAGE_NAME"
+              SERVICE_NAME="idem-webgen"
+              
               echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/idem-appgen:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+              sed -i "s|image: ghcr.io/idem-ai/idem-appgen:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
               
               echo "Deploying to production..."
-              docker-compose -f $COMPOSE_FILE pull idem-webgen
-              docker-compose -f $COMPOSE_FILE up -d idem-webgen
+              docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
+              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             else
               # Staging deployment (dev branch)
-              echo "Building and deploying to staging..."
-              docker-compose -f docker-compose.staging.yml build idem-webgen-staging
-              docker-compose -f docker-compose.staging.yml up -d idem-webgen-staging
+              COMPOSE_FILE="docker-compose.staging.yml"
+              IMAGE_TAG_STAGING="ghcr.io/idem-ai/idem-appgen:staging-latest"
+              SERVICE_NAME="idem-webgen-staging"
+              
+              # Tag image for staging
+              docker tag $IMAGE_NAME $IMAGE_TAG_STAGING
+              docker push $IMAGE_TAG_STAGING
+              
+              echo "Updating $COMPOSE_FILE..."
+              sed -i "s|image: ghcr.io/idem-ai/idem-appgen:.*|image: $IMAGE_TAG_STAGING|" $COMPOSE_FILE
+              
+              echo "Deploying to staging..."
+              docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
+              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             fi
             
             # Cleanup
