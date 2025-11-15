@@ -1,36 +1,60 @@
+# Build arguments for environment-specific builds
+ARG BUILD_ENV=production
+
 FROM node:20-alpine AS builder
+
+# Install security updates and build dependencies
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init && \
+    rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
-# Copier les fichiers de configuration racine
+# Copy package files first for better layer caching
 COPY package.json package-lock.json tsconfig.base.json ./
 
-# Copier les packages partagés
+# Copy packages partagés
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
 
-# Copier l'application API
-COPY ./apps/api ./apps/api
+# Build shared-models first
+WORKDIR /app/packages/shared-models
+RUN npm install --legacy-peer-deps && npm run build && npm cache clean --force
 
-# Installer les dépendances globales
-RUN npm install --legacy-peer-deps --ignore-scripts
-
-# Installer les dépendances de l'API
-WORKDIR /app/apps/api
-RUN npm install --legacy-peer-deps && \
-    npm install @modelcontextprotocol/sdk fs-extra --legacy-peer-deps
-
-# Builder l'application
-RUN npm run build
-
-# Stage de production
-FROM node:20-alpine AS production
-
+# Return to /app before copying API
 WORKDIR /app
 
-# Installer les dépendances système pour Puppeteer/Chrome
-RUN apk add --no-cache \
+# Copy API application
+COPY ./apps/api ./apps/api
+
+# Prepare directory structure
+WORKDIR /app/apps/api
+
+# Install dependencies
+RUN npm install --legacy-peer-deps --force && npm cache clean --force
+
+# Install missing dependencies manually at root level
+WORKDIR /app
+RUN npm install fs-extra @modelcontextprotocol/sdk --legacy-peer-deps --save
+
+# Return to API directory
+WORKDIR /app/apps/api
+
+# Manually add shared-models
+RUN mkdir -p node_modules/@idem && \
+    cp -r /app/packages/shared-models ./node_modules/@idem/shared-models
+
+# Build application
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+
+# Install security updates and runtime dependencies
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+    dumb-init \
     chromium \
     nss \
     freetype \
@@ -40,24 +64,32 @@ RUN apk add --no-cache \
     ttf-freefont \
     && rm -rf /var/cache/apk/*
 
-# Définir le chemin vers Chromium pour Puppeteer
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
-# Copier les fichiers buildés et node_modules
-COPY --from=builder /app/apps/api/package*.json ./
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/public ./public
-COPY --from=builder /app/apps/api/node_modules ./node_modules
-
-# Créer un utilisateur non-root pour la sécurité
+# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S apiuser -u 1001
 
-# Changer les permissions
-RUN chown -R apiuser:nodejs /app
+WORKDIR /app
+
+# Set Puppeteer environment variables
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV NODE_ENV=${BUILD_ENV:-production}
+
+# Copy built application and dependencies
+COPY --from=builder --chown=apiuser:nodejs /app/apps/api/package*.json ./
+COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./dist
+COPY --from=builder --chown=apiuser:nodejs /app/apps/api/public ./public
+
+# Copy node_modules from root (npm installs them there in monorepo)
+COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules
+
+# Also copy shared packages that might be needed
+COPY --from=builder --chown=apiuser:nodejs /app/packages ./packages
+
+# Create logs directory with correct permissions
+RUN mkdir -p /app/logs && chown -R apiuser:nodejs /app/logs
+
+# Switch to non-root user
 USER apiuser
 
-EXPOSE 3000
-
-CMD ["node", "./dist/index.js"]
+CMD ["node", "dist/apps/api/api/index.js"]

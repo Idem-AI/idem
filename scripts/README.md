@@ -2,9 +2,19 @@
 
 ## 📚 Scripts Disponibles
 
+### Scripts de développement
 - **setup.sh** - Configuration automatique du workspace
 - **clean-all.sh** - Nettoyage complet du workspace
 - **check-packages.sh** - Vérification des package.json
+
+### Scripts de déploiement multi-environnements
+- **setup-environments.sh** - Configuration initiale des environnements prod/staging
+- **deploy-staging.sh** - Déploiement de l'environnement de staging
+- **migrate-to-multi-env.sh** - Migration vers l'architecture multi-environnements
+
+### Scripts de monitoring
+- **health-check.sh** - Vérification de santé des services
+- **logs.sh** - Consultation centralisée des logs
 
 ---
 

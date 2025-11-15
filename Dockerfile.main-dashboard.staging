@@ -9,7 +9,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
-COPY .env ./apps/main-dashboard/.env
+COPY .env.staging ./apps/main-dashboard/.env
 
 COPY ./apps/main-dashboard ./apps/main-dashboard
 
