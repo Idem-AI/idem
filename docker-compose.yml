@@ -32,14 +32,15 @@ services:
 ############################### IDEM FRONTEND ###########################################
 
   idem: 
-    image: ghcr.io/idem-ai/idem-main-dashboard:d1ad0841
+    image: ghcr.io/idem-ai/idem-main-dashboard:c65a28a8
     container_name: idem
     restart: always
     networks:
       - idem
 
   idem-landing: 
-    image: ghcr.io/idem-ai/idem-main-dashboard:d1ad0841
+    image: ghcr.io/idem-ai/idem-landing:ee3d663e
+
     container_name: idem-landing
     restart: always
     networks:

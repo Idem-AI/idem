@@ -1,3 +1,6 @@
+# Build arguments for environment-specific builds
+ARG BUILD_ENV=production
+
 # Dockerfile.landing
 FROM node:20-alpine AS builder
 
@@ -32,6 +35,18 @@ RUN npm run build:fr
 
 # Stage de production avec nginx
 FROM nginx:alpine AS production
+
+# Install security updates
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init && \
+    rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S nginx-user && \
+    adduser -S nginx-user -u 1001 -G nginx-user
+
+# Set environment
+ENV NODE_ENV=${BUILD_ENV:-production}
 
 # Copier la configuration nginx
 COPY ./apps/landing/nginx.conf /etc/nginx/nginx.conf

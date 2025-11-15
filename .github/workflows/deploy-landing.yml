@@ -1,13 +1,18 @@
 name: Deploy Landing Page
 
 on:
-  workflow_call:
+  push:
+    branches: [ dev ]
+  pull_request:
+    types: [ closed ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     name: Build & Deploy Landing
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     steps:
@@ -42,6 +47,7 @@ jobs:
             
             # Update repository
             cd $REPO_DIR
+            git checkout $BRANCH
             git pull origin $BRANCH
             
             # Build image
@@ -50,17 +56,23 @@ jobs:
             
             # Push images
             echo "Pushing images..."
-            docker push $IMAGE_NAME
             docker push $IMAGE_LATEST
             
-            # Update docker-compose
-            COMPOSE_FILE="docker-compose.yml"
-            echo "Updating $COMPOSE_FILE..."
-            sed -i "s|image: ghcr.io/idem-ai/idem-landing:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
-            
-            # Deploy
-            echo "Deploying..."
-            docker-compose up -d idem-landing
+            # Determine environment and deploy
+            if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+              # Production deployment
+              COMPOSE_FILE="docker-compose.prod.yml"
+              echo "Updating $COMPOSE_FILE..."
+              sed -i "s|image: ghcr.io/idem-ai/idem-landing:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+              
+              echo "Deploying to production..."
+              docker-compose -f $COMPOSE_FILE up -d idem-landing
+            else
+              # Staging deployment (dev branch)
+              echo "Building and deploying to staging..."
+              docker-compose -f docker-compose.staging.yml build idem-landing-staging
+              docker-compose -f docker-compose.staging.yml up -d idem-landing-staging
+            fi
             
             # Cleanup
             echo "Cleaning up old images..."
