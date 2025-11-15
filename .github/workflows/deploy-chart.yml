@@ -64,10 +64,16 @@ jobs:
             # Clean git locks and corrupted index (parallel workflows)
             rm -f .git/index.lock
             rm -f .git/index
-            git reset
             
-            git checkout $BRANCH
-            git pull origin $BRANCH
+            # Retry loop for git operations (avoid parallel conflicts)
+            for i in {1..5}; do
+              sleep $((RANDOM % 3 + 1))
+              if git checkout -f $BRANCH && git pull origin $BRANCH; then
+                break
+              fi
+              echo "Retry $i/5..."
+              rm -f .git/index.lock .git/index
+            done
             
             # Build image
             echo "Building Docker image..."
