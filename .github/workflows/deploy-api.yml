@@ -58,8 +58,10 @@ jobs:
             # Update repository
             cd $REPO_DIR
             
-            # Remove git lock if exists (parallel workflows)
+            # Clean git locks and corrupted index (parallel workflows)
             rm -f .git/index.lock
+            rm -f .git/index
+            git reset
             
             git checkout $BRANCH
             git pull origin $BRANCH
