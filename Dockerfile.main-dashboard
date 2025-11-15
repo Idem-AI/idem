@@ -1,29 +1,26 @@
-# Dockerfile.main-dashboard
+
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copier les fichiers de configuration racine
 COPY package.json package-lock.json tsconfig.base.json ./
 
-# Copier les packages partagés (dépendances)
+
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
+COPY .env ./apps/main-dashboard/.env
 
-# Copier l'application main-dashboard
 COPY ./apps/main-dashboard ./apps/main-dashboard
 
-# Installer les dépendances globales sans scripts
+
 RUN npm install --legacy-peer-deps --ignore-scripts
 
-# Installer les dépendances de l'application main-dashboard
+
 WORKDIR /app/apps/main-dashboard
 RUN npm install --legacy-peer-deps --ignore-scripts
 
-# Installer les dépendances manquantes
-RUN npm install marked --legacy-peer-deps --no-save
-
+RUN node -r dotenv/config mynode.js
 # Builder l'application main-dashboard
 RUN npm run build
 
@@ -31,7 +28,7 @@ RUN npm run build
 FROM nginx:alpine AS production
 
 # Copier la configuration nginx
-COPY ./apps/main-dashboard/nginx.conf /etc/nginx/nginx.conf
+COPY /apps/main-dashboard/nginx.conf /etc/nginx/nginx.conf
 
 # Copier le build de l'application
 COPY --from=builder /app/apps/main-dashboard/dist/main-dashboard/browser /usr/share/nginx/html

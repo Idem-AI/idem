@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # NGINX Reverse Proxy partagé pour tous les environnements
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: idem-nginx-shared
+    restart: unless-stopped
+    volumes:
+      - ./data/nginx:/etc/nginx/conf.d
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+      - ./logs/nginx:/var/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    networks:
+      - idem-shared
+      - idem
+      - idem-staging
+
+  # Certbot pour la gestion des certificats SSL
+  certbot:
+    image: certbot/certbot:latest
+    container_name: idem-certbot
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+      - ./logs/certbot:/var/log/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - idem-shared
+
+networks:
+  idem-shared:
+    driver: bridge
+    name: idem-shared
+  idem:
+    driver: bridge
+    name: idem
+    external: true
+  idem-staging:
+    driver: bridge
+    name: idem-staging
+    external: false
