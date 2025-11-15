@@ -48,7 +48,7 @@ services:
 
   # IDEM WebGen - Staging Environment
   idem-webgen-staging:
-    image: ghcr.io/idem-ai/idem-appgen:latest-staging
+    image: ghcr.io/idem-ai/idem-appgen:8e3b89a2-staging
     container_name: idem-webgen-staging
     env_file:
       - .env.staging
@@ -61,7 +61,7 @@ services:
 
   # AppGen Server - Staging Environment
   appgen-server-staging:
-    image: ghcr.io/idem-ai/idem-appgen:latest-staging
+    image: ghcr.io/idem-ai/idem-appgen:8e3b89a2-staging
     container_name: appgen-server-staging
     env_file:
       - .env.staging
