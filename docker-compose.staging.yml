@@ -3,11 +3,7 @@ version: '3.8'
 services:
   # IDEM Frontend - Staging Environment
   idem-staging: 
-    build:
-      context: .
-      dockerfile: Dockerfile.main-dashboard.staging
-      args:
-        - BUILD_ENV=staging
+    image: ghcr.io/idem-ai/idem-main-dashboard:staging-latest
     container_name: idem-staging
     restart: unless-stopped
     networks:
@@ -17,11 +13,7 @@ services:
 
   # IDEM Landing - Staging Environment
   idem-landing-staging: 
-    build:
-      context: .
-      dockerfile: Dockerfile.landing
-      args:
-        - BUILD_ENV=staging
+    image: ghcr.io/idem-ai/idem-landing:staging-latest
     container_name: idem-landing-staging
     restart: unless-stopped
     environment:
@@ -33,11 +25,7 @@ services:
 
   # IDEM API - Staging Environment
   idem-api-staging:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-      args:
-        - BUILD_ENV=staging
+    image: ghcr.io/idem-ai/idem-api:staging-latest
     container_name: idem-api-staging
     env_file:
       - .env.staging
@@ -60,11 +48,7 @@ services:
 
   # IDEM WebGen - Staging Environment
   idem-webgen-staging:
-    build:
-      context: .
-      dockerfile: Dockerfile.appgen
-      args:
-        - BUILD_ENV=staging
+    image: ghcr.io/idem-ai/idem-appgen:staging-latest
     container_name: idem-webgen-staging
     env_file:
       - .env.staging
@@ -77,11 +61,7 @@ services:
 
   # AppGen Server - Staging Environment
   appgen-server-staging:
-    build:
-      context: .
-      dockerfile: Dockerfile.appgen
-      args:
-        - BUILD_ENV=staging
+    image: ghcr.io/idem-ai/idem-appgen:staging-latest
     container_name: appgen-server-staging
     env_file:
       - .env.staging

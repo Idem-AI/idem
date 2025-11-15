@@ -3,9 +3,19 @@ name: Deploy API
 on:
   push:
     branches: [ dev ]
+    paths:
+      - 'apps/api/**'
+      - 'Dockerfile.api'
+      - 'packages/shared-models/**'
+      - '.github/workflows/deploy-api.yml'
   pull_request:
     types: [ closed ]
     branches: [ main ]
+    paths:
+      - 'apps/api/**'
+      - 'Dockerfile.api'
+      - 'packages/shared-models/**'
+      - '.github/workflows/deploy-api.yml'
   workflow_dispatch:
 
 jobs:
@@ -55,24 +65,39 @@ jobs:
             docker build -f Dockerfile.api -t $IMAGE_NAME -t $IMAGE_LATEST .
             
             # Push images
-            echo "Pushing images..."
-
+            echo "Pushing images to registry..."
+            docker push $IMAGE_NAME
             docker push $IMAGE_LATEST
             
             # Determine environment and deploy
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
               # Production deployment
               COMPOSE_FILE="docker-compose.prod.yml"
+              IMAGE_TAG="$IMAGE_NAME"
+              SERVICE_NAME="idem-api"
+              
               echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/idem-api:.*|image: $IMAGE_NAME|" $COMPOSE_FILE
+              sed -i "s|image: ghcr.io/idem-ai/idem-api:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
               
               echo "Deploying to production..."
-              docker-compose -f $COMPOSE_FILE up -d idem-api
+              docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
+              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             else
               # Staging deployment (dev branch)
-              echo "Building and deploying to staging..."
-              docker-compose -f docker-compose.staging.yml build idem-api-staging
-              docker-compose -f docker-compose.staging.yml up -d idem-api-staging
+              COMPOSE_FILE="docker-compose.staging.yml"
+              IMAGE_TAG_STAGING="ghcr.io/idem-ai/idem-api:staging-latest"
+              SERVICE_NAME="idem-api-staging"
+              
+              # Tag image for staging
+              docker tag $IMAGE_NAME $IMAGE_TAG_STAGING
+              docker push $IMAGE_TAG_STAGING
+              
+              echo "Updating $COMPOSE_FILE..."
+              sed -i "s|image: ghcr.io/idem-ai/idem-api:.*|image: $IMAGE_TAG_STAGING|" $COMPOSE_FILE
+              
+              echo "Deploying to staging..."
+              docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
+              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             fi
             
             # Cleanup
