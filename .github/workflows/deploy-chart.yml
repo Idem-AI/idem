@@ -3,9 +3,17 @@ name: Deploy Chart (Live Editor)
 on:
   push:
     branches: [ dev ]
+    paths:
+      - 'apps/chart/**'
+      - 'Dockerfile.chart'
+      - '.github/workflows/deploy-chart.yml'
   pull_request:
     types: [ closed ]
     branches: [ main ]
+    paths:
+      - 'apps/chart/**'
+      - 'Dockerfile.chart'
+      - '.github/workflows/deploy-chart.yml'
   workflow_dispatch:
 
 jobs:
@@ -48,9 +56,8 @@ jobs:
             # Update repository
             cd $REPO_DIR
             git fetch origin
-            git reset --hard origin/$BRANCH
             git checkout $BRANCH
-            git pull origin $BRANCH
+            git reset --hard origin/$BRANCH
             
             # Build image
             echo "Building Docker image..."
