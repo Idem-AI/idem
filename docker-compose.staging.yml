@@ -25,7 +25,11 @@ services:
 
   # IDEM API - Staging Environment
   idem-api-staging:
+<<<<<<< HEAD
     image: ghcr.io/idem-ai/idem-api:387ba2a2-staging
+=======
+    image: ghcr.io/idem-ai/idem-api:1c9246e3-staging
+>>>>>>> 387ba2a2b7c9c2d2e9dc2b81fc27a048207ccc57
     container_name: idem-api-staging
     env_file:
       - .env.staging
@@ -48,7 +52,11 @@ services:
 
   # IDEM WebGen - Staging Environment
   idem-webgen-staging:
+<<<<<<< HEAD
     image: ghcr.io/idem-ai/idem-appgen:387ba2a2-staging
+=======
+    image: ghcr.io/idem-ai/idem-appgen:1c9246e3-staging
+>>>>>>> 387ba2a2b7c9c2d2e9dc2b81fc27a048207ccc57
     container_name: idem-webgen-staging
     env_file:
       - .env.staging
@@ -61,7 +69,11 @@ services:
 
   # AppGen Server - Staging Environment
   appgen-server-staging:
+<<<<<<< HEAD
     image: ghcr.io/idem-ai/idem-appgen:387ba2a2-staging
+=======
+    image: ghcr.io/idem-ai/idem-appgen:1c9246e3-staging
+>>>>>>> 387ba2a2b7c9c2d2e9dc2b81fc27a048207ccc57
     container_name: appgen-server-staging
     env_file:
       - .env.staging
