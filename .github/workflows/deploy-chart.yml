@@ -2,7 +2,7 @@ name: Deploy Chart (Live Editor)
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ dev, main ]
     paths:
       - 'apps/chart/**'
       - 'Dockerfile.chart'
