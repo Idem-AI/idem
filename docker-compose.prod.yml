@@ -54,7 +54,7 @@ services:
   # IDEM WebGen - Production Environment
   idem-webgen:
     restart: always
-    image: ghcr.io/idem-ai/idem-appgen:28d44d3e
+    image: ghcr.io/idem-ai/idem-appgen:v1.0
     container_name: idem-webgen
     env_file:
      - .env
