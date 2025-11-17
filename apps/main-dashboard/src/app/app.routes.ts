@@ -9,7 +9,7 @@ export const routes: Routes = [
     redirectTo: 'console',
   },
 
-  // Login route (accessible uniquement si non authentifié)
+
   {
     path: 'login',
     loadComponent: () => import('./modules/auth/pages/login/login').then((m) => m.Login),
