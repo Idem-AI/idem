@@ -31,7 +31,6 @@
     "african-market.stats.techStartups.description": "In Cameroon, Nigeria, Kenya, South Africa",
     "african-market.stats.potentialEntrepreneurs.label": "Potential Entrepreneurs",
     "african-market.stats.potentialEntrepreneurs.description": "Across African markets",
-    "african--market.stats.smesDigitalizing.label": "SMEs Digitalizing",
     "african-market.stats.smesDigitalizing.description": "African businesses going digital",
     "african-market.stats.techProfessionals.label": "Tech Professionals",
     "african-market.stats.techProfessionals.description": "Developers and digital agencies",
@@ -1738,6 +1737,14 @@
     "terms.changes.title": "13. CHANGES TO THESE TERMS",
     "terms.changes.content": "We reserve the right to modify these Terms of Service at any time. We will provide notice of material changes by posting the updated terms on this page and updating the \"Effective Date\" at the top. For significant changes, we may provide additional notice such as an email notification or in-app message. Your continued use of the Service after changes take effect constitutes acceptance of the modified terms. If you do not agree to the changes, you must stop using the Service and may terminate your account.",
     "terms.contact.title": "14. CONTACT INFORMATION",
-    "terms.contact.content": "If you have any questions, concerns, or requests regarding these Terms of Service, please contact us at:"
+    "terms.contact.content": "If you have any questions, concerns, or requests regarding these Terms of Service, please contact us at:",
+    "african--market.stats.smesDigitalizing.label": "SMEs Digitalizing",
+    "meta.title": "IDEM - The Open Source AI that brings African startups to life | AI-powered business creation tool",
+    "meta.description": "The Open Source AI that brings African startups to life. IDEM is an AI-powered business creation tool: transform your idea into a complete business with strategy, brand, product and application. +200 specialized AI agents,  license, sovereign infrastructure. Built in Cameroon for Africa.",
+    "meta.keywords": "AI business creation, African startup, business creation tool, open source AI Africa, AI entrepreneurship assistant, African sovereign platform, , specialized AI agents, AI business plan, AI logo creation, AI application development, Cameroon tech, pan-African innovation, digital sovereignty, tech entrepreneurship Africa, African startup tools, no-code platform, low-code development, multi-agent AI",
+    "og.title": "IDEM - The Open Source AI that brings African startups to life | AI-powered business creation tool",
+    "og.description": "Bring your startup to life with AI. Transform your idea into a complete business: business strategy, brand identity, product and web application. +200 specialized AI agents,  open source, African sovereign infrastructure. Built in Cameroon for pan-African entrepreneurship.",
+    "twitter.title": "IDEM - The AI that brings African startups to life",
+    "twitter.description": "AI-powered business creation tool. From idea to complete business: strategy, brand, product, application. +200 AI agents,  open source, sovereign infrastructure. African, you too can build."
   }
 }
