@@ -9,7 +9,7 @@ export const routes: Routes = [
     redirectTo: 'console',
   },
 
-  // Login route (accessible uniquement si non authentifié)
+
   {
     path: 'login',
     loadComponent: () => import('./modules/auth/pages/login/login').then((m) => m.Login),
@@ -220,7 +220,7 @@ export const routes: Routes = [
 
   // Project creation route
   {
-    path: 'console/create-project',
+    path: 'create-project',
     loadComponent: () =>
       import('./modules/dashboard/pages/create-project/create-project').then(
         (m) => m.CreateProjectComponent,
