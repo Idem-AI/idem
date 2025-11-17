@@ -2,7 +2,7 @@ name: Deploy AppGen
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ dev, main ]
     paths:
       - 'apps/appgen/**'
       - 'Dockerfile.appgen'
