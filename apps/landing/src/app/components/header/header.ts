@@ -185,9 +185,6 @@ export class Header implements OnInit {
     this.isDropdownOpen.set(false);
     this.isMenuOpen.set(false);
 
-    // Get current language from document lang attribute or default to 'en'
-    const currentLang = this.document.documentElement.lang || 'en';
-
     // Store auth state in localStorage for cross-app sync
     const user = this.user();
     if (user) {
@@ -202,7 +199,7 @@ export class Header implements OnInit {
     }
 
     // Redirect to dashboard with language parameter
-    const dashboardUrl = `${environment.services.dashboard.url}?lang=${currentLang}`;
+    const dashboardUrl = `${environment.services.dashboard.url}`;
     window.location.href = dashboardUrl;
   }
 
