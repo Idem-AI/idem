@@ -117,6 +117,6 @@ export class ProjectsList implements OnInit {
   }
 
   openCreateProject() {
-    this.router.navigate(['/console/create-project']);
+    this.router.navigate(['/create-project']);
   }
 }
