@@ -10,6 +10,8 @@ import { CommonModule } from '@angular/common';
 })
 export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
   private autoRotateInterval?: ReturnType<typeof setInterval>;
+  private progressInterval?: ReturnType<typeof setInterval>;
+  protected autoRotateProgress = 0;
   protected readonly agentCategories = [
     {
       id: 'design',
@@ -23,7 +25,12 @@ export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
         $localize`:@@multi-agent-architecture.categories.design.agent2:Color Palette Designer`,
         $localize`:@@multi-agent-architecture.categories.design.agent3:Typography Specialist`,
         $localize`:@@multi-agent-architecture.categories.design.agent4:Brand Identity Expert`,
-        $localize`:@@multi-agent-architecture.categories.design.agent5:UI/UX Designer`,
+        $localize`:@@multi-agent-architecture.categories.design.agent5:UI Component Designer`,
+        $localize`:@@multi-agent-architecture.categories.design.agent6:Icon Designer`,
+        $localize`:@@multi-agent-architecture.categories.design.agent7:Layout Architect`,
+        $localize`:@@multi-agent-architecture.categories.design.agent8:Visual Hierarchy Specialist`,
+        $localize`:@@multi-agent-architecture.categories.design.agent9:Responsive Design Expert`,
+        $localize`:@@multi-agent-architecture.categories.design.agent10:Design System Builder`,
       ],
     },
     {
@@ -35,10 +42,15 @@ export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
       description: $localize`:@@multi-agent-architecture.categories.business.description:Generate complete business plans with market analysis and financial projections. Investor-ready documents in minutes.`,
       agents: [
         $localize`:@@multi-agent-architecture.categories.business.agent1:Business Plan Writer`,
-        $localize`:@@multi-agent-architecture.categories.business.agent2:Market Analyst`,
+        $localize`:@@multi-agent-architecture.categories.business.agent2:Market Research Analyst`,
         $localize`:@@multi-agent-architecture.categories.business.agent3:Financial Projector`,
-        $localize`:@@multi-agent-architecture.categories.business.agent4:Competitive Analyst`,
-        $localize`:@@multi-agent-architecture.categories.business.agent5:Revenue Modeler`,
+        $localize`:@@multi-agent-architecture.categories.business.agent4:Competitive Intelligence Analyst`,
+        $localize`:@@multi-agent-architecture.categories.business.agent5:Revenue Model Designer`,
+        $localize`:@@multi-agent-architecture.categories.business.agent6:Legal Document Generator`,
+        $localize`:@@multi-agent-architecture.categories.business.agent7:Pitch Deck Creator`,
+        $localize`:@@multi-agent-architecture.categories.business.agent8:SWOT Analyst`,
+        $localize`:@@multi-agent-architecture.categories.business.agent9:Go-to-Market Strategist`,
+        $localize`:@@multi-agent-architecture.categories.business.agent10:Business Model Canvas Expert`,
       ],
     },
     {
@@ -52,8 +64,13 @@ export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
         $localize`:@@multi-agent-architecture.categories.code.agent1:Frontend Developer`,
         $localize`:@@multi-agent-architecture.categories.code.agent2:Backend Developer`,
         $localize`:@@multi-agent-architecture.categories.code.agent3:Database Architect`,
-        $localize`:@@multi-agent-architecture.categories.code.agent4:API Designer`,
-        $localize`:@@multi-agent-architecture.categories.code.agent5:Code Optimizer`,
+        $localize`:@@multi-agent-architecture.categories.code.agent4:REST API Designer`,
+        $localize`:@@multi-agent-architecture.categories.code.agent5:GraphQL Specialist`,
+        $localize`:@@multi-agent-architecture.categories.code.agent6:Authentication Expert`,
+        $localize`:@@multi-agent-architecture.categories.code.agent7:State Management Specialist`,
+        $localize`:@@multi-agent-architecture.categories.code.agent8:Performance Optimizer`,
+        $localize`:@@multi-agent-architecture.categories.code.agent9:Code Quality Analyzer`,
+        $localize`:@@multi-agent-architecture.categories.code.agent10:Testing Automation Expert`,
       ],
     },
     {
@@ -64,11 +81,16 @@ export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
       count: '30+',
       description: $localize`:@@multi-agent-architecture.categories.devops.description:Deploy to any cloud provider with one click. Automated infrastructure that scales with your growth.`,
       agents: [
-        $localize`:@@multi-agent-architecture.categories.devops.agent1:Cloud Architect`,
-        $localize`:@@multi-agent-architecture.categories.devops.agent2:Deployment Specialist`,
-        $localize`:@@multi-agent-architecture.categories.devops.agent3:Infrastructure Manager`,
-        $localize`:@@multi-agent-architecture.categories.devops.agent4:Security Expert`,
-        $localize`:@@multi-agent-architecture.categories.devops.agent5:Monitoring Agent`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent1:Cloud Infrastructure Architect`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent2:CI/CD Pipeline Builder`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent3:Container Orchestrator`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent4:Security Hardening Expert`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent5:Monitoring & Logging Specialist`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent6:Auto-Scaling Manager`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent7:Backup & Recovery Specialist`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent8:SSL/TLS Configuration Expert`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent9:Domain & DNS Manager`,
+        $localize`:@@multi-agent-architecture.categories.devops.agent10:Load Balancer Configurator`,
       ],
     },
     {
@@ -79,11 +101,16 @@ export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
       count: '20+',
       description: $localize`:@@multi-agent-architecture.categories.content.description:Generate professional documentation, marketing copy, and SEO-optimized content. Launch-ready materials instantly.`,
       agents: [
-        $localize`:@@multi-agent-architecture.categories.content.agent1:Documentation Writer`,
-        $localize`:@@multi-agent-architecture.categories.content.agent2:Copywriter`,
-        $localize`:@@multi-agent-architecture.categories.content.agent3:SEO Specialist`,
-        $localize`:@@multi-agent-architecture.categories.content.agent4:Content Strategist`,
-        $localize`:@@multi-agent-architecture.categories.content.agent5:Technical Writer`,
+        $localize`:@@multi-agent-architecture.categories.content.agent1:Technical Documentation Writer`,
+        $localize`:@@multi-agent-architecture.categories.content.agent2:Marketing Copywriter`,
+        $localize`:@@multi-agent-architecture.categories.content.agent3:SEO Content Optimizer`,
+        $localize`:@@multi-agent-architecture.categories.content.agent4:Content Strategy Planner`,
+        $localize`:@@multi-agent-architecture.categories.content.agent5:API Documentation Specialist`,
+        $localize`:@@multi-agent-architecture.categories.content.agent6:User Guide Creator`,
+        $localize`:@@multi-agent-architecture.categories.content.agent7:Blog Post Writer`,
+        $localize`:@@multi-agent-architecture.categories.content.agent8:Social Media Content Creator`,
+        $localize`:@@multi-agent-architecture.categories.content.agent9:Email Campaign Writer`,
+        $localize`:@@multi-agent-architecture.categories.content.agent10:Landing Page Copywriter`,
       ],
     },
   ];
@@ -92,6 +119,7 @@ export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
 
   protected selectCategory(category: (typeof this.agentCategories)[0]): void {
     this.selectedCategory.set(category);
+    this.resetAutoRotate();
   }
 
   protected nextCategory(): void {
@@ -103,24 +131,19 @@ export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
     this.resetAutoRotate();
   }
 
-  protected previousCategory(): void {
-    const currentIndex = this.agentCategories.findIndex(
-      (cat) => cat.id === this.selectedCategory().id,
-    );
-    const previousIndex = currentIndex === 0 ? this.agentCategories.length - 1 : currentIndex - 1;
-    this.selectedCategory.set(this.agentCategories[previousIndex]);
-    this.resetAutoRotate();
-  }
-
   ngOnInit(): void {
     this.startAutoRotate();
   }
 
   ngOnDestroy(): void {
     this.stopAutoRotate();
+    this.stopProgress();
   }
 
   private startAutoRotate(): void {
+    this.autoRotateProgress = 0;
+    this.startProgress();
+
     this.autoRotateInterval = setInterval(() => {
       this.nextCategory();
     }, 5000);
@@ -132,8 +155,25 @@ export class MultiAgentArchitectureComponent implements OnInit, OnDestroy {
     }
   }
 
+  private startProgress(): void {
+    this.autoRotateProgress = 0;
+    this.progressInterval = setInterval(() => {
+      this.autoRotateProgress += 2;
+      if (this.autoRotateProgress >= 100) {
+        this.autoRotateProgress = 100;
+      }
+    }, 100);
+  }
+
+  private stopProgress(): void {
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+    }
+  }
+
   private resetAutoRotate(): void {
     this.stopAutoRotate();
+    this.stopProgress();
     this.startAutoRotate();
   }
 }
