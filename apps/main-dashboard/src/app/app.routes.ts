@@ -220,7 +220,7 @@ export const routes: Routes = [
 
   // Project creation route
   {
-    path: 'console/create-project',
+    path: 'create-project',
     loadComponent: () =>
       import('./modules/dashboard/pages/create-project/create-project').then(
         (m) => m.CreateProjectComponent,
