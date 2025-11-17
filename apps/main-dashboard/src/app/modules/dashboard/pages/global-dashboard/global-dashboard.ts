@@ -108,7 +108,7 @@ export class GlobalDashboard implements OnInit {
    * Navigate to create project page
    */
   protected openCreateProject(): void {
-    this.router.navigate(['/console/create-project']);
+    this.router.navigate(['/create-project']);
   }
 
   /**
