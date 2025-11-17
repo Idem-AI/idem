@@ -213,7 +213,7 @@ export class Header implements OnInit {
     this.isDropdownOpen.set(false);
     await this.auth.logout();
     this.userRefresh.update((v: number) => v + 1);
-    this.router.navigate(['/login']);
+    this.navigateToDashboard();
   }
 
   @HostListener('document:click', ['$event'])
