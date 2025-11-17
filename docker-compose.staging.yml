@@ -13,7 +13,7 @@ services:
 
   # IDEM Landing - Staging Environment
   idem-landing-staging: 
-    image: ghcr.io/idem-ai/idem-landing:1c9246e3-staging
+    image: ghcr.io/idem-ai/idem-landing:cd7b2d51-staging
     container_name: idem-landing-staging
     restart: unless-stopped
     environment:
@@ -25,18 +25,14 @@ services:
 
   # IDEM API - Staging Environment
   idem-api-staging:
-<<<<<<< HEAD
-    image: ghcr.io/idem-ai/idem-api:387ba2a2-staging
-=======
-    image: ghcr.io/idem-ai/idem-api:1c9246e3-staging
->>>>>>> 387ba2a2b7c9c2d2e9dc2b81fc27a048207ccc57
+    image: ghcr.io/idem-ai/idem-api:387b
     container_name: idem-api-staging
     env_file:
       - .env.staging
     environment:
       - NODE_ENV=staging
       - PORT=3002
-      - CORS_ALLOWED_ORIGINS=https://staging.idem.africa,https://staging-api.idem.africa,https://staging-webgen.idem.africa,https://staging-appgen.idem.africa,https://staging-chart.idem.africa
+      - CORS_ALLOWED_ORIGINS="https://staging.idem.africa,https://staging-api.idem.africa,https://staging-webgen.idem.africa,https://staging-appgen.idem.africa,https://staging-chart.idem.africa"
       - REDIS_HOST=redis-staging
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD_STAGING}
@@ -52,11 +48,7 @@ services:
 
   # IDEM WebGen - Staging Environment
   idem-webgen-staging:
-<<<<<<< HEAD
     image: ghcr.io/idem-ai/idem-appgen:387ba2a2-staging
-=======
-    image: ghcr.io/idem-ai/idem-appgen:1c9246e3-staging
->>>>>>> 387ba2a2b7c9c2d2e9dc2b81fc27a048207ccc57
     container_name: idem-webgen-staging
     env_file:
       - .env.staging
@@ -69,11 +61,7 @@ services:
 
   # AppGen Server - Staging Environment
   appgen-server-staging:
-<<<<<<< HEAD
     image: ghcr.io/idem-ai/idem-appgen:387ba2a2-staging
-=======
-    image: ghcr.io/idem-ai/idem-appgen:1c9246e3-staging
->>>>>>> 387ba2a2b7c9c2d2e9dc2b81fc27a048207ccc57
     container_name: appgen-server-staging
     env_file:
       - .env.staging
