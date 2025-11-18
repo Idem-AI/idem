@@ -11,7 +11,7 @@ services:
 
   # IDEM Landing - Staging Environment
   idem-landing-staging: 
-    image: ghcr.io/idem-ai/idem-landing:b504bd74-staging
+    image: ghcr.io/idem-ai/idem-landing:362e30d7-staging
     container_name: idem-landing-staging
     restart: unless-stopped
     environment:
