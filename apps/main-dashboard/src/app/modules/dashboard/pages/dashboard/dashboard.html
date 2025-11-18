@@ -27,6 +27,8 @@
             <h1 class="hero-title">{{ currentProject.name }}</h1>
             <p class="hero-description">
               {{ currentProject.description || "{{ 'dashboard.dashboard.hero.defaultDescription' | translate
+
+
               }}" }}
             </p>
 
@@ -233,7 +235,7 @@
               <div
                 class="step-card-modern"
                 [class.completed]="currentProject.analysisResultModel!.branding.sections.length > 0"
-                [routerLink]="['/console/project/branding']"
+                [routerLink]="['/project/branding']"
                 style="--offset: 0"
               >
                 <div class="step-image-section">
@@ -275,7 +277,7 @@
               <div
                 class="step-card-modern"
                 [class.completed]="!!currentProject.analysisResultModel!.businessPlan"
-                [routerLink]="['/console/project/business-plan']"
+                [routerLink]="['/project/business-plan']"
                 style="--offset: 1"
               >
                 <div class="step-image-section">
@@ -317,7 +319,7 @@
               <div
                 class="step-card-modern"
                 [class.completed]="!!currentProject.analysisResultModel!.design"
-                [routerLink]="['/console/project/diagrams']"
+                [routerLink]="['/project/diagrams']"
                 style="--offset: 2"
               >
                 <div class="step-image-section">
@@ -359,7 +361,7 @@
               <div
                 class="step-card-modern"
                 [class.completed]="!!currentProject.analysisResultModel!.development"
-                [routerLink]="['/console/project/development']"
+                [routerLink]="['/project/development']"
                 style="--offset: 3"
               >
                 <div class="step-image-section">
@@ -398,11 +400,7 @@
               </div>
 
               <!-- Step 5: Deploy -->
-              <div
-                class="step-card-modern"
-                [routerLink]="['/console/deployment']"
-                style="--offset: 4"
-              >
+              <div class="step-card-modern" [routerLink]="['/deployment']" style="--offset: 4">
                 <div class="step-image-section">
                   <div class="step-icon-modern deploy-icon">
                     <img
@@ -556,7 +554,7 @@
           </svg>
           <h2 class="empty-title">{{ 'dashboard.dashboard.empty.title' | translate }}</h2>
           <p class="empty-description">{{ 'dashboard.dashboard.empty.description' | translate }}</p>
-          <button class="inner-button" [routerLink]="['/console/projects']">
+          <button class="inner-button" [routerLink]="['/projects']">
             {{ 'dashboard.dashboard.empty.goToProjects' | translate }}
           </button>
         </div>

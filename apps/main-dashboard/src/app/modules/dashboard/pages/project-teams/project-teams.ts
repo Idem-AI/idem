@@ -50,7 +50,7 @@ export class ProjectTeams implements OnInit {
         this.translate.instant('dashboard.projectTeams.errors.noProjectSelected'),
       );
       this.isLoading.set(false);
-      this.router.navigate(['/console/projects']);
+      this.router.navigate(['/projects']);
       return;
     }
 
@@ -82,7 +82,7 @@ export class ProjectTeams implements OnInit {
    * Navigate to team details
    */
   protected openTeamDetails(teamId: string): void {
-    this.router.navigate(['/console/teams', teamId]);
+    this.router.navigate(['/teams', teamId]);
   }
 
   /**
