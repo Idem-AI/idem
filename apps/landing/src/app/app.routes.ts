@@ -52,6 +52,11 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'contact',
+    loadComponent: () => import('./pages/contact-page/contact-page').then((m) => m.ContactPage),
+    data: { layout: 'public' },
+  },
+  {
     path: 'premium-beta',
     loadComponent: () =>
       import('./pages/premium-beta-access/premium-beta-access').then((m) => m.PremiumBetaAccess),
