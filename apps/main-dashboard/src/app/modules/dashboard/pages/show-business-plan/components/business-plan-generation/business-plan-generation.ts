@@ -313,7 +313,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       console.log('Post-processing complete, redirecting to business plan display');
       this.isPostProcessing.set(false);
-      this.router.navigate(['/console/project/business-plan']);
+      this.router.navigate(['/project/business-plan']);
     }, 4000);
   }
 }

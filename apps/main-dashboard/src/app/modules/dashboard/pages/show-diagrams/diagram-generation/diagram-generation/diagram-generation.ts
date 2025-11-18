@@ -158,7 +158,7 @@ export class DiagramGeneration implements OnInit, OnDestroy {
    */
   private handleGenerationComplete(state: SSEGenerationState): void {
     console.log('Diagram generation completed:', state);
-    this.router.navigate(['/console/project/diagrams']);
+    this.router.navigate(['/project/diagrams']);
   }
 
   /**
@@ -191,12 +191,12 @@ export class DiagramGeneration implements OnInit, OnDestroy {
 
   /**
       );
-      
+
       // Combine all diagram content
       const combinedContent = diagramSections
         .map((section: any) => section.data)
         .join('\n\n');
-      
+
       // Create final diagram model
       const finalDiagram: DiagramModel = {
         id: diagramPayload.id || `diagram-${Date.now()}`,
@@ -212,11 +212,11 @@ export class DiagramGeneration implements OnInit, OnDestroy {
         createdAt: diagramPayload.createdAt ? new Date(diagramPayload.createdAt._seconds * 1000) : new Date(),
         updatedAt: diagramPayload.updatedAt ? new Date(diagramPayload.updatedAt._seconds * 1000) : new Date(),
       };
-      
+
       console.log('Final diagram created:', finalDiagram);
       this.finalDiagram.set(finalDiagram);
     }
-    
+
     // Auto-scroll to bottom after completion
     setTimeout(() => this.scrollToBottom(), 100);
   }

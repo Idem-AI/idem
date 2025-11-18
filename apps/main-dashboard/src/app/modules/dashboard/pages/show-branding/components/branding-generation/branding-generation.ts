@@ -164,7 +164,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       console.log('Post-processing complete, redirecting to branding display');
       this.isPostProcessing.set(false);
-      this.router.navigate(['/console/project/branding']);
+      this.router.navigate(['/project/branding']);
     }, 4000);
   }
 }

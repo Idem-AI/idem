@@ -115,7 +115,7 @@ export class GlobalDashboard implements OnInit {
    * Navigate to create team page
    */
   protected openCreateTeam(): void {
-    this.router.navigate(['/console/teams/create']);
+    this.router.navigate(['/teams/create']);
   }
 
   /**
@@ -123,14 +123,14 @@ export class GlobalDashboard implements OnInit {
    */
   protected openProjectDashboard(projectId: string): void {
     this.cookieService.set('projectId', projectId);
-    this.router.navigate(['/console/project/dashboard']);
+    this.router.navigate(['/project/dashboard']);
   }
 
   /**
    * Navigate to team details
    */
   protected openTeamDetails(teamId: string): void {
-    this.router.navigate(['/console/teams', teamId]);
+    this.router.navigate(['/teams', teamId]);
   }
 
   /**

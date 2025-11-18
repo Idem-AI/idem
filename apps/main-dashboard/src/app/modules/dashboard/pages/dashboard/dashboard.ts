@@ -36,7 +36,7 @@ export class DashboardComponent implements OnInit {
     if (!projectId) {
       this.error.set(this.translate.instant('dashboard.dashboard.errors.noProjectSelected'));
       this.isLoading.set(false);
-      this.router.navigate(['/console/projects']);
+      this.router.navigate(['/projects']);
       return;
     }
 

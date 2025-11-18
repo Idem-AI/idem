@@ -58,6 +58,7 @@ import invitationRoutes from './routes/invitation.routes';
 import projectTeamRoutes from './routes/project-team.routes';
 import migrationRoutes from './routes/migration.routes';
 import { teamsRoutes } from './routes/teams.routes';
+import contactRoutes from './routes/contactRoutes';
 
 const app: Express = express();
 
@@ -137,6 +138,9 @@ app.use('/api/teams', teamsRoutes); // New centralized teams API
 app.use('/invitations', invitationRoutes);
 app.use('/projects', projectTeamRoutes);
 app.use('/migration', migrationRoutes);
+
+// Contact routes
+app.use('/api/contact', contactRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
