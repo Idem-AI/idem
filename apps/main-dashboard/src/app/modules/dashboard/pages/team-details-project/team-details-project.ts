@@ -82,11 +82,11 @@ export class TeamDetailsProject implements OnInit {
    */
   protected goBack(): void {
     if (this.projectId()) {
-      this.router.navigate(['/console/project/teams'], {
+      this.router.navigate(['/project/teams'], {
         queryParams: { projectId: this.projectId() },
       });
     } else {
-      this.router.navigate(['/console/project/teams']);
+      this.router.navigate(['/project/teams']);
     }
   }
 

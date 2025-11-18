@@ -243,7 +243,7 @@ export class ShowBrandingComponent implements OnInit {
    */
   protected generateBranding(): void {
     console.log('Navigating to branding generation page');
-    this.router.navigate(['/console/project/branding/generate']);
+    this.router.navigate(['/project/branding/generate']);
   }
 
   /**
@@ -280,7 +280,7 @@ export class ShowBrandingComponent implements OnInit {
    */
   protected goToProjects(): void {
     console.log('Navigating to projects page');
-    this.router.navigate(['/console/projects']);
+    this.router.navigate(['/projects']);
   }
 
   /**

@@ -77,7 +77,7 @@ export class ShowDevelopment implements OnInit {
             this.developmentConfigs.set(configs);
           } else {
             this.error.set('No development configurations found for this project.');
-            this.router.navigate(['/console/project/development/create']);
+            this.router.navigate(['/project/development/create']);
           }
         }),
         catchError((err) => {

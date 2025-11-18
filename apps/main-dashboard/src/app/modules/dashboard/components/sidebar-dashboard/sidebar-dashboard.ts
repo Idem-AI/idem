@@ -120,43 +120,43 @@ export class SidebarDashboard implements OnInit {
     {
       labelKey: 'dashboard.sidebar.projectHome',
       icon: 'pi pi-home',
-      route: 'console/project/dashboard',
+      route: 'project/dashboard',
       isActive: false,
     },
     {
       labelKey: 'dashboard.sidebar.teams',
       icon: 'pi pi-users',
-      route: 'console/project/teams',
+      route: 'project/teams',
       isActive: false,
     },
     {
       labelKey: 'dashboard.sidebar.branding',
       icon: 'pi pi-palette',
-      route: 'console/project/branding',
+      route: 'project/branding',
       isActive: false,
     },
     {
       labelKey: 'dashboard.sidebar.businessPlan',
       icon: 'pi pi-calendar',
-      route: 'console/project/business-plan',
+      route: 'project/business-plan',
       isActive: false,
     },
     {
       labelKey: 'dashboard.sidebar.diagrams',
       icon: 'pi pi-chart-line',
-      route: 'console/project/diagrams',
+      route: 'project/diagrams',
       isActive: false,
     },
     {
       labelKey: 'dashboard.sidebar.development',
       icon: 'pi pi-code',
-      route: 'console/project/development',
+      route: 'project/development',
       isActive: false,
     },
     {
       labelKey: 'dashboard.sidebar.deployment',
       icon: 'pi pi-globe',
-      route: 'console/project/deployments',
+      route: 'project/deployments',
       isActive: false,
     },
   ]);
@@ -439,7 +439,7 @@ export class SidebarDashboard implements OnInit {
       this.isProjectSelectorOpen.set(false);
 
       // Navigate to the project dashboard
-      this.router.navigate(['/console/project/dashboard']);
+      this.router.navigate(['/project/dashboard']);
     }
   }
 

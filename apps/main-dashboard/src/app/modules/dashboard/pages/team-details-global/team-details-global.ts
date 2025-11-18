@@ -92,7 +92,7 @@ export class TeamDetailsGlobal implements OnInit {
    * Navigate back
    */
   protected goBack(): void {
-    this.router.navigate(['/console/teams']);
+    this.router.navigate(['/teams']);
   }
 
   /**
@@ -100,7 +100,7 @@ export class TeamDetailsGlobal implements OnInit {
    */
   protected goToProject(projectId: string): void {
     this.cookieService.set('projectId', projectId);
-    this.router.navigate(['/console/project/dashboard']);
+    this.router.navigate(['/project/dashboard']);
   }
 
   /**

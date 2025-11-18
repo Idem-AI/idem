@@ -61,7 +61,7 @@ export class CreateTeam {
         console.log('Team created successfully:', team);
         this.isSubmitting.set(false);
         // Navigate to team details
-        this.router.navigate(['/console/teams', team.id]);
+        this.router.navigate(['/teams', team.id]);
       },
       error: (error) => {
         console.error('Error creating team:', error);
@@ -78,7 +78,7 @@ export class CreateTeam {
    * Cancel and go back
    */
   protected onCancel(): void {
-    this.router.navigate(['/console/teams']);
+    this.router.navigate(['/teams']);
   }
 
   /**

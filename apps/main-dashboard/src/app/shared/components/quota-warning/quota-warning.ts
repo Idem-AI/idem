@@ -255,7 +255,7 @@ export class QuotaWarningComponent implements OnInit {
    */
   protected showQuotaDetails(): void {
     this.dismissWarning();
-    this.router.navigate(['/console/profile']);
+    this.router.navigate(['/profile']);
   }
 
   private sendWarningNotification(warning: any): void {

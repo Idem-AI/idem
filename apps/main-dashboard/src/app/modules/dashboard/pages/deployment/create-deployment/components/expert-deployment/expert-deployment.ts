@@ -163,7 +163,7 @@ export class ExpertDeployment {
       next: (deployment) => {
         console.log('Deployment created successfully:', deployment);
         this.loadingDeployment.set(false);
-        this.router.navigate(['/console/project/deployments']);
+        this.router.navigate(['/project/deployments']);
       },
       error: (error) => {
         console.error('Error creating deployment:', error);
