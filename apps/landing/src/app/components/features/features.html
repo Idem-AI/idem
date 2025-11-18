@@ -1,264 +1,352 @@
 <!-- Features Section -->
-<section class="relative py-16 sm:py-20 lg:py-24 overflow-hidden">
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Section Header -->
-    <div class="text-center mb-16">
-      <h2
-        class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6"
-        i18n="@@features.title"
-      >
-        What IDEM
-        <span class="i-underline">Generates</span>
-        <br />
-        For You
-      </h2>
+<section class="relative py-20 overflow-hidden">
+  <!-- Header -->
+  <div class="text-center mb-24 px-4">
+    <h2 class="text-5xl lg:text-7xl font-bold text-white mb-6" i18n="@@features.title">
+      What IDEM <span class="i-underline">Generates</span><br />For You
+    </h2>
+    <p class="text-xl text-white/70 max-w-3xl mx-auto" i18n="@@features.description">
+      From your idea, IDEM creates everything you need to launch your business.
+    </p>
+  </div>
 
-      <p
-        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
-        i18n="@@features.description"
-      >
-        From your idea, IDEM creates everything you need to launch your business. No technical
-        skills required.
-      </p>
-    </div>
-
-    <!-- Asymmetric Layout: Hero Feature + Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- Main Hero Feature: Web Application (Large) -->
-      <div class="lg:col-span-7 relative group">
-        <div class="relative h-full rounded-2xl overflow-hidden border border-white/10">
-          <!-- Background Image -->
-          <img
-            src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop"
-            alt="Team collaboration"
-            class="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity duration-500"
-          />
-          <div class="absolute inset-0 bg-linear-to-br from-primary/20 to-transparent"></div>
-
-          <!-- Content -->
-          <div
-            class="relative h-full min-h-[500px] lg:min-h-[600px] flex flex-col justify-between p-8 lg:p-12"
+  <div class="max-w-7xl mx-auto px-4 space-y-40">
+    <!-- Feature 1: Logo - Bento Grid Style -->
+    <div class="relative">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div class="lg:col-span-5">
+          <span class="text-primary text-sm font-bold mb-4 block" i18n="@@features.feature1.badge"
+            >01 / BRANDING</span
           >
-            <div>
-              <div
-                class="inline-block px-4 py-2 bg-primary/30 rounded-full text-xs font-bold text-white mb-6"
-              >
-                <span i18n="@@features.mostPowerful">Most Powerful</span>
-              </div>
-
-              <h3
-                class="text-3xl lg:text-4xl font-bold text-white mb-4"
-                i18n="@@features.feature4.title"
-              >
-                Full-Stack Web Application
-              </h3>
-
-              <p
-                class="text-white/80 text-base lg:text-lg leading-relaxed mb-8 max-w-xl"
-                i18n="@@features.feature4.description"
-              >
-                Complete web app with frontend, backend, database, and authentication.
-                Production-ready code.
-              </p>
-            </div>
-
-            <div class="space-y-3">
-              <div class="flex items-center gap-3">
-                <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                <span class="text-white/90 text-sm" i18n="@@features.feature4.item1"
-                  >Frontend & Backend</span
-                >
-              </div>
-              <div class="flex items-center gap-3">
-                <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                <span class="text-white/90 text-sm" i18n="@@features.feature4.item2"
-                  >Database & Authentication</span
-                >
-              </div>
-              <div class="flex items-center gap-3">
-                <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                <span class="text-white/90 text-sm" i18n="@@features.feature4.item3"
-                  >Production-ready code</span
-                >
-              </div>
-            </div>
-          </div>
+          <h3
+            class="text-4xl lg:text-6xl font-bold text-white mb-6"
+            i18n="@@features.feature1.title"
+          >
+            Logo & Brand Identity
+          </h3>
+          <p class="text-lg text-white/80 mb-8" i18n="@@features.feature1.description">
+            Professional logo, color palette, typography, and complete brand guidelines.
+          </p>
         </div>
-      </div>
-
-      <!-- Secondary Features Grid -->
-      <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
-        <!-- Feature: Logo & Brand -->
-        <div
-          class="relative group overflow-hidden rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300"
-        >
-          <div
-            class="absolute inset-0 bg-linear-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-          ></div>
-          <div class="relative p-6">
-            <div class="flex items-start gap-4">
-              <div
-                class="shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center"
-              >
-                <svg
-                  class="w-6 h-6 text-primary"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-                  />
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-lg font-bold text-white mb-2" i18n="@@features.feature1.title">
-                  Logo & Brand Identity
-                </h3>
-                <p
-                  class="text-white/70 text-sm leading-relaxed"
-                  i18n="@@features.feature1.description"
-                >
-                  Professional logo, color palette, typography, and complete brand guidelines.
-                </p>
+        <div class="lg:col-span-7">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="aspect-square rounded-3xl overflow-hidden border border-white/10">
+              <img
+                src="https://images.unsplash.com/photo-1626785774573-4b799315345d?w=600"
+                alt=""
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div
+              class="aspect-square rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center"
+            >
+              <div class="text-center p-8">
+                <div class="w-24 h-24 rounded-full bg-primary/20 mx-auto mb-4"></div>
+                <div class="h-3 bg-white/20 rounded w-32 mx-auto"></div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Feature: Business Plan -->
-        <div
-          class="relative group overflow-hidden rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300"
-        >
-          <div
-            class="absolute inset-0 bg-linear-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-          ></div>
-          <div class="relative p-6">
-            <div class="flex items-start gap-4">
-              <div
-                class="shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center"
-              >
-                <svg
-                  class="w-6 h-6 text-primary"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
+            <div
+              class="aspect-square rounded-3xl bg-linear-to-br from-primary/20 to-transparent border border-white/10 p-8"
+            >
+              <div class="space-y-3">
+                <div class="flex gap-2">
+                  <div class="w-8 h-8 rounded-full bg-primary"></div>
+                  <div class="w-8 h-8 rounded-full bg-secondary"></div>
+                  <div class="w-8 h-8 rounded-full bg-white/20"></div>
+                </div>
+                <div class="text-white/60 text-xs">Color Palette</div>
               </div>
-              <div class="flex-1">
-                <h3 class="text-lg font-bold text-white mb-2" i18n="@@features.feature2.title">
-                  Complete Business Plan
-                </h3>
-                <p
-                  class="text-white/70 text-sm leading-relaxed"
-                  i18n="@@features.feature2.description"
-                >
-                  Market analysis, financial projections, strategy, and investor-ready
-                  documentation.
-                </p>
-              </div>
+            </div>
+            <div class="aspect-square rounded-3xl overflow-hidden border border-white/10">
+              <img
+                src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600"
+                alt=""
+                class="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom Row: 3 Features -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-      <!-- Feature: Legal Documents -->
-      <div
-        class="relative group overflow-hidden rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300"
-      >
-        <div
-          class="absolute inset-0 bg-linear-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-        ></div>
-        <div class="relative p-6">
-          <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-              />
-            </svg>
+    <!-- Feature 2: Business Plan - Split Hero -->
+    <div class="relative">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div class="relative h-[600px] rounded-3xl overflow-hidden border border-white/10">
+          <img
+            src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800"
+            alt=""
+            class="absolute inset-0 w-full h-full object-cover"
+          />
+          <div class="absolute inset-0 bg-linear-to-t from-black via-black/50 to-transparent"></div>
+          <div class="absolute bottom-0 left-0 right-0 p-8">
+            <div class="glass-card p-6 rounded-2xl">
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-white/60 text-sm">Revenue Projection</span>
+                <span class="text-primary font-bold">+245%</span>
+              </div>
+              <div class="h-32 flex items-end gap-2">
+                <div class="flex-1 bg-primary/30 rounded-t" style="height: 40%"></div>
+                <div class="flex-1 bg-primary/50 rounded-t" style="height: 60%"></div>
+                <div class="flex-1 bg-primary/70 rounded-t" style="height: 80%"></div>
+                <div class="flex-1 bg-primary rounded-t" style="height: 100%"></div>
+              </div>
+            </div>
           </div>
-          <h3 class="text-lg font-bold text-white mb-2" i18n="@@features.feature3.title">
+        </div>
+        <div>
+          <span class="text-primary text-sm font-bold mb-4 block" i18n="@@features.feature2.badge"
+            >02 / STRATEGY</span
+          >
+          <h3
+            class="text-4xl lg:text-6xl font-bold text-white mb-6"
+            i18n="@@features.feature2.title"
+          >
+            Complete Business Plan
+          </h3>
+          <p class="text-lg text-white/80 mb-8" i18n="@@features.feature2.description">
+            Market analysis, financial projections, strategy, and investor-ready documentation.
+          </p>
+          <div class="grid grid-cols-3 gap-4">
+            <div class="glass-card p-4 rounded-xl text-center">
+              <div class="text-2xl font-bold text-primary mb-1">5Y</div>
+              <div class="text-xs text-white/60">Projections</div>
+            </div>
+            <div class="glass-card p-4 rounded-xl text-center">
+              <div class="text-2xl font-bold text-primary mb-1">100+</div>
+              <div class="text-xs text-white/60">Metrics</div>
+            </div>
+            <div class="glass-card p-4 rounded-xl text-center">
+              <div class="text-2xl font-bold text-primary mb-1">PDF</div>
+              <div class="text-xs text-white/60">Export</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 3: Legal - Document Stack -->
+    <div class="relative">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-7 order-2 lg:order-1">
+          <div class="relative h-[500px]">
+            <div
+              class="absolute top-0 left-0 right-20 h-64 glass-card rounded-2xl border border-white/10 p-6 transform rotate-[-2deg]"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-white font-semibold text-sm">Terms of Service</div>
+                  <div class="text-white/40 text-xs">Legal Document</div>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div class="h-2 bg-white/10 rounded w-full"></div>
+                <div class="h-2 bg-white/10 rounded w-5/6"></div>
+                <div class="h-2 bg-white/10 rounded w-4/6"></div>
+              </div>
+            </div>
+            <div
+              class="absolute top-16 left-10 right-10 h-64 glass-card rounded-2xl border border-white/10 p-6"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-white font-semibold text-sm">Privacy Policy</div>
+                  <div class="text-white/40 text-xs">Legal Document</div>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div class="h-2 bg-white/10 rounded w-full"></div>
+                <div class="h-2 bg-white/10 rounded w-5/6"></div>
+              </div>
+            </div>
+            <div
+              class="absolute top-32 left-20 right-0 h-64 glass-card rounded-2xl border border-primary/30 p-6 transform rotate-[2deg]"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-white font-semibold text-sm">Contracts</div>
+                  <div class="text-white/40 text-xs">Legal Document</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="lg:col-span-5 order-1 lg:order-2">
+          <span class="text-primary text-sm font-bold mb-4 block" i18n="@@features.feature3.badge"
+            >03 / LEGAL</span
+          >
+          <h3
+            class="text-4xl lg:text-6xl font-bold text-white mb-6"
+            i18n="@@features.feature3.title"
+          >
             Legal Documents
           </h3>
-          <p class="text-white/70 text-sm leading-relaxed" i18n="@@features.feature3.description">
+          <p class="text-lg text-white/80" i18n="@@features.feature3.description">
             Terms of service, privacy policy, contracts, and all legal documents you need.
           </p>
         </div>
       </div>
+    </div>
 
-      <!-- Feature: Deployment -->
-      <div
-        class="relative group overflow-hidden rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300"
-      >
-        <div
-          class="absolute inset-0 bg-linear-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-        ></div>
-        <div class="relative p-6">
-          <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
-              />
-            </svg>
-          </div>
-          <h3 class="text-lg font-bold text-white mb-2" i18n="@@features.feature5.title">
-            Automatic Deployment
+    <!-- Feature 4: Web App - Code Window -->
+    <div class="relative">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span class="text-primary text-sm font-bold mb-4 block" i18n="@@features.feature4.badge"
+            >04 / DEVELOPMENT</span
+          >
+          <h3
+            class="text-4xl lg:text-6xl font-bold text-white mb-6"
+            i18n="@@features.feature4.title"
+          >
+            Full-Stack Web Application
           </h3>
-          <p class="text-white/70 text-sm leading-relaxed" i18n="@@features.feature5.description">
-            Your app deployed to the cloud with custom domain. Live in minutes, not weeks.
+          <p class="text-lg text-white/80 mb-8" i18n="@@features.feature4.description">
+            Complete web app with frontend, backend, database, and authentication.
           </p>
+          <div class="flex flex-wrap gap-3">
+            <div
+              class="px-4 py-2 bg-primary/10 border border-primary/30 rounded-full text-sm text-primary"
+            >
+              React
+            </div>
+            <div
+              class="px-4 py-2 bg-primary/10 border border-primary/30 rounded-full text-sm text-primary"
+            >
+              Node.js
+            </div>
+            <div
+              class="px-4 py-2 bg-primary/10 border border-primary/30 rounded-full text-sm text-primary"
+            >
+              PostgreSQL
+            </div>
+            <div
+              class="px-4 py-2 bg-primary/10 border border-primary/30 rounded-full text-sm text-primary"
+            >
+              Auth
+            </div>
+          </div>
         </div>
-      </div>
-
-      <!-- Feature: Open Source -->
-      <div
-        class="relative group overflow-hidden rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300"
-      >
         <div
-          class="absolute inset-0 bg-linear-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-        ></div>
-        <div class="relative p-6">
-          <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
-              <path
-                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-              />
-            </svg>
+          class="relative h-[500px] rounded-2xl overflow-hidden border border-white/10 bg-[#1e1e1e]"
+        >
+          <div class="h-10 bg-[#2d2d2d] border-b border-white/5 flex items-center px-4 gap-2">
+            <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+            <span class="ml-4 text-white/40 text-xs">app.tsx</span>
           </div>
-          <h3 class="text-lg font-bold text-white mb-2" i18n="@@features.feature6.title">
-            Open Source
-          </h3>
-          <p class="text-white/70 text-sm leading-relaxed" i18n="@@features.feature6.description">
-            100% transparent code. Made in Cameroon by 200+ specialized AI agents.
-          </p>
+          <div class="p-6 font-mono text-sm">
+            <div class="text-purple-400">
+              import <span class="text-white">React</span> from
+              <span class="text-green-400">'react'</span>;
+            </div>
+            <div class="text-purple-400 mt-2">
+              export default function <span class="text-yellow-400">App</span>() {{ '{' }}
+            </div>
+            <div class="ml-4 text-purple-400">return (</div>
+            <div class="ml-8 text-gray-400">
+              &lt;<span class="text-blue-400">div</span>
+              <span class="text-yellow-400">className</span>=<span class="text-green-400"
+                >"app"</span
+              >&gt;
+            </div>
+            <div class="ml-12 text-gray-400">
+              &lt;<span class="text-blue-400">h1</span>&gt;Welcome&lt;/<span class="text-blue-400"
+                >h1</span
+              >&gt;
+            </div>
+            <div class="ml-8 text-gray-400">&lt;/<span class="text-blue-400">div</span>&gt;</div>
+            <div class="ml-4 text-gray-400">)</div>
+            <div class="text-gray-400">{{ '}' }}</div>
+          </div>
+          <div class="absolute bottom-6 right-6">
+            <div class="glass-card px-4 py-2 rounded-lg text-xs text-white/60">
+              Production Ready
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom CTA -->
-    <div class="mt-16 text-center">
-      <p class="text-white/60 text-sm" i18n="@@features.bottomText">
-        Everything generated by 200+ specialized AI agents. Open source and made in Cameroon.
-      </p>
+    <!-- Feature 5: Deployment - Cloud Visual -->
+    <div class="relative">
+      <div class="text-center mb-12">
+        <span class="text-primary text-sm font-bold mb-4 block" i18n="@@features.feature5.badge"
+          >05 / DEPLOYMENT</span
+        >
+        <h3 class="text-4xl lg:text-6xl font-bold text-white mb-6" i18n="@@features.feature5.title">
+          Automatic Deployment
+        </h3>
+        <p class="text-lg text-white/80 max-w-2xl mx-auto" i18n="@@features.feature5.description">
+          Your app deployed to the cloud with custom domain. Live in minutes.
+        </p>
+      </div>
+      <div class="relative h-[400px]">
+        <div
+          class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 rounded-2xl glass-card border border-primary/30 flex items-center justify-center"
+        >
+          <svg class="w-16 h-16 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
+            />
+          </svg>
+        </div>
+        <div
+          class="absolute top-40 left-1/4 -translate-x-1/2 glass-card px-6 py-3 rounded-xl border border-white/10"
+        >
+          <div class="text-white/60 text-xs mb-1">Status</div>
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span class="text-white text-sm font-semibold">Live</span>
+          </div>
+        </div>
+        <div
+          class="absolute top-40 right-1/4 translate-x-1/2 glass-card px-6 py-3 rounded-xl border border-white/10"
+        >
+          <div class="text-white/60 text-xs mb-1">Domain</div>
+          <div class="text-white text-sm font-semibold">yourapp.com</div>
+        </div>
+        <div
+          class="absolute bottom-20 left-1/2 -translate-x-1/2 glass-card px-8 py-4 rounded-xl border border-primary/30"
+        >
+          <div class="text-center">
+            <div class="text-3xl font-bold text-primary mb-1">2min</div>
+            <div class="text-white/60 text-xs">Deploy Time</div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Final CTA -->
+  <div class="text-center mt-32 px-4">
+    <p class="text-white/60" i18n="@@features.bottomText">
+      Everything generated by 200+ specialized AI agents. Open source and made in Cameroon.
+    </p>
   </div>
 </section>
