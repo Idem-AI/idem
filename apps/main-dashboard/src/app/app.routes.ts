@@ -9,7 +9,6 @@ export const routes: Routes = [
     redirectTo: 'console',
   },
 
-
   {
     path: 'login',
     loadComponent: () => import('./modules/auth/pages/login/login').then((m) => m.Login),
@@ -225,10 +224,8 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/create-project/create-project').then(
         (m) => m.CreateProjectComponent,
       ),
-    canActivate: [authGuard],
     data: { layout: 'empty' },
   },
-
   // 404 Not Found route
   {
     path: 'not-found',
