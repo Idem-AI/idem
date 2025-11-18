@@ -9,8 +9,6 @@ import { Hero } from '../../components/hero/hero';
 import { OpenSourceSovereigntyComponent } from '../../components/open-source-sovereignty/open-source-sovereignty';
 import { MultiAgentArchitectureComponent } from '../../components/multi-agent-architecture/multi-agent-architecture';
 import { Features } from '../../components/features/features';
-import { WebsiteShowcase } from '../../components/website-showcase/website-showcase';
-import { VideoTrailer } from '../../components/video-trailer/video-trailer';
 import { LogosShowcase } from '../../components/logos-showcase/logos-showcase';
 import { BrandCharter } from '../../components/brand-charter/brand-charter';
 import { BusinessPlan } from '../../components/business-plan/business-plan';
@@ -28,8 +26,6 @@ import { Cta } from '../../components/cta/cta';
     OpenSourceSovereigntyComponent,
     MultiAgentArchitectureComponent,
     Features,
-    WebsiteShowcase,
-    VideoTrailer,
     LogosShowcase,
     BrandCharter,
     BusinessPlan,
