@@ -720,10 +720,10 @@ export class AiAssistant implements OnInit, AfterViewInit {
           // Navigate to deployment detail page
           const deploymentId = this.currentDeploymentId();
           if (deploymentId) {
-            this.router.navigate(['/console/project/deployments', deploymentId]);
+            this.router.navigate(['/project/deployments', deploymentId]);
           } else {
             // Fallback to deployments list if no deployment ID
-            this.router.navigate(['/console/project/deployments']);
+            this.router.navigate(['/project/deployments']);
           }
         },
         error: (error) => {

@@ -14,6 +14,7 @@ import {
   BetaRestrictions,
   QuotaStatus,
 } from '../../shared/models/quota.model';
+import { environment } from 'apps/main-dashboard/src/environments/environment';
 
 @Component({
   selector: 'app-empty-layout',
@@ -35,7 +36,7 @@ export class EmptyLayout implements OnInit {
   private readonly router = inject(Router);
   private readonly quotaService = inject(QuotaService);
   private readonly destroyRef = inject(DestroyRef);
-
+  protected readonly landingUrl = environment.services.domain;
   // UI State Signals
   protected readonly isMobileDrawerOpen = signal(false);
   protected readonly isDropdownOpen = signal(false);
