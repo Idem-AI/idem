@@ -94,7 +94,7 @@ jobs:
               
               echo "Deploying to production..."
               docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
-              docker-compose -f $COMPOSE_FILE up -d --remove-orphans $SERVICE_NAME
+              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             else
               # Staging deployment
               COMPOSE_FILE="docker-compose.staging.yml"
@@ -105,7 +105,7 @@ jobs:
               
               echo "Deploying to staging..."
               docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
-              docker-compose -f $COMPOSE_FILE up -d --remove-orphans $SERVICE_NAME
+              docker-compose -f $COMPOSE_FILE up -d $SERVICE_NAME
             fi
             
             # Cleanup
