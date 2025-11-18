@@ -104,7 +104,7 @@ export class ShowBusinessPlan implements OnInit {
    */
   protected generateBusinessPlan(): void {
     console.log('Navigating to business plan generation page');
-    this.router.navigate(['/console/project/business-plan/generate']);
+    this.router.navigate(['/project/business-plan/generate']);
   }
 
   /**
@@ -125,6 +125,6 @@ export class ShowBusinessPlan implements OnInit {
    */
   protected goToProjects(): void {
     console.log('Navigating to projects page');
-    this.router.navigate(['/console/projects']);
+    this.router.navigate(['/projects']);
   }
 }

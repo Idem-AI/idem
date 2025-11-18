@@ -89,7 +89,7 @@ export class ShowDiagramsComponent implements OnInit {
    */
   protected generateDiagrams(): void {
     console.log('Navigating to diagram generation page');
-    this.router.navigate(['/console/project/diagrams/generate']);
+    this.router.navigate(['/project/diagrams/generate']);
   }
 
   /**
@@ -97,6 +97,6 @@ export class ShowDiagramsComponent implements OnInit {
    */
   protected goToProjects(): void {
     console.log('Navigating to projects page');
-    this.router.navigate(['/console/projects']);
+    this.router.navigate(['/projects']);
   }
 }

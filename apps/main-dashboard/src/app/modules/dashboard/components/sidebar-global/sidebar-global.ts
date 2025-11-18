@@ -104,13 +104,13 @@ export class SidebarGlobal {
     {
       labelKey: 'dashboard.sidebarGlobal.projects',
       icon: 'pi pi-folder',
-      route: '/console/projects',
+      route: '/projects',
       isActive: false,
     },
     {
       labelKey: 'dashboard.sidebarGlobal.teams',
       icon: 'pi pi-users',
-      route: '/console/teams',
+      route: '/teams',
       isActive: false,
     },
   ]);

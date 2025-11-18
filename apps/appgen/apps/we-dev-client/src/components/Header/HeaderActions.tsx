@@ -108,7 +108,7 @@ export function HeaderActions() {
     if (choice === 'idem') {
       const idemUrl = process.env.REACT_APP_IDEM_MAIN_APP_URL;
       if (idemUrl) {
-        window.open(`${idemUrl}/console/deployments`, '_blank');
+        window.open(`${idemUrl}/deployments`, '_blank');
       } else {
         toast.error('REACT_APP_IDEM_MAIN_APP_URL not configured');
       }
