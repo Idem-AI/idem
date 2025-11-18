@@ -1,7 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
 interface ContactForm {
@@ -33,6 +34,8 @@ interface FAQ {
   styleUrl: './contact-page.css',
 })
 export class ContactPage {
+  private readonly http = inject(HttpClient);
+
   // Form data
   protected readonly form = signal<ContactForm>({
     name: '',
@@ -112,13 +115,28 @@ export class ContactPage {
     this.isSubmitting.set(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const formData = this.form();
+      const apiUrl = `${environment.services.api.url}/api/contact`;
 
-      this.isSubmitted.set(true);
-      this.resetForm();
+      const response = await this.http
+        .post<{
+          success: boolean;
+          message: string;
+          contactId?: string;
+        }>(apiUrl, formData)
+        .toPromise();
+
+      if (response?.success) {
+        this.isSubmitted.set(true);
+        this.resetForm();
+        console.log('✅ Contact form submitted successfully:', response.contactId);
+      } else {
+        throw new Error(response?.message || 'Failed to submit form');
+      }
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('❌ Error submitting form:', error);
+      // You could show an error message to the user here
+      alert("Une erreur est survenue lors de l'envoi du message. Veuillez réessayer.");
     } finally {
       this.isSubmitting.set(false);
     }
