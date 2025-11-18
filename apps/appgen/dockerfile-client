@@ -4,7 +4,7 @@ WORKDIR /app
 
 # 复制 package.json 和 pnpm-lock.yaml
 COPY apps/we-dev-client/package.json ./
-COPY apps/we-dev-client/pnpm-lock.yaml ./
+#COPY apps/we-dev-client/pnpm-lock.yaml ./
 COPY apps/we-dev-client/.env.prod ./.env
 
 # 设置 npm 配置并安装依赖
