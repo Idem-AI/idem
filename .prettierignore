@@ -53,3 +53,7 @@ yarn.lock
 
 # Apps with separate formatting
 apps/chart
+
+# Build scripts (Node.js CommonJS)
+apps/landing/mynode.js
+apps/main-dashboard/mynode.js
