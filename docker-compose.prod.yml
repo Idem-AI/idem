@@ -37,7 +37,7 @@ services:
       FIREBASE_APP_ID: "${FIREBASE_APP_ID}"
       FIREBASE_PRIVATE_KEY: "${FIREBASE_PRIVATE_KEY}"
       FIREBASE_CLIENT_EMAIL: "${FIREBASE_CLIENT_EMAIL}"
-      CORS_ALLOWED_ORIGINS: "https://api.idem-ai.com,https://webgen.idem-ai.com,https://appgen.idem-ai.com,http://chart.idem-ai.com,https://idem-ai.com,https://api.idem.africa,https://appgen.idem.africa"
+      CORS_ALLOWED_ORIGINS: "https://api.idem-ai.com,https://webgen.idem-ai.com,https://appgen.idem-ai.com,http://chart.idem-ai.com,https://idem-ai.com,https://api.idem.africa,https://appgen.idem.africa,https://console.idem.africa"
       REDIS_HOST: "redis-prod"
       REDIS_PORT: "6379"
       REDIS_PASSWORD: "${REDIS_PASSWORD}"
