@@ -10,7 +10,7 @@
     <div class="mt-4 flex justify-end">
       <button
         class="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 transition"
-        [routerLink]="['/console/project/deployments/create']"
+        [routerLink]="['/project/deployments/create']"
       >
         <i class="pi pi-plus"></i>
         {{ 'dashboard.deploymentList.buttons.new' | translate }}
@@ -66,7 +66,7 @@
       </p>
       <button
         class="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 transition"
-        [routerLink]="['/console/project/deployments/create']"
+        [routerLink]="['/project/deployments/create']"
       >
         {{ 'dashboard.deploymentList.buttons.create' | translate }}
       </button>
@@ -161,7 +161,7 @@
                       class="bg-transparent text-gray-200 border border-white/10 rounded w-[30px] h-[30px] grid place-items-center hover:bg-white/10 transition"
                       [title]="'dashboard.deploymentList.actions.viewDetails' | translate"
                       [routerLink]="[
-                        '/console/project/dashboard',
+                        '/project/dashboard',
                         projectId(),
                         'deployment',
                         deployment.id,
@@ -174,7 +174,7 @@
                         class="bg-transparent text-gray-200 border border-white/10 rounded w-[30px] h-[30px] grid place-items-center hover:bg-white/10 transition"
                         [title]="'dashboard.deploymentList.actions.viewLogs' | translate"
                         [routerLink]="[
-                          '/console/project/dashboard',
+                          '/project/dashboard',
                           projectId(),
                           'deployment',
                           deployment.id,

@@ -70,13 +70,13 @@ export class MyTeams implements OnInit {
    * Navigate to team details
    */
   protected onTeamClick(teamId: string): void {
-    this.router.navigate(['/console/teams', teamId]);
+    this.router.navigate(['/teams', teamId]);
   }
 
   /**
    * Navigate to create team
    */
   protected onCreateTeam(): void {
-    this.router.navigate(['/console/teams/create']);
+    this.router.navigate(['/teams/create']);
   }
 }

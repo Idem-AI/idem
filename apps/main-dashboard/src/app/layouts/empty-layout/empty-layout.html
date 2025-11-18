@@ -13,7 +13,7 @@
       <!-- Logo -->
       <div class="flex-shrink-0 flex items-center">
         <a
-          routerLink="/"
+          href="{{ landingUrl }}"
           class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
         >
           <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto" />
@@ -63,8 +63,8 @@
               </div>
 
               <a
-                routerLink="/console/project/profile"
-                (click)="navigateTo('/console/project/profile')"
+                routerLink="/project/profile"
+                (click)="navigateTo('/project/profile')"
                 class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
               >
                 <i class="pi pi-user text-primary"></i>
@@ -72,8 +72,8 @@
               </a>
 
               <a
-                routerLink="/console/projects"
-                (click)="navigateTo('/console/projects')"
+                routerLink="/projects"
+                (click)="navigateTo('/projects')"
                 class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
               >
                 <i class="pi pi-folder text-accent"></i>
