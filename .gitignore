@@ -86,3 +86,7 @@ data/
 
 # Docker Compose temporary files
 .docker-compose.yml
+
+# Branch-specific: Staging compose not versioned on main branch
+# Only dev branch should version docker-compose.staging.yml
+docker-compose.staging.yml
