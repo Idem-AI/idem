@@ -3,20 +3,54 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SeoService } from '../../shared/services/seo.service';
 
-interface PricingPlan {
+interface SubscriptionPlan {
+  id: string;
   name: string;
-  price: string;
+  price: number;
   period: string;
+  credits: number;
+  creditsLabel: string;
   description: string;
   features: string[];
-  cta: string;
+  deployment: string;
+  storage: string;
+  projects: string;
+  collaboration: string;
+  support: string;
+  sla?: string;
   popular?: boolean;
-  credits: string;
+  cta: string;
 }
 
-interface FAQ {
-  question: string;
-  answer: string;
+interface CreditPack {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  pricePerCredit: number;
+  discount?: string;
+  description: string;
+  popular?: boolean;
+}
+
+interface GenerationCost {
+  name: string;
+  credits: number;
+  price: number;
+  apiCost: number;
+  margin: number;
+  value: string;
+  description: string;
+  icon: string;
+}
+
+interface ComparisonFeature {
+  name: string;
+  free: string | boolean;
+  starter: string | boolean;
+  professional: string | boolean;
+  business: string | boolean;
+  enterprise: string | boolean;
 }
 
 @Component({
@@ -30,99 +64,354 @@ export class PricingPage implements OnInit {
   protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
   private readonly seoService = inject(SeoService);
 
-  protected readonly plans: PricingPlan[] = [
+  // Onglet actif (subscriptions ou credits)
+  protected activeTab = signal<'subscriptions' | 'credits'>('subscriptions');
+
+  // Plans d'abonnement
+  protected readonly subscriptionPlans: SubscriptionPlan[] = [
     {
-      name: $localize`:@@pricing-page.plans.free.name:Free`,
-      price: '$0',
-      period: $localize`:@@pricing-page.plans.free.period:forever`,
-      credits: $localize`:@@pricing-page.plans.free.credits:10 credits`,
-      description: $localize`:@@pricing-page.plans.free.description:Perfect to explore IDEM and create your first project`,
+      id: 'free',
+      name: 'Free',
+      price: 0,
+      period: '/forever',
+      credits: 10,
+      creditsLabel: '10 credits (one-time)',
+      description: 'Test IDEM with a complete project',
       features: [
-        $localize`:@@pricing-page.plans.free.feature1:10 free credits`,
-        $localize`:@@pricing-page.plans.free.feature2:All core features`,
-        $localize`:@@pricing-page.plans.free.feature3:Community support`,
-        $localize`:@@pricing-page.plans.free.feature4:Basic templates`,
-        $localize`:@@pricing-page.plans.free.feature5:Export capabilities`,
+        'Access to all features',
+        '10 one-time credits',
+        'Generate 1 complete project',
+        'Export code in ZIP',
+        'Quick deployment (subdomain)',
+        'Community support',
       ],
-      cta: $localize`:@@pricing-page.plans.free.cta:Start Free`,
+      deployment: 'Quick (subdomain)',
+      storage: '500 MB',
+      projects: '1 active',
+      collaboration: 'No',
+      support: 'Community',
+      cta: 'Start Free',
     },
     {
-      name: $localize`:@@pricing-page.plans.starter.name:Starter`,
-      price: '$15',
-      period: $localize`:@@pricing-page.plans.starter.period:/month`,
-      credits: $localize`:@@pricing-page.plans.starter.credits:100 credits/month`,
-      description: $localize`:@@pricing-page.plans.starter.description:Ideal for solo entrepreneurs and small projects`,
+      id: 'starter',
+      name: 'Starter',
+      price: 15,
+      period: '/month',
+      credits: 150,
+      creditsLabel: '150 credits/month',
+      description: 'Perfect for entrepreneurs creating regularly',
       features: [
-        $localize`:@@pricing-page.plans.starter.feature1:100 credits per month`,
-        $localize`:@@pricing-page.plans.starter.feature2:All features included`,
-        $localize`:@@pricing-page.plans.starter.feature3:Priority support`,
-        $localize`:@@pricing-page.plans.starter.feature4:Advanced templates`,
-        $localize`:@@pricing-page.plans.starter.feature5:Custom branding`,
-        $localize`:@@pricing-page.plans.starter.feature6:API access`,
+        '150 monthly renewable credits',
+        '~2 complete projects/month',
+        'Custom domain deployment',
+        '3 active projects',
+        '5 GB storage',
+        'Basic monitoring',
+        'Email support',
       ],
-      cta: $localize`:@@pricing-page.plans.starter.cta:Get Started`,
+      deployment: 'Custom domain',
+      storage: '5 GB',
+      projects: '3',
+      collaboration: 'No',
+      support: 'Email',
       popular: true,
+      cta: 'Get Started',
     },
     {
-      name: $localize`:@@pricing-page.plans.pro.name:Pro`,
-      price: '$49',
-      period: $localize`:@@pricing-page.plans.pro.period:/month`,
-      credits: $localize`:@@pricing-page.plans.pro.credits:500 credits/month`,
-      description: $localize`:@@pricing-page.plans.pro.description:For growing businesses and agencies`,
+      id: 'professional',
+      name: 'Professional',
+      price: 60,
+      period: '/month',
+      credits: 650,
+      creditsLabel: '650 credits/month',
+      description: 'For agencies managing multiple clients',
       features: [
-        $localize`:@@pricing-page.plans.pro.feature1:500 credits per month`,
-        $localize`:@@pricing-page.plans.pro.feature2:Everything in Starter`,
-        $localize`:@@pricing-page.plans.pro.feature3:Team collaboration`,
-        $localize`:@@pricing-page.plans.pro.feature4:White-label options`,
-        $localize`:@@pricing-page.plans.pro.feature5:Advanced analytics`,
-        $localize`:@@pricing-page.plans.pro.feature6:Dedicated support`,
-        $localize`:@@pricing-page.plans.pro.feature7:Custom integrations`,
+        '650 monthly renewable credits',
+        '~10 projects/month',
+        'VPS deployment (advanced)',
+        '10 active projects',
+        'Multi-environment (dev/staging/prod)',
+        '5 team members',
+        '50 GB storage',
+        'Complete monitoring & logs',
+        'Priority support',
       ],
-      cta: $localize`:@@pricing-page.plans.pro.cta:Go Pro`,
+      deployment: 'VPS (advanced)',
+      storage: '50 GB',
+      projects: '10',
+      collaboration: '5 users',
+      support: 'Priority',
+      cta: 'Go Pro',
     },
     {
-      name: $localize`:@@pricing-page.plans.enterprise.name:Enterprise`,
-      price: $localize`:@@pricing-page.plans.enterprise.price:Custom`,
-      period: $localize`:@@pricing-page.plans.enterprise.period:pricing`,
-      credits: $localize`:@@pricing-page.plans.enterprise.credits:Unlimited`,
-      description: $localize`:@@pricing-page.plans.enterprise.description:For large organizations with specific needs`,
+      id: 'business',
+      name: 'Business',
+      price: 150,
+      period: '/month',
+      credits: 1800,
+      creditsLabel: '1,800 credits/month',
+      description: 'For established agencies and SMEs',
       features: [
-        $localize`:@@pricing-page.plans.enterprise.feature1:Unlimited credits`,
-        $localize`:@@pricing-page.plans.enterprise.feature2:On-premise deployment`,
-        $localize`:@@pricing-page.plans.enterprise.feature3:Custom AI training`,
-        $localize`:@@pricing-page.plans.enterprise.feature4:SLA guarantee`,
-        $localize`:@@pricing-page.plans.enterprise.feature5:Dedicated account manager`,
-        $localize`:@@pricing-page.plans.enterprise.feature6:Custom contracts`,
-        $localize`:@@pricing-page.plans.enterprise.feature7:Priority feature requests`,
+        '1,800 monthly renewable credits',
+        '~28 projects/month',
+        'Cloud deployment (AWS/GCP)',
+        'Unlimited projects',
+        'Unlimited collaboration',
+        'Role management',
+        '500 GB storage',
+        '99.9% SLA',
+        'Dedicated support',
+        'IDEM API access',
+        'Partial white-labeling',
       ],
-      cta: $localize`:@@pricing-page.plans.enterprise.cta:Contact Sales`,
+      deployment: 'Cloud (AWS/GCP)',
+      storage: '500 GB',
+      projects: 'Unlimited',
+      collaboration: 'Unlimited',
+      support: 'Dedicated',
+      sla: '99.9%',
+      cta: 'Scale Up',
     },
   ];
 
-  protected readonly faqs: FAQ[] = [
+  // Packs de crédits
+  protected readonly creditPacks: CreditPack[] = [
     {
-      question: $localize`:@@pricing-page.faq.q1:What are credits?`,
-      answer: $localize`:@@pricing-page.faq.a1:Credits are used to generate content with IDEM. Each action (logo generation, business plan, website, etc.) consumes a certain number of credits based on complexity.`,
+      id: 'discovery',
+      name: 'Discovery',
+      credits: 50,
+      price: 4,
+      pricePerCredit: 0.08,
+      description: 'Test IDEM with your first project',
+      popular: false,
     },
     {
-      question: $localize`:@@pricing-page.faq.q2:Can I upgrade or downgrade anytime?`,
-      answer: $localize`:@@pricing-page.faq.a2:Yes, you can change your plan at any time. Upgrades take effect immediately, and downgrades apply at the next billing cycle.`,
+      id: 'starter',
+      name: 'Starter',
+      credits: 150,
+      price: 12,
+      pricePerCredit: 0.08,
+      description: 'Complete project: Identity + BP + App',
+      popular: true,
     },
     {
-      question: $localize`:@@pricing-page.faq.q3:What payment methods do you accept?`,
-      answer: $localize`:@@pricing-page.faq.a3:We accept all major credit cards, PayPal, and mobile money for African users. Enterprise clients can also pay via bank transfer.`,
+      id: 'growth',
+      name: 'Growth',
+      credits: 400,
+      price: 35,
+      pricePerCredit: 0.0875,
+      discount: '+9%',
+      description: '2-3 projects with iterations',
+      popular: false,
     },
     {
-      question: $localize`:@@pricing-page.faq.q4:Is there a refund policy?`,
-      answer: $localize`:@@pricing-page.faq.a4:Yes, we offer a 14-day money-back guarantee for all paid plans. If you are not satisfied, contact us for a full refund.`,
+      id: 'professional',
+      name: 'Professional',
+      credits: 1000,
+      price: 80,
+      pricePerCredit: 0.08,
+      description: '~15-16 complete projects',
+      popular: false,
     },
     {
-      question: $localize`:@@pricing-page.faq.q5:Do unused credits roll over?`,
-      answer: $localize`:@@pricing-page.faq.a5:Unused credits expire at the end of each billing cycle. However, Pro and Enterprise plans can purchase additional credit packs that never expire.`,
+      id: 'enterprise',
+      name: 'Enterprise',
+      credits: 5000,
+      price: 375,
+      pricePerCredit: 0.075,
+      discount: '-6%',
+      description: '~75-80 projects for agencies',
+      popular: false,
+    },
+  ];
+
+  // Coûts par type de génération
+  protected readonly generationCosts: GenerationCost[] = [
+    {
+      name: 'Logo SVG (4 proposals)',
+      credits: 3,
+      price: 0.3,
+      apiCost: 0.06,
+      margin: 80,
+      value: '$500-2,000',
+      description: '4 professional logos with mockups',
+      icon: 'pi-palette',
     },
     {
-      question: $localize`:@@pricing-page.faq.q6:Can I use IDEM for commercial projects?`,
-      answer: $localize`:@@pricing-page.faq.a6:Absolutely! All plans, including the free tier, allow commercial use of generated content. You own everything you create.`,
+      name: 'Brand Guidelines',
+      credits: 5,
+      price: 0.5,
+      apiCost: 0.04,
+      margin: 92,
+      value: '$2,000-5,000',
+      description: 'Complete 10-page brand charter',
+      icon: 'pi-book',
+    },
+    {
+      name: 'Complete Identity Package',
+      credits: 7,
+      price: 0.7,
+      apiCost: 0.1,
+      margin: 86,
+      value: '$2,500-7,000',
+      description: 'Logo + Brand guidelines (save 1 credit)',
+      icon: 'pi-star',
+    },
+    {
+      name: 'Business Plan',
+      credits: 20,
+      price: 2.0,
+      apiCost: 0.3,
+      margin: 85,
+      value: '$5,000-15,000',
+      description: 'Complete 80-page BP',
+      icon: 'pi-chart-line',
+    },
+    {
+      name: 'Legal Document',
+      credits: 2,
+      price: 0.2,
+      apiCost: 0.02,
+      margin: 90,
+      value: '$500-2,000',
+      description: 'Terms, privacy policy, contracts',
+      icon: 'pi-file',
+    },
+    {
+      name: 'UML Diagrams',
+      credits: 3,
+      price: 0.3,
+      apiCost: 0.03,
+      margin: 90,
+      value: '$1,000-3,000',
+      description: 'Complete diagram set',
+      icon: 'pi-sitemap',
+    },
+    {
+      name: 'Landing Page',
+      credits: 4,
+      price: 0.4,
+      apiCost: 0.05,
+      margin: 88,
+      value: '$1,500-5,000',
+      description: 'Responsive HTML/CSS/JS',
+      icon: 'pi-desktop',
+    },
+    {
+      name: 'Fullstack Application',
+      credits: 30,
+      price: 3.0,
+      apiCost: 0.38,
+      margin: 87,
+      value: '$15,000-50,000',
+      description: 'Frontend + Backend + Database',
+      icon: 'pi-code',
+    },
+    {
+      name: 'Simple Modification',
+      credits: 1,
+      price: 0.1,
+      apiCost: 0.01,
+      margin: 90,
+      value: 'Variable',
+      description: 'Post-generation edits',
+      icon: 'pi-pencil',
+    },
+    {
+      name: 'Cloud Architecture',
+      credits: 3,
+      price: 0.3,
+      apiCost: 0.03,
+      margin: 90,
+      value: '$3,000-10,000',
+      description: 'Diagrams + Terraform',
+      icon: 'pi-cloud',
+    },
+    {
+      name: 'Technical Documentation',
+      credits: 4,
+      price: 0.4,
+      apiCost: 0.04,
+      margin: 90,
+      value: '$2,000-5,000',
+      description: 'Complete technical docs',
+      icon: 'pi-file-edit',
+    },
+  ];
+
+  // Tableau comparatif
+  protected readonly comparisonFeatures: ComparisonFeature[] = [
+    {
+      name: 'Monthly Credits',
+      free: '10 (once)',
+      starter: '150',
+      professional: '650',
+      business: '1,800',
+      enterprise: '10,000+',
+    },
+    {
+      name: 'Active Projects',
+      free: '1',
+      starter: '3',
+      professional: '10',
+      business: 'Unlimited',
+      enterprise: 'Unlimited',
+    },
+    {
+      name: 'Storage',
+      free: '500 MB',
+      starter: '5 GB',
+      professional: '50 GB',
+      business: '500 GB',
+      enterprise: 'Custom',
+    },
+    {
+      name: 'Deployment',
+      free: 'Quick (subdomain)',
+      starter: 'Custom domain',
+      professional: 'VPS',
+      business: 'Cloud (AWS/GCP)',
+      enterprise: 'On-premise',
+    },
+    {
+      name: 'Collaboration',
+      free: false,
+      starter: false,
+      professional: '5 users',
+      business: 'Unlimited',
+      enterprise: 'Unlimited',
+    },
+    {
+      name: 'Support',
+      free: 'Community',
+      starter: 'Email',
+      professional: 'Priority',
+      business: 'Dedicated',
+      enterprise: '24/7 + CSM',
+    },
+    {
+      name: 'SLA',
+      free: false,
+      starter: false,
+      professional: false,
+      business: '99.9%',
+      enterprise: '99.95%',
+    },
+    {
+      name: 'White-labeling',
+      free: false,
+      starter: false,
+      professional: false,
+      business: 'Partial',
+      enterprise: 'Complete',
+    },
+    {
+      name: 'API Access',
+      free: false,
+      starter: false,
+      professional: false,
+      business: true,
+      enterprise: true,
     },
   ];
 
@@ -130,22 +419,27 @@ export class PricingPage implements OnInit {
     this.setupSeo();
   }
 
+  protected setActiveTab(tab: 'subscriptions' | 'credits'): void {
+    this.activeTab.set(tab);
+  }
+
   private setupSeo(): void {
-    const title = $localize`:@@pricing-page.seo.title:Pricing Plans | IDEM - Affordable AI for African Entrepreneurs`;
-    const description = $localize`:@@pricing-page.seo.description:IDEM pricing starts at $0 with 10 free credits. Starter plan at $15/month, Pro at $49/month. 60-80% cheaper than alternatives. Perfect for African entrepreneurs and businesses.`;
+    const title = 'Pricing | IDEM - Affordable AI for African Entrepreneurs';
+    const description =
+      'IDEM pricing: Free plan with 10 credits, Starter at $15/month (150 credits), Professional at $60/month (650 credits). Credit packs from $4. 60-80% cheaper than alternatives.';
 
     const metaTags = [
       { name: 'description', content: description },
       {
         name: 'keywords',
-        content: $localize`:@@pricing-page.seo.keywords:IDEM pricing, affordable AI, African pricing, AI platform cost, startup pricing, entrepreneur tools, cheap AI platform, AI credits, monthly subscription, free tier`,
+        content:
+          'IDEM pricing, AI credits, subscription plans, credit packs, affordable AI, African pricing, startup tools, business plan generator pricing',
       },
     ];
 
     const ogTags = [
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
-      { property: 'og:type', content: $localize`:@@pricing-page.seo.type:website` },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: `${this.seoService.domain}/pricing` },
     ];
