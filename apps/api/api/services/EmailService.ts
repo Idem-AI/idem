@@ -51,20 +51,20 @@ export class EmailService {
             <h1>🚀 Nouveau Message de Contact - IDEM</h1>
             <p>Un nouveau message a été reçu via le formulaire de contact</p>
           </div>
-          
+
           <div class="content">
             <div class="field">
               <div class="label">👤 Nom complet :</div>
               <div class="value">${contact.name}</div>
             </div>
-            
+
             <div class="field">
               <div class="label">📧 Email :</div>
               <div class="value">
                 <a href="mailto:${contact.email}">${contact.email}</a>
               </div>
             </div>
-            
+
             ${
               contact.company
                 ? `
@@ -75,17 +75,17 @@ export class EmailService {
             `
                 : ''
             }
-            
+
             <div class="field">
               <div class="label">📋 Sujet :</div>
               <div class="value">${subjectText}</div>
             </div>
-            
+
             <div class="field">
               <div class="label">💬 Message :</div>
               <div class="message">${contact.message}</div>
             </div>
-            
+
             <div class="field">
               <div class="label">📅 Date :</div>
               <div class="value">${contact.createdAt.toLocaleString('fr-FR', {
@@ -97,13 +97,13 @@ export class EmailService {
                 minute: '2-digit',
               })}</div>
             </div>
-            
+
             <div class="field">
               <div class="label">🆔 ID Contact :</div>
               <div class="value">${contact.id}</div>
             </div>
           </div>
-          
+
           <div class="footer">
             <p>Ce message a été envoyé automatiquement depuis le site web IDEM</p>
             <p>🌍 <strong>IDEM</strong> - L'IA Souveraine d'Afrique</p>
@@ -131,7 +131,7 @@ Ce message a été envoyé automatiquement depuis le site web IDEM.
 
     await this.transporter.sendMail({
       from: `"IDEM Contact Form" <${process.env.SMTP_USER}>`,
-      to: 'contact@idem.africa',
+      to: 'arolleaguekeng@gmail.com',
       subject: `🚀 [IDEM Contact] ${subjectText} - ${contact.name}`,
       text: textContent,
       html: htmlContent,
@@ -172,12 +172,12 @@ Ce message a été envoyé automatiquement depuis le site web IDEM.
             <h1>🚀 Merci pour votre message !</h1>
             <p>Nous avons bien reçu ${subjectText}</p>
           </div>
-          
+
           <div class="content">
             <p>Bonjour <strong>${contact.name}</strong>,</p>
-            
+
             <p>Merci de nous avoir contactés ! Nous avons bien reçu votre message et nous vous répondrons dans les plus brefs délais.</p>
-            
+
             <div class="highlight">
               <h3>📋 Récapitulatif de votre demande :</h3>
               <p><strong>Sujet :</strong> ${subjectText}</p>
@@ -191,25 +191,25 @@ Ce message a été envoyé automatiquement depuis le site web IDEM.
               })}</p>
               <p><strong>Référence :</strong> #${contact.id.substring(0, 8)}</p>
             </div>
-            
+
             <p><strong>⏱️ Temps de réponse :</strong> Nous nous engageons à vous répondre dans les 24 heures ouvrables.</p>
-            
+
             <p>En attendant, n'hésitez pas à :</p>
             <ul>
               <li>🌐 Découvrir notre plateforme : <a href="https://dashboard.idem.africa">dashboard.idem.africa</a></li>
               <li>📚 Consulter notre documentation</li>
               <li>💬 Rejoindre notre communauté</li>
             </ul>
-            
+
             <div style="text-align: center; margin: 30px 0;">
               <a href="https://dashboard.idem.africa/create-project" class="cta">🚀 Essayer IDEM Gratuitement</a>
             </div>
-            
+
             <p>Cordialement,<br>
             <strong>L'équipe IDEM</strong><br>
             🌍 L'IA Souveraine d'Afrique</p>
           </div>
-          
+
           <div class="footer">
             <p>📧 contact@idem.africa | 🌐 idem.africa</p>
             <p>Douala, Cameroun 🇨🇲</p>
