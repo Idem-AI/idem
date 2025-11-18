@@ -49,10 +49,10 @@ services:
     labels:
       - "environment=production"
 
-  # IDEM WebGen - Production Environment
+  # IDEM WebGen - Production Environment  
   idem-webgen:
     restart: always
-    image: ghcr.io/idem-ai/idem-appgen:v1.0
+    image: ghcr.io/idem-ai/idem-appgen:latest
     container_name: idem-webgen
     env_file:
      - .env
