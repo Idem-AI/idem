@@ -1,7 +1,7 @@
 services:
   # IDEM Frontend - Staging Environment
   idem-staging: 
-    image: ghcr.io/idem-ai/idem-main-dashboard:1c9246e3-staging
+    image: ghcr.io/idem-ai/idem-main-dashboard:db061c5a-staging
     container_name: idem-staging
     restart: unless-stopped
     networks:
@@ -46,7 +46,7 @@ services:
 
   # IDEM WebGen - Staging Environment
   idem-webgen-staging:
-    image: ghcr.io/idem-ai/idem-appgen:387ba2a2-staging
+    image: ghcr.io/idem-ai/idem-appgen:latest
     container_name: idem-webgen-staging
     env_file:
       - .env.staging
@@ -59,7 +59,7 @@ services:
 
   # AppGen Server - Staging Environment
   appgen-server-staging:
-    image: ghcr.io/idem-ai/idem-appgen:387ba2a2-staging
+    image: ghcr.io/idem-ai/idem-appgen:latest
     container_name: appgen-server-staging
     env_file:
       - .env.staging
