@@ -52,8 +52,10 @@ services:
   # IDEM WebGen - Production Environment  
   idem-webgen:
     restart: always
-    image: ghcr.io/idem-ai/idem-appgen:latest
+    image: ghcr.io/idem-ai/idem-appgen:beta
     container_name: idem-webgen
+    ports:
+     - 4173:4173
     env_file:
      - .env
     networks:
