@@ -2,7 +2,7 @@
  * Chart App - Styles
  * Using @idem/shared-styles with Tailwind CSS 4
  */
-
+@import "tailwindcss";
 /* Import shared design system (includes Tailwind 4 and theme) */
 @import '@idem/shared-styles/styles.css';
 
@@ -75,14 +75,7 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground h-screen w-screen overflow-hidden;
-  }
-}
+
 
 body {
   font-family: 'Recursive Variable', sans-serif;
