@@ -3,6 +3,7 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
   importProvidersFrom,
+  SecurityContext,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -16,6 +17,7 @@ import { routes } from './app.routes';
 import { environment } from '../environments/environment';
 import { authInterceptor } from './shared/interceptors/auth.interceptor';
 import { MyPreset } from './my-preset';
+import { provideMarkdown, MARKED_OPTIONS, MERMAID_OPTIONS } from 'ngx-markdown';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -38,6 +40,25 @@ export const appConfig: ApplicationConfig = {
       }),
       fallbackLang: 'en',
       lang: 'en',
+    }),
+    provideMarkdown({
+      sanitize: SecurityContext.NONE,
+      markedOptions: {
+        provide: MARKED_OPTIONS,
+        useValue: {
+          gfm: true,
+          breaks: true,
+          pedantic: false,
+        },
+      },
+      mermaidOptions: {
+        provide: MERMAID_OPTIONS,
+        useValue: {
+          darkMode: false,
+          look: 'classic',
+          theme: 'default',
+        },
+      },
     }),
   ],
 };
