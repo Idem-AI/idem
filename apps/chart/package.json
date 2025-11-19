@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "vite dev ",
     "dev:force": "MERMAID_LOCAL=true pnpm dev --force",
     "dev:test": "pnpm dev",
     "build": "vite build",
@@ -71,7 +71,7 @@
     "svelte-sonner": "^0.3.28",
     "tailwind-merge": "^3.1.0",
     "tailwind-variants": "^0.3.1",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.1.17",
     "tailwindcss-animate": "^1.0.7",
     "tslib": "^2.8.1",
     "typescript": "^5.8.2",
@@ -84,6 +84,8 @@
     "@fontsource-variable/recursive": "^5.2.5",
     "@mermaid-js/layout-elk": "^0.1.7",
     "@mermaid-js/mermaid-zenuml": "^0.2.0",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@tailwindcss/vite": "^4.1.17",
     "dayjs": "^1.11.13",
     "firebase": "^11.6.0",
     "js-base64": "3.7.7",
@@ -109,7 +111,6 @@
   "packageManager": "pnpm@10.7.1+sha512.2d92c86b7928dc8284f53494fb4201f983da65f0fb4f0d40baafa5cf628fa31dae3e5968f12466f17df7e97310e30f343a648baea1b9b350685dafafffdf5808",
   "pnpm": {
     "onlyBuiltDependencies": [
-      "deasync",
       "esbuild",
       "svelte-preprocess"
     ],

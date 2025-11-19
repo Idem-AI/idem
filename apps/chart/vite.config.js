@@ -2,6 +2,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { FileSystemIconLoader } from 'unplugin-icons/loaders';
 import Icons from 'unplugin-icons/vite';
 import { defineConfig } from 'vitest/config';
+import tailwindcss from '@tailwindcss/vite';
 
 /**
  * HMR creates state inconsistencies, so we always reload the page.
@@ -17,6 +18,7 @@ const alwaysFullReload = {
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     sveltekit(),
     Icons({
       compiler: 'svelte',
