@@ -95,8 +95,13 @@ class Handler extends ExceptionHandler
             if ($e instanceof RuntimeException) {
                 return;
             }
-            $this->settings = instanceSettings();
-            if ($this->settings->do_not_track) {
+            try {
+                $this->settings = instanceSettings();
+                if (!$this->settings || $this->settings->do_not_track) {
+                    return;
+                }
+            } catch (\Exception $settingsException) {
+                // If we can't get instance settings (e.g., during autoload), skip reporting
                 return;
             }
             app('sentry')->configureScope(
