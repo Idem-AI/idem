@@ -1,5 +1,7 @@
 <?php
 
+namespace Tests\Unit;
+
 use App\Models\PrivateKey;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
