@@ -26,6 +26,9 @@
             ],
             "styles": [
               "src/styles.css"
+            ],
+            "scripts": [
+              "../../node_modules/mermaid/dist/mermaid.min.js"
             ]
           },
           "configurations": {
