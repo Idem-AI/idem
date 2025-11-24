@@ -23,6 +23,8 @@
     }
   },
   "buttons": {
-    "generate": "Generate Business Plan"
-  }
+    "generate": "Generate Business Plan",
+    "cancel": "Cancel"
+  },
+  "progress": "Progress"
 }

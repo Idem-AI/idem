@@ -11,8 +11,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "tsc": "tsc",
-    "start": "vite preview --host 0.0.0.0",
-    "fix-deps": "./scripts/fix-deps.sh"
+    "start": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",
@@ -94,8 +93,7 @@
     "@types/react-dom": "^18.2.17",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/uuid": "^10.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.22",
+    "@vitejs/plugin-react": "^4.2.1",
     "babel-loader": "^9.2.1",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
@@ -106,7 +104,7 @@
     "style-loader": "^4.0.0",
     "tailwindcss": "^4.0.15",
     "typescript": "^5.5.2",
-    "vite": "^5.4.11",
+    "vite": "^5.0.8",
     "vite-plugin-dynamic-import": "^1.6.0",
     "vite-plugin-glsl": "^1.3.1"
   }

@@ -91,7 +91,7 @@
               "src/styles.css"
             ],
             "scripts": [
-              "node_modules/mermaid/dist/mermaid.min.js"
+              "../../node_modules/mermaid/dist/mermaid.min.js"
             ]
           }
         }
