@@ -3,11 +3,25 @@
   "loading": {
     "checking": "Checking your brand identity..."
   },
+  "showBranding": {
+    "title": "Brand Identity",
+    "empty": {
+      "noProject": {
+        "title": "No Project Selected",
+        "subtitle": "Please select a project to view its brand identity"
+      }
+    },
+    "buttons": {
+      "selectProject": "Select Project"
+    }
+  },
   "buttons": {
     "backToOverview": "Back to Overview",
     "backToProjects": "Back to Projects",
     "getCharter": "Get Brand Charter",
-    "downloadZip": "Download all logos as ZIP"
+    "downloadZip": "Download all logos as ZIP",
+    "selectProject": "Select Project",
+    "generate": "Generate Brand Identity"
   },
   "tooltips": {
     "downloadZip": "Download all logos in a ZIP file"
@@ -37,12 +51,59 @@
       "subtitle": "Your brand fonts",
       "heading": "Heading Font",
       "body": "Body Font",
-      "selected": "Selected Typography"
+      "selected": "Selected Typography",
+      "primary": "Primary Font",
+      "secondary": "Secondary Font"
     }
   },
   "empty": {
     "noLogos": "No logos available",
     "noColors": "No color palette defined",
-    "noTypography": "No typography defined"
+    "noTypography": "No typography defined",
+    "noProject": {
+      "title": "No Project Selected",
+      "subtitle": "Please select a project to view its brand identity"
+    },
+    "title": "Create Your Brand Identity",
+    "subtitle": "Generate a complete brand identity with logos, colors, and typography for your project"
+  },
+  "features": {
+    "colors": {
+      "title": "Color Palette",
+      "description": "Professional color schemes"
+    },
+    "logo": {
+      "title": "Logo Variations",
+      "description": "Multiple logo formats"
+    },
+    "typography": {
+      "title": "Typography",
+      "description": "Font recommendations"
+    }
+  },
+  "generationTime": "Generation takes 2-3 minutes",
+  "brandingDisplay": {
+    "title": "Brand Identity Document",
+    "loading": "Preparing branding content..."
+  },
+  "dialog": {
+    "title": "Download Logos",
+    "subtitle": "Choose the format you want to download:",
+    "preparing": "Preparing download...",
+    "wait": "This may take a few moments",
+    "formats": {
+      "svg": {
+        "name": "SVG Format",
+        "description": "Vector format, scalable"
+      },
+      "png": {
+        "name": "PNG Format",
+        "description": "High quality raster image"
+      },
+      "psd": {
+        "name": "PSD Format",
+        "description": "Photoshop editable file"
+      }
+    }
   }
 }

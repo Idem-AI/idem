@@ -23,6 +23,8 @@
     }
   },
   "buttons": {
-    "generate": "Générer le plan d'affaires"
-  }
+    "generate": "Générer le plan d'affaires",
+    "cancel": "Annuler"
+  },
+  "progress": "Progrès"
 }
