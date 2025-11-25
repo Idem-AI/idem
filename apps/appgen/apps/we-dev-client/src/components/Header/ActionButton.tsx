@@ -1,8 +1,9 @@
-import React from 'react';
-import { IconDownload } from './icons/IconDownload';
-import { IconDeploy } from './icons/IconDeploy';
+import React from "react";
+import { IconDownload } from "./icons/IconDownload";
+import { IconDeploy } from "./icons/IconDeploy";
 import { FolderOpen } from 'lucide-react';
-import { cn } from '@/utils/cn';
+import { cn } from "@/utils/cn";
+
 
 const icons = {
   download: IconDownload,
@@ -13,7 +14,7 @@ const icons = {
 interface ActionButtonProps {
   icon: keyof typeof icons;
   label: string;
-  variant?: 'default' | 'primary';
+  variant?: "default" | "primary";
   onClick?: () => void;
   className?: string;
 }
@@ -21,21 +22,21 @@ interface ActionButtonProps {
 export function ActionButton({
   icon,
   label,
-  variant = 'default',
+  variant = "default",
   onClick,
   className,
 }: ActionButtonProps) {
   const Icon = icons[icon];
 
   const variantClasses = {
-    default: 'outer-button',
-    primary: 'inner-button',
+    default: "outer-button",
+    primary: "inner-button",
   };
 
   return (
     <button
       className={cn(
-        'flex items-center gap-2 text-sm font-medium',
+        "flex items-center gap-2 text-sm font-medium",
         variantClasses[variant],
         className
       )}

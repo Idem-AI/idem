@@ -26,13 +26,10 @@ async function calculateMD5(content: string): Promise<string> {
   const data = encoder.encode(content);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function mountFileSystem(
-  instance: WebContainer,
-  close: boolean = false
-): Promise<boolean> {
+export async function mountFileSystem(instance: WebContainer, close: boolean = false): Promise<boolean> {
   try {
     const { files } = useFileStore.getState();
 
@@ -67,13 +64,13 @@ export async function mountFileSystem(
         if (i === parts.length - 1) {
           current[part] = {
             file: {
-              contents: contents,
-            },
+              contents: contents
+            }
           };
         } else {
           if (!current[part]) {
             current[part] = {
-              directory: {},
+              directory: {}
             };
           }
           current = (current[part] as DirectoryContent).directory;
@@ -84,7 +81,7 @@ export async function mountFileSystem(
     if (Object.keys(fileTree).length > 0) {
       console.log('Mounting changed files:', fileTree);
       await instance.mount(fileTree, {
-        mountPoint: '/',
+        mountPoint: '/'
       });
     } else {
       // console.log('No files changed, skipping mount');
@@ -108,19 +105,19 @@ const readDirRecursive = async (
   filesObj: Record<string, string>
 ): Promise<{ path: string; content: string }[]> => {
   const files: { path: string; content: string }[] = [];
-  const entries = (await instance?.fs.readdir(dirPath, { withFileTypes: true })) || [];
+  const entries = await instance?.fs.readdir(dirPath, { withFileTypes: true }) || [];
 
   for (const entry of entries) {
     const fullPath = `${dirPath}/${entry.name}`;
 
-    if (isHiddenNodeModules.some((item) => entry?.name?.indexOf(item) > -1)) continue;
+    if (isHiddenNodeModules.some(item => entry?.name?.indexOf(item) > -1)) continue;
 
     if (entry.isDirectory()) {
       const subFiles = await readDirRecursive(instance, fullPath, filesObj);
       files.push(...subFiles);
     } else {
       try {
-        const content = (await instance?.fs.readFile(fullPath, 'utf-8')) || '';
+        const content = await instance?.fs.readFile(fullPath, 'utf-8') || '';
         const newHash = await calculateMD5(content);
         const oldHash = fileHashMap.get(fullPath);
         const fileHash = await calculateMD5(filesObj[fullPath.substring(1)]);
@@ -128,7 +125,7 @@ const readDirRecursive = async (
         if (oldHash !== newHash && fileHash !== newHash) {
           files.push({
             path: fullPath.startsWith('/') ? fullPath.slice(1) : fullPath,
-            content,
+            content
           });
         }
         fileHashMap.set(fullPath, newHash);
@@ -142,8 +139,8 @@ const readDirRecursive = async (
 
 // Create debounced version of updateFileSystemNow
 const debouncedUpdateFileSystem = debounce(async () => {
-  if (window.isLoading) {
-    return;
+  if(window.isLoading) {
+    return
   }
   const { updateContent, files: filesObj } = useFileStore.getState();
   const instance = await getWebContainerInstance();
@@ -179,6 +176,7 @@ const debouncedSyncFileSystem = debounce(async (close: boolean = false): Promise
 
   const result = await mountFileSystem(instance, close);
   return result;
+
 }, 500);
 
 // Export debounced version

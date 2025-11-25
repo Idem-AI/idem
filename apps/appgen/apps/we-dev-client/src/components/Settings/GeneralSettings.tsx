@@ -1,15 +1,15 @@
-import useThemeStore from '@/stores/themeSlice';
-import { useState, useEffect, useRef } from 'react';
-import useChatStore from '@/stores/chatSlice';
-import i18n from '@/utils/i18';
-import { getProjectById } from '@/api/persistence/db';
-import { toast } from 'react-toastify';
+import useThemeStore from "@/stores/themeSlice";
+import { useState, useEffect, useRef } from "react";
+import useChatStore from "@/stores/chatSlice";
+import i18n from "@/utils/i18";
+import { getProjectById } from "@/api/persistence/db";
+import { toast } from "react-toastify";
 
-import { useTranslation } from 'react-i18next';
-import { message } from 'antd';
-import { BackendSettings } from './BackendSettings';
-import classNames from 'classnames';
-import { ProjectModel } from '@/api/persistence/models/project.model';
+import { useTranslation } from "react-i18next";
+import { message } from "antd";
+import { BackendSettings } from "./BackendSettings";
+import classNames from "classnames";
+import { ProjectModel } from "@/api/persistence/models/project.model";
 
 interface OtherConfig {
   isBackEnd: boolean;
@@ -31,7 +31,7 @@ interface FormData {
   language?: string;
   ollamaUrl?: string;
   apiKey?: string;
-  proxyType: 'none' | 'system' | 'custom';
+  proxyType: "none" | "system" | "custom";
   customProxy: string;
   pythonMirror: string;
   customPythonMirror: string;
@@ -40,18 +40,21 @@ interface FormData {
 }
 
 // 自定义 Select 组件
-const CustomSelect = ({ value, onChange, options, className = '' }) => {
+const CustomSelect = ({ value, onChange, options, className = "" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+      if (
+        selectRef.current &&
+        !selectRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const selectedOption = options.find((opt) => opt.value === value);
@@ -62,32 +65,37 @@ const CustomSelect = ({ value, onChange, options, className = '' }) => {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={classNames(
-          'w-full px-3 py-2 text-sm text-left rounded-md',
-          'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-          'hover:bg-gray-50 dark:hover:bg-gray-700/50',
-          'focus:outline-none focus:ring-2 focus:ring-purple-500/50',
-          'transition-colors duration-200',
-          'flex items-center justify-between gap-2',
+          "w-full px-3 py-2 text-sm text-left rounded-md",
+          "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+          "hover:bg-gray-50 dark:hover:bg-gray-700/50",
+          "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
+          "transition-colors duration-200",
+          "flex items-center justify-between gap-2",
           className
         )}
       >
         <span className="truncate">{selectedOption?.label}</span>
         <svg
-          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
       {isOpen && (
         <div
           className={classNames(
-            'absolute z-50 w-full mt-1 rounded-md shadow-lg',
-            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-            'max-h-60 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600'
+            "absolute z-50 w-full mt-1 rounded-md shadow-lg",
+            "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+            "max-h-60 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
           )}
         >
           {options.map((option) => (
@@ -98,11 +106,11 @@ const CustomSelect = ({ value, onChange, options, className = '' }) => {
                 setIsOpen(false);
               }}
               className={classNames(
-                'w-full px-3 py-2 text-sm text-left',
-                'hover:bg-gray-50 dark:hover:bg-gray-700/50',
-                'transition-colors duration-200',
+                "w-full px-3 py-2 text-sm text-left",
+                "hover:bg-gray-50 dark:hover:bg-gray-700/50",
+                "transition-colors duration-200",
                 value === option.value &&
-                  'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                  "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
               )}
             >
               {option.label}
@@ -115,18 +123,18 @@ const CustomSelect = ({ value, onChange, options, className = '' }) => {
 };
 
 // 自定义 Input 组件
-const CustomInput = ({ value, onChange, placeholder, className = '' }) => (
+const CustomInput = ({ value, onChange, placeholder, className = "" }) => (
   <input
     type="text"
     value={value}
     onChange={onChange}
     placeholder={placeholder}
     className={classNames(
-      'w-full px-3 py-2 text-sm rounded-md',
-      'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-      'focus:outline-none focus:ring-2 focus:ring-purple-500/50',
-      'placeholder-gray-400 dark:placeholder-gray-500',
-      'transition-colors duration-200',
+      "w-full px-3 py-2 text-sm rounded-md",
+      "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+      "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
+      "placeholder-gray-400 dark:placeholder-gray-500",
+      "transition-colors duration-200",
       className
     )}
   />
@@ -137,42 +145,44 @@ const CustomRadio = ({ checked, onChange, children, value }) => (
   <button
     onClick={() => onChange({ target: { value } })}
     className={classNames(
-      'flex items-center gap-2 px-3 py-2 w-full text-sm rounded-md',
-      'transition-colors duration-200',
+      "flex items-center gap-2 px-3 py-2 w-full text-sm rounded-md",
+      "transition-colors duration-200",
       checked
-        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
-        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700',
-      'border hover:bg-gray-50 dark:hover:bg-gray-700/50'
+        ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800"
+        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700",
+      "border hover:bg-gray-50 dark:hover:bg-gray-700/50"
     )}
   >
     <div
       className={classNames(
-        'w-4 h-4 rounded-full border-2 flex items-center justify-center',
+        "w-4 h-4 rounded-full border-2 flex items-center justify-center",
         checked
-          ? 'border-purple-500 dark:border-purple-400'
-          : 'border-gray-300 dark:border-gray-600'
+          ? "border-purple-500 dark:border-purple-400"
+          : "border-gray-300 dark:border-gray-600"
       )}
     >
-      {checked && <div className="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400" />}
+      {checked && (
+        <div className="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400" />
+      )}
     </div>
     <span>{children}</span>
   </button>
 );
 
 // 添加自定义多行输入框组件
-const CustomTextArea = ({ value, onChange, placeholder, className = '' }) => (
+const CustomTextArea = ({ value, onChange, placeholder, className = "" }) => (
   <textarea
     value={value}
     onChange={onChange}
     placeholder={placeholder}
     rows={4}
     className={classNames(
-      'w-full px-3 py-2 text-sm rounded-md',
-      'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-      'focus:outline-none focus:ring-2 focus:ring-purple-500/50',
-      'placeholder-gray-400 dark:placeholder-gray-500',
-      'transition-colors duration-200',
-      'resize-y min-h-[100px]',
+      "w-full px-3 py-2 text-sm rounded-md",
+      "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+      "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
+      "placeholder-gray-400 dark:placeholder-gray-500",
+      "transition-colors duration-200",
+      "resize-y min-h-[100px]",
       className
     )}
   />
@@ -182,33 +192,37 @@ export function GeneralSettings() {
   const { t } = useTranslation();
   const { setOtherConfig, otherConfig } = useChatStore();
   const { isDarkMode, toggleTheme, setTheme } = useThemeStore();
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState("general");
   // Get projectId from URL in a web-compatible way
   const urlParams = new URLSearchParams(window.location.search);
-  const projectId = urlParams.get('projectId');
+  const projectId = urlParams.get("projectId");
   const [project, setProject] = useState<ProjectModel | null>(null);
   const projectLoadedRef = useRef(false);
 
   const [formData, setFormData] = useState<FormData>(() => {
-    const savedData = JSON.parse(localStorage.getItem('settingsConfig') || '{}');
+    const savedData = JSON.parse(
+      localStorage.getItem("settingsConfig") || "{}"
+    );
     return {
       ...savedData,
-      proxyType: savedData.proxyType || 'none',
-      customProxy: savedData.customProxy || '',
-      pythonMirror: savedData.pythonMirror || 'https://pypi.org/simple',
-      customPythonMirror: savedData.customPythonMirror || '',
-      nodeMirror: savedData.nodeMirror || 'https://registry.npmjs.org/',
-      customNodeMirror: savedData.customNodeMirror || '',
-      language: savedData.language || 'en',
+      proxyType: savedData.proxyType || "none",
+      customProxy: savedData.customProxy || "",
+      pythonMirror: savedData.pythonMirror || "https://pypi.org/simple",
+      customPythonMirror: savedData.customPythonMirror || "",
+      nodeMirror: savedData.nodeMirror || "https://registry.npmjs.org/",
+      customNodeMirror: savedData.customNodeMirror || "",
+      language: savedData.language || "en",
     };
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState(localStorage.getItem('theme') || 'system');
+  const [currentTheme, setCurrentTheme] = useState(
+    localStorage.getItem("theme") || "system"
+  );
 
   useEffect(() => {
-    localStorage.setItem('settingsConfig', JSON.stringify(formData));
+    localStorage.setItem("settingsConfig", JSON.stringify(formData));
   }, [formData]);
 
   // Load project data when component mounts if projectId is present
@@ -222,19 +236,19 @@ export function GeneralSettings() {
       try {
         // Mark project as being loaded
         projectLoadedRef.current = true;
-        console.log('Loading project data with ID:', projectId);
+        console.log("Loading project data with ID:", projectId);
 
         const projectData = await getProjectById(projectId);
         if (projectData) {
           setProject(projectData);
-          console.log('Project data loaded:', projectData.name);
+          console.log("Project data loaded:", projectData.name);
         } else {
-          console.warn('Project not found with ID:', projectId);
-          toast.error(t('settings.projectNotFound'));
+          console.warn("Project not found with ID:", projectId);
+          toast.error(t("settings.projectNotFound"));
         }
       } catch (error) {
-        console.error('Error loading project data:', error);
-        toast.error(t('settings.errorLoadingProject'));
+        console.error("Error loading project data:", error);
+        toast.error(t("settings.errorLoadingProject"));
         // Reset flag to allow another loading attempt
         projectLoadedRef.current = false;
       }
@@ -246,76 +260,77 @@ export function GeneralSettings() {
   // Load theme settings from local storage when component mounts
   useEffect(() => {
     const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-      if (currentTheme === 'system') {
+      if (currentTheme === "system") {
         setTheme(e.matches);
       }
     };
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
 
     // 初始化主题
-    if (currentTheme === 'system') {
+    if (currentTheme === "system") {
       setTheme(mediaQuery.matches);
     } else {
-      setTheme(currentTheme === 'dark');
+      setTheme(currentTheme === "dark");
     }
 
-    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    return () =>
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
   }, [currentTheme]);
 
   useEffect(() => {
-    const savedOtherConfig = localStorage.getItem('otherConfig');
+    const savedOtherConfig = localStorage.getItem("otherConfig");
     if (savedOtherConfig) {
       try {
         const config = JSON.parse(savedOtherConfig);
         setOtherConfig({
           isBackEnd: config.isBackEnd || false,
-          backendLanguage: config.backendLanguage || 'java',
+          backendLanguage: config.backendLanguage || "java",
           extra: {
-            isOpenDataBase: config.extra?.database !== 'none',
-            database: config.extra?.database || 'mysql',
+            isOpenDataBase: config.extra?.database !== "none",
+            database: config.extra?.database || "mysql",
             databaseConfig: {
-              url: config.extra?.databaseConfig?.url || '',
-              username: config.extra?.databaseConfig?.username || '',
-              password: config.extra?.databaseConfig?.password || '',
+              url: config.extra?.databaseConfig?.url || "",
+              username: config.extra?.databaseConfig?.username || "",
+              password: config.extra?.databaseConfig?.password || "",
             },
             isOpenCache: config.extra?.isOpenCache || false,
-            cache: config.extra?.cache || '',
+            cache: config.extra?.cache || "",
           },
         });
       } catch (error) {
         setOtherConfig({
           isBackEnd: false,
-          backendLanguage: 'java',
+          backendLanguage: "java",
           extra: {
             isOpenDataBase: false,
-            database: 'mysql',
+            database: "mysql",
             databaseConfig: {
-              url: '',
-              username: '',
-              password: '',
+              url: "",
+              username: "",
+              password: "",
             },
             isOpenCache: false,
-            cache: '',
+            cache: "",
           },
         });
-        localStorage.removeItem('otherConfig');
+        localStorage.removeItem("otherConfig");
       }
     } else {
       setOtherConfig({
         isBackEnd: false,
-        backendLanguage: 'java',
+        backendLanguage: "java",
         extra: {
           isOpenDataBase: false,
-          database: 'mysql',
+          database: "mysql",
           databaseConfig: {
-            url: '',
-            username: '',
-            password: '',
+            url: "",
+            username: "",
+            password: "",
           },
           isOpenCache: false,
-          cache: '',
+          cache: "",
         },
       });
     }
@@ -323,7 +338,7 @@ export function GeneralSettings() {
 
   const updateConfig = (newConfig: any) => {
     setOtherConfig(newConfig);
-    localStorage.setItem('otherConfig', JSON.stringify(newConfig));
+    localStorage.setItem("otherConfig", JSON.stringify(newConfig));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -332,33 +347,33 @@ export function GeneralSettings() {
     try {
       const newConfig: OtherConfig = {
         isBackEnd: otherConfig.isBackEnd || false,
-        backendLanguage: otherConfig.backendLanguage || 'java',
+        backendLanguage: otherConfig.backendLanguage || "java",
         extra: {
-          isOpenDataBase: otherConfig.extra?.database !== 'none',
-          database: otherConfig.extra?.database || 'mysql',
+          isOpenDataBase: otherConfig.extra?.database !== "none",
+          database: otherConfig.extra?.database || "mysql",
           databaseConfig: {
-            url: otherConfig.extra?.databaseConfig?.url || '',
-            username: otherConfig.extra?.databaseConfig?.username || '',
-            password: otherConfig.extra?.databaseConfig?.password || '',
+            url: otherConfig.extra?.databaseConfig?.url || "",
+            username: otherConfig.extra?.databaseConfig?.username || "",
+            password: otherConfig.extra?.databaseConfig?.password || "",
           },
           isOpenCache: false,
-          cache: '',
+          cache: "",
         },
       };
-      localStorage.setItem('otherConfig', JSON.stringify(newConfig));
+      localStorage.setItem("otherConfig", JSON.stringify(newConfig));
       setOtherConfig(newConfig);
       localStorage.setItem(
-        'ollamaConfig',
+        "ollamaConfig",
         JSON.stringify({
-          url: formData.ollamaUrl || 'http://localhost:11434',
+          url: formData.ollamaUrl || "http://localhost:11434",
           apiKey: formData.apiKey,
         })
       );
     } catch (error) {
       localStorage.setItem(
-        'ollamaConfig',
+        "ollamaConfig",
         JSON.stringify({
-          url: formData.ollamaUrl || 'http://localhost:11434',
+          url: formData.ollamaUrl || "http://localhost:11434",
           apiKey: formData.apiKey,
         })
       );
@@ -367,13 +382,15 @@ export function GeneralSettings() {
 
   const handleThemeChange = (theme: string) => {
     setCurrentTheme(theme);
-    localStorage.setItem('theme', theme);
+    localStorage.setItem("theme", theme);
 
-    if (theme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (theme === "system") {
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
       setTheme(prefersDark);
     } else {
-      setTheme(theme === 'dark');
+      setTheme(theme === "dark");
     }
   };
 
@@ -381,28 +398,28 @@ export function GeneralSettings() {
   const validateProxyUrl = (url: string): boolean => {
     try {
       // 检查基本格式
-      if (!url.includes('://')) {
-        message.error(t('settings.invalidProxyFormat'));
+      if (!url.includes("://")) {
+        message.error(t("settings.invalidProxyFormat"));
         return false;
       }
 
       // 获取协议和剩余部分
-      const [protocol, rest] = url.split('://');
+      const [protocol, rest] = url.split("://");
       const protocolLower = protocol.toLowerCase();
-      const supportedProtocols = ['http', 'https', 'socks4', 'socks5'];
+      const supportedProtocols = ["http", "https", "socks4", "socks5"];
 
       if (!supportedProtocols.includes(protocolLower)) {
-        message.error(t('settings.unsupportedProxyProtocol'));
+        message.error(t("settings.unsupportedProxyProtocol"));
         return false;
       }
 
-      if (protocolLower.startsWith('socks')) {
+      if (protocolLower.startsWith("socks")) {
         // SOCKS 代理验证
         const socksRegex = /^([^:]+)(?::(\d+))?$/;
         const match = rest.match(socksRegex);
 
         if (!match) {
-          message.error(t('settings.invalidProxyFormat'));
+          message.error(t("settings.invalidProxyFormat"));
           return false;
         }
 
@@ -410,20 +427,20 @@ export function GeneralSettings() {
 
         // 检查主机
         if (!host) {
-          message.error(t('settings.invalidProxyHost'));
+          message.error(t("settings.invalidProxyHost"));
           return false;
         }
 
         // SOCKS 代理必须有端口
         if (!port) {
-          message.error(t('settings.socksPortRequired'));
+          message.error(t("settings.socksPortRequired"));
           return false;
         }
 
         // 验证端口号
         const portNum = parseInt(port, 10);
         if (isNaN(portNum) || portNum <= 0 || portNum > 65535) {
-          message.error(t('settings.invalidProxyPort'));
+          message.error(t("settings.invalidProxyPort"));
           return false;
         }
       } else {
@@ -432,33 +449,35 @@ export function GeneralSettings() {
           const proxyUrl = new URL(url);
 
           if (!proxyUrl.hostname) {
-            message.error(t('settings.invalidProxyHost'));
+            message.error(t("settings.invalidProxyHost"));
             return false;
           }
 
           if (proxyUrl.port) {
             const portNum = parseInt(proxyUrl.port, 10);
             if (isNaN(portNum) || portNum <= 0 || portNum > 65535) {
-              message.error(t('settings.invalidProxyPort'));
+              message.error(t("settings.invalidProxyPort"));
               return false;
             }
           }
         } catch (e) {
-          message.error(t('settings.invalidProxyFormat'));
+          message.error(t("settings.invalidProxyFormat"));
           return false;
         }
       }
 
       return true;
     } catch (e) {
-      console.error('Proxy validation error:', e);
-      message.error(t('settings.invalidProxyFormat'));
+      console.error("Proxy validation error:", e);
+      message.error(t("settings.invalidProxyFormat"));
       return false;
     }
   };
 
   // 处理代理类型切换
-  const handleProxyTypeChange = (newProxyType: 'none' | 'system' | 'custom') => {
+  const handleProxyTypeChange = (
+    newProxyType: "none" | "system" | "custom"
+  ) => {
     // 保存当前状态到新对象，避免直接修改当前状态
     const newFormData = {
       ...formData,
@@ -469,7 +488,7 @@ export function GeneralSettings() {
     setFormData(newFormData);
 
     // 应用新的代理设置
-    if (newProxyType === 'custom') {
+    if (newProxyType === "custom") {
       // 如果切换到自定义代理且有保存的值，立即应用
       if (formData.customProxy) {
         applyProxySettings(newProxyType, formData.customProxy);
@@ -484,18 +503,18 @@ export function GeneralSettings() {
   const applyProxySettings = (proxyType: string, customProxy?: string) => {
     try {
       // 对于自定义代理，验证URL格式
-      if (proxyType === 'custom' && customProxy) {
+      if (proxyType === "custom" && customProxy) {
         if (!validateProxyUrl(customProxy)) {
           return;
         }
       }
 
       // 在 Web 环境中设置代理
-      console.log('Web environment proxy settings will be handled by browser');
-      message.success(t('settings.proxyApplied'));
+      console.log("Web environment proxy settings will be handled by browser");
+      message.success(t("settings.proxyApplied"));
     } catch (error) {
-      console.error('Failed to apply proxy settings:', error);
-      message.error(t('settings.proxyError'));
+      console.error("Failed to apply proxy settings:", error);
+      message.error(t("settings.proxyError"));
     }
   };
 
@@ -514,7 +533,7 @@ export function GeneralSettings() {
 
     debounceTimer.current = setTimeout(() => {
       if (newProxy) {
-        applyProxySettings('custom', newProxy);
+        applyProxySettings("custom", newProxy);
       }
     }, 500);
   };
@@ -535,7 +554,7 @@ export function GeneralSettings() {
   const handleLanguageChange = (language: string) => {
     setFormData({ ...formData, language });
     i18n.changeLanguage(language);
-    localStorage.setItem('language', language);
+    localStorage.setItem("language", language);
   };
 
   return (
@@ -545,26 +564,26 @@ export function GeneralSettings() {
         <nav className="border-b border-gray-200 dark:border-gray-700">
           <button
             className={classNames(
-              'px-4 py-2 text-sm font-medium transition-colors duration-200',
-              'focus:outline-none',
-              activeTab === 'general'
-                ? 'border-b-2 border-purple-500 text-purple-600 dark:text-purple-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              "px-4 py-2 text-sm font-medium transition-colors duration-200",
+              "focus:outline-none",
+              activeTab === "general"
+                ? "border-b-2 border-purple-500 text-purple-600 dark:text-purple-400"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             )}
-            onClick={() => setActiveTab('general')}
+            onClick={() => setActiveTab("general")}
           >
-            {t('settings.General')}
+            {t("settings.General")}
           </button>
         </nav>
 
         {/* 设置表单 */}
         <div className="p-4 space-y-6">
-          {activeTab === 'general' ? (
+          {activeTab === "general" ? (
             <div className="space-y-6">
               <BackendSettings project={project} />
               {projectId && !project && (
                 <div className="p-3 bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200 rounded-lg">
-                  {t('settings.loadingProjectData', 'Loading project data...')}
+                  {t("settings.loadingProjectData", "Loading project data...")}
                 </div>
               )}
             </div>
@@ -573,14 +592,14 @@ export function GeneralSettings() {
               {/* 主题切换 */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t('settings.themeMode')}
+                  {t("settings.themeMode")}
                 </label>
                 <CustomSelect
                   value={currentTheme}
                   onChange={(value) => handleThemeChange(value)}
                   options={[
-                    { value: 'light', label: t('settings.themeModeLight') },
-                    { value: 'dark', label: t('settings.themeModeDark') },
+                    { value: "light", label: t("settings.themeModeLight") },
+                    { value: "dark", label: t("settings.themeModeDark") },
                   ]}
                 />
               </div>
@@ -588,28 +607,28 @@ export function GeneralSettings() {
               {/* 语言选择 */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t('settings.Language')}
+                  {t("settings.Language")}
                 </label>
                 <CustomSelect
                   value={formData.language}
                   onChange={(value) => handleLanguageChange(value)}
                   options={[
-                    { value: 'en', label: 'English' },
-                    { value: 'zh', label: '中文' },
+                    { value: "en", label: "English" },
+                    { value: "zh", label: "中文" },
                   ]}
                 />
               </div>
             </div>
           )}
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t('settings.themeMode')}
+            {t("settings.themeMode")}
           </label>
           <CustomSelect
             value={currentTheme}
             onChange={(value) => handleThemeChange(value)}
             options={[
-              { value: 'light', label: t('settings.themeModeLight') },
-              { value: 'dark', label: t('settings.themeModeDark') },
+              { value: "light", label: t("settings.themeModeLight") },
+              { value: "dark", label: t("settings.themeModeDark") },
             ]}
           />
         </div>
@@ -617,14 +636,14 @@ export function GeneralSettings() {
         {/* 语言选择 */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t('settings.Language')}
+            {t("settings.Language")}
           </label>
           <CustomSelect
             value={formData.language}
             onChange={(value) => handleLanguageChange(value)}
             options={[
-              { value: 'en', label: 'English' },
-              { value: 'zh', label: '中文' },
+              { value: "en", label: "English" },
+              { value: "zh", label: "中文" },
             ]}
           />
         </div>

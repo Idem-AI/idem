@@ -20,4 +20,4 @@ export const Role: React.FC<RoleProps> = ({ name, title, type, avatar }) => {
       </div>
     </div>
   );
-};
+}; 

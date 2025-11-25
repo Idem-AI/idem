@@ -23,12 +23,9 @@ export const useTerminalState = create<TerminalState>((set, get) => ({
     } catch (error) {
       console.error('Failed to initialize terminal state:', error);
     }
-  },
+  }
 }));
 
-useTerminalState
-  .getState()
-  .initialize()
-  .catch((error) => {
-    console.error('Failed to initialize terminal state:', error);
-  });
+useTerminalState.getState().initialize().catch(error => {
+  console.error('Failed to initialize terminal state:', error);
+}); 
