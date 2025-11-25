@@ -1,7 +1,9 @@
 import type { User } from '@/stores/userSlice';
 // Configuration de l'API - utiliser la variable d'environnement correcte
 const API_BASE_URL =
-  process.env.VITE_API_BASE_URL || process.env.REACT_APP_BASE_URL || 'http://localhost:3001';
+  import.meta.env.VITE_IDEM_API_BASE_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:3001';
 
 export const authService = {
   async login(email: string, password: string) {
