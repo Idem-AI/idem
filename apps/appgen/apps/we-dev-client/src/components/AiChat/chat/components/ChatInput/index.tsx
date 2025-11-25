@@ -1,31 +1,31 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { FileIcon, MessageSquare, Code2 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
-import { uploadImage } from '@/api/chat';
-import classNames from 'classnames';
-import { useFileStore } from '../../../../WeIde/stores/fileStore';
-import type { MentionOption } from '../MentionMenu';
-import { ErrorDisplay } from './ErrorDisplay';
-import { ImagePreviewGrid } from './ImagePreviewGrid';
-import { UploadButtons } from './UploadButtons';
-import { SendButton } from './SendButton';
-import type { ChatInputProps as ChatInputPropsType } from './types';
-import { useTranslation } from 'react-i18next';
-import useChatModeStore from '../../../../../stores/chatModeSlice';
-import useChatStore from '@/stores/chatSlice';
-import useThemeStore from '@/stores/themeSlice';
-import { v4 as uuidv4 } from 'uuid';
-import OptimizedPromptWord from './OptimizedPromptWord';
-import useUserStore from '@/stores/userSlice';
+import React, { useRef, useState, useCallback, useEffect } from "react";
+import { FileIcon, MessageSquare, Code2 } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { uploadImage } from "@/api/chat";
+import classNames from "classnames";
+import { useFileStore } from "../../../../WeIde/stores/fileStore";
+import type { MentionOption } from "../MentionMenu";
+import { ErrorDisplay } from "./ErrorDisplay";
+import { ImagePreviewGrid } from "./ImagePreviewGrid";
+import { UploadButtons } from "./UploadButtons";
+import { SendButton } from "./SendButton";
+import type { ChatInputProps as ChatInputPropsType } from "./types";
+import { useTranslation } from "react-i18next";
+import useChatModeStore from "../../../../../stores/chatModeSlice";
+import useChatStore from "@/stores/chatSlice";
+import useThemeStore from "@/stores/themeSlice";
+import { v4 as uuidv4 } from "uuid";
+import OptimizedPromptWord from "./OptimizedPromptWord";
+import useUserStore from "@/stores/userSlice";
 // import type { ModelOption } from './UploadButtons';
 
 export enum ChatMode {
-  Chat = 'chat',
-  Builder = 'builder',
+  Chat = "chat",
+  Builder = "builder",
 }
 export const modePlaceholders = {
-  [ChatMode.Chat]: 'chat.modePlaceholders.chat',
-  [ChatMode.Builder]: 'chat.modePlaceholders.builder',
+  [ChatMode.Chat]: "chat.modePlaceholders.chat",
+  [ChatMode.Builder]: "chat.modePlaceholders.builder",
 };
 export const ChatInput: React.FC<ChatInputPropsType> = ({
   input,
@@ -57,12 +57,16 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
-  const [filteredMentionOptions, setFilteredMentionOptions] = useState<MentionOption[]>([]);
+  const [filteredMentionOptions, setFilteredMentionOptions] = useState<
+    MentionOption[]
+  >([]);
   const [highlightRange, setHighlightRange] = useState<{
     start: number;
     end: number;
   } | null>(null);
-  const [mentions, setMentions] = useState<Array<{ start: number; end: number; path: string }>>([]);
+  const [mentions, setMentions] = useState<
+    Array<{ start: number; end: number; path: string }>
+  >([]);
   const { mode: chatMode, setMode } = useChatModeStore();
   const { isDarkMode } = useThemeStore();
 
@@ -81,13 +85,14 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
       return;
     }
 
-    if (e.key === 'Backspace' || e.key === 'Delete') {
+    if (e.key === "Backspace" || e.key === "Delete") {
       const cursorPosition = e.currentTarget.selectionStart;
       const mention = mentions.find((m) => m.end === cursorPosition);
 
       if (mention) {
         e.preventDefault();
-        const newValue = input.slice(0, mention.start) + input.slice(mention.end);
+        const newValue =
+          input.slice(0, mention.start) + input.slice(mention.end);
         const event = {
           target: { value: newValue },
         } as React.ChangeEvent<HTMLTextAreaElement>;
@@ -98,25 +103,28 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
       }
     }
 
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       setHighlightRange(null);
     }
 
     if (showMentionMenu) {
-      if (e.key === 'ArrowDown') {
+      if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedMentionIndex((prev) =>
           prev < filteredMentionOptions.length - 1 ? prev + 1 : prev
         );
-      } else if (e.key === 'ArrowUp') {
+      } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedMentionIndex((prev) => (prev > 0 ? prev - 1 : prev));
-      } else if (e.key === 'Enter' && !e.shiftKey) {
+      } else if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        if (filteredMentionOptions.length > 0 && filteredMentionOptions[selectedMentionIndex]) {
+        if (
+          filteredMentionOptions.length > 0 &&
+          filteredMentionOptions[selectedMentionIndex]
+        ) {
           handleMentionSelect(filteredMentionOptions[selectedMentionIndex]);
         }
-      } else if (e.key === 'Escape') {
+      } else if (e.key === "Escape") {
         setShowMentionMenu(false);
       }
     } else {
@@ -136,11 +144,11 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
     const style = window.getComputedStyle(textarea);
     const pos = textarea.selectionStart || 0;
 
-    const div = document.createElement('div');
-    div.style.position = 'absolute';
-    div.style.visibility = 'hidden';
-    div.style.whiteSpace = 'pre-wrap';
-    div.style.wordWrap = 'break-word';
+    const div = document.createElement("div");
+    div.style.position = "absolute";
+    div.style.visibility = "hidden";
+    div.style.whiteSpace = "pre-wrap";
+    div.style.wordWrap = "break-word";
     div.style.width = style.width;
     div.style.padding = style.padding;
     div.style.font = style.font;
@@ -152,8 +160,8 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
     const beforeNode = document.createTextNode(textBeforeCursor);
     div.appendChild(beforeNode);
 
-    const cursorNode = document.createElement('span');
-    cursorNode.textContent = '|';
+    const cursorNode = document.createElement("span");
+    cursorNode.textContent = "|";
     div.appendChild(cursorNode);
 
     const afterNode = document.createTextNode(textAfterCursor);
@@ -203,7 +211,9 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
 
       if (newValue.length < oldValue.length) {
         const deletedStart = e.target.selectionStart;
-        const mention = mentions.find((m) => deletedStart > m.start && deletedStart < m.end);
+        const mention = mentions.find(
+          (m) => deletedStart > m.start && deletedStart < m.end
+        );
 
         if (mention) {
           e.preventDefault();
@@ -224,10 +234,10 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
         setMentions(updatedMentions);
       }
 
-      const lastAtIndex = newValue.lastIndexOf('@');
+      const lastAtIndex = newValue.lastIndexOf("@");
       const textAfterLastAt = newValue.substring(lastAtIndex + 1);
 
-      if (lastAtIndex !== -1 && !textAfterLastAt.includes(' ')) {
+      if (lastAtIndex !== -1 && !textAfterLastAt.includes(" ")) {
         const searchTerm = textAfterLastAt.toLowerCase();
         const fileOptions = getFileOptions();
         const filteredOptions = fileOptions.filter(
@@ -259,11 +269,14 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
     const textBeforeCursor = textarea.value.substring(0, cursorPosition);
     const textAfterCursor = textarea.value.substring(cursorPosition);
 
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
     if (lastAtIndex === -1) return;
 
     const mentionText = `@${option.path} `;
-    const newValue = textBeforeCursor.substring(0, lastAtIndex) + mentionText + textAfterCursor;
+    const newValue =
+      textBeforeCursor.substring(0, lastAtIndex) +
+      mentionText +
+      textAfterCursor;
 
     const newMention = {
       start: lastAtIndex,
@@ -286,14 +299,16 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
   };
 
   const handlePaste = async (e: ClipboardEvent) => {
-    console.log(baseModal, 'useImage');
+    console.log(baseModal, "useImage");
     if (!baseModal.useImage) return;
     if (isUploading) return;
 
     const items = e.clipboardData?.items;
     if (!items) return;
 
-    const imageItems = Array.from(items).filter((item) => item.type.indexOf('image') !== -1);
+    const imageItems = Array.from(items).filter(
+      (item) => item.type.indexOf("image") !== -1
+    );
 
     if (imageItems.length > 0) {
       e.preventDefault();
@@ -303,7 +318,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
         const uploadResults = await Promise.all(
           imageItems.map(async (item) => {
             const file = item.getAsFile();
-            if (!file) throw new Error('Failed to get file from clipboard');
+            if (!file) throw new Error("Failed to get file from clipboard");
 
             const url = await uploadImage(file);
             return {
@@ -311,7 +326,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
               file,
               url,
               localUrl: URL.createObjectURL(file),
-              status: 'done' as const,
+              status: "done" as const,
             };
           })
         );
@@ -319,13 +334,13 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
         addImages(uploadResults);
 
         if (uploadResults.length === 1) {
-          toast.success('Image pasted successfully');
+          toast.success("Image pasted successfully");
         } else {
           toast.success(`${uploadResults.length} images pasted successfully`);
         }
       } catch (error) {
-        console.error('Failed to upload pasted images:', error);
-        toast.error('Failed to upload pasted images');
+        console.error("Failed to upload pasted images:", error);
+        toast.error("Failed to upload pasted images");
       } finally {
         setIsUploading(false);
       }
@@ -336,9 +351,9 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    textarea.addEventListener('paste', handlePaste);
+    textarea.addEventListener("paste", handlePaste);
     return () => {
-      textarea.removeEventListener('paste', handlePaste);
+      textarea.removeEventListener("paste", handlePaste);
     };
   }, [isUploading, baseModal?.label]);
 
@@ -355,8 +370,8 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
       }
     }, 100);
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [showMentionMenu, updateMentionPosition]);
 
   return (
@@ -372,14 +387,22 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
           onRemoveError={removeError}
         />
 
-        <ImagePreviewGrid uploadedImages={uploadedImages} onRemoveImage={removeImage} />
+        <ImagePreviewGrid
+          uploadedImages={uploadedImages}
+          onRemoveImage={removeImage}
+        />
 
-        <div className="flex flex-row">
-          <OptimizedPromptWord input={input} setInput={setInput}></OptimizedPromptWord>
+          <div className="flex flex-row">
+        <OptimizedPromptWord input={input} setInput={setInput}></OptimizedPromptWord>
         </div>
 
         <div className="relative bg-transparent dark:bg-[#1a1a1c] rounded-lg border border-gray-600/30">
-          <div className={classNames('relative', isUploading && 'opacity-50 pointer-events-none')}>
+          <div
+            className={classNames(
+              "relative",
+              isUploading && "opacity-50 pointer-events-none"
+            )}
+          >
             {isUploading && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20">
                 <div className="w-8 h-8 border-2 border-gray-400 rounded-full animate-spin border-t-transparent"></div>
@@ -397,19 +420,19 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                     : t(modePlaceholders[ChatMode.Builder])
                 )}
                 className={classNames(
-                  'w-full p-4 bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none resize-none text-sm',
-                  'placeholder-gray-500 dark:placeholder-gray-400',
-                  'hover:bg-gray-50/50 dark:hover:bg-white/[0.03]',
-                  'focus:bg-gray-50/80 dark:focus:bg-white/[0.05]',
-                  'transition-colors duration-200',
-                  'relative z-10',
-                  isLoading && 'opacity-50'
+                  "w-full p-4 bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none resize-none text-sm",
+                  "placeholder-gray-500 dark:placeholder-gray-400",
+                  "hover:bg-gray-50/50 dark:hover:bg-white/[0.03]",
+                  "focus:bg-gray-50/80 dark:focus:bg-white/[0.05]",
+                  "transition-colors duration-200",
+                  "relative z-10",
+                  isLoading && "opacity-50"
                 )}
                 rows={3}
                 style={{
-                  minHeight: '60px',
-                  maxHeight: '200px',
-                  caretColor: isDarkMode ? 'white' : 'black',
+                  minHeight: "60px",
+                  maxHeight: "200px",
+                  caretColor: isDarkMode ? "white" : "black",
                 }}
                 disabled={isLoading}
               />
@@ -418,16 +441,20 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                 <div
                   className="absolute top-0 bottom-0 left-0 right-0 p-4 text-sm break-words whitespace-pre-wrap pointer-events-none"
                   style={{
-                    fontFamily: 'inherit',
-                    lineHeight: 'inherit',
-                    overflow: 'hidden',
+                    fontFamily: "inherit",
+                    lineHeight: "inherit",
+                    overflow: "hidden",
                   }}
                 >
-                  <span className="invisible">{input.substring(0, highlightRange.start)}</span>
+                  <span className="invisible">
+                    {input.substring(0, highlightRange.start)}
+                  </span>
                   <span className="text-transparent bg-blue-500/20">
                     {input.substring(highlightRange.start, highlightRange.end)}
                   </span>
-                  <span className="invisible">{input.substring(highlightRange.end)}</span>
+                  <span className="invisible">
+                    {input.substring(highlightRange.end)}
+                  </span>
                 </div>
               )}
             </div>
@@ -438,8 +465,8 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                 style={{
                   top: `${mentionPosition.top + 100}px`,
                   left: `${mentionPosition.left + 40}px`,
-                  maxHeight: '200px',
-                  width: '200px',
+                  maxHeight: "200px",
+                  width: "200px",
                 }}
               >
                 <div className="dark:bg-[#1c1c1c] bg-transparent rounded-md border border-gray-600/30 shadow-lg overflow-hidden">
@@ -448,10 +475,10 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                       <div
                         key={option.id}
                         className={classNames(
-                          'px-2 py-1.5 flex items-center gap-2 text-xs cursor-pointer',
+                          "px-2 py-1.5 flex items-center gap-2 text-xs cursor-pointer",
                           selectedMentionIndex === index
-                            ? 'bg-blue-500/20 text-blue-400'
-                            : 'text-gray-300 hover:bg-gray-700/30'
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "text-gray-300 hover:bg-gray-700/30"
                         )}
                         onClick={() => {
                           handleMentionSelect(option);
@@ -460,7 +487,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                           index === selectedMentionIndex
                             ? (el) => {
                                 if (el) {
-                                  el.scrollIntoView({ block: 'nearest' });
+                                  el.scrollIntoView({ block: "nearest" });
                                 }
                               }
                             : null
@@ -474,6 +501,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                 </div>
               </div>
             )}
+
 
             <div className="flex items-center justify-between px-2 py-2 border-t border-gray-600/30">
               <div className="flex items-center">
@@ -492,18 +520,24 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
 
                 <button
                   className={classNames(
-                    'p-2 rounded-md transition-colors',
-                    'hover:bg-gray-700/30',
-                    'group relative'
+                    "p-2 rounded-md transition-colors",
+                    "hover:bg-gray-700/30",
+                    "group relative"
                   )}
                   onClick={() => {
-                    setMode(chatMode === ChatMode.Chat ? ChatMode.Builder : ChatMode.Chat);
+                    setMode(
+                      chatMode === ChatMode.Chat
+                        ? ChatMode.Builder
+                        : ChatMode.Chat
+                    );
                   }}
                 >
                   {chatMode === ChatMode.Chat ? (
-                    <MessageSquare className={classNames('w-4 h-4', 'text-blue-400')} />
+                    <MessageSquare
+                      className={classNames("w-4 h-4", "text-blue-400")}
+                    />
                   ) : (
-                    <Code2 className={classNames('w-4 h-4', 'text-blue-400')} />
+                    <Code2 className={classNames("w-4 h-4", "text-blue-400")} />
                   )}
                   <span className="absolute px-2 py-1 mb-2 text-xs text-gray-200 transition-opacity -translate-x-1/2 bg-gray-800 rounded opacity-0 bottom-full left-1/2 group-hover:opacity-100 whitespace-nowrap">
                     {chatMode}
@@ -515,8 +549,10 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                 isLoading={isLoading}
                 stop={stopRuning}
                 isUploading={isUploading}
-                hasInput={!!input?.trim()}
-                hasUploadingImages={uploadedImages.some((img) => img.status === 'uploading')}
+                hasInput={!!(input?.trim())}
+                hasUploadingImages={uploadedImages.some(
+                  (img) => img.status === "uploading"
+                )}
                 onClick={handleSubmitWithFiles}
               />
             </div>
@@ -531,7 +567,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
           multiple
           accept="image/*"
         />
-
+        
         {/* fileInputRef这个应该是没有用的（没验证） */}
         <input
           ref={sketchInputRef}
