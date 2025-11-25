@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { authService } from '../api/appInfo';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from "react";
+import { authService } from "../api/appInfo";
+import { useTranslation } from "react-i18next";
 
 interface VersionInfo {
   version: string;
@@ -18,16 +18,16 @@ export const UpdateTip: React.FC = () => {
       try {
         const data = await authService.appInfo();
         const verison = data.versionInfo.version;
-        const localVersion = localStorage.getItem('version');
+        const localVersion = localStorage.getItem("version");
         if (!localVersion) {
-          localStorage.setItem('version', verison);
+          localStorage.setItem("version", verison);
         } else if (verison !== localVersion) {
-          localStorage.setItem('version', verison);
+          localStorage.setItem("version", verison);
           setVersionInfo(data.versionInfo);
           setIsVisible(true);
         }
       } catch (error) {
-        console.error('get error:', error);
+        console.error("get error:", error);
       }
     };
 

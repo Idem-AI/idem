@@ -1,15 +1,17 @@
 export const authService = {
   async appInfo() {
-    let language = 'en';
+    let language = "en";
     try {
-      const settingsConfig = JSON.parse(localStorage.getItem('settingsConfig') || '{}');
+      const settingsConfig = JSON.parse(
+        localStorage.getItem("settingsConfig") || "{}"
+      );
       if (settingsConfig.language) {
         language = settingsConfig.language;
       } else {
         // Get browser language setting
         const browserLang = navigator.language.toLowerCase();
         // Set to Chinese if browser language is Chinese, otherwise English
-        language = browserLang.startsWith('zh') ? 'zh' : 'en';
+        language = browserLang.startsWith("zh") ? "zh" : "en";
       }
     } catch (error) {
       console.log(error);
@@ -18,8 +20,8 @@ export const authService = {
     const res = await fetch(
       `${process.env.REACT_REACT_APP_BASE_URL}/api/appInfo?language=${language}`,
       {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
       }
     );
 

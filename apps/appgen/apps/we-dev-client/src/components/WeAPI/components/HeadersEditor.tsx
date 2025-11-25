@@ -52,4 +52,4 @@ function HeadersEditor({ headers, onUpdate }: HeadersEditorProps): JSX.Element {
   );
 }
 
-export default HeadersEditor;
+export default HeadersEditor; 

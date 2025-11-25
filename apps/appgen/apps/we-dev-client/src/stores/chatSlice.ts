@@ -1,12 +1,12 @@
-import { create } from 'zustand';
-import { IModelOption } from '@/components/AiChat/chat';
+import { create } from "zustand";
+import { IModelOption } from "@/components/AiChat/chat";
 
 export interface FilePreview {
   id: string;
   file: File;
   url: string;
   localUrl: string;
-  status?: 'uploading' | 'done' | 'error';
+  status?: "uploading" | "done" | "error";
 }
 
 interface OtherConfig {
@@ -33,7 +33,7 @@ interface ChatState {
   uploadedImages: FilePreview[];
   setUploadedImages: (images: FilePreview[]) => void;
   addImages: (images: FilePreview[]) => void;
-  updateImageStatus: (id: string, status: FilePreview['status']) => void;
+  updateImageStatus: (id: string, status: FilePreview["status"]) => void;
   removeImage: (id: string) => void;
   clearImages: () => void;
   otherConfig: OtherConfig;
@@ -52,7 +52,9 @@ const useChatStore = create<ChatState>((set) => ({
     })),
   updateImageStatus: (id, status) =>
     set((state) => ({
-      uploadedImages: state.uploadedImages.map((img) => (img.id === id ? { ...img, status } : img)),
+      uploadedImages: state.uploadedImages.map((img) =>
+        img.id === id ? { ...img, status } : img
+      ),
     })),
   removeImage: (id) =>
     set((state) => ({
@@ -60,20 +62,20 @@ const useChatStore = create<ChatState>((set) => ({
     })),
   clearImages: () => set({ uploadedImages: [] }),
   modelOptions: [],
-  otherConfig: {
+   otherConfig: {
     isBackEnd: false,
-    backendLanguage: '',
+    backendLanguage: "",
     extra: {
       isOpenDataBase: false,
-      database: '',
+      database: "",
       databaseConfig: {
-        url: '',
-        username: '',
-        password: '',
+        url: "",
+        username: "",
+        password: "",
       },
       isOpenCache: false,
-      cache: '',
-    },
+      cache: "",
+    }
   },
   setOtherConfig: (config) => {
     if (typeof config === 'function') {
