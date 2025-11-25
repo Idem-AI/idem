@@ -1,6 +1,6 @@
 <?php
 
-namespace Illuminate\Notifications;
+namespace App\Notifications;
 
 use App\Notifications\Channels\SendsEmail;
 use App\Notifications\Dto\DiscordMessage;
