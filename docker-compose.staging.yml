@@ -1,0 +1,115 @@
+services:
+  # IDEM Frontend - Staging Environment
+  idem-staging: 
+    image: ghcr.io/idem-ai/idem-main-dashboard:db061c5a-staging
+    container_name: idem-staging
+    restart: unless-stopped
+    networks:
+      - idem-staging
+    labels:
+      - "environment=staging"
+
+  # IDEM Landing - Staging Environment
+  idem-landing-staging: 
+    image: ghcr.io/idem-ai/idem-landing:362e30d7-staging
+    container_name: idem-landing-staging
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=staging
+    networks:
+      - idem-staging
+    labels:
+      - "environment=staging"
+
+  # IDEM API - Staging Environment
+  idem-api-staging:
+    image: ghcr.io/idem-ai/idem-api:387b
+    container_name: idem-api-staging
+    env_file:
+      - .env.staging
+    environment:
+      - NODE_ENV=staging
+      - PORT=3002
+      - CORS_ALLOWED_ORIGINS="https://staging.idem.africa,https://staging-api.idem.africa,https://staging-webgen.idem.africa,https://staging-appgen.idem.africa,https://staging-chart.idem.africa"
+      - REDIS_HOST=redis-staging
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD_STAGING}
+    ports:
+      - "3002:3002"
+    restart: unless-stopped
+    depends_on:
+      - redis-staging
+    networks:
+      - idem-staging
+    labels:
+      - "environment=staging"
+
+  # IDEM WebGen - Staging Environment
+  idem-webgen-staging:
+    image: ghcr.io/idem-ai/idem-appgen:latest
+    container_name: idem-webgen-staging
+    env_file:
+      - .env.staging
+    environment:
+      - NODE_ENV=staging
+    networks:
+      - idem-staging
+    labels:
+      - "environment=staging"
+
+  # AppGen Server - Staging Environment
+  appgen-server-staging:
+    image: ghcr.io/idem-ai/idem-appgen:latest
+    container_name: appgen-server-staging
+    env_file:
+      - .env.staging
+    environment:
+      - NODE_ENV=staging
+    networks:
+      - idem-staging
+    labels:
+      - "environment=staging"
+
+  # IDEM Chart - Staging Environment
+  idem-chart-staging:
+    image: ghcr.io/idem-ai/idem-chart:latest-staging
+    container_name: idem-chart-staging
+    environment:
+      - NODE_ENV=staging
+    ports:
+      - "8041:8080"
+    platform: linux/amd64
+    restart: unless-stopped
+    networks:
+      - idem-staging
+    labels:
+      - "environment=staging"
+
+  # Redis - Staging Environment
+  redis-staging:
+    image: redis:7-alpine
+    container_name: redis-staging
+    command: redis-server --requirepass "${REDIS_PASSWORD_STAGING}" --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-staging-data:/data
+    restart: unless-stopped
+    networks:
+      - idem-staging
+    labels:
+      - "environment=staging"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis-staging-data:
+    driver: local
+
+networks:
+  idem-staging:
+    external: true
+    name: idem-staging
