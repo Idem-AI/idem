@@ -1552,5 +1552,56 @@
     "teamNameMinLength": "Team name must be at least {{min}} characters",
     "deploymentName": "Deployment name is required (minimum {{min}} characters)",
     "invalid": "Invalid field"
+  },
+  "logoCreation": {
+    "title": "Creating Your Professional Logos",
+    "subtitle": "Our AI designer is crafting unique concepts tailored to your brand",
+    "progress": "Overall Progress",
+    "estimatedTime": "Estimated time remaining",
+    "status": {
+      "pending": "Pending",
+      "active": "In Progress",
+      "completed": "Completed"
+    },
+    "steps": {
+      "analyze": {
+        "title": "Brand Analysis",
+        "description": "Analyzing brand identity"
+      },
+      "research": {
+        "title": "Market Research",
+        "description": "Analyzing current trends"
+      },
+      "sketch": {
+        "title": "Initial Sketches",
+        "description": "Exploring core concepts"
+      },
+      "design": {
+        "title": "Digital Design",
+        "description": "Creating precise vectors"
+      },
+      "refine": {
+        "title": "Refinement",
+        "description": "Adjusting final details"
+      },
+      "finalize": {
+        "title": "Final Touches",
+        "description": "Preparing final files"
+      }
+    },
+    "concepts": {
+      "concept1": {
+        "name": "Minimalist Approach",
+        "description": "Clean, modern design with essential elements"
+      },
+      "concept2": {
+        "name": "Creative Expression",
+        "description": "Artistic interpretation with unique visual elements"
+      },
+      "concept3": {
+        "name": "Professional Style",
+        "description": "Corporate-friendly design with strong brand presence"
+      }
+    }
   }
 }

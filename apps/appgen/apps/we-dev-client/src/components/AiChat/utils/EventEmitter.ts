@@ -8,22 +8,22 @@ export class EventEmitter {
       this.events[event] = [];
     }
     this.events[event].push(callback);
-
+    
     // Return unsubscribe function
     return () => {
-      this.events[event] = this.events[event].filter((cb) => cb !== callback);
+      this.events[event] = this.events[event].filter(cb => cb !== callback);
     };
   }
 
   emit(event: string, ...args: any[]) {
     if (this.events[event]) {
-      this.events[event].forEach((callback) => callback(...args));
+      this.events[event].forEach(callback => callback(...args));
     }
   }
 
   removeListener(event: string, listener: Function) {
     if (this.events[event]) {
-      this.events[event] = this.events[event].filter((l) => l !== listener);
+      this.events[event] = this.events[event].filter(l => l !== listener);
     }
     return this;
   }

@@ -1,112 +1,45 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { viteCommonjs } from '@originjs/vite-plugin-commonjs';
 
-export default defineConfig(async ({ mode }) => {
-  const glslPlugin = (await import('vite-plugin-glsl')).default;
+// Configuration Vite simplifiée qui fonctionne
+export default defineConfig({
+  plugins: [
+    react(), // Plugin React seulement
+  ],
 
-  const env = loadEnv(mode, process.cwd(), '');
+  base: './',
 
-  process.env = { ...process.env, ...env };
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
 
-  return {
-    plugins: [
-      viteCommonjs(),
-      {
-        name: 'handle-dynamic-imports',
-        transform(code, id) {
-          if (id.includes('generateJSX.ts')) {
-            return {
-              code: code.replace(
-                /import.*from ['"]\.\/images\/\${imageName}['"];?/g,
-                'const image = await import(`./images/${imageName}`);'
-              ),
-              map: null,
-            };
-          }
-        },
-      },
+  server: {
+    hmr: false, // Désactiver le HMR pour éviter les erreurs
+    port: 5173,
+  },
 
-      glslPlugin({
-        include: ['**/*.glsl', '**/*.wgsl', '**/*.vert', '**/*.frag', '**/*.vs', '**/*.fs'],
-        exclude: undefined,
-        warnDuplicatedImports: true,
-        defaultExtension: 'glsl',
-        watch: true,
-        root: '/',
-      }),
-
-      react(),
-    ],
-
-    base: './',
-    build: {
-      outDir: 'dist',
-      emptyOutDir: true,
-      rollupOptions: {
-        external: [],
-        output: {
-          manualChunks(id) {
-            if (id.includes('workspace/')) {
-              return null;
-            }
-          },
-        },
-      },
-      copyPublicDir: true,
-      assetsDir: 'assets',
+  css: {
+    postcss: {
+      plugins: [require('tailwindcss'), require('autoprefixer')],
     },
+  },
 
-    server: {
-      host: true, // écoute sur toutes les interfaces réseau
-      headers: {
-        'Cross-Origin-Embedder-Policy': 'credentialless',
-        'Cross-Origin-Opener-Policy': 'same-origin',
-      },
-      watch: {
-        ignored: ['**/workspace/**'],
-      },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    'process.env.VITE_API_BASE_URL': JSON.stringify(
+      process.env.VITE_API_BASE_URL || 'http://localhost:3001'
+    ),
+  },
+
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
     },
+  },
 
-    preview: {
-      host: '0.0.0.0', // permet l’accès depuis l’extérieur
-      port: 4173, // port de preview
-      allowedHosts: ['webgen.idem-ai.com', 'appgen.idem-ai.com'], // domaine autorisé
-    },
-
-    css: {
-      postcss: {
-        plugins: [require('tailwindcss'), require('autoprefixer')],
-      },
-    },
-
-    define: {
-      'process.env': env,
-    },
-
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, 'src'),
-        '@sketch-hq/sketch-file-format-ts': '@sketch-hq/sketch-file-format-ts',
-        'ag-psd': 'ag-psd',
-      },
-    },
-
-    optimizeDeps: {
-      include: [
-        'uuid',
-        '@sketch-hq/sketch-file-format-ts',
-        'ag-psd',
-        '@codemirror/state',
-        'seedrandom',
-      ],
-      exclude: [],
-      esbuildOptions: {
-        target: 'esnext',
-      },
-    },
-
-    publicDir: path.resolve(__dirname, 'workspace'),
-  };
+  optimizeDeps: {
+    include: ['react', 'react-dom'],
+  },
 });

@@ -8,7 +8,7 @@ interface FileListProps {
 
 export function FileList({ files, onFileSelect }: FileListProps) {
   const fileTree = buildFileTree(files.getFiles());
-
+  
   return (
     <div className="px-2 py-1">
       <FileTree items={fileTree} onFileSelect={onFileSelect} />

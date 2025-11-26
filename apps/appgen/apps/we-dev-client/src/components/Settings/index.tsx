@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { GeneralSettings } from './GeneralSettings';
-import { QuotaSettings } from './QuotaSettings';
-import { useTranslation } from 'react-i18next';
-import styled from 'styled-components';
-import { ThemeMode } from 'antd-style';
-import { Divider } from 'antd';
-import MCPSettings from '@/components/Settings/MCPSettings';
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { GeneralSettings } from "./GeneralSettings";
+import { QuotaSettings } from "./QuotaSettings";
+import { useTranslation } from "react-i18next";
+import styled from "styled-components";
+import { ThemeMode } from "antd-style";
+import { Divider } from "antd";
+import MCPSettings from "@/components/Settings/MCPSettings";
 
-export type SettingsTab = 'General' | 'Quota' | 'MCPServer';
+export type SettingsTab = "General" | "Quota" | "MCPServer";
+
 
 export const TAB_KEYS = {
-  GENERAL: 'General' as const,
-  Quota: 'Quota' as const,
-  MCPServer: 'MCPServer' as const,
+  GENERAL: "General" as const,
+  Quota: "Quota" as const,
+  MCPServer: "MCPServer" as const,
 } as const;
 
 interface SettingsProps {
@@ -22,20 +23,24 @@ interface SettingsProps {
   initialTab?: SettingsTab;
 }
 
-export function Settings({ isOpen, onClose, initialTab = TAB_KEYS.GENERAL }: SettingsProps) {
+export function Settings({
+  isOpen,
+  onClose,
+  initialTab = TAB_KEYS.GENERAL,
+}: SettingsProps) {
   const [mounted, setMounted] = React.useState(false);
   const [isAnimating, setIsAnimating] = React.useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
   const { t } = useTranslation();
 
   useEffect(() => {
-    console.log('Initial Tab:', initialTab);
-    console.log('Active Tab:', activeTab);
+    console.log("Initial Tab:", initialTab);
+    console.log("Active Tab:", activeTab);
     setActiveTab(initialTab);
   }, [initialTab]);
 
   useEffect(() => {
-    console.log('Active Tab Changed:', activeTab);
+    console.log("Active Tab Changed:", activeTab);
   }, [activeTab]);
 
   useEffect(() => {
@@ -64,9 +69,14 @@ export function Settings({ isOpen, onClose, initialTab = TAB_KEYS.GENERAL }: Set
   }> = [
     {
       id: TAB_KEYS.GENERAL,
-      label: t('settings.general'),
+      label: t("settings.general"),
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -84,9 +94,14 @@ export function Settings({ isOpen, onClose, initialTab = TAB_KEYS.GENERAL }: Set
     },
     {
       id: TAB_KEYS.Quota,
-      label: t('settings.Quota'),
+      label: t("settings.Quota"),
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -99,9 +114,14 @@ export function Settings({ isOpen, onClose, initialTab = TAB_KEYS.GENERAL }: Set
   ];
   tabs.push({
     id: TAB_KEYS.MCPServer,
-    label: t('settings.MCPServer'),
+    label: t("settings.MCPServer"),
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -117,14 +137,14 @@ export function Settings({ isOpen, onClose, initialTab = TAB_KEYS.GENERAL }: Set
       className={`
         fixed inset-0 z-40 flex items-center justify-center
         transition-all duration-300 ease-out
-        ${isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+        ${isAnimating ? "opacity-100" : "opacity-0 pointer-events-none"}
       `}
     >
       <div
         className={`
           fixed inset-0 bg-black/50 dark:bg-black/60
           transition-opacity duration-300 ease-out
-          ${isAnimating ? 'opacity-100' : 'opacity-0'}
+          ${isAnimating ? "opacity-100" : "opacity-0"}
         `}
         onClick={onClose}
       />
@@ -134,7 +154,9 @@ export function Settings({ isOpen, onClose, initialTab = TAB_KEYS.GENERAL }: Set
           relative flex glass-card w-[1000px] h-[650px]
           transition-all duration-300 ease-out
           ${
-            isAnimating ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'
+            isAnimating
+              ? "opacity-100 translate-y-0 scale-100"
+              : "opacity-0 translate-y-4 scale-95"
           }
         `}
       >
@@ -150,8 +172,8 @@ export function Settings({ isOpen, onClose, initialTab = TAB_KEYS.GENERAL }: Set
                   transition-colors text-[14px]
                   ${
                     activeTab === tab.id
-                      ? 'bg-gray-100 dark:bg-[#333333] text-gray-900 dark:text-white'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2A2A2A] hover:text-gray-900 dark:hover:text-white'
+                      ? "bg-gray-100 dark:bg-[#333333] text-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2A2A2A] hover:text-gray-900 dark:hover:text-white"
                   }
                 `}
               >
@@ -173,9 +195,14 @@ export function Settings({ isOpen, onClose, initialTab = TAB_KEYS.GENERAL }: Set
         <button
           onClick={onClose}
           className="absolute text-gray-400 transition-colors top-3 right-3 hover:text-gray-900 dark:hover:text-white"
-          aria-label={t('common.close')}
+          aria-label={t("common.close")}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -221,7 +248,8 @@ export const SettingGroup = styled.div<{ theme?: ThemeMode }>`
   border-radius: 8px;
   @ts-ignore border: 0.5px solid var(--color-border);
   padding: 16px;
-  background: ${(props) => (props.theme === 'dark' ? '#00000010' : 'var(--color-background)')};
+  background: ${(props) =>
+    props.theme === "dark" ? "#00000010" : "var(--color-background)"};
 `;
 export const SettingContainer = styled.div<{ theme?: ThemeMode }>`
   display: flex;
@@ -233,7 +261,7 @@ export const SettingContainer = styled.div<{ theme?: ThemeMode }>`
   overflow-y: scroll;
   font-family: Ubuntu;
   background: ${(props) =>
-    props.theme === 'dark' ? 'transparent' : 'var(--color-background-soft)'};
+    props.theme === "dark" ? "transparent" : "var(--color-background-soft)"};
 
   &::-webkit-scrollbar {
     display: none;

@@ -5,7 +5,7 @@ import type { UserModel } from './userModel';
  * Define the base URL for your API.
  * It's recommended to use an environment variable for this.
  */
-const API_BASE_URL = process.env.REACT_APP_IDEM_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_IDEM_API_BASE_URL || 'http://localhost:3001';
 
 export async function getCurrentUser(): Promise<UserModel | null> {
   try {
