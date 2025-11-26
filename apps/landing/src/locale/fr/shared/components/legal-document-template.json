@@ -1,0 +1,10 @@
+{
+  "locale": "fr",
+  "translations": {
+    "legal.see_all_versions": "Voir toutes les versions",
+    "legal.navigation": "Navigation",
+    "legal.effective_date": "Date d'entrée en vigueur",
+    "legal.questions": "Des questions sur ce document ?",
+    "legal.contact_message": "Si vous avez des questions ou des préoccupations, veuillez contacter notre équipe juridique."
+  }
+}

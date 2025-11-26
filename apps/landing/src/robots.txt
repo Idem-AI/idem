@@ -1,0 +1,30 @@
+# Robots.txt for Idem - AI-powered open source project builder
+# https://idem.africa
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /assets/private/
+Disallow: /*.json$
+Disallow: /*?*
+
+# Allow important assets for SEO
+Allow: /assets/seo/
+Allow: /assets/icons/
+Allow: /assets/images/
+Allow: /assets/i18n/
+Allow: /sitemap.xml
+Allow: /sitemap-*.xml
+Allow: /robots.txt
+
+# Allow localized content
+Allow: /en/
+Allow: /fr/
+
+# Crawl delay to be respectful
+Crawl-delay: 1
+
+# Sitemap locations (multilingual)
+Sitemap: https://idem.africa/sitemap.xml
+Sitemap: https://idem.africa/sitemap-en.xml
+Sitemap: https://idem.africa/sitemap-fr.xml
