@@ -1,0 +1,263 @@
+2025-11-14 12:44:48,010:DEBUG:certbot._internal.main:certbot version: 5.1.0
+2025-11-14 12:44:48,010:DEBUG:certbot._internal.main:Location of certbot entry point: /usr/local/bin/certbot
+2025-11-14 12:44:48,010:DEBUG:certbot._internal.main:Arguments: []
+2025-11-14 12:44:48,010:DEBUG:certbot._internal.main:Discovered plugins: PluginsRegistry(PluginEntryPoint#manual,PluginEntryPoint#null,PluginEntryPoint#standalone,PluginEntryPoint#webroot)
+2025-11-14 12:44:48,022:DEBUG:certbot._internal.log:Root logging level set at 30
+2025-11-14 12:44:48,023:DEBUG:certbot._internal.display.obj:Notifying user: Processing /etc/letsencrypt/renewal/api.idem-ai.com.conf
+2025-11-14 12:44:48,024:DEBUG:certbot._internal.plugins.selection:Requested authenticator None and installer None
+2025-11-14 12:44:48,031:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/directory.
+2025-11-14 12:44:48,033:DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): acme-v02.api.letsencrypt.org:443
+2025-11-14 12:44:48,556:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /directory HTTP/1.1" 200 1063
+2025-11-14 12:44:48,557:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:48 GMT
+Content-Type: application/json
+Content-Length: 1063
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "1kmYrjp2l8g": "https://community.letsencrypt.org/t/adding-random-entries-to-the-directory/33417",
+  "keyChange": "https://acme-v02.api.letsencrypt.org/acme/key-change",
+  "meta": {
+    "caaIdentities": [
+      "letsencrypt.org"
+    ],
+    "profiles": {
+      "classic": "https://letsencrypt.org/docs/profiles#classic",
+      "shortlived": "https://letsencrypt.org/docs/profiles#shortlived (not yet generally available)",
+      "tlsclient": "https://letsencrypt.org/docs/profiles#tlsclient",
+      "tlsserver": "https://letsencrypt.org/docs/profiles#tlsserver"
+    },
+    "termsOfService": "https://letsencrypt.org/documents/LE-SA-v1.6-August-18-2025.pdf",
+    "website": "https://letsencrypt.org"
+  },
+  "newAccount": "https://acme-v02.api.letsencrypt.org/acme/new-acct",
+  "newNonce": "https://acme-v02.api.letsencrypt.org/acme/new-nonce",
+  "newOrder": "https://acme-v02.api.letsencrypt.org/acme/new-order",
+  "renewalInfo": "https://acme-v02.api.letsencrypt.org/acme/renewal-info",
+  "revokeCert": "https://acme-v02.api.letsencrypt.org/acme/revoke-cert"
+}
+2025-11-14 12:44:48,557:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BU8GVXlIiE5PiG_b4gJ8fg-x.
+2025-11-14 12:44:48,747:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BU8GVXlIiE5PiG_b4gJ8fg-x HTTP/1.1" 200 101
+2025-11-14 12:44:48,748:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:48 GMT
+Content-Type: application/json
+Content-Length: 101
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index"
+Retry-After: 21600
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "suggestedWindow": {
+    "start": "2025-12-20T02:35:26Z",
+    "end": "2025-12-21T21:46:15Z"
+  }
+}
+2025-11-14 12:44:48,754:INFO:certbot.ocsp:Cannot extract OCSP URI from /etc/letsencrypt/archive/api.idem-ai.com/cert1.pem
+2025-11-14 12:44:48,754:DEBUG:certbot._internal.display.obj:Notifying user: Certificate not yet due for renewal
+2025-11-14 12:44:48,755:DEBUG:certbot._internal.plugins.selection:Requested authenticator webroot and installer None
+2025-11-14 12:44:48,755:DEBUG:certbot._internal.display.obj:Notifying user: Processing /etc/letsencrypt/renewal/appgen.idem-ai.com.conf
+2025-11-14 12:44:48,758:DEBUG:certbot._internal.plugins.selection:Requested authenticator None and installer None
+2025-11-14 12:44:48,775:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/acme/renewal-info/jw0TovYuftFQbDMYOF1ZjiNykco.BVEftXst3o8m9wsUADGKZb4V.
+2025-11-14 12:44:48,965:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /acme/renewal-info/jw0TovYuftFQbDMYOF1ZjiNykco.BVEftXst3o8m9wsUADGKZb4V HTTP/1.1" 200 101
+2025-11-14 12:44:48,965:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:48 GMT
+Content-Type: application/json
+Content-Length: 101
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index"
+Retry-After: 21600
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "suggestedWindow": {
+    "start": "2025-12-20T22:01:03Z",
+    "end": "2025-12-22T17:11:53Z"
+  }
+}
+2025-11-14 12:44:48,969:INFO:certbot.ocsp:Cannot extract OCSP URI from /etc/letsencrypt/archive/appgen.idem-ai.com/cert1.pem
+2025-11-14 12:44:48,969:DEBUG:certbot._internal.display.obj:Notifying user: Certificate not yet due for renewal
+2025-11-14 12:44:48,970:DEBUG:certbot._internal.plugins.selection:Requested authenticator webroot and installer None
+2025-11-14 12:44:48,971:DEBUG:certbot._internal.display.obj:Notifying user: Processing /etc/letsencrypt/renewal/chart.idem-ai.com.conf
+2025-11-14 12:44:48,973:DEBUG:certbot._internal.plugins.selection:Requested authenticator None and installer None
+2025-11-14 12:44:48,991:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BobbuSZXQKnQWExVM1tachEE.
+2025-11-14 12:44:49,168:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BobbuSZXQKnQWExVM1tachEE HTTP/1.1" 200 101
+2025-11-14 12:44:49,169:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:49 GMT
+Content-Type: application/json
+Content-Length: 101
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index"
+Retry-After: 21600
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "suggestedWindow": {
+    "start": "2025-12-20T02:37:42Z",
+    "end": "2025-12-21T21:48:32Z"
+  }
+}
+2025-11-14 12:44:49,174:INFO:certbot.ocsp:Cannot extract OCSP URI from /etc/letsencrypt/archive/chart.idem-ai.com/cert1.pem
+2025-11-14 12:44:49,174:DEBUG:certbot._internal.display.obj:Notifying user: Certificate not yet due for renewal
+2025-11-14 12:44:49,175:DEBUG:certbot._internal.plugins.selection:Requested authenticator webroot and installer None
+2025-11-14 12:44:49,175:DEBUG:certbot._internal.display.obj:Notifying user: Processing /etc/letsencrypt/renewal/console.idem.africa.conf
+2025-11-14 12:44:49,177:DEBUG:certbot._internal.plugins.selection:Requested authenticator None and installer None
+2025-11-14 12:44:49,187:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BipXb-_LzBb9fyHA3MdiKz3a.
+2025-11-14 12:44:49,378:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BipXb-_LzBb9fyHA3MdiKz3a HTTP/1.1" 200 101
+2025-11-14 12:44:49,379:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:49 GMT
+Content-Type: application/json
+Content-Length: 101
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index"
+Retry-After: 21600
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "suggestedWindow": {
+    "start": "2026-01-05T02:48:16Z",
+    "end": "2026-01-06T21:59:06Z"
+  }
+}
+2025-11-14 12:44:49,382:INFO:certbot.ocsp:Cannot extract OCSP URI from /etc/letsencrypt/archive/console.idem.africa/cert1.pem
+2025-11-14 12:44:49,382:DEBUG:certbot._internal.display.obj:Notifying user: Certificate not yet due for renewal
+2025-11-14 12:44:49,383:DEBUG:certbot._internal.plugins.selection:Requested authenticator webroot and installer None
+2025-11-14 12:44:49,383:DEBUG:certbot._internal.display.obj:Notifying user: Processing /etc/letsencrypt/renewal/idem-ai.com.conf
+2025-11-14 12:44:49,385:DEBUG:certbot._internal.plugins.selection:Requested authenticator None and installer None
+2025-11-14 12:44:49,398:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BaYZ7xLVAskiEfwLpDXShWwN.
+2025-11-14 12:44:49,576:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BaYZ7xLVAskiEfwLpDXShWwN HTTP/1.1" 200 101
+2025-11-14 12:44:49,577:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:49 GMT
+Content-Type: application/json
+Content-Length: 101
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index"
+Retry-After: 21600
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "suggestedWindow": {
+    "start": "2025-12-20T02:32:40Z",
+    "end": "2025-12-21T21:43:30Z"
+  }
+}
+2025-11-14 12:44:49,579:INFO:certbot.ocsp:Cannot extract OCSP URI from /etc/letsencrypt/archive/idem-ai.com/cert1.pem
+2025-11-14 12:44:49,579:DEBUG:certbot._internal.display.obj:Notifying user: Certificate not yet due for renewal
+2025-11-14 12:44:49,579:DEBUG:certbot._internal.plugins.selection:Requested authenticator webroot and installer None
+2025-11-14 12:44:49,580:DEBUG:certbot._internal.display.obj:Notifying user: Processing /etc/letsencrypt/renewal/idem.africa.conf
+2025-11-14 12:44:49,581:DEBUG:certbot._internal.plugins.selection:Requested authenticator None and installer None
+2025-11-14 12:44:49,593:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BWiuv6A-GNiHoKkshRHTukCL.
+2025-11-14 12:44:49,771:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.BWiuv6A-GNiHoKkshRHTukCL HTTP/1.1" 200 101
+2025-11-14 12:44:49,771:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:49 GMT
+Content-Type: application/json
+Content-Length: 101
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index"
+Retry-After: 21600
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "suggestedWindow": {
+    "start": "2025-12-23T19:51:20Z",
+    "end": "2025-12-25T15:02:10Z"
+  }
+}
+2025-11-14 12:44:49,775:INFO:certbot.ocsp:Cannot extract OCSP URI from /etc/letsencrypt/archive/idem.africa/cert1.pem
+2025-11-14 12:44:49,775:DEBUG:certbot._internal.display.obj:Notifying user: Certificate not yet due for renewal
+2025-11-14 12:44:49,776:DEBUG:certbot._internal.plugins.selection:Requested authenticator webroot and installer None
+2025-11-14 12:44:49,776:DEBUG:certbot._internal.display.obj:Notifying user: Processing /etc/letsencrypt/renewal/next.idem-ai.com.conf
+2025-11-14 12:44:49,778:DEBUG:certbot._internal.plugins.selection:Requested authenticator None and installer None
+2025-11-14 12:44:49,795:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/acme/renewal-info/jw0TovYuftFQbDMYOF1ZjiNykco.Bj7umIuyIKmqq4_6yY34jvdU.
+2025-11-14 12:44:49,974:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /acme/renewal-info/jw0TovYuftFQbDMYOF1ZjiNykco.Bj7umIuyIKmqq4_6yY34jvdU HTTP/1.1" 200 101
+2025-11-14 12:44:49,974:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:49 GMT
+Content-Type: application/json
+Content-Length: 101
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index"
+Retry-After: 21600
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "suggestedWindow": {
+    "start": "2025-12-20T02:42:36Z",
+    "end": "2025-12-21T21:53:25Z"
+  }
+}
+2025-11-14 12:44:49,977:INFO:certbot.ocsp:Cannot extract OCSP URI from /etc/letsencrypt/archive/next.idem-ai.com/cert1.pem
+2025-11-14 12:44:49,977:DEBUG:certbot._internal.display.obj:Notifying user: Certificate not yet due for renewal
+2025-11-14 12:44:49,978:DEBUG:certbot._internal.plugins.selection:Requested authenticator webroot and installer None
+2025-11-14 12:44:49,979:DEBUG:certbot._internal.display.obj:Notifying user: Processing /etc/letsencrypt/renewal/webgen.idem-ai.com.conf
+2025-11-14 12:44:49,981:DEBUG:certbot._internal.plugins.selection:Requested authenticator None and installer None
+2025-11-14 12:44:49,998:DEBUG:acme.client:Sending GET request to https://acme-v02.api.letsencrypt.org/acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.Br2LkOxUHVkj8FmHLBxRqA5-.
+2025-11-14 12:44:50,177:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "GET /acme/renewal-info/rkie3IcdRKBv2qLlYHQEeMKcAIA.Br2LkOxUHVkj8FmHLBxRqA5- HTTP/1.1" 200 101
+2025-11-14 12:44:50,178:DEBUG:acme.client:Received response:
+HTTP 200
+Server: nginx
+Date: Fri, 14 Nov 2025 12:44:50 GMT
+Content-Type: application/json
+Content-Length: 101
+Connection: keep-alive
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index"
+Retry-After: 21600
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=604800
+
+{
+  "suggestedWindow": {
+    "start": "2025-12-20T02:40:12Z",
+    "end": "2025-12-21T21:51:01Z"
+  }
+}
+2025-11-14 12:44:50,181:INFO:certbot.ocsp:Cannot extract OCSP URI from /etc/letsencrypt/archive/webgen.idem-ai.com/cert1.pem
+2025-11-14 12:44:50,181:DEBUG:certbot._internal.display.obj:Notifying user: Certificate not yet due for renewal
+2025-11-14 12:44:50,182:DEBUG:certbot._internal.plugins.selection:Requested authenticator webroot and installer None
+2025-11-14 12:44:50,182:DEBUG:certbot._internal.display.obj:Notifying user: 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+2025-11-14 12:44:50,182:DEBUG:certbot._internal.display.obj:Notifying user: The following certificates are not due for renewal yet:
+2025-11-14 12:44:50,182:DEBUG:certbot._internal.display.obj:Notifying user:   /etc/letsencrypt/live/api.idem-ai.com/fullchain.pem expires on 2026-01-19 (skipped)
+  /etc/letsencrypt/live/appgen.idem-ai.com/fullchain.pem expires on 2026-01-20 (skipped)
+  /etc/letsencrypt/live/chart.idem-ai.com/fullchain.pem expires on 2026-01-19 (skipped)
+  /etc/letsencrypt/live/console.idem.africa/fullchain.pem expires on 2026-02-05 (skipped)
+  /etc/letsencrypt/live/idem-ai.com/fullchain.pem expires on 2026-01-19 (skipped)
+  /etc/letsencrypt/live/idem.africa/fullchain.pem expires on 2026-01-23 (skipped)
+  /etc/letsencrypt/live/next.idem-ai.com/fullchain.pem expires on 2026-01-19 (skipped)
+  /etc/letsencrypt/live/webgen.idem-ai.com/fullchain.pem expires on 2026-01-19 (skipped)
+2025-11-14 12:44:50,182:DEBUG:certbot._internal.display.obj:Notifying user: No renewals were attempted.
+2025-11-14 12:44:50,182:DEBUG:certbot._internal.display.obj:Notifying user: - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+2025-11-14 12:44:50,182:DEBUG:certbot._internal.renewal:no renewal failures
