@@ -84,4 +84,4 @@ RUN mkdir -p /app/logs && chown -R apiuser:nodejs /app/logs
 # Switch to non-root user
 USER apiuser
 
-CMD ["node", "dist/api/index.js"]
+CMD ["node", "dist/apps/api/api/index.js"]
