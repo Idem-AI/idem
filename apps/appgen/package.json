@@ -1,0 +1,22 @@
+{
+  "name": "we-dev",
+  "private": true,
+  "packageManager": "pnpm@8.15.4",
+  "scripts": {
+    "dev:next": "cd apps/we-dev-next && pnpm install && pnpm dev",
+    "dev:admin": "cd apps/we-dev-admin && pnpm install && pnpm dev",
+    "dev:client": "cd apps/we-dev-client  && pnpm dev",
+    "build:client": "cd apps/we-dev-client && pnpm build",
+    "build:next": "cd apps/we-dev-next && pnpm build"
+  },
+  "dependencies": {
+    "fabric": "^6.5.4",
+    "qrcode.react": "^4.2.0",
+    "react-i18next": "^15.4.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0"
+  }
+}
