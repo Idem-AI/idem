@@ -12,7 +12,7 @@ on:
     branches: [ main ]
     paths:
       - 'apps/appgen/**'
-      - 'Dockerfile.appgen'
+      - 'Dockerfile.appgen-client'
       - '.github/workflows/deploy-appgen.yml'
   workflow_dispatch:
 
@@ -77,7 +77,7 @@ jobs:
             
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.appgen -t $IMAGE_TAG .
+            docker build -f Dockerfile.appgen-client -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
