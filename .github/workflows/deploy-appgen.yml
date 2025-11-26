@@ -4,15 +4,17 @@ on:
   push:
     branches: [ dev, main ]
     paths:
-      - 'apps/appgen/**'
-      - 'Dockerfile.appgen'
+      - 'apps/appgen/apps/we-dev-client/**'
+      - 'Dockerfile.appgen-client'
+      - 'packages/shared-styles/**'
       - '.github/workflows/deploy-appgen.yml'
   pull_request:
     types: [ closed ]
     branches: [ main ]
     paths:
-      - 'apps/appgen/**'
+      - 'apps/appgen/apps/we-dev-client/**'
       - 'Dockerfile.appgen-client'
+      - 'packages/shared-styles/**'
       - '.github/workflows/deploy-appgen.yml'
   workflow_dispatch:
 
