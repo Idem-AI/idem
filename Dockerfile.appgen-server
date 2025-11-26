@@ -1,0 +1,73 @@
+# Dockerfile.appgen-server
+# Build AppGen Server (Next.js)
+FROM node:20.18-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.4
+
+# Copy root configuration files
+COPY package.json package-lock.json* tsconfig.base.json* ./
+
+# Copy appgen server application
+COPY ./apps/appgen/apps/we-dev-next ./apps/appgen/apps/we-dev-next
+
+# Go to server directory
+WORKDIR /app/apps/appgen/apps/we-dev-next
+
+# Create dummy .env.local for build
+RUN echo 'NEXT_PUBLIC_FIREBASE_API_KEY="build-dummy-key"' > .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="build-dummy.firebaseapp.com"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_PROJECT_ID="build-dummy"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="build-dummy.appspot.com"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="000000000000"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_APP_ID="1:000000000000:web:dummy"' >> .env.local && \
+    echo 'FIREBASE_STORAGE_BUCKET="build-dummy.appspot.com"' >> .env.local && \
+    echo 'FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIBogIBAAJBAKj34GkxFhD90vcNLYLI\n-----END PRIVATE KEY-----"' >> .env.local && \
+    echo 'FIREBASE_CLIENT_EMAIL="firebase-adminsdk@build-dummy.iam.gserviceaccount.com"' >> .env.local
+
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile
+
+# Build application
+RUN pnpm build
+
+# ============ Production Stage ============
+FROM node:20.18-alpine AS production
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.4
+
+# Copy package.json and dependencies
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/package.json ./
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/node_modules ./node_modules
+
+# Copy Next.js build
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/.next ./.next
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/next.config.js* ./
+
+# Copy public folder if it exists (optional)
+RUN mkdir -p ./public
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Change ownership
+RUN chown -R nextjs:nodejs /app
+
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Start Next.js server
+CMD ["pnpm", "start"]
