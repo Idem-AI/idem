@@ -1,6 +1,3 @@
-# Build arguments for environment-specific builds
-ARG BUILD_ENV=production
-
 FROM node:20-alpine AS builder
 
 # Install security updates and build dependencies
@@ -42,8 +39,8 @@ RUN npm install fs-extra @modelcontextprotocol/sdk --legacy-peer-deps --save
 WORKDIR /app/apps/api
 
 # Manually add shared-models
-RUN mkdir -p node_modules/@idem && \
-    cp -r /app/packages/shared-models ./node_modules/@idem/shared-models
+#RUN mkdir -p node_modules/@idem && \
+#    cp -r /app/packages/shared-models ./node_modules/@idem/shared-models
 
 # Build application
 RUN npm run build
@@ -73,9 +70,9 @@ WORKDIR /app
 # Set Puppeteer environment variables
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV NODE_ENV=${BUILD_ENV:-production}
-
 # Copy built application and dependencies
+
+
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/package*.json ./
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./dist
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/public ./public
