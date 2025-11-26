@@ -40,20 +40,14 @@ jobs:
           filters: |
             api:
               - 'apps/api/**'
-              - 'packages/**'
             landing:
               - 'apps/landing/**'
-              - 'packages/**'
             main-dashboard:
               - 'apps/main-dashboard/**'
-              - 'packages/**'
             chart:
               - 'apps/chart/**'
             appgen:
               - 'apps/appgen/**'
-              - 'packages/**'
-            packages:
-              - 'packages/**'
 
   # ==========================
   # Quality checks
