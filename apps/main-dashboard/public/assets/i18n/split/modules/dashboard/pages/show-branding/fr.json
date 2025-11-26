@@ -21,7 +21,9 @@
     "getCharter": "Obtenir la charte graphique",
     "downloadZip": "Télécharger tous les logos en ZIP",
     "selectProject": "Sélectionner un projet",
-    "generate": "Générer l'identité de marque"
+    "generate": "Générer l'identité de marque",
+    "viewIdentity": "Voir mon identité visuelle",
+    "generateIdentity": "Générer mon identité visuelle"
   },
   "tooltips": {
     "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -67,6 +69,29 @@
     "title": "Créez votre identité de marque",
     "subtitle": "Générez une identité de marque complète avec logos, couleurs et typographie pour votre projet"
   },
+  "identityCard": {
+    "existing": {
+      "title": "Votre identité visuelle est prête !",
+      "subtitle": "Découvrez votre charte graphique complète avec logos, couleurs et typographie.",
+      "features": [
+        "Charte graphique PDF",
+        "Logos en plusieurs formats",
+        "Palette de couleurs",
+        "Guide typographique"
+      ]
+    },
+    "generate": {
+      "title": "Créez votre identité visuelle unique",
+      "subtitle": "Générez une identité de marque professionnelle adaptée à votre projet.",
+      "features": [
+        "IA créative avancée",
+        "Logos personnalisés",
+        "Couleurs harmonieuses",
+        "Typographie adaptée"
+      ],
+      "estimatedTime": "Temps estimé : 2-3 minutes"
+    }
+  },
   "features": {
     "colors": {
       "title": "Palette de couleurs",
@@ -82,6 +107,10 @@
     }
   },
   "generationTime": "La génération prend 2-3 minutes",
+  "status": {
+    "ready": "Prêt",
+    "pending": "En attente"
+  },
   "brandingDisplay": {
     "title": "Document d'identité de marque",
     "loading": "Préparation du contenu de branding..."

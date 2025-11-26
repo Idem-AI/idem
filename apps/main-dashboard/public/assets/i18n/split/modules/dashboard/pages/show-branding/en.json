@@ -21,7 +21,9 @@
     "getCharter": "Get Brand Charter",
     "downloadZip": "Download all logos as ZIP",
     "selectProject": "Select Project",
-    "generate": "Generate Brand Identity"
+    "generate": "Generate Brand Identity",
+    "viewIdentity": "View My Visual Identity",
+    "generateIdentity": "Generate My Visual Identity"
   },
   "tooltips": {
     "downloadZip": "Download all logos in a ZIP file"
@@ -67,6 +69,29 @@
     "title": "Create Your Brand Identity",
     "subtitle": "Generate a complete brand identity with logos, colors, and typography for your project"
   },
+  "identityCard": {
+    "existing": {
+      "title": "Your visual identity is ready!",
+      "subtitle": "Discover your complete brand charter with logos, colors, and typography.",
+      "features": [
+        "Brand charter PDF",
+        "Logos in multiple formats",
+        "Color palette",
+        "Typography guide"
+      ]
+    },
+    "generate": {
+      "title": "Create your unique visual identity",
+      "subtitle": "Generate a professional brand identity tailored to your project.",
+      "features": [
+        "Advanced creative AI",
+        "Custom logos",
+        "Harmonious colors",
+        "Adapted typography"
+      ],
+      "estimatedTime": "Estimated time: 2-3 minutes"
+    }
+  },
   "features": {
     "colors": {
       "title": "Color Palette",
@@ -82,6 +107,10 @@
     }
   },
   "generationTime": "Generation takes 2-3 minutes",
+  "status": {
+    "ready": "Ready",
+    "pending": "Pending"
+  },
   "brandingDisplay": {
     "title": "Brand Identity Document",
     "loading": "Preparing branding content..."
