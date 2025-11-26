@@ -43,29 +43,24 @@ Generate a comprehensive mockups section with actual photorealistic mockup image
 - Business card
 
 🔧 GEMINI 2.5 FLASH IMAGE INTEGRATION:
-You have direct access to Gemini 2.5 Flash Image generation. Generate 3 photorealistic mockup images:
+You have direct access to Gemini 2.5 Flash Image generation. Generate 2 photorealistic mockup images with the brand logo prominently integrated:
 
 **Mockup Generation Instructions:**
-1. **Business Card Mockup** (MANDATORY for all industries)
-   - Generate: Professional business card with brand name and colors
-   - Style: Industry-appropriate design, clean typography
-   - Context: Modern desk setup with soft lighting
+1. **Industry-Specific Mockup 1** (Primary application - Choose based on project type)
+   - Tech: Laptop screen displaying professional interface with logo
+   - Healthcare: Medical packaging with professional branding and logo
+   - Finance: Corporate letterhead with elegant design and logo
+   - Creative: Portfolio presentation with artistic flair and logo
+   - Food: Menu design with gastronomic presentation and logo
+   - Retail: Product packaging with commercial appeal and logo
 
-2. **Industry-Specific Mockup 1** (Choose based on project type)
-   - Tech: Laptop screen displaying professional interface
-   - Healthcare: Medical packaging with professional branding
-   - Finance: Corporate letterhead with elegant design
-   - Creative: Portfolio presentation with artistic flair
-   - Food: Menu design with gastronomic presentation
-   - Retail: Product packaging with commercial appeal
-
-3. **Industry-Specific Mockup 2** (Secondary application)
-   - Tech: Mobile app interface with modern UI
-   - Healthcare: Clinic signage with trustworthy design
-   - Finance: Office signage with professional appearance
-   - Creative: Studio signage with creative elements
-   - Food: Restaurant signage with appetizing ambiance
-   - Retail: Shopping bag with premium branding
+2. **Industry-Specific Mockup 2** (Secondary application - Choose based on project type)
+   - Tech: Mobile app interface with modern UI and logo
+   - Healthcare: Clinic signage with trustworthy design and logo
+   - Finance: Office signage with professional appearance and logo
+   - Creative: Studio signage with creative elements and logo
+   - Food: Restaurant signage with appetizing ambiance and logo
+   - Retail: Shopping bag with premium branding and logo
 
 **Image Generation Prompts:**
 For each mockup, create a detailed prompt like:
@@ -81,18 +76,19 @@ For each mockup, create a detailed prompt like:
 🌟 MOCKUP PRESENTATION STRUCTURE:
 Create a comprehensive mockups section with:
 - Section header with title "Brand Mockups" and description
-- Grid layout with 3 mockup cards (business card + 2 industry-specific)
-- Each card includes: colored dot indicator, title, mockup image, description
-- Guidelines section with 4 key principles: Brand Consistency, Visual Quality, Contextual Usage, Industry Standards
+- Grid layout with 2 mockup cards (industry-specific applications)
+- Each card includes: colored dot indicator, title, mockup image with integrated logo, description
+- Guidelines section with 4 key principles: Logo Integration, Brand Consistency, Visual Quality, Industry Standards
 - Use Tailwind CSS classes for modern, professional styling
 - Include PrimeIcons for visual elements (pi pi-palette, pi pi-eye, pi pi-cog, pi pi-check-circle)
 
-🔥 DIRECT IMAGE GENERATION:
-Generate the 3 mockup images directly in your response using Gemini 2.5 Flash Image:
+🔥 DIRECT IMAGE GENERATION WITH LOGO INTEGRATION:
+Generate the 2 mockup images directly in your response using Gemini 2.5 Flash Image:
 1. Create detailed prompts for each mockup based on the project's industry
-2. Generate the actual images within this response
-3. Include the generated images directly in the HTML structure
-4. No placeholder URLs needed - use the actual generated images
+2. MANDATORY: Each mockup must prominently feature the brand logo
+3. Generate the actual images within this response with logo integration
+4. Include the generated images directly in the HTML structure
+5. No placeholder URLs needed - use the actual generated images with logos
 
 📋 DYNAMIC CONTENT INTEGRATION:
 - Use the project's actual brand name, colors, and industry context

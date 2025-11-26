@@ -29,7 +29,7 @@ import crypto from 'crypto';
 import { projectService } from '../project.service';
 import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
-// geminiMockupService supprimé - génération directe dans le prompt mockups
+import { geminiMockupService } from '../geminiMockup.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
@@ -1956,6 +1956,121 @@ ${LOGO_EDIT_PROMPT}`;
     }
   }
 
-  // Méthode processMockupsSection supprimée - la génération de mockups
-  // se fait maintenant directement dans le prompt avec Gemini 2.5 Flash Image
+  /**
+   * Génère les mockups pour la charte graphique finale
+   */
+  async generateProjectMockups(
+    userId: string,
+    projectId: string
+  ): Promise<{ mockup1: any; mockup2: any } | null> {
+    try {
+      logger.info('🎨 Starting mockup generation for brand identity', {
+        userId,
+        projectId,
+        timestamp: new Date().toISOString()
+      });
+
+      // Récupérer le projet pour obtenir les informations de branding
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        logger.error('❌ Project not found for mockup generation', { projectId, userId });
+        return null;
+      }
+
+      // Extraire les informations nécessaires du projet
+      const branding = project.analysisResultModel?.branding;
+      if (!branding || !branding.logo || !branding.colors) {
+        logger.error('❌ Missing branding information for mockup generation', {
+          projectId,
+          userId,
+          hasLogo: !!branding?.logo,
+          hasColors: !!branding?.colors
+        });
+        return null;
+      }
+
+      // Préparer les données pour la génération de mockups
+      const logoUrl = branding.logo.svg; // Utiliser le SVG principal du logo
+      const brandColors = {
+        primary: branding.colors.colors.primary || '#000000',
+        secondary: branding.colors.colors.secondary || '#666666',
+        accent: branding.colors.colors.accent || '#999999'
+      };
+
+      // Utiliser une industrie par défaut ou extraire depuis la description
+      const industry = 'default'; // TODO: Implémenter l'extraction d'industrie si nécessaire
+      const brandName = project.name;
+
+      logger.info('📋 Mockup generation parameters prepared', {
+        projectId,
+        brandName,
+        industry,
+        brandColors,
+        hasLogoUrl: !!logoUrl,
+        timestamp: new Date().toISOString()
+      });
+
+      // Générer les mockups avec le service Gemini
+      const mockups = await geminiMockupService.generateProjectMockups(
+        logoUrl,
+        brandColors,
+        industry,
+        brandName,
+        userId,
+        projectId
+      );
+
+      logger.info('✅ Mockups generated successfully for brand identity', {
+        projectId,
+        userId,
+        mockup1Url: mockups.mockup1.mockupUrl,
+        mockup2Url: mockups.mockup2.mockupUrl,
+        timestamp: new Date().toISOString()
+      });
+
+      // Mettre à jour le projet avec les mockups générés
+      const updatedProjectData = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: {
+            ...branding,
+            mockups: {
+              mockup1: mockups.mockup1,
+              mockup2: mockups.mockup2,
+              generatedAt: new Date().toISOString()
+            }
+          }
+        }
+      };
+
+      // Sauvegarder le projet mis à jour
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        updatedProjectData,
+        `users/${userId}/projects`
+      );
+
+      if (updatedProject) {
+        logger.info('💾 Project updated with generated mockups', {
+          projectId,
+          userId,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      return mockups;
+
+    } catch (error: any) {
+      logger.error('❌ Error generating project mockups', {
+        error: error.message,
+        stack: error.stack,
+        projectId,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
+      return null;
+    }
+  }
 }
