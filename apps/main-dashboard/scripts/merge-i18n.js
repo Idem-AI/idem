@@ -75,9 +75,12 @@ const CONFIG = {
 
     // Dashboard pages - Show pages
     'modules/dashboard/pages/show-branding': 'dashboard.showBranding',
+    'modules/dashboard/pages/show-branding/components/branding-display': 'dashboard.brandingDisplay',
     'modules/dashboard/pages/show-business-plan': 'dashboard.showBusinessPlan',
     'modules/dashboard/pages/show-business-plan/components/business-plan-generation':
       'dashboard.businessPlanGeneration',
+    'modules/dashboard/pages/show-business-plan/components/business-plan-display':
+      'dashboard.businessPlanDisplay',
     'modules/dashboard/pages/show-business-plan/components/additional-info-form':
       'dashboard.additionalInfoForm',
     'modules/dashboard/pages/show-diagrams': 'dashboard.showDiagrams',

@@ -1124,16 +1124,56 @@
         "create": "Créer votre premier projet"
       }
     },
+    "brandingDisplay": {
+      "title": "Document d'identité de marque",
+      "loading": "Préparation du contenu de branding...",
+      "empty": {
+        "title": "Créez votre identité de marque",
+        "subtitle": "Générez une identité de marque complète avec logos, couleurs et typographie pour votre projet"
+      },
+      "features": {
+        "colors": {
+          "title": "Palette de couleurs",
+          "description": "Schémas de couleurs professionnels"
+        },
+        "logo": {
+          "title": "Variations de logo",
+          "description": "Multiples formats de logo"
+        },
+        "typography": {
+          "title": "Typographie",
+          "description": "Recommandations de polices"
+        }
+      },
+      "buttons": {
+        "generate": "Générer l'identité de marque"
+      },
+      "generationTime": "La génération prend 2-3 minutes"
+    },
     "showBranding": {
       "title": "Identité de marque",
       "loading": {
         "checking": "Vérification de votre identité de marque..."
       },
+      "showBranding": {
+        "title": "Identité de Marque",
+        "empty": {
+          "noProject": {
+            "title": "Aucun projet sélectionné",
+            "subtitle": "Veuillez sélectionner un projet pour voir son identité de marque"
+          }
+        },
+        "buttons": {
+          "selectProject": "Sélectionner un projet"
+        }
+      },
       "buttons": {
         "backToOverview": "Retour à l'aperçu",
         "backToProjects": "Retour aux projets",
         "getCharter": "Obtenir la charte graphique",
-        "downloadZip": "Télécharger tous les logos en ZIP"
+        "downloadZip": "Télécharger tous les logos en ZIP",
+        "selectProject": "Sélectionner un projet",
+        "generate": "Générer l'identité de marque"
       },
       "tooltips": {
         "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -1163,13 +1203,60 @@
           "subtitle": "Les polices de votre marque",
           "heading": "Police de titre",
           "body": "Police de corps",
-          "selected": "Typographie sélectionnée"
+          "selected": "Typographie sélectionnée",
+          "primary": "Police Principale",
+          "secondary": "Police Secondaire"
         }
       },
       "empty": {
         "noLogos": "Aucun logo disponible",
         "noColors": "Aucune palette de couleurs définie",
-        "noTypography": "Aucune typographie définie"
+        "noTypography": "Aucune typographie définie",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Veuillez sélectionner un projet pour voir son identité de marque"
+        },
+        "title": "Créez votre identité de marque",
+        "subtitle": "Générez une identité de marque complète avec logos, couleurs et typographie pour votre projet"
+      },
+      "features": {
+        "colors": {
+          "title": "Palette de couleurs",
+          "description": "Schémas de couleurs professionnels"
+        },
+        "logo": {
+          "title": "Variations de logo",
+          "description": "Multiples formats de logo"
+        },
+        "typography": {
+          "title": "Typographie",
+          "description": "Recommandations de polices"
+        }
+      },
+      "generationTime": "La génération prend 2-3 minutes",
+      "brandingDisplay": {
+        "title": "Document d'identité de marque",
+        "loading": "Préparation du contenu de branding..."
+      },
+      "dialog": {
+        "title": "Télécharger les Logos",
+        "subtitle": "Choisissez le format que vous souhaitez télécharger :",
+        "preparing": "Préparation du téléchargement...",
+        "wait": "Cela peut prendre quelques instants",
+        "formats": {
+          "svg": {
+            "name": "Format SVG",
+            "description": "Format vectoriel, redimensionnable"
+          },
+          "png": {
+            "name": "Format PNG",
+            "description": "Image raster haute qualité"
+          },
+          "psd": {
+            "name": "Format PSD",
+            "description": "Fichier éditable Photoshop"
+          }
+        }
       }
     },
     "additionalInfoForm": {
@@ -1177,40 +1264,52 @@
       "subtitle": "Aidez-nous à créer un plan d'affaires plus précis en fournissant des détails supplémentaires",
       "sections": {
         "company": "Informations sur l'entreprise",
-        "market": "Informations sur le marché",
-        "financial": "Informations financières"
+        "team": "Membres de l'équipe",
+        "social": "Liens sociaux"
       },
       "fields": {
         "email": "Email",
         "phone": "Téléphone",
-        "website": "Site web",
         "address": "Adresse",
         "city": "Ville",
         "country": "Pays",
-        "targetMarket": "Marché cible",
-        "competitors": "Principaux concurrents",
-        "budget": "Budget initial",
-        "fundingNeeds": "Besoins de financement"
+        "zipCode": "Code postal",
+        "fullName": "Nom complet",
+        "role": "Rôle",
+        "bio": "Biographie",
+        "profilePicture": "Photo de Profil"
       },
       "placeholders": {
         "email": "entreprise@exemple.com",
         "phone": "+33 1 23 45 67 89",
-        "website": "https://www.exemple.com",
         "address": "123 Rue Principale",
         "city": "Paris",
         "country": "France",
-        "targetMarket": "Décrivez votre marché cible",
-        "competitors": "Listez vos principaux concurrents",
-        "budget": "Entrez votre budget initial",
-        "fundingNeeds": "Décrivez vos besoins de financement"
+        "zipCode": "75001",
+        "fullName": "Jean Dupont",
+        "memberEmail": "jean@exemple.com",
+        "role": "PDG",
+        "bio": "Brève description de ce membre de l'équipe",
+        "linkedin": "https://linkedin.com/in/nomutilisateur",
+        "github": "https://github.com/nomutilisateur",
+        "twitter": "https://twitter.com/nomutilisateur"
       },
       "buttons": {
-        "submit": "Générer le plan d'affaires",
-        "skip": "Passer pour l'instant"
+        "addMember": "Ajouter un membre",
+        "chooseImage": "Choisir une image",
+        "continue": "Continuer"
       },
-      "validation": {
-        "emailRequired": "L'email est requis",
-        "emailInvalid": "Veuillez entrer une adresse email valide"
+      "member": "Membre de l'équipe {{index}}",
+      "alt": {
+        "profilePicture": "Photo de profil"
+      }
+    },
+    "businessPlanDisplay": {
+      "title": "PDF du Plan d'Affaires",
+      "loading": "Préparation du contenu du plan d'affaires...",
+      "empty": {
+        "title": "Aucun Plan d'Affaires Disponible",
+        "subtitle": "Aucun contenu de plan d'affaires disponible."
       }
     },
     "businessPlanGeneration": {
@@ -1238,8 +1337,10 @@
         }
       },
       "buttons": {
-        "generate": "Générer le plan d'affaires"
-      }
+        "generate": "Générer le plan d'affaires",
+        "cancel": "Annuler"
+      },
+      "progress": "Progrès"
     },
     "showBusinessPlan": {
       "loading": {
@@ -1451,5 +1552,56 @@
     "teamNameMinLength": "Le nom de l'équipe doit comporter au moins {{min}} caractères",
     "deploymentName": "Le nom du déploiement est requis (minimum {{min}} caractères)",
     "invalid": "Champ invalide"
+  },
+  "logoCreation": {
+    "title": "Création de Vos Logos Professionnels",
+    "subtitle": "Notre designer IA conçoit des concepts uniques adaptés à votre marque",
+    "progress": "Progression Globale",
+    "estimatedTime": "Temps restant estimé",
+    "status": {
+      "pending": "En attente",
+      "active": "En cours",
+      "completed": "Terminé"
+    },
+    "steps": {
+      "analyze": {
+        "title": "Analyse de Marque",
+        "description": "Étude de votre identité visuelle"
+      },
+      "research": {
+        "title": "Recherche Marché",
+        "description": "Analyse des tendances actuelles"
+      },
+      "sketch": {
+        "title": "Esquisses Initiales",
+        "description": "Exploration des concepts clés"
+      },
+      "design": {
+        "title": "Design Numérique",
+        "description": "Création des vecteurs précis"
+      },
+      "refine": {
+        "title": "Raffinement",
+        "description": "Ajustement des détails finaux"
+      },
+      "finalize": {
+        "title": "Touches Finales",
+        "description": "Préparation des fichiers finaux"
+      }
+    },
+    "concepts": {
+      "concept1": {
+        "name": "Approche Minimaliste",
+        "description": "Design épuré et moderne avec les éléments essentiels"
+      },
+      "concept2": {
+        "name": "Expression Créative",
+        "description": "Interprétation artistique avec des éléments visuels uniques"
+      },
+      "concept3": {
+        "name": "Style Professionnel",
+        "description": "Design adapté aux entreprises avec une forte présence de marque"
+      }
+    }
   }
 }
