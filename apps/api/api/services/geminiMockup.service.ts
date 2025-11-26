@@ -302,12 +302,12 @@ export class GeminiMockupService {
       // Générer l'image avec Gemini 2.5 Flash Image
       logger.info('🤖 Calling Gemini 2.5 Flash Image API', {
         mockupName,
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-preview-image',
         projectId
       });
 
       const response = await this.geminiAI.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-preview-image',
         contents: prompt,
       });
 
