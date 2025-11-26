@@ -38,11 +38,8 @@ RUN npm install fs-extra @modelcontextprotocol/sdk --legacy-peer-deps --save
 # Return to API directory
 WORKDIR /app/apps/api
 
-# Manually add shared-models
-#RUN mkdir -p node_modules/@idem && \
-#    cp -r /app/packages/shared-models ./node_modules/@idem/shared-models
-
-# No build step needed - API is pure JavaScript
+# Build TypeScript to JavaScript
+RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS production
@@ -72,8 +69,8 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 # Copy built application and dependencies
 
 
-# Copy API source code
-COPY --from=builder --chown=apiuser:nodejs /app/apps/api/api ./api
+# Copy built JavaScript files
+COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./dist
 
 # Copy node_modules from root (npm installs them there in monorepo)
 COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules
@@ -87,4 +84,4 @@ RUN mkdir -p /app/logs && chown -R apiuser:nodejs /app/logs
 # Switch to non-root user
 USER apiuser
 
-CMD ["node", "api/index.js"]
+CMD ["node", "dist/api/index.js"]
