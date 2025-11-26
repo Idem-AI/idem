@@ -3,6 +3,7 @@ import { ProjectModel } from '../../models/project.model';
 import { LLMProvider, PromptService } from '../prompt.service';
 import { SvgToPsdService } from '../svgToPsd.service';
 import * as fs from 'fs-extra';
+// Version: 1.0.1
 
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { LOGO_GENERATION_PROMPT } from './prompts/singleGenerations/00_logo-generation-section.prompt';
