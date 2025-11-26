@@ -156,7 +156,7 @@ export class GeminiMockupService {
   }
 
   /**
-   * Génère les mockups pour un projet
+   * Génère les mockups pour un projet (seulement 2 mockups)
    */
   async generateProjectMockups(
     logoUrl: string,
@@ -166,32 +166,34 @@ export class GeminiMockupService {
     userId: string,
     projectId: string
   ): Promise<{
-    businessCard: MockupGenerationResult;
     mockup1: MockupGenerationResult;
     mockup2: MockupGenerationResult;
   }> {
+    const startTime = Date.now();
+
     try {
-      logger.info('Starting mockup generation for project', {
+      logger.info('🎨 Starting mockup generation for project', {
         projectId,
         userId,
         industry,
-        brandName
+        brandName,
+        logoUrl,
+        brandColors,
+        timestamp: new Date().toISOString()
       });
 
       // Configuration des mockups selon l'industrie
       const industryConfig = this.industryMockups[industry.toLowerCase()] || this.industryMockups['default'];
 
-      // Génération des 3 mockups en parallèle
-      const [businessCard, mockup1, mockup2] = await Promise.all([
-        this.generateMockup({
-          templateId: 'business_card_premium',
-          logoUrl,
-          brandColors,
-          mockupType: 'business_card',
-          industry,
-          brandName
-        }, userId, projectId, 'business-card'),
+      logger.info('📋 Industry configuration selected', {
+        industry: industry.toLowerCase(),
+        mockup1Type: industryConfig.mockup1.mockupType,
+        mockup2Type: industryConfig.mockup2.mockupType,
+        projectId
+      });
 
+      // Génération des 2 mockups en parallèle
+      const [mockup1, mockup2] = await Promise.all([
         this.generateMockup({
           templateId: industryConfig.mockup1.templateId,
           logoUrl,
@@ -211,12 +213,19 @@ export class GeminiMockupService {
         }, userId, projectId, 'mockup-2')
       ]);
 
+      const duration = Date.now() - startTime;
+
+      logger.info('✅ Project mockups generation completed successfully', {
+        projectId,
+        userId,
+        industry,
+        mockup1Url: mockup1.mockupUrl,
+        mockup2Url: mockup2.mockupUrl,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
+      });
+
       return {
-        businessCard: {
-          ...businessCard,
-          title: 'Carte de Visite',
-          description: 'Carte de visite professionnelle avec design optimisé et typographie élégante'
-        },
         mockup1: {
           ...mockup1,
           title: industryConfig.mockup1.title,
@@ -230,12 +239,19 @@ export class GeminiMockupService {
       };
 
     } catch (error: any) {
-      logger.error('Error generating project mockups', {
+      const duration = Date.now() - startTime;
+
+      logger.error('❌ Error generating project mockups', {
         error: error.message,
+        stack: error.stack,
         projectId,
         userId,
-        industry
+        industry,
+        brandName,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
       });
+
       throw new Error(`Failed to generate mockups: ${error.message}`);
     }
   }
@@ -249,26 +265,57 @@ export class GeminiMockupService {
     projectId: string,
     mockupName: string
   ): Promise<MockupGenerationResult> {
-    try {
-      // Si l'API key n'est pas configurée, retourner un mockup placeholder
-      if (!process.env.GEMINI_API_KEY) {
-        logger.warn('Gemini API not configured, returning placeholder mockup');
-        return this.generatePlaceholderMockup(request, mockupName);
-      }
+    const mockupStartTime = Date.now();
 
-      logger.info('Generating mockup with Gemini 2.5 Flash Image', {
+    try {
+      logger.info('🖼️ Starting individual mockup generation', {
+        mockupName,
         templateId: request.templateId,
         mockupType: request.mockupType,
-        industry: request.industry
+        industry: request.industry,
+        brandName: request.brandName,
+        logoUrl: request.logoUrl,
+        projectId,
+        userId,
+        timestamp: new Date().toISOString()
       });
+
+      // Si l'API key n'est pas configurée, retourner un mockup placeholder
+      if (!process.env.GEMINI_API_KEY) {
+        logger.warn('⚠️ Gemini API not configured, returning placeholder mockup', {
+          mockupName,
+          projectId
+        });
+        return this.generatePlaceholderMockup(request, mockupName);
+      }
 
       // Créer le prompt pour Gemini basé sur le type de mockup et l'industrie
       const prompt = this.createMockupPrompt(request);
 
+      logger.info('📝 Mockup prompt created', {
+        mockupName,
+        promptLength: prompt.length,
+        mockupType: request.mockupType,
+        projectId
+      });
+
       // Générer l'image avec Gemini 2.5 Flash Image
+      logger.info('🤖 Calling Gemini 2.5 Flash Image API', {
+        mockupName,
+        model: 'gemini-2.5-flash-image',
+        projectId
+      });
+
       const response = await this.geminiAI.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: prompt,
+      });
+
+      logger.info('📡 Gemini API response received', {
+        mockupName,
+        hasCandidates: !!(response.candidates && response.candidates.length > 0),
+        candidatesCount: response.candidates?.length || 0,
+        projectId
       });
 
       // Extraire l'image générée
@@ -279,18 +326,32 @@ export class GeminiMockupService {
           if (part.inlineData && part.inlineData.data) {
             const imageData = part.inlineData.data;
             imageBuffer = Buffer.from(imageData, 'base64');
+
+            logger.info('🎯 Image data extracted from Gemini response', {
+              mockupName,
+              imageSize: imageBuffer.length,
+              projectId
+            });
             break;
           }
         }
       }
 
       if (!imageBuffer) {
-        throw new Error('No image generated by Gemini');
+        throw new Error('No image generated by Gemini - response did not contain image data');
       }
 
       // Stocker l'image sur Firebase Storage
       const fileName = `${mockupName}-${Date.now()}.png`;
       const folderPath = `users/${userId}/projects/${projectId}/mockups`;
+
+      logger.info('☁️ Uploading mockup to Firebase Storage', {
+        mockupName,
+        fileName,
+        folderPath,
+        imageSize: imageBuffer.length,
+        projectId
+      });
 
       const uploadResult = await this.storageService.uploadFile(
         imageBuffer,
@@ -299,10 +360,17 @@ export class GeminiMockupService {
         'image/png'
       );
 
-      logger.info('Mockup generated and stored successfully', {
+      const mockupDuration = Date.now() - mockupStartTime;
+
+      logger.info('✅ Mockup generated and stored successfully', {
+        mockupName,
         templateId: request.templateId,
         mockupType: request.mockupType,
-        downloadURL: uploadResult.downloadURL
+        downloadURL: uploadResult.downloadURL,
+        fileName,
+        duration: `${mockupDuration}ms`,
+        projectId,
+        timestamp: new Date().toISOString()
       });
 
       return {
@@ -314,59 +382,79 @@ export class GeminiMockupService {
       };
 
     } catch (error: any) {
-      logger.error('Error generating individual mockup', {
+      const mockupDuration = Date.now() - mockupStartTime;
+
+      logger.error('❌ Error generating individual mockup', {
         error: error.message,
+        stack: error.stack,
+        mockupName,
         templateId: request.templateId,
-        mockupType: request.mockupType
+        mockupType: request.mockupType,
+        brandName: request.brandName,
+        industry: request.industry,
+        duration: `${mockupDuration}ms`,
+        projectId,
+        userId,
+        timestamp: new Date().toISOString()
       });
 
       // En cas d'erreur, retourner un placeholder
+      logger.info('🔄 Fallback to placeholder mockup', {
+        mockupName,
+        projectId
+      });
+
       return this.generatePlaceholderMockup(request, mockupName);
     }
   }
 
   /**
-   * Crée un prompt spécifique pour générer un mockup avec Gemini
+   * Crée un prompt spécifique pour générer un mockup avec Gemini incluant le logo
    */
   private createMockupPrompt(request: MockupGenerationRequest): string {
-    const { mockupType, brandName, brandColors, industry } = request;
+    const { mockupType, brandName, brandColors, industry, logoUrl } = request;
 
-    const basePrompt = `Create a professional, photorealistic mockup image for the brand "${brandName}" in the ${industry} industry.`;
+    // Prompt de base avec intégration du logo
+    const basePrompt = `Create a professional, photorealistic mockup image for the brand "${brandName}" in the ${industry} industry. The mockup MUST include the brand logo prominently and professionally integrated into the design.`;
 
-    const colorInfo = `Use these brand colors: primary ${brandColors.primary}, secondary ${brandColors.secondary}, accent ${brandColors.accent}.`;
+    const colorInfo = `Use these exact brand colors: primary ${brandColors.primary}, secondary ${brandColors.secondary}, accent ${brandColors.accent}. The logo should be clearly visible and well-integrated with these colors.`;
+
+    const logoIntegration = `IMPORTANT: The brand logo must be prominently displayed and professionally integrated into the mockup. The logo should be clearly readable, properly sized, and positioned according to professional design standards for the ${industry} industry.`;
 
     let specificPrompt = '';
 
     switch (mockupType) {
       case 'business_card':
-        specificPrompt = `Show an elegant business card mockup with the brand name "${brandName}" prominently displayed. The card should have a professional design suitable for the ${industry} industry, with clean typography and the brand colors integrated tastefully. Show the card on a modern desk setup with soft lighting.`;
+        specificPrompt = `Create an elegant business card mockup featuring the "${brandName}" logo prominently on the front. The card should have a professional design suitable for the ${industry} industry, with clean typography and the brand colors integrated tastefully. The logo should be the focal point of the card design. Show the card on a modern desk setup with soft, professional lighting. The card should look premium and industry-appropriate.`;
         break;
 
       case 'laptop_screen':
-        specificPrompt = `Show a modern laptop screen displaying a professional interface or website for "${brandName}". The screen should show a clean, modern UI design appropriate for the ${industry} industry. Include the brand colors in the interface design. The laptop should be on a clean desk with professional lighting.`;
+        specificPrompt = `Show a modern laptop screen displaying a professional interface or website for "${brandName}" with the logo prominently featured in the header or main area. The screen should show a clean, modern UI design appropriate for the ${industry} industry. The logo should be clearly visible and well-integrated into the interface design. Include the brand colors throughout the interface. The laptop should be on a clean desk with professional lighting.`;
         break;
 
       case 'mobile_app':
-        specificPrompt = `Show a smartphone displaying a mobile app interface for "${brandName}". The app should have a modern, user-friendly design appropriate for the ${industry} industry. Use the brand colors throughout the interface. Show the phone in a professional setting with good lighting.`;
+        specificPrompt = `Show a smartphone displaying a mobile app interface for "${brandName}" with the logo prominently displayed in the app header or splash screen. The app should have a modern, user-friendly design appropriate for the ${industry} industry. The logo should be clearly visible and the brand colors should be used throughout the interface. Show the phone in a professional setting with good lighting.`;
         break;
 
       case 'packaging':
-        specificPrompt = `Show professional product packaging for "${brandName}" suitable for the ${industry} industry. The packaging should be elegant and modern, incorporating the brand colors effectively. Show the packaging in a clean, well-lit environment that emphasizes the premium quality.`;
+        specificPrompt = `Show professional product packaging for "${brandName}" with the logo prominently featured on the front panel. The packaging should be elegant and modern, suitable for the ${industry} industry. The logo should be the main visual element, clearly readable and well-positioned. Incorporate the brand colors effectively throughout the packaging design. Show the packaging in a clean, well-lit environment that emphasizes premium quality.`;
         break;
 
       case 'signage':
-        specificPrompt = `Show professional signage for "${brandName}" appropriate for the ${industry} industry. The sign should be modern and elegant, using the brand colors effectively. Show it in a realistic business environment with professional lighting.`;
+        specificPrompt = `Show professional signage for "${brandName}" with the logo as the central element. The sign should be modern and elegant, appropriate for the ${industry} industry. The logo should be clearly visible, properly sized, and the main focal point of the signage. Use the brand colors effectively in the sign design. Show it in a realistic business environment with professional lighting.`;
         break;
 
       case 'merchandise':
-        specificPrompt = `Show premium merchandise (like a shopping bag or branded item) for "${brandName}" suitable for the ${industry} industry. The item should look high-quality and professional, incorporating the brand colors tastefully. Show it in an elegant setting.`;
+        specificPrompt = `Show premium merchandise (like a shopping bag, t-shirt, or branded item) for "${brandName}" with the logo prominently displayed. The item should look high-quality and professional, suitable for the ${industry} industry. The logo should be clearly visible and well-integrated into the merchandise design. Incorporate the brand colors tastefully. Show it in an elegant, professional setting.`;
         break;
 
       default:
-        specificPrompt = `Show a professional branded item for "${brandName}" in the ${industry} industry, incorporating the brand colors in an elegant and modern way.`;
+        specificPrompt = `Show a professional branded item for "${brandName}" in the ${industry} industry with the logo prominently featured. The logo should be clearly visible and the brand colors should be incorporated in an elegant and modern way.`;
     }
 
-    return `${basePrompt} ${colorInfo} ${specificPrompt} The image should be high-quality, photorealistic, and suitable for professional brand presentation. Ensure excellent lighting, composition, and attention to detail.`;
+    const qualityRequirements = `The final image should be high-quality, photorealistic, and suitable for professional brand presentation. Ensure excellent lighting, composition, and attention to detail. The logo must be sharp, clear, and professionally integrated into the overall design.`;
+
+    return `${basePrompt} ${colorInfo} ${logoIntegration} ${specificPrompt} ${qualityRequirements}`;
   }
 
   /**
@@ -376,18 +464,40 @@ export class GeminiMockupService {
     request: MockupGenerationRequest,
     mockupName: string
   ): MockupGenerationResult {
-    // URL d'image placeholder basée sur le type de mockup
+    logger.info('🎭 Generating placeholder mockup', {
+      mockupName,
+      mockupType: request.mockupType,
+      brandName: request.brandName,
+      industry: request.industry,
+      templateId: request.templateId,
+      timestamp: new Date().toISOString()
+    });
+
+    // URL d'image placeholder basée sur le type de mockup avec les couleurs de la marque
+    const primaryColor = request.brandColors.primary.replace('#', '');
+    const secondaryColor = request.brandColors.secondary.replace('#', '');
+
     const placeholderUrls = {
-      'business_card': 'https://via.placeholder.com/350x200/f3f4f6/6b7280?text=Business+Card+Mockup',
-      'laptop_screen': 'https://via.placeholder.com/800x600/f3f4f6/6b7280?text=Laptop+Screen+Mockup',
-      'mobile_app': 'https://via.placeholder.com/300x600/f3f4f6/6b7280?text=Mobile+App+Mockup',
-      'packaging': 'https://via.placeholder.com/400x400/f3f4f6/6b7280?text=Packaging+Mockup',
-      'signage': 'https://via.placeholder.com/600x400/f3f4f6/6b7280?text=Signage+Mockup',
-      'merchandise': 'https://via.placeholder.com/400x400/f3f4f6/6b7280?text=Merchandise+Mockup'
+      'business_card': `https://via.placeholder.com/350x200/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Business Card')}`,
+      'laptop_screen': `https://via.placeholder.com/800x600/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Interface')}`,
+      'mobile_app': `https://via.placeholder.com/300x600/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' App')}`,
+      'packaging': `https://via.placeholder.com/400x400/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Package')}`,
+      'signage': `https://via.placeholder.com/600x400/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Sign')}`,
+      'merchandise': `https://via.placeholder.com/400x400/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Merch')}`
     };
 
+    const placeholderUrl = placeholderUrls[request.mockupType] || placeholderUrls['packaging'];
+
+    logger.info('✅ Placeholder mockup generated', {
+      mockupName,
+      mockupType: request.mockupType,
+      placeholderUrl,
+      brandColors: request.brandColors,
+      timestamp: new Date().toISOString()
+    });
+
     return {
-      mockupUrl: placeholderUrls[request.mockupType] || placeholderUrls['packaging'],
+      mockupUrl: placeholderUrl,
       templateId: request.templateId,
       mockupType: request.mockupType,
       title: '',
