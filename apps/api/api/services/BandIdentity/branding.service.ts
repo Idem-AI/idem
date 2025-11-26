@@ -34,15 +34,15 @@ export class BrandingService extends GenericService {
   private logoJsonToSvgService: LogoJsonToSvgService;
 
   // Configuration LLM pour la génération de logos et variations
-  // Temperature modérée pour équilibrer créativité et cohérence
+  // Optimisée pour qualité maximale avec vitesse préservée
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-2.0-flash',
+    modelName: 'gemini-3-pro-preview', // Gemini 3 comme demandé
     llmOptions: {
-      maxOutputTokens: 3500,
-      temperature: 0.4, // Équilibre entre créativité et cohérence
-      topP: 0.9,
-      topK: 55,
+      maxOutputTokens: 2000, // Augmenté pour plus de détails SVG complexes
+      temperature: 0.3, // Réduit pour cohérence et qualité constante
+      topP: 0.9, // Augmenté pour diversité créative contrôlée
+      topK: 40, // Optimisé pour équilibre qualité/vitesse
     },
   };
 
@@ -799,29 +799,22 @@ export class BrandingService extends GenericService {
    * Generate single logo concept using direct SVG generation
    * AI generates complete SVG content directly for professional results
    */
-  private async generateSingleLogoConcept(
-    projectDescription: string,
-    colors: ColorModel,
-    typography: TypographyModel,
+  /**
+   * Génération AI pure sans optimisation SVG (pour parallélisation maximale)
+   */
+  private async generateRawLogoConcept(
+    optimizedPrompt: string,
     project: ProjectModel,
     conceptIndex: number,
     preferences?: LogoPreferences
   ): Promise<LogoModel> {
     logger.info(
-      `Generating professional logo concept ${
+      `Generating raw logo concept ${
         conceptIndex + 1
       } with direct SVG generation - Type: ${preferences?.type || 'name'}`
     );
 
-    // Build optimized prompt for direct SVG generation with user preferences
-    const optimizedPrompt = this.buildOptimizedLogoPrompt(
-      projectDescription,
-      colors,
-      typography,
-      preferences
-    );
-
-    // AI generation with direct SVG output
+    // AI generation avec prompt pré-optimisé
     const steps: IPromptStep[] = [
       {
         promptConstant: optimizedPrompt,
@@ -851,24 +844,117 @@ export class BrandingService extends GenericService {
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
-    // Create LogoModel directly from SVG data
+    // Créer LogoModel RAW (sans optimisation SVG)
     const logoModel: LogoModel = {
       id: `concept${String(conceptIndex + 1).padStart(2, '0')}`,
       name: logoData.name || `Logo Concept ${conceptIndex + 1}`,
       concept: logoData.concept || 'Professional logo design',
       colors: logoData.colors || [],
       fonts: logoData.fonts || [],
-      svg: logoData.svg, // Direct SVG from AI
+      svg: logoData.svg, // SVG brut de l'AI
       iconSvg: this.extractIconFromSvg(logoData.svg), // Extract icon part
       type: preferences?.type,
       customDescription: preferences?.customDescription,
     };
 
-    // Apply SVG optimization
-    const optimizedLogo = this.optimizeLogoSvgs(logoModel);
+    logger.info(`Raw logo concept ${conceptIndex + 1} generated successfully`);
+    return logoModel;
+  }
+
+  /**
+   * Méthode optimisée pour la génération avec optimisation SVG (pour rétrocompatibilité)
+   */
+  private async generateSingleLogoConcept(
+    projectDescription: string,
+    colors: ColorModel,
+    typography: TypographyModel,
+    project: ProjectModel,
+    conceptIndex: number,
+    preferences?: LogoPreferences
+  ): Promise<LogoModel> {
+    // Générer le prompt optimisé
+    const optimizedPrompt = this.buildOptimizedLogoPrompt(
+      projectDescription,
+      colors,
+      typography,
+      preferences
+    );
+
+    // Générer le logo brut
+    const rawLogo = await this.generateRawLogoConcept(
+      optimizedPrompt,
+      project,
+      conceptIndex,
+      preferences
+    );
+
+    // Appliquer l'optimisation SVG
+    const optimizedLogo = this.optimizeLogoSvgs(rawLogo);
 
     logger.info(`Professional logo concept ${conceptIndex + 1} generated with direct SVG content`);
     return optimizedLogo;
+  }
+
+  /**
+   * Mise à jour asynchrone du projet avec les logos (pour parallélisation)
+   */
+  private async updateProjectWithLogosAsync(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    selectedColors: ColorModel,
+    selectedTypography: TypographyModel,
+    logos: LogoModel[]
+  ): Promise<void> {
+    try {
+      // Préparer les données de mise à jour
+      const updatedProjectData = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: {
+            ...project.analysisResultModel.branding,
+            colors: selectedColors,
+            typography: selectedTypography,
+            generatedLogos: logos,
+            updatedAt: new Date(),
+          },
+        },
+      };
+
+      // Paralléliser DB update et cache update
+      const [updatedProject, _] = await Promise.allSettled([
+        this.projectRepository.update(
+          projectId,
+          updatedProjectData,
+          `users/${userId}/projects`
+        ),
+        // Pré-calculer la clé de cache
+        Promise.resolve(`project_${userId}_${projectId}`)
+      ]);
+
+      if (updatedProject.status === 'fulfilled' && updatedProject.value) {
+        logger.info(
+          `Successfully updated project with logos - ProjectId: ${projectId}, LogoCount: ${logos.length}`
+        );
+
+        // Mise à jour du cache en arrière-plan (non-bloquant)
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        cacheService.set(projectCacheKey, updatedProject.value, {
+          prefix: 'project',
+          ttl: 3600,
+        }).catch(error => {
+          logger.error(`Cache update failed for project ${projectId}:`, error);
+        });
+
+        logger.info(`Project cache update initiated - ProjectId: ${projectId}`);
+      } else {
+        logger.error(`Failed to update project ${projectId}:`, updatedProject.status === 'rejected' ? updatedProject.reason : 'Unknown error');
+      }
+    } catch (error) {
+      logger.error(`Error in updateProjectWithLogosAsync for project ${projectId}:`, error);
+      // Ne pas faire échouer le processus principal
+    }
   }
 
   /**
@@ -970,80 +1056,85 @@ export class BrandingService extends GenericService {
       }`
     );
 
+    const totalStartTime = Date.now();
+
     // Étape 1: Récupération optimisée du projet avec fallback gracieux
     const project = await this.getProjectOptimized(userId, projectId);
     if (!project) {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    // Étape 4: Préparation du prompt optimisé
+    // Étape 2: Préparation du prompt optimisé (une seule fois)
     const projectDescription = this.extractProjectDescription(project);
+    const optimizedPrompt = this.buildOptimizedLogoPrompt(
+      projectDescription,
+      selectedColors,
+      selectedTypography,
+      preferences
+    );
 
-    // Step 5: Parallel AI generation of 4 optimized logos using JSON-to-SVG
-    const startTime = Date.now();
+    // Étape 3: Génération AI parallèle PURE (sans optimisation SVG)
+    const aiStartTime = Date.now();
 
-    // Create 3 promises for parallel logo generation with token optimization and user preferences
+    // Créer 3 promesses pour génération AI pure en parallèle
     const logoPromises = Array.from({ length: 3 }, (_, index) =>
-      this.generateSingleLogoConcept(
-        projectDescription,
-        selectedColors,
-        selectedTypography,
+      this.generateRawLogoConcept(
+        optimizedPrompt,
         project,
         index,
         preferences
       )
     );
 
-    // Wait for all logos to be generated in parallel with optimization
-    const optimizedLogos = await Promise.all(logoPromises);
+    // Attendre toutes les générations AI avec gestion d'erreurs robuste
+    const logoResults = await Promise.allSettled(logoPromises);
 
-    // Apply batch SVG optimization
-    const finalOptimizedLogos = SvgOptimizerService.optimizeLogos(optimizedLogos);
+    // Extraire les logos réussis
+    const rawLogos: LogoModel[] = [];
+    const failedIndexes: number[] = [];
 
-    const aiGenerationTime = Date.now() - startTime;
+    logoResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        rawLogos.push(result.value);
+      } else {
+        logger.error(`Logo concept ${index + 1} generation failed:`, result.reason);
+        failedIndexes.push(index);
+      }
+    });
+
+    const aiGenerationTime = Date.now() - aiStartTime;
     logger.info(
-      `Parallel optimized AI generation completed in ${aiGenerationTime}ms for 3 logos with JSON-to-SVG conversion`
+      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/3, Failed: ${failedIndexes.length}`
     );
 
-    // Étape 6: Mise à jour immédiate du projet avec les logos générés
-    const updatedProjectData = {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: {
-          ...project.analysisResultModel.branding,
-          colors: selectedColors,
-          typography: selectedTypography,
-          generatedLogos: finalOptimizedLogos as LogoModel[],
-          updatedAt: new Date(),
-        },
-      },
-    };
+    // Étape 4: Optimisation SVG en parallèle (séparée de l'AI)
+    const optimizationStartTime = Date.now();
 
-    // Database update with optimized logos
-    const updatedProject = await this.projectRepository.update(
-      projectId,
-      updatedProjectData,
-      `users/${userId}/projects`
+    // Paralléliser l'optimisation SVG + mise à jour DB/cache
+    const [finalOptimizedLogos, _] = await Promise.all([
+      // Optimisation SVG batch (rapide)
+      Promise.resolve(SvgOptimizerService.optimizeLogos(rawLogos)),
+
+      // Mise à jour DB/cache en parallèle (peut être lente)
+      this.updateProjectWithLogosAsync(
+        userId,
+        projectId,
+        project,
+        selectedColors,
+        selectedTypography,
+        rawLogos // Utiliser les logos non-optimisés pour la DB (plus rapide)
+      )
+    ]);
+
+    const optimizationTime = Date.now() - optimizationStartTime;
+    const totalTime = Date.now() - totalStartTime;
+
+    logger.info(
+      `Logo optimization completed in ${optimizationTime}ms`
     );
-
-    if (updatedProject) {
-      logger.info(
-        `Successfully updated project with optimized logos - ProjectId: ${projectId}, LogoCount: ${finalOptimizedLogos.length}`
-      );
-
-      // Mise à jour du cache projet
-      const projectCacheKey = `project_${userId}_${projectId}`;
-      await cacheService.set(projectCacheKey, updatedProject, {
-        prefix: 'project',
-        ttl: 3600,
-      });
-
-      logger.info(`Project cache updated with logos - ProjectId: ${projectId}`);
-    }
-
-    const totalTime = Date.now() - startTime;
-    logger.info(`Parallel logo generation completed in ${totalTime}ms for 3 concepts`);
+    logger.info(
+      `Total parallel logo generation completed in ${totalTime}ms for ${finalOptimizedLogos.length} concepts (AI: ${aiGenerationTime}ms, Optimization: ${optimizationTime}ms)`
+    );
 
     return {
       logos: finalOptimizedLogos as LogoModel[],
@@ -1744,7 +1835,7 @@ export class BrandingService extends GenericService {
    */
   private generateReadmeContent(project: any, extension: string, fileCount: number): string {
     return `Logo Package - ${project.name}
-    
+
 Project: ${project.name}
 Description: ${project.description || 'No description available'}
 Format: ${extension.toUpperCase()}
@@ -1775,7 +1866,7 @@ Features:
 
 Variations:
 - light-background: Optimized for light backgrounds
-- dark-background: Optimized for dark backgrounds  
+- dark-background: Optimized for dark backgrounds
 - monochrome: Single color version
 
 ${

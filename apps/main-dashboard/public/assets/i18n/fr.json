@@ -1552,5 +1552,56 @@
     "teamNameMinLength": "Le nom de l'équipe doit comporter au moins {{min}} caractères",
     "deploymentName": "Le nom du déploiement est requis (minimum {{min}} caractères)",
     "invalid": "Champ invalide"
+  },
+  "logoCreation": {
+    "title": "Création de Vos Logos Professionnels",
+    "subtitle": "Notre designer IA conçoit des concepts uniques adaptés à votre marque",
+    "progress": "Progression Globale",
+    "estimatedTime": "Temps restant estimé",
+    "status": {
+      "pending": "En attente",
+      "active": "En cours",
+      "completed": "Terminé"
+    },
+    "steps": {
+      "analyze": {
+        "title": "Analyse de Marque",
+        "description": "Étude de votre identité visuelle"
+      },
+      "research": {
+        "title": "Recherche Marché",
+        "description": "Analyse des tendances actuelles"
+      },
+      "sketch": {
+        "title": "Esquisses Initiales",
+        "description": "Exploration des concepts clés"
+      },
+      "design": {
+        "title": "Design Numérique",
+        "description": "Création des vecteurs précis"
+      },
+      "refine": {
+        "title": "Raffinement",
+        "description": "Ajustement des détails finaux"
+      },
+      "finalize": {
+        "title": "Touches Finales",
+        "description": "Préparation des fichiers finaux"
+      }
+    },
+    "concepts": {
+      "concept1": {
+        "name": "Approche Minimaliste",
+        "description": "Design épuré et moderne avec les éléments essentiels"
+      },
+      "concept2": {
+        "name": "Expression Créative",
+        "description": "Interprétation artistique avec des éléments visuels uniques"
+      },
+      "concept3": {
+        "name": "Style Professionnel",
+        "description": "Design adapté aux entreprises avec une forte présence de marque"
+      }
+    }
   }
 }
