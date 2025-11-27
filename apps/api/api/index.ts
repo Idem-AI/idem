@@ -187,12 +187,6 @@ const server = app.listen(port, async () => {
   }
 });
 
-// Configurer le timeout global du serveur immédiatement après sa création
-// Cela permet aux routes avec timeout personnalisé (3-4 minutes) de fonctionner correctement
-server.timeout = 300000; // 5 minutes (300 secondes)
-server.keepAliveTimeout = 305000; // 5 minutes + 5 secondes
-server.headersTimeout = 310000; // 5 minutes + 10 secondes
-console.log('Server timeout configured: 5 minutes (300000ms)');
 
 // Gestion propre de l'arrêt de l'application
 process.on('SIGTERM', async () => {
