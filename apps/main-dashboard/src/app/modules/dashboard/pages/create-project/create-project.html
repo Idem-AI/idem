@@ -1,7 +1,7 @@
 @if (isLoading()) {
   <!-- Loading State -->
   <div
-    class="h-screen w-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
+    class="h-screen w-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800"
   >
     <div class="text-center space-y-6 max-w-md mx-auto px-6">
       <div class="flex justify-center">
@@ -107,14 +107,14 @@
     <!-- Navigation Controls -->
     @if (currentStepIndex() !== 0) {
       <div
-        class="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700"
+        class="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700"
       >
         <div class="max-w-4xl mx-auto px-4 py-4">
           <div class="flex justify-between items-center">
             <button
               (click)="goToPreviousStep()"
               [disabled]="!canGoPrevious()"
-              class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
