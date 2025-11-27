@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { userService } from '../services/user.service';
 import betaRestrictionsService from '../services/betaRestrictions.service';
 import logger from '../config/logger';
+import { checkUserQuota } from '../utils/quota.utils';
 
 export interface CustomRequest extends Request {
   user: {
@@ -32,33 +33,41 @@ export const checkQuota = async (
 
     logger.info(`Quota middleware: Checking quota for user ${userId}`);
 
-    const quotaCheck = await userService.checkQuota(userId);
+    // Use the unified quota check function
+    const quotaResult = await checkUserQuota(userId);
 
-    if (!quotaCheck.allowed) {
-      logger.warn(`Quota middleware: Quota exceeded for user ${userId}: ${quotaCheck.message}`);
+    if (!quotaResult.allowed) {
+      logger.warn(`Quota middleware: Quota exceeded for user ${userId}: ${quotaResult.message}`);
 
-      // Include quota information in the response
-      const quotaInfo = await userService.getQuotaInfo(userId);
-
-      res.status(429).json({
-        error: 'Quota exceeded',
-        message: quotaCheck.message,
-        quota: quotaInfo,
-        betaLimitations: betaRestrictionsService.isBetaMode()
-          ? betaRestrictionsService.getBetaLimitationsMessage()
-          : null,
-      });
-      return;
+      // Include quota information in the response for non-unlimited users
+      if (!quotaResult.isUnlimited) {
+        const quotaInfo = await userService.getQuotaInfo(userId);
+        res.status(429).json({
+          error: 'Quota exceeded',
+          message: quotaResult.message,
+          quota: quotaInfo,
+          betaLimitations: betaRestrictionsService.isBetaMode()
+            ? betaRestrictionsService.getBetaLimitationsMessage()
+            : null,
+        });
+        return;
+      }
     }
 
     // Add quota info to request for controllers to use
     (req as any).quotaInfo = {
-      remainingDaily: quotaCheck.remainingDaily,
-      remainingWeekly: quotaCheck.remainingWeekly,
+      remainingDaily: quotaResult.remainingDaily || 0,
+      remainingWeekly: quotaResult.remainingWeekly || 0,
       isBeta: betaRestrictionsService.isBetaMode(),
+      isUnlimited: quotaResult.isUnlimited,
     };
 
-    logger.info(`Quota middleware: Quota check passed for user ${userId}`);
+    if (quotaResult.isUnlimited) {
+      logger.info(`Quota middleware: User ${userId} has unlimited quota, skipping quota check`);
+    } else {
+      logger.info(`Quota middleware: Quota check passed for user ${userId}`);
+    }
+
     next();
   } catch (error) {
     logger.error('Quota middleware error:', error);
