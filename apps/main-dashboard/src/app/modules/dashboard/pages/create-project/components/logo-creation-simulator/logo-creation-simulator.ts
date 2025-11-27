@@ -231,7 +231,7 @@ export class LogoCreationSimulatorComponent implements OnInit, OnDestroy, OnChan
 
   // Inputs
   readonly isActive = input<boolean>(false);
-  readonly totalDuration = input<number>(60000); // 1 minute par défaut
+  readonly totalDuration = input<number>(25000); // 25 secondes par défaut
 
   // Outputs
   readonly completed = output<void>();
