@@ -80,7 +80,7 @@ export class TeamDetailsProject implements OnInit {
   /**
    * Navigate back
    */
-  protected goBack(): void {
+  protected back(): void {
     if (this.projectId()) {
       this.router.navigate(['/project/teams'], {
         queryParams: { projectId: this.projectId() },

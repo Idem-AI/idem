@@ -6,4 +6,63 @@
 /* PrimeNG Icons */
 @import 'primeicons/primeicons.css';
 
+/* Force Dark Theme Globally */
+:root {
+  color-scheme: dark !important;
+}
+
+/* Override system light mode preferences */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: dark !important;
+  }
+
+  html {
+    background-color: #0f141b !important;
+    color: #ffffff !important;
+  }
+
+  body {
+    background-color: #0f141b !important;
+    color: #ffffff !important;
+  }
+}
+
+/* Force dark theme for all components */
+html {
+  background-color: #0f141b !important;
+  color: #ffffff !important;
+}
+
+html.light {
+  background-color: #0f141b !important;
+  color: #ffffff !important;
+}
+
+/* Ensure PrimeNG components always use dark theme */
+.p-component,
+.p-dialog,
+.p-overlay,
+.p-menu,
+.p-dropdown,
+.p-select,
+.p-checkbox,
+.p-radiobutton,
+.p-inputtext,
+.p-textarea,
+.p-button {
+  color-scheme: dark !important;
+}
+
+/* Override any potential light backgrounds */
+.p-dialog .p-dialog-content,
+.p-overlay-panel,
+.p-menu .p-menu-list,
+.p-dropdown-panel,
+.p-select-overlay {
+  background-color: rgba(20, 25, 32, 0.95) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
 /* Angular-specific or project-specific styles can be added below */

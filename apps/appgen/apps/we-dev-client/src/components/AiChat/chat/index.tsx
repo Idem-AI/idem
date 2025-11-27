@@ -73,7 +73,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BASE_
 console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
-  Gemini25Flash = 'gemini-2.5-flash',
+  Gemini25Flash = 'gemini-3-pro-preview',
   Claude37sonnet = 'claude-3-7-sonnet-20250219',
   Claude35sonnet = 'claude-3-5-sonnet-20240620',
   gpt4oMini = 'gpt-4o-mini',

@@ -626,7 +626,9 @@
         },
         "comingUp": "Coming Up",
         "almostThere": "Almost There",
-        "finalStep": "Final Step"
+        "finalStep": "Final Step",
+        "startNow": "Start Now",
+        "nextStep": "Next Step"
       },
       "info": {
         "created": "Created",
@@ -1173,7 +1175,9 @@
         "getCharter": "Get Brand Charter",
         "downloadZip": "Download all logos as ZIP",
         "selectProject": "Select Project",
-        "generate": "Generate Brand Identity"
+        "generate": "Generate Brand Identity",
+        "viewIdentity": "View My Visual Identity",
+        "generateIdentity": "Generate My Visual Identity"
       },
       "tooltips": {
         "downloadZip": "Download all logos in a ZIP file"
@@ -1219,6 +1223,29 @@
         "title": "Create Your Brand Identity",
         "subtitle": "Generate a complete brand identity with logos, colors, and typography for your project"
       },
+      "identityCard": {
+        "existing": {
+          "title": "Your visual identity is ready!",
+          "subtitle": "Discover your complete brand charter with logos, colors, and typography.",
+          "features": [
+            "Brand charter PDF",
+            "Logos in multiple formats",
+            "Color palette",
+            "Typography guide"
+          ]
+        },
+        "generate": {
+          "title": "Create your unique visual identity",
+          "subtitle": "Generate a professional brand identity tailored to your project.",
+          "features": [
+            "Advanced creative AI",
+            "Custom logos",
+            "Harmonious colors",
+            "Adapted typography"
+          ],
+          "estimatedTime": "Estimated time: 2-3 minutes"
+        }
+      },
       "features": {
         "colors": {
           "title": "Color Palette",
@@ -1234,6 +1261,10 @@
         }
       },
       "generationTime": "Generation takes 2-3 minutes",
+      "status": {
+        "ready": "Ready",
+        "pending": "Pending"
+      },
       "brandingDisplay": {
         "title": "Brand Identity Document",
         "loading": "Preparing branding content..."
@@ -1552,56 +1583,5 @@
     "teamNameMinLength": "Team name must be at least {{min}} characters",
     "deploymentName": "Deployment name is required (minimum {{min}} characters)",
     "invalid": "Invalid field"
-  },
-  "logoCreation": {
-    "title": "Creating Your Professional Logos",
-    "subtitle": "Our AI designer is crafting unique concepts tailored to your brand",
-    "progress": "Overall Progress",
-    "estimatedTime": "Estimated time remaining",
-    "status": {
-      "pending": "Pending",
-      "active": "In Progress",
-      "completed": "Completed"
-    },
-    "steps": {
-      "analyze": {
-        "title": "Brand Analysis",
-        "description": "Analyzing brand identity"
-      },
-      "research": {
-        "title": "Market Research",
-        "description": "Analyzing current trends"
-      },
-      "sketch": {
-        "title": "Initial Sketches",
-        "description": "Exploring core concepts"
-      },
-      "design": {
-        "title": "Digital Design",
-        "description": "Creating precise vectors"
-      },
-      "refine": {
-        "title": "Refinement",
-        "description": "Adjusting final details"
-      },
-      "finalize": {
-        "title": "Final Touches",
-        "description": "Preparing final files"
-      }
-    },
-    "concepts": {
-      "concept1": {
-        "name": "Minimalist Approach",
-        "description": "Clean, modern design with essential elements"
-      },
-      "concept2": {
-        "name": "Creative Expression",
-        "description": "Artistic interpretation with unique visual elements"
-      },
-      "concept3": {
-        "name": "Professional Style",
-        "description": "Corporate-friendly design with strong brand presence"
-      }
-    }
   }
 }

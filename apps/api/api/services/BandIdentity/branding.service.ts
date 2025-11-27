@@ -15,6 +15,7 @@ import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.p
 import { LOGO_SYSTEM_SECTION_PROMPT } from './prompts/01_logo-system-section.prompt';
 import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
+import { MOCKUPS_SECTION_PROMPT } from './prompts/06_mockups-section.prompt';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
@@ -28,6 +29,7 @@ import crypto from 'crypto';
 import { projectService } from '../project.service';
 import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
+import { geminiMockupService } from '../geminiMockup.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
@@ -436,16 +438,11 @@ export class BrandingService extends GenericService {
           stepName: 'Typography',
           hasDependencies: false,
         },
-        // {
-        //   promptConstant: USAGE_GUIDELINES_SECTION_PROMPT + projectDescription,
-        //   stepName: "Usage Guidelines",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT + projectDescription,
-        //   stepName: "Visual Examples",
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
+          stepName: 'Brand Mockups',
+          hasDependencies: false,
+        },
         {
           promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
           stepName: 'Brand Footer',
@@ -471,46 +468,34 @@ export class BrandingService extends GenericService {
             }
 
             // Convert result to section model
-            const section: SectionModel = {
+            let section: SectionModel = {
               name: result.name,
               type: result.type,
               data: result.data,
               summary: result.summary,
             };
 
-            // Add to sections array
+            // La section mockups est maintenant générée directement par le prompt
+            // avec Gemini 2.5 Flash Image intégré
+
+            // Update the sections array with the new section
             sections.push(section);
 
-            // Update project immediately after each step
-            logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
-
-            // Get the current project
-            const currentProject = await this.projectRepository.findById(
-              projectId,
-              `users/${userId}/projects`
-            );
-            if (!currentProject) {
-              logger.warn(
-                `Project not found with ID: ${projectId} for user: ${userId} during step update.`
-              );
-              throw new Error(`Project not found: ${projectId}`);
-            }
-
-            // Create the updated project with current sections
+            // Prepare the updated project data
             const updatedProjectData = {
-              ...currentProject,
+              ...project,
               analysisResultModel: {
-                ...currentProject.analysisResultModel,
+                ...project.analysisResultModel,
                 branding: {
                   sections: sections,
-                  colors: currentProject.analysisResultModel.branding.colors,
-                  typography: currentProject.analysisResultModel.branding.typography,
-                  logo: currentProject.analysisResultModel.branding.logo,
-                  generatedLogos: currentProject.analysisResultModel.branding.generatedLogos || [],
+                  colors: project.analysisResultModel.branding.colors,
+                  typography: project.analysisResultModel.branding.typography,
+                  logo: project.analysisResultModel.branding.logo,
+                  generatedLogos: project.analysisResultModel.branding.generatedLogos || [],
                   generatedColors:
-                    currentProject.analysisResultModel.branding.generatedColors || [],
+                    project.analysisResultModel.branding.generatedColors || [],
                   generatedTypography:
-                    currentProject.analysisResultModel.branding.generatedTypography || [],
+                    project.analysisResultModel.branding.generatedTypography || [],
                   createdAt: new Date(),
                   updatedAt: new Date(),
                 },
@@ -545,7 +530,11 @@ export class BrandingService extends GenericService {
               throw new Error(`Failed to update project after step: ${result.name}`);
             }
           },
-          undefined, // promptConfig
+          {
+            provider: LLMProvider.GEMINI,
+            modelName: 'gemini-3-pro-preview',
+            userId,
+          }, // promptConfig
           'branding', // promptType
           userId
         );
@@ -557,65 +546,10 @@ export class BrandingService extends GenericService {
         );
         return finalProject;
       } else {
-        // Fallback to non-streaming processing
-        const stepResults = await this.processSteps(steps, project);
-        sections = stepResults.map((result) => ({
-          name: result.name,
-          type: result.type,
-          data: result.data,
-          summary: result.summary,
-        }));
-
-        // Get the existing project to prepare for update
-        const oldProject = await this.projectRepository.findById(
-          projectId,
-          `users/${userId}/projects`
-        );
-        if (!oldProject) {
-          logger.warn(
-            `Original project not found with ID: ${projectId} for user: ${userId} before updating with branding.`
-          );
-          return null;
-        }
-
-        // Create the new project with updated branding
-        const newProject = {
-          ...oldProject,
-          analysisResultModel: {
-            ...oldProject.analysisResultModel,
-            branding: {
-              sections: sections,
-              colors: oldProject.analysisResultModel.branding.colors,
-              typography: oldProject.analysisResultModel.branding.typography,
-              logo: oldProject.analysisResultModel.branding.logo,
-              generatedLogos: oldProject.analysisResultModel.branding.generatedLogos || [],
-              generatedColors: oldProject.analysisResultModel.branding.generatedColors || [],
-              generatedTypography:
-                oldProject.analysisResultModel.branding.generatedTypography || [],
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          },
-        };
-
-        // Update the project in the database
-        const updatedProject = await this.projectRepository.update(
-          projectId,
-          newProject,
-          `users/${userId}/projects`
-        );
-
-        if (updatedProject) {
-          logger.info(`Successfully updated project with ID: ${projectId} with branding`);
-
-          // Cache the result for future requests
-          await cacheService.set(cacheKey, updatedProject, {
-            prefix: 'ai',
-            ttl: 7200, // 2 hours
-          });
-          logger.info(`Branding cached for projectId: ${projectId}`);
-        }
-        return updatedProject;
+        // If no streaming callback, process without streaming
+        logger.info('Processing branding without streaming');
+        // TODO: Implement non-streaming version if needed
+        return project;
       }
     } catch (error) {
       logger.error(`Error generating branding for projectId ${projectId}:`, error);
@@ -2019,6 +1953,124 @@ ${LOGO_EDIT_PROMPT}`;
     } catch (error) {
       logger.error(`Error editing logo for projectId: ${projectId}`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Génère les mockups pour la charte graphique finale
+   */
+  async generateProjectMockups(
+    userId: string,
+    projectId: string
+  ): Promise<{ mockup1: any; mockup2: any } | null> {
+    try {
+      logger.info('🎨 Starting mockup generation for brand identity', {
+        userId,
+        projectId,
+        timestamp: new Date().toISOString()
+      });
+
+      // Récupérer le projet pour obtenir les informations de branding
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        logger.error('❌ Project not found for mockup generation', { projectId, userId });
+        return null;
+      }
+
+      // Extraire les informations nécessaires du projet
+      const branding = project.analysisResultModel?.branding;
+      if (!branding || !branding.logo || !branding.colors) {
+        logger.error('❌ Missing branding information for mockup generation', {
+          projectId,
+          userId,
+          hasLogo: !!branding?.logo,
+          hasColors: !!branding?.colors
+        });
+        return null;
+      }
+
+      // Préparer les données pour la génération de mockups
+      const logoUrl = branding.logo.svg; // Utiliser le SVG principal du logo
+      const brandColors = {
+        primary: branding.colors.colors.primary || '#000000',
+        secondary: branding.colors.colors.secondary || '#666666',
+        accent: branding.colors.colors.accent || '#999999'
+      };
+
+      // Utiliser une industrie par défaut ou extraire depuis la description
+      const industry = 'default'; // TODO: Implémenter l'extraction d'industrie si nécessaire
+      const brandName = project.name;
+
+      logger.info('📋 Mockup generation parameters prepared', {
+        projectId,
+        brandName,
+        industry,
+        brandColors,
+        hasLogoUrl: !!logoUrl,
+        timestamp: new Date().toISOString()
+      });
+
+      // Générer les mockups avec le service Gemini
+      const mockups = await geminiMockupService.generateProjectMockups(
+        logoUrl,
+        brandColors,
+        industry,
+        brandName,
+        userId,
+        projectId
+      );
+
+      logger.info('✅ Mockups generated successfully for brand identity', {
+        projectId,
+        userId,
+        mockup1Url: mockups.mockup1.mockupUrl,
+        mockup2Url: mockups.mockup2.mockupUrl,
+        timestamp: new Date().toISOString()
+      });
+
+      // Mettre à jour le projet avec les mockups générés
+      const updatedProjectData = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: {
+            ...branding,
+            mockups: {
+              mockup1: mockups.mockup1,
+              mockup2: mockups.mockup2,
+              generatedAt: new Date().toISOString()
+            }
+          }
+        }
+      };
+
+      // Sauvegarder le projet mis à jour
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        updatedProjectData,
+        `users/${userId}/projects`
+      );
+
+      if (updatedProject) {
+        logger.info('💾 Project updated with generated mockups', {
+          projectId,
+          userId,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      return mockups;
+
+    } catch (error: any) {
+      logger.error('❌ Error generating project mockups', {
+        error: error.message,
+        stack: error.stack,
+        projectId,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
+      return null;
     }
   }
 }
