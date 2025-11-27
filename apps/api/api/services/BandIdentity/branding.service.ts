@@ -41,10 +41,10 @@ export class BrandingService extends GenericService {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3-pro-preview', // Gemini 3 comme demandé
     llmOptions: {
-      maxOutputTokens: 2000, // Augmenté pour plus de détails SVG complexes
+      maxOutputTokens: 500, // Augmenté pour plus de détails SVG complexes
       temperature: 0.3, // Réduit pour cohérence et qualité constante
       topP: 0.9, // Augmenté pour diversité créative contrôlée
-      topK: 40, // Optimisé pour équilibre qualité/vitesse
+      topK: 30, // Optimisé pour équilibre qualité/vitesse
     },
   };
 
