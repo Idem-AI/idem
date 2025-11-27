@@ -1,3 +1,17 @@
+<style>
+@keyframes slideRight {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+.arrow-slide {
+  animation: slideRight 2s ease-in-out infinite;
+}
+.arrow-slide:hover {
+  animation-play-state: paused;
+  transform: translateX(4px);
+}
+</style>
+
 <div class="w-full min-h-screen md:p-6 rounded-2xl relative">
   @if (isLoading()) {
     <!-- Loading State -->
@@ -103,11 +117,19 @@
                 </div>
 
                 <!-- Action Button -->
-                <div class="flex items-center gap-3 text-white group-hover:text-blue-300 transition-colors">
-                  <span class="text-sm sm:text-base font-medium">{{ 'dashboard.showBranding.buttons.viewIdentity' | translate }}</span>
-                  <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                  </svg>
+                <div class="relative">
+                  <!-- Glow Effect -->
+                  <div class="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover:bg-primary/30 transition-all duration-500"></div>
+
+                  <!-- Main Button -->
+                  <button class="relative px-6 py-3 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl border border-primary/50 hover:border-primary/70 transition-all duration-300 shadow-lg hover:shadow-primary/25 hover:shadow-xl">
+                    <div class="flex items-center gap-3">
+                      <span class="text-sm sm:text-base">{{ 'dashboard.showBranding.buttons.viewIdentity' | translate }}</span>
+                      <svg class="w-5 h-5 arrow-slide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                      </svg>
+                    </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -164,11 +186,19 @@
                 </div>
 
                 <!-- Action Button -->
-                <div class="flex items-center gap-3 text-white group-hover:text-blue-300 transition-colors">
-                  <span class="text-sm sm:text-base font-medium">{{ 'dashboard.showBranding.buttons.generateIdentity' | translate }}</span>
-                  <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                  </svg>
+                <div class="relative">
+                  <!-- Glow Effect -->
+                  <div class="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover:bg-primary/30 transition-all duration-500"></div>
+
+                  <!-- Main Button -->
+                  <button class="relative px-6 py-3 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl border border-primary/50 hover:border-primary/70 transition-all duration-300 shadow-lg hover:shadow-primary/25 hover:shadow-xl">
+                    <div class="flex items-center gap-3">
+                      <span class="text-sm sm:text-base">{{ 'dashboard.showBranding.buttons.generateIdentity' | translate }}</span>
+                      <svg class="w-5 h-5 arrow-slide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                      </svg>
+                    </div>
+                  </button>
                 </div>
               </div>
             </div>
