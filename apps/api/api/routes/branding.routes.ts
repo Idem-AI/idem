@@ -143,8 +143,8 @@ brandingRoutes.post(
 
 // Middleware pour augmenter le timeout pour la génération de logo concepts
 const logoConceptsTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(180000); // 3 minutes
-  res.setTimeout(180000); // 3 minutes
+  req.setTimeout(240000); // 3 minutes
+  res.setTimeout(240000); // 3 minutes
   next();
 };
 
@@ -210,6 +210,13 @@ brandingRoutes.post(
   generateLogoConceptsController
 );
 
+// Middleware pour augmenter le timeout pour la génération de logo variations
+const logoVariationsTimeout = (req: any, res: any, next: any) => {
+  req.setTimeout(240000); // 4 minutes
+  res.setTimeout(240000); // 4 minutes
+  next();
+};
+
 // Étape 2: Generate logo variations for selected logo
 /**
  * @openapi
@@ -263,6 +270,7 @@ brandingRoutes.post(
   `/${resourceName}/generate/logo-variations/:projectId`,
   authenticate,
   checkQuota,
+  logoVariationsTimeout,
   generateLogoVariationsController
 );
 
