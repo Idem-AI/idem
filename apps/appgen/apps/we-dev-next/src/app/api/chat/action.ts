@@ -48,7 +48,7 @@ export type Messages = Message[];
 const defaultModel = getOpenAIModel(
   process.env.THIRD_API_URL,
   process.env.THIRD_API_KEY,
-  'gemini-3-pro-preview'
+  'gemini-2.5-flash'
 ) as LanguageModel;
 
 export async function generateObjectFn(messages: Messages) {
@@ -56,7 +56,7 @@ export async function generateObjectFn(messages: Messages) {
     model: getOpenAIModel(
       process.env.THIRD_API_URL,
       process.env.THIRD_API_KEY,
-      'gemini-3-pro-preview'
+      'gemini-2.5-flash'
     ) as LanguageModel,
     schema: z.object({
       files: z.array(z.string()),
