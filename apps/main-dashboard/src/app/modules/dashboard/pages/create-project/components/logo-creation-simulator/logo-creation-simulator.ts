@@ -20,7 +20,7 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
   imports: [CommonModule, TranslateModule, Loader],
   template: `
     <!-- Main Container avec design responsive original -->
-    <div class="w-full min-h-screen bg-linear-to-br from-bg-dark via-bg-light to-bg-dark font-jura relative overflow-hidden">
+    <div class="w-full min-h-screen  font-jura relative overflow-hidden">
 
       <!-- Background Elements -->
       <div class="absolute inset-0 opacity-30">
