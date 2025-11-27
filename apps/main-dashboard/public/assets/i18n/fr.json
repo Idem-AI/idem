@@ -626,7 +626,9 @@
         },
         "comingUp": "À venir",
         "almostThere": "Presque terminé",
-        "finalStep": "Dernière étape"
+        "finalStep": "Dernière étape",
+        "startNow": "Commencer maintenant",
+        "nextStep": "Étape suivante"
       },
       "info": {
         "created": "Créé",
