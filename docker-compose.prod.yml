@@ -21,7 +21,7 @@ services:
 
   # IDEM API - Production Environment
   idem-api:
-    image: ghcr.io/idem-ai/idem-api:82a1d8ec-fixed
+    image: ghcr.io/idem-ai/idem-api:0cd4946b
     container_name: idem-api
     environment:
       DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
