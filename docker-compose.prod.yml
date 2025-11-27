@@ -1,7 +1,7 @@
 services:
   # IDEM Frontend - Production Environment
   idem: 
-    image: ghcr.io/idem-ai/idem-main-dashboard:1.0
+    image: ghcr.io/idem-ai/idem-main-dashboard:6b8c802
     container_name: idem
     restart: always
     networks:
