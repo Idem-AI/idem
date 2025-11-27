@@ -439,6 +439,26 @@ class UserService {
           weekly: this.quotaLimits.weeklyLimit,
         };
   }
+
+  /**
+   * Get user email by UID (for quota middleware)
+   */
+  public async getUserEmail(uid: string): Promise<string | null> {
+    try {
+      // First try to get from repository (faster)
+      const user = await this.userRepository.findById(uid, 'users');
+      if (user && user.email) {
+        return user.email;
+      }
+
+      // If not in repository, get from Firebase Auth
+      const userRecord = await admin.auth().getUser(uid);
+      return userRecord.email || null;
+    } catch (error) {
+      logger.error(`Error getting user email for UID ${uid}:`, error);
+      return null;
+    }
+  }
 }
 
 export const userService = new UserService();

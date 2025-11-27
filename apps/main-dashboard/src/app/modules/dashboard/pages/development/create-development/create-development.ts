@@ -104,7 +104,7 @@ export class CreateDevelopmentComponent implements OnInit {
   /**
    * Go back to previous step
    */
-  protected goBack(): void {
+  protected back(): void {
     const current = this.currentStep();
     if (current === 'generation-type') {
       this.currentStep.set('mode-selection');
