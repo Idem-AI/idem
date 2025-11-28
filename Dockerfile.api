@@ -49,12 +49,17 @@ RUN apk update && apk upgrade && \
     apk add --no-cache \
     dumb-init \
     chromium \
+    chromium-chromedriver \
     nss \
     freetype \
     freetype-dev \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
+    ttf-liberation \
+    font-noto \
+    font-noto-cjk \
+    font-noto-extra \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user for security
@@ -66,6 +71,9 @@ WORKDIR /app
 # Set Puppeteer environment variables
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV NODE_ENV=production
+ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV CHROME_PATH=/usr/bin/chromium-browser
 # Copy built application and dependencies
 
 
