@@ -532,7 +532,7 @@ export class BrandingService extends GenericService {
           },
           {
             provider: LLMProvider.GEMINI,
-            modelName: 'gemini-2.5-flash',
+            modelName: 'gemini-2.5-fgemini-3-pro-preview',
             userId,
           }, // promptConfig
           'branding', // promptType
