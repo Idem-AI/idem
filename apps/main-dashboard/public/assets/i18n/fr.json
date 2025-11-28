@@ -1152,6 +1152,24 @@
       },
       "generationTime": "La génération prend 2-3 minutes"
     },
+    "brandingGeneration": {
+      "finalizing": "Finalisation du Branding",
+      "generating": "Génération du Branding",
+      "creating": "Création de votre identité de marque...",
+      "processing": "Traitement : {{steps}}",
+      "stepsCompleted": "Étapes Terminées",
+      "lastStep": "Dernière étape",
+      "progress": "Progression",
+      "savingData": "Sauvegarde des Données",
+      "wait": "Veuillez patienter pendant que nous finalisons vos données de branding...",
+      "stepCompletedAt": "Terminé à {{time}}",
+      "buttons": {
+        "cancel": "Annuler"
+      },
+      "errors": {
+        "title": "Échec de la Génération"
+      }
+    },
     "showBranding": {
       "title": "Identité de marque",
       "loading": {
@@ -1358,8 +1376,13 @@
       "wait": "Veuillez patienter pendant la finalisation de votre plan d'affaires...",
       "stepCompletedAt": "Terminé à {{time}}",
       "errors": {
-        "title": "Échec de la génération"
+        "title": "Échec de la génération",
+        "failed": "Échec de la génération du plan d'affaires",
+        "saveAdditionalInfo": "Échec de l'enregistrement des informations supplémentaires",
+        "projectIdNotFound": "ID du projet non trouvé"
       },
+      "postProcessing": "Finalisation de la génération du plan d'affaires...",
+      "cancelled": "Génération du plan d'affaires annulée",
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",
         "subtitle": "Commencez à générer votre plan d'affaires complet",
@@ -1420,8 +1443,10 @@
       },
       "stepCompletedAt": "Terminé à {{time}}",
       "errors": {
-        "title": "Échec de la génération"
+        "title": "Échec de la génération",
+        "failed": "Échec de la génération des diagrammes"
       },
+      "cancelled": "Génération des diagrammes annulée",
       "available": {
         "title": "Diagrammes disponibles"
       }
