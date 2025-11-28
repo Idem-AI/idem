@@ -25,7 +25,7 @@
               },
               {
                 "glob": "**/*",
-                "input": "../../node_modules/ngx-extended-pdf-viewer/assets/",
+                "input": "src/assets/ngx-extended-pdf-viewer/",
                 "output": "/assets/"
               }
             ],
@@ -96,7 +96,7 @@
               },
               {
                 "glob": "**/*",
-                "input": "../../node_modules/ngx-extended-pdf-viewer/assets/",
+                "input": "src/assets/ngx-extended-pdf-viewer/",
                 "output": "/assets/"
               }
             ],
