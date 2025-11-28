@@ -53,7 +53,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   protected readonly additionalInfoError = signal<string | null>(null);
   protected readonly isPostProcessing = signal<boolean>(false);
   protected readonly postProcessingMessage = signal<string>(
-    'Finalizing business plan generation...',
+    this.translate.instant('dashboard.businessPlanGeneration.postProcessing'),
   );
   protected readonly generationState = signal<SSEGenerationState>({
     steps: [],
@@ -192,7 +192,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
           this.showAdditionalInfoForm.set(true); // Show form again on error
           this.generationState.update((state) => ({
             ...state,
-            error: 'Failed to generate business plan',
+            error: this.translate.instant('dashboard.businessPlanGeneration.errors.failed'),
             isGenerating: false,
           }));
         },
@@ -224,7 +224,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
           console.error(`Error generating business plan for project ID: ${this.projectId()}:`, err);
           this.generationState.update((state) => ({
             ...state,
-            error: 'Failed to generate business plan',
+            error: this.translate.instant('dashboard.businessPlanGeneration.errors.failed'),
             isGenerating: false,
           }));
         },
