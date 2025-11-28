@@ -107,7 +107,7 @@
 
           <!-- Right: Progress Circle & Milestones -->
           <div class="hero-right">
-            <div class="progress-wrapper">
+            <div class="progress-wrapper" [routerLink]="['/projects']" style="cursor: pointer;">
               <svg class="progress-circle" viewBox="0 0 200 200">
                 <circle class="progress-bg" cx="100" cy="100" r="85" />
                 <circle
@@ -131,6 +131,8 @@
               <div
                 class="milestone-item"
                 [class.completed]="currentProject.analysisResultModel!.branding.sections.length > 0"
+                [routerLink]="['/project/branding']"
+                style="cursor: pointer;"
               >
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
@@ -141,6 +143,8 @@
               <div
                 class="milestone-item"
                 [class.completed]="!!currentProject.analysisResultModel!.businessPlan"
+                [routerLink]="['/project/business-plan']"
+                style="cursor: pointer;"
               >
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
@@ -151,6 +155,8 @@
               <div
                 class="milestone-item"
                 [class.completed]="!!currentProject.analysisResultModel!.design"
+                [routerLink]="['/project/diagrams']"
+                style="cursor: pointer;"
               >
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
@@ -161,6 +167,8 @@
               <div
                 class="milestone-item"
                 [class.completed]="!!currentProject.analysisResultModel!.development"
+                [routerLink]="['/project/development']"
+                style="cursor: pointer;"
               >
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
@@ -168,7 +176,7 @@
                 <span>{{ 'dashboard.dashboard.milestones.development' | translate }}</span>
               </div>
 
-              <div class="milestone-item">
+              <div class="milestone-item" [routerLink]="['/deployment']" style="cursor: pointer;">
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
                 </div>
