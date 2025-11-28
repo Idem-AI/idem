@@ -1,0 +1,41 @@
+{
+    "dashboard": {
+        "businessPlanGeneration": {
+            "postProcessing": "Processing your business plan...",
+            "finalizing": "Finalizing Business Plan",
+            "generating": "Generating Business Plan",
+            "creating": "Creating your comprehensive business plan...",
+            "processing": "Processing: {{steps}}",
+            "stepsCompleted": "Steps Completed",
+            "lastStep": "Last step",
+            "progress": "Progress",
+            "savingData": "Saving Data",
+            "savingBusinessPlan": "Saving your business plan data...",
+            "wait": "Please wait while we finalize your business plan data...",
+            "stepCompletedAt": "Completed at {{time}}",
+            "cancelled": "Business plan generation was cancelled",
+            "saving": {
+                "title": "Saving Additional Information",
+                "subtitle": "Please wait while we process your additional information..."
+            },
+            "buttons": {
+                "cancel": "Cancel",
+                "generate": "Generate Business Plan"
+            },
+            "errors": {
+                "title": "Generation Failed",
+                "projectIdNotFound": "Project ID not found",
+                "saveAdditionalInfo": "Failed to save additional information",
+                "failed": "Failed to generate business plan"
+            },
+            "empty": {
+                "title": "Ready to Generate Your Business Plan",
+                "subtitle": "Create a comprehensive business plan tailored to your project with AI-powered insights and market analysis."
+            }
+        }
+    },
+    "common": {
+        "inProgress": "In Progress",
+        "retry": "Try Again"
+    }
+}
