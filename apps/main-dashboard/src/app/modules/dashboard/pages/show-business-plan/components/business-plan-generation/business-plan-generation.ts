@@ -306,7 +306,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     // Start post-processing phase with loading
     this.isPostProcessing.set(true);
     this.postProcessingMessage.set(
-      this.translate.instant('dashboard.businessPlanGeneration.saving'),
+      this.translate.instant('dashboard.businessPlanGeneration.savingBusinessPlan'),
     );
 
     // Wait 4 seconds to allow backend to complete saving
