@@ -44,3 +44,6 @@ Thumbs.db
 
 # i18n split files (optional - uncomment to ignore split files)
 # /public/assets/i18n/split/*
+
+# ngx-extended-pdf-viewer assets (copied from node_modules)
+/src/assets/ngx-extended-pdf-viewer/
