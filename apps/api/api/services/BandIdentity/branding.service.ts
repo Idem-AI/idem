@@ -15,7 +15,7 @@ import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.p
 import { LOGO_SYSTEM_SECTION_PROMPT } from './prompts/01_logo-system-section.prompt';
 import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
-import { MOCKUPS_SECTION_PROMPT } from './prompts/06_mockups-section.prompt';
+import { MOCKUPS_SECTION_PROMPT, MOCKUPS_COUNT } from './prompts/06_mockups-section.prompt';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
@@ -30,10 +30,12 @@ import { projectService } from '../project.service';
 import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
 import { geminiMockupService } from '../geminiMockup.service';
+import { StorageService } from '../storage.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
   private logoJsonToSvgService: LogoJsonToSvgService;
+  private storageService: StorageService;
 
   // Configuration LLM pour la génération de logos et variations
   // Optimisée pour qualité maximale avec vitesse préservée
@@ -76,6 +78,7 @@ export class BrandingService extends GenericService {
     super(promptService);
     this.pdfService = new PdfService();
     this.logoJsonToSvgService = new LogoJsonToSvgService();
+    this.storageService = new StorageService();
     logger.info('BrandingService initialized with optimized logo generation');
   }
 
@@ -467,19 +470,60 @@ export class BrandingService extends GenericService {
               return;
             }
 
-            // Convert result to section model
-            let section: SectionModel = {
-              name: result.name,
-              type: result.type,
-              data: result.data,
-              summary: result.summary,
-            };
+            // Traitement spécial pour les mockups - génération en parallèle
+            if (result.name === 'Brand Mockups') {
+              logger.info('Processing Brand Mockups with parallel generation');
 
-            // La section mockups est maintenant générée directement par le prompt
-            // avec Gemini 2.5 Flash Image intégré
+              try {
+                // Générer les mockups en parallèle
+                const mockupResults = await this.generateMockupsInParallel(project);
 
-            // Update the sections array with the new section
-            sections.push(section);
+                if (mockupResults.length > 0) {
+                  // Construire le HTML des mockups avec les vraies images
+                  const mockupsHtml = this.buildMockupsHtml(mockupResults, project);
+
+                  // Créer la section avec les mockups réels
+                  const mockupsSection: SectionModel = {
+                    name: result.name,
+                    type: result.type,
+                    data: mockupsHtml,
+                    summary: `Generated ${mockupResults.length} professional mockups with integrated brand logo`,
+                  };
+
+                  sections.push(mockupsSection);
+                  logger.info(`Successfully generated ${mockupResults.length} mockups in parallel`);
+                } else {
+                  // Fallback sur le résultat original si la génération échoue
+                  logger.warn('Parallel mockup generation failed, using fallback');
+                  const section: SectionModel = {
+                    name: result.name,
+                    type: result.type,
+                    data: result.data,
+                    summary: result.summary,
+                  };
+                  sections.push(section);
+                }
+              } catch (error) {
+                logger.error('Error in parallel mockup generation:', error);
+                // Fallback sur le résultat original
+                const section: SectionModel = {
+                  name: result.name,
+                  type: result.type,
+                  data: result.data,
+                  summary: result.summary,
+                };
+                sections.push(section);
+              }
+            } else {
+              // Traitement normal pour les autres sections
+              const section: SectionModel = {
+                name: result.name,
+                type: result.type,
+                data: result.data,
+                summary: result.summary,
+              };
+              sections.push(section);
+            }
 
             // Prepare the updated project data
             const updatedProjectData = {
@@ -2072,5 +2116,276 @@ ${LOGO_EDIT_PROMPT}`;
 
       return null;
     }
+  }
+
+  /**
+   * Génère tous les mockups en parallèle avec le logo intégré
+   */
+  private async generateMockupsInParallel(
+    project: ProjectModel
+  ): Promise<Array<{ url: string; title: string; description: string }>> {
+    try {
+      const branding = project.analysisResultModel?.branding;
+
+      // Vérifier si le logo est disponible
+      const logoSvg = branding?.logo?.svg || branding?.generatedLogos?.[0]?.svg;
+      if (!logoSvg) {
+        logger.warn(`No logo available for mockup generation for project ${project.id}`);
+        return [];
+      }
+
+      // Upload temporaire du logo SVG pour le rendre accessible
+      const logoUrl = await this.uploadLogoSvgTemporarily(logoSvg, project.id!, 'main');
+
+      // Préparer les couleurs de la marque
+      const brandColors = {
+        primary: branding?.colors?.colors?.primary || '#000000',
+        secondary: branding?.colors?.colors?.secondary || '#666666',
+        accent: branding?.colors?.colors?.accent || '#0066cc'
+      };
+
+      // Types de mockups selon l'industrie
+      const mockupTypes = this.getMockupTypesForIndustry(project.type);
+      const mockupPromises: Promise<{ url: string; title: string; description: string } | null>[] = [];
+
+      // Lancer MOCKUPS_COUNT requêtes en parallèle
+      for (let i = 0; i < MOCKUPS_COUNT; i++) {
+        const mockupType = mockupTypes[i % mockupTypes.length];
+        mockupPromises.push(this.generateSingleMockup(project, i + 1, mockupType, logoUrl, brandColors));
+      }
+
+      // Attendre que tous les mockups soient générés
+      const results = await Promise.all(mockupPromises);
+
+      // Filtrer les résultats null
+      return results.filter((result): result is { url: string; title: string; description: string } =>
+        result !== null
+      );
+
+    } catch (error) {
+      logger.error('Error generating mockups in parallel:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Génère un seul mockup avec le logo intégré
+   */
+  private async generateSingleMockup(
+    project: ProjectModel,
+    mockupIndex: number,
+    mockupType: string,
+    logoUrl: string,
+    brandColors: { primary: string; secondary: string; accent: string }
+  ): Promise<{ url: string; title: string; description: string } | null> {
+    try {
+      // Utiliser le service Gemini existant pour générer le mockup
+      const mockupResult = await geminiMockupService.generateSingleMockup(
+        logoUrl,
+        brandColors,
+        project.type,
+        project.name,
+        mockupType,
+        project.userId,
+        project.id!,
+        mockupIndex
+      );
+
+      if (!mockupResult) {
+        logger.error(`Failed to generate mockup ${mockupIndex} for project ${project.id}`);
+        return null;
+      }
+
+      logger.info(`Mockup ${mockupIndex} generated successfully`, {
+        projectId: project.id,
+        mockupType,
+        url: mockupResult.mockupUrl
+      });
+
+      return {
+        url: mockupResult.mockupUrl,
+        title: mockupResult.title || `${mockupType} Mockup`,
+        description: mockupResult.description || `Professional ${mockupType.toLowerCase()} showcasing the ${project.name} brand logo`
+      };
+
+    } catch (error) {
+      logger.error(`Error generating mockup ${mockupIndex} for project ${project.id}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Upload temporairement le SVG du logo pour le rendre accessible via URL
+   */
+  private async uploadLogoSvgTemporarily(logoSvg: string, projectId: string, suffix: string): Promise<string> {
+    try {
+      // Convertir le SVG en Buffer
+      const svgBuffer = Buffer.from(logoSvg, 'utf-8');
+
+      // Nom de fichier temporaire
+      const fileName = `temp_logo_${suffix}_${Date.now()}.svg`;
+      const folderPath = `projects/${projectId}/temp_logos`;
+
+      // Upload vers le storage
+      const uploadResult = await this.storageService.uploadFile(
+        svgBuffer,
+        fileName,
+        folderPath,
+        'image/svg+xml'
+      );
+
+      logger.info(`Logo SVG uploaded temporarily for mockup generation`, {
+        projectId,
+        suffix,
+        fileName,
+        url: uploadResult.downloadURL
+      });
+
+      return uploadResult.downloadURL;
+    } catch (error) {
+      logger.error('Error uploading logo SVG temporarily:', error);
+      // Fallback sur une URL placeholder
+      return 'https://via.placeholder.com/200x100/000000/FFFFFF?text=LOGO';
+    }
+  }
+
+  /**
+   * Retourne les types de mockups appropriés selon l'industrie
+   */
+  private getMockupTypesForIndustry(projectType: string): string[] {
+    const industryMockups: { [key: string]: string[] } = {
+      'web': [
+        'laptop_screen',
+        'mobile_app',
+        'business_card',
+        'merchandise'
+      ],
+      'mobile': [
+        'mobile_app',
+        'business_card',
+        'merchandise',
+        'laptop_screen'
+      ],
+      'healthcare': [
+        'packaging',
+        'signage',
+        'business_card',
+        'merchandise'
+      ],
+      'finance': [
+        'business_card',
+        'signage',
+        'laptop_screen',
+        'packaging'
+      ],
+      'food': [
+        'packaging',
+        'signage',
+        'business_card',
+        'merchandise'
+      ],
+      'retail': [
+        'packaging',
+        'signage',
+        'business_card',
+        'merchandise'
+      ],
+      'delivery': [
+        'signage',
+        'packaging',
+        'business_card',
+        'mobile_app'
+      ],
+      'consulting': [
+        'business_card',
+        'laptop_screen',
+        'signage',
+        'packaging'
+      ]
+    };
+
+    return industryMockups[projectType] || industryMockups['web']; // Fallback sur web
+  }
+
+  /**
+   * Construit le HTML des mockups avec les vraies images générées
+   */
+  private buildMockupsHtml(
+    mockupResults: Array<{ url: string; title: string; description: string }>,
+    project: ProjectModel
+  ): string {
+    const mockupCards = mockupResults.map((mockup, index) => `
+      <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-purple-500"></div>
+          <h3 class="text-lg font-semibold text-white">${mockup.title}</h3>
+        </div>
+        <div class="mb-4 rounded-lg overflow-hidden bg-gray-900/50">
+          <img src="${mockup.url}" alt="${mockup.title}" class="w-full h-48 object-cover rounded-lg" />
+        </div>
+        <p class="text-gray-300 text-sm leading-relaxed">${mockup.description}</p>
+      </div>
+    `).join('');
+
+    return `
+      <div class="space-y-8">
+        <!-- Header Section -->
+        <div class="text-center space-y-4">
+          <div class="flex items-center justify-center gap-3 mb-4">
+            <i class="pi pi-palette text-2xl text-blue-400"></i>
+            <h2 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              Brand Mockups
+            </h2>
+          </div>
+          <p class="text-gray-300 text-lg max-w-3xl mx-auto leading-relaxed">
+            Professional mockups showcasing your ${project.name} brand logo in real-world applications.
+            Each mockup demonstrates how your brand identity translates across different touchpoints and contexts.
+          </p>
+        </div>
+
+        <!-- Mockups Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ${mockupCards}
+        </div>
+
+        <!-- Guidelines Section -->
+        <div class="bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-blue-500/20 rounded-xl p-8">
+          <h3 class="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+            <i class="pi pi-check-circle text-green-400"></i>
+            Mockup Guidelines
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-eye text-blue-400"></i>
+                <h4 class="font-medium text-white">Logo Integration</h4>
+              </div>
+              <p class="text-gray-300 text-sm">Maintain logo visibility and proportions across all applications</p>
+            </div>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-palette text-purple-400"></i>
+                <h4 class="font-medium text-white">Brand Consistency</h4>
+              </div>
+              <p class="text-gray-300 text-sm">Ensure consistent color usage and brand elements</p>
+            </div>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-cog text-green-400"></i>
+                <h4 class="font-medium text-white">Visual Quality</h4>
+              </div>
+              <p class="text-gray-300 text-sm">Maintain high-resolution, professional presentation standards</p>
+            </div>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-check-circle text-orange-400"></i>
+                <h4 class="font-medium text-white">Industry Standards</h4>
+              </div>
+              <p class="text-gray-300 text-sm">Follow industry-specific design and application guidelines</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 }

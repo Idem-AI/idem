@@ -1,0 +1,41 @@
+{
+    "dashboard": {
+        "businessPlanGeneration": {
+            "postProcessing": "Traitement de votre plan d'affaires...",
+            "finalizing": "Finalisation du Plan d'Affaires",
+            "generating": "Génération du Plan d'Affaires",
+            "creating": "Création de votre plan d'affaires complet...",
+            "processing": "Traitement : {{steps}}",
+            "stepsCompleted": "Étapes Terminées",
+            "lastStep": "Dernière étape",
+            "progress": "Progression",
+            "savingData": "Sauvegarde des Données",
+            "savingBusinessPlan": "Sauvegarde de vos données de plan d'affaires...",
+            "wait": "Veuillez patienter pendant que nous finalisons vos données de plan d'affaires...",
+            "stepCompletedAt": "Terminé à {{time}}",
+            "cancelled": "La génération du plan d'affaires a été annulée",
+            "saving": {
+                "title": "Sauvegarde des Informations Supplémentaires",
+                "subtitle": "Veuillez patienter pendant que nous traitons vos informations supplémentaires..."
+            },
+            "buttons": {
+                "cancel": "Annuler",
+                "generate": "Générer le Plan d'Affaires"
+            },
+            "errors": {
+                "title": "Échec de la Génération",
+                "projectIdNotFound": "ID du projet introuvable",
+                "saveAdditionalInfo": "Échec de la sauvegarde des informations supplémentaires",
+                "failed": "Échec de la génération du plan d'affaires"
+            },
+            "empty": {
+                "title": "Prêt à Générer Votre Plan d'Affaires",
+                "subtitle": "Créez un plan d'affaires complet adapté à votre projet avec des insights alimentés par l'IA et une analyse de marché."
+            }
+        }
+    },
+    "common": {
+        "inProgress": "En Cours",
+        "retry": "Réessayer"
+    }
+}
