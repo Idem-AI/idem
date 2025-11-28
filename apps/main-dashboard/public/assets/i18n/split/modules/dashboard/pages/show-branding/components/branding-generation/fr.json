@@ -1,0 +1,10 @@
+{
+    "dashboard": {
+        "brandingGeneration": {
+            "progress": "Progrès",
+            "buttons": {
+                "cancel": "Annuler"
+            }
+        }
+    }
+}

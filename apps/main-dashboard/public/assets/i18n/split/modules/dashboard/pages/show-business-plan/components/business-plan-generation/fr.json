@@ -13,8 +13,13 @@
   "wait": "Veuillez patienter pendant la finalisation de votre plan d'affaires...",
   "stepCompletedAt": "Terminé à {{time}}",
   "errors": {
-    "title": "Échec de la génération"
+    "title": "Échec de la génération",
+    "failed": "Échec de la génération du plan d'affaires",
+    "saveAdditionalInfo": "Échec de l'enregistrement des informations supplémentaires",
+    "projectIdNotFound": "ID du projet non trouvé"
   },
+  "postProcessing": "Finalisation de la génération du plan d'affaires...",
+  "cancelled": "Génération du plan d'affaires annulée",
   "empty": {
     "title": "Aucun plan d'affaires pour le moment",
     "subtitle": "Commencez à générer votre plan d'affaires complet",

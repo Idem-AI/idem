@@ -148,7 +148,7 @@ apt-get install -y git
 
 # Clone du repository
 cd /root
-git clone https://github.com/idem-ai/idem.git
+git clone https://github.com/Idem-AI/idem/idem.git
 cd idem
 ```
 
