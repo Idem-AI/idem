@@ -57,8 +57,12 @@ export class PdfService {
     }
 
     logger.info('Initializing Puppeteer browser instance at startup');
-    this.browserInstance = await puppeteer.launch({
+
+    // Configuration pour production vs développement
+    const isProduction = process.env.NODE_ENV === 'production';
+    const puppeteerConfig: any = {
       headless: true,
+      timeout: 30000,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -69,9 +73,38 @@ export class PdfService {
         '--disable-features=TranslateUI',
         '--disable-web-security',
         '--disable-features=VizDisplayCompositor',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-default-apps',
+        '--disable-hang-monitor',
+        '--disable-prompt-on-repost',
+        '--disable-sync',
+        '--disable-translate',
+        '--metrics-recording-only',
+        '--no-first-run',
+        '--safebrowsing-disable-auto-update',
+        '--enable-automation',
+        '--password-store=basic',
+        '--use-mock-keychain'
       ],
-      timeout: 30000,
-    });
+    };
+
+    // En production, utiliser le Chromium installé par le système
+    if (isProduction && process.env.PUPPETEER_EXECUTABLE_PATH) {
+      puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      logger.info(`Using system Chromium: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
+    }
+
+    try {
+      this.browserInstance = await puppeteer.launch(puppeteerConfig);
+      logger.info('Puppeteer browser launched successfully');
+    } catch (error: any) {
+      logger.error('Failed to launch Puppeteer browser:', error);
+      throw new Error(`Puppeteer initialization failed: ${error?.message || 'Unknown error'}`);
+    }
 
     // Précharger les ressources statiques
     await this.preloadResources();
@@ -86,9 +119,15 @@ export class PdfService {
 
   // Obtenir l'instance du browser (déjà initialisée)
   private static getBrowser(): Browser {
-    if (!this.browserInstance || !this.browserInstance.isConnected()) {
+    if (!this.browserInstance) {
       throw new Error('Browser not initialized. Call PdfService.initialize() first.');
     }
+
+    if (!this.browserInstance.isConnected()) {
+      logger.warn('Browser connection lost, attempting to reinitialize...');
+      throw new Error('Browser connection lost. Please retry the operation.');
+    }
+
     return this.browserInstance;
   }
 

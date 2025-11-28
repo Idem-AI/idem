@@ -14,8 +14,10 @@
   },
   "stepCompletedAt": "Completed at {{time}}",
   "errors": {
-    "title": "Generation Failed"
+    "title": "Generation Failed",
+    "failed": "Failed to generate diagrams"
   },
+  "cancelled": "Diagram generation cancelled",
   "available": {
     "title": "Available Diagrams"
   }
