@@ -133,80 +133,33 @@ export class PdfService {
 
   // Précharger toutes les ressources statiques en cache
   private static async preloadResources(): Promise<void> {
-    const workingDir = process.cwd();
-    logger.info(`Working directory: ${workingDir}`);
-
     const resources = [
       {
         key: 'primeicons',
-        path: path.join(workingDir, 'public', 'css', 'primeicons.css'),
+        path: path.join(process.cwd(), 'public', 'css', 'primeicons.css'),
       },
       {
         key: 'tailwind',
-        path: path.join(workingDir, 'public', 'scripts', 'tailwind.js'),
+        path: path.join(process.cwd(), 'public', 'scripts', 'tailwind.js'),
       },
       {
         key: 'chartjs',
-        path: path.join(workingDir, 'public', 'scripts', 'chart.js'),
+        path: path.join(process.cwd(), 'public', 'scripts', 'chart.js'),
       },
     ];
 
-    // Diagnostic des dossiers disponibles
-    try {
-      const rootFiles = await fs.readdir(workingDir);
-      logger.info(`Root directory contents: ${rootFiles.join(', ')}`);
-
-      const publicPath = path.join(workingDir, 'public');
-      if (await fs.pathExists(publicPath)) {
-        const publicFiles = await fs.readdir(publicPath);
-        logger.info(`Public directory contents: ${publicFiles.join(', ')}`);
-
-        // Vérifier les sous-dossiers
-        const cssPath = path.join(publicPath, 'css');
-        const scriptsPath = path.join(publicPath, 'scripts');
-
-        if (await fs.pathExists(cssPath)) {
-          const cssFiles = await fs.readdir(cssPath);
-          logger.info(`CSS directory contents: ${cssFiles.join(', ')}`);
-        } else {
-          logger.warn(`CSS directory not found: ${cssPath}`);
-        }
-
-        if (await fs.pathExists(scriptsPath)) {
-          const scriptFiles = await fs.readdir(scriptsPath);
-          logger.info(`Scripts directory contents: ${scriptFiles.join(', ')}`);
-        } else {
-          logger.warn(`Scripts directory not found: ${scriptsPath}`);
-        }
-      } else {
-        logger.error(`Public directory not found: ${publicPath}`);
-      }
-    } catch (error) {
-      logger.error('Error during directory diagnostic:', error);
-    }
-
     for (const resource of resources) {
       try {
-        logger.info(`Checking resource: ${resource.key} at ${resource.path}`);
-
         if (await fs.pathExists(resource.path)) {
-          const stats = await fs.stat(resource.path);
-          logger.info(`Resource ${resource.key} found, size: ${Math.round(stats.size / 1024)}KB`);
-
           const content = await fs.readFile(resource.path, 'utf8');
           this.resourcesCache.set(resource.key, content);
-          logger.info(`✅ Successfully cached resource: ${resource.key} (${Math.round(content.length / 1024)}KB)`);
+          logger.info(`Cached resource: ${resource.key}`);
         } else {
-          logger.error(`❌ Resource not found: ${resource.path}`);
+          logger.warn(`Resource not found: ${resource.path}`);
         }
       } catch (error) {
-        logger.error(`❌ Failed to cache resource ${resource.key} from ${resource.path}:`, error);
+        logger.error(`Failed to cache resource ${resource.key}:`, error);
       }
-    }
-
-    logger.info(`Resources cache summary: ${this.resourcesCache.size} resources loaded`);
-    for (const [key] of this.resourcesCache.entries()) {
-      logger.info(`  - ${key}: loaded`);
     }
   }
 
@@ -215,35 +168,21 @@ export class PdfService {
     const browser = this.getBrowser();
     const page = await browser.newPage();
 
-    logger.info('Creating optimized page with cached resources...');
-
     // Injecter les ressources depuis le cache
     const primeiconsContent = this.resourcesCache.get('primeicons');
     if (primeiconsContent) {
       await page.addStyleTag({ content: primeiconsContent });
-      logger.info('✅ PrimeIcons CSS injected into page');
-    } else {
-      logger.warn('❌ PrimeIcons CSS not available in cache');
     }
 
     const tailwindContent = this.resourcesCache.get('tailwind');
     if (tailwindContent) {
       await page.addScriptTag({ content: tailwindContent });
-      logger.info('✅ Tailwind CSS script injected into page');
-    } else {
-      logger.warn('❌ Tailwind CSS script not available in cache');
     }
 
     const chartjsContent = this.resourcesCache.get('chartjs');
     if (chartjsContent) {
       await page.addScriptTag({ content: chartjsContent });
-      logger.info('✅ Chart.js script injected into page');
-    } else {
-      logger.warn('❌ Chart.js script not available in cache');
     }
-
-    const injectedResources = [primeiconsContent, tailwindContent, chartjsContent].filter(Boolean).length;
-    logger.info(`Page optimization complete: ${injectedResources}/3 resources injected`);
 
     return page;
   }
