@@ -28,8 +28,9 @@ RUN npm run build
 # Stage de production avec nginx
 FROM nginx:alpine AS production
 
-# Copier la configuration nginx
+# Copier la configuration nginx et les MIME types
 COPY ./apps/main-dashboard/nginx.conf /etc/nginx/nginx.conf
+COPY ./apps/main-dashboard/mime.types.custom /etc/nginx/mime.types.custom
 
 # Copier le build de l'application
 COPY --from=builder /app/apps/main-dashboard/dist/main-dashboard/browser /usr/share/nginx/html
