@@ -22,7 +22,7 @@ export class VideoTrailer {
   protected showVideo = signal(false);
 
   protected readonly videoPoster =
-    'https://firebasestorage.googleapis.com/v0/b/lexis-ia.firebasestorage.app/o/demo%2Fposter.jpg?alt=media&token=placeholder';
+    'assets/images/home/brand.webp';
 
   constructor() {
     const videoId = 'M-8n6dpC5o4';
