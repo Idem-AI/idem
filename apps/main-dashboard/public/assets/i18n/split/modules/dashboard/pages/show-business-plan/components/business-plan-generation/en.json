@@ -13,8 +13,13 @@
   "wait": "Please wait while we finalize your business plan...",
   "stepCompletedAt": "Completed at {{time}}",
   "errors": {
-    "title": "Generation Failed"
+    "title": "Generation Failed",
+    "failed": "Failed to generate business plan",
+    "saveAdditionalInfo": "Failed to save additional information",
+    "projectIdNotFound": "Project ID not found"
   },
+  "postProcessing": "Finalizing business plan generation...",
+  "cancelled": "Business plan generation cancelled",
   "empty": {
     "title": "No Business Plan Yet",
     "subtitle": "Start generating your comprehensive business plan",
@@ -23,6 +28,8 @@
     }
   },
   "buttons": {
-    "generate": "Generate Business Plan"
-  }
+    "generate": "Generate Business Plan",
+    "cancel": "Cancel"
+  },
+  "progress": "Progress"
 }

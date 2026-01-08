@@ -1,7 +1,7 @@
 services:
   # IDEM Frontend - Production Environment
   idem: 
-    image: ghcr.io/idem-ai/idem-main-dashboard:1.0
+    image: ghcr.io/idem-ai/idem-main-dashboard:6b8c802
     container_name: idem
     restart: always
     networks:
@@ -21,7 +21,7 @@ services:
 
   # IDEM API - Production Environment
   idem-api:
-    image: ghcr.io/idem-ai/idem-api:28d44d3e
+    image: ghcr.io/idem-ai/idem-api:0cd4946b
     container_name: idem-api
     environment:
       DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"

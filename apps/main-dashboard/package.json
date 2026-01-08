@@ -1,6 +1,6 @@
 {
   "name": "main-dashboard",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -9,7 +9,9 @@
     "test": "ng test",
     "i18n:split": "node scripts/split-i18n.js",
     "i18n:merge": "node scripts/merge-i18n.js",
-    "i18n:split-merge": "npm run i18n:split && npm run i18n:merge"
+    "i18n:split-merge": "npm run i18n:split && npm run i18n:merge",
+    "copy:pdf-assets": "cd ../.. && ./apps/main-dashboard/scripts/copy-pdf-assets.sh",
+    "postinstall": "node scripts/postinstall.js"
   },
   "prettier": {
     "printWidth": 100,
