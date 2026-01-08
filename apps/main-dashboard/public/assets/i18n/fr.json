@@ -626,7 +626,9 @@
         },
         "comingUp": "À venir",
         "almostThere": "Presque terminé",
-        "finalStep": "Dernière étape"
+        "finalStep": "Dernière étape",
+        "startNow": "Commencer maintenant",
+        "nextStep": "Étape suivante"
       },
       "info": {
         "created": "Créé",
@@ -1124,16 +1126,76 @@
         "create": "Créer votre premier projet"
       }
     },
+    "brandingDisplay": {
+      "title": "Document d'identité de marque",
+      "loading": "Préparation du contenu de branding...",
+      "empty": {
+        "title": "Créez votre identité de marque",
+        "subtitle": "Générez une identité de marque complète avec logos, couleurs et typographie pour votre projet"
+      },
+      "features": {
+        "colors": {
+          "title": "Palette de couleurs",
+          "description": "Schémas de couleurs professionnels"
+        },
+        "logo": {
+          "title": "Variations de logo",
+          "description": "Multiples formats de logo"
+        },
+        "typography": {
+          "title": "Typographie",
+          "description": "Recommandations de polices"
+        }
+      },
+      "buttons": {
+        "generate": "Générer l'identité de marque"
+      },
+      "generationTime": "La génération prend 2-3 minutes"
+    },
+    "brandingGeneration": {
+      "finalizing": "Finalisation du Branding",
+      "generating": "Génération du Branding",
+      "creating": "Création de votre identité de marque...",
+      "processing": "Traitement : {{steps}}",
+      "stepsCompleted": "Étapes Terminées",
+      "lastStep": "Dernière étape",
+      "progress": "Progression",
+      "savingData": "Sauvegarde des Données",
+      "wait": "Veuillez patienter pendant que nous finalisons vos données de branding...",
+      "stepCompletedAt": "Terminé à {{time}}",
+      "buttons": {
+        "cancel": "Annuler"
+      },
+      "errors": {
+        "title": "Échec de la Génération"
+      }
+    },
     "showBranding": {
       "title": "Identité de marque",
       "loading": {
         "checking": "Vérification de votre identité de marque..."
       },
+      "showBranding": {
+        "title": "Identité de Marque",
+        "empty": {
+          "noProject": {
+            "title": "Aucun projet sélectionné",
+            "subtitle": "Veuillez sélectionner un projet pour voir son identité de marque"
+          }
+        },
+        "buttons": {
+          "selectProject": "Sélectionner un projet"
+        }
+      },
       "buttons": {
         "backToOverview": "Retour à l'aperçu",
         "backToProjects": "Retour aux projets",
         "getCharter": "Obtenir la charte graphique",
-        "downloadZip": "Télécharger tous les logos en ZIP"
+        "downloadZip": "Télécharger tous les logos en ZIP",
+        "selectProject": "Sélectionner un projet",
+        "generate": "Générer l'identité de marque",
+        "viewIdentity": "Voir mon identité visuelle",
+        "generateIdentity": "Générer mon identité visuelle"
       },
       "tooltips": {
         "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -1163,13 +1225,87 @@
           "subtitle": "Les polices de votre marque",
           "heading": "Police de titre",
           "body": "Police de corps",
-          "selected": "Typographie sélectionnée"
+          "selected": "Typographie sélectionnée",
+          "primary": "Police Principale",
+          "secondary": "Police Secondaire"
         }
       },
       "empty": {
         "noLogos": "Aucun logo disponible",
         "noColors": "Aucune palette de couleurs définie",
-        "noTypography": "Aucune typographie définie"
+        "noTypography": "Aucune typographie définie",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Veuillez sélectionner un projet pour voir son identité de marque"
+        },
+        "title": "Créez votre identité de marque",
+        "subtitle": "Générez une identité de marque complète avec logos, couleurs et typographie pour votre projet"
+      },
+      "identityCard": {
+        "existing": {
+          "title": "Votre identité visuelle est prête !",
+          "subtitle": "Découvrez votre charte graphique complète avec logos, couleurs et typographie.",
+          "features": [
+            "Charte graphique PDF",
+            "Logos en plusieurs formats",
+            "Palette de couleurs",
+            "Guide typographique"
+          ]
+        },
+        "generate": {
+          "title": "Créez votre identité visuelle unique",
+          "subtitle": "Générez une identité de marque professionnelle adaptée à votre projet.",
+          "features": [
+            "IA créative avancée",
+            "Logos personnalisés",
+            "Couleurs harmonieuses",
+            "Typographie adaptée"
+          ],
+          "estimatedTime": "Temps estimé : 2-3 minutes"
+        }
+      },
+      "features": {
+        "colors": {
+          "title": "Palette de couleurs",
+          "description": "Schémas de couleurs professionnels"
+        },
+        "logo": {
+          "title": "Variations de logo",
+          "description": "Multiples formats de logo"
+        },
+        "typography": {
+          "title": "Typographie",
+          "description": "Recommandations de polices"
+        }
+      },
+      "generationTime": "La génération prend 2-3 minutes",
+      "status": {
+        "ready": "Prêt",
+        "pending": "En attente"
+      },
+      "brandingDisplay": {
+        "title": "Document d'identité de marque",
+        "loading": "Préparation du contenu de branding..."
+      },
+      "dialog": {
+        "title": "Télécharger les Logos",
+        "subtitle": "Choisissez le format que vous souhaitez télécharger :",
+        "preparing": "Préparation du téléchargement...",
+        "wait": "Cela peut prendre quelques instants",
+        "formats": {
+          "svg": {
+            "name": "Format SVG",
+            "description": "Format vectoriel, redimensionnable"
+          },
+          "png": {
+            "name": "Format PNG",
+            "description": "Image raster haute qualité"
+          },
+          "psd": {
+            "name": "Format PSD",
+            "description": "Fichier éditable Photoshop"
+          }
+        }
       }
     },
     "additionalInfoForm": {
@@ -1177,40 +1313,52 @@
       "subtitle": "Aidez-nous à créer un plan d'affaires plus précis en fournissant des détails supplémentaires",
       "sections": {
         "company": "Informations sur l'entreprise",
-        "market": "Informations sur le marché",
-        "financial": "Informations financières"
+        "team": "Membres de l'équipe",
+        "social": "Liens sociaux"
       },
       "fields": {
         "email": "Email",
         "phone": "Téléphone",
-        "website": "Site web",
         "address": "Adresse",
         "city": "Ville",
         "country": "Pays",
-        "targetMarket": "Marché cible",
-        "competitors": "Principaux concurrents",
-        "budget": "Budget initial",
-        "fundingNeeds": "Besoins de financement"
+        "zipCode": "Code postal",
+        "fullName": "Nom complet",
+        "role": "Rôle",
+        "bio": "Biographie",
+        "profilePicture": "Photo de Profil"
       },
       "placeholders": {
         "email": "entreprise@exemple.com",
         "phone": "+33 1 23 45 67 89",
-        "website": "https://www.exemple.com",
         "address": "123 Rue Principale",
         "city": "Paris",
         "country": "France",
-        "targetMarket": "Décrivez votre marché cible",
-        "competitors": "Listez vos principaux concurrents",
-        "budget": "Entrez votre budget initial",
-        "fundingNeeds": "Décrivez vos besoins de financement"
+        "zipCode": "75001",
+        "fullName": "Jean Dupont",
+        "memberEmail": "jean@exemple.com",
+        "role": "PDG",
+        "bio": "Brève description de ce membre de l'équipe",
+        "linkedin": "https://linkedin.com/in/nomutilisateur",
+        "github": "https://github.com/nomutilisateur",
+        "twitter": "https://twitter.com/nomutilisateur"
       },
       "buttons": {
-        "submit": "Générer le plan d'affaires",
-        "skip": "Passer pour l'instant"
+        "addMember": "Ajouter un membre",
+        "chooseImage": "Choisir une image",
+        "continue": "Continuer"
       },
-      "validation": {
-        "emailRequired": "L'email est requis",
-        "emailInvalid": "Veuillez entrer une adresse email valide"
+      "member": "Membre de l'équipe {{index}}",
+      "alt": {
+        "profilePicture": "Photo de profil"
+      }
+    },
+    "businessPlanDisplay": {
+      "title": "PDF du Plan d'Affaires",
+      "loading": "Préparation du contenu du plan d'affaires...",
+      "empty": {
+        "title": "Aucun Plan d'Affaires Disponible",
+        "subtitle": "Aucun contenu de plan d'affaires disponible."
       }
     },
     "businessPlanGeneration": {
@@ -1228,8 +1376,13 @@
       "wait": "Veuillez patienter pendant la finalisation de votre plan d'affaires...",
       "stepCompletedAt": "Terminé à {{time}}",
       "errors": {
-        "title": "Échec de la génération"
+        "title": "Échec de la génération",
+        "failed": "Échec de la génération du plan d'affaires",
+        "saveAdditionalInfo": "Échec de l'enregistrement des informations supplémentaires",
+        "projectIdNotFound": "ID du projet non trouvé"
       },
+      "postProcessing": "Finalisation de la génération du plan d'affaires...",
+      "cancelled": "Génération du plan d'affaires annulée",
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",
         "subtitle": "Commencez à générer votre plan d'affaires complet",
@@ -1238,8 +1391,10 @@
         }
       },
       "buttons": {
-        "generate": "Générer le plan d'affaires"
-      }
+        "generate": "Générer le plan d'affaires",
+        "cancel": "Annuler"
+      },
+      "progress": "Progrès"
     },
     "showBusinessPlan": {
       "loading": {
@@ -1288,8 +1443,10 @@
       },
       "stepCompletedAt": "Terminé à {{time}}",
       "errors": {
-        "title": "Échec de la génération"
+        "title": "Échec de la génération",
+        "failed": "Échec de la génération des diagrammes"
       },
+      "cancelled": "Génération des diagrammes annulée",
       "available": {
         "title": "Diagrammes disponibles"
       }
