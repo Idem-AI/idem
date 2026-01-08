@@ -626,7 +626,9 @@
         },
         "comingUp": "Coming Up",
         "almostThere": "Almost There",
-        "finalStep": "Final Step"
+        "finalStep": "Final Step",
+        "startNow": "Start Now",
+        "nextStep": "Next Step"
       },
       "info": {
         "created": "Created",
@@ -1124,16 +1126,76 @@
         "create": "Create your first project"
       }
     },
+    "brandingDisplay": {
+      "title": "Brand Identity Document",
+      "loading": "Preparing branding content...",
+      "empty": {
+        "title": "Create Your Brand Identity",
+        "subtitle": "Generate a complete brand identity with logos, colors, and typography for your project"
+      },
+      "features": {
+        "colors": {
+          "title": "Color Palette",
+          "description": "Professional color schemes"
+        },
+        "logo": {
+          "title": "Logo Variations",
+          "description": "Multiple logo formats"
+        },
+        "typography": {
+          "title": "Typography",
+          "description": "Font recommendations"
+        }
+      },
+      "buttons": {
+        "generate": "Generate Brand Identity"
+      },
+      "generationTime": "Generation takes 2-3 minutes"
+    },
+    "brandingGeneration": {
+      "finalizing": "Finalizing Branding",
+      "generating": "Generating Branding",
+      "creating": "Creating your brand identity...",
+      "processing": "Processing: {{steps}}",
+      "stepsCompleted": "Steps Completed",
+      "lastStep": "Last step",
+      "progress": "Progress",
+      "savingData": "Saving Data",
+      "wait": "Please wait while we finalize your branding data...",
+      "stepCompletedAt": "Completed at {{time}}",
+      "buttons": {
+        "cancel": "Cancel"
+      },
+      "errors": {
+        "title": "Generation Failed"
+      }
+    },
     "showBranding": {
       "title": "Brand Identity",
       "loading": {
         "checking": "Checking your brand identity..."
       },
+      "showBranding": {
+        "title": "Brand Identity",
+        "empty": {
+          "noProject": {
+            "title": "No Project Selected",
+            "subtitle": "Please select a project to view its brand identity"
+          }
+        },
+        "buttons": {
+          "selectProject": "Select Project"
+        }
+      },
       "buttons": {
         "backToOverview": "Back to Overview",
         "backToProjects": "Back to Projects",
         "getCharter": "Get Brand Charter",
-        "downloadZip": "Download all logos as ZIP"
+        "downloadZip": "Download all logos as ZIP",
+        "selectProject": "Select Project",
+        "generate": "Generate Brand Identity",
+        "viewIdentity": "View My Visual Identity",
+        "generateIdentity": "Generate My Visual Identity"
       },
       "tooltips": {
         "downloadZip": "Download all logos in a ZIP file"
@@ -1163,13 +1225,87 @@
           "subtitle": "Your brand fonts",
           "heading": "Heading Font",
           "body": "Body Font",
-          "selected": "Selected Typography"
+          "selected": "Selected Typography",
+          "primary": "Primary Font",
+          "secondary": "Secondary Font"
         }
       },
       "empty": {
         "noLogos": "No logos available",
         "noColors": "No color palette defined",
-        "noTypography": "No typography defined"
+        "noTypography": "No typography defined",
+        "noProject": {
+          "title": "No Project Selected",
+          "subtitle": "Please select a project to view its brand identity"
+        },
+        "title": "Create Your Brand Identity",
+        "subtitle": "Generate a complete brand identity with logos, colors, and typography for your project"
+      },
+      "identityCard": {
+        "existing": {
+          "title": "Your visual identity is ready!",
+          "subtitle": "Discover your complete brand charter with logos, colors, and typography.",
+          "features": [
+            "Brand charter PDF",
+            "Logos in multiple formats",
+            "Color palette",
+            "Typography guide"
+          ]
+        },
+        "generate": {
+          "title": "Create your unique visual identity",
+          "subtitle": "Generate a professional brand identity tailored to your project.",
+          "features": [
+            "Advanced creative AI",
+            "Custom logos",
+            "Harmonious colors",
+            "Adapted typography"
+          ],
+          "estimatedTime": "Estimated time: 2-3 minutes"
+        }
+      },
+      "features": {
+        "colors": {
+          "title": "Color Palette",
+          "description": "Professional color schemes"
+        },
+        "logo": {
+          "title": "Logo Variations",
+          "description": "Multiple logo formats"
+        },
+        "typography": {
+          "title": "Typography",
+          "description": "Font recommendations"
+        }
+      },
+      "generationTime": "Generation takes 2-3 minutes",
+      "status": {
+        "ready": "Ready",
+        "pending": "Pending"
+      },
+      "brandingDisplay": {
+        "title": "Brand Identity Document",
+        "loading": "Preparing branding content..."
+      },
+      "dialog": {
+        "title": "Download Logos",
+        "subtitle": "Choose the format you want to download:",
+        "preparing": "Preparing download...",
+        "wait": "This may take a few moments",
+        "formats": {
+          "svg": {
+            "name": "SVG Format",
+            "description": "Vector format, scalable"
+          },
+          "png": {
+            "name": "PNG Format",
+            "description": "High quality raster image"
+          },
+          "psd": {
+            "name": "PSD Format",
+            "description": "Photoshop editable file"
+          }
+        }
       }
     },
     "additionalInfoForm": {
@@ -1177,40 +1313,52 @@
       "subtitle": "Help us create a more accurate business plan by providing additional details",
       "sections": {
         "company": "Company Information",
-        "market": "Market Information",
-        "financial": "Financial Information"
+        "team": "Team Members",
+        "social": "Social Links"
       },
       "fields": {
         "email": "Email",
         "phone": "Phone",
-        "website": "Website",
         "address": "Address",
         "city": "City",
         "country": "Country",
-        "targetMarket": "Target Market",
-        "competitors": "Main Competitors",
-        "budget": "Initial Budget",
-        "fundingNeeds": "Funding Needs"
+        "zipCode": "Zip Code",
+        "fullName": "Full Name",
+        "role": "Role",
+        "bio": "Bio",
+        "profilePicture": "Profile Picture"
       },
       "placeholders": {
         "email": "company@example.com",
         "phone": "+1 234 567 8900",
-        "website": "https://www.example.com",
         "address": "123 Main Street",
         "city": "New York",
         "country": "United States",
-        "targetMarket": "Describe your target market",
-        "competitors": "List your main competitors",
-        "budget": "Enter your initial budget",
-        "fundingNeeds": "Describe your funding needs"
+        "zipCode": "12345",
+        "fullName": "John Doe",
+        "memberEmail": "john@example.com",
+        "role": "CEO",
+        "bio": "Brief description about this team member",
+        "linkedin": "https://linkedin.com/in/username",
+        "github": "https://github.com/username",
+        "twitter": "https://twitter.com/username"
       },
       "buttons": {
-        "submit": "Generate Business Plan",
-        "skip": "Skip for Now"
+        "addMember": "Add Team Member",
+        "chooseImage": "Choose Image",
+        "continue": "Continue"
       },
-      "validation": {
-        "emailRequired": "Email is required",
-        "emailInvalid": "Please enter a valid email address"
+      "member": "Team Member {{index}}",
+      "alt": {
+        "profilePicture": "Profile picture"
+      }
+    },
+    "businessPlanDisplay": {
+      "title": "Business Plan PDF",
+      "loading": "Preparing business plan content...",
+      "empty": {
+        "title": "No Business Plan Available",
+        "subtitle": "No business plan content available."
       }
     },
     "businessPlanGeneration": {
@@ -1228,8 +1376,13 @@
       "wait": "Please wait while we finalize your business plan...",
       "stepCompletedAt": "Completed at {{time}}",
       "errors": {
-        "title": "Generation Failed"
+        "title": "Generation Failed",
+        "failed": "Failed to generate business plan",
+        "saveAdditionalInfo": "Failed to save additional information",
+        "projectIdNotFound": "Project ID not found"
       },
+      "postProcessing": "Finalizing business plan generation...",
+      "cancelled": "Business plan generation cancelled",
       "empty": {
         "title": "No Business Plan Yet",
         "subtitle": "Start generating your comprehensive business plan",
@@ -1238,8 +1391,10 @@
         }
       },
       "buttons": {
-        "generate": "Generate Business Plan"
-      }
+        "generate": "Generate Business Plan",
+        "cancel": "Cancel"
+      },
+      "progress": "Progress"
     },
     "showBusinessPlan": {
       "loading": {
@@ -1288,8 +1443,10 @@
       },
       "stepCompletedAt": "Completed at {{time}}",
       "errors": {
-        "title": "Generation Failed"
+        "title": "Generation Failed",
+        "failed": "Failed to generate diagrams"
       },
+      "cancelled": "Diagram generation cancelled",
       "available": {
         "title": "Available Diagrams"
       }
@@ -1356,6 +1513,51 @@
       "loading": "Loading PDF...",
       "wait": "Please wait while we load your document",
       "noContent": "No PDF to display"
+    }
+  },
+  "logoCreation": {
+    "title": "Creating Your Logo",
+    "subtitle": "Our AI is designing a unique logo tailored to your brand",
+    "estimatedTime": "Estimated Time",
+    "steps": {
+      "analyze": {
+        "title": "Analysis",
+        "description": "Analyzing your brand requirements and preferences"
+      },
+      "research": {
+        "title": "Research",
+        "description": "Researching industry trends and design patterns"
+      },
+      "sketch": {
+        "title": "Sketching",
+        "description": "Creating initial concept sketches and ideas"
+      },
+      "design": {
+        "title": "Design",
+        "description": "Developing detailed logo designs and variations"
+      },
+      "refine": {
+        "title": "Refinement",
+        "description": "Refining details and perfecting the design"
+      },
+      "finalize": {
+        "title": "Finalization",
+        "description": "Finalizing your logo and preparing deliverables"
+      }
+    },
+    "concepts": {
+      "concept1": {
+        "name": "Modern",
+        "description": "Clean and contemporary design approach"
+      },
+      "concept2": {
+        "name": "Classic",
+        "description": "Timeless and traditional design elements"
+      },
+      "concept3": {
+        "name": "Creative",
+        "description": "Innovative and artistic design concepts"
+      }
     }
   },
   "projects": {

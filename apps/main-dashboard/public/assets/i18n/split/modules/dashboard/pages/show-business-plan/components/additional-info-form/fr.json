@@ -3,39 +3,43 @@
   "subtitle": "Aidez-nous à créer un plan d'affaires plus précis en fournissant des détails supplémentaires",
   "sections": {
     "company": "Informations sur l'entreprise",
-    "market": "Informations sur le marché",
-    "financial": "Informations financières"
+    "team": "Membres de l'équipe",
+    "social": "Liens sociaux"
   },
   "fields": {
     "email": "Email",
     "phone": "Téléphone",
-    "website": "Site web",
     "address": "Adresse",
     "city": "Ville",
     "country": "Pays",
-    "targetMarket": "Marché cible",
-    "competitors": "Principaux concurrents",
-    "budget": "Budget initial",
-    "fundingNeeds": "Besoins de financement"
+    "zipCode": "Code postal",
+    "fullName": "Nom complet",
+    "role": "Rôle",
+    "bio": "Biographie",
+    "profilePicture": "Photo de Profil"
   },
   "placeholders": {
     "email": "entreprise@exemple.com",
     "phone": "+33 1 23 45 67 89",
-    "website": "https://www.exemple.com",
     "address": "123 Rue Principale",
     "city": "Paris",
     "country": "France",
-    "targetMarket": "Décrivez votre marché cible",
-    "competitors": "Listez vos principaux concurrents",
-    "budget": "Entrez votre budget initial",
-    "fundingNeeds": "Décrivez vos besoins de financement"
+    "zipCode": "75001",
+    "fullName": "Jean Dupont",
+    "memberEmail": "jean@exemple.com",
+    "role": "PDG",
+    "bio": "Brève description de ce membre de l'équipe",
+    "linkedin": "https://linkedin.com/in/nomutilisateur",
+    "github": "https://github.com/nomutilisateur",
+    "twitter": "https://twitter.com/nomutilisateur"
   },
   "buttons": {
-    "submit": "Générer le plan d'affaires",
-    "skip": "Passer pour l'instant"
+    "addMember": "Ajouter un membre",
+    "chooseImage": "Choisir une image",
+    "continue": "Continuer"
   },
-  "validation": {
-    "emailRequired": "L'email est requis",
-    "emailInvalid": "Veuillez entrer une adresse email valide"
+  "member": "Membre de l'équipe {{index}}",
+  "alt": {
+    "profilePicture": "Photo de profil"
   }
 }

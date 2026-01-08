@@ -91,7 +91,7 @@ export class TeamDetailsGlobal implements OnInit {
   /**
    * Navigate back
    */
-  protected goBack(): void {
+  protected back(): void {
     this.router.navigate(['/teams']);
   }
 

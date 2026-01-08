@@ -7,7 +7,16 @@
     ></app-logo-preferences>
   }
 
-  <!-- Loading State -->
+  <!-- Logo Creation Simulator -->
+  @if (shouldShowSimulator()) {
+    <app-logo-creation-simulator
+      [isActive]="true"
+      [totalDuration]="60000"
+      (completed)="onSimulatorCompleted()"
+    ></app-logo-creation-simulator>
+  }
+
+  <!-- Fallback Loading State (si simulateur non disponible) -->
   @if (shouldShowLoader()) {
     <div class="text-center mb-8">
       <h1
