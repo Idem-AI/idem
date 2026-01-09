@@ -1,59 +1,67 @@
-import { v4 as uuidv4 } from 'uuid';
 import { Messages, StreamingOptions, streamTextFn } from '../action';
 import { CONTINUE_PROMPT, ToolInfo } from '../prompt';
 import SwitchableStream from '../switchable-stream';
-import { tool } from 'ai';
-import { jsonSchemaToZodSchema } from '@/app/api/chat/utils/json2zod';
+// TODO: Re-enable tool imports when fixing tool handling for ai v6.0.26
+// import { tool } from 'ai';
+// import { jsonSchemaToZodSchema } from '@/app/api/chat/utils/json2zod';
 
 const MAX_RESPONSE_SEGMENTS = 2;
 
 export async function handleChatMode(
   messages: Messages,
   model: string,
-  userId: string | null,
-  tools?: ToolInfo[]
+  _userId: string | null,
+  _tools?: ToolInfo[]
 ): Promise<Response> {
-  const stream = new SwitchableStream();
-  let toolList = {};
-  if (tools && tools.length > 0) {
-    toolList = tools.reduce((obj, { name, ...args }) => {
-      obj[name] = tool({
-        id: args.id,
-        description: args.description,
-        parameters: jsonSchemaToZodSchema(args.parameters),
-        execute: async (input) => {
-          return input;
-        },
-      });
-      return obj;
-    }, {});
-  }
+  const switchableStream = new SwitchableStream();
+  // TODO: Fix tool handling for ai v6.0.26 - temporarily disabled
+  const toolList = {};
   const options: StreamingOptions = {
     tools: toolList,
-    toolCallStreaming: true,
     onError: (error) => {
-      const uuid = uuidv4();
       const msg = error?.error;
-      throw new Error(`${msg || JSON.stringify(error)} logid ${uuid}`);
+      throw new Error(`${msg || JSON.stringify(error)}`);
     },
     onFinish: async (response) => {
       const { text: content, finishReason } = response;
 
       if (finishReason !== 'length') {
-        return stream.close();
+        return switchableStream.close();
       }
 
-      if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
+      if (switchableStream.switches >= MAX_RESPONSE_SEGMENTS) {
         throw Error('Cannot continue message: Maximum segments reached');
       }
 
-      messages.push({ id: uuidv4(), role: 'assistant', content });
-      messages.push({ id: uuidv4(), role: 'user', content: CONTINUE_PROMPT });
+      messages.push({ role: 'assistant', content });
+      messages.push({ role: 'user', content: CONTINUE_PROMPT });
     },
   };
 
-  const result = await streamTextFn(messages, options, model);
-  return result.toDataStreamResponse({
-    sendReasoning: true,
+  const result = streamTextFn(messages, options, model);
+
+  // Create a custom stream response compatible with AI React client
+  const encoder = new TextEncoder();
+  const responseStream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of result.textStream) {
+          // Format as data stream part for AI React client compatibility
+          const dataChunk = `0:"${chunk.replace(/"/g, '\\"')}"\n`;
+          controller.enqueue(encoder.encode(dataChunk));
+        }
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+
+  return new Response(responseStream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
   });
 }

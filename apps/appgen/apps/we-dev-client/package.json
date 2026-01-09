@@ -14,7 +14,7 @@
     "start": "vite preview"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.2.22",
+    "@ai-sdk/google": "^3.0.6",
     "@ant-design/icons": "^6.1.0",
     "@babel/parser": "^7.26.5",
     "@babel/traverse": "^7.26.5",
