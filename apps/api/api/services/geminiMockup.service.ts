@@ -257,7 +257,7 @@ export class GeminiMockupService {
   }
 
   /**
-   * Génère un mockup individuel avec Gemini 2.5 Flash Image
+   * Génère un mockup individuel avec Gemini  Image
    */
   private async generateMockup(
     request: MockupGenerationRequest,
@@ -299,8 +299,8 @@ export class GeminiMockupService {
         projectId
       });
 
-      // Générer l'image avec Gemini 2.5 Flash Image
-      logger.info('🤖 Calling Gemini 2.5 Flash Image API', {
+      // Générer l'image avec Gemini
+      logger.info('🤖 Calling Gemini Image API', {
         mockupName,
         model: 'gemini-3-pro-image-preview',
         projectId
@@ -414,47 +414,49 @@ export class GeminiMockupService {
   private createMockupPrompt(request: MockupGenerationRequest): string {
     const { mockupType, brandName, brandColors, industry, logoUrl } = request;
 
-    // Prompt de base avec intégration du logo
-    const basePrompt = `Create a professional, photorealistic mockup image for the brand "${brandName}" in the ${industry} industry. The mockup MUST include the brand logo prominently and professionally integrated into the design.`;
+    // Prompt de base optimisé pour l'intégration du logo
+    const basePrompt = `Créez une image de mockup professionnelle et photoréaliste pour la marque "${brandName}" dans l'industrie ${industry}. Le mockup DOIT inclure le logo de la marque de manière proéminente et intégrée professionnellement dans le design.`;
 
-    const colorInfo = `Use these exact brand colors: primary ${brandColors.primary}, secondary ${brandColors.secondary}, accent ${brandColors.accent}. The logo should be clearly visible and well-integrated with these colors.`;
+    const colorInfo = `Utilisez ces couleurs exactes de la marque: primaire ${brandColors.primary}, secondaire ${brandColors.secondary}, accent ${brandColors.accent}. Le logo doit être clairement visible et bien intégré avec ces couleurs.`;
 
-    const logoIntegration = `IMPORTANT: The brand logo must be prominently displayed and professionally integrated into the mockup. The logo should be clearly readable, properly sized, and positioned according to professional design standards for the ${industry} industry.`;
+    const logoIntegration = `CRITIQUE: Le logo de la marque doit être affiché de manière proéminente et intégré professionnellement dans le mockup. Le logo doit être clairement lisible, correctement dimensionné, et positionné selon les standards de design professionnel pour l'industrie ${industry}. Assurez-vous que le logo apparaît naturellement dans le contexte du mockup.`;
 
     let specificPrompt = '';
 
     switch (mockupType) {
       case 'business_card':
-        specificPrompt = `Create an elegant business card mockup featuring the "${brandName}" logo prominently on the front. The card should have a professional design suitable for the ${industry} industry, with clean typography and the brand colors integrated tastefully. The logo should be the focal point of the card design. Show the card on a modern desk setup with soft, professional lighting. The card should look premium and industry-appropriate.`;
+        specificPrompt = `Créez un mockup de carte de visite élégante avec le logo "${brandName}" affiché de manière proéminente sur le devant. La carte doit avoir un design professionnel adapté à l'industrie ${industry}, avec une typographie propre et les couleurs de la marque intégrées avec goût. Le logo doit être le point focal du design de la carte. Montrez la carte sur un bureau moderne avec un éclairage doux et professionnel. La carte doit paraître premium et appropriée à l'industrie.`;
         break;
 
       case 'laptop_screen':
-        specificPrompt = `Show a modern laptop screen displaying a professional interface or website for "${brandName}" with the logo prominently featured in the header or main area. The screen should show a clean, modern UI design appropriate for the ${industry} industry. The logo should be clearly visible and well-integrated into the interface design. Include the brand colors throughout the interface. The laptop should be on a clean desk with professional lighting.`;
+        specificPrompt = `Montrez un écran d'ordinateur portable moderne affichant une interface professionnelle ou un site web pour "${brandName}" avec le logo mis en avant dans l'en-tête ou la zone principale. L'écran doit montrer un design UI propre et moderne approprié à l'industrie ${industry}. Le logo doit être clairement visible et bien intégré dans le design de l'interface. Incluez les couleurs de la marque dans toute l'interface. L'ordinateur portable doit être sur un bureau propre avec un éclairage professionnel.`;
         break;
 
       case 'mobile_app':
-        specificPrompt = `Show a smartphone displaying a mobile app interface for "${brandName}" with the logo prominently displayed in the app header or splash screen. The app should have a modern, user-friendly design appropriate for the ${industry} industry. The logo should be clearly visible and the brand colors should be used throughout the interface. Show the phone in a professional setting with good lighting.`;
+        specificPrompt = `Montrez un smartphone affichant une interface d'application mobile pour "${brandName}" avec le logo affiché de manière proéminente dans l'en-tête de l'app ou l'écran de démarrage. L'app doit avoir un design moderne et convivial approprié à l'industrie ${industry}. Le logo doit être clairement visible et les couleurs de la marque doivent être utilisées dans toute l'interface. Montrez le téléphone dans un environnement professionnel avec un bon éclairage.`;
         break;
 
       case 'packaging':
-        specificPrompt = `Show professional product packaging for "${brandName}" with the logo prominently featured on the front panel. The packaging should be elegant and modern, suitable for the ${industry} industry. The logo should be the main visual element, clearly readable and well-positioned. Incorporate the brand colors effectively throughout the packaging design. Show the packaging in a clean, well-lit environment that emphasizes premium quality.`;
+        specificPrompt = `Montrez un packaging de produit professionnel pour "${brandName}" avec le logo mis en avant sur le panneau avant. Le packaging doit être élégant et moderne, adapté à l'industrie ${industry}. Le logo doit être l'élément visuel principal, clairement lisible et bien positionné. Incorporez les couleurs de la marque efficacement dans tout le design du packaging. Montrez le packaging dans un environnement propre et bien éclairé qui met l'accent sur la qualité premium.`;
         break;
 
       case 'signage':
-        specificPrompt = `Show professional signage for "${brandName}" with the logo as the central element. The sign should be modern and elegant, appropriate for the ${industry} industry. The logo should be clearly visible, properly sized, and the main focal point of the signage. Use the brand colors effectively in the sign design. Show it in a realistic business environment with professional lighting.`;
+        specificPrompt = `Montrez une signalétique professionnelle pour "${brandName}" avec le logo comme élément central. Le panneau doit être moderne et élégant, approprié à l'industrie ${industry}. Le logo doit être clairement visible, correctement dimensionné, et le point focal principal de la signalétique. Utilisez les couleurs de la marque efficacement dans le design du panneau. Montrez-le dans un environnement d'affaires réaliste avec un éclairage professionnel.`;
         break;
 
       case 'merchandise':
-        specificPrompt = `Show premium merchandise (like a shopping bag, t-shirt, or branded item) for "${brandName}" with the logo prominently displayed. The item should look high-quality and professional, suitable for the ${industry} industry. The logo should be clearly visible and well-integrated into the merchandise design. Incorporate the brand colors tastefully. Show it in an elegant, professional setting.`;
+        specificPrompt = `Montrez du merchandising premium (comme un sac shopping, t-shirt, ou article de marque) pour "${brandName}" avec le logo affiché de manière proéminente. L'article doit paraître de haute qualité et professionnel, adapté à l'industrie ${industry}. Le logo doit être clairement visible et bien intégré dans le design du merchandising. Incorporez les couleurs de la marque avec goût. Montrez-le dans un environnement élégant et professionnel.`;
         break;
 
       default:
-        specificPrompt = `Show a professional branded item for "${brandName}" in the ${industry} industry with the logo prominently featured. The logo should be clearly visible and the brand colors should be incorporated in an elegant and modern way.`;
+        specificPrompt = `Montrez un article de marque professionnel pour "${brandName}" dans l'industrie ${industry} avec le logo mis en avant. Le logo doit être clairement visible et les couleurs de la marque doivent être incorporées de manière élégante et moderne.`;
     }
 
-    const qualityRequirements = `The final image should be high-quality, photorealistic, and suitable for professional brand presentation. Ensure excellent lighting, composition, and attention to detail. The logo must be sharp, clear, and professionally integrated into the overall design.`;
+    const qualityRequirements = `L'image finale doit être de haute qualité, photoréaliste, et adaptée à une présentation de marque professionnelle. Assurez-vous d'un excellent éclairage, d'une composition soignée, et d'une attention aux détails. Le logo doit être net, clair, et intégré professionnellement dans le design global. Le mockup doit donner l'impression que la marque est établie et crédible.`;
 
-    return `${basePrompt} ${colorInfo} ${logoIntegration} ${specificPrompt} ${qualityRequirements}`;
+    const contextualPlacement = `Le logo doit être placé de manière contextuelle et naturelle selon le type de mockup: sur l'écran pour les interfaces, sur la surface visible pour les packaging, intégré harmonieusement dans les cartes de visite, etc. Évitez les placements artificiels ou forcés du logo.`;
+
+    return `${basePrompt} ${colorInfo} ${logoIntegration} ${specificPrompt} ${qualityRequirements} ${contextualPlacement}`;
   }
 
   /**

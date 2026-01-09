@@ -73,7 +73,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BASE_
 console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
-  Gemini25Flash = 'gemini-3-pro-preview',
+  Gemini3Pro = 'gemini-3-pro-preview',
   Claude37sonnet = 'claude-3-7-sonnet-20250219',
   Claude35sonnet = 'claude-3-5-sonnet-20240620',
   gpt4oMini = 'gpt-4o-mini',
@@ -110,8 +110,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [checkCount, setCheckCount] = useState(0);
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
-    value: ModelTypes.Gemini25Flash,
-    label: 'Gemini 2.5 Flash',
+    value: ModelTypes.Gemini3Pro,
+    label: 'Gemini 3 pro',
     useImage: true,
     from: 'default',
     quota: 2,
