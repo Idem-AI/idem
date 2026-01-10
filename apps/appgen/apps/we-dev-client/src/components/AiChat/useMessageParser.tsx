@@ -5,21 +5,27 @@ import useTerminalStore from "@/stores/terminalSlice";
 import { Message } from "ai/react";
 
 class Queue {
-  private queue: string[] = [];
+  private queue: {
+    command: string;
+    resolve: () => void;
+    reject: (reason?: any) => void;
+  }[] = [];
   private processing: boolean = false;
 
-  // 添加命令到队列
-  push(command: string) {
-    this.queue.push(command);
-    this.process();
+  // Add command to queue and return a promise that resolves when executed
+  push(command: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ command, resolve, reject });
+      this.process();
+    });
   }
 
-  // 获取队列中的下一个命令
-  private getNext(): string | undefined {
+  // Get next command object
+  private getNext() {
     return this.queue.shift();
   }
 
-  // 处理队列
+  // Process the queue
   private async process() {
     if (this.processing || this.queue.length === 0) {
       return;
@@ -28,18 +34,39 @@ class Queue {
     this.processing = true;
     try {
       while (this.queue.length > 0) {
-        const command = this.getNext();
-        if (command) {
-          console.log("执行命令", command);
-          await useTerminalStore
-            .getState()
-            .getTerminal(0)
-            .executeCommand(command);
+        const item = this.getNext();
+        if (item) {
+          const { command, resolve, reject } = item;
+          console.log("Exec command", command);
+          try {
+            const result = await useTerminalStore
+              .getState()
+              .getTerminal(0)
+              .executeCommand(command);
+
+            if (result && result.exitCode !== 0) {
+              // We don't reject here for now to allow subsequent commands,
+              // but we log it. Or we could reject.
+              // For npm install, if it fails, we might want to know.
+              console.warn(
+                `Command ${command} exited with code ${result.exitCode}`,
+              );
+            }
+            resolve();
+          } catch (error) {
+            console.error(`Error executing command ${command}:`, error);
+            reject(error);
+          }
         }
       }
     } finally {
       this.processing = false;
     }
+  }
+
+  // Clear the queue
+  clear() {
+    this.queue = [];
   }
 }
 
