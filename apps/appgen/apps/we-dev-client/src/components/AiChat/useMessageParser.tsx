@@ -1,6 +1,5 @@
 import { FileAction, StreamingMessageParser } from "./messae";
 
-
 import { createFileWithContent } from "../WeIde/components/IDEContent/FileExplorer/utils/fileSystem";
 import useTerminalStore from "@/stores/terminalSlice";
 import { Message } from "ai/react";
@@ -32,7 +31,10 @@ class Queue {
         const command = this.getNext();
         if (command) {
           console.log("执行命令", command);
-          await useTerminalStore.getState().getTerminal(0).executeCommand(command);
+          await useTerminalStore
+            .getState()
+            .getTerminal(0)
+            .executeCommand(command);
         }
       }
     } finally {
@@ -43,14 +45,13 @@ class Queue {
 
 export const queue = new Queue();
 
-
 class List {
   private isRunArray: string[] = [];
   private nowArray: string[] = [];
 
   // 添加命令到队列
   run(commands: string[]) {
-    this.nowArray = commands
+    this.nowArray = commands;
     this.process();
   }
 
@@ -89,12 +90,15 @@ export const execList = new List();
 const messageParser = new StreamingMessageParser({
   callbacks: {
     onActionStream: async (data) => {
-       createFileWithContent((data.action as FileAction).filePath, data.action.content, true);
+      createFileWithContent(
+        (data.action as FileAction).filePath,
+        data.action.content,
+        true,
+      );
       //   workbenchStore.runAction(data, true);
     },
   },
 });
-
 
 export const parseMessages = async (messages: Message[]) => {
   for (let i = 0; i < messages.length; i++) {
@@ -103,4 +107,4 @@ export const parseMessages = async (messages: Message[]) => {
       messageParser.parse(message.id, message.content);
     }
   }
-}
+};
