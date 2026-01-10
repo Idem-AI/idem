@@ -49,14 +49,14 @@ export async function streamResponse(
   try {
     const result = streamTextFn(messages, options, model);
 
-    // Create a custom stream response compatible with AI React client
+    // Create a data stream format compatible with AI React client
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
           for await (const chunk of result.textStream) {
-            // Format as data stream part for AI React client compatibility
-            const dataChunk = `0:"${chunk.replace(/"/g, '\\"')}"\n`;
+            // Format as data stream part with separator for AI React client
+            const dataChunk = `0:${JSON.stringify(chunk)}\n`;
             controller.enqueue(encoder.encode(dataChunk));
           }
           controller.close();
