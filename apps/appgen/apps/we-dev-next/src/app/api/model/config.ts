@@ -15,11 +15,11 @@ interface ModelConfig {
 
 export const modelConfig: ModelConfig[] = [
   {
-    modelName: 'gemini-3-pro-preview',
-    modelKey: 'gemini-3-pro-preview',
+    modelName: 'gemini-3-flash-preview',
+    modelKey: 'gemini-3-flash-preview',
     useImage: true,
     provider: 'gemini',
-    description: 'Gemini 3 pro model',
+    description: 'Gemini 3 flash model',
     functionCall: true,
   },
   {
