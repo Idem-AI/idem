@@ -7,7 +7,7 @@ import { modelConfig } from '../model/config';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
-export const MAX_TOKENS = 59000;
+export const MAX_TOKENS = 8000;
 
 export type StreamingOptions = Omit<Parameters<typeof _streamText>[0], 'model'>;
 let initOptions = {};
@@ -47,7 +47,7 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
       baseURL,
     });
     initOptions = {
-      maxTokens: provider.indexOf('claude-3-7-sonnet') > -1 ? 128000 : 8192,
+      maxTokens: provider.indexOf('claude-3-7-sonnet') > -1 ? 8000 : 4000,
     };
     return openai(model);
   }
