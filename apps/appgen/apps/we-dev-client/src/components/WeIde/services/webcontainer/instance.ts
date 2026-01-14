@@ -84,9 +84,18 @@ export async function getWebContainerInstance(): Promise<WebContainer | null> {
       console.log("WebContainer booted successfully");
 
       // Initialize the root directory
-      await webcontainerInstance.fs.mkdir("/", { recursive: true });
+      await webcontainerInstance.fs.mkdir('/', { recursive: true });
 
-      // ... (rest of the mounting logic)
+      // Mount initial files
+      const { files } = useFileStore.getState();
+      for (const [path, contents] of Object.entries(files)) {
+        const fullPath = `//${path}`;
+        // Create parent directories
+        const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
+        await webcontainerInstance.fs.mkdir(parentDir, { recursive: true });
+        // Write file
+        await webcontainerInstance.fs.writeFile(fullPath, contents);
+      }
     }
 
     // Reset boot attempts on success
@@ -121,19 +130,4 @@ export async function getWebContainerInstance(): Promise<WebContainer | null> {
     bootPromise = null;
     isBooting = false;
   }
-}
-
-// Function to reset the WebContainer instance (useful for debugging)
-export function resetWebContainerInstance(): void {
-  console.log("Resetting WebContainer instance");
-  webcontainerInstance = null;
-  bootPromise = null;
-  isBooting = false;
-  bootAttempts = 0;
-  lastBootAttemptTime = 0;
-}
-
-// Function to check if WebContainer is available
-export function isWebContainerAvailable(): boolean {
-  return webcontainerInstance !== null;
 }

@@ -1,47 +1,47 @@
-import { LanguageSupport } from "@codemirror/language";
-import { javascript } from "@codemirror/lang-javascript";
-import { Extension } from "@codemirror/state";
-import { foldGutter, foldKeymap } from "@codemirror/language";
-import { keymap } from "@codemirror/view";
-import { highlightExtension } from "./highlighting";
-import { searchKeymap } from "@codemirror/search";
-import { lineNumbers } from "@codemirror/view";
-import { history } from "@codemirror/commands";
-import { markdown } from "@codemirror/lang-markdown";
-import { python } from "@codemirror/lang-python";
-import { css } from "@codemirror/lang-css";
-import { json } from "@codemirror/lang-json";
-import { html } from "@codemirror/lang-html";
+import { LanguageSupport } from '@codemirror/language';
+import { javascript } from '@codemirror/lang-javascript';
+import { Extension } from '@codemirror/state';
+import { foldGutter, foldKeymap } from '@codemirror/language';
+import { keymap } from '@codemirror/view';
+import { highlightExtension } from './highlighting';
+import { searchKeymap } from '@codemirror/search';
+import { lineNumbers } from '@codemirror/view';
+import { history } from '@codemirror/commands';
+import { markdown } from '@codemirror/lang-markdown';
+import { python } from '@codemirror/lang-python';
+import { css } from '@codemirror/lang-css';
+import { json } from '@codemirror/lang-json';
+import { html } from '@codemirror/lang-html';
 
 export function getLanguageExtension(fileName: string): Extension[] {
   if (!fileName) return [javascript()];
 
-  const extension = fileName.split(".").pop()?.toLowerCase();
+  const extension = fileName.split('.').pop()?.toLowerCase();
   let languageSupport: LanguageSupport;
 
   switch (extension) {
-    case "ts":
+    case 'ts':
       languageSupport = javascript({ typescript: true });
       break;
-    case "tsx":
+    case 'tsx':
       languageSupport = javascript({ typescript: true, jsx: true });
       break;
-    case "jsx":
+    case 'jsx':
       languageSupport = javascript({ jsx: true });
       break;
-    case "md":
+    case 'md':
       languageSupport = markdown();
       break;
-    case "py":
+    case 'py':
       languageSupport = python();
       break;
-    case "css":
+    case 'css':
       languageSupport = css();
       break;
-    case "json":
+    case 'json':
       languageSupport = json();
       break;
-    case "html":
+    case 'html':
       languageSupport = html();
       break;
 

@@ -1,8 +1,8 @@
-import { FileAction, StreamingMessageParser } from "./messae";
+import { FileAction, StreamingMessageParser } from './messae';
 
-import { createFileWithContent } from "../WeIde/components/IDEContent/FileExplorer/utils/fileSystem";
-import useTerminalStore from "@/stores/terminalSlice";
-import { Message } from "ai/react";
+import { createFileWithContent } from '../WeIde/components/IDEContent/FileExplorer/utils/fileSystem';
+import useTerminalStore from '@/stores/terminalSlice';
+import { Message } from 'ai/react';
 
 class Queue {
   private queue: {
@@ -34,29 +34,10 @@ class Queue {
     this.processing = true;
     try {
       while (this.queue.length > 0) {
-        const item = this.getNext();
-        if (item) {
-          const { command, resolve, reject } = item;
-          console.log("Exec command", command);
-          try {
-            const result = await useTerminalStore
-              .getState()
-              .getTerminal(0)
-              .executeCommand(command);
-
-            if (result && result.exitCode !== 0) {
-              // We don't reject here for now to allow subsequent commands,
-              // but we log it. Or we could reject.
-              // For npm install, if it fails, we might want to know.
-              console.warn(
-                `Command ${command} exited with code ${result.exitCode}`,
-              );
-            }
-            resolve();
-          } catch (error) {
-            console.error(`Error executing command ${command}:`, error);
-            reject(error);
-          }
+        const command = this.getNext();
+        if (command) {
+          console.log('执行命令', command);
+          await useTerminalStore.getState().getTerminal(0).executeCommand(command);
         }
       }
     } finally {
@@ -93,12 +74,12 @@ class List {
 
   // 处理队列
   private async process() {
-    console.log("this.nowArray", this.nowArray, this.isRunArray);
+    console.log('this.nowArray', this.nowArray, this.isRunArray);
     for (let i = 0; i < this.nowArray.length; i++) {
       const command = this.getCommand(i);
       const isRuned = this.getIsRun(i);
       if (command && command !== isRuned) {
-        console.log("执行命令", command);
+        console.log('执行命令', command);
         this.isRunArray[i] = command;
         queue.push(command);
       }
@@ -117,11 +98,7 @@ export const execList = new List();
 const messageParser = new StreamingMessageParser({
   callbacks: {
     onActionStream: async (data) => {
-      createFileWithContent(
-        (data.action as FileAction).filePath,
-        data.action.content,
-        true,
-      );
+      createFileWithContent((data.action as FileAction).filePath, data.action.content, true);
       //   workbenchStore.runAction(data, true);
     },
   },
@@ -130,7 +107,7 @@ const messageParser = new StreamingMessageParser({
 export const parseMessages = async (messages: Message[]) => {
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
-    if (message.role === "assistant") {
+    if (message.role === 'assistant') {
       messageParser.parse(message.id, message.content);
     }
   }

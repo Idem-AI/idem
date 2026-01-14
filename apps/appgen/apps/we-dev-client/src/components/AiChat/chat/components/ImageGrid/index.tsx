@@ -1,12 +1,6 @@
-import { FilePreview } from "@/stores/chatSlice";
+import { FilePreview } from '@/stores/chatSlice';
 
-export const ImagePreview = ({
-  file,
-  onRemove,
-}: {
-  file: FilePreview;
-  onRemove: () => void;
-}) => {
+export const ImagePreview = ({ file, onRemove }: { file: FilePreview; onRemove: () => void }) => {
   return (
     <div className="relative group">
       <div className="w-20 h-20 relative">
@@ -14,10 +8,10 @@ export const ImagePreview = ({
           src={file.localUrl}
           alt="Preview"
           className={`w-20 h-20 object-cover rounded border border-gray-600/30 ${
-            file.status === "uploading" ? "opacity-50" : ""
+            file.status === 'uploading' ? 'opacity-50' : ''
           }`}
         />
-        {file.status === "uploading" && (
+        {file.status === 'uploading' && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
           </div>
@@ -27,7 +21,7 @@ export const ImagePreview = ({
         type="button"
         onClick={onRemove}
         className="absolute -top-2 -right-2 bg-red-400 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-        disabled={file.status === "uploading"}
+        disabled={file.status === 'uploading'}
       >
         ×
       </button>
@@ -44,10 +38,7 @@ interface ImageGridProps {
   onImageClick?: (url: string) => void;
 }
 
-export const ImageGrid: React.FC<ImageGridProps> = ({
-  images,
-  onImageClick,
-}) => {
+export const ImageGrid: React.FC<ImageGridProps> = ({ images, onImageClick }) => {
   return (
     <div className="flex flex-wrap gap-2">
       {images.map((image, index) => (

@@ -424,23 +424,16 @@ export class PromptService {
     // Quota checking for authenticated users (skip for system/internal calls)
     if (userId && !skipQuotaCheck) {
       logger.info(`Checking quota for user: ${userId}`);
+      const quotaCheck = await userService.checkQuota(userId);
 
-      // Use the unified quota check function
-      const { checkUserQuota } = await import('../utils/quota.utils');
-      const quotaResult = await checkUserQuota(userId);
-
-      if (!quotaResult.allowed) {
-        logger.warn(`Quota exceeded for user ${userId}: ${quotaResult.message}`);
-        throw new Error(quotaResult.message || 'Quota exceeded');
+      if (!quotaCheck.allowed) {
+        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
+        throw new Error(quotaCheck.message || 'Quota exceeded');
       }
 
-      if (quotaResult.isUnlimited) {
-        logger.info(`User ${userId} has unlimited quota, skipping quota check in prompt service`);
-      } else {
-        logger.info(
-          `Quota check passed for user ${userId}. Remaining: daily=${quotaResult.remainingDaily}, weekly=${quotaResult.remainingWeekly}`
-        );
-      }
+      logger.info(
+        `Quota check passed for user ${userId}. Remaining: daily=${quotaCheck.remainingDaily}, weekly=${quotaCheck.remainingWeekly}`
+      );
     }
 
     // Beta restrictions validation

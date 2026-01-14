@@ -11,7 +11,7 @@ const PromptEnhanced = (props: PromptEnhancedProps) => {
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const baseUrl = process.env.REACT_REACT_APP_BASE_URL;
   const { t } = useTranslation();
   useEffect(() => {
     if (isOpen) {

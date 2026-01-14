@@ -13,17 +13,17 @@ const RouteValidator: React.FC<RouteValidatorProps> = ({ children }) => {
     const validateRoute = () => {
       try {
         const { projectId } = parseDataFromUrl();
-        
+
         // Check if projectId exists in URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const projectIdFromUrl = urlParams.get('projectId') || projectId;
-        
+
         if (!projectIdFromUrl) {
           console.warn('No projectId found in URL. Redirecting to login.');
           // window.location.href = 'http://localhost:4200/login';
           return;
         }
-        
+
         setIsValidRoute(true);
       } catch (error) {
         console.error('Route validation failed:', error);

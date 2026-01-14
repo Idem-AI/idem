@@ -7,33 +7,22 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "lib": [
-      "DOM",
-      "DOM.Iterable",
-      "ESNext"
-    ],
-    "types": [
-      "vite/client"
-    ],
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "types": ["vite/client"],
     "moduleResolution": "Bundler",
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "~/*": [
-        "../../components/*"
-      ],
-      "@/*": [
-        "./src/*"
-      ]
+      "~/*": ["../../components/*"],
+      "@/*": ["./src/*"],
+      "@idem/shared-models": ["../../../../packages/shared-models/src"],
+      "@idem/shared-models/*": ["../../../../packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["../../../../packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["../../../../packages/shared-auth-client/src/*"],
+      "@idem/shared-styles": ["../../../../packages/shared-styles"],
+      "@idem/shared-styles/*": ["../../../../packages/shared-styles/*"]
     }
   },
-  "exclude": [
-    "**/**/node_modules/*",
-    "**/**/58d2c/*",
-    "**/**/SketchEditor/*"
-  ],
-  "include": [
-    "src",
-    "src/types/*.d.ts"
-  ],
+  "exclude": ["**/**/node_modules/*", "**/**/58d2c/*", "**/**/SketchEditor/*"],
+  "include": ["src", "src/types/*.d.ts"]
 }

@@ -7,14 +7,9 @@ interface UrlInputDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (url: string) => void;
-
 }
 
-export const UrlInputDialog: React.FC<UrlInputDialogProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-}) => {
+export const UrlInputDialog: React.FC<UrlInputDialogProps> = ({ isOpen, onClose, onSubmit }) => {
   const { t } = useTranslation();
   const { isDeepThinking } = useChatStore();
   const [url, setUrl] = useState('');
@@ -60,14 +55,11 @@ export const UrlInputDialog: React.FC<UrlInputDialogProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
 
       {/* Dialog */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div 
+        <div
           className="relative w-full max-w-md transform overflow-hidden glass-card p-6 text-left transition-all"
           onClick={(e) => e.stopPropagation()}
         >
@@ -90,11 +82,7 @@ export const UrlInputDialog: React.FC<UrlInputDialogProps> = ({
               placeholder={t('chat.urlInput.placeholder')}
               autoFocus
             />
-            {error && (
-              <p className="mt-2 text-sm text-red-500">
-                {error}
-              </p>
-            )}
+            {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
           </div>
 
           {/* Buttons */}
@@ -118,4 +106,4 @@ export const UrlInputDialog: React.FC<UrlInputDialogProps> = ({
       </div>
     </div>
   );
-}; 
+};

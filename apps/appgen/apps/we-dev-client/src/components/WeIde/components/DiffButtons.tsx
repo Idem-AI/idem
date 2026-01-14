@@ -1,5 +1,5 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 
 interface DiffButtonsProps {
   onAccept: () => void;
@@ -33,11 +33,8 @@ const DiffButtons: React.FC<DiffButtonsProps> = ({ onAccept, onCancel }) => {
   );
 };
 
-export const createDiffButtons = (
-  onAccept: () => void,
-  onCancel: () => void
-) => {
-  const container = document.createElement("div");
+export const createDiffButtons = (onAccept: () => void, onCancel: () => void) => {
+  const container = document.createElement('div');
   const root = createRoot(container);
   root.render(<DiffButtons onAccept={onAccept} onCancel={onCancel} />);
   return container;

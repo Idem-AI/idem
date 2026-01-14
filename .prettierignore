@@ -1,0 +1,59 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+build
+.next
+out
+.nx
+
+# Cache
+.cache
+.turbo
+.nx/cache
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage
+*.lcov
+
+# Misc
+*.tsbuildinfo
+
+# Lock files - don't format to avoid pipeline issues
+package-lock.json
+**/package-lock.json
+pnpm-lock.yaml
+**/pnpm-lock.yaml
+yarn.lock
+**/yarn.lock
+
+# Apps with separate formatting
+apps/chart
+
+# Build scripts (Node.js CommonJS)
+apps/landing/mynode.js
+apps/main-dashboard/mynode.js

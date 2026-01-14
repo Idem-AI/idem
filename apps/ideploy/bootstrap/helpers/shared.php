@@ -2876,12 +2876,7 @@ function convertToKeyValueCollection($environment)
 }
 function instanceSettings()
 {
-    try {
-        return InstanceSettings::get();
-    } catch (\Exception $e) {
-        // If database is not available or not migrated yet, return null
-        return null;
-    }
+    return InstanceSettings::get();
 }
 
 function loadConfigFromGit(string $repository, string $branch, string $base_directory, int $server_id, int $team_id)

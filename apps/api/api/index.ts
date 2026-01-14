@@ -187,7 +187,6 @@ const server = app.listen(port, async () => {
   }
 });
 
-
 // Gestion propre de l'arrêt de l'application
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');

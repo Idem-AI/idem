@@ -4,8 +4,7 @@ interface ParsedMessage {
 }
 
 // Pre-compiled regular expressions
-const BOLT_ACTION_REGEX =
-  /<boltAction type="file" filePath="([^"]+)">([\s\S]*?)<\/boltAction>/g;
+const BOLT_ACTION_REGEX = /<boltAction type="file" filePath="([^"]+)">([\s\S]*?)<\/boltAction>/g;
 
 export function parseMessage(content: string): ParsedMessage {
   try {
@@ -27,7 +26,7 @@ export function parseMessage(content: string): ParsedMessage {
       files,
     };
   } catch (error) {
-    console.error("Error parsing message:", error);
+    console.error('Error parsing message:', error);
     return { content };
   }
 }
