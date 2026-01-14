@@ -20,28 +20,28 @@ const teamMembers: RoleProps[] = [
   {
     name: 'Mike',
     title: 'Team Leader',
-    type: 'leader'
+    type: 'leader',
   },
   {
     name: 'Emma',
     title: 'Product Manager',
-    type: 'manager'
+    type: 'manager',
   },
   {
     name: 'Bob',
     title: 'Architect',
-    type: 'architect'
+    type: 'architect',
   },
   {
     name: 'Alex',
     title: 'Engineer',
-    type: 'engineer'
+    type: 'engineer',
   },
   {
     name: 'David',
     title: 'Data Analyst',
-    type: 'analyst'
-  }
+    type: 'analyst',
+  },
 ];
 
 export const TeamExample: React.FC = () => {

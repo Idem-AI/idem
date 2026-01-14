@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import { create } from 'zustand';
 import weTerminal from '../components/WeIde/components/Terminal/utils/weTerminal';
 
@@ -14,19 +14,18 @@ interface TerminalState {
   getTerminal: (index: number) => weTerminal | undefined;
 }
 
-
 const useTerminalStore = create<TerminalState>((set, get) => ({
   isDarkMode: false,
   terminals: new Map(),
 
   resetTerminals: () => {
     get().terminals.forEach((terminal) => {
-      terminal.destroy()
-    })
+      terminal.destroy();
+    });
 
     set({ terminals: new Map() });
 
-    get().newTerminal()
+    get().newTerminal();
   },
 
   getEndTerminal: () => {
@@ -43,24 +42,22 @@ const useTerminalStore = create<TerminalState>((set, get) => ({
 
   // Currently not supporting illegal terminal registration from other places
   // When registering, must have clear ref hooks to prevent unknown errors
-  newTerminal: async (cb = () => { }) => {
+  newTerminal: async (cb = () => {}) => {
+    const ref = React.createRef<HTMLDivElement>();
+    const t = await get().addTerminal(ref);
 
-    const ref = React.createRef<HTMLDivElement>()
-    const t = await get().addTerminal(ref)
-
-    cb(t)
+    cb(t);
   },
 
   // Add terminal
   // addTerminal: async (container: HTMLElement) => {
   addTerminal: async (containerRef: React.RefObject<HTMLDivElement>) => {
-
     // Instantiate a new terminal
     const terminal = new weTerminal(null);
 
-    const processId = Math.random().toString(36).substr(2, 9);;
+    const processId = Math.random().toString(36).substr(2, 9);
     // Initialize to get processId
-    await terminal.initialize(containerRef.current, processId)
+    await terminal.initialize(containerRef.current, processId);
 
     terminal.setContainerRef(containerRef);
 
@@ -76,9 +73,9 @@ const useTerminalStore = create<TerminalState>((set, get) => ({
   removeTerminal: (processId: string) => {
     const newTerminals = new Map(get().terminals); // 获取当前的 terminals
 
-    const terminal = newTerminals.get(processId) as weTerminal
+    const terminal = newTerminals.get(processId) as weTerminal;
 
-    terminal?.destroy()
+    terminal?.destroy();
     newTerminals.delete(processId); // 移除指定的终端
 
     set({ terminals: newTerminals }); // 更新状态

@@ -7,7 +7,7 @@ export function useCommandHistory() {
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   const addToHistory = useCallback((command: string) => {
-    setHistory(prev => {
+    setHistory((prev) => {
       const newHistory = [command, ...prev.slice(0, MAX_HISTORY - 1)];
       setHistoryIndex(-1);
       return newHistory;
@@ -16,7 +16,7 @@ export function useCommandHistory() {
 
   const getPrevious = useCallback(() => {
     if (historyIndex + 1 < history.length) {
-      setHistoryIndex(prev => prev + 1);
+      setHistoryIndex((prev) => prev + 1);
       return history[historyIndex + 1];
     }
     return null;
@@ -24,7 +24,7 @@ export function useCommandHistory() {
 
   const getNext = useCallback(() => {
     if (historyIndex > 0) {
-      setHistoryIndex(prev => prev - 1);
+      setHistoryIndex((prev) => prev - 1);
       return history[historyIndex - 1];
     } else if (historyIndex === 0) {
       setHistoryIndex(-1);
@@ -37,6 +37,6 @@ export function useCommandHistory() {
     history,
     addToHistory,
     getPrevious,
-    getNext
+    getNext,
   };
 }

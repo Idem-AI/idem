@@ -28,38 +28,35 @@ function RequestEditor({ api, onUpdate }: RequestEditorProps): JSX.Element {
           onUpdateUrl={(url) => handleUpdate('url', url)}
           onUpdateParams={(params) => handleUpdate('pathParams', params)}
         />
-      )
+      ),
     },
     {
       key: 'headers',
       label: 'Headers',
       children: (
-        <HeadersEditor 
-          headers={api.headers || []} 
-          onUpdate={(headers) => handleUpdate('headers', headers)} 
+        <HeadersEditor
+          headers={api.headers || []}
+          onUpdate={(headers) => handleUpdate('headers', headers)}
         />
-      )
+      ),
     },
     {
       key: 'query',
       label: 'Query Params',
       children: (
-        <QueryEditor 
-          query={api.query || []} 
-          onUpdate={(query) => handleUpdate('query', query)} 
-        />
-      )
+        <QueryEditor query={api.query || []} onUpdate={(query) => handleUpdate('query', query)} />
+      ),
     },
     {
       key: 'cookies',
       label: 'Cookies',
       children: (
-        <CookiesEditor 
-          cookies={api.cookies || []} 
-          onUpdate={(cookies) => handleUpdate('cookies', cookies)} 
+        <CookiesEditor
+          cookies={api.cookies || []}
+          onUpdate={(cookies) => handleUpdate('cookies', cookies)}
         />
-      )
-    }
+      ),
+    },
   ];
 
   if (api.method !== 'GET') {
@@ -67,18 +64,18 @@ function RequestEditor({ api, onUpdate }: RequestEditorProps): JSX.Element {
       key: 'body',
       label: 'Body',
       children: (
-        <BodyEditor 
+        <BodyEditor
           bodyType={api.bodyType}
           body={api.body}
           onUpdate={(bodyType, body) => {
             onUpdate({
               ...api,
               bodyType,
-              body
+              body,
             });
-          }} 
+          }}
         />
-      )
+      ),
     });
   }
 
@@ -89,4 +86,4 @@ function RequestEditor({ api, onUpdate }: RequestEditorProps): JSX.Element {
   );
 }
 
-export default RequestEditor; 
+export default RequestEditor;

@@ -106,11 +106,11 @@ export function HeaderActions() {
     setShowDeployChoiceModal(false);
 
     if (choice === 'idem') {
-      const idemUrl = import.meta.env.VITE_IDEM_MAIN_APP_URL;
+      const idemUrl = process.env.REACT_APP_IDEM_MAIN_APP_URL;
       if (idemUrl) {
-        window.open(`${idemUrl}/console/deployments`, '_blank');
+        window.open(`${idemUrl}/deployments`, '_blank');
       } else {
-        toast.error('VITE_IDEM_MAIN_APP_URL not configured');
+        toast.error('REACT_APP_IDEM_MAIN_APP_URL not configured');
       }
     } else {
       publishToNetlify();
@@ -119,7 +119,7 @@ export function HeaderActions() {
 
   const publishToNetlify = async () => {
     setIsDeploying(true);
-    const API_BASE = import.meta.env.VITE_API_BASE_URL;
+    const API_BASE = process.env.REACT_REACT_APP_BASE_URL;
 
     try {
       const webcontainer = await getWebContainerInstance();

@@ -1,41 +1,51 @@
-import { PostHog } from "posthog-js";
-import {MCPServer, MCPTool} from "@/types/mcp";
-import {HookAPI} from "antd/es/modal/useModal";
+import { PostHog } from 'posthog-js';
+import { MCPServer, MCPTool } from '@/types/mcp';
+import { HookAPI } from 'antd/es/modal/useModal';
 
 declare global {
   interface Window {
     isLoading: boolean;
     getCurrentDir: () => string;
-    Posthog: PostHog
+    Posthog: PostHog;
     fileHashMap: Map<string, string>;
-    modal: HookAPI
+    modal: HookAPI;
     myAPI: {
       dialog: {
-        showOpenDialog: (options: { properties: string[] }) => Promise<{ canceled: boolean; filePaths: string[] }>;
+        showOpenDialog: (options: {
+          properties: string[];
+        }) => Promise<{ canceled: boolean; filePaths: string[] }>;
       };
       mcp: {
         // servers
-        listServers: () => Promise<MCPServer[]>
-        addServer: (server: MCPServer) => Promise<void>
-        updateServer: (server: MCPServer) => Promise<void>
-        deleteServer: (serverName: string) => Promise<void>
-        setServerActive: (name: string, isActive: boolean) => Promise<void>
-        setServers: (servers: MCPServer[]) => void
+        listServers: () => Promise<MCPServer[]>;
+        addServer: (server: MCPServer) => Promise<void>;
+        updateServer: (server: MCPServer) => Promise<void>;
+        deleteServer: (serverName: string) => Promise<void>;
+        setServerActive: (name: string, isActive: boolean) => Promise<void>;
+        setServers: (servers: MCPServer[]) => void;
         // tools
-        listTools: () => Promise<MCPTool[]>
-        callTool: ({ client, name, args }: { client: string; name: string; args: any }) => Promise<any>
+        listTools: () => Promise<MCPTool[]>;
+        callTool: ({
+          client,
+          name,
+          args,
+        }: {
+          client: string;
+          name: string;
+          args: any;
+        }) => Promise<any>;
         // status
-        cleanup: () => Promise<void>
+        cleanup: () => Promise<void>;
       };
-      isBinaryExist: (name: string) => Promise<boolean>
-      getBinaryPath: (name: string) => Promise<string>
-      installUVBinary: () => Promise<void>
-      installBunBinary: () => Promise<void>
+      isBinaryExist: (name: string) => Promise<boolean>;
+      getBinaryPath: (name: string) => Promise<string>;
+      installUVBinary: () => Promise<void>;
+      installBunBinary: () => Promise<void>;
     };
   }
 
   // IPC channel name types
-  type IpcChannel = 
+  type IpcChannel =
     | 'mcp:list-servers'
     | 'mcp:add-server'
     | 'mcp:update-server'
@@ -91,4 +101,3 @@ declare global {
 }
 
 export {};
-

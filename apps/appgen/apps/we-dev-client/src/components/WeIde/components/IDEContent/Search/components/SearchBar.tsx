@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Search, X, ArrowUp, ArrowDown } from 'lucide-react';
 
 import '../styles/search.css';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/utils/cn';
 
 interface SearchBarProps {
@@ -13,12 +13,12 @@ interface SearchBarProps {
   className?: string;
 }
 
-export function SearchBar({ 
-  onSearch, 
-  totalResults, 
-  currentMatch, 
+export function SearchBar({
+  onSearch,
+  totalResults,
+  currentMatch,
   onNavigate,
-  className 
+  className,
 }: SearchBarProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -47,7 +47,7 @@ export function SearchBar({
   };
 
   return (
-    <div className={cn("flex items-center space-x-2", className)}>
+    <div className={cn('flex items-center space-x-2', className)}>
       <div className="relative flex-1">
         <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#616161] dark:text-gray-500" />
         <input
@@ -56,7 +56,7 @@ export function SearchBar({
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={t("editor.search_in_files")}
+          placeholder={t('editor.search_in_files')}
           className="w-full h-7 pl-7 pr-20 text-[13px] rounded bg-white dark:bg-[#3c3c3c] text-[#444444] dark:text-white border border-[#e4e4e4] dark:border-[#454545] focus:border-[#0066b8] dark:focus:border-[#007acc] outline-none placeholder-[#767676] dark:placeholder-gray-400"
         />
         {query && (

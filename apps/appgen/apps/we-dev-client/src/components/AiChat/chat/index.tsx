@@ -69,17 +69,16 @@ export const excludeFiles = [
   "/miniprogram/components/weicon/index.css",
 ];
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BASE_URL;
-console.log(API_BASE, "API_BASE");
+const API_BASE = process.env.REACT_APP_BASE_URL;
+console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
-  Gemini3Pro = "gemini-3-flash-preview",
-  Claude37sonnet = "claude-3-7-sonnet-20250219",
-  Claude35sonnet = "claude-3-5-sonnet-20240620",
-  gpt4oMini = "gpt-4o-mini",
-  DeepseekR1 = "DeepSeek-R1",
-  DeepseekV3 = "deepseek-chat",
+  Gemini25Flash = 'gemini-2.5-flash',
+  Claude37sonnet = 'claude-3-7-sonnet-20250219',
+  Claude35sonnet = 'claude-3-5-sonnet-20240620',
+  gpt4oMini = 'gpt-4o-mini',
+  DeepseekR1 = 'DeepSeek-R1',
+  DeepseekV3 = 'deepseek-chat',
 }
 
 export interface IModelOption {

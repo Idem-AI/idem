@@ -1,14 +1,14 @@
-import React, { useState, useRef, useEffect } from "react";
-import classNames from "classnames";
-import { App, Tooltip, Modal, Input } from "antd";
-import { Image, ChevronDown, Figma } from "lucide-react";
-import type { UploadButtonsProps } from "./types";
+import React, { useState, useRef, useEffect } from 'react';
+import classNames from 'classnames';
+import { App, Tooltip, Modal, Input } from 'antd';
+import { Image, ChevronDown, Figma } from 'lucide-react';
+import type { UploadButtonsProps } from './types';
 
-import { useTranslation } from "react-i18next";
-import { IModelOption } from "../..";
-import useChatStore from "@/stores/chatSlice";
-import { aiProvierIcon } from "./config";
-import MCPToolsButton from "./MCPToolsButton";
+import { useTranslation } from 'react-i18next';
+import { IModelOption } from '../..';
+import useChatStore from '@/stores/chatSlice';
+import { aiProvierIcon } from './config';
+import MCPToolsButton from './MCPToolsButton';
 
 export const UploadButtons: React.FC<UploadButtonsProps> = ({
   isLoading,
@@ -26,55 +26,46 @@ export const UploadButtons: React.FC<UploadButtonsProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { modelOptions, clearImages } = useChatStore();
   const [isFigmaModalOpen, setIsFigmaModalOpen] = useState(false);
-  const [figmaUrl, setFigmaUrl] = useState(
-    () => localStorage.getItem("figmaUrl") || ""
-  );
-  const [figmaToken, setFigmaToken] = useState(
-    () => localStorage.getItem("figmaToken") || ""
-  );
+  const [figmaUrl, setFigmaUrl] = useState(() => localStorage.getItem('figmaUrl') || '');
+  const [figmaToken, setFigmaToken] = useState(() => localStorage.getItem('figmaToken') || '');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleModelSelect = (model: IModelOption) => {
     setBaseModal(model);
     setIsOpen(false);
-    console.log("Selected model:", model.value);
+    console.log('Selected model:', model.value);
   };
 
   const handleFigmaSubmit = () => {
-    localStorage.setItem("figmaUrl", figmaUrl);
-    localStorage.setItem("figmaToken", figmaToken);
+    localStorage.setItem('figmaUrl', figmaUrl);
+    localStorage.setItem('figmaToken', figmaToken);
     setIsFigmaModalOpen(false);
   };
 
   // 定义一个可复用的按钮样式组件
-  const ToolbarButton = React.forwardRef<HTMLButtonElement, any>(
-    (props, ref) => (
-      <button
-        ref={ref}
-        {...props}
-        className={classNames(
-          "outer-button p-2 flex",
-          props.disabled && "opacity-50 cursor-not-allowed",
-          props.className
-        )}
-      >
-        {props.children}
-      </button>
-    )
-  );
+  const ToolbarButton = React.forwardRef<HTMLButtonElement, any>((props, ref) => (
+    <button
+      ref={ref}
+      {...props}
+      className={classNames(
+        'outer-button p-2 flex',
+        props.disabled && 'opacity-50 cursor-not-allowed',
+        props.className
+      )}
+    >
+      {props.children}
+    </button>
+  ));
   const canUseMCP = false;
 
   return (
@@ -86,24 +77,19 @@ export const UploadButtons: React.FC<UploadButtonsProps> = ({
             title={
               <div className="text-xs">
                 <div className="font-medium mb-1">
-                  {!canUseMCP
-                    ? t("chat.buttons.mcp_disabled")
-                    : t("chat.buttons.mcp_tools")}
+                  {!canUseMCP ? t('chat.buttons.mcp_disabled') : t('chat.buttons.mcp_tools')}
                 </div>
                 <div className="text-gray-300">
                   {!canUseMCP
-                    ? t("chat.buttons.not_support_mcp")
-                    : t("chat.buttons.click_to_use_mcp")}
+                    ? t('chat.buttons.not_support_mcp')
+                    : t('chat.buttons.click_to_use_mcp')}
                 </div>
               </div>
             }
             placement="bottom"
           >
-            <span className={!canUseMCP ? "cursor-not-allowed" : ""}>
-              <MCPToolsButton
-                ToolbarButton={ToolbarButton}
-                disabled={!canUseMCP}
-              />
+            <span className={!canUseMCP ? 'cursor-not-allowed' : ''}>
+              <MCPToolsButton ToolbarButton={ToolbarButton} disabled={!canUseMCP} />
             </span>
           </Tooltip>
         )}
@@ -133,15 +119,15 @@ export const UploadButtons: React.FC<UploadButtonsProps> = ({
             <div className="text-xs">
               <div className="font-medium mb-1">
                 {isLoading || isUploading || !baseModal.useImage
-                  ? t("chat.buttons.upload_disabled")
-                  : t("chat.buttons.upload_image")}
+                  ? t('chat.buttons.upload_disabled')
+                  : t('chat.buttons.upload_image')}
               </div>
               <div className="text-gray-300">
                 {isLoading || isUploading
-                  ? t("chat.buttons.waiting")
+                  ? t('chat.buttons.waiting')
                   : !baseModal.useImage
-                    ? t("chat.buttons.not_support_image")
-                    : t("chat.buttons.click_to_upload")}
+                    ? t('chat.buttons.not_support_image')
+                    : t('chat.buttons.click_to_upload')}
               </div>
             </div>
           }
@@ -167,17 +153,15 @@ export const UploadButtons: React.FC<UploadButtonsProps> = ({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={classNames(
-            "flex items-center justify-between w-[150px] px-2 py-1 text-[11px] text-gray-700 dark:text-gray-300 bg-transparent dark:bg-[#252525] rounded-md transition-colors duration-200",
-            isOpen
-              ? "bg-gray-100 dark:bg-[#252525]"
-              : "hover:bg-gray-100 dark:hover:bg-[#252525]"
+            'flex items-center justify-between w-[150px] px-2 py-1 text-[11px] text-gray-700 dark:text-gray-300 bg-transparent dark:bg-[#252525] rounded-md transition-colors duration-200',
+            isOpen ? 'bg-gray-100 dark:bg-[#252525]' : 'hover:bg-gray-100 dark:hover:bg-[#252525]'
           )}
         >
           <span>{baseModal.label}</span>
           <ChevronDown
             className={classNames(
-              "w-3 h-3 text-gray-500 dark:text-gray-400 transition-transform duration-200",
-              isOpen ? "-rotate-180" : "rotate-0"
+              'w-3 h-3 text-gray-500 dark:text-gray-400 transition-transform duration-200',
+              isOpen ? '-rotate-180' : 'rotate-0'
             )}
           />
         </button>
@@ -195,11 +179,11 @@ export const UploadButtons: React.FC<UploadButtonsProps> = ({
                     clearImages();
                   }}
                   className={classNames(
-                    "w-full px-3 py-1.5 flex justify-between text-left text-[11px] transition-colors duration-200",
-                    "hover:bg-gray-100 dark:hover:bg-[#252525]",
+                    'w-full px-3 py-1.5 flex justify-between text-left text-[11px] transition-colors duration-200',
+                    'hover:bg-gray-100 dark:hover:bg-[#252525]',
                     baseModal.value === model.value
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-700 dark:text-gray-300"
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-700 dark:text-gray-300'
                   )}
                 >
                   <div className="flex items-center gap-2">

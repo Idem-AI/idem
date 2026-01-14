@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { Settings, SettingsTab, TAB_KEYS } from "../Settings";
-import { db } from "../../utils/indexDB";
-import { eventEmitter } from "../AiChat/utils/EventEmitter";
-import useUserStore from "../../stores/userSlice";
-import { useTranslation } from "react-i18next";
-import { getCurrentUser } from "../../api/persistence/db";
-import type { UserModel } from "../../api/persistence/userModel";
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Settings, SettingsTab, TAB_KEYS } from '../Settings';
+import { db } from '../../utils/indexDB';
+import { eventEmitter } from '../AiChat/utils/EventEmitter';
+import useUserStore from '../../stores/userSlice';
+import { useTranslation } from 'react-i18next';
+import { getCurrentUser } from '../../api/persistence/db';
+import type { UserModel } from '../../api/persistence/userModel';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -37,7 +37,7 @@ export function Sidebar({
         console.error('Error fetching user:', error);
       }
     };
-    
+
     fetchUser();
   }, []);
 
@@ -56,7 +56,7 @@ export function Sidebar({
       time: number;
     }[]
   >([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Load chat history
   const loadChatHistory = async () => {
@@ -70,19 +70,18 @@ export function Sidebar({
         if (!latestRecord?.data?.messages?.length) {
           return {
             uuid,
-            title: "New Chat",
-            lastMessage: "",
+            title: 'New Chat',
+            lastMessage: '',
             time: latestRecord?.time || Date.now(),
           };
         }
 
-        const lastMessage =
-          latestRecord.data.messages[latestRecord.data.messages.length - 1];
+        const lastMessage = latestRecord.data.messages[latestRecord.data.messages.length - 1];
 
         return {
           uuid,
-          title: latestRecord.data.title || "New Chat",
-          lastMessage: lastMessage?.content || "",
+          title: latestRecord.data.title || 'New Chat',
+          lastMessage: lastMessage?.content || '',
           time: latestRecord.time,
         };
       });
@@ -92,7 +91,7 @@ export function Sidebar({
       const sortedHistory = history.sort((a, b) => b.time - a.time);
       setChatHistory(sortedHistory);
     } catch (error) {
-      console.error("Failed to load chat history:", error);
+      console.error('Failed to load chat history:', error);
       setChatHistory([]); // Set empty array when error occurs
     }
   };
@@ -140,11 +139,11 @@ export function Sidebar({
   const getInitials = (name: string) => {
     return (
       name
-        ?.split(" ")
+        ?.split(' ')
         .map((word) => word[0])
-        .join("")
+        .join('')
         .toUpperCase()
-        .slice(0, 2) || "?"
+        .slice(0, 2) || '?'
     );
   };
 
@@ -156,8 +155,8 @@ export function Sidebar({
 
   const openUserCenter = () => {
     // Version web - ouvrir directement l'URL dans un nouvel onglet
-    const url = "https://idem appgen.ai/user";
-    window.open(url, "_blank", "noopener,noreferrer");
+    const url = 'https://idem appgen.ai/user';
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
   const renderUserSection = () => {
     // First check for user from persistence API
@@ -173,18 +172,19 @@ export function Sidebar({
             w-9 h-9 rounded-full
             flex items-center justify-center
             text-white text-xs font-medium
-            ${currentUser.photoURL ? "" : "bg-purple-500 dark:bg-purple-600"}
+            ${currentUser.photoURL ? '' : 'bg-purple-500 dark:bg-purple-600'}
           `}
               style={
                 currentUser.photoURL
                   ? {
                       backgroundImage: `url(${currentUser.photoURL})`,
-                      backgroundSize: "cover",
+                      backgroundSize: 'cover',
                     }
                   : undefined
               }
             >
-              {!currentUser.photoURL && getInitials(currentUser.displayName || currentUser.email || "?")}
+              {!currentUser.photoURL &&
+                getInitials(currentUser.displayName || currentUser.email || '?')}
             </div>
             <div className="flex-1">
               <div className="dark:text-white text-[14px] font-medium">
@@ -194,10 +194,7 @@ export function Sidebar({
                 {`${currentUser.subscription} plan`}
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-white"
-            >
+            <button onClick={handleLogout} className="text-gray-400 hover:text-white">
               <svg
                 className="w-[16px] h-[16px]"
                 fill="none"
@@ -215,7 +212,7 @@ export function Sidebar({
           </div>
         </div>
       );
-    } 
+    }
     // Fallback to user store if persistence API user isn't available
     else if (isAuthenticated) {
       return (
@@ -229,31 +226,26 @@ export function Sidebar({
             w-9 h-9 rounded-full
             flex items-center justify-center
             text-white text-xs font-medium
-            ${storeUser?.avatar ? "" : "bg-purple-500 dark:bg-purple-600"}
+            ${storeUser?.avatar ? '' : 'bg-purple-500 dark:bg-purple-600'}
           `}
               style={
                 storeUser?.avatar
                   ? {
                       backgroundImage: `url(${storeUser.avatar})`,
-                      backgroundSize: "cover",
+                      backgroundSize: 'cover',
                     }
                   : undefined
               }
             >
-              {!storeUser?.avatar && getInitials(storeUser?.username || "?")}
+              {!storeUser?.avatar && getInitials(storeUser?.username || '?')}
             </div>
             <div className="flex-1">
-              <div className="dark:text-white text-[14px] font-medium">
-                {storeUser?.username}
-              </div>
+              <div className="dark:text-white text-[14px] font-medium">{storeUser?.username}</div>
               <div className="text-[13px] text-gray-400 translate uppercase">
                 {`${storeUser?.userQuota?.tierType} plan`}
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-white"
-            >
+            <button onClick={handleLogout} className="text-gray-400 hover:text-white">
               <svg
                 className="w-[16px] h-[16px]"
                 fill="none"
@@ -285,12 +277,8 @@ export function Sidebar({
             ?
           </div>
           <div className="flex-1">
-            <div className="dark:text-white text-[14px] font-medium">
-              {t("login.title")}
-            </div>
-            <div className="text-[13px] text-gray-400 translate">
-              {t("login.click_to_login")}
-            </div>
+            <div className="dark:text-white text-[14px] font-medium">{t('login.title')}</div>
+            <div className="text-[13px] text-gray-400 translate">{t('login.click_to_login')}</div>
           </div>
         </div>
       </div>
@@ -304,7 +292,7 @@ export function Sidebar({
           fixed top-0 left-0 h-full w-[280px]
           glass z-50
           transition-transform duration-300 ease-in-out
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           flex flex-col text-[14px]
           border-r
           rounded-tr-xl rounded-br-xl
@@ -314,37 +302,25 @@ export function Sidebar({
       >
         {/* Logo */}
         <div className="p-3">
-          <h1 className="text-gray-900 dark:text-white text-[14px] font-medium">
-            Idem Appgen
-          </h1>
+          <h1 className="text-gray-900 dark:text-white text-[14px] font-medium">Idem Appgen</h1>
         </div>
 
         {/* New Chat Button */}
         <button
-          onClick={() => eventEmitter.emit("chat:select", "")}
+          onClick={() => eventEmitter.emit('chat:select', '')}
           className="mx-3 my-2 p-2 flex items-center gap-2 text-purple-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-[14px]"
         >
-          <svg
-            className="w-[16px] h-[16px]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
+          <svg className="w-[16px] h-[16px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span className="translate">{t("sidebar.start_new_chat")}</span>
+          <span className="translate">{t('sidebar.start_new_chat')}</span>
         </button>
 
         {/* Search */}
         <div className="px-3 py-2">
           <input
             type="text"
-            placeholder={t("sidebar.search")}
+            placeholder={t('sidebar.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-gray-100 dark:bg-[#2C2C2C] text-gray-900 dark:text-white rounded-lg px-3 py-1.5 outline-none text-[14px] border border-gray-200 dark:border-gray-700"
@@ -356,12 +332,10 @@ export function Sidebar({
           {filteredHistory.map((chat) => (
             <div
               key={chat.uuid}
-              onClick={() => eventEmitter.emit("chat:select", chat.uuid)}
+              onClick={() => eventEmitter.emit('chat:select', chat.uuid)}
               className="group flex items-center w-full text-left px-2 py-1.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-[14px] cursor-pointer"
             >
-              <span className="flex-1 truncate">
-                {chat.title || "New Chat"}
-              </span>
+              <span className="flex-1 truncate">{chat.title || 'New Chat'}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -369,12 +343,7 @@ export function Sidebar({
                 }}
                 className="hidden text-gray-500 group-hover:block dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -392,7 +361,7 @@ export function Sidebar({
           {/* Settings and Help */}
           <div className="border-b border-gray-200 dark:border-[#333333]">
             <button
-              onClick={() => openSettings("General")}
+              onClick={() => openSettings('General')}
               className="flex items-center w-full gap-2 px-3 py-2 text-left text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5"
             >
               <svg
@@ -414,7 +383,7 @@ export function Sidebar({
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              <span className="translate">{t("sidebar.settings")}</span>
+              <span className="translate">{t('sidebar.settings')}</span>
             </button>
 
             <button
@@ -436,9 +405,7 @@ export function Sidebar({
                   d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                 />
               </svg>
-              <span className="text-[14px] translate">
-                {t("sidebar.my_subscription")}
-              </span>
+              <span className="text-[14px] translate">{t('sidebar.my_subscription')}</span>
             </button>
           </div>
 

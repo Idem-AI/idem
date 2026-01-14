@@ -13,7 +13,7 @@ export function CreateFolderDialog({ path, onSubmit, onCancel }: CreateFolderDia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isValidFileName(folderName)) {
       setError('Invalid folder name. Please avoid special characters.');
       return;
@@ -24,10 +24,7 @@ export function CreateFolderDialog({ path, onSubmit, onCancel }: CreateFolderDia
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <form 
-        onSubmit={handleSubmit}
-        className="bg-[#1a1a1c] rounded-lg shadow-xl w-[400px] p-4"
-      >
+      <form onSubmit={handleSubmit} className="bg-[#1a1a1c] rounded-lg shadow-xl w-[400px] p-4">
         <h2 className="text-sm font-semibold mb-4">Create New Folder</h2>
         <div className="mb-4">
           <input
@@ -42,11 +39,7 @@ export function CreateFolderDialog({ path, onSubmit, onCancel }: CreateFolderDia
             autoFocus
           />
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-          {path && (
-            <p className="text-xs text-gray-400 mt-1">
-              Will be created in: {path}
-            </p>
-          )}
+          {path && <p className="text-xs text-gray-400 mt-1">Will be created in: {path}</p>}
         </div>
         <div className="flex justify-end space-x-2">
           <button

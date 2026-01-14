@@ -1,25 +1,14 @@
-import { useState } from "react";
-import {
-  ChevronRight,
-  ChevronDown,
-  FileCode,
-  FileText,
-  Folder,
-} from "lucide-react";
-import { FileContextMenu } from "./FileContextMenu";
-import { FolderContextMenu } from "./FolderContextMenu";
-import { InlineEdit } from "./InlineEdit";
-import { CreateDialog } from "./CreateDialog";
+import { useState } from 'react';
+import { ChevronRight, ChevronDown, FileCode, FileText, Folder } from 'lucide-react';
+import { FileContextMenu } from './FileContextMenu';
+import { FolderContextMenu } from './FolderContextMenu';
+import { InlineEdit } from './InlineEdit';
+import { CreateDialog } from './CreateDialog';
 
-import { FileItem } from "../types";
-import {
-  createFile,
-  createFolder,
-  renameFile,
-  deleteFile,
-} from "../utils/fileSystem";
-import FileIcon from "./fileIcon";
-import { cn } from "@/utils/cn";
+import { FileItem } from '../types';
+import { createFile, createFolder, renameFile, deleteFile } from '../utils/fileSystem';
+import FileIcon from './fileIcon';
+import { cn } from '@/utils/cn';
 
 interface FileTreeItemProps {
   item: FileItem;
@@ -43,15 +32,13 @@ export function FileTreeItem({
     y: number;
   } | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [createDialog, setCreateDialog] = useState<"file" | "folder" | null>(
-    null
-  );
+  const [createDialog, setCreateDialog] = useState<'file' | 'folder' | null>(null);
 
   const isSelected = selectedFile === item.path;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (item.type === "folder") {
+    if (item.type === 'folder') {
       onToggle(item.path);
     } else {
       onFileSelect(item.path);
@@ -93,22 +80,22 @@ export function FileTreeItem({
     <div className="flex flex-col">
       <div
         className={cn(
-          "flex items-center text-[13px] cursor-pointer rounded-sm transition-all duration-200",
-          "h-[24px] px-1.5 my-[1px]",
-          "group relative select-none",
-          isSelected 
-            ? "bg-[#e4e6f1] dark:bg-[#37373d] text-[#333] dark:text-white" 
-            : "hover:bg-[#f0f0f0] dark:hover:bg-[#2d2d2d]/70 text-[#444444] dark:text-gray-300"
+          'flex items-center text-[13px] cursor-pointer rounded-sm transition-all duration-200',
+          'h-[24px] px-1.5 my-[1px]',
+          'group relative select-none',
+          isSelected
+            ? 'bg-[#e4e6f1] dark:bg-[#37373d] text-[#333] dark:text-white'
+            : 'hover:bg-[#f0f0f0] dark:hover:bg-[#2d2d2d]/70 text-[#444444] dark:text-gray-300'
         )}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         role="treeitem"
         tabIndex={0}
         aria-selected={isSelected}
-        aria-expanded={item.type === "folder" ? expanded : undefined}
+        aria-expanded={item.type === 'folder' ? expanded : undefined}
       >
         <span className="inline-flex items-center min-w-0 flex-1 gap-0.5">
-          {item.type === "folder" && (
+          {item.type === 'folder' && (
             <span className="w-4 h-4 flex items-center justify-center">
               {expanded ? (
                 <ChevronDown className="w-3.5 h-3.5 text-[#424242] dark:text-gray-400 transition-transform duration-200" />
@@ -134,7 +121,7 @@ export function FileTreeItem({
 
       {contextMenu && (
         <div className="fixed inset-0 z-50" onClick={() => setContextMenu(null)}>
-          {item.type === "file" ? (
+          {item.type === 'file' ? (
             <FileContextMenu
               x={contextMenu.x}
               y={contextMenu.y}
@@ -151,30 +138,23 @@ export function FileTreeItem({
               onClose={() => setContextMenu(null)}
               onRename={() => setIsRenaming(true)}
               onDelete={handleDelete}
-              onCreateFile={() => setCreateDialog("file")}
-              onCreateFolder={() => setCreateDialog("folder")}
+              onCreateFile={() => setCreateDialog('file')}
+              onCreateFolder={() => setCreateDialog('folder')}
             />
           )}
         </div>
       )}
 
       <CreateDialog
-        type={createDialog || "file"}
+        type={createDialog || 'file'}
         isOpen={createDialog !== null}
         path={item.path}
-        onSubmit={
-          createDialog === "file" ? handleCreateFile : handleCreateFolder
-        }
+        onSubmit={createDialog === 'file' ? handleCreateFile : handleCreateFolder}
         onClose={() => setCreateDialog(null)}
       />
 
-      {expanded && item.type === "folder" && item.children && (
-        <div
-          className={cn(
-            "flex flex-col pl-4 overflow-hidden",
-            "transition-all duration-200"
-          )}
-        >
+      {expanded && item.type === 'folder' && item.children && (
+        <div className={cn('flex flex-col pl-4 overflow-hidden', 'transition-all duration-200')}>
           {item.children.map((child) => (
             <FileTreeItem
               key={child.path}

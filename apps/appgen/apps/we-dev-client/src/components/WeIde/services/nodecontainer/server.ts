@@ -1,7 +1,10 @@
 // Version web - pas d'accès à ipcRenderer
 import { getNodeContainerInstance } from './instance';
 
-export async function startDevServer(): Promise<{ output: ReadableStream<any>; exit: Promise<number>; }> {
+export async function startDevServer(): Promise<{
+  output: ReadableStream<any>;
+  exit: Promise<number>;
+}> {
   const nodeContainer = await getNodeContainerInstance();
   if (!nodeContainer) {
     throw new Error('NodeContainer not available');
@@ -10,7 +13,7 @@ export async function startDevServer(): Promise<{ output: ReadableStream<any>; e
   try {
     console.log('Installing dependencies...');
     const installProcess = await nodeContainer.spawn('npm', ['install'], {
-      cwd: nodeContainer.projectRoot
+      cwd: nodeContainer.projectRoot,
     });
 
     const installExitCode = await installProcess.exit;
@@ -19,10 +22,9 @@ export async function startDevServer(): Promise<{ output: ReadableStream<any>; e
     }
 
     console.log('Starting dev server...');
-     return await nodeContainer.spawn('npm', ['run', 'dev'], {
-      cwd: nodeContainer.projectRoot
+    return await nodeContainer.spawn('npm', ['run', 'dev'], {
+      cwd: nodeContainer.projectRoot,
     });
-
   } catch (error) {
     console.error('Failed to start dev server:', error);
     throw error;
@@ -38,4 +40,4 @@ export async function stopDevServer(port: number): Promise<void> {
     console.error('Failed to stop dev server:', error);
     throw error;
   }
-} 
+}

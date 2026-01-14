@@ -60,10 +60,10 @@ export type ApiCollection = {
   name: string;
   type: 'folder';
   children: (ApiItem | FolderItem)[];
-}
+};
 
 export interface PathParam {
   key: string;
   value: string;
   placeholder: string;
-} 
+}

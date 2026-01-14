@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { AlertTriangle } from "lucide-react";
-import classNames from "classnames";
-import type { ErrorDisplayProps } from "./types";
+import React, { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
+import classNames from 'classnames';
+import type { ErrorDisplayProps } from './types';
 
 export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   errors,
@@ -12,7 +12,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   const [showProblems, setShowProblems] = useState<Set<number>>(new Set());
 
   const toggleErrorExpanded = (index: number) => {
-    setExpandedErrors(prev => {
+    setExpandedErrors((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(index)) {
         newSet.delete(index);
@@ -24,7 +24,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   };
 
   const toggleProblemVisible = (index: number) => {
-    setShowProblems(prev => {
+    setShowProblems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(index)) {
         newSet.delete(index);
@@ -41,9 +41,9 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
         <div
           key={index}
           className={classNames(
-            "mb-4 bg-[#1c1c1c] rounded-lg border transition-all duration-300 ease-in-out cursor-pointer",
-            error.severity === "error" ? "border-red-500/30" : "border-yellow-500/30",
-            expandedErrors.has(index) ? "p-3" : "p-1.5"
+            'mb-4 bg-[#1c1c1c] rounded-lg border transition-all duration-300 ease-in-out cursor-pointer',
+            error.severity === 'error' ? 'border-red-500/30' : 'border-yellow-500/30',
+            expandedErrors.has(index) ? 'p-3' : 'p-1.5'
           )}
         >
           <div
@@ -63,8 +63,8 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
             >
               <svg
                 className={classNames(
-                  "w-3.5 h-3.5 transition-transform duration-300",
-                  expandedErrors.has(index) ? "transform rotate-180" : ""
+                  'w-3.5 h-3.5 transition-transform duration-300',
+                  expandedErrors.has(index) ? 'transform rotate-180' : ''
                 )}
                 viewBox="0 0 20 20"
                 fill="none"
@@ -82,10 +82,8 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
           <div
             className={classNames(
-              "overflow-hidden transition-all duration-300 ease-in-out",
-              expandedErrors.has(index)
-                ? "max-h-[500px] opacity-100 mt-2"
-                : "max-h-0 opacity-0"
+              'overflow-hidden transition-all duration-300 ease-in-out',
+              expandedErrors.has(index) ? 'max-h-[500px] opacity-100 mt-2' : 'max-h-0 opacity-0'
             )}
           >
             <div className="transform transition-transform duration-300 ease-in-out">
@@ -103,10 +101,8 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
                     </div>
                     <svg
                       className={classNames(
-                        "w-3.5 h-3.5 text-gray-400 transition-transform duration-300",
-                        showProblems.has(index)
-                          ? "transform rotate-180"
-                          : ""
+                        'w-3.5 h-3.5 text-gray-400 transition-transform duration-300',
+                        showProblems.has(index) ? 'transform rotate-180' : ''
                       )}
                       viewBox="0 0 20 20"
                       fill="none"
@@ -123,10 +119,10 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
                   <div
                     className={classNames(
-                      "overflow-hidden transition-all duration-300 ease-in-out",
+                      'overflow-hidden transition-all duration-300 ease-in-out',
                       showProblems.has(index)
-                        ? "max-h-[500px] opacity-100 mt-1.5"
-                        : "max-h-0 opacity-0"
+                        ? 'max-h-[500px] opacity-100 mt-1.5'
+                        : 'max-h-0 opacity-0'
                     )}
                   >
                     {showProblems.has(index) && (
@@ -136,9 +132,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
                             <AlertTriangle className="w-3.5 h-3.5" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-gray-200 mb-1">
-                              Error code: {error.code}
-                            </p>
+                            <p className="text-gray-200 mb-1">Error code: {error.code}</p>
                             <pre className="font-mono bg-[#151515] p-1.5 rounded text-gray-300 whitespace-pre-wrap break-words">
                               <code>{error.message}</code>
                             </pre>
@@ -172,4 +166,4 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       ))}
     </div>
   );
-}; 
+};

@@ -141,13 +141,6 @@ brandingRoutes.post(
   generateColorsAndTypographyController
 );
 
-// Middleware pour augmenter le timeout pour la génération de logo concepts
-const logoConceptsTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(240000); // 3 minutes
-  res.setTimeout(240000); // 3 minutes
-  next();
-};
-
 // Étape 1: Generate logo concepts only (new 3-step approach)
 /**
  * @openapi
@@ -206,16 +199,8 @@ brandingRoutes.post(
   `/${resourceName}/generate/logo-concepts/:projectId`,
   authenticate,
   checkQuota,
-  logoConceptsTimeout,
   generateLogoConceptsController
 );
-
-// Middleware pour augmenter le timeout pour la génération de logo variations
-const logoVariationsTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(240000); // 4 minutes
-  res.setTimeout(240000); // 4 minutes
-  next();
-};
 
 // Étape 2: Generate logo variations for selected logo
 /**
@@ -270,7 +255,6 @@ brandingRoutes.post(
   `/${resourceName}/generate/logo-variations/:projectId`,
   authenticate,
   checkQuota,
-  logoVariationsTimeout,
   generateLogoVariationsController
 );
 

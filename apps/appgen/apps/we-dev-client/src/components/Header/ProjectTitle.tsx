@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { getProjectById } from "../../api/persistence/db";
-import { useUrlData } from "../../hooks/useUrlData";
-import { ProjectModel } from "@/api/persistence/models/project.model";
+import React, { useState, useEffect } from 'react';
+import { getProjectById } from '../../api/persistence/db';
+import { useUrlData } from '../../hooks/useUrlData';
+import { ProjectModel } from '@/api/persistence/models/project.model';
 
 export function ProjectTitle() {
   const [projectData, setProjectData] = useState<ProjectModel | null>(null);
@@ -15,7 +15,7 @@ export function ProjectTitle() {
       const project = await getProjectById(projectId);
       setProjectData(project);
     } catch (error) {
-      console.error("Error loading project:", error);
+      console.error('Error loading project:', error);
     }
   };
 
@@ -29,8 +29,8 @@ export function ProjectTitle() {
       <div className="w-8 h-8 rounded-full bg-gradient-to-r  flex items-center justify-center text-white text-sm font-medium">
         <img
           src={
-            projectData?.analysisResultModel.branding.logo.variations.iconOnly
-              ?.lightBackground || ""
+            projectData?.analysisResultModel.branding.logo.variations.iconOnly?.lightBackground ||
+            ''
           }
           alt=""
           width={32}
@@ -41,11 +41,9 @@ export function ProjectTitle() {
       {/* Project Info */}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-          {projectData?.name || "Project"}
+          {projectData?.name || 'Project'}
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          Generation Workspace
-        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">Generation Workspace</div>
       </div>
 
       {/* Generation Status Badge */}

@@ -1,7 +1,7 @@
-import type { BrandIdentityModel } from "./brand-identity.model";
-import type { DiagramModel } from "./diagram.model";
-import type { BusinessPlanModel } from "./businessPlan.model";
-import type { DevelopmentConfigsModel } from "./development.model";
+import type { BrandIdentityModel } from './brand-identity.model';
+import type { DiagramModel } from './diagram.model';
+import type { BusinessPlanModel } from './businessPlan.model';
+import type { DevelopmentConfigsModel } from './development.model';
 
 export interface AnalysisResultModel {
   id?: string;
