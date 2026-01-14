@@ -1,23 +1,23 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HeroSectionComponent } from './components/hero-section.component';
-import { MissionSectionComponent } from './components/mission-section.component';
-import { StepsSectionComponent } from './components/steps-section.component';
-import { PrizeSectionComponent } from './components/prize-section.component';
 import { CriteriaSectionComponent } from './components/criteria-section.component';
-import { CtaSectionComponent } from './components/cta-section.component';
+import { CtaSection } from './components/cta-section/cta-section';
+import { HeroSection } from './components/hero-section/hero-section';
+import { MissionSection } from './components/mission-section/mission-section';
+import { PrizeSection } from './components/prize-section/prize-section';
+import { StepsSection } from './components/steps-section/steps-section';
 
 @Component({
   selector: 'app-challenge',
   standalone: true,
   imports: [
     CommonModule,
-    HeroSectionComponent,
-    MissionSectionComponent,
-    StepsSectionComponent,
-    PrizeSectionComponent,
+    HeroSection,
+    MissionSection,
+    StepsSection,
+    PrizeSection,
     CriteriaSectionComponent,
-    CtaSectionComponent
+    CtaSection
   ],
   template: `
     <div class="challenge-page">
