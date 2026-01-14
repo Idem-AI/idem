@@ -1,8 +1,7 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { userService } from '../services/user.service';
 import betaRestrictionsService from '../services/betaRestrictions.service';
 import logger from '../config/logger';
-import { checkUserQuota } from '../utils/quota.utils';
 import { CustomRequest } from '../interfaces/express.interface';
 
 export class QuotaController {
@@ -50,16 +49,15 @@ export class QuotaController {
       const userId = req.user?.uid;
       logger.info(`Checking quota for user: ${userId}`);
 
-      const quotaResult = await checkUserQuota(userId!);
+      const quotaCheck = await userService.checkQuota(userId!);
 
-      logger.info(`Quota check completed for user ${userId}: allowed=${quotaResult.allowed}, unlimited=${quotaResult.isUnlimited}`);
+      logger.info(`Quota check completed for user ${userId}: allowed=${quotaCheck.allowed}`);
 
       res.json({
-        allowed: quotaResult.allowed,
-        remainingDaily: quotaResult.remainingDaily || 0,
-        remainingWeekly: quotaResult.remainingWeekly || 0,
-        message: quotaResult.message,
-        isUnlimited: quotaResult.isUnlimited,
+        allowed: quotaCheck.allowed,
+        remainingDaily: quotaCheck.remainingDaily,
+        remainingWeekly: quotaCheck.remainingWeekly,
+        message: quotaCheck.message,
         limits: userService.getCurrentLimits(),
         isBeta: userService.isBetaMode(),
       });
@@ -118,18 +116,17 @@ export class QuotaController {
       }
 
       const featureValidation = betaRestrictionsService.validateFeature(featureName);
-      const quotaResult = await checkUserQuota(userId!);
+      const quotaCheck = await userService.checkQuota(userId!);
 
       res.json({
         success: true,
         data: {
           featureAllowed: featureValidation.allowed,
           featureMessage: featureValidation.message,
-          quotaAllowed: quotaResult.allowed,
-          quotaMessage: quotaResult.message,
-          isUnlimited: quotaResult.isUnlimited,
-          remainingDaily: quotaResult.remainingDaily || 0,
-          remainingWeekly: quotaResult.remainingWeekly || 0,
+          quotaAllowed: quotaCheck.allowed,
+          quotaMessage: quotaCheck.message,
+          remainingDaily: quotaCheck.remainingDaily,
+          remainingWeekly: quotaCheck.remainingWeekly,
           isBeta: betaRestrictionsService.isBetaMode(),
         },
       });

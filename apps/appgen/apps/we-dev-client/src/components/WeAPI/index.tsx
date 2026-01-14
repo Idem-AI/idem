@@ -1,36 +1,35 @@
-import React, { useState, useRef, useEffect } from "react";
-import { useFileStore } from "../WeIde/stores/fileStore";
-import { Layout, Button, message, ConfigProvider, theme } from "antd";
-import ApiList from "./components/ApiList";
-import RequestEditor from "./components/RequestEditor";
-import ResponseViewer from "./components/ResponseViewer";
-import { EditOutlined } from "@ant-design/icons";
-import { ApiItem, ApiCollection, ApiResponse, FolderItem } from "./types";
-import useThemeStore from "@/stores/themeSlice";
-import { useTranslation } from "react-i18next";
-
+import React, { useState, useRef, useEffect } from 'react';
+import { useFileStore } from '../WeIde/stores/fileStore';
+import { Layout, Button, message, ConfigProvider, theme } from 'antd';
+import ApiList from './components/ApiList';
+import RequestEditor from './components/RequestEditor';
+import ResponseViewer from './components/ResponseViewer';
+import { EditOutlined } from '@ant-design/icons';
+import { ApiItem, ApiCollection, ApiResponse, FolderItem } from './types';
+import useThemeStore from '@/stores/themeSlice';
+import { useTranslation } from 'react-i18next';
 
 const { Sider, Content } = Layout;
 
 const getMethodColor = (method: string): string => {
   const colors: Record<string, string> = {
-    GET: "#61affe",
-    POST: "#49cc90",
-    PUT: "#fca130",
-    DELETE: "#f93e3e",
-    PATCH: "#50e3c2",
-    HEAD: "#9012fe",
-    OPTIONS: "#0d5aa7",
+    GET: '#61affe',
+    POST: '#49cc90',
+    PUT: '#fca130',
+    DELETE: '#f93e3e',
+    PATCH: '#50e3c2',
+    HEAD: '#9012fe',
+    OPTIONS: '#0d5aa7',
   };
-  return colors[method] || "#999";
+  return colors[method] || '#999';
 };
 
 export default function WeAPI(): React.ReactElement {
   const { t } = useTranslation();
   const [apiList, setApiList] = useState<ApiCollection>({
-    id: "root",
-    name: t("weapi.api_collection"),
-    type: "folder",
+    id: 'root',
+    name: t('weapi.api_collection'),
+    type: 'folder',
     children: [],
   });
   const [selectedApi, setSelectedApi] = useState<ApiItem | null>(null);
@@ -47,14 +46,14 @@ export default function WeAPI(): React.ReactElement {
       return;
     }
 
-    const apiJsonStr = files["api.json"];
+    const apiJsonStr = files['api.json'];
     try {
       if (apiJsonStr) {
         const parsedData = JSON.parse(apiJsonStr);
         setApiList(parsedData);
       }
     } catch (e) {
-      console.warn("Failed to parse api.json:", e);
+      console.warn('Failed to parse api.json:', e);
     }
   }, [files]);
 
@@ -62,13 +61,13 @@ export default function WeAPI(): React.ReactElement {
     try {
       isUpdatingRef.current = true;
       const apiJsonStr = JSON.stringify(newApiList, null, 2);
-      const filePath = "api.json";
+      const filePath = 'api.json';
       updateContent(filePath, apiJsonStr);
       setApiList(newApiList);
       return true;
     } catch (e) {
-      console.error("Failed to save api.json:", e);
-      message.error(t("weapi.request_failed"));
+      console.error('Failed to save api.json:', e);
+      message.error(t('weapi.request_failed'));
       return false;
     }
   };
@@ -77,23 +76,13 @@ export default function WeAPI(): React.ReactElement {
     if (!selectedApi) return;
 
     try {
-      const {
-        method,
-        url,
-        headers = [],
-        query = [],
-        cookies = [],
-        body,
-        bodyType,
-      } = selectedApi;
+      const { method, url, headers = [], query = [], cookies = [], body, bodyType } = selectedApi;
 
       // 构建URL和查询参数
       const queryString = query
         .filter((q) => q.key && q.value)
-        .map(
-          (q) => `${encodeURIComponent(q.key)}=${encodeURIComponent(q.value)}`
-        )
-        .join("&");
+        .map((q) => `${encodeURIComponent(q.key)}=${encodeURIComponent(q.value)}`)
+        .join('&');
       const fullUrl = queryString ? `${url}?${queryString}` : url;
 
       // 构建headers
@@ -109,24 +98,24 @@ export default function WeAPI(): React.ReactElement {
       const cookieStr = cookies
         .filter((c) => c.key && c.value)
         .map((c) => `${c.key}=${c.value}`)
-        .join("; ");
+        .join('; ');
       if (cookieStr) {
-        headerObj["Cookie"] = cookieStr;
+        headerObj['Cookie'] = cookieStr;
       }
 
       // 构建body
       let bodyData: any = null;
-      if (bodyType === "json" && body?.json) {
+      if (bodyType === 'json' && body?.json) {
         try {
           bodyData = JSON.stringify(body.json);
-          headerObj["Content-Type"] = "application/json";
+          headerObj['Content-Type'] = 'application/json';
         } catch (e) {
-          throw new Error("Invalid JSON body");
+          throw new Error('Invalid JSON body');
         }
-      } else if (bodyType === "formData" && body?.formData) {
+      } else if (bodyType === 'formData' && body?.formData) {
         const formData = new FormData();
         body.formData.forEach((item) => {
-          if (item.type === "file" && item.value) {
+          if (item.type === 'file' && item.value) {
             formData.append(item.key, item.value);
           } else if (item.key && item.value) {
             formData.append(item.key, item.value);
@@ -141,15 +130,12 @@ export default function WeAPI(): React.ReactElement {
         body: bodyData,
       });
 
-      const contentType = fetchResponse.headers.get("content-type") || "";
+      const contentType = fetchResponse.headers.get('content-type') || '';
       let responseData: any;
 
-      if (contentType.includes("application/json")) {
+      if (contentType.includes('application/json')) {
         responseData = await fetchResponse.json();
-      } else if (
-        contentType.includes("image/") ||
-        contentType.includes("application/pdf")
-      ) {
+      } else if (contentType.includes('image/') || contentType.includes('application/pdf')) {
         responseData = await fetchResponse.blob();
       } else {
         responseData = await fetchResponse.text();
@@ -164,9 +150,7 @@ export default function WeAPI(): React.ReactElement {
 
       setResponse(result);
     } catch (error) {
-      message.error(
-        `Request failed: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      message.error(`Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -177,18 +161,16 @@ export default function WeAPI(): React.ReactElement {
   const handleSave = async (updatedApi: ApiItem) => {
     if (!updatedApi) return;
 
-    const updateApiInList = (
-      list: (ApiItem | FolderItem)[]
-    ): (ApiItem | FolderItem)[] => {
+    const updateApiInList = (list: (ApiItem | FolderItem)[]): (ApiItem | FolderItem)[] => {
       return list.map((item) => {
-        if (item.type === "folder" && "children" in item) {
+        if (item.type === 'folder' && 'children' in item) {
           return {
             ...item,
             children: updateApiInList(item.children),
           };
         }
         if (item.id === updatedApi.id) {
-          return { ...updatedApi, type: "api" };
+          return { ...updatedApi, type: 'api' };
         }
         return item;
       });
@@ -202,7 +184,7 @@ export default function WeAPI(): React.ReactElement {
     const success = await saveToFile(newApiList);
     if (success) {
       setSelectedApi(updatedApi);
-      message.success(t("weapi.api_saved"));
+      message.success(t('weapi.api_saved'));
     }
   };
 
@@ -230,7 +212,7 @@ export default function WeAPI(): React.ReactElement {
                 children: newApiList,
               });
               if (success) {
-                message.success(t("weapi.import_success"));
+                message.success(t('weapi.import_success'));
               }
             }}
           />
@@ -251,30 +233,22 @@ export default function WeAPI(): React.ReactElement {
                     </div>
                     <div>
                       <h2 className="m-0">{selectedApi.name}</h2>
-                      <p className="mt-1 mb-0 text-gray-500">
-                        {selectedApi.url}
-                      </p>
+                      <p className="mt-1 mb-0 text-gray-500">{selectedApi.url}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      icon={<EditOutlined />}
-                      onClick={() => handleEdit(selectedApi)}
-                    >
-                      {t("weapi.edit")}
+                    <Button icon={<EditOutlined />} onClick={() => handleEdit(selectedApi)}>
+                      {t('weapi.edit')}
                     </Button>
-                    <Button
-                      type="primary"
-                      onClick={() => handleSave(selectedApi)}
-                    >
-                      {t("weapi.save_changes")}
+                    <Button type="primary" onClick={() => handleSave(selectedApi)}>
+                      {t('weapi.save_changes')}
                     </Button>
                   </div>
                 </div>
                 <RequestEditor api={selectedApi} onUpdate={setSelectedApi} />
                 <div className="mt-5">
                   <Button type="primary" onClick={handleSendRequest}>
-                    {t("weapi.send_request")}
+                    {t('weapi.send_request')}
                   </Button>
                   <ResponseViewer response={response} />
                 </div>

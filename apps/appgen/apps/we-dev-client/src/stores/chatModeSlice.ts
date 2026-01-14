@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 enum ChatMode {
   Chat = 'chat',
-  Builder = 'builder'
+  Builder = 'builder',
 }
 interface ChatModeState {
   mode: ChatMode;
@@ -18,4 +18,4 @@ const useChatModeStore = create<ChatModeState>((set) => ({
   setMode: (mode) => set({ mode }),
 }));
 
-export default useChatModeStore; 
+export default useChatModeStore;

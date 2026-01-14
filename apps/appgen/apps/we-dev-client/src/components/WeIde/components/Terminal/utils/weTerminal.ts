@@ -1,9 +1,11 @@
-import { Terminal as XTerm } from "@xterm/xterm";
-import { FitAddon } from "@xterm/addon-fit";
-import { WebLinksAddon } from "@xterm/addon-web-links";
-import { updateFileSystemNow } from "../../../services";
-import { getWebContainerInstance } from "../../../services/webcontainer";
-import { eventEmitter } from "@/components/AiChat/utils/EventEmitter";
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { IPty } from 'node-pty';
+import { updateFileSystemNow } from '../../../services';
+import { getWebContainerInstance } from '../../../services/webcontainer';
+import { getNodeContainerInstance } from '../../../services/nodecontainer';
+import { eventEmitter } from '@/components/AiChat/utils/EventEmitter';
 
 interface CommandResult {
   output: string[];
@@ -11,15 +13,15 @@ interface CommandResult {
 }
 // Light theme in VSCode style
 const lightTheme = {
-  foreground: "#000000",
-  cursor: "#000000",
-  background: "#fefefe",
+  foreground: '#000000',
+  cursor: '#000000',
+  background: '#fefefe',
 };
 
 // Dark theme in VSCode style
 const darkTheme = {
-  background: "#18181a",
-  foreground: "#ffffff",
+  background: '#18181a',
+  foreground: '#ffffff',
 };
 
 /**
@@ -72,7 +74,7 @@ class Terminal {
       theme: this.isDarkMode ? darkTheme : lightTheme,
       fontSize: 12,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      fontWeight: "500",
+      fontWeight: '500',
       letterSpacing: 0,
       lineHeight: 1.4,
     });
@@ -93,15 +95,14 @@ class Terminal {
       // When text is selected, it can be copied using Ctrl+C
       if (term.hasSelection()) {
         const selection = term.getSelection();
-        console.log("Selected text:", selection);
+        console.log('Selected text:', selection);
       }
     });
 
     // Listen for keyboard events
     term.attachCustomKeyEventHandler((event) => {
       // Check if it's a copy operation (Ctrl for Windows/Linux, Command for Mac)
-      const isCopyAction =
-        (event.ctrlKey || event.metaKey) && event.key === "c";
+      const isCopyAction = (event.ctrlKey || event.metaKey) && event.key === 'c';
       if (isCopyAction && term.hasSelection()) {
         const selection = term.getSelection();
         navigator.clipboard.writeText(selection);
@@ -111,8 +112,7 @@ class Terminal {
       }
 
       // Check if it's a paste operation (Ctrl for Windows/Linux, Command for Mac)
-      const isPasteAction =
-        (event.ctrlKey || event.metaKey) && event.key === "v";
+      const isPasteAction = (event.ctrlKey || event.metaKey) && event.key === 'v';
       if (isPasteAction) {
         navigator.clipboard.readText().then((text) => {
           term.paste(text);
@@ -123,9 +123,9 @@ class Terminal {
       return true; // Allow other keyboard events
     });
 
-    term.writeln("\x1b[1;32mWelcome to Terminal\x1b[0m");
-    term.writeln("Type \x1b[1;34mhelp\x1b[0m for a list of commands\n");
-    term.write("$ ");
+    term.writeln('\x1b[1;32mWelcome to Terminal\x1b[0m');
+    term.writeln('Type \x1b[1;34mhelp\x1b[0m for a list of commands\n');
+    term.write('$ ');
 
     await this.waitCommand(addError);
 
@@ -133,7 +133,7 @@ class Terminal {
 
     // Bind resize event
     this.handleResize = this.handleResize.bind(this);
-    window.addEventListener("resize", this.handleResize);
+    window.addEventListener('resize', this.handleResize);
 
     // Listen for container size changes
     this.resizeObserver = new ResizeObserver(() => {
@@ -191,22 +191,33 @@ class Terminal {
 
   // Command wait in Web environment
   private async webWaitCommand(addError?: (error: any) => void) {
-    try {
-      const instance = await getWebContainerInstance();
+    const instance = await getWebContainerInstance();
+    const process = await instance?.spawn('/bin/jsh', [], {
+      terminal: {
+        cols: 80,
+        rows: 15,
+      },
+    });
 
-      if (!instance) {
-        this.terminal?.writeln(
-          "\x1b[1;31mError: WebContainer not available\x1b[0m",
-        );
-        this.terminal?.writeln("Please refresh the page and try again.");
-        return;
-      }
+    eventEmitter.emit('terminal:update', this.processId);
 
-      // Try to spawn shell process
-      const process = await instance.spawn("jsh", [], {
-        terminal: {
-          cols: this.terminal?.cols || 80,
-          rows: this.terminal?.rows || 24,
+    const input = process?.input.getWriter();
+    const output = process?.output;
+
+    output?.pipeTo(
+      new WritableStream({
+        write: (data) => {
+          if ((data.includes('error') || data.includes('failure')) && addError) {
+            addError({
+              message: 'compile error',
+              code: this.stripAnsi(data),
+              severity: 'error',
+            });
+          }
+          if (!this.initId) {
+            this.initId = data?.split('/')[1].split('[39m')[0].trim();
+          }
+          this.terminal.write(data.replaceAll(this.initId, 'Idem Appgen'));
         },
       });
 
@@ -316,8 +327,10 @@ class Terminal {
   }
 
   private async executeCommandInWeb(command: string): Promise<CommandResult> {
-    try {
-      const instance = await getWebContainerInstance();
+    const instance = await getWebContainerInstance();
+    const process = await instance.spawn('jsh', ['-c', command], {
+      env: { npm_config_yes: true },
+    });
 
       if (!instance) {
         this.terminal?.writeln(
@@ -396,9 +409,9 @@ class Terminal {
 
   // Remove ANSI escape sequences and timestamps
   private stripAnsi(str: string): string {
-    str = str.replace(/\u001b\[\d+m/g, "");
+    str = str.replace(/\u001b\[\d+m/g, '');
     if (/^\d{2}:\d{2}:\d{2}\s/.test(str)) {
-      str = str.replace(/^\d{2}:\d{2}:\d{2}\s+/, "");
+      str = str.replace(/^\d{2}:\d{2}:\d{2}\s+/, '');
     }
     return str;
   }
@@ -410,17 +423,17 @@ class Terminal {
       this.resizeObserver = null;
     }
     if (this.terminal) {
-      console.log("Release terminal", this.processId);
+      console.log('Release terminal', this.processId);
       this.terminal.dispose(); // Release XTerm resources
       this.terminal = null;
     }
     if (this.fitAddon) {
-      console.log("Release fitAddon", this.processId);
+      console.log('Release fitAddon', this.processId);
       this.fitAddon.dispose(); // Release FitAddon resources
       this.fitAddon = null;
     }
 
-    window.removeEventListener("resize", this.handleResize);
+    window.removeEventListener('resize', this.handleResize);
 
     if (this.fitAddon) {
       this.fitAddon = null;

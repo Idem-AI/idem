@@ -1,7 +1,6 @@
 import React from 'react';
 import { create } from 'zustand';
 import { cn } from '@/lib/utils';
-import useUserStore from '@/stores/userSlice';
 
 interface LoadingStore {
   isLoading: boolean;
@@ -19,11 +18,7 @@ export const useLoading = () => {
 };
 
 export const Loading: React.FC = () => {
-  // Utiliser l'état de chargement du store utilisateur ET du store local
-  const { isLoading: userLoading } = useUserStore();
-  const { isLoading: localLoading } = useLoading();
-
-  const isLoading = userLoading || localLoading;
+  const { isLoading } = useLoading();
 
   if (!isLoading) return null;
 

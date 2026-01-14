@@ -1,5 +1,5 @@
 export type FileEvent = {
-  type: "add" | "update" | "rename" | "delete" | "createFolder" | "setFiles";
+  type: 'add' | 'update' | 'rename' | 'delete' | 'createFolder' | 'setFiles';
   path?: string;
   oldPath?: string;
   newPath?: string;

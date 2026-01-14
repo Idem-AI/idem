@@ -1,18 +1,12 @@
-import {
-  EditorView,
-  Decoration,
-  DecorationSet,
-  WidgetType,
-} from "@codemirror/view";
-import { StateEffect, StateField, Extension, Range } from "@codemirror/state";
-import { keymap } from "@codemirror/view";
-import { createDiffButtons } from "../../DiffButtons";
-
+import { EditorView, Decoration, DecorationSet, WidgetType } from '@codemirror/view';
+import { StateEffect, StateField, Extension, Range } from '@codemirror/state';
+import { keymap } from '@codemirror/view';
+import { createDiffButtons } from '../../DiffButtons';
 
 interface DiffRange {
   from: number;
   to: number;
-  type: "add" | "delete";
+  type: 'add' | 'delete';
   isEmptyLine?: boolean;
 }
 
@@ -23,21 +17,21 @@ interface DiffBlock {
 
 // Constants definition
 const DIFF_MARKERS = {
-  SEARCH: "<<<<<<< SEARCH",
-  SEPARATOR: "=======",
-  REPLACE: ">>>>>>> REPLACE",
+  SEARCH: '<<<<<<< SEARCH',
+  SEPARATOR: '=======',
+  REPLACE: '>>>>>>> REPLACE',
 } as const;
 
 // Decorator definitions
 const decorations = {
   add: {
-    line: Decoration.line({ class: "diff-add" }),
+    line: Decoration.line({ class: 'diff-add' }),
   },
   delete: {
-    line: Decoration.line({ class: "diff-delete" }),
+    line: Decoration.line({ class: 'diff-delete' }),
   },
   marker: {
-    search: Decoration.mark({ class: "diff-marker diff-marker-search" }),
+    search: Decoration.mark({ class: 'diff-marker diff-marker-search' }),
     separator: Decoration.replace({
       widget: new (class extends WidgetType {
         eq() {
@@ -46,11 +40,11 @@ const decorations = {
         toDOM() {
           return createDiffButtons(
             () => {
-              console.log("Accept button clicked");
+              console.log('Accept button clicked');
               // TODO: Add logic for accepting changes, should not interfere with diff logic
             },
             () => {
-              console.log("Cancel button clicked");
+              console.log('Cancel button clicked');
               // TODO: Add logic for canceling changes
             }
           );
@@ -73,12 +67,12 @@ const decorations = {
         destroy() {}
       })(),
     }),
-    replace: Decoration.mark({ class: "diff-marker diff-marker-replace" }),
+    replace: Decoration.mark({ class: 'diff-marker diff-marker-replace' }),
   },
 };
 
 export const addDiffHighlight = StateEffect.define<
-  DiffRange & { markerType?: "search" | "separator" | "replace" }
+  DiffRange & { markerType?: 'search' | 'separator' | 'replace' }
 >();
 
 export const diffHighlightPlugin = StateField.define({
@@ -97,9 +91,7 @@ export const diffHighlightPlugin = StateField.define({
             newDecorations.push(decorations.marker[markerType].range(from, to));
           } else {
             const line = tr.state.doc.lineAt(from);
-            newDecorations.push(
-              decorations[type].line.range(line.from, line.from)
-            );
+            newDecorations.push(decorations[type].line.range(line.from, line.from));
           }
         }
       }
@@ -116,13 +108,10 @@ export const diffHighlightPlugin = StateField.define({
 
 // Check if content contains diff markers
 export const hasDiffContent = (content: string) => {
-  return (
-    content.includes(DIFF_MARKERS.SEARCH) ||
-    content.includes(DIFF_MARKERS.REPLACE)
-  );
+  return content.includes(DIFF_MARKERS.SEARCH) || content.includes(DIFF_MARKERS.REPLACE);
 };
 const parseDiffBlocks = (doc: string): DiffBlock[] => {
-  const lines = doc.split("\n");
+  const lines = doc.split('\n');
   const blocks: DiffBlock[] = [];
   let currentBlock: Partial<DiffBlock> = {};
   let isInSearchBlock = false;
@@ -149,7 +138,7 @@ const parseDiffBlocks = (doc: string): DiffBlock[] => {
       blocks.push(currentBlock as DiffBlock);
       lastLineIndex = i;
       isInSearchBlock = false;
-    } else if (isInSearchBlock && line.trim() === "") {
+    } else if (isInSearchBlock && line.trim() === '') {
       if (currentBlock.search && currentBlock.search.end === -1) {
         currentBlock.search.end = i + 1;
       }
@@ -161,9 +150,8 @@ const parseDiffBlocks = (doc: string): DiffBlock[] => {
 const createHighlightEffects = (view: EditorView) => {
   const content = view.state.doc.toString();
   const blocks = parseDiffBlocks(content);
-  const effects: StateEffect<
-    DiffRange & { markerType?: "search" | "separator" | "replace" }
-  >[] = [];
+  const effects: StateEffect<DiffRange & { markerType?: 'search' | 'separator' | 'replace' }>[] =
+    [];
 
   blocks.forEach((block) => {
     // Mark special lines
@@ -175,20 +163,20 @@ const createHighlightEffects = (view: EditorView) => {
       addDiffHighlight.of({
         from: searchLine.from,
         to: searchLine.to,
-        type: "delete",
-        markerType: "search",
+        type: 'delete',
+        markerType: 'search',
       }),
       addDiffHighlight.of({
         from: separatorLine.from,
         to: separatorLine.to,
-        type: "delete",
-        markerType: "separator",
+        type: 'delete',
+        markerType: 'separator',
       }),
       addDiffHighlight.of({
         from: replaceLine.from,
         to: replaceLine.to,
-        type: "delete",
-        markerType: "replace",
+        type: 'delete',
+        markerType: 'replace',
       })
     );
 
@@ -199,7 +187,7 @@ const createHighlightEffects = (view: EditorView) => {
         addDiffHighlight.of({
           from: line.from,
           to: line.to,
-          type: "delete",
+          type: 'delete',
         })
       );
     }
@@ -211,7 +199,7 @@ const createHighlightEffects = (view: EditorView) => {
         addDiffHighlight.of({
           from: line.from,
           to: line.to,
-          type: "add",
+          type: 'add',
         })
       );
     }
@@ -238,7 +226,7 @@ export const createDiffExtension = (): Extension => {
       focusin: (event, view) => {
         const content = view.state.doc.toString();
         if (hasDiffContent(content)) {
-          console.log("Detected diff content on focusin");
+          console.log('Detected diff content on focusin');
           applyDiffHighlights(view);
         }
       },
@@ -246,12 +234,12 @@ export const createDiffExtension = (): Extension => {
     // Add custom Enter key handler
     keymap.of([
       {
-        key: "Enter",
+        key: 'Enter',
         run: (view: EditorView) => {
           const content = view.state.doc.toString();
 
           if (hasDiffContent(content)) {
-            view.dispatch(view.state.replaceSelection("\n"));
+            view.dispatch(view.state.replaceSelection('\n'));
             return true;
           }
           return false;

@@ -16,7 +16,7 @@ export const authService = {
     }
 
     const res = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/api/appInfo?language=${language}`,
+      `${process.env.REACT_REACT_APP_BASE_URL}/api/appInfo?language=${language}`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },

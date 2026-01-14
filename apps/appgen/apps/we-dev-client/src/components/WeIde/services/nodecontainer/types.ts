@@ -1,4 +1,4 @@
-import { Dirent } from "node:fs";
+import { Dirent } from 'node:fs';
 import { EventEmitter } from 'events';
 
 export interface CommandResult {
@@ -15,7 +15,11 @@ export interface NodeContainer extends EventEmitter {
     readdir: (path: string, options?: { withFileTypes?: boolean }) => Promise<string[] | Dirent[]>;
   };
   projectRoot: string;
-  spawn: (command: string, args: string[], options?: { cwd?: string }) => Promise<{
+  spawn: (
+    command: string,
+    args: string[],
+    options?: { cwd?: string }
+  ) => Promise<{
     output: ReadableStream;
     exit: Promise<number>;
   }>;
@@ -28,4 +32,4 @@ export interface MountOptions {
     path: string;
     contents: string;
   }>;
-} 
+}

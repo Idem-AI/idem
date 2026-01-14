@@ -16,20 +16,17 @@ interface MentionMenuProps {
   position: { top: number; left: number };
 }
 
-
 export const MentionMenu: React.FC<MentionMenuProps> = ({
-  isVisible ,
+  isVisible,
   options,
   selectedIndex,
   onSelect,
   position,
 }) => {
-//   if (!isVisible) return null;
+  //   if (!isVisible) return null;
 
   return (
-    <div
-      className="w-64 bg-[#1a1a1c] rounded-lg shadow-lg border border-gray-700/50 overflow-hidden"
-    >
+    <div className="w-64 bg-[#1a1a1c] rounded-lg shadow-lg border border-gray-700/50 overflow-hidden">
       <div className="py-1">
         {options.map((option, index) => (
           <button
@@ -55,4 +52,4 @@ export const MentionMenu: React.FC<MentionMenuProps> = ({
   );
 };
 
-export type { MentionOption }; 
+export type { MentionOption };

@@ -17,7 +17,7 @@ export function CreateDialog({ type, isOpen, path, onSubmit, onClose }: CreateDi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isValidFileName(name)) {
       setError('Invalid name. Please avoid special characters.');
       return;
@@ -49,11 +49,7 @@ export function CreateDialog({ type, isOpen, path, onSubmit, onClose }: CreateDi
             autoFocus
           />
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-          {path && (
-            <p className="text-xs text-gray-400 mt-1">
-              Will be created in: {path}
-            </p>
-          )}
+          {path && <p className="text-xs text-gray-400 mt-1">Will be created in: {path}</p>}
         </div>
         <div className="flex justify-end space-x-2">
           <button

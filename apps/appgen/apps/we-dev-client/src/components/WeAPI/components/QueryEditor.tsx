@@ -52,4 +52,4 @@ function QueryEditor({ query, onUpdate }: QueryEditorProps): JSX.Element {
   );
 }
 
-export default QueryEditor; 
+export default QueryEditor;

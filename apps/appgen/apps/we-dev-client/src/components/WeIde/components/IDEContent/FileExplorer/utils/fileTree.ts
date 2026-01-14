@@ -7,7 +7,7 @@ export function buildFileTree(paths: string[]): FileItem[] {
   // Sort paths to ensure consistent order
   const sortedPaths = [...paths].sort();
 
-  sortedPaths.forEach(path => {
+  sortedPaths.forEach((path) => {
     const parts = path.split('/');
     let currentPath = '';
 
@@ -20,7 +20,7 @@ export function buildFileTree(paths: string[]): FileItem[] {
           name: part,
           type: isFile ? 'file' : 'folder',
           path: currentPath,
-          children: isFile ? undefined : []
+          children: isFile ? undefined : [],
         };
         map.set(currentPath, node);
 
@@ -31,7 +31,7 @@ export function buildFileTree(paths: string[]): FileItem[] {
           const parent = map.get(parentPath);
           if (parent?.children) {
             // Only add if not already present
-            if (!parent.children.some(child => child.path === node.path)) {
+            if (!parent.children.some((child) => child.path === node.path)) {
               parent.children.push(node);
             }
           }
@@ -49,7 +49,7 @@ export function buildFileTree(paths: string[]): FileItem[] {
       return a.type === 'folder' ? -1 : 1;
     });
 
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (node.children) {
         sortNodes(node.children);
       }

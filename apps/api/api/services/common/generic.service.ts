@@ -99,7 +99,7 @@ export class GenericService {
     contextFromPreviousSteps: string = '',
     promptConfig: PromptConfig = {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-pro-preview',
+      modelName: 'gemini-2.5-flash',
       userId,
       promptType: promptType || step.stepName,
     }
