@@ -425,6 +425,11 @@ class UserService {
     return this.isBeta;
   }
 
+  async getUserEmail(userId: string): Promise<string | undefined> {
+    const user = await this.userRepository.findById(userId, 'users');
+    return user?.email;
+  }
+
   /**
    * Get current quota limits
    */
