@@ -353,6 +353,8 @@
     "header.nav.logout.mobile": "Déconnexion",
     "header.nav.login.mobile": "Connexion",
     "header.nav.createProject.mobile": " Essayez gratuitement ",
+    "header.nav.challenge": "Challenge",
+    "header.badge.new": "Nouveau",
     "header.nav.github": "GitHub",
     "header.nav.home": "Accueil",
     "header.menu.product": "Produit",
