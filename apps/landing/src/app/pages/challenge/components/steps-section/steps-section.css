@@ -1,0 +1,12 @@
+.number-outline {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
+  color: transparent;
+  font-weight: 900;
+  font-size: 8rem;
+  line-height: 1;
+  position: absolute;
+  top: -1rem;
+  left: -1rem;
+  z-index: 0;
+  opacity: 0.5;
+}

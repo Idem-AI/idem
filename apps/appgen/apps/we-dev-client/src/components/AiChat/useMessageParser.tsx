@@ -5,21 +5,27 @@ import useTerminalStore from '@/stores/terminalSlice';
 import { Message } from 'ai/react';
 
 class Queue {
-  private queue: string[] = [];
+  private queue: {
+    command: string;
+    resolve: () => void;
+    reject: (reason?: any) => void;
+  }[] = [];
   private processing: boolean = false;
 
-  // 添加命令到队列
-  push(command: string) {
-    this.queue.push(command);
-    this.process();
+  // Add command to queue and return a promise that resolves when executed
+  push(command: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ command, resolve, reject });
+      this.process();
+    });
   }
 
-  // 获取队列中的下一个命令
-  private getNext(): string | undefined {
+  // Get next command object
+  private getNext() {
     return this.queue.shift();
   }
 
-  // 处理队列
+  // Process the queue
   private async process() {
     if (this.processing || this.queue.length === 0) {
       return;
@@ -37,6 +43,11 @@ class Queue {
     } finally {
       this.processing = false;
     }
+  }
+
+  // Clear the queue
+  clear() {
+    this.queue = [];
   }
 }
 

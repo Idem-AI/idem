@@ -51,7 +51,7 @@ class Terminal {
 
   constructor(
     private container: HTMLElement | null,
-    isDarkMode: boolean = true
+    isDarkMode: boolean = true,
   ) {
     this.isDarkMode = isDarkMode;
   }
@@ -60,7 +60,7 @@ class Terminal {
   public async initialize(
     container: HTMLElement,
     processId: string,
-    addError?: (error: any) => void
+    addError?: (error: any) => void,
   ) {
     if (this.initialized || !container) return; // Avoid repeated initialization
 
@@ -219,12 +219,100 @@ class Terminal {
           }
           this.terminal.write(data.replaceAll(this.initId, 'Idem Appgen'));
         },
-      })
-    );
+      });
 
-    this.terminal?.onData((data) => {
-      input?.write(data);
-    });
+      if (!process) {
+        this.terminal?.writeln(
+          "\x1b[1;31mError: Failed to spawn shell process\x1b[0m",
+        );
+        return;
+      }
+
+      eventEmitter.emit("terminal:update", this.processId);
+
+      const input = process.input.getWriter();
+      const output = process.output;
+
+      // Handle process output
+      output
+        .pipeTo(
+          new WritableStream({
+            write: (data) => {
+              try {
+                if (
+                  (data.includes("error") || data.includes("failure")) &&
+                  addError
+                ) {
+                  addError({
+                    message: "compile error",
+                    code: this.stripAnsi(data),
+                    severity: "error",
+                  });
+                }
+
+                // Extract and replace shell ID for branding
+                if (!this.initId && data.includes("/")) {
+                  const parts = data.split("/");
+                  if (parts.length > 1) {
+                    const idPart = parts[1].split("[39m")[0];
+                    if (idPart) {
+                      this.initId = idPart.trim();
+                    }
+                  }
+                }
+
+                // Replace shell ID with branding
+                const displayData = this.initId
+                  ? data.replaceAll(this.initId, "Idem Appgen")
+                  : data;
+
+                this.terminal?.write(displayData);
+              } catch (writeError) {
+                console.error("Error writing to terminal:", writeError);
+              }
+            },
+          }),
+        )
+        .catch((pipeError) => {
+          console.error("Error in output pipe:", pipeError);
+          this.terminal?.writeln("\x1b[1;31mTerminal output error\x1b[0m");
+        });
+
+      // Handle terminal input
+      this.terminal?.onData((data) => {
+        try {
+          input.write(data);
+        } catch (inputError) {
+          console.error("Error writing input:", inputError);
+        }
+      });
+
+      // Handle process exit
+      process.exit
+        .then((exitCode) => {
+          console.log(`Shell process exited with code: ${exitCode}`);
+          if (exitCode !== 0) {
+            this.terminal?.writeln(
+              `\x1b[1;33mProcess exited with code: ${exitCode}\x1b[0m`,
+            );
+          }
+        })
+        .catch((exitError) => {
+          console.error("Process exit error:", exitError);
+        });
+    } catch (error) {
+      console.error("Error in webWaitCommand:", error);
+      this.terminal?.writeln("\x1b[1;31mTerminal initialization failed\x1b[0m");
+      this.terminal?.writeln("Please refresh the page and try again.");
+
+      if (addError) {
+        addError({
+          message: "Terminal initialization failed",
+          code: String(error),
+          severity: "error",
+        });
+      }
+    }
   }
 
   // Mode web uniquement - la méthode nodeWaitCommand n'est plus nécessaire
@@ -244,20 +332,79 @@ class Terminal {
       env: { npm_config_yes: true },
     });
 
-    process.output.pipeTo(
-      new WritableStream({
-        write: (data) => {
-          this.terminal?.write(data);
+      if (!instance) {
+        this.terminal?.writeln(
+          "\x1b[1;31mError: WebContainer not available\x1b[0m",
+        );
+        return {
+          output: ["Error: WebContainer not available"],
+          exitCode: 1,
+        };
+      }
+
+      this.terminal?.writeln(`\x1b[1;34m$ ${command}\x1b[0m`);
+
+      const process = await instance.spawn("jsh", ["-c", command], {
+        env: {
+          npm_config_yes: "true",
+          NODE_ENV: "development",
         },
-      })
-    );
+      });
 
-    const exitCode = await process.exit;
+      if (!process) {
+        this.terminal?.writeln(
+          "\x1b[1;31mError: Failed to spawn command process\x1b[0m",
+        );
+        return {
+          output: ["Error: Failed to spawn command process"],
+          exitCode: 1,
+        };
+      }
 
-    return {
-      output: [],
-      exitCode,
-    };
+      const output: string[] = [];
+
+      // Capture output
+      process.output
+        .pipeTo(
+          new WritableStream({
+            write: (data) => {
+              const cleanData = this.stripAnsi(data);
+              output.push(cleanData);
+              this.terminal?.write(data);
+            },
+          }),
+        )
+        .catch((error) => {
+          console.error("Error in command output pipe:", error);
+          this.terminal?.writeln("\x1b[1;31mCommand output error\x1b[0m");
+        });
+
+      const exitCode = await process.exit;
+
+      if (exitCode === 0) {
+        this.terminal?.writeln(
+          "\x1b[1;32mCommand completed successfully\x1b[0m",
+        );
+      } else {
+        this.terminal?.writeln(
+          `\x1b[1;31mCommand failed with exit code: ${exitCode}\x1b[0m`,
+        );
+      }
+
+      return {
+        output,
+        exitCode,
+      };
+    } catch (error) {
+      console.error("Error executing command:", error);
+      this.terminal?.writeln(
+        `\x1b[1;31mError executing command: ${error}\x1b[0m`,
+      );
+      return {
+        output: [`Error: ${error}`],
+        exitCode: 1,
+      };
+    }
   }
 
   // Remove ANSI escape sequences and timestamps
