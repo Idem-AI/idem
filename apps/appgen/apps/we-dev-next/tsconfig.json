@@ -2,8 +2,15 @@
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     // "strict": true,
@@ -14,7 +21,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -22,11 +29,21 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@idem/shared-models": ["../../../../packages/shared-models/src"],
-      "@idem/shared-models/*": ["../../../../packages/shared-models/src/*"],
-      "@idem/shared-auth-client": ["../../../../packages/shared-auth-client/src"],
-      "@idem/shared-auth-client/*": ["../../../../packages/shared-auth-client/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@idem/shared-models": [
+        "../../../../packages/shared-models/src"
+      ],
+      "@idem/shared-models/*": [
+        "../../../../packages/shared-models/src/*"
+      ],
+      "@idem/shared-auth-client": [
+        "../../../../packages/shared-auth-client/src"
+      ],
+      "@idem/shared-auth-client/*": [
+        "../../../../packages/shared-auth-client/src/*"
+      ]
     },
     "strict": false
   },
@@ -38,7 +55,10 @@
     "./src/utils/messagepParseJson.ts",
     "next.config.mjs",
     "src/components/Postcard/postcard.jsx",
-    "../we-dev-client/src/components/AiChat/chat/services/appGenService.ts"
+    "../we-dev-client/src/components/AiChat/chat/services/appGenService.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
