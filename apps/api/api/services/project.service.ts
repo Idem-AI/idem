@@ -438,6 +438,142 @@ class ProjectService {
       return null;
     }
   }
+
+  // Project Generation Methods
+  async getProjectGeneration(userId: string, projectId: string): Promise<any | null> {
+    if (!userId || !projectId) {
+      logger.error('User ID and Project ID are required to get project generation.');
+      return null;
+    }
+
+    try {
+      const generation = await this.projectRepository.findById(
+        `${projectId}_generation`,
+        `users/${userId}/generations`
+      );
+
+      if (!generation) {
+        logger.info(`No generation found for project ${projectId} and user ${userId}`);
+        return null;
+      }
+
+      logger.info(`Generation fetched for project ${projectId} and user ${userId}`);
+      return generation;
+    } catch (error: any) {
+      logger.error(
+        `Error fetching generation for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
+  async saveProjectGeneration(userId: string, projectId: string, generationData: any): Promise<void> {
+    if (!userId || !projectId || !generationData) {
+      logger.error('User ID, Project ID, and generation data are required.');
+      throw new Error('User ID, Project ID, and generation data are required.');
+    }
+
+    try {
+      const generationRecord = {
+        projectId,
+        userId,
+        ...generationData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await this.projectRepository.create(
+        generationRecord,
+        `users/${userId}/generations`,
+        `${projectId}_generation`
+      );
+
+      logger.info(`Generation saved successfully for project ${projectId} and user ${userId}`);
+    } catch (error: any) {
+      logger.error(
+        `Error saving generation for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
+  async saveProjectZip(userId: string, projectId: string, zipFile: any): Promise<string> {
+    if (!userId || !projectId || !zipFile) {
+      logger.error('User ID, Project ID, and ZIP file are required.');
+      throw new Error('User ID, Project ID, and ZIP file are required.');
+    }
+
+    try {
+      // Upload ZIP file to storage
+      const fileName = `${projectId}-generation-${Date.now()}.zip`;
+      const filePath = `users/${userId}/projects/${projectId}/generations/${fileName}`;
+
+      // Use storage service to upload the file
+      const uploadResult = await storageService.uploadFile(zipFile.buffer, filePath, zipFile.mimetype);
+
+      logger.info(`ZIP file saved successfully for project ${projectId} and user ${userId}. URL: ${uploadResult.downloadURL}`);
+      return uploadResult.downloadURL;
+    } catch (error: any) {
+      logger.error(
+        `Error saving ZIP file for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
+  async sendProjectToGitHub(userId: string, projectId: string, githubData: any): Promise<string> {
+    if (!userId || !projectId || !githubData) {
+      logger.error('User ID, Project ID, and GitHub data are required.');
+      throw new Error('User ID, Project ID, and GitHub data are required.');
+    }
+
+    try {
+      // This is a placeholder implementation
+      // In a real implementation, you would integrate with GitHub API
+      const repoName = `${githubData.projectName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+
+      // Simulate GitHub repository creation
+      logger.info(`Simulating GitHub repository creation for project ${projectId}`);
+
+      // In a real implementation, you would:
+      // 1. Create a new GitHub repository
+      // 2. Upload all files from githubData.files
+      // 3. Set repository visibility based on githubData.isPublic
+      // 4. Return the actual repository URL
+
+      const mockRepoUrl = `https://github.com/${userId}/${repoName}`;
+
+      // Save GitHub integration record
+      const githubRecord = {
+        projectId,
+        userId,
+        repoName,
+        repoUrl: mockRepoUrl,
+        isPublic: githubData.isPublic || false,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Use a generic repository for non-project data
+      const genericRepository = RepositoryFactory.getRepository<any>();
+      await genericRepository.create(
+        githubRecord,
+        `users/${userId}/github_integrations`,
+        `${projectId}_github`
+      );
+
+      logger.info(`Project ${projectId} sent to GitHub successfully for user ${userId}. Repo: ${mockRepoUrl}`);
+      return mockRepoUrl;
+    } catch (error: any) {
+      logger.error(
+        `Error sending project ${projectId} to GitHub for user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
 }
 
 export const projectService = new ProjectService();

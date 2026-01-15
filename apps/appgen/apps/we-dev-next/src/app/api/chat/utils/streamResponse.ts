@@ -1,33 +1,24 @@
-import { v4 as uuidv4 } from 'uuid';
+// Removed unused uuidv4 import
 import { Messages, StreamingOptions, streamTextFn } from '../action';
 import { CONTINUE_PROMPT, ToolInfo } from '../prompt';
 import SwitchableStream from '../switchable-stream';
-import { tool } from 'ai';
-import { jsonSchemaToZodSchema } from '@/app/api/chat/utils/json2zod';
+// TODO: Re-enable tool imports when fixing tool handling for ai v6.0.26
+// import { tool } from 'ai';
+// import { jsonSchemaToZodSchema } from '@/app/api/chat/utils/json2zod';
 
 const MAX_RESPONSE_SEGMENTS = 2;
 
 export async function streamResponse(
   messages: Messages,
   model: string,
-  userId: string | null,
-  tools?: ToolInfo[]
+  _userId: string | null,
+  _tools?: ToolInfo[]
 ): Promise<Response> {
-  let toolList = {};
-  if (tools && tools.length > 0) {
-    toolList = tools.reduce((obj, { name, ...args }) => {
-      obj[name] = tool({
-        id: args.id,
-        description: args.description,
-        parameters: jsonSchemaToZodSchema(args.parameters),
-      });
-      return obj;
-    }, {});
-  }
+  // TODO: Fix tool handling for ai v6.0.26 - temporarily disabled
+  const toolList = {};
   const stream = new SwitchableStream();
   const options: StreamingOptions = {
     tools: toolList,
-    toolCallStreaming: true,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (err: any) => {
       // Get error information, prioritize cause property
@@ -50,15 +41,37 @@ export async function streamResponse(
         throw Error('Cannot continue message: Maximum segments reached');
       }
 
-      messages.push({ id: uuidv4(), role: 'assistant', content });
-      messages.push({ id: uuidv4(), role: 'user', content: CONTINUE_PROMPT });
+      messages.push({ role: 'assistant', content });
+      messages.push({ role: 'user', content: CONTINUE_PROMPT });
     },
   };
 
   try {
     const result = streamTextFn(messages, options, model);
-    return result.toDataStreamResponse({
-      sendReasoning: true,
+
+    // Create a data stream format compatible with AI React client
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of result.textStream) {
+            // Format as data stream part with separator for AI React client
+            const dataChunk = `0:${JSON.stringify(chunk)}\n`;
+            controller.enqueue(encoder.encode(dataChunk));
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
   } catch (error) {
     stream.close();

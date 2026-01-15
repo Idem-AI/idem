@@ -1,18 +1,30 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { streamText as _streamText, convertToCoreMessages, generateObject } from 'ai';
+import { streamText as _streamText, generateObject } from 'ai';
 
-import type { LanguageModel, Message } from 'ai';
+import type { LanguageModel, ModelMessage } from 'ai';
 import { modelConfig } from '../model/config';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
-export const MAX_TOKENS = 59000;
+export const MAX_TOKENS = 8000;
 
 export type StreamingOptions = Omit<Parameters<typeof _streamText>[0], 'model'>;
 let initOptions = {};
 export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
   const provider = modelConfig.find((item) => item.modelKey === model)?.provider;
+
+  // Default to gemini if provider not found
+  if (!provider) {
+    console.warn(`Provider not found for model: ${model}, defaulting to gemini`);
+    const gemini = createGoogleGenerativeAI({
+      apiKey,
+      baseURL,
+    });
+    initOptions = {};
+    return gemini(model);
+  }
+
   if (provider === 'gemini') {
     const gemini = createGoogleGenerativeAI({
       apiKey,
@@ -35,7 +47,7 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
       baseURL,
     });
     initOptions = {
-      maxTokens: provider.indexOf('claude-3-7-sonnet') > -1 ? 128000 : 8192,
+      maxTokens: provider.indexOf('claude-3-7-sonnet') > -1 ? 8000 : 4000,
     };
     return openai(model);
   }
@@ -43,7 +55,7 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
   throw new Error(`Provider not found for model: ${model}`);
 }
 
-export type Messages = Message[];
+export type Messages = ModelMessage[];
 
 const defaultModel = getOpenAIModel(
   process.env.THIRD_API_URL,
@@ -61,7 +73,7 @@ export async function generateObjectFn(messages: Messages) {
     schema: z.object({
       files: z.array(z.string()),
     }),
-    messages: convertToCoreMessages(messages),
+    messages: messages,
   });
 }
 
@@ -77,16 +89,12 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
 
   const { apiKey = process.env.THIRD_API_KEY, apiUrl = process.env.THIRD_API_URL } = modelConf;
   const model = getOpenAIModel(apiUrl, apiKey, modelKey) as LanguageModel;
-  const newMessages = messages.map((item) => {
-    if (item.role === 'assistant') {
-      delete item.parts;
-    }
-    return item;
-  });
   return _streamText({
     model: model || defaultModel,
-    messages: convertToCoreMessages(newMessages),
+    messages: messages,
     ...initOptions,
-    ...options,
+    ...(options && Object.fromEntries(
+      Object.entries(options).filter(([key]) => key !== 'prompt')
+    )),
   });
 }
