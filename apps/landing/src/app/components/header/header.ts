@@ -86,6 +86,7 @@ export class Header implements OnInit {
       route: '/home',
       type: 'link' as const,
     },
+
     {
       id: 'product',
       label: $localize`:@@header.menu.product:Product`,
@@ -118,6 +119,13 @@ export class Header implements OnInit {
       route: '/contact',
       type: 'link' as const,
     },
+        {
+      id: 'challenge',
+      label: $localize`:@@header.nav.challenge:Challenge`,
+      route: '/challenge',
+      type: 'link' as const,
+      badge: $localize`:@@header.badge.new:New`,
+    }
   ];
 
   @ViewChild('menu') menuRef!: ElementRef;
