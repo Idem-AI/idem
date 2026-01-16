@@ -1,7 +1,7 @@
 {
   "locale": "en",
   "translations": {
-    "hero.title": "{$START_TAG_SPAN}The AI{$CLOSE_TAG_SPAN} that brings {$LINE_BREAK}{$START_TAG_SPAN}African{$CLOSE_TAG_SPAN} startups to life ",
+    "hero.title": "The AI that brings {$LINE_BREAK}{$START_TAG_SPAN}African{$CLOSE_TAG_SPAN} startups to life ",
     "hero.description": " From a simple idea, IDEM builds a complete business. {$START_TAG_SPAN} Strategy, Brand, product, app, everything {$CLOSE_TAG_SPAN} . Designed for Africa, empowering every creator to build, grow, and thrive with full independence. ",
     "hero.tryForFree": " Try for free ",
     "hero.viewOnGithub": "View on GitHub",
