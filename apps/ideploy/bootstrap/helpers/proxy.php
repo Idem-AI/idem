@@ -250,6 +250,9 @@ function generateDefaultProxyConfiguration(Server $server, array $custom_command
                         '--certificatesresolvers.letsencrypt.acme.httpchallenge=true',
                         '--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=http',
                         '--certificatesresolvers.letsencrypt.acme.storage=/traefik/acme.json',
+                        // CrowdSec bouncer plugin
+                        '--experimental.plugins.bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin',
+                        '--experimental.plugins.bouncer.version=v1.3.5',
                     ],
                     'labels' => $labels,
                 ],
@@ -259,10 +262,18 @@ function generateDefaultProxyConfiguration(Server $server, array $custom_command
             $config['services']['traefik']['command'][] = '--api.insecure=true';
             $config['services']['traefik']['command'][] = '--log.level=debug';
             $config['services']['traefik']['command'][] = '--accesslog.filepath=/traefik/access.log';
+            $config['services']['traefik']['command'][] = '--accesslog.format=json';
             $config['services']['traefik']['command'][] = '--accesslog.bufferingsize=100';
+            $config['services']['traefik']['command'][] = '--accesslog.fields.names.RouterName=keep';
+            $config['services']['traefik']['command'][] = '--accesslog.fields.names.ServiceName=keep';
             $config['services']['traefik']['volumes'][] = '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/proxy/:/traefik';
         } else {
             $config['services']['traefik']['command'][] = '--api.insecure=false';
+            $config['services']['traefik']['command'][] = '--accesslog.filepath=/traefik/access.log';
+            $config['services']['traefik']['command'][] = '--accesslog.format=json';
+            $config['services']['traefik']['command'][] = '--accesslog.bufferingsize=100';
+            $config['services']['traefik']['command'][] = '--accesslog.fields.names.RouterName=keep';
+            $config['services']['traefik']['command'][] = '--accesslog.fields.names.ServiceName=keep';
             $config['services']['traefik']['volumes'][] = "{$proxy_path}:/traefik";
         }
         if ($server->isSwarm()) {
