@@ -36,6 +36,11 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'challenge',
+    loadComponent: () => import('./pages/challenge/challenge').then((m) => m.ChallengeComponent),
+    data: { layout: 'public' },
+  },
+  {
     path: 'pricing',
     loadComponent: () => import('./pages/pricing-page/pricing-page').then((m) => m.PricingPage),
     data: { layout: 'public' },

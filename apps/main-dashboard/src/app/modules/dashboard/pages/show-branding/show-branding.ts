@@ -71,6 +71,11 @@ export class ShowBrandingComponent implements OnInit {
     return this.existingBranding() !== null;
   });
 
+  protected readonly hasBrandingSections = computed(() => {
+    const branding = this.existingBranding();
+    return branding && branding.sections && branding.sections.length > 0;
+  });
+
   protected readonly hasBrandingData = computed(() => {
     const branding = this.existingBranding();
     return (
