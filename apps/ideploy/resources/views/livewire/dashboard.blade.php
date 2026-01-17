@@ -60,7 +60,7 @@
                         // Services
                         if (isset($environment->services)) {
                             $totalResources += $environment->services->count();
-                            $activeResources += $environment->services->filter(fn($s) => $s->status() === 'running')->count();
+                            $activeResources += $environment->services->filter(fn($s) => $s->status === 'running')->count();
                             if ($environment->services->count() > 0 && !in_array('Service', $resourceTypes)) {
                                 $resourceTypes[] = 'Service';
                             }

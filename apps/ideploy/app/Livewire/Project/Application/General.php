@@ -53,7 +53,7 @@ class General extends Component
 
     public ?string $ports_mappings = null;
 
-    public ?string $custom_network_aliases = null;
+    public ?array $custom_network_aliases = null;
 
     public ?string $dockerfile = null;
 

@@ -95,8 +95,13 @@ class Handler extends ExceptionHandler
             if ($e instanceof RuntimeException) {
                 return;
             }
-            $this->settings = instanceSettings();
-            if ($this->settings->do_not_track) {
+            try {
+                $this->settings = instanceSettings();
+                if ($this->settings->do_not_track) {
+                    return;
+                }
+            } catch (\Throwable $exception) {
+                // Database not initialized yet, skip reporting
                 return;
             }
             app('sentry')->configureScope(

@@ -65,11 +65,30 @@ class IdemQuotaService
 
     /**
      * Get team's current applications count
+     * Only counts apps deployed on IDEM managed servers
+     * Apps on personal servers (added by users) don't count toward quota
      */
     public function getTeamAppsCount(Team $team): int
     {
-        return Application::whereHas('environment.project', function ($query) use ($team) {
+        // Get all team applications
+        $apps = Application::whereHas('environment.project', function ($query) use ($team) {
             $query->where('team_id', $team->id);
+        })->get();
+
+        // Filter to only count apps on IDEM managed servers
+        return $apps->filter(function ($app) {
+            $destination = $app->destination;
+            if (!$destination) {
+                return false;
+            }
+            
+            $server = $destination->server;
+            if (!$server) {
+                return false;
+            }
+            
+            // Only count if deployed on IDEM managed server
+            return $server->idem_managed === true;
         })->count();
     }
 
