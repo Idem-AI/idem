@@ -1,0 +1,38 @@
+<section class="py-40 px-6 relative border-y border-white/10 overflow-hidden">
+  <!-- Dynamic Background Glitch/Noise -->
+  <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+
+  <!-- Abstract Grid Floor -->
+  <div class="absolute bottom-0 left-0 w-full h-1/2 bg-[linear-gradient(to_bottom,transparent_0%,rgba(20,71,230,0.05)_100%),linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[linear-gradient(to_top,black,transparent)] transform perspective-[1000px] rotate-x-60 origin-bottom"></div>
+
+  <div class=" mx-auto max-w-7xl relative z-10">
+    <div class="flex flex-col lg:flex-row gap-20 items-start">
+      <div class="flex-1 relative">
+        <h2 class="text-[8rem] md:text-[10rem] lg:text-[12rem] font-black leading-[0.8] tracking-tighter text-transparent bg-clip-text bg-linear-to-b from-white to-gray-900 opacity-80 select-none mix-blend-overlay">
+          SHOW.<br>DON'T<br>TELL.
+        </h2>
+        <div class="absolute top-0 left-0 w-full h-full bg-linear-to-b from-transparent to-black/50 z-10 pointer-events-none"></div>
+      </div>
+
+      <div class="flex-1 pt-10 lg:pt-32 space-y-12">
+        <div class="relative pl-8 border-l-2 border-primary">
+          <span class="absolute -left-[9px] top-0 w-4 h-4 bg-primary rounded-full animate-pulse"></span>
+          <p class="text-3xl md:text-5xl font-bold text-white leading-tight">
+            <span i18n="@@challenge.mission.main_text">This is not a pitch competition.</span> <span class="text-gray-500" i18n="@@challenge.mission.sub_text">It's a demonstration of strength.</span>
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-lg text-gray-400 font-mono">
+          <div class="glass-panel p-6 rounded-lg border-l border-t border-white/10 hover:border-primary/50 transition-colors group">
+            <span class="text-primary text-xl font-bold block mb-2 group-hover:translate-x-2 transition-transform">> NO SLIDES</span>
+            <span i18n="@@challenge.mission.no_slides">No PowerPoint presentations. No empty promises.</span>
+          </div>
+          <div class="glass-panel p-6 rounded-lg border-l border-t border-white/10 hover:border-primary/50 transition-colors group">
+            <span class="text-primary text-xl font-bold block mb-2 group-hover:translate-x-2 transition-transform">> JUST SHIP</span>
+            <span i18n="@@challenge.mission.just_ship">Generate. Deploy. Show the URL. That's all that matters.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

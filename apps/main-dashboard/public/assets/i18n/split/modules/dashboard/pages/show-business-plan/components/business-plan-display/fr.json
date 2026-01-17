@@ -1,0 +1,8 @@
+{
+    "title": "PDF du Plan d'Affaires",
+    "loading": "Préparation du contenu du plan d'affaires...",
+    "empty": {
+        "title": "Aucun Plan d'Affaires Disponible",
+        "subtitle": "Aucun contenu de plan d'affaires disponible."
+    }
+}

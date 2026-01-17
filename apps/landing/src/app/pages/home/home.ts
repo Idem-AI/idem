@@ -16,6 +16,7 @@ import { Diagrams } from '../../components/diagrams/diagrams';
 import { DeploymentScreenshots } from '../../components/deployment-screenshots/deployment-screenshots';
 import { AfricanMarketComponent } from '../../components/african-market/african-market';
 import { Cta } from '../../components/cta/cta';
+import { VideoTrailer } from "../../components/video-trailer/video-trailer";
 
 @Component({
   selector: 'app-home',
@@ -33,7 +34,8 @@ import { Cta } from '../../components/cta/cta';
     DeploymentScreenshots,
     AfricanMarketComponent,
     Cta,
-  ],
+    VideoTrailer
+],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })

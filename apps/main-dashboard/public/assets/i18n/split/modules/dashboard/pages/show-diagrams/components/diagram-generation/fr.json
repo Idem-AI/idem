@@ -14,8 +14,10 @@
   },
   "stepCompletedAt": "Terminé à {{time}}",
   "errors": {
-    "title": "Échec de la génération"
+    "title": "Échec de la génération",
+    "failed": "Échec de la génération des diagrammes"
   },
+  "cancelled": "Génération des diagrammes annulée",
   "available": {
     "title": "Diagrammes disponibles"
   }
