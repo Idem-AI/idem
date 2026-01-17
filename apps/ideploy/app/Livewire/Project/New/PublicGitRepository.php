@@ -159,6 +159,9 @@ class PublicGitRepository extends Component
     public function loadBranch()
     {
         try {
+            // Clean and trim the URL
+            $this->repository_url = trim($this->repository_url);
+            
             // Validate repository URL
             $validator = validator(['repository_url' => $this->repository_url], [
                 'repository_url' => ['required', 'string', new ValidGitRepositoryUrl],
@@ -168,22 +171,26 @@ class PublicGitRepository extends Component
                 throw new \RuntimeException('Invalid repository URL: '.$validator->errors()->first('repository_url'));
             }
 
+            // Convert SSH format to HTTPS
             if (str($this->repository_url)->startsWith('git@')) {
                 $github_instance = str($this->repository_url)->after('git@')->before(':');
                 $repository = str($this->repository_url)->after(':')->before('.git');
                 $this->repository_url = 'https://'.str($github_instance).'/'.$repository;
             }
+            
+            // Add .git suffix for non-GitHub/non-special repos
             if (
                 (str($this->repository_url)->startsWith('https://') ||
                     str($this->repository_url)->startsWith('http://')) &&
                 ! str($this->repository_url)->endsWith('.git') &&
-                (! str($this->repository_url)->contains('github.com') ||
-                    ! str($this->repository_url)->contains('git.sr.ht')) &&
-                    ! str($this->repository_url)->contains('tangled')
+                ! str($this->repository_url)->contains('github.com') &&
+                ! str($this->repository_url)->contains('git.sr.ht') &&
+                ! str($this->repository_url)->contains('tangled')
             ) {
-
                 $this->repository_url = $this->repository_url.'.git';
             }
+            
+            // Remove .git suffix for GitHub repos
             if (str($this->repository_url)->contains('github.com') && str($this->repository_url)->endsWith('.git')) {
                 $this->repository_url = str($this->repository_url)->beforeLast('.git')->value();
             }
@@ -223,6 +230,9 @@ class PublicGitRepository extends Component
     {
         $this->git_branch = 'main';
         $this->base_directory = '/';
+
+        // Clean URL before validation and parsing
+        $this->repository_url = trim($this->repository_url);
 
         // Validate repository URL before parsing
         $validator = validator(['repository_url' => $this->repository_url], [
@@ -284,20 +294,12 @@ class PublicGitRepository extends Component
                 return redirect()->route('idem.subscription');
             }
             
+            // Clean repository URL before validation
+            $this->repository_url = trim($this->repository_url);
+            
             $this->validate();
 
-            // Additional validation for git repository and branch
-            if ($this->git_source === 'other') {
-                // For 'other' sources, git_repository contains the full URL
-                $validator = validator(['git_repository' => $this->git_repository], [
-                    'git_repository' => ['required', 'string', new ValidGitRepositoryUrl],
-                ]);
-
-                if ($validator->fails()) {
-                    throw new \RuntimeException('Invalid repository URL: '.$validator->errors()->first('git_repository'));
-                }
-            }
-
+            // Validate branch (repository URL was already validated in loadBranch/getGitSource)
             $branchValidator = validator(['git_branch' => $this->git_branch], [
                 'git_branch' => ['required', 'string', new ValidGitBranch],
             ]);

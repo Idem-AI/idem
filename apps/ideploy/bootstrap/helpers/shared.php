@@ -2641,6 +2641,7 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                                             is_force_https_enabled: $resource->isForceHttpsEnabled(),
                                             is_gzip_enabled: $resource->isGzipEnabled(),
                                             is_stripprefix_enabled: $resource->isStripprefixEnabled(),
+                                            application: $resource,
                                         )
                                     );
                                     break;
@@ -2670,6 +2671,7 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                                     is_force_https_enabled: $resource->isForceHttpsEnabled(),
                                     is_gzip_enabled: $resource->isGzipEnabled(),
                                     is_stripprefix_enabled: $resource->isStripprefixEnabled(),
+                                    application: $resource,
                                 )
                             );
                             $serviceLabels = $serviceLabels->merge(
