@@ -810,6 +810,11 @@ class Application extends BaseModel
         return $this->hasMany(ScheduledTask::class)->orderBy('name', 'asc');
     }
 
+    public function firewallConfig()
+    {
+        return $this->hasOne(\App\Models\FirewallConfig::class);
+    }
+
     public function private_key()
     {
         return $this->belongsTo(PrivateKey::class);

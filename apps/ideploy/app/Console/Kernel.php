@@ -12,6 +12,9 @@ use App\Jobs\RegenerateSslCertJob;
 use App\Jobs\ScheduledJobManager;
 use App\Jobs\ServerManagerJob;
 use App\Jobs\UpdateCoolifyJob;
+use App\Jobs\Security\SyncCrowdSecAlertsJob;
+use App\Jobs\Security\CleanOldTrafficLogsJob;
+use App\Jobs\PollTrafficLoggerJob;
 use App\Models\InstanceSettings;
 use App\Models\Server;
 use App\Models\Team;
@@ -61,6 +64,15 @@ class Kernel extends ConsoleKernel
             $this->scheduleInstance->job(new ScheduledJobManager)->everyMinute()->onOneServer();
 
             $this->scheduleInstance->command('uploads:clear')->everyTwoMinutes();
+            
+            // CrowdSec Security Jobs
+            $this->scheduleInstance->job(new SyncCrowdSecAlertsJob)->everyFiveMinutes()->onOneServer();
+            $this->scheduleInstance->job(new CleanOldTrafficLogsJob)->daily()->onOneServer();
+            
+            // Poll traffic logger
+            $this->scheduleInstance->call(function () {
+                Server::where('traffic_logger_installed', true)->each(fn($s) => PollTrafficLoggerJob::dispatch($s));
+            })->everyMinute();
 
         } else {
             // Instance Jobs
@@ -85,6 +97,15 @@ class Kernel extends ConsoleKernel
 
             $this->scheduleInstance->command('cleanup:database --yes')->daily();
             $this->scheduleInstance->command('uploads:clear')->everyTwoMinutes();
+            
+            // CrowdSec Security Jobs
+            $this->scheduleInstance->job(new SyncCrowdSecAlertsJob)->everyFiveMinutes()->onOneServer();
+            $this->scheduleInstance->job(new CleanOldTrafficLogsJob)->daily()->onOneServer();
+            
+            // Poll traffic logger
+            $this->scheduleInstance->call(function () {
+                Server::where('traffic_logger_installed', true)->each(fn($s) => PollTrafficLoggerJob::dispatch($s));
+            })->everyMinute();
         }
     }
 
