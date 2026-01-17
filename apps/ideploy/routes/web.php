@@ -19,6 +19,13 @@ use App\Livewire\Profile\Index as ProfileIndex;
 use App\Livewire\Project\Application\Configuration as ApplicationConfiguration;
 use App\Livewire\Project\Application\Deployment\Index as DeploymentIndex;
 use App\Livewire\Project\Application\Deployment\Show as DeploymentShow;
+use App\Livewire\Project\Application\Security\FirewallOverview;
+use App\Livewire\Project\Application\Security\FirewallTraffic;
+use App\Livewire\Project\Application\Security\FirewallRules;
+use App\Livewire\Project\Application\Analytics\Overview as AnalyticsOverview;
+use App\Livewire\Project\Application\Insights\Overview as InsightsOverview;
+use App\Livewire\Project\Application\Pipeline\Overview as PipelineOverview;
+use App\Livewire\Project\Application\Pipeline\Executions as PipelineExecutions;
 use App\Livewire\Project\CloneMe as ProjectCloneMe;
 use App\Livewire\Project\Database\Backup\Execution as DatabaseBackupExecution;
 use App\Livewire\Project\Database\Backup\Index as DatabaseBackupIndex;
@@ -215,6 +222,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/metrics', ApplicationConfiguration::class)->name('project.application.metrics');
         Route::get('/tags', ApplicationConfiguration::class)->name('project.application.tags');
         Route::get('/danger', ApplicationConfiguration::class)->name('project.application.danger');
+
+        // Security (Firewall)
+        Route::get('/security', FirewallOverview::class)->name('project.application.security.overview');
+        Route::get('/security/traffic', FirewallTraffic::class)->name('project.application.security.traffic');
+        Route::get('/security/rules', FirewallRules::class)->name('project.application.security.rules');
+        
+        // Analytics
+        Route::get('/analytics', AnalyticsOverview::class)->name('project.application.analytics');
+        
+        // Insights
+        Route::get('/insights', InsightsOverview::class)->name('project.application.insights');
+        
+        // CI/CD Pipeline
+        Route::get('/pipeline', PipelineOverview::class)->name('project.application.pipeline');
+        Route::get('/pipeline/executions', PipelineExecutions::class)->name('project.application.pipeline.executions');
 
         Route::get('/deployment', DeploymentIndex::class)->name('project.application.deployment.index');
         Route::get('/deployment/{deployment_uuid}', DeploymentShow::class)->name('project.application.deployment.show');

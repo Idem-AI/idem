@@ -14,6 +14,22 @@
                 href="{{ route('project.application.logs', $parameters) }}">
                 Logs
             </a>
+            <a class="{{ request()->routeIs('project.application.security.*') ? 'dark:text-white' : '' }}"
+                href="{{ route('project.application.security.overview', $parameters) }}">
+                Security
+            </a>
+            <a class="{{ request()->routeIs('project.application.analytics') ? 'dark:text-white' : '' }}"
+                href="{{ route('project.application.analytics', $parameters) }}">
+                Analytics
+            </a>
+            <a class="{{ request()->routeIs('project.application.insights') ? 'dark:text-white' : '' }}"
+                href="{{ route('project.application.insights', $parameters) }}">
+                Insights
+            </a>
+            <a class="{{ request()->routeIs('project.application.pipeline') ? 'dark:text-white' : '' }}"
+                href="{{ route('project.application.pipeline', $parameters) }}">
+                Pipeline
+            </a>
             @if (!$application->destination->server->isSwarm())
                 @can('canAccessTerminal')
                     <a class="{{ request()->routeIs('project.application.command') ? 'dark:text-white' : '' }}"

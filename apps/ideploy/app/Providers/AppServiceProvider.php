@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configurePasswords();
         $this->configureSanctumModel();
         $this->configureGitHubHttp();
-
+        $this->configureObservers();
     }
 
     private function configureCommands(): void
@@ -78,5 +78,14 @@ class AppServiceProvider extends ServiceProvider
                 ])->baseUrl($api_url);
             }
         });
+    }
+    
+    private function configureObservers(): void
+    {
+        // Security observers
+        \App\Models\FirewallRule::observe(\App\Observers\FirewallRuleObserver::class);
+        
+        // Server observers - Install security tools automatically
+        \App\Models\Server::observe(\App\Observers\ServerObserver::class);
     }
 }

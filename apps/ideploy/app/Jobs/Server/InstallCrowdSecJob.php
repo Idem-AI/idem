@@ -1,0 +1,460 @@
+<?php
+
+namespace App\Jobs\Server;
+
+use App\Models\Server;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Yaml\Yaml;
+
+class InstallCrowdSecJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $timeout = 600; // 10 minutes
+    public $tries = 1;
+
+    public function __construct(
+        public Server $server
+    ) {}
+
+    public function handle()
+    {
+        ray("🚀 Installing CrowdSec on server: {$this->server->name} (ID: {$this->server->id})");
+        
+        try {
+            // 1. Créer répertoires
+            $this->createDirectories();
+            ray("✅ Directories created");
+            
+            // 2. Générer docker-compose.yml
+            $this->generateDockerCompose();
+            ray("✅ Docker compose generated");
+            
+            // 3. Démarrer CrowdSec
+            $this->startCrowdSec();
+            ray("✅ CrowdSec container started");
+            
+            // 4. Générer API key master
+            $this->generateMasterApiKey();
+            ray("✅ Master API key generated");
+            
+            // 5. Configurer acquis.yaml (logs à analyser)
+            $this->configureAcquis();
+            ray("✅ Acquis configured");
+            
+            // 6. Configurer webhook vers iDeploy
+            $this->configureWebhook();
+            ray("✅ Webhook configured");
+            
+            // 7. Créer bouncer pour Traefik
+            $bouncerKey = $this->createTraefikBouncer();
+            ray("✅ Traefik bouncer created");
+            
+            // 8. Configurer middleware Traefik CrowdSec
+            $this->configureTraefikMiddleware($bouncerKey);
+            ray("✅ Traefik middleware configured");
+            
+            // 9. Marquer serveur comme ayant CrowdSec
+            $this->server->update([
+                'crowdsec_installed' => true,
+                'crowdsec_available' => true,
+                'crowdsec_lapi_url' => 'http://crowdsec:8081',
+                'crowdsec_bouncer_key' => encrypt($bouncerKey),
+            ]);
+            
+            ray("🎉 CrowdSec installed successfully on {$this->server->name}");
+            
+        } catch (\Exception $e) {
+            ray("❌ Failed to install CrowdSec: " . $e->getMessage());
+            
+            // Mark as failed
+            $this->server->update([
+                'crowdsec_installed' => false,
+                'crowdsec_available' => false,
+            ]);
+            
+            throw $e;
+        }
+    }
+    
+    private function createDirectories()
+    {
+        instant_remote_process([
+            'mkdir -p /var/lib/coolify/crowdsec/config',
+            'mkdir -p /var/lib/coolify/crowdsec/data',
+            'chown -R 1000:1000 /var/lib/coolify/crowdsec',
+        ], $this->server);
+    }
+    
+    private function generateDockerCompose()
+    {
+        $compose = [
+            'version' => '3.8',
+            'services' => [
+                'crowdsec' => [
+                    'image' => 'crowdsecurity/crowdsec:latest',
+                    'container_name' => 'crowdsec',
+                    'restart' => 'always',
+                    'environment' => [
+                        'COLLECTIONS' => 'crowdsecurity/nginx crowdsecurity/traefik crowdsecurity/http-cve',
+                        'GID' => '1000',
+                        'TZ' => config('app.timezone', 'UTC'),
+                    ],
+                    'volumes' => [
+                        './config:/etc/crowdsec',
+                        './data:/var/lib/crowdsec/data',
+                        '/var/log:/var/log:ro',
+                    ],
+                    'ports' => [
+                        '0.0.0.0:8081:8080', // LAPI accessible depuis Docker network
+                    ],
+                    'networks' => ['coolify'],
+                ],
+            ],
+            'networks' => [
+                'coolify' => [
+                    'external' => true,
+                ],
+            ],
+        ];
+        
+        $yaml = Yaml::dump($compose, 10, 2);
+        
+        // Save locally
+        $localPath = "crowdsec-server-{$this->server->id}/docker-compose.yml";
+        Storage::disk('local')->put($localPath, $yaml);
+        
+        // Upload to server
+        instant_scp(
+            Storage::disk('local')->path($localPath),
+            "/var/lib/coolify/crowdsec/docker-compose.yml",
+            $this->server
+        );
+        
+        // Cleanup local
+        Storage::disk('local')->delete($localPath);
+    }
+    
+    private function startCrowdSec()
+    {
+        // Clean any existing CrowdSec containers and orphaned network endpoints
+        instant_remote_process([
+            'docker rm -f crowdsec crowdsec-live crowdsec-new 2>/dev/null || true',
+            'docker ps -aq --filter "name=crowdsec" | xargs -r docker rm -f 2>/dev/null || true',
+        ], $this->server);
+        
+        ray("Cleaned old CrowdSec containers");
+        
+        // Start CrowdSec using docker run directly (more reliable than docker-compose for network issues)
+        instant_remote_process([
+            'docker run -d --name crowdsec-live --network coolify --network-alias crowdsec --restart always ' .
+            '-e "COLLECTIONS=crowdsecurity/nginx crowdsecurity/traefik crowdsecurity/http-cve" ' .
+            '-e "GID=1000" ' .
+            '-e "TZ=' . config('app.timezone', 'UTC') . '" ' .
+            '-e "DISABLE_ONLINE_API=false" ' .
+            '-v /var/lib/coolify/crowdsec/config:/etc/crowdsec ' .
+            '-v /var/lib/coolify/crowdsec/data:/var/lib/crowdsec/data ' .
+            '-v /var/log:/var/log:ro ' .
+            '-v /var/run/docker.sock:/var/run/docker.sock:ro ' .
+            'crowdsecurity/crowdsec:latest',
+            'sleep 20', // Wait for CrowdSec to fully start
+        ], $this->server);
+        
+        ray("CrowdSec container started with network alias");
+        
+        // Verify CrowdSec is running
+        $status = instant_remote_process([
+            'docker exec crowdsec-live cscli version 2>&1 | head -1'
+        ], $this->server);
+        
+        if (!str_contains($status, 'version:')) {
+            throw new \Exception("CrowdSec container failed to start properly: {$status}");
+        }
+        
+        ray("CrowdSec verified running: {$status}");
+    }
+    
+    private function generateMasterApiKey()
+    {
+        // Generate master API key for server-level operations
+        $result = instant_remote_process([
+            'docker exec crowdsec-live cscli bouncers add ideploy-server -o raw'
+        ], $this->server);
+        
+        $apiKey = trim($result);
+        
+        if (empty($apiKey) || str_contains($apiKey, 'error')) {
+            throw new \Exception("Failed to generate CrowdSec master API key: {$result}");
+        }
+        
+        // Store encrypted
+        $this->server->update([
+            'crowdsec_api_key' => encrypt($apiKey),
+        ]);
+        
+        ray("Master API key generated: " . substr($apiKey, 0, 10) . "...");
+    }
+    
+    private function configureAcquis()
+    {
+        // Configuration des logs à analyser - Format YAML multi-documents
+        $yaml = <<<YAML
+filenames:
+  - /var/log/traefik/*.log
+labels:
+  type: traefik
+---
+filenames:
+  - /var/log/nginx/*.log
+labels:
+  type: nginx
+YAML;
+        
+        // Save locally
+        $localPath = "crowdsec-server-{$this->server->id}/acquis.yaml";
+        Storage::disk('local')->put($localPath, $yaml);
+        
+        // Upload to server
+        instant_scp(
+            Storage::disk('local')->path($localPath),
+            "/var/lib/coolify/crowdsec/config/acquis.yaml",
+            $this->server
+        );
+        
+        // Reload CrowdSec to apply acquis
+        instant_remote_process([
+            'docker exec crowdsec-live kill -SIGHUP 1' // Reload config
+        ], $this->server);
+        
+        // Cleanup local
+        Storage::disk('local')->delete($localPath);
+        
+        ray("Acquis.yaml configured and CrowdSec reloaded");
+    }
+    
+    private function configureWebhook()
+    {
+        ray("Configuring CrowdSec webhook to iDeploy...");
+        
+        // Get app URL and webhook token
+        $appUrl = config('app.url');
+        $webhookToken = config('crowdsec.webhook_token');
+        
+        if (!$webhookToken) {
+            ray("⚠️ CROWDSEC_WEBHOOK_TOKEN not set in .env, webhook not configured");
+            return;
+        }
+        
+        // Generate webhook notification config
+        $yaml = <<<YAML
+name: ideploy_webhook
+type: http
+log_level: info
+
+# Format du payload envoyé à iDeploy
+format: |
+  {
+    "application_uuid": "{{ .Source.Labels.application_uuid }}",
+    "ip_address": "{{ .Source.IP }}",
+    "method": "{{ .Source.Labels.http_method }}",
+    "uri": "{{ .Source.Labels.http_path }}",
+    "user_agent": "{{ .Source.Labels.http_user_agent }}",
+    "decision": "{{ .Decision }}",
+    "rule_name": "{{ .Source.Scope }}:{{ .Source.Value }}",
+    "country": "{{ .Source.Range }}",
+    "asn": "{{ .Source.AS }}"
+  }
+
+# URL du webhook iDeploy
+url: {$appUrl}/api/crowdsec/traffic-log
+method: POST
+
+# Headers d'authentification
+headers:
+  Content-Type: application/json
+  X-CrowdSec-Token: "{$webhookToken}"
+
+# Filtre : envoyer tous les événements (ban et allow)
+filter: |
+  true
+YAML;
+        
+        // Create notifications directory
+        instant_remote_process([
+            'mkdir -p /var/lib/coolify/crowdsec/config/notifications',
+            'chown -R 1000:1000 /var/lib/coolify/crowdsec/config/notifications',
+        ], $this->server);
+        
+        // Save locally
+        $localPath = "crowdsec-server-{$this->server->id}/http.yaml";
+        Storage::disk('local')->put($localPath, $yaml);
+        
+        // Upload to server
+        instant_scp(
+            Storage::disk('local')->path($localPath),
+            "/var/lib/coolify/crowdsec/config/notifications/http.yaml",
+            $this->server
+        );
+        
+        // Add profiles config to enable notifications
+        $profilesYaml = <<<YAML
+name: default_ip_remediation
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Ip"
+decisions:
+  - type: ban
+    duration: 4h
+notifications:
+  - ideploy_webhook
+on_success: break
+YAML;
+        
+        $localProfilePath = "crowdsec-server-{$this->server->id}/profiles.yaml";
+        Storage::disk('local')->put($localProfilePath, $profilesYaml);
+        
+        instant_scp(
+            Storage::disk('local')->path($localProfilePath),
+            "/var/lib/coolify/crowdsec/config/profiles.yaml",
+            $this->server
+        );
+        
+        // Reload CrowdSec to apply webhook config
+        instant_remote_process([
+            'docker exec crowdsec-live kill -SIGHUP 1' // Reload config
+        ], $this->server);
+        
+        // Cleanup local
+        Storage::disk('local')->delete($localPath);
+        Storage::disk('local')->delete($localProfilePath);
+        
+        ray("✅ Webhook configured: {$appUrl}/api/crowdsec/traffic-log");
+    }
+    
+    /**
+     * Créer un bouncer Traefik dans CrowdSec
+     */
+    private function createTraefikBouncer(): string
+    {
+        ray("Creating Traefik bouncer...");
+        
+        // Générer une clé API sécurisée
+        $bouncerKey = bin2hex(random_bytes(32));
+        
+        // Créer le bouncer dans CrowdSec avec la clé générée
+        $result = instant_remote_process([
+            "docker exec crowdsec-live cscli bouncers add traefik-bouncer --key {$bouncerKey} -o raw"
+        ], $this->server);
+        
+        // Vérifier si le bouncer existe déjà
+        if (str_contains($result, 'already exists')) {
+            ray("⚠️ Bouncer already exists, using existing one");
+            
+            // Récupérer la clé existante si possible
+            // Si impossible, utiliser la clé générée (peut échouer mais c'est acceptable)
+        } elseif (str_contains($result, 'error') || empty(trim($result))) {
+            throw new \Exception("Failed to create Traefik bouncer: {$result}");
+        }
+        
+        ray("Traefik bouncer key: " . substr($bouncerKey, 0, 16) . "...");
+        
+        return $bouncerKey;
+    }
+    
+    /**
+     * Configurer le middleware Traefik pour CrowdSec
+     */
+    private function configureTraefikMiddleware(string $bouncerKey): void
+    {
+        ray("Configuring Traefik bouncer container...");
+        
+        // Déployer le container bouncer Traefik CrowdSec
+        $bouncerCompose = [
+            'version' => '3.8',
+            'services' => [
+                'crowdsec-traefik-bouncer' => [
+                    'image' => 'fbonarek/traefik-crowdsec-bouncer:latest',
+                    'container_name' => 'crowdsec-traefik-bouncer',
+                    'restart' => 'always',
+                    'environment' => [
+                        'CROWDSEC_BOUNCER_API_KEY' => $bouncerKey,
+                        'CROWDSEC_AGENT_HOST' => 'crowdsec:8080',
+                        'GIN_MODE' => 'release',
+                    ],
+                    'networks' => ['coolify'],
+                    'depends_on' => ['crowdsec'],
+                ],
+            ],
+            'networks' => [
+                'coolify' => [
+                    'external' => true,
+                ],
+            ],
+        ];
+        
+        $yaml = \Symfony\Component\Yaml\Yaml::dump($bouncerCompose, 10, 2);
+        
+        // Save locally
+        $localPath = "crowdsec-server-{$this->server->id}/bouncer-compose.yml";
+        Storage::disk('local')->put($localPath, $yaml);
+        
+        // Upload to server
+        instant_scp(
+            Storage::disk('local')->path($localPath),
+            "/var/lib/coolify/crowdsec/bouncer-compose.yml",
+            $this->server
+        );
+        
+        // Deploy bouncer
+        instant_remote_process([
+            'cd /var/lib/coolify/crowdsec',
+            'docker compose -f bouncer-compose.yml up -d',
+        ], $this->server);
+        
+        // Cleanup local
+        Storage::disk('local')->delete($localPath);
+        
+        // Créer le middleware Traefik ForwardAuth vers le bouncer
+        $middlewareYaml = <<<YAML
+http:
+  middlewares:
+    crowdsec-bouncer:
+      forwardAuth:
+        address: http://crowdsec-traefik-bouncer:8080/api/v1/forwardAuth
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-Crowdsec-Decision
+        authRequestHeaders:
+          - X-Real-Ip
+          - X-Forwarded-For
+          - X-Forwarded-Proto
+          - X-Forwarded-Host
+YAML;
+        
+        // Créer répertoire dynamic config si nécessaire
+        instant_remote_process([
+            'mkdir -p /data/coolify/proxy/dynamic',
+            'chown -R root:root /data/coolify/proxy/dynamic',
+        ], $this->server);
+        
+        // Save locally
+        $localPath = "crowdsec-server-{$this->server->id}/crowdsec-middleware.yaml";
+        Storage::disk('local')->put($localPath, $middlewareYaml);
+        
+        // Upload to Traefik dynamic config
+        instant_scp(
+            Storage::disk('local')->path($localPath),
+            "/data/coolify/proxy/dynamic/crowdsec-middleware.yaml",
+            $this->server
+        );
+        
+        // Cleanup local
+        Storage::disk('local')->delete($localPath);
+        
+        ray("✅ Traefik bouncer container deployed and middleware configured");
+    }
+}

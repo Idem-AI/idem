@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\IdemAdminController;
 use App\Http\Controllers\Api\IdemSubscriptionController;
 use App\Http\Controllers\Api\IdemStripeController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CrowdSecWebhookController;
+use App\Http\Controllers\Api\PipelineWebhookController;
 use App\Http\Middleware\ApiAllowed;
 use App\Http\Middleware\IdemAdminAuth;
 use App\Http\Middleware\CheckIdemQuota;
@@ -23,6 +25,35 @@ use App\Models\Server;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', [OtherController::class, 'healthcheck']);
+
+// CrowdSec Webhook Routes (no auth middleware - uses token header)
+Route::prefix('crowdsec')->group(function () {
+    Route::get('/health', [CrowdSecWebhookController::class, 'health']);
+    Route::post('/traffic-log', [CrowdSecWebhookController::class, 'trafficLog']);
+});
+
+// Firewall Traffic Logging Webhook (no auth - public endpoint)
+Route::prefix('firewall/webhook')->group(function () {
+    Route::post('/{appUuid}', [\App\Http\Controllers\Api\FirewallWebhookController::class, 'receiveTrafficLog']);
+    Route::post('/{appUuid}/batch', [\App\Http\Controllers\Api\FirewallWebhookController::class, 'receiveBatchLogs']);
+});
+
+// Internal API for Traffic Logger (no auth - internal network only)
+Route::prefix('internal')->group(function () {
+    Route::post('/traffic-metrics', [\App\Http\Controllers\Api\TrafficMetricsController::class, 'store']);
+});
+
+// CrowdSec Bouncer (ForwardAuth endpoint for Traefik)
+Route::prefix('bouncer')->group(function () {
+    Route::get('/check', [\App\Http\Controllers\Api\BouncerController::class, 'check']);
+    Route::get('/health', [\App\Http\Controllers\Api\BouncerController::class, 'health']);
+    Route::post('/flush-cache', [\App\Http\Controllers\Api\BouncerController::class, 'flushCache']);
+    Route::get('/stats', [\App\Http\Controllers\Api\BouncerController::class, 'stats']);
+});
+
+// Pipeline Webhook Routes (no auth middleware - Git providers send webhooks here)
+Route::post('/pipeline/webhook/{applicationUuid}', [PipelineWebhookController::class, 'handle'])->name('api.pipeline.webhook');
+
 Route::group([
     'prefix' => 'v1',
 ], function () {
