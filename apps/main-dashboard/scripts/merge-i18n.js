@@ -38,6 +38,7 @@ const CONFIG = {
     'modules/dashboard/pages/create-project/components/color-customizer':
       'dashboard.colorCustomizer',
     'modules/dashboard/pages/create-project/components/color-selection': 'dashboard.colorSelection',
+    'modules/dashboard/pages/create-project/components/logo-creation-simulator': 'logoCreation',
     'modules/dashboard/pages/create-project/components/logo-editor-chat': 'dashboard.logoEditor',
     'modules/dashboard/pages/create-project/components/logo-preferences':
       'dashboard.logoPreferences',
@@ -75,9 +76,13 @@ const CONFIG = {
 
     // Dashboard pages - Show pages
     'modules/dashboard/pages/show-branding': 'dashboard.showBranding',
+    'modules/dashboard/pages/show-branding/components/branding-display': 'dashboard.brandingDisplay',
+    'modules/dashboard/pages/show-branding/components/branding-generation': 'dashboard.brandingGeneration',
     'modules/dashboard/pages/show-business-plan': 'dashboard.showBusinessPlan',
     'modules/dashboard/pages/show-business-plan/components/business-plan-generation':
       'dashboard.businessPlanGeneration',
+    'modules/dashboard/pages/show-business-plan/components/business-plan-display':
+      'dashboard.businessPlanDisplay',
     'modules/dashboard/pages/show-business-plan/components/additional-info-form':
       'dashboard.additionalInfoForm',
     'modules/dashboard/pages/show-diagrams': 'dashboard.showDiagrams',
@@ -177,7 +182,19 @@ function mergeTranslations(lang) {
     }
 
     // Lire le fichier
-    const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    let content;
+    try {
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      if (!fileContent.trim()) {
+        console.warn(`  ⚠️  Fichier vide ignoré: ${filePath}`);
+        continue;
+      }
+      content = JSON.parse(fileContent);
+    } catch (error) {
+      console.error(`  ❌ Erreur de parsing JSON dans: ${filePath}`);
+      console.error(`     Erreur: ${error.message}`);
+      continue;
+    }
 
     // Ajouter au résultat fusionné
     setValueByPath(merged, key, content);

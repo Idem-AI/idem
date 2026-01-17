@@ -1,0 +1,18 @@
+{
+    "finalizing": "Finalizing Branding",
+    "generating": "Generating Branding",
+    "creating": "Creating your brand identity...",
+    "processing": "Processing: {{steps}}",
+    "stepsCompleted": "Steps Completed",
+    "lastStep": "Last step",
+    "progress": "Progress",
+    "savingData": "Saving Data",
+    "wait": "Please wait while we finalize your branding data...",
+    "stepCompletedAt": "Completed at {{time}}",
+    "buttons": {
+        "cancel": "Cancel"
+    },
+    "errors": {
+        "title": "Generation Failed"
+    }
+}

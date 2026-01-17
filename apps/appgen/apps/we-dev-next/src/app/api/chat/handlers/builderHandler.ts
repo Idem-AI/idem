@@ -1,4 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
+// TODO: Re-enable uuidv4 when fixing message structure for ai v6.0.26
+// import { v4 as uuidv4 } from 'uuid';
 import { Messages } from '../action';
 import { streamResponse } from '../utils/streamResponse';
 import { estimateTokens } from '@/utils/tokens';
@@ -26,23 +27,23 @@ export async function handleBuilderMode(
   const { files, allContent } = processFiles(messages);
   // Check if the last message contains a URL
   const lastMessage = messages[messages.length - 1];
-  if (lastMessage.role === 'user' && lastMessage.content.startsWith('#')) {
+  if (lastMessage.role === 'user' && typeof lastMessage.content === 'string' && lastMessage.content.startsWith('#')) {
     const urlMatch = lastMessage.content.match(/https?:\/\/[^\s]+/);
     if (urlMatch) {
       try {
         const imageUrl = await screenshotOne(urlMatch[0]);
         console.log(imageUrl, 'imageUrl');
         messages.splice(messages.length - 1, 0, {
-          id: uuidv4(),
           role: 'user',
           content: `1:1 Restore this page`,
-          experimental_attachments: [
-            {
-              name: uuidv4(),
-              contentType: 'image/png',
-              url: imageUrl,
-            },
-          ],
+          // TODO: Fix experimental_attachments for ai v6.0.26
+          // experimental_attachments: [
+          //   {
+          //     name: 'screenshot',
+          //     contentType: 'image/png',
+          //     url: imageUrl,
+          //   },
+          // ],
         });
       } catch (error) {
         console.error('Screenshot capture failed:', error);
@@ -61,10 +62,13 @@ export async function handleBuilderMode(
 
       // Replace the last message content with the generated prompt
       // Add XML output instructions (same as original logic)
-      messages[messages.length - 1].content =
-        buildSystemPrompt(type, otherConfig) +
-        'Note the requirements above, when writing code, do not give me markdown, output must be XML!! Emphasis!; My question is: ' +
-        projectPrompt;
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === 'user') {
+        lastMsg.content =
+          buildSystemPrompt(type, otherConfig) +
+          'Note the requirements above, when writing code, do not give me markdown, output must be XML!! Emphasis!; My question is: ' +
+          projectPrompt;
+      }
     } catch (error) {
       console.error('Error generating project prompt:', error);
       throw new Error(
@@ -77,15 +81,21 @@ export async function handleBuilderMode(
       const { files } = processFiles(messages, true);
       nowFiles = await handleTokenLimit(messages, files, filesPath);
       const historyDiffString = getHistoryDiff(historyMessages, filesPath, nowFiles);
-      messages[messages.length - 1].content =
-        buildMaxSystemPrompt(filesPath, type, nowFiles, historyDiffString, otherConfig) +
-        'Note the requirements above, when writing code, do not give me markdown, output must be XML!! Emphasis!; My question is: ' +
-        messages[messages.length - 1].content;
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === 'user' && typeof lastMsg.content === 'string') {
+        lastMsg.content =
+          buildMaxSystemPrompt(filesPath, type, nowFiles, historyDiffString, otherConfig) +
+          'Note the requirements above, when writing code, do not give me markdown, output must be XML!! Emphasis!; My question is: ' +
+          lastMsg.content;
+      }
     } else {
-      messages[messages.length - 1].content =
-        buildSystemPrompt(type, otherConfig) +
-        'Note the requirements above, when writing code, do not give me markdown, output must be XML!! Emphasis!; My question is: ' +
-        messages[messages.length - 1].content;
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === 'user' && typeof lastMsg.content === 'string') {
+        lastMsg.content =
+          buildSystemPrompt(type, otherConfig) +
+          'Note the requirements above, when writing code, do not give me markdown, output must be XML!! Emphasis!; My question is: ' +
+          lastMsg.content;
+      }
     }
   }
   try {

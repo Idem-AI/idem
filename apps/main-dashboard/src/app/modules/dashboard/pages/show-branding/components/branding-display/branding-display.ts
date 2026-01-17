@@ -94,14 +94,28 @@ export class BrandingDisplayComponent implements OnInit {
         throw new Error(this.translate.instant('dashboard.brandingDisplay.errors.authRequired'));
       }
 
-      // Download PDF blob from backend
-      const pdfBlob = await this.brandingService.downloadBrandingPdf(projectId).toPromise();
+      console.log('Requesting PDF from backend for project:', projectId);
 
-      if (pdfBlob) {
+      // Download PDF blob from backend with timeout
+      const pdfBlob = await Promise.race([
+        this.brandingService.downloadBrandingPdf(projectId).toPromise(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('PDF generation timeout (30s)')), 30000)
+        )
+      ]) as Blob;
+
+      if (pdfBlob && pdfBlob.size > 0) {
+        // Verify it's actually a PDF
+        if (pdfBlob.type !== 'application/pdf') {
+          console.warn('Received blob is not a PDF:', pdfBlob.type);
+        }
+
         // Create object URL for PDF viewer
         const pdfUrl = URL.createObjectURL(pdfBlob);
         this.pdfSrc.set(pdfUrl);
-        console.log('PDF loaded from backend (fallback)');
+        console.log('PDF loaded from backend (fallback), size:', pdfBlob.size, 'bytes');
+      } else {
+        throw new Error('Received empty or invalid PDF blob');
       }
     } catch (error: any) {
       console.error('Error loading PDF from backend:', error);
@@ -119,6 +133,10 @@ export class BrandingDisplayComponent implements OnInit {
         errorMessage = this.translate.instant('dashboard.brandingDisplay.errors.pdfNotFound');
       } else if (error.status === 500) {
         errorMessage = this.translate.instant('dashboard.brandingDisplay.errors.pdfServerError');
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'PDF generation timeout. Please try again.';
+      } else if (error.message?.includes('empty')) {
+        errorMessage = 'PDF generation failed - empty response from server.';
       } else if (error.message) {
         errorMessage = error.message;
       }

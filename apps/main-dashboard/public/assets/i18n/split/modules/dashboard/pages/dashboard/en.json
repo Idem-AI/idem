@@ -49,7 +49,9 @@
     },
     "comingUp": "Coming Up",
     "almostThere": "Almost There",
-    "finalStep": "Final Step"
+    "finalStep": "Final Step",
+    "startNow": "Start Now",
+    "nextStep": "Next Step"
   },
   "info": {
     "created": "Created",

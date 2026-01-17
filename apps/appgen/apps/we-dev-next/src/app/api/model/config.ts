@@ -19,7 +19,7 @@ export const modelConfig: ModelConfig[] = [
     modelKey: 'gemini-2.5-flash',
     useImage: true,
     provider: 'gemini',
-    description: 'Gemini 2.5 Flash model',
+    description: 'Gemini 3 flash model',
     functionCall: true,
   },
   {

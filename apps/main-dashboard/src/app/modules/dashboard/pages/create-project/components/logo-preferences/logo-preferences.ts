@@ -94,7 +94,7 @@ export class LogoPreferences {
     this.preferencesSelected.emit(preferences);
   }
 
-  protected goBack(): void {
+  protected back(): void {
     const step = this.currentStep();
     if (step === 'mode') {
       this.currentStep.set('type');
