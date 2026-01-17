@@ -71,18 +71,19 @@ class FirewallConfig extends Model
     /**
      * Accessors & Mutators
      * 
-     * IMPORTANT: CrowdSec API key is stored PLAIN TEXT in DB for direct use in Docker labels
-     * Previous encrypted version caused authentication issues with CrowdSec LAPI
+     * Note: CrowdSec API keys are stored in PLAIN TEXT (not encrypted)
+     * because they are used directly in Docker labels for Traefik.
+     * Encrypting them would break the Traefik → CrowdSec communication.
      */
     public function getCrowdsecApiKeyAttribute($value)
     {
-        // Plain text for Docker labels
+        // Return plain text (no decryption)
         return $value;
     }
 
     public function setCrowdsecApiKeyAttribute($value)
     {
-        // Plain text for Docker labels
+        // Store plain text (no encryption)
         $this->attributes['crowdsec_api_key'] = $value;
     }
 

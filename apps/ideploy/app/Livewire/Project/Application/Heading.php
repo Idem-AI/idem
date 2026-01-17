@@ -76,8 +76,8 @@ class Heading extends Component
             
             if (!$quotaService->canDeployApp($team)) {
                 $usage = $quotaService->getQuotaUsage($team);
-                $current = $usage['usage']['apps']['current'];
-                $limit = $usage['usage']['apps']['limit'];
+                $current = $usage['apps']['used'];
+                $limit = $usage['apps']['unlimited'] ? 'unlimited' : $usage['apps']['limit'];
                 
                 $this->dispatch('error', 'Application limit reached', 
                     "You have reached your application limit ({$current}/{$limit}). Please upgrade your plan to deploy more applications.");

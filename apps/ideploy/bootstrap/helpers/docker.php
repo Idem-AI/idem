@@ -482,7 +482,8 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                         $middlewares->push("crowdsec-{$uuid}");
                         // Add AppSec WAF (HTTP inspection)
                         $firewallConfig = getFirewallConfig($application);
-                        if ($firewallConfig && $firewallConfig->inband_enabled) {
+                        $hasPathRules = $firewallConfig && $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
+                        if ($firewallConfig && ($firewallConfig->inband_enabled || $hasPathRules)) {
                             $middlewares->push("appsec-{$uuid}");
                         }
                     }
@@ -520,7 +521,8 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                         $middlewares->push("crowdsec-{$uuid}");
                         // Add AppSec WAF (HTTP inspection)
                         $firewallConfig = getFirewallConfig($application);
-                        if ($firewallConfig && $firewallConfig->inband_enabled) {
+                        $hasPathRules = $firewallConfig && $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
+                        if ($firewallConfig && ($firewallConfig->inband_enabled || $hasPathRules)) {
                             $middlewares->push("appsec-{$uuid}");
                         }
                     }
@@ -584,7 +586,8 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                         $middlewares->push("crowdsec-{$uuid}");
                         // Add AppSec WAF (HTTP inspection)
                         $firewallConfig = getFirewallConfig($application);
-                        if ($firewallConfig && $firewallConfig->inband_enabled) {
+                        $hasPathRules = $firewallConfig && $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
+                        if ($firewallConfig && ($firewallConfig->inband_enabled || $hasPathRules)) {
                             $middlewares->push("appsec-{$uuid}");
                         }
                     }
@@ -622,7 +625,8 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                         $middlewares->push("crowdsec-{$uuid}");
                         // Add AppSec WAF (HTTP inspection)
                         $firewallConfig = getFirewallConfig($application);
-                        if ($firewallConfig && $firewallConfig->inband_enabled) {
+                        $hasPathRules = $firewallConfig && $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
+                        if ($firewallConfig && ($firewallConfig->inband_enabled || $hasPathRules)) {
                             $middlewares->push("appsec-{$uuid}");
                         }
                     }

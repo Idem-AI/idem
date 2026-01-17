@@ -5,7 +5,7 @@
         <p class="text-sm text-gray-400">Deploy any public Git repository with automatic builds and deployments</p>
     </div>
 
-    <!-- Repository URL Form --}}
+    <!-- Repository URL Form -->
     <form class="flex flex-col gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50" wire:submit='loadBranch'>
         <div class="flex flex-col gap-4">
             <div class="flex gap-2 items-end">
@@ -41,7 +41,7 @@
             </div>
         @endif
 
-        <!-- Application Configuration Form --}}
+        <!-- Application Configuration Form -->
         <form class="flex flex-col gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50 mt-6" wire:submit='submit'>
             <div class="flex flex-col gap-2 pb-6">
                 <div class="flex gap-2">

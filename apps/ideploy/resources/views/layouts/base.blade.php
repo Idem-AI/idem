@@ -61,6 +61,7 @@
         <script type="text/javascript" src="{{ URL::asset('js/pusher.js') }}"></script>
         <script type="text/javascript" src="{{ URL::asset('js/apexcharts.js') }}"></script>
         <script type="text/javascript" src="{{ URL::asset('js/purify.min.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     @endauth
 </head>
 @section('body')

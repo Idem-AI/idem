@@ -10,11 +10,16 @@ function crowdSecLabelsForApplication(Application $application, ?string $appUuid
 {
     $labels = [];
     
+    ray("🔍 CrowdSec labels called for: {$application->name}");
+    
     // Get firewall config for this application
     $firewallConfig = FirewallConfig::where('application_id', $application->id)->first();
     
+    ray("Config found: " . ($firewallConfig ? 'YES' : 'NO') . ", Enabled: " . ($firewallConfig && $firewallConfig->enabled ? 'YES' : 'NO'));
+    
     // If no config or firewall disabled, return empty
     if (!$firewallConfig || !$firewallConfig->enabled) {
+        ray("⚠️ Firewall disabled or no config - returning empty labels");
         return $labels;
     }
     
@@ -26,7 +31,7 @@ function crowdSecLabelsForApplication(Application $application, ?string $appUuid
     
     $uuid = $appUuid ?? $application->uuid;
     $server = $application->destination->server;
-    $lapiUrl = $server->crowdsec_lapi_url ?? 'http://crowdsec:8080';
+    $lapiUrl = $server->crowdsec_lapi_url ?? 'http://crowdsec-live:8080';
     
     // Extract host without scheme for plugin
     $lapiHost = str_replace(['http://', 'https://'], '', $lapiUrl);
@@ -34,45 +39,38 @@ function crowdSecLabelsForApplication(Application $application, ?string $appUuid
     ray("Generating CrowdSec labels for app: {$application->name}");
     
     try {
-        $apiKey = decrypt($firewallConfig->crowdsec_api_key);
+        $apiKey = $firewallConfig->crowdsec_api_key; // Already plain text, no decryption needed
         
         // CrowdSec bouncer middleware configuration (LAPI - IP blocking)
-        // Using Traefik plugin format
+        // Plugin expects PascalCase for Go struct fields
         $labels = [
             "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.enabled" => "true",
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.crowdseclapikey" => $apiKey,
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.crowdseclapihost" => $lapiHost,
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.crowdseclapischemе" => "http",
-            
-            // Optionally configure other bouncer settings
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.crowdseclapikey_file" => "",
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.crowdsec_mode" => $firewallConfig->inband_enabled ? "live" : "stream",
-            
-            // Ban settings
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.defaultdecisiontime" => (string)$firewallConfig->ban_duration,
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.httptimeoutseconds" => "10",
-            
-            // Response customization
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.returnstatuscode" => (string)$firewallConfig->blocked_http_code,
-            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.captchastatuscodе" => "401",
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.CrowdsecLapiKey" => $apiKey,
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.CrowdsecLapiHost" => $lapiHost,
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.CrowdsecLapiScheme" => "http",
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.CrowdsecMode" => "live", // Use live mode for reliable blocking
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.DefaultDecisionSeconds" => (string)$firewallConfig->ban_duration,
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.HttpTimeoutSeconds" => "10",
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.UpdateIntervalSeconds" => "5", // Check decisions every 5s
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.LogLevel" => "DEBUG",
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.ForwardedHeadersTrustedIPs" => "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16", // Trust private IPs
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.RedisCacheEnabled" => "false",
         ];
         
         // AppSec middleware configuration (WAF - HTTP inspection)
-        // Only add if inband (blocking) mode is enabled
-        if ($firewallConfig->inband_enabled) {
+        // Only add if inband (blocking) mode is enabled OR has path_only rules
+        $hasPathRules = $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
+        if ($firewallConfig->inband_enabled || $hasPathRules) {
             $appSecLabels = [
-                // AppSec middleware pointing to CrowdSec AppSec component (port 7422)
                 "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.enabled" => "true",
-                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.crowdseclapikey" => $apiKey,
-                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.crowdseclapihost" => $lapiHost,
-                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.crowdseclapischemе" => "http",
-                
-                // CRITICAL: Enable AppSec feature in the plugin
-                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.crowdsecappsecenabled" => "true",
-                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.crowdsecappsechost" => "crowdsec:7422",
-                
-                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.appsecfailureblock" => "true",
-                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.appsecuniqidentifierheader" => "",
+                // LAPI params (required)
+                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.CrowdsecLapiKey" => $apiKey,
+                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.CrowdsecLapiHost" => $lapiHost,
+                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.CrowdsecLapiScheme" => "http",
+                // AppSec specific
+                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.CrowdsecAppsecEnabled" => "true",
+                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.CrowdsecAppsecHost" => "crowdsec-live:7422",
+                "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.CrowdsecAppsecFailureBlock" => "true",
             ];
             
             $labels = array_merge($labels, $appSecLabels);
@@ -88,13 +86,13 @@ function crowdSecLabelsForApplication(Application $application, ?string $appUuid
         return [];
     }
     
-    // Convert associative array to "key=value" strings for Docker labels
-    $dockerLabels = [];
+    // Convert to "key=value" strings like other label functions
+    $labelStrings = [];
     foreach ($labels as $key => $value) {
-        $dockerLabels[] = "{$key}={$value}";
+        $labelStrings[] = "{$key}={$value}";
     }
     
-    return $dockerLabels;
+    return $labelStrings;
 }
 
 /**
