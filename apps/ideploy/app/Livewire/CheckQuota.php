@@ -36,8 +36,8 @@ class CheckQuota extends Component
             $this->canProceed = $quotaService->canDeployApp($team);
             $usage = $quotaService->getQuotaUsage($team);
             
-            $this->currentUsage = $usage['usage']['apps']['current'];
-            $this->limit = $usage['usage']['apps']['limit'];
+            $this->currentUsage = $usage['apps']['used'];
+            $this->limit = $usage['apps']['unlimited'] ? 'unlimited' : $usage['apps']['limit'];
             
             if (!$this->canProceed) {
                 $this->message = "Application limit reached ({$this->currentUsage}/{$this->limit})";
@@ -48,8 +48,8 @@ class CheckQuota extends Component
             $this->canProceed = $quotaService->canAddServer($team);
             $usage = $quotaService->getQuotaUsage($team);
             
-            $this->currentUsage = $usage['usage']['servers']['current'];
-            $this->limit = $usage['usage']['servers']['limit'];
+            $this->currentUsage = $usage['servers']['used'];
+            $this->limit = $usage['servers']['unlimited'] ? 'unlimited' : $usage['servers']['limit'];
             
             if (!$this->canProceed) {
                 if ($team->idem_server_limit === 0) {

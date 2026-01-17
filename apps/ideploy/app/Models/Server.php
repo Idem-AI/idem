@@ -149,6 +149,11 @@ class Server extends BaseModel
         'unreachable_notification_sent' => 'boolean',
         'is_build_server' => 'boolean',
         'force_disabled' => 'boolean',
+        'crowdsec_installed' => 'boolean',
+        'crowdsec_available' => 'boolean',
+        'crowdsec_api_key' => 'encrypted',
+        'crowdsec_bouncer_key' => 'encrypted',
+        'traffic_logger_installed' => 'boolean',
     ];
 
     protected $schemalessAttributes = [
@@ -167,6 +172,12 @@ class Server extends BaseModel
         'hetzner_server_id',
         'hetzner_server_status',
         'is_validating',
+        'crowdsec_installed',
+        'crowdsec_available',
+        'crowdsec_lapi_url',
+        'crowdsec_api_key',
+        'crowdsec_bouncer_key',
+        'traffic_logger_installed',
     ];
 
     protected $guarded = [];

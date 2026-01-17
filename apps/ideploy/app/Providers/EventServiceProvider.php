@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Events\ServerValidated;
 use App\Listeners\MaintenanceModeDisabledNotification;
 use App\Listeners\MaintenanceModeEnabledNotification;
+use App\Listeners\Server\InstallCrowdSecListener;
 use Illuminate\Foundation\Events\MaintenanceModeDisabled;
 use Illuminate\Foundation\Events\MaintenanceModeEnabled;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -24,6 +26,10 @@ class EventServiceProvider extends ServiceProvider
         ],
         MaintenanceModeDisabled::class => [
             MaintenanceModeDisabledNotification::class,
+        ],
+        ServerValidated::class => [
+            InstallCrowdSecListener::class,
+            \App\Listeners\Server\InstallTrafficLoggerListener::class,
         ],
         SocialiteWasCalled::class => [
             AzureExtendSocialite::class.'@handle',
