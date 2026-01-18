@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('servers', function (Blueprint $table) {
-            $table->boolean('traefik_logging_enabled')->default(false)->after('crowdsec_available');
+            if (!Schema::hasColumn('servers', 'traefik_logging_enabled')) {
+                $table->boolean('traefik_logging_enabled')->default(false)->after('crowdsec_available');
+            }
         });
     }
 
