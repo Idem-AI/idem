@@ -115,7 +115,7 @@ export const getArchetypeByIdController = async (
     });
     return;
   }
-  const archetypeId = req.params.archetypeId;
+  const archetypeId = req.params.archetypeId as string;
 
   logger.info(`Retrieving archetype: ${archetypeId}`);
 
@@ -174,7 +174,7 @@ export const updateArchetypeController = async (
     });
     return;
   }
-  const archetypeId = req.params.archetypeId;
+  const archetypeId = req.params.archetypeId as string;
   const payload: UpdateArchetypePayload = req.body;
 
   logger.info(`Updating archetype: ${archetypeId}`);
@@ -235,7 +235,7 @@ export const deleteArchetypeController = async (
     });
     return;
   }
-  const archetypeId = req.params.archetypeId;
+  const archetypeId = req.params.archetypeId as string;
 
   logger.info(`Deleting archetype: ${archetypeId}`);
 
@@ -292,7 +292,7 @@ export const getArchetypesByProviderController = async (
     });
     return;
   }
-  const provider = req.params.provider as 'aws' | 'gcp' | 'azure';
+  const provider = req.params.provider as string as 'aws' | 'gcp' | 'azure';
 
   logger.info(`Retrieving archetypes by provider: ${provider}`);
 
@@ -339,7 +339,7 @@ export const getArchetypesByCategoryController = async (
     });
     return;
   }
-  const category = req.params.category;
+  const category = req.params.category as string;
 
   logger.info(`Retrieving archetypes by category: ${category}`);
 
@@ -386,7 +386,7 @@ export const generateTerraformTfvarsController = async (
     });
     return;
   }
-  const archetypeId = req.params.archetypeId;
+  const archetypeId = req.params.archetypeId as string;
   const customValues = req.body.customValues || {};
 
   logger.info(`Generating Terraform tfvars for archetype: ${archetypeId}`);
