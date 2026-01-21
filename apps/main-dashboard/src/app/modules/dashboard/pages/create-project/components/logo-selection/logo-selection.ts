@@ -7,6 +7,7 @@ import {
   OnInit,
   OnDestroy,
   inject,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +16,7 @@ import { LogoModel, LogoPreferencesModel } from '../../../../models/logo.model';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
 import { LogoPreferences } from '../logo-preferences/logo-preferences';
 import { LogoEditorChat } from '../logo-editor-chat/logo-editor-chat';
+import { LogoCreationSimulatorComponent } from '../logo-creation-simulator/logo-creation-simulator';
 
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
@@ -31,6 +33,7 @@ import { ProjectModel } from '../../../../models/project.model';
     CarouselComponent,
     LogoPreferences,
     LogoEditorChat,
+    LogoCreationSimulatorComponent,
     TranslateModule,
   ],
   templateUrl: './logo-selection.html',
@@ -41,6 +44,8 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   private readonly brandingService = inject(BrandingService);
   private readonly destroy$ = new Subject<void>();
   private readonly translate = inject(TranslateService);
+
+  @ViewChild(LogoCreationSimulatorComponent) simulator?: LogoCreationSimulatorComponent;
 
   // Inputs
   readonly projectId = input<string>();
@@ -68,10 +73,15 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
   // Edit logo state - replaced by chat
   protected readonly showEditorChat = signal(false);
+  protected readonly showSimulator = signal(false);
 
   // Computed properties
   protected readonly shouldShowLoader = computed(() => {
-    return this.isGenerating() && this.generatedLogos().length === 0;
+    return this.isGenerating() && this.generatedLogos().length === 0 && !this.showSimulator();
+  });
+
+  protected readonly shouldShowSimulator = computed(() => {
+    return this.showSimulator() && this.isGenerating();
   });
 
   protected readonly shouldShowLogos = computed(() => {
@@ -202,10 +212,9 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
     this.hasStartedGeneration.set(true);
     this.isGenerating.set(true);
+    this.showSimulator.set(true);
     this.currentStep.set(this.translate.instant('dashboard.logoSelection.progress.initializing'));
     this.generationProgress.set(0);
-
-    this.simulateProgress();
 
     const project = this.project();
     const selectedColor = project?.analysisResultModel?.branding?.colors;
@@ -243,62 +252,31 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
           this.generatedLogos.set(logosWithUniqueIds);
           this.logosGenerated.emit(logosWithUniqueIds);
 
-          this.isGenerating.set(false);
-          this.generationProgress.set(100);
-          this.currentStep.set(
-            this.translate.instant('dashboard.logoSelection.progress.completed'),
-          );
+          // Terminer la simulation immédiatement si elle est en cours
+          if (this.simulator) {
+            this.simulator.completeImmediately();
+          }
+
+          // Attendre que l'animation de fin soit terminée avant de cacher le simulateur
+          setTimeout(() => {
+            this.isGenerating.set(false);
+            this.showSimulator.set(false);
+            this.generationProgress.set(100);
+            this.currentStep.set(
+              this.translate.instant('dashboard.logoSelection.progress.completed'),
+            );
+          }, 1000);
         },
         error: (error) => {
           console.error('Error in logo generation:', error);
           this.error.set(this.translate.instant('dashboard.logoSelection.errors.generationFailed'));
           this.isGenerating.set(false);
+          this.showSimulator.set(false);
         },
       });
   }
 
-  // Méthode supprimée car dupliquée
-
-  private simulateProgress(): void {
-    const steps = [
-      {
-        progress: 10,
-        step: this.translate.instant('dashboard.logoSelection.progress.analyzing'),
-      },
-      {
-        progress: 25,
-        step: this.translate.instant('dashboard.logoSelection.progress.generatingConcepts'),
-      },
-      {
-        progress: 45,
-        step: this.translate.instant('dashboard.logoSelection.progress.creatingVariations'),
-      },
-      {
-        progress: 65,
-        step: this.translate.instant('dashboard.logoSelection.progress.refining'),
-      },
-      {
-        progress: 80,
-        step: this.translate.instant('dashboard.logoSelection.progress.optimizing'),
-      },
-      {
-        progress: 95,
-        step: this.translate.instant('dashboard.logoSelection.progress.finalizing'),
-      },
-    ];
-
-    let currentStepIndex = 0;
-    const interval = setInterval(() => {
-      if (currentStepIndex < steps.length && this.isGenerating()) {
-        const currentStepData = steps[currentStepIndex];
-        this.generationProgress.set(currentStepData.progress);
-        this.currentStep.set(currentStepData.step);
-        currentStepIndex++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 15000); // Update every 15 seconds
-  }
+  // Ancienne méthode de simulation remplacée par LogoCreationSimulatorComponent
 
   protected onCarouselItemChanged(logo: LogoModel): void {
     // Auto-select the logo when carousel navigation changes on mobile
@@ -312,6 +290,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.hasStartedGeneration.set(false);
     this.generatedLogos.set([]);
     this.generationProgress.set(0);
+    this.showSimulator.set(false);
     // Don't reset preferences - keep them for retry
     // this.logoPreferences.set(null);
 
@@ -378,6 +357,11 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.closeEditorChat();
   }
 
+  protected onSimulatorCompleted(): void {
+    // Le simulateur est terminé, mais on continue d'attendre la vraie génération
+    console.log('Simulator completed, waiting for actual generation...');
+  }
+
   protected regenerateAllLogos(): void {
     const preferences = this.logoPreferences();
     console.log('🔄 Regenerate clicked. Current preferences:', preferences);
@@ -396,6 +380,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.generationProgress.set(0);
     this.selectedLogoId.set(null);
     this.hasStartedGeneration.set(false);
+    this.showSimulator.set(false);
 
     // Restart generation with same preferences
     this.startLogoGeneration();
