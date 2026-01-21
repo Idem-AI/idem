@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, forwardRef } from '@angular/core';
 import { TokenService } from '../../../shared/services/token.service';
 import { CookieService } from '../../../shared/services/cookie.service';
 import {
@@ -22,7 +22,7 @@ export class AuthService {
   private auth = inject(Auth);
   user$: Observable<User | null>;
   private http = inject(HttpClient);
-  private tokenService = inject(TokenService);
+  private tokenService = inject(forwardRef(() => TokenService));
   private cookieService = inject(CookieService);
   private apiUrl = `${environment.services.api.url}/auth`;
   private readonly CURRENT_USER_COOKIE = 'currentUser';

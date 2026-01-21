@@ -1,29 +1,17 @@
 <!-- Multi-Agent Architecture Section -->
-<section
-  class="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-transparent to-black/20"
->
-  <!-- Background Effects -->
-  <div class="absolute inset-0 overflow-hidden">
-    <div
-      class="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"
-    ></div>
-  </div>
-
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Section Header -->
-    <div class="text-center mb-16">
+<section class="relative py-24 bg-black/20 overflow-hidden">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <!-- Header -->
+    <div class="text-center max-w-4xl mx-auto mb-20">
       <h2
-        class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6"
+        class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6"
         i18n="@@multi-agent-architecture.title"
       >
-        <span class="i-underline">200+</span>
-        Specialized
-        <br />
+        <span class="i-underline">200+</span> Specialized<br />
         AI Agents Working for You
       </h2>
-
       <p
-        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        class="text-lg text-white/70 leading-relaxed max-w-2xl mx-auto"
         i18n="@@multi-agent-architecture.description"
       >
         IDEM's revolutionary multi-agent architecture orchestrates hundreds of specialized AI
@@ -31,318 +19,108 @@
       </p>
     </div>
 
-    <!-- Stats - Modern Visual Hierarchy -->
-    <div class="glass-card p-8 lg:p-10 rounded-2xl border border-white/10 mb-16">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-        <div class="text-center group">
-          <div class="mb-4">
-            <div
-              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
-            >
-              200+
-            </div>
-          </div>
-          <div
-            class="text-base font-bold text-white mb-1"
-            i18n="@@multi-agent-architecture.stats.aiAgents"
-          >
-            AI Agents
-          </div>
-          <div
-            class="text-xs text-gray-400"
-            i18n="@@multi-agent-architecture.stats.currentlyActive"
-          >
-            Currently active
-          </div>
-        </div>
-        <div class="text-center group">
-          <div class="mb-4">
-            <div
-              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
-            >
-              500+
-            </div>
-          </div>
-          <div
-            class="text-base font-bold text-white mb-1"
-            i18n="@@multi-agent-architecture.stats.targetBy2026"
-          >
-            Target by 2026
-          </div>
-          <div
-            class="text-xs text-gray-400"
-            i18n="@@multi-agent-architecture.stats.expandingRapidly"
-          >
-            Expanding rapidly
-          </div>
-        </div>
-        <div class="text-center group">
-          <div class="mb-4">
-            <div
-              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
-            >
-              100%
-            </div>
-          </div>
-          <div
-            class="text-base font-bold text-white mb-1"
-            i18n="@@multi-agent-architecture.stats.openSource"
-          >
-            Open Source
-          </div>
-          <div
-            class="text-xs text-gray-400"
-            i18n="@@multi-agent-architecture.stats.fullyTransparent"
-          >
-            Fully transparent
-          </div>
-        </div>
-        <div class="text-center group">
-          <div class="mb-4">
-            <div
-              class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
-            >
-              5
-            </div>
-          </div>
-          <div
-            class="text-base font-bold text-white mb-1"
-            i18n="@@multi-agent-architecture.stats.categories"
-          >
-            Categories
-          </div>
-          <div
-            class="text-xs text-gray-400"
-            i18n="@@multi-agent-architecture.stats.specializedDomains"
-          >
-            Specialized domains
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-12 items-start">
 
-    <!-- Agent Categories - Vertical Tabs Layout -->
-    <div class="mb-12">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- Vertical Tabs Navigation -->
-        <div class="lg:col-span-4 space-y-3">
-          @for (category of agentCategories; track category.id; let i = $index) {
-            <button
-              (click)="selectCategory(category)"
-              class="w-full group relative overflow-hidden transition-all duration-500"
-              [ngClass]="{
-                'scale-105': selectedCategory().id === category.id,
-              }"
-            >
-              <!-- Background glow effect for active tab -->
-              @if (selectedCategory().id === category.id) {
-                <div class="absolute inset-0 bg-primary/5 blur-xl"></div>
-              }
-
-              <!-- Progress bar -->
-              @if (selectedCategory().id === category.id) {
-                <div
-                  class="absolute bottom-0 left-0 w-full h-0.5 bg-primary transition-all ease-linear"
-                  [style.width.%]="autoRotateProgress"
-                ></div>
-              }
-
-              <div
-                class="relative px-6 py-5 border-l-4 transition-all duration-300"
-                [ngClass]="{
-                  'border-l-primary bg-white/5': selectedCategory().id === category.id,
-                  'border-l-white/10 hover:border-l-white/30 hover:bg-white/2':
-                    selectedCategory().id !== category.id,
-                }"
-              >
-                <div class="flex items-baseline justify-between gap-4 mb-1">
-                  <h4
-                    class="text-base font-semibold tracking-tight transition-colors duration-300"
-                    [ngClass]="{
-                      'text-white': selectedCategory().id === category.id,
-                      'text-white/50 group-hover:text-white/70':
-                        selectedCategory().id !== category.id,
-                    }"
-                  >
-                    {{ category.name }}
-                  </h4>
-                  <span
-                    class="text-xs font-mono tabular-nums transition-colors duration-300"
-                    [ngClass]="{
-                      'text-primary font-bold': selectedCategory().id === category.id,
-                      'text-white/30 group-hover:text-white/50':
-                        selectedCategory().id !== category.id,
-                    }"
-                  >
-                    {{ category.count }}
-                  </span>
-                </div>
-
-                <!-- Category description preview -->
-                @if (selectedCategory().id === category.id) {
-                  <p class="text-xs text-white/60 leading-relaxed line-clamp-2">
-                    {{ category.description }}
-                  </p>
-                }
-              </div>
-            </button>
-          }
+      <!-- How It Works -->
+      <div class="xl:col-span-2">
+        <div class="mb-12">
+          <h3
+            class="text-2xl md:text-3xl font-bold text-white mb-4"
+            i18n="@@multi-agent-architecture.howItWorks"
+          >
+            How Multi-Agent Architecture Works
+          </h3>
+          <p
+            class="text-white/70 text-lg leading-relaxed"
+            i18n="@@multi-agent-architecture.howItWorks.description"
+          >
+            Like a well-coordinated team, our AI agents work together seamlessly to deliver high-quality results.
+          </p>
         </div>
 
-        <!-- Category Content -->
-        <div class="lg:col-span-8">
-          <div class="relative overflow-hidden rounded-2xl border border-white/5 bg-white/2">
-            <div class="relative p-8 lg:p-10">
-              <!-- Header -->
-              <div class="mb-10">
-                <div class="flex items-baseline gap-4 mb-3">
-                  <h3 class="text-3xl lg:text-4xl font-bold text-white tracking-tight">
-                    {{ selectedCategory().name }}
-                  </h3>
-                  <span class="text-sm font-mono tabular-nums text-primary font-bold">
-                    {{ selectedCategory().count }}
-                  </span>
-                </div>
-                <p class="text-white/60 leading-relaxed text-base max-w-3xl">
-                  {{ selectedCategory().description }}
-                </p>
-              </div>
-
-              <!-- Agent List - Compact Modern List -->
-              <div>
-                <div class="flex items-center gap-3 mb-6">
-                  <div class="h-px flex-1 bg-linear-to-r from-white/10 to-transparent"></div>
-                  <h4
-                    class="text-xs font-semibold text-white/40 uppercase tracking-widest"
-                    i18n="@@multi-agent-architecture.availableAgents"
-                  >
-                    Available Agents
-                  </h4>
-                  <div class="h-px flex-1 bg-linear-to-l from-white/10 to-transparent"></div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-3">
-                  @for (agent of selectedCategory().agents; track agent; let i = $index) {
-                    <div
-                      class="flex items-center gap-3 group py-2 px-3 -mx-3 rounded-lg hover:bg-white/5 transition-all duration-300"
-                    >
-                      <div class="shrink-0 w-7 text-right">
-                        <span
-                          class="text-xs font-mono tabular-nums text-white/20 group-hover:text-primary transition-colors duration-300"
-                        >
-                          {{ (i + 1).toString().padStart(2, '0') }}
-                        </span>
-                      </div>
-                      <div
-                        class="shrink-0 w-px h-3 bg-white/10 group-hover:bg-primary transition-all duration-300"
-                      ></div>
-                      <span
-                        class="text-white/80 text-sm font-medium group-hover:text-white transition-colors duration-300"
-                      >
-                        {{ agent }}
-                      </span>
-                    </div>
-                  }
-                </div>
-              </div>
+        <!-- Process Steps -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- Step 1 -->
+          <div class="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-white text-xl mx-auto mb-4">
+              1
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- How It Works with Team Image - Overlay Layout -->
-    <div class="relative rounded-2xl lg:rounded-3xl overflow-hidden border border-white/10">
-      <!-- Background Image -->
-      <img
-        src="assets/images/multi-agent-component/tech-team-collaboration.webp"
-        i18n-alt="@@multi-agent-architecture.alt.techTeam"
-        alt="African tech team collaboration"
-        loading="lazy"
-        class="w-full h-full object-cover min-h-[600px] sm:min-h-[700px] lg:min-h-[800px]"
-      />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/80 to-black/40"></div>
-
-      <!-- Content Overlay -->
-      <div class="absolute inset-0 flex items-center justify-center p-6 sm:p-8 lg:p-12">
-        <div class="max-w-5xl w-full">
-          <div class="text-center mb-8 lg:mb-12">
-            <div class="inline-block px-4 py-2 bg-primary/90 rounded-full text-sm font-bold mb-6">
-              <span class="text-white" i18n="@@multi-agent-architecture.powered_collaboration"
-                >Powered by Collaboration</span
-              >
-            </div>
-            <h3
-              class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4"
-              i18n="@@multi-agent-architecture.howItWorks"
+            <h4
+              class="text-lg font-semibold text-white mb-3"
+              i18n="@@multi-agent-architecture.workflow.orchestration.title"
             >
-              How Multi-Agent Architecture Works
-            </h3>
+              Orchestration
+            </h4>
             <p
-              class="text-base sm:text-lg text-white/90 max-w-3xl mx-auto"
-              i18n="@@multi-agent-architecture.howItWorks.description"
+              class="text-white/60 text-sm leading-relaxed"
+              i18n="@@multi-agent-architecture.workflow.orchestration.description"
             >
-              Like a well-coordinated team, our AI agents work together seamlessly
+              Master orchestrator analyzes your project and assigns specialized agents.
             </p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-            <div class="glass-card p-6 lg:p-8 rounded-xl border border-white/20 backdrop-blur-md">
-              <div
-                class="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary/30 flex items-center justify-center mx-auto mb-4"
-              >
-                <span class="text-2xl lg:text-3xl font-bold text-white">1</span>
-              </div>
-              <h4
-                class="text-lg lg:text-xl font-semibold text-white mb-3 text-center"
-                i18n="@@multi-agent-architecture.workflow.orchestration.title"
-              >
-                Orchestration
-              </h4>
-              <p
-                class="text-sm lg:text-base text-white/80 text-center leading-relaxed"
-                i18n="@@multi-agent-architecture.workflow.orchestration.description"
-              >
-                Master orchestrator analyzes your project and assigns specialized agents
-              </p>
+          <!-- Step 2 -->
+          <div class="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-white text-xl mx-auto mb-4">
+              2
             </div>
-            <div class="glass-card p-6 lg:p-8 rounded-xl border border-white/20 backdrop-blur-md">
-              <div
-                class="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary/30 flex items-center justify-center mx-auto mb-4"
-              >
-                <span class="text-2xl lg:text-3xl font-bold text-white">2</span>
-              </div>
-              <h4
-                class="text-lg lg:text-xl font-semibold text-white mb-3 text-center"
-                i18n="@@multi-agent-architecture.workflow.collaboration.title"
-              >
-                Collaboration
-              </h4>
-              <p
-                class="text-sm lg:text-base text-white/80 text-center leading-relaxed"
-                i18n="@@multi-agent-architecture.workflow.collaboration.description"
-              >
-                Agents work in parallel, sharing context and ensuring consistency
-              </p>
+            <h4
+              class="text-lg font-semibold text-white mb-3"
+              i18n="@@multi-agent-architecture.workflow.collaboration.title"
+            >
+              Collaboration
+            </h4>
+            <p
+              class="text-white/60 text-sm leading-relaxed"
+              i18n="@@multi-agent-architecture.workflow.collaboration.description"
+            >
+              Agents work in parallel, sharing context and ensuring consistency.
+            </p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-white text-xl mx-auto mb-4">
+              3
             </div>
-            <div class="glass-card p-6 lg:p-8 rounded-xl border border-white/20 backdrop-blur-md">
-              <div
-                class="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary/30 flex items-center justify-center mx-auto mb-4"
-              >
-                <span class="text-2xl lg:text-3xl font-bold text-white">3</span>
+            <h4
+              class="text-lg font-semibold text-white mb-3"
+              i18n="@@multi-agent-architecture.workflow.validation.title"
+            >
+              Validation
+            </h4>
+            <p
+              class="text-white/60 text-sm leading-relaxed"
+              i18n="@@multi-agent-architecture.workflow.validation.description"
+            >
+              Quality agents review output before presenting results to you.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual -->
+      <div class="xl:col-span-1">
+        <div class="sticky top-8">
+          <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-white/5">
+            <img
+              src="assets/images/multi-agent-component/tech-team-collaboration.webp"
+              i18n-alt="@@multi-agent-architecture.alt.techTeam"
+              alt="African tech team collaboration"
+              loading="lazy"
+              class="w-full h-auto object-cover opacity-80"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+            <!-- Overlay Stats -->
+            <div class="absolute bottom-6 left-6 right-6">
+              <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4">
+                <div class="text-center">
+                  <div class="text-2xl font-bold text-white mb-1">200+</div>
+                  <div class="text-white/70 text-sm">Specialized Agents</div>
+                </div>
               </div>
-              <h4
-                class="text-lg lg:text-xl font-semibold text-white mb-3 text-center"
-                i18n="@@multi-agent-architecture.workflow.validation.title"
-              >
-                Validation
-              </h4>
-              <p
-                class="text-sm lg:text-base text-white/80 text-center leading-relaxed"
-                i18n="@@multi-agent-architecture.workflow.validation.description"
-              >
-                Quality agents review output before presenting results to you
-              </p>
             </div>
           </div>
         </div>
