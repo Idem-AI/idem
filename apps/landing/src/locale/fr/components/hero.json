@@ -1,7 +1,7 @@
 {
   "locale": "fr",
   "translations": {
-    "hero.title": "{$START_TAG_SPAN}L'IA{$CLOSE_TAG_SPAN} qui donne vie aux startups {$LINE_BREAK}{$START_TAG_SPAN}Africaines{$CLOSE_TAG_SPAN}",
+    "hero.title": "L'IA qui donne vie aux startups {$LINE_BREAK}{$START_TAG_SPAN}Africaines{$CLOSE_TAG_SPAN}",
     "hero.description": "À partir d'une simple idée, IDEM construit une entreprise complète. {$START_TAG_SPAN}Stratégie, marque, produit, application, tout{$CLOSE_TAG_SPAN}. Conçu pour l'Afrique, pour permettre à chaque créateur de construire, croître et prospérer en toute indépendance.",
     "hero.tryForFree": "Essayez gratuitement",
     "hero.viewOnGithub": "Voir sur GitHub",

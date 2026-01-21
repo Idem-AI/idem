@@ -11,62 +11,6 @@
   </div>
 
   <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Section Header -->
-    <div class="text-center mb-16">
-      <div
-        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
-      >
-        <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        <span class="text-white" i18n="@@african-market.panafrican_vision">Pan-African Vision</span>
-      </div>
-
-      <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-        Built in <span class="i-underline" i18n="@@african-market.cameroon">Cameroon</span>
-        <br />
-        for <span class="i-underline" i18n="@@african-market.africa">Africa</span>
-      </h2>
-
-      <p
-        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
-        i18n="@@african-market.description"
-      >
-        IDEM is a Cameroonian tech company with a pan-African mission. We understand African
-        markets, cultures, and challenges because we're building from within the continent.
-      </p>
-    </div>
-
-    <!-- Market Stats - Professional Grid -->
-    <div class="glass-card p-8 lg:p-10 rounded-2xl border border-white/10 mb-16">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        @for (stat of stats; track stat.label) {
-          <div class="text-center group">
-            <div class="mb-4">
-              <div
-                class="text-5xl lg:text-6xl font-bold text-white mb-2 group-hover:scale-110 transition-transform i-underline"
-              >
-                {{ stat.value }}
-              </div>
-            </div>
-            <div class="text-lg font-bold text-white mb-2" i18n="@@african-market.statLabel">
-              {{ stat.label }}
-            </div>
-            <div
-              class="text-sm text-gray-400 leading-relaxed"
-              i18n="@@african-market.statDescription"
-            >
-              {{ stat.description }}
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-
     <!-- Why IDEM for Africa - Bento Grid Layout -->
     <div class="mb-16">
       <div class="text-center mb-12">

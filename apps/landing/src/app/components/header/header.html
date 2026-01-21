@@ -27,9 +27,16 @@
             <a
               [routerLink]="item.route"
               routerLinkActive="active"
-              class="glass-nav-link hover:text-white transition-all py-2 px-3 text-sm font-medium rounded-lg"
+              class="glass-nav-link hover:text-white transition-all py-2 px-3 text-sm font-medium rounded-lg flex items-center gap-2"
             >
               {{ item.label }}
+              @if (item.badge) {
+                <span
+                  class="text-[10px] font-bold bg-primary text-white px-1.5 py-0.5 rounded shadow-lg shadow-primary/20 uppercase tracking-wider leading-none"
+                >
+                  {{ item.badge }}
+                </span>
+              }
             </a>
           } @else if (item.type === 'dropdown') {
             <div class="relative">
@@ -239,9 +246,16 @@
                 [routerLink]="item.route"
                 (click)="toggleMenu()"
                 routerLinkActive="active-mobile"
-                class="mobile-nav-link block px-4 py-3 rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-all font-medium"
+                class="mobile-nav-link px-4 py-3 rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-all font-medium flex items-center gap-2"
               >
-                {{ item.label }}
+                <span>{{ item.label }}</span>
+                @if (item.badge) {
+                  <span
+                    class="text-[10px] font-bold bg-primary text-white px-1.5 py-0.5 rounded shadow-lg shadow-primary/20 uppercase tracking-wider leading-none"
+                  >
+                    {{ item.badge }}
+                  </span>
+                }
               </a>
             } @else if (item.type === 'dropdown' && item.items) {
               <div class="mobile-nav-group mt-4">
