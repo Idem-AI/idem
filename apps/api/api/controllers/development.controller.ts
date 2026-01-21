@@ -73,7 +73,7 @@ export const getDevelopmentConfigsController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const projectId = req.params.projectId as string;
+  const projectId = req.params.projectId as string as string;
 
   logger.info(
     `getDevelopmentConfigsController called - UserId: ${userId}, ProjectId: ${projectId}`
