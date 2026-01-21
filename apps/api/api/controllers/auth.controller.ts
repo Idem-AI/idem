@@ -59,6 +59,7 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      domain: isProduction ? '.idem.africa' : undefined,
     };
 
     res.cookie('session', sessionCookie, options);
@@ -90,6 +91,7 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      domain: isProduction ? '.idem.africa' : undefined,
     };
 
     res.cookie('refreshToken', refreshTokenResult.refreshToken, refreshTokenOptions);
