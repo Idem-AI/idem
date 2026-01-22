@@ -20,7 +20,7 @@ function BodyEditor({ bodyType = 'none', body = {}, onUpdate }: BodyEditorProps)
   const handleBodyChange = (newBodyData: any) => {
     const updatedBody = {
       ...body,
-      [bodyType]: newBodyData,
+      [bodyType]: newBodyData
     };
     onUpdate(bodyType, updatedBody);
   };
@@ -54,17 +54,19 @@ function BodyEditor({ bodyType = 'none', body = {}, onUpdate }: BodyEditorProps)
           <Upload
             beforeUpload={(file) => {
               const newFormData = [...(body.formData || [])];
-              newFormData[index] = {
-                ...item,
+              newFormData[index] = { 
+                ...item, 
                 value: file,
-                fileName: file.name,
+                fileName: file.name
               };
               handleBodyChange(newFormData);
               return false;
             }}
             showUploadList={false}
           >
-            <Button icon={<UploadOutlined />}>{item.fileName || 'Select File'}</Button>
+            <Button icon={<UploadOutlined />}>
+              {item.fileName || 'Select File'}
+            </Button>
           </Upload>
         ) : (
           <Input
@@ -111,21 +113,16 @@ function BodyEditor({ bodyType = 'none', body = {}, onUpdate }: BodyEditorProps)
       case 'formData':
         return (
           <div>
-            {(body.formData || []).map((item: FormDataItem, index: number) =>
+            {(body.formData || []).map((item: FormDataItem, index: number) => 
               renderFormDataItem(item, index)
             )}
             <Button
               type="dashed"
-              onClick={() =>
-                handleBodyChange([
-                  ...(body.formData || []),
-                  {
-                    key: '',
-                    value: '',
-                    type: 'text',
-                  },
-                ])
-              }
+              onClick={() => handleBodyChange([...(body.formData || []), { 
+                key: '', 
+                value: '',
+                type: 'text'
+              }])}
               icon={<PlusOutlined />}
               style={{ width: '100%' }}
             >
@@ -150,4 +147,4 @@ function BodyEditor({ bodyType = 'none', body = {}, onUpdate }: BodyEditorProps)
   );
 }
 
-export default BodyEditor;
+export default BodyEditor; 

@@ -4,8 +4,12 @@ import * as webContainer from './webcontainer';
 export type Container = WebContainer;
 
 // Basic exports
-export const { useTerminalState, syncFileSystem, updateFileSystemNow, startDevServer } =
-  webContainer;
+export const {
+  useTerminalState,
+  syncFileSystem,
+  updateFileSystemNow,
+  startDevServer,
+} = webContainer;
 
 // Container instance exports
 export const getContainerInstance = webContainer.getWebContainerInstance;

@@ -1,7 +1,7 @@
-import type { FilePreview } from '@/stores/chatSlice';
-import type { ErrorMessage } from '../../../../WeIde/stores/fileStore';
-import { IModelOption } from '../..';
-import { ChatRequestOptions, CreateMessage, Message } from 'ai';
+import type { FilePreview } from "@/stores/chatSlice";
+import type { ErrorMessage } from "../../../../WeIde/stores/fileStore";
+import { IModelOption } from "../..";
+import { ChatRequestOptions, CreateMessage, Message } from "ai";
 
 export interface ChatInputProps {
   input: string;
@@ -20,7 +20,7 @@ export interface ChatInputProps {
   handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   removeImage: (id: string) => void;
   addImages: (images: FilePreview[]) => void;
-  setInput: (text: string) => void;
+  setInput: (text: string) => void
   setIsUploading: (value: boolean) => void;
   handleSketchUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -41,11 +41,11 @@ export interface UploadButtonsProps {
   isUploading: boolean;
   append: (message: Message | CreateMessage, chatRequestOptions?: ChatRequestOptions) => void;
   setMessages: (messages: Message[]) => void;
-  messages: Message[];
+  messages: Message[]
   baseModal: IModelOption;
   setBaseModal: (value: IModelOption) => void;
   onImageClick: () => void;
-  handleSubmitWithFiles: (_, value: string) => void;
+  handleSubmitWithFiles: (_ , value: string) => void;
   onSketchClick: () => void;
 }
 

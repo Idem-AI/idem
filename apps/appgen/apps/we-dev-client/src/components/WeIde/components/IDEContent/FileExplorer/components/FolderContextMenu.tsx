@@ -19,7 +19,7 @@ export function FolderContextMenu({
   onRename,
   onDelete,
   onCreateFile,
-  onCreateFolder,
+  onCreateFolder
 }: FolderContextMenuProps) {
   const menuItems = [
     {
@@ -28,7 +28,7 @@ export function FolderContextMenu({
       onClick: () => {
         onCreateFile();
         onClose();
-      },
+      }
     },
     {
       label: 'New Folder',
@@ -36,28 +36,26 @@ export function FolderContextMenu({
       onClick: () => {
         onCreateFolder();
         onClose();
-      },
+      }
     },
-    ...(path
-      ? [
-          {
-            label: 'Rename',
-            icon: Pencil,
-            onClick: () => {
-              onRename();
-              onClose();
-            },
-          },
-          {
-            label: 'Delete',
-            icon: Trash2,
-            onClick: () => {
-              onDelete();
-              onClose();
-            },
-          },
-        ]
-      : []),
+    ...(path ? [
+      {
+        label: 'Rename',
+        icon: Pencil,
+        onClick: () => {
+          onRename();
+          onClose();
+        }
+      },
+      {
+        label: 'Delete',
+        icon: Trash2,
+        onClick: () => {
+          onDelete();
+          onClose();
+        }
+      }
+    ] : [])
   ];
 
   return (
@@ -66,7 +64,7 @@ export function FolderContextMenu({
       style={{
         position: 'absolute',
         left: x,
-        top: y,
+        top: y
       }}
     >
       {path && (

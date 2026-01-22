@@ -30,7 +30,7 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
   };
 
   return (
-    <div
+    <div 
       className="h-full w-full flex flex-col bg-[#f6f6f6] dark:bg-[#1a1a1c] border-r border-[#e4e4e4] dark:border-[#252525]"
       onContextMenu={handleContextMenu}
     >
@@ -42,7 +42,10 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
       </div>
 
       {contextMenu && (
-        <div className="fixed inset-0 z-50" onClick={() => setContextMenu(null)}>
+        <div 
+          className="fixed inset-0 z-50" 
+          onClick={() => setContextMenu(null)}
+        >
           <FolderContextMenu
             x={contextMenu.x}
             y={contextMenu.y}

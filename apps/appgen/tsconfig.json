@@ -7,12 +7,18 @@
     "strict": false,
     "skipLibCheck": true,
     "jsx": "react-jsx",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["packages/*"]
+      "@/*": [
+        "packages/*"
+      ]
     },
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
   }
 }

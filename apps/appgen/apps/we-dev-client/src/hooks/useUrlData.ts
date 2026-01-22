@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseDataFromUrl } from '../utils/parseDataFromUrl';
 import { ChatRequestOptions, CreateMessage, Message } from 'ai';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import { UploadRef } from 'antd/es/upload/Upload';
 
 /**
@@ -21,7 +21,10 @@ interface UseUrlDataReturn {
 }
 
 interface Iprops {
-  append?: (message: Message | CreateMessage, chatRequestOptions?: ChatRequestOptions) => void;
+  append?: (
+    message: Message | CreateMessage,
+    chatRequestOptions?: ChatRequestOptions
+  ) => void;
   handleGetFile?: (file: File) => void;
   uploadRef?: React.RefObject<UploadRef>;
 }
@@ -40,19 +43,22 @@ export function useUrlData(props?: Iprops): UseUrlDataReturn {
   const loadingRef = useRef<boolean>(false);
 
   useEffect(() => {
+
     const parsedData = parseDataFromUrl();
     const { type } = parsedData;
     typeRef.current = type;
     if (!isFinishUseUrlData) {
-      if (type === 'chat') {
+      if (type === "chat") {
         fetchData();
         loadingRef.current = true;
-      } else if (type === 'sketch') {
+      } else if (type === "sketch") {
         loadingRef.current = true;
       }
       isFinishUseUrlData = true;
     }
+
   }, []);
+
 
   const fetchData = async () => {
     try {
@@ -74,9 +80,9 @@ export function useUrlData(props?: Iprops): UseUrlDataReturn {
           return {
             id,
             name: id,
-            type: 'image',
+            type: "image",
             localUrl: imageUrl,
-            contentType: 'image/png',
+            contentType: "image/png",
             url: imageUrl,
           };
         })
@@ -84,7 +90,7 @@ export function useUrlData(props?: Iprops): UseUrlDataReturn {
 
       append(
         {
-          role: 'user',
+          role: "user",
           content: text,
         },
         {
@@ -101,11 +107,11 @@ export function useUrlData(props?: Iprops): UseUrlDataReturn {
   };
 
   const parsedData = parseDataFromUrl();
-  return {
-    status: loadingRef.current,
-    type: typeRef.current,
+  return { 
+    status: loadingRef.current, 
+    type: typeRef.current, 
     text: parsedData.text,
-    projectId: parsedData.projectId || '',
+    projectId: parsedData.projectId || ''
   };
 }
 

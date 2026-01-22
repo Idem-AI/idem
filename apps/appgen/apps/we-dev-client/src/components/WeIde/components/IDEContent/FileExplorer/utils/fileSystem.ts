@@ -1,5 +1,5 @@
-import { useFileStore } from '@/components/WeIde/stores/fileStore';
-import { getDefaultContent } from '@/utils/defaultContent';
+import { useFileStore } from "@/components/WeIde/stores/fileStore";
+import { getDefaultContent } from "@/utils/defaultContent";
 
 // Path utilities with improved handling
 const path = {
@@ -15,17 +15,18 @@ const path = {
   },
   isRoot: (path: string): boolean => {
     return !path.includes('/');
-  },
+  }
 };
 
 export function isValidFileName(name: string): boolean {
   return (
-    name.length > 0 &&
-    !/[<>:"\/\\|?*\x00-\x1F]/.test(name) &&
+    name.length > 0 && 
+    !/[<>:"\/\\|?*\x00-\x1F]/.test(name) && 
     !name.startsWith('.') &&
     !name.endsWith('.')
   );
 }
+
 
 export async function createFile(basePath: string, fileName: string): Promise<string> {
   const { addFile } = useFileStore.getState();
@@ -35,13 +36,9 @@ export async function createFile(basePath: string, fileName: string): Promise<st
   return fullPath;
 }
 // 新增文件
-export async function createFileWithContent(
-  basePath: string,
-  content: string,
-  syncFileClose?: boolean
-): Promise<string> {
+export async function createFileWithContent(basePath: string, content: string, syncFileClose?: boolean): Promise<string> {
   const { addFile } = useFileStore.getState();
-  await addFile(basePath, content, syncFileClose); // src/
+  await addFile(basePath, content, syncFileClose); // src/ 
   return basePath;
 }
 
