@@ -468,7 +468,11 @@ class ProjectService {
     }
   }
 
-  async saveProjectGeneration(userId: string, projectId: string, generationData: any): Promise<void> {
+  async saveProjectGeneration(
+    userId: string,
+    projectId: string,
+    generationData: any
+  ): Promise<void> {
     if (!userId || !projectId || !generationData) {
       logger.error('User ID, Project ID, and generation data are required.');
       throw new Error('User ID, Project ID, and generation data are required.');
@@ -506,14 +510,16 @@ class ProjectService {
     }
 
     try {
-      // Upload ZIP file to storage
-      const fileName = `${projectId}-generation-${Date.now()}.zip`;
-      const filePath = `users/${userId}/projects/${projectId}/generations/${fileName}`;
+      // Use the new uploadProjectCodeZip method from storage service
+      const uploadResult = await storageService.uploadProjectCodeZip(
+        zipFile.buffer,
+        projectId,
+        userId
+      );
 
-      // Use storage service to upload the file
-      const uploadResult = await storageService.uploadFile(zipFile.buffer, filePath, zipFile.mimetype);
-
-      logger.info(`ZIP file saved successfully for project ${projectId} and user ${userId}. URL: ${uploadResult.downloadURL}`);
+      logger.info(
+        `ZIP file saved successfully for project ${projectId} and user ${userId}. URL: ${uploadResult.downloadURL}`
+      );
       return uploadResult.downloadURL;
     } catch (error: any) {
       logger.error(
@@ -564,7 +570,9 @@ class ProjectService {
         `${projectId}_github`
       );
 
-      logger.info(`Project ${projectId} sent to GitHub successfully for user ${userId}. Repo: ${mockRepoUrl}`);
+      logger.info(
+        `Project ${projectId} sent to GitHub successfully for user ${userId}. Repo: ${mockRepoUrl}`
+      );
       return mockRepoUrl;
     } catch (error: any) {
       logger.error(
