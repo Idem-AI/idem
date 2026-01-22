@@ -36,7 +36,7 @@ export async function createTeam(req: CustomRequest, res: Response): Promise<voi
 export async function getTeam(req: CustomRequest, res: Response): Promise<void> {
   try {
     const { teamId } = req.params;
-    const team = await teamService.getTeamById(teamId);
+    const team = await teamService.getTeamById(teamId as string);
 
     if (!team) {
       res
@@ -95,7 +95,7 @@ export async function addTeamMember(req: CustomRequest, res: Response): Promise<
     const { teamId } = req.params;
     const data: AddTeamMemberDTO = req.body;
 
-    const team = await teamService.addMember(teamId, userId, data);
+    const team = await teamService.addMember(teamId as string, userId, data);
     res.status(200).json({ success: true, data: team });
   } catch (error: any) {
     logger.error(`Error adding team member: ${error.message}`);
@@ -122,7 +122,7 @@ export async function updateMemberRole(req: CustomRequest, res: Response): Promi
     const { teamId } = req.params;
     const data: UpdateTeamMemberRoleDTO = req.body;
 
-    const team = await teamService.updateMemberRole(teamId, data.userId, updatedBy, data);
+    const team = await teamService.updateMemberRole(teamId as string, data.userId, updatedBy, data);
     res.status(200).json({ success: true, data: team });
   } catch (error: any) {
     logger.error(`Error updating member role: ${error.message}`);
@@ -148,7 +148,7 @@ export async function removeMember(req: CustomRequest, res: Response): Promise<v
 
     const { teamId, memberId } = req.params;
 
-    const team = await teamService.removeMember(teamId, userId, memberId);
+    const team = await teamService.removeMember(teamId as string, userId, memberId as string);
     res.status(200).json({ success: true, data: team });
   } catch (error: any) {
     logger.error(`Error removing member: ${error.message}`);

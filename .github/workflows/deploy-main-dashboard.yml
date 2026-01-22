@@ -48,6 +48,7 @@ jobs:
             
             # Variables
             REPO_DIR="/root/idem"
+            DEPLOYMENT_DIR="/root/application"
             BRANCH="${{ steps.vars.outputs.branch }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
             
@@ -89,6 +90,7 @@ jobs:
             
             # Determine environment and deploy
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+              cd $DEPLOYMENT_DIR
               # Production deployment
               COMPOSE_FILE="docker-compose.prod.yml"
               SERVICE_NAME="idem"

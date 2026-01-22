@@ -11,6 +11,12 @@ class ServerSeeder extends Seeder
 {
     public function run(): void
     {
+        // Check if server already exists
+        if (Server::where('id', 0)->exists()) {
+            $this->command->info('Server with id 0 already exists, skipping creation.');
+            return;
+        }
+
         Server::create([
             'id' => 0,
             'name' => 'localhost',
@@ -23,5 +29,7 @@ class ServerSeeder extends Seeder
                 'status' => ProxyStatus::EXITED->value,
             ],
         ]);
+
+        $this->command->info('Server created successfully.');
     }
 }

@@ -56,7 +56,7 @@ export const finalizeProjectController = async (
     // Finaliser le projet
     const project = await policyAcceptanceService.finalizeProject(
       userId,
-      projectId,
+      projectId as string,
       acceptanceData,
       ipAddress,
       userAgent
@@ -65,7 +65,7 @@ export const finalizeProjectController = async (
     const response: FinalizeProjectResponse = {
       success: true,
       message: 'Project finalized successfully',
-      projectId,
+      projectId: projectId as string,
       acceptedAt: project.policyAcceptance!.acceptedAt,
     };
 
@@ -126,8 +126,8 @@ export const checkPolicyStatusController = async (
       return;
     }
 
-    const isAccepted = await policyAcceptanceService.isPolicyAccepted(userId, projectId);
-    const policyAcceptance = await policyAcceptanceService.getPolicyAcceptance(userId, projectId);
+    const isAccepted = await policyAcceptanceService.isPolicyAccepted(userId, projectId as string);
+    const policyAcceptance = await policyAcceptanceService.getPolicyAcceptance(userId, projectId as string);
 
     res.status(200).json({
       projectId,

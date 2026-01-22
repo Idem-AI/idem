@@ -12,6 +12,12 @@ class GitlabAppSeeder extends Seeder
      */
     public function run(): void
     {
+        // Check if Public GitLab app already exists
+        if (GitlabApp::where('id', 1)->exists()) {
+            $this->command->info('Public GitLab app already exists, skipping creation.');
+            return;
+        }
+
         GitlabApp::create([
             'id' => 1,
             'name' => 'Public GitLab',
@@ -20,5 +26,7 @@ class GitlabAppSeeder extends Seeder
             'is_public' => true,
             'team_id' => 0,
         ]);
+
+        $this->command->info('Public GitLab app created successfully.');
     }
 }
