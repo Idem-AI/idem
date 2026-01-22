@@ -1,0 +1,8 @@
+version: "2"
+services:
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    volumes:
+      - .:/code

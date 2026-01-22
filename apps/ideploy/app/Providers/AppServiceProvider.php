@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\Sanctum;
@@ -23,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Force HTTPS for all URLs
+        URL::forceScheme('https');
+
         $this->configureCommands();
         $this->configureModels();
         $this->configurePasswords();
@@ -79,12 +83,12 @@ class AppServiceProvider extends ServiceProvider
             }
         });
     }
-    
+
     private function configureObservers(): void
     {
         // Security observers
         \App\Models\FirewallRule::observe(\App\Observers\FirewallRuleObserver::class);
-        
+
         // Server observers - Install security tools automatically
         \App\Models\Server::observe(\App\Observers\ServerObserver::class);
     }

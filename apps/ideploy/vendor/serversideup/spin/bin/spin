@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+set -e
+
+# Default Environment
+SPIN_ENV=${SPIN_ENV:-dev}
+SPIN_DEBUG=${SPIN_DEBUG:-false}
+
+if [[ "$SPIN_DEBUG" == "true" ]]; then
+  set -x
+fi
+
+# Set up our structure for our re-used commands
+export COMPOSE_CMD=${COMPOSE_CMD:-"docker compose"}
+
+# Export the current user and group ID
+SPIN_USER_ID=${SPIN_USER_ID:-$(id -u)}
+SPIN_GROUP_ID=${SPIN_GROUP_ID:-$(id -g)}
+SPIN_RUN_AS_USER=${SPIN_RUN_AS_USER:-$(whoami)}
+export SPIN_USER_ID
+export SPIN_GROUP_ID
+export SPIN_RUN_AS_USER
+
+# Default Images
+SPIN_PHP_IMAGE=${SPIN_PHP_IMAGE:-"serversideup/php:cli"}
+SPIN_NODE_IMAGE=${SPIN_NODE_IMAGE:-"node:20"}
+SPIN_ANSIBLE_IMAGE=${SPIN_ANSIBLE_IMAGE:-"docker.io/serversideup/ansible-core:2.18-alpine"}
+SPIN_GH_CLI_IMAGE=${SPIN_GH_CLI_IMAGE:-"docker.io/serversideup/github-cli:alpine"}
+
+# Script Configuration
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+SPIN_HOME=$(dirname "$SCRIPT_DIR") #Assume the parent directory of this script is the home
+SPIN_CACHE_DIR=${SPIN_CACHE_DIR:-$SPIN_HOME/cache}
+SPIN_CONFIG_FILE_LOCATION=${SPIN_CONFIG_FILE_LOCATION:-"$SPIN_HOME/conf/spin.conf"}
+SPIN_CI_FOLDER=${SPIN_CI_FOLDER:-".infrastructure/conf/ci"}
+AUTO_UPDATE_INTERVAL_IN_DAYS=${AUTO_UPDATE_INTERVAL_IN_DAYS:-14}
+AUTO_PULL_INTERVAL_IN_DAYS=${AUTO_PULL_INTERVAL_IN_DAYS:-1}
+
+# Ansible Variables
+SPIN_ANSIBLE_COLLECTION_NAME="${SPIN_ANSIBLE_COLLECTION_NAME:-"serversideup.spin"}"
+
+# Import common functions
+source "$SPIN_HOME/lib/functions.sh"
+setup_color
+
+# Check for upgrades, except for development installs and on `spin update`
+if [[ "$(installation_type)" != "development" && "$1" != "update" ]]; then
+  check_for_upgrade
+fi
+
+# Set COMPOSE_FILE variable
+export_compose_file_variable
+
+# Validate a few things based on the user's intent
+case "$1" in
+  "" | base64 | debug | help | update | version | --version | -v)
+    : # Silent output for the user, but we're skipping the compose check too.
+    ;;
+  configure | gh | init | kill | maintain | mkpasswd | new | prune | provision | vault)
+    check_if_docker_is_running
+  ;;
+  *)
+    check_if_docker_is_running
+    check_if_compose_files_exist "$COMPOSE_FILE"
+    ;;
+esac
+
+# Check that an argument is passed
+if [ $# -gt 0 ]; then
+  spin_action=$1
+  shift 1 # Remove the action from the arguments
+
+  case $spin_action in
+    base64)
+      source "$SPIN_HOME/lib/actions/base64.sh"
+      action_base64 "$@"
+    ;;
+    build)
+      source "$SPIN_HOME/lib/actions/build.sh"
+      action_build "$@"
+    ;;
+    configure)
+      source "$SPIN_HOME/lib/actions/configure.sh"
+      action_configure "$@"
+    ;;
+    debug)
+      source "$SPIN_HOME/lib/actions/debug.sh"
+      action_debug "$@"
+    ;;
+    deploy)
+      source "$SPIN_HOME/lib/actions/deploy.sh"
+      action_deploy "$@"
+    ;;
+    down)
+      source "$SPIN_HOME/lib/actions/down.sh"
+      action_down "$@"
+    ;;
+    exec)
+      source "$SPIN_HOME/lib/actions/exec.sh"
+      action_exec "$@"
+    ;;
+    help)
+      source "$SPIN_HOME/lib/actions/help.sh"
+      action_help
+    ;;
+    gh)
+      source "$SPIN_HOME/lib/actions/gh.sh"
+      action_gh "$@"
+    ;;
+    init)
+      source "$SPIN_HOME/lib/actions/init.sh"
+      action_init "$@"
+    ;;
+    kill)
+      source "$SPIN_HOME/lib/actions/kill.sh"
+      action_kill
+    ;;
+    latest)
+      source "$SPIN_HOME/lib/actions/latest.sh"
+      action_latest "$@"
+    ;;
+    logs)
+      source "$SPIN_HOME/lib/actions/logs.sh"
+      action_logs "$@"
+    ;;
+    maintain)
+      source "$SPIN_HOME/lib/actions/maintain.sh"
+      action_maintain "$@"
+    ;;
+    mkpasswd)
+      source "$SPIN_HOME/lib/actions/mkpasswd.sh"
+      action_mkpasswd "$@"
+    ;;
+    new)
+      source "$SPIN_HOME/lib/actions/new.sh"
+      source "$SPIN_HOME/lib/actions/init.sh"
+      action_new "$@"
+    ;;
+    provision)
+      source "$SPIN_HOME/lib/actions/provision.sh"
+      action_provision "$@"
+    ;;
+    prune)
+      source "$SPIN_HOME/lib/actions/prune.sh"
+      action_prune "$@"
+    ;;
+    ps)
+      source "$SPIN_HOME/lib/actions/ps.sh"
+      action_ps
+    ;;
+    pull)
+      source "$SPIN_HOME/lib/actions/pull.sh"
+      action_pull "$@"
+    ;;
+    run)
+      source "$SPIN_HOME/lib/actions/run.sh"
+      action_run "$@"
+    ;;
+    stop)
+      source "$SPIN_HOME/lib/actions/stop.sh"
+      action_stop
+    ;;
+    up)
+      source "$SPIN_HOME/lib/actions/up.sh"
+      action_up "$@"
+    ;;
+    update)
+      source "$SPIN_HOME/lib/actions/update.sh"
+      action_update
+    ;;
+    vault)
+      source "$SPIN_HOME/lib/actions/vault.sh"
+      action_vault "$@"
+    ;;
+    version | --version | -v)
+      source "$SPIN_HOME/lib/actions/version.sh"
+      action_version
+    ;;
+    *)
+      echo "\"$spin_action\" is not a valid command. Below are the commands available."
+      source "$SPIN_HOME/lib/actions/help.sh"
+      action_help
+    ;;
+  esac
+else
+  printf "${BOLD}${YELLOW}🤔 You didn't pass \"spin\" any arguments.${RESET}"
+  echo
+  source "$SPIN_HOME/lib/actions/help.sh"
+  action_help
+fi

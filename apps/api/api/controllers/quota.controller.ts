@@ -115,7 +115,7 @@ export class QuotaController {
         return;
       }
 
-      const featureValidation = betaRestrictionsService.validateFeature(featureName);
+      const featureValidation = betaRestrictionsService.validateFeature(featureName as string);
       const quotaCheck = await userService.checkQuota(userId!);
 
       res.json({

@@ -1,0 +1,33 @@
+{
+    "name": "socialiteproviders/authentik",
+    "description": "Authentik OAuth2 Provider for Laravel Socialite",
+    "license": "MIT",
+    "keywords": [
+        "authentik",
+        "laravel",
+        "oauth",
+        "provider",
+        "socialite"
+    ],
+    "authors": [
+        {
+            "name": "rf152",
+            "email": "git@rf152.co.uk"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/socialiteproviders/providers/issues",
+        "source": "https://github.com/socialiteproviders/providers",
+        "docs": "https://socialiteproviders.com/authentik"
+    },
+    "require": {
+        "php": "^8.0",
+        "ext-json": "*",
+        "socialiteproviders/manager": "^4.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "SocialiteProviders\\Authentik\\": ""
+        }
+    }
+}

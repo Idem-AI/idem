@@ -38,7 +38,7 @@ export const getTeamController = async (req: CustomRequest, res: Response): Prom
     }
 
     const { teamId } = req.params;
-    const team = await teamService.getTeamById(teamId);
+    const team = await teamService.getTeamById(teamId as string);
 
     if (!team) {
       res.status(404).json({ success: false, message: 'Team not found' });
@@ -102,7 +102,7 @@ export const addTeamMemberController = async (req: CustomRequest, res: Response)
     const { teamId } = req.params;
     const memberData: AddTeamMemberDTO = req.body;
 
-    const team = await teamService.addMember(teamId, userId, memberData);
+    const team = await teamService.addMember(teamId as string, userId, memberData);
 
     if (!team) {
       res.status(404).json({ success: false, message: 'Team not found' });
@@ -134,7 +134,7 @@ export const updateTeamMemberRoleController = async (
     const { teamId, userId } = req.params;
     const roleData: UpdateTeamMemberRoleDTO = req.body;
 
-    const team = await teamService.updateMemberRole(teamId, userId, requesterId, roleData);
+    const team = await teamService.updateMemberRole(teamId as string, userId as string, requesterId, roleData);
 
     if (!team) {
       res.status(404).json({ success: false, message: 'Team not found' });
@@ -165,7 +165,7 @@ export const removeTeamMemberController = async (
 
     const { teamId, userId } = req.params;
 
-    const team = await teamService.removeMember(teamId, userId, requesterId);
+    const team = await teamService.removeMember(teamId as string, userId as string, requesterId);
 
     if (!team) {
       res.status(404).json({ success: false, message: 'Team not found' });
@@ -193,7 +193,7 @@ export const deleteTeamController = async (req: CustomRequest, res: Response): P
 
     const { teamId } = req.params;
 
-    await teamService.deleteTeam(teamId, userId);
+    await teamService.deleteTeam(teamId as string, userId);
 
     logger.info(`Team ${teamId} deleted by user ${userId}`);
     res.status(200).json({ success: true, message: 'Team deleted successfully' });

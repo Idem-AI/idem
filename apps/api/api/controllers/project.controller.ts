@@ -83,7 +83,7 @@ class ProjectController {
         res.status(400).json({ message: 'Project ID is required' });
         return;
       }
-      const project = await projectService.getUserProjectById(userId, projectId);
+      const project = await projectService.getUserProjectById(userId, projectId as string);
       if (!project) {
         logger.warn(`Get project by ID: Project ${projectId} not found for user ${userId}.`);
         res.status(404).json({ message: 'Project not found' });
@@ -128,7 +128,7 @@ class ProjectController {
         res.status(400).json({ message: 'No update data provided' });
         return;
       }
-      await projectService.editUserProject(userId, projectId, updatedData);
+      await projectService.editUserProject(userId, projectId as string, updatedData);
       logger.info(`Project ${projectId} updated successfully for userId ${userId}.`);
       res.status(200).json({ message: 'Project updated successfully' });
     } catch (error: any) {
@@ -158,7 +158,7 @@ class ProjectController {
         res.status(400).json({ message: 'Project ID is required' });
         return;
       }
-      await projectService.deleteUserProject(userId, projectId);
+      await projectService.deleteUserProject(userId, projectId as string);
       logger.info(`Project ${projectId} deleted successfully for userId ${userId}.`);
       res.status(200).json({ message: 'Project deleted successfully' });
     } catch (error: any) {
@@ -190,7 +190,7 @@ class ProjectController {
         return;
       }
 
-      const generation = await projectService.getProjectGeneration(userId, projectId);
+      const generation = await projectService.getProjectGeneration(userId, projectId as string);
       if (!generation) {
         logger.info(`No generation found for project ${projectId} and user ${userId}.`);
         res.status(404).json({ message: 'Generation not found' });
@@ -236,7 +236,7 @@ class ProjectController {
         return;
       }
 
-      await projectService.saveProjectGeneration(userId, projectId, generationData);
+      await projectService.saveProjectGeneration(userId, projectId as string, generationData);
       logger.info(`Generation saved successfully for project ${projectId} and user ${userId}.`);
       res.status(200).json({ message: 'Generation saved successfully' });
     } catch (error: any) {
@@ -275,7 +275,7 @@ class ProjectController {
         return;
       }
 
-      const zipUrl = await projectService.saveProjectZip(userId, projectId, req.file);
+      const zipUrl = await projectService.saveProjectZip(userId, projectId as string, req.file);
       logger.info(`ZIP saved successfully for project ${projectId} and user ${userId}. URL: ${zipUrl}`);
       res.status(200).json({ message: 'ZIP saved successfully', url: zipUrl });
     } catch (error: any) {
@@ -315,7 +315,7 @@ class ProjectController {
         return;
       }
 
-      const repoUrl = await projectService.sendProjectToGitHub(userId, projectId, githubData);
+      const repoUrl = await projectService.sendProjectToGitHub(userId, projectId as string, githubData);
       logger.info(`Project ${projectId} sent to GitHub successfully for user ${userId}. Repo: ${repoUrl}`);
       res.status(200).json({ message: 'Project sent to GitHub successfully', repoUrl });
     } catch (error: any) {
