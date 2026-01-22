@@ -5,11 +5,12 @@ interface ParsedMessage {
 
 // Pre-compiled regular expressions
 const ARTIFACT_REGEX = /<boltArtifact[^>]*>([\s\S]*?)<\/boltArtifact>/;
-const BOLT_ACTION_REGEX = /<boltAction type="file" filePath="([^"]+)">([\s\S]*?)<\/boltAction>/g;
+const BOLT_ACTION_REGEX =
+  /<boltAction type="file" filePath="([^"]+)">([\s\S]*?)<\/boltAction>/g;
 
 export function parseMessage(content: string): ParsedMessage {
   // Quick return if content doesn't contain keywords
-  if (!content.includes('<boltArtifact')) {
+  if (!content.includes("<boltArtifact")) {
     return { content };
   }
 
@@ -38,7 +39,6 @@ export function parseMessage(content: string): ParsedMessage {
         files[filePath] = fileContent.trim();
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       startIndex = BOLT_ACTION_REGEX.lastIndex;
     }
 
@@ -54,7 +54,7 @@ export function parseMessage(content: string): ParsedMessage {
       files,
     };
   } catch (error) {
-    console.error('Error parsing message:', error);
+    console.error("Error parsing message:", error);
     return { content };
   }
 }
