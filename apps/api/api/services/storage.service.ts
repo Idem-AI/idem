@@ -336,6 +336,60 @@ export class StorageService {
   }
 
   /**
+   * Upload project code as ZIP file to Firebase Storage
+   * @param zipBuffer - The ZIP file content as Buffer
+   * @param projectId - Project ID for folder structure
+   * @param userId - User ID for folder structure (optional)
+   * @returns Upload result with download URL
+   */
+  async uploadProjectCodeZip(
+    zipBuffer: Buffer,
+    projectId: string,
+    userId?: string
+  ): Promise<UploadResult> {
+    try {
+      const folderPath = userId
+        ? `users/${userId}/projects/${projectId}/code`
+        : `projects/${projectId}/code`;
+
+      const fileName = `project-code-${Date.now()}.zip`;
+
+      logger.info(`Uploading project code ZIP to Firebase Storage`, {
+        projectId,
+        userId,
+        folderPath,
+        fileName,
+        zipSize: zipBuffer.length,
+      });
+
+      const uploadResult = await this.uploadFile(
+        zipBuffer,
+        fileName,
+        folderPath,
+        'application/zip'
+      );
+
+      logger.info(`Project code ZIP uploaded successfully`, {
+        projectId,
+        userId,
+        fileName,
+        downloadURL: uploadResult.downloadURL,
+        zipSize: zipBuffer.length,
+      });
+
+      return uploadResult;
+    } catch (error: any) {
+      logger.error(`Error uploading project code ZIP`, {
+        projectId,
+        userId,
+        error: error.message,
+        stack: error.stack,
+      });
+      throw new Error(`Failed to upload project code ZIP: ${error.message}`);
+    }
+  }
+
+  /**
    * Generate a unique project ID for storage purposes
    * @returns A unique project ID
    */
