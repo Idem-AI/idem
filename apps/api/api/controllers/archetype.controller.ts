@@ -115,12 +115,12 @@ export const getArchetypeByIdController = async (
     });
     return;
   }
-  const archetypeId = req.params.archetypeId as string;
+  const archetypeId = req.params.archetypeId;
 
   logger.info(`Retrieving archetype: ${archetypeId}`);
 
   try {
-    const archetype = await archetypeService.getArchetypeById(archetypeId);
+    const archetype = await archetypeService.getArchetypeById(archetypeId as string);
 
     if (!archetype) {
       logger.warn(`Archetype not found: ${archetypeId}`);
@@ -174,13 +174,13 @@ export const updateArchetypeController = async (
     });
     return;
   }
-  const archetypeId = req.params.archetypeId as string;
+  const archetypeId = req.params.archetypeId;
   const payload: UpdateArchetypePayload = req.body;
 
   logger.info(`Updating archetype: ${archetypeId}`);
 
   try {
-    const archetype = await archetypeService.updateArchetype(archetypeId, payload);
+    const archetype = await archetypeService.updateArchetype(archetypeId as string, payload);
 
     if (!archetype) {
       logger.warn(`Archetype not found for update: ${archetypeId}`);
@@ -235,12 +235,12 @@ export const deleteArchetypeController = async (
     });
     return;
   }
-  const archetypeId = req.params.archetypeId as string;
+  const archetypeId = req.params.archetypeId;
 
   logger.info(`Deleting archetype: ${archetypeId}`);
 
   try {
-    const deleted = await archetypeService.deleteArchetype(archetypeId);
+    const deleted = await archetypeService.deleteArchetype(archetypeId as string);
 
     if (!deleted) {
       logger.warn(`Archetype not found for deletion: ${archetypeId}`);
@@ -292,7 +292,7 @@ export const getArchetypesByProviderController = async (
     });
     return;
   }
-  const provider = req.params.provider as string as 'aws' | 'gcp' | 'azure';
+  const provider = req.params.provider as 'aws' | 'gcp' | 'azure';
 
   logger.info(`Retrieving archetypes by provider: ${provider}`);
 
@@ -339,12 +339,12 @@ export const getArchetypesByCategoryController = async (
     });
     return;
   }
-  const category = req.params.category as string;
+  const category = req.params.category;
 
   logger.info(`Retrieving archetypes by category: ${category}`);
 
   try {
-    const archetypes = await archetypeService.getArchetypesByCategory(category);
+    const archetypes = await archetypeService.getArchetypesByCategory(category as string);
 
     logger.info(`Retrieved ${archetypes.length} archetypes for category ${category}`);
 
@@ -386,14 +386,14 @@ export const generateTerraformTfvarsController = async (
     });
     return;
   }
-  const archetypeId = req.params.archetypeId as string;
+  const archetypeId = req.params.archetypeId;
   const customValues = req.body.customValues || {};
 
   logger.info(`Generating Terraform tfvars for archetype: ${archetypeId}`);
 
   try {
     // Get the archetype
-    const archetype = await archetypeService.getArchetypeById(archetypeId);
+    const archetype = await archetypeService.getArchetypeById(archetypeId as string);
 
     if (!archetype) {
       logger.warn(`Archetype not found for tfvars generation:`, {

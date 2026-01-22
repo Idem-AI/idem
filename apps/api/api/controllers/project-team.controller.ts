@@ -21,7 +21,7 @@ export async function addTeamToProject(req: CustomRequest, res: Response): Promi
     const { projectId } = req.params;
     const data: AddTeamToProjectDTO = req.body;
 
-    const projectTeam = await projectTeamService.addTeamToProject(projectId, userId, data);
+    const projectTeam = await projectTeamService.addTeamToProject(projectId as string, userId, data);
     res.status(201).json({ success: true, data: projectTeam });
   } catch (error: any) {
     logger.error(`Error adding team to project: ${error.message}`);
@@ -37,7 +37,7 @@ export async function addTeamToProject(req: CustomRequest, res: Response): Promi
 export async function getProjectTeams(req: CustomRequest, res: Response): Promise<void> {
   try {
     const { projectId } = req.params;
-    const teams = await projectTeamService.getProjectTeams(projectId);
+    const teams = await projectTeamService.getProjectTeams(projectId as string);
 
     res.status(200).json({ success: true, data: teams });
   } catch (error: any) {
@@ -65,7 +65,7 @@ export async function updateTeamRoles(req: CustomRequest, res: Response): Promis
     const { projectId } = req.params;
     const data: UpdateProjectTeamRolesDTO = req.body;
 
-    const projectTeam = await projectTeamService.updateTeamRoles(projectId, userId, data);
+    const projectTeam = await projectTeamService.updateTeamRoles(projectId as string, userId, data);
     res.status(200).json({ success: true, data: projectTeam });
   } catch (error: any) {
     logger.error(`Error updating team roles: ${error.message}`);
@@ -91,7 +91,7 @@ export async function removeTeamFromProject(req: CustomRequest, res: Response): 
 
     const { projectId, teamId } = req.params;
 
-    const success = await projectTeamService.removeTeamFromProject(projectId, teamId);
+    const success = await projectTeamService.removeTeamFromProject(projectId as string, teamId as string);
 
     if (!success) {
       res.status(404).json({
@@ -125,7 +125,7 @@ export async function getUserPermissions(req: CustomRequest, res: Response): Pro
     }
 
     const { projectId } = req.params;
-    const permissions = await projectTeamService.getUserPermissions(projectId, userId);
+    const permissions = await projectTeamService.getUserPermissions(projectId as string, userId);
 
     res.status(200).json({ success: true, data: permissions });
   } catch (error: any) {
@@ -151,7 +151,7 @@ export async function checkUserAccess(req: CustomRequest, res: Response): Promis
     }
 
     const { projectId } = req.params;
-    const hasAccess = await projectTeamService.userHasAccess(projectId, userId);
+    const hasAccess = await projectTeamService.userHasAccess(projectId as string, userId);
 
     res.status(200).json({ success: true, data: { hasAccess } });
   } catch (error: any) {

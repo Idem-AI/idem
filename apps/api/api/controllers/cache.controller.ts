@@ -77,7 +77,7 @@ export class CacheController {
   static async invalidateUserCache(req: CustomRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.uid;
-      const targetUserId = req.params.userId as string || userId;
+      const targetUserId = (req.params.userId as string) || userId;
 
       if (!targetUserId) {
         res.status(400).json({
@@ -107,7 +107,7 @@ export class CacheController {
         error: error.message,
         stack: error.stack,
         userId: req.user?.uid,
-        targetUserId: req.params.userId as string,
+        targetUserId: req.params.userId,
       });
       res.status(500).json({
         success: false,
@@ -123,7 +123,7 @@ export class CacheController {
   static async invalidateProjectCache(req: CustomRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.uid;
-      const projectId = req.params.projectId as string;
+      const projectId = req.params.projectId;
 
       if (!projectId) {
         res.status(400).json({
@@ -135,7 +135,7 @@ export class CacheController {
 
       logger.info(`Invalidating cache for project: ${projectId}`, { userId, projectId });
 
-      const deletedCount = await cacheService.invalidateProjectCache(projectId);
+      const deletedCount = await cacheService.invalidateProjectCache(projectId as string);
 
       logger.info(`Cache invalidated for project: ${projectId}`, {
         deletedCount,
@@ -153,7 +153,7 @@ export class CacheController {
         error: error.message,
         stack: error.stack,
         userId: req.user?.uid,
-        projectId: req.params.projectId as string,
+        projectId: req.params.projectId,
       });
       res.status(500).json({
         success: false,
@@ -441,7 +441,7 @@ export class CacheController {
         error: error.message,
         stack: error.stack,
         userId: req.user?.uid,
-        projectId: req.params.projectId as string,
+        projectId: req.params.projectId,
       });
       res.status(500).json({
         success: false,
@@ -457,7 +457,7 @@ export class CacheController {
   static async invalidatePdfCacheByUser(req: CustomRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.uid;
-      const targetUserId = req.params.userId as string || userId;
+      const targetUserId = (req.params.userId as string) || userId;
 
       if (!targetUserId) {
         res.status(400).json({
@@ -493,7 +493,7 @@ export class CacheController {
         error: error.message,
         stack: error.stack,
         userId: req.user?.uid,
-        targetUserId: req.params.userId as string,
+        targetUserId: req.params.userId,
       });
       res.status(500).json({
         success: false,
