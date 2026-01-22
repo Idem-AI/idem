@@ -16,9 +16,6 @@ export interface DevelopmentConfigsModel {
           [key: string]: boolean | undefined;
         }
       | string[];
-    zipUrl?: string;
-    zipFilePath?: string;
-    lastUpdated?: string;
   };
 
   backend: {
@@ -44,9 +41,6 @@ export interface DevelopmentConfigsModel {
           [key: string]: boolean | undefined;
         }
       | string[];
-    zipUrl?: string;
-    zipFilePath?: string;
-    lastUpdated?: string;
   };
 
   database: {
@@ -87,8 +81,8 @@ export interface DevelopmentConfigsModel {
 }
 
 export enum LandingPageConfig {
-  NONE = 'NONE',
-  SEPARATE = 'SEPARATE',
-  INTEGRATED = 'INTEGRATED',
-  ONLY_LANDING = 'ONLY_LANDING',
+  NONE = "NONE",
+  SEPARATE = "SEPARATE",
+  INTEGRATED = "INTEGRATED",
+  ONLY_LANDING = "ONLY_LANDING",
 }

@@ -13,7 +13,7 @@ function ResponseViewer({ response }: ResponseViewerProps): JSX.Element {
     if (!response) return;
 
     const contentType = response.headers['content-type'] || '';
-
+    
     if (response.data instanceof Blob) {
       if (contentType.includes('image/')) {
         setResponseData({ type: 'image', data: URL.createObjectURL(response.data) });
@@ -39,25 +39,27 @@ function ResponseViewer({ response }: ResponseViewerProps): JSX.Element {
         <pre style={{ maxHeight: '400px', overflow: 'auto' }}>
           {JSON.stringify(responseData.data, null, 2)}
         </pre>
-      ),
+      )
     },
     {
       key: 'headers',
       label: 'Headers',
-      children: <pre>{JSON.stringify(response.headers, null, 2)}</pre>,
-    },
+      children: (
+        <pre>
+          {JSON.stringify(response.headers, null, 2)}
+        </pre>
+      )
+    }
   ];
 
   return (
     <div style={{ marginTop: '20px' }} className="text-sm">
-      <div
-        style={{
-          padding: '8px 16px',
-          backgroundColor: response.status < 400 ? '#f6ffed' : '#fff2f0',
-          borderRadius: '4px',
-          marginBottom: '16px',
-        }}
-      >
+      <div style={{ 
+        padding: '8px 16px',
+        backgroundColor: response.status < 400 ? '#f6ffed' : '#fff2f0',
+        borderRadius: '4px',
+        marginBottom: '16px'
+      }}>
         {response.status} {response.statusText}
       </div>
       <Tabs items={items} />
@@ -65,4 +67,4 @@ function ResponseViewer({ response }: ResponseViewerProps): JSX.Element {
   );
 }
 
-export default ResponseViewer;
+export default ResponseViewer; 

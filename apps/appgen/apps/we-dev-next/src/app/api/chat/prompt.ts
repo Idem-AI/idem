@@ -1,99 +1,99 @@
-import { allowedHTMLElements } from '@/utils/markdown';
-import { stripIndents } from '../../../utils/stripIndent';
-import { databaseeFunctionRegister } from './database';
-import { backendLanguageFunctionRegister } from './backend';
-import { cacheFunctionRegister } from './cache';
-export const WORK_DIR_NAME = 'project';
+import { allowedHTMLElements } from "@/utils/markdown";
+import { stripIndents } from "../../../utils/stripIndent";
+import { databaseeFunctionRegister } from "./database";
+import { backendLanguageFunctionRegister } from "./backend";
+import { cacheFunctionRegister } from "./cache";
+export const WORK_DIR_NAME = "project";
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
-export const MODIFICATIONS_TAG_NAME = 'bolt_file_modifications';
+export const MODIFICATIONS_TAG_NAME = "bolt_file_modifications";
 
 const iconName = [
-  'add-friends',
-  'add',
-  'add2',
-  'album',
-  'arrow',
-  'at',
-  'back',
-  'back2',
-  'bellring-off',
-  'bellring-on',
-  'camera',
-  'cellphone',
-  'clip',
-  'close',
-  'close2',
-  'comment',
-  'contacts',
-  'copy',
-  'delete-on',
-  'delete',
-  'discover',
-  'display',
-  'done',
-  'done2',
-  'download',
-  'email',
-  'error',
-  'eyes-off',
-  'eyes-on',
-  'folder',
-  'group-detail',
-  'help',
-  'home',
-  'imac',
-  'info',
-  'keyboard',
-  'like',
-  'link',
-  'location',
-  'lock',
-  'max-window',
-  'me',
-  'mike',
-  'mike2',
-  'mobile-contacts',
-  'more',
-  'more2',
-  'mosaic',
-  'music-off',
-  'music',
-  'note',
-  'pad',
-  'pause',
-  'pencil',
-  'photo-wall',
-  'play',
-  'play2',
-  'previous',
-  'previous2',
-  'qr-code',
-  'refresh',
-  'report-problem',
-  'search',
-  'sending',
-  'setting',
-  'share',
-  'shop',
-  'star',
-  'sticker',
-  'tag',
-  'text',
-  'time',
-  'transfer-text',
-  'transfer2',
-  'translate',
-  'tv',
-  'video-call',
-  'voice',
-  'volume-down',
-  'volume-off',
-  'volume-up',
+  "add-friends",
+  "add",
+  "add2",
+  "album",
+  "arrow",
+  "at",
+  "back",
+  "back2",
+  "bellring-off",
+  "bellring-on",
+  "camera",
+  "cellphone",
+  "clip",
+  "close",
+  "close2",
+  "comment",
+  "contacts",
+  "copy",
+  "delete-on",
+  "delete",
+  "discover",
+  "display",
+  "done",
+  "done2",
+  "download",
+  "email",
+  "error",
+  "eyes-off",
+  "eyes-on",
+  "folder",
+  "group-detail",
+  "help",
+  "home",
+  "imac",
+  "info",
+  "keyboard",
+  "like",
+  "link",
+  "location",
+  "lock",
+  "max-window",
+  "me",
+  "mike",
+  "mike2",
+  "mobile-contacts",
+  "more",
+  "more2",
+  "mosaic",
+  "music-off",
+  "music",
+  "note",
+  "pad",
+  "pause",
+  "pencil",
+  "photo-wall",
+  "play",
+  "play2",
+  "previous",
+  "previous2",
+  "qr-code",
+  "refresh",
+  "report-problem",
+  "search",
+  "sending",
+  "setting",
+  "share",
+  "shop",
+  "star",
+  "sticker",
+  "tag",
+  "text",
+  "time",
+  "transfer-text",
+  "transfer2",
+  "translate",
+  "tv",
+  "video-call",
+  "voice",
+  "volume-down",
+  "volume-off",
+  "volume-up",
 ];
 
 export enum typeEnum {
-  MiniProgram = 'miniProgram',
-  Other = 'other',
+  MiniProgram = "miniProgram",
+  Other = "other",
 }
 // Legacy interface for backward compatibility
 export interface promptExtra {
@@ -107,7 +107,7 @@ interface ProjectModel {
   id?: string;
   name: string;
   description: string;
-  type: 'web' | 'mobile' | 'iot' | 'desktop';
+  type: "web" | "mobile" | "iot" | "desktop";
   analysisResultModel?: {
     development?: {
       configs?: {
@@ -128,7 +128,7 @@ interface ProjectModel {
           authentication?: boolean;
           authorization?: boolean;
           paymentIntegration?: boolean;
-          [key: string]: boolean | string;
+          [key: string]: any;
         };
       };
     };
@@ -161,7 +161,7 @@ const getExtraPrompt = (
   if (type === typeEnum.MiniProgram) {
     promptArr.push(
       `IMPORTANT: For any place that uses images, implement using weui's icon library, usage example: <we-icon type="field" icon="add" color="black" size="{{24}}"></we-icon>, size must be 24px, where icon can only be ${iconName.join(
-        ','
+        ","
       )}, please choose appropriate icon based on the scenario`
     );
     promptArr.push(
@@ -179,17 +179,17 @@ const getExtraPrompt = (
   if (extra) {
     // Check if it's the new ProjectModel or legacy promptExtra
     const ret =
-      'analysisResultModel' in extra
+      "analysisResultModel" in extra
         ? resolveProjectConfig(extra as ProjectModel)
         : resolveExtra(extra as promptExtra);
     promptArr.unshift(...ret);
   }
 
-  let prompt = '';
+  let prompt = "";
   for (let index = 0; index < promptArr.length; index++) {
     prompt += `${index + startNum}. ${promptArr[index]}\n`;
   }
-  console.log(prompt, 'prompt');
+  console.log(prompt, "prompt");
   return prompt;
 };
 
@@ -197,29 +197,33 @@ const getExtraPrompt = (
 function resolveExtra(extra: promptExtra) {
   const promptArr = [];
   if (extra.isBackEnd) {
-    promptArr.push('IMPORTANT: You must generate backend code, do not only generate frontend code');
-    promptArr.push('IMPORTANT: Backend must handle CORS for all domains');
-    let language = (extra.backendLanguage || 'java').toLocaleLowerCase();
-    if (language == '') {
-      language = 'java';
+    promptArr.push(
+      "IMPORTANT: You must generate backend code, do not only generate frontend code"
+    );
+    promptArr.push("IMPORTANT: Backend must handle CORS for all domains");
+    let language = (extra.backendLanguage || "java").toLocaleLowerCase();
+    if (language == "") {
+      language = "java";
     }
     const backPromptArr = backendLanguageFunctionRegister[language](extra); //Strategy pattern backend execution
     promptArr.push(...backPromptArr);
 
-    if (extra.extra['isOpenDataBase'] ?? false) {
-      let database = (extra.extra['database'] ?? 'mysql').toLocaleLowerCase();
-      if (database == '') {
-        database = 'mysql';
+    if (extra.extra["isOpenDataBase"] ?? false) {
+      let database = (extra.extra["database"] ?? "mysql").toLocaleLowerCase();
+      if (database == "") {
+        database = "mysql";
       }
       const databasePromptArr = databaseeFunctionRegister[database](extra); //Strategy pattern database execution
       promptArr.push(...databasePromptArr);
     } else {
-      promptArr.push('IMPORTANT: Backend does not need database, use Map for storage');
+      promptArr.push(
+        "IMPORTANT: Backend does not need database, use Map for storage"
+      );
     }
-    if (extra.extra['isOpenCache'] ?? false) {
-      let cache = extra.extra['cache'] ?? 'redis';
-      if (cache == '') {
-        cache = 'redis';
+    if (extra.extra["isOpenCache"] ?? false) {
+      let cache = extra.extra["cache"] ?? "redis";
+      if (cache == "") {
+        cache = "redis";
       }
       const cachePromptArr = cacheFunctionRegister[cache](extra); //Strategy pattern cache execution
       promptArr.push(...cachePromptArr);
@@ -229,7 +233,7 @@ function resolveExtra(extra: promptExtra) {
       `IMPORTANT: Write the defined interfaces into a json file named api.json, json (URL with complete ip+port) format as {"id":"root","name":"APICollection","type":"folder","children":[{"id":"folder-1","type":"folder","name":""//folder name,"children":[{"id":"1","type":"api","name":"","method":"",//GET"url":"","headers":[{"key":"","value":""}],"query":[{"key":"","value":""}],"cookies":[{"key":"","value":""}]},{"id":"2","type":"api","name":"",//API name"method":"",//POSTorPUTorDELETE"url":"","headers":[{"key":"","value":""}],"query":[{"key":"","value":""}],"cookies":[{"key":"","value":""}],"bodyType":"",//jsonorformDataorurlencodedorrawornoneorbinary"body":{"none":"","formData":[],"urlencoded":[],"raw":"","json":{},"binary":null}}]}]}`
     );
     promptArr.push(
-      'IMPORTANT: Use localhost for backend address, do not use remote ip addresses, especially not database ones, connect frontend to backend, abstract frontend-backend interface connections into an api.js, and separate frontend and backend files, put frontend files under src, package.json in current directory, backend files in backend directory.'
+      "IMPORTANT: Use localhost for backend address, do not use remote ip addresses, especially not database ones, connect frontend to backend, abstract frontend-backend interface connections into an api.js, and separate frontend and backend files, put frontend files under src, package.json in current directory, backend files in backend directory."
     );
   }
   return promptArr;
@@ -250,16 +254,22 @@ function resolveProjectConfig(project: ProjectModel) {
 
   // Backend configuration
   if (backendConfig && backendConfig.language) {
-    promptArr.push('IMPORTANT: You must generate backend code, do not only generate frontend code');
-    promptArr.push('IMPORTANT: Backend must handle CORS for all domains');
+    promptArr.push(
+      "IMPORTANT: You must generate backend code, do not only generate frontend code"
+    );
+    promptArr.push("IMPORTANT: Backend must handle CORS for all domains");
 
     promptArr.push(
       `IMPORTANT: Use ${backendConfig.language} as the backend language with ${backendConfig.framework} framework.`
     );
-    promptArr.push(`IMPORTANT: Implement ${backendConfig.apiType} API endpoints.`);
+    promptArr.push(
+      `IMPORTANT: Implement ${backendConfig.apiType} API endpoints.`
+    );
 
     if (backendConfig.orm) {
-      promptArr.push(`IMPORTANT: Use ${backendConfig.orm} as ORM for database operations.`);
+      promptArr.push(
+        `IMPORTANT: Use ${backendConfig.orm} as ORM for database operations.`
+      );
     }
 
     // Backend features
@@ -267,12 +277,16 @@ function resolveProjectConfig(project: ProjectModel) {
     if (backendFeatures) {
       if (Array.isArray(backendFeatures)) {
         backendFeatures.forEach((feature) => {
-          promptArr.push(`IMPORTANT: Implement ${feature} functionality in the backend.`);
+          promptArr.push(
+            `IMPORTANT: Implement ${feature} functionality in the backend.`
+          );
         });
       } else {
         Object.entries(backendFeatures).forEach(([feature, enabled]) => {
           if (enabled) {
-            promptArr.push(`IMPORTANT: Implement ${feature} functionality in the backend.`);
+            promptArr.push(
+              `IMPORTANT: Implement ${feature} functionality in the backend.`
+            );
           }
         });
       }
@@ -280,24 +294,32 @@ function resolveProjectConfig(project: ProjectModel) {
   }
 
   // Database configuration
-  if (databaseConfig && databaseConfig.provider && databaseConfig.provider !== 'none') {
+  if (
+    databaseConfig &&
+    databaseConfig.provider &&
+    databaseConfig.provider !== "none"
+  ) {
     const databasePromptArr =
-      databaseeFunctionRegister[databaseConfig.provider.toLowerCase()]?.(project) || [];
+      databaseeFunctionRegister[databaseConfig.provider.toLowerCase()]?.(
+        project
+      ) || [];
     promptArr.push(...databasePromptArr);
   } else {
-    promptArr.push('IMPORTANT: Backend does not need database, use Map for storage');
+    promptArr.push(
+      "IMPORTANT: Backend does not need database, use Map for storage"
+    );
   }
 
   // Project configuration features
   if (projectConfig) {
     if (projectConfig.authentication) {
-      promptArr.push('IMPORTANT: Implement user authentication system.');
+      promptArr.push("IMPORTANT: Implement user authentication system.");
     }
     if (projectConfig.authorization) {
-      promptArr.push('IMPORTANT: Implement role-based authorization system.');
+      promptArr.push("IMPORTANT: Implement role-based authorization system.");
     }
     if (projectConfig.paymentIntegration) {
-      promptArr.push('IMPORTANT: Implement payment integration functionality.');
+      promptArr.push("IMPORTANT: Implement payment integration functionality.");
     }
   }
 
@@ -305,7 +327,7 @@ function resolveProjectConfig(project: ProjectModel) {
     `IMPORTANT: Write the defined interfaces into a json file named api.json, json (URL with complete ip+port) format as {"id":"root","name":"APICollection","type":"folder","children":[{"id":"folder-1","type":"folder","name":""//folder name,"children":[{"id":"1","type":"api","name":"","method":"",//GET"url":"","headers":[{"key":"","value":""}],"query":[{"key":"","value":""}],"cookies":[{"key":"","value":""}]},{"id":"2","type":"api","name":"",//API name"method":"",//POSTorPUTorDELETE"url":"","headers":[{"key":"","value":""}],"query":[{"key":"","value":""}],"cookies":[{"key":"","value":""}],"bodyType":"",//jsonorformDataorurlencodedorrawornoneorbinary"body":{"none":"","formData":[],"urlencoded":[],"raw":"","json":{},"binary":null}}]}]}`
   );
   promptArr.push(
-    'IMPORTANT: Use localhost for backend address, do not use remote ip addresses, especially not database ones, connect frontend to backend, abstract frontend-backend interface connections into an api.js, and separate frontend and backend files, put frontend files under src, package.json in current directory, backend files in backend directory.'
+    "IMPORTANT: Use localhost for backend address, do not use remote ip addresses, especially not database ones, connect frontend to backend, abstract frontend-backend interface connections into an api.js, and separate frontend and backend files, put frontend files under src, package.json in current directory, backend files in backend directory."
   );
 
   return promptArr;
@@ -373,7 +395,7 @@ When modifying the code, the output must be in the following format! ! ! ! empha
 <message_formatting_info>
   You can make the output pretty by using only the following available HTML elements: ${allowedHTMLElements
     .map((tagName) => `<${tagName}>`)
-    .join(', ')}
+    .join(", ")}
 </message_formatting_info>
 
 <diff_spec>

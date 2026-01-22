@@ -14,13 +14,13 @@ export function FileContextMenu({ x, y, path, onClose, onRename, onDelete }: Fil
     {
       label: 'Rename',
       icon: Pencil,
-      onClick: onRename,
+      onClick: onRename
     },
     {
       label: 'Delete',
       icon: Trash2,
-      onClick: onDelete,
-    },
+      onClick: onDelete
+    }
   ];
 
   return (
@@ -29,7 +29,7 @@ export function FileContextMenu({ x, y, path, onClose, onRename, onDelete }: Fil
       style={{
         position: 'absolute',
         left: x,
-        top: y,
+        top: y
       }}
     >
       <div className="px-3 py-1.5 text-[13px] text-gray-400 border-b border-[#454545] flex items-center">

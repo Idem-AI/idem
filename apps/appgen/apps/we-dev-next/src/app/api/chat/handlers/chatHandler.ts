@@ -1,67 +1,66 @@
-import { Messages, StreamingOptions, streamTextFn } from '../action';
-import { CONTINUE_PROMPT, ToolInfo } from '../prompt';
-import SwitchableStream from '../switchable-stream';
-// TODO: Re-enable tool imports when fixing tool handling for ai v6.0.26
-// import { tool } from 'ai';
-// import { jsonSchemaToZodSchema } from '@/app/api/chat/utils/json2zod';
+import {v4 as uuidv4} from "uuid"
+import {Messages, StreamingOptions, streamTextFn} from "../action"
+import {CONTINUE_PROMPT, ToolInfo} from "../prompt"
+import {deductUserTokens, estimateTokens} from "@/utils/tokens"
+import SwitchableStream from "../switchable-stream"
+import {tool} from "ai";
+import {jsonSchemaToZodSchema} from "@/app/api/chat/utils/json2zod";
+
 
 const MAX_RESPONSE_SEGMENTS = 2;
 
 export async function handleChatMode(
-  messages: Messages,
-  model: string,
-  _userId: string | null,
-  _tools?: ToolInfo[]
+    messages: Messages,
+    model: string,
+    userId: string | null,
+    tools?: ToolInfo[],
 ): Promise<Response> {
-  const switchableStream = new SwitchableStream();
-  // TODO: Fix tool handling for ai v6.0.26 - temporarily disabled
-  const toolList = {};
-  const options: StreamingOptions = {
-    tools: toolList,
-    onError: (error) => {
-      const msg = error?.error;
-      throw new Error(`${msg || JSON.stringify(error)}`);
-    },
-    onFinish: async (response) => {
-      const { text: content, finishReason } = response;
+    const stream = new SwitchableStream()
+    let toolList = {};
+    if (tools && tools.length > 0) {
+        toolList = tools.reduce((obj, {name, ...args}) => {
+            obj[name] = tool({
+                id: args.id,
+                description: args.description,
+                parameters: jsonSchemaToZodSchema(args.parameters),
+                execute: async (input: any) => {
+                    return input;
+                }
+            });
+            return obj;
+        }, {}); 
+    }
+    const options: StreamingOptions = {
+        tools: toolList,
+        toolCallStreaming: true,
+        onError: (error: any) => {
+            const uuid = uuidv4()
+            const msg = error?.errors?.[0]?.responseBody;
+            throw new Error(`${msg || JSON.stringify(error)} logid ${uuid}`)
+        },
+        onFinish: async (response) => {
+            const {text: content, finishReason} = response
 
-      if (finishReason !== 'length') {
-        return switchableStream.close();
-      }
+            if (finishReason !== "length") {
+                const tokens = estimateTokens(content)
+                if (userId) {
+                    await deductUserTokens(userId, tokens)
+                }
+                return stream.close()
+            }
 
-      if (switchableStream.switches >= MAX_RESPONSE_SEGMENTS) {
-        throw Error('Cannot continue message: Maximum segments reached');
-      }
+            if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
+                throw Error("Cannot continue message: Maximum segments reached")
+            }
 
-      messages.push({ role: 'assistant', content });
-      messages.push({ role: 'user', content: CONTINUE_PROMPT });
-    },
-  };
+            messages.push({id: uuidv4(), role: "assistant", content})
+            messages.push({id: uuidv4(), role: "user", content: CONTINUE_PROMPT})
+        },
 
-  const result = streamTextFn(messages, options, model);
+    }
 
-  // Create a data stream format compatible with AI React client
-  const encoder = new TextEncoder();
-  const responseStream = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of result.textStream) {
-          // Format as data stream part with separator for AI React client
-          const dataChunk = `0:${JSON.stringify(chunk)}\n`;
-          controller.enqueue(encoder.encode(dataChunk));
-        }
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-  });
-
-  return new Response(responseStream, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    },
-  });
+    const result = await streamTextFn(messages, options, model)
+    return result.toDataStreamResponse({
+        sendReasoning: true,
+    })
 }
