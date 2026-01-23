@@ -1,25 +1,19 @@
-import { createOpenAI } from "@ai-sdk/openai";
-import { z } from "zod";
-import {
-  streamText as _streamText,
-  convertToCoreMessages,
-  generateObject,
-} from "ai";
+import { createOpenAI } from '@ai-sdk/openai';
+import { z } from 'zod';
+import { streamText as _streamText, convertToCoreMessages, generateObject } from 'ai';
 
-import type { LanguageModel, Message } from "ai";
-import { modelConfig } from "../model/config";
-import { createDeepSeek } from "@ai-sdk/deepseek";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import type { LanguageModel, Message } from 'ai';
+import { modelConfig, getDefaultModelKey } from '../model/config';
+import { createDeepSeek } from '@ai-sdk/deepseek';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export const MAX_TOKENS = 59000;
 
-export type StreamingOptions = Omit<Parameters<typeof _streamText>[0], "model">;
+export type StreamingOptions = Omit<Parameters<typeof _streamText>[0], 'model'>;
 let initOptions = {};
 export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
-  const provider = modelConfig.find(
-    (item) => item.modelKey === model
-  )?.provider;
-  if (provider === "gemini") {
+  const provider = modelConfig.find((item) => item.modelKey === model)?.provider;
+  if (provider === 'gemini') {
     const gemini = createGoogleGenerativeAI({
       apiKey,
       baseURL,
@@ -27,7 +21,7 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
     initOptions = {};
     return gemini(model);
   }
-  if (provider === "deepseek") {
+  if (provider === 'deepseek') {
     const deepseek = createDeepSeek({
       apiKey,
       baseURL,
@@ -35,13 +29,13 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
     initOptions = {};
     return deepseek(model);
   }
-  if (provider.indexOf("claude") > -1) {
+  if (provider.indexOf('claude') > -1) {
     const openai = createOpenAI({
       apiKey,
       baseURL,
     });
     initOptions = {
-      maxTokens: provider.indexOf("claude-3-7-sonnet") > -1 ? 128000 : 8192,
+      maxTokens: provider.indexOf('claude-3-7-sonnet') > -1 ? 128000 : 8192,
     };
     return openai(model);
   }
@@ -54,7 +48,7 @@ export type Messages = Message[];
 const defaultModel = getOpenAIModel(
   process.env.THIRD_API_URL,
   process.env.THIRD_API_KEY,
-  "gemini-2.5-flash"
+  getDefaultModelKey()
 ) as LanguageModel;
 
 export async function generateObjectFn(messages: Messages) {
@@ -62,7 +56,7 @@ export async function generateObjectFn(messages: Messages) {
     model: getOpenAIModel(
       process.env.THIRD_API_URL,
       process.env.THIRD_API_KEY,
-      "gemini-2.5-flash"
+      getDefaultModelKey()
     ) as LanguageModel,
     schema: z.object({
       files: z.array(z.string()),
@@ -71,27 +65,20 @@ export async function generateObjectFn(messages: Messages) {
   });
 }
 
-export function streamTextFn(
-  messages: Messages,
-  options?: StreamingOptions,
-  modelKey?: string
-) {
+export function streamTextFn(messages: Messages, options?: StreamingOptions, modelKey?: string) {
   console.log(`Attempting to use model: ${modelKey}`);
-  console.log(`Available models: ${modelConfig.map(m => m.modelKey).join(', ')}`);
-  
+  console.log(`Available models: ${modelConfig.map((m) => m.modelKey).join(', ')}`);
+
   const modelConf = modelConfig.find((item) => item.modelKey === modelKey);
 
   if (!modelConf) {
     throw new Error(`Model configuration not found for model: ${modelKey}`);
   }
 
-  const {
-    apiKey = process.env.THIRD_API_KEY,
-    apiUrl = process.env.THIRD_API_URL,
-  } = modelConf;
+  const { apiKey = process.env.THIRD_API_KEY, apiUrl = process.env.THIRD_API_URL } = modelConf;
   const model = getOpenAIModel(apiUrl, apiKey, modelKey) as LanguageModel;
   const newMessages = messages.map((item) => {
-    if (item.role === "assistant") {
+    if (item.role === 'assistant') {
       delete item.parts;
     }
     return item;

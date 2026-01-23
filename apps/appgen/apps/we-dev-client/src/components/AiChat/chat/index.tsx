@@ -97,6 +97,69 @@ export interface IModelOption {
   functionCall?: boolean;
 }
 
+// Interface pour la configuration des modèles depuis l'API
+interface ModelConfig {
+  modelName: string;
+  modelKey: string;
+  useImage: boolean;
+  description?: string;
+  provider?: string;
+  functionCall: boolean;
+}
+
+// Fonction pour convertir ModelConfig en IModelOption
+function convertModelConfigToOption(config: ModelConfig): IModelOption {
+  return {
+    value: config.modelKey,
+    label: config.modelName,
+    useImage: config.useImage,
+    quota: 2, // Valeur par défaut
+    from: 'api',
+    provider: config.provider,
+    functionCall: config.functionCall,
+  };
+}
+
+// Fonction pour récupérer la configuration des modèles depuis l'API
+async function fetchModelConfig(): Promise<IModelOption[]> {
+  try {
+    const response = await fetch(`${process.env.REACT_APP_NEXT_API_BASE_URL}/api/model/config`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch model config');
+    }
+    const configs: ModelConfig[] = await response.json();
+    return configs.map(convertModelConfigToOption);
+  } catch (error) {
+    console.error('Error fetching model config:', error);
+    // Fallback vers la configuration par défaut
+    return [
+      {
+        value: ModelTypes.Gemini25Flash,
+        label: 'Gemini 2.5 Flash',
+        useImage: true,
+        from: 'default',
+        quota: 2,
+        functionCall: true,
+      },
+    ];
+  }
+}
+
+// Fonction pour récupérer le modèle par défaut depuis l'API
+async function fetchDefaultModel(): Promise<string> {
+  try {
+    const response = await fetch(`${process.env.REACT_APP_NEXT_API_BASE_URL}/api/model/default`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch default model');
+    }
+    const data = await response.json();
+    return data.defaultModel || ModelTypes.Gemini25Flash;
+  } catch (error) {
+    console.error('Error fetching default model:', error);
+    return ModelTypes.Gemini25Flash;
+  }
+}
+
 function convertToBoltAction(obj: Record<string, string>): string {
   return Object.entries(obj)
     .filter(([filePath]) => !excludeFiles.includes(filePath))
@@ -122,6 +185,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     quota: 2,
     functionCall: true,
   });
+  const [availableModels, setAvailableModels] = useState<IModelOption[]>([]);
   const {
     files,
     isFirstSend,
@@ -155,21 +219,51 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   const updateConvertToBoltAction = convertToBoltAction(filesUpdateObj);
 
-  // use ollama model to get model list
+  // Charger la configuration des modèles depuis l'API
   useEffect(() => {
-    fetch(`${API_BASE}/api/model`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setModelOptions(data);
-      })
-      .catch((error) => {
-        console.error('Failed to fetch model list:', error);
-      });
+    const loadModelConfiguration = async () => {
+      try {
+        // Récupérer la liste des modèles disponibles
+        const models = await fetchModelConfig();
+        setAvailableModels(models);
+        setModelOptions(models);
+
+        // Récupérer le modèle par défaut
+        const defaultModelKey = await fetchDefaultModel();
+
+        // Trouver le modèle par défaut dans la liste
+        const defaultModel = models.find((model) => model.value === defaultModelKey);
+        if (defaultModel) {
+          setBaseModal(defaultModel);
+          console.log(`Default model set to: ${defaultModel.label} (${defaultModel.value})`);
+        } else {
+          console.warn(
+            `Default model ${defaultModelKey} not found in available models, using first available`
+          );
+          if (models.length > 0) {
+            setBaseModal(models[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load model configuration:', error);
+        // Fallback vers l'ancienne méthode Ollama si la nouvelle échoue
+        fetch(`${API_BASE}/api/model`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            setModelOptions(data);
+          })
+          .catch((ollamaError) => {
+            console.error('Failed to fetch Ollama model list:', ollamaError);
+          });
+      }
+    };
+
+    loadModelConfiguration();
   }, []);
 
   useEffect(() => {
