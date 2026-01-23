@@ -77,7 +77,7 @@ export interface ProjectModel {
         name: string;
         type: string;
         summary: string;
-        data?: Record<string, string>;
+        data?: Record<string, unknown>;
       }>;
     };
   };

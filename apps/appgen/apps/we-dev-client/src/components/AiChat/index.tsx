@@ -1,10 +1,11 @@
-import { ConfigProvider, theme } from 'antd';
-import { BaseChat } from './chat';
-import { ChatMode } from '@/types/chat';
-import useChatModeStore from '@/stores/chatModeSlice';
+import { ConfigProvider, theme } from "antd";
+import { BaseChat } from "./chat";
+import { ChatMode } from "@/types/chat";
+import useChatModeStore from "@/stores/chatModeSlice";
 
 const Independent: React.FC = () => {
   const { mode, initOpen } = useChatModeStore();
+
 
   return (
     <ConfigProvider
@@ -17,7 +18,7 @@ const Independent: React.FC = () => {
           initOpen ? 'flex items-center justify-center' : ''
         }`}
         style={{
-          width: `${mode === ChatMode.Builder && !initOpen ? '400px' : '100%'}`,
+          width: `${mode === ChatMode.Builder && !initOpen ? "400px" : "100%"}`,
         }}
       >
         <BaseChat />

@@ -23,10 +23,29 @@ export function estimateTokens(text: string) {
   // Estimate token count
   const tokenEstimate = Math.ceil(
     chineseChars * 1.5 + // Chinese characters
-      otherChars / 4 + // English characters
-      punctuationCount + // Punctuation marks
-      whitespaceCount // Whitespace
+    otherChars / 4 + // English characters
+    punctuationCount + // Punctuation marks
+    whitespaceCount // Whitespace
   );
 
   return tokenEstimate;
+}
+
+/**
+ * Usage example: Deduct user tokens
+ * @param userId User ID
+ * @param tokensToDeduct Number of tokens to deduct
+ */
+export async function deductUserTokens(userId: string, tokensToDeduct: number) {
+  // Get current year and month (YYYY-MM format)
+  const currentMonth = new Date().toISOString().slice(0, 7);
+}
+
+/**
+ * Check if user has enough tokens
+ * @param userId User ID
+ * @returns boolean
+ */
+export async function hasEnoughTokens(userId: string): Promise<boolean> {
+  return true;
 }

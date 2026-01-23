@@ -1,4 +1,4 @@
-import { createMDX } from 'fumadocs-mdx/next';
+import { createMDX } from "fumadocs-mdx/next";
 import nextIntlPlugin from 'next-intl/plugin';
 
 const withMDX = createMDX();
@@ -7,26 +7,23 @@ const withNextIntl = nextIntlPlugin('./i18n.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: "/:path*",
         headers: [
           {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
+            key: "Access-Control-Allow-Origin",
+            value: "*",
           },
           {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+            key: "Access-Control-Allow-Methods",
+            value: "GET,OPTIONS,PATCH,DELETE,POST,PUT",
           },
           {
-            key: 'Access-Control-Allow-Headers',
+            key: "Access-Control-Allow-Headers",
             value:
-              'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version',
+              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
           },
         ],
       },
@@ -35,8 +32,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: '/api/:path*',
+        source: "/api/:path*",
+        destination: "/api/:path*",
       },
     ];
   },

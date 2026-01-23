@@ -6,8 +6,7 @@
     "dev:next": "cd apps/we-dev-next && pnpm install && pnpm dev",
     "dev:admin": "cd apps/we-dev-admin && pnpm install && pnpm dev",
     "dev:client": "cd apps/we-dev-client  && pnpm dev",
-    "build:client": "cd apps/we-dev-client && pnpm build",
-    "build:next": "cd apps/we-dev-next && pnpm build"
+    "build:client": "cd apps/we-dev-client && pnpm builds"
   },
   "dependencies": {
     "fabric": "^6.5.4",

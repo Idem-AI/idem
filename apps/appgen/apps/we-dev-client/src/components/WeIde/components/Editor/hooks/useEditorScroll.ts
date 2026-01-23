@@ -1,12 +1,15 @@
-import { useEffect, useRef } from 'react';
-import { EditorView } from '@codemirror/view';
+import { useEffect, useRef } from "react";
+import { EditorView } from "@codemirror/view";
 
 interface UseEditorScrollProps {
   view: EditorView | undefined;
   fileContent: string;
 }
 
-export const useEditorScroll = ({ view, fileContent }: UseEditorScrollProps) => {
+export const useEditorScroll = ({
+  view,
+  fileContent,
+}: UseEditorScrollProps) => {
   const userScrolledUpRef = useRef(false);
   const prevContentRef = useRef(fileContent);
 
@@ -15,11 +18,13 @@ export const useEditorScroll = ({ view, fileContent }: UseEditorScrollProps) => 
 
     const scroller = view.scrollDOM;
     const handleScroll = () => {
-      const isNearBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 100;
+      const isNearBottom =
+        scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <
+        100;
       userScrolledUpRef.current = !isNearBottom;
     };
 
-    scroller.addEventListener('scroll', handleScroll);
+    scroller.addEventListener("scroll", handleScroll);
 
     view.dispatch({
       changes: {
@@ -30,7 +35,9 @@ export const useEditorScroll = ({ view, fileContent }: UseEditorScrollProps) => 
     });
 
     if (fileContent.length > prevContentRef.current.length) {
-      const isNearBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 300;
+      const isNearBottom =
+        scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <
+        300;
 
       if (isNearBottom && !userScrolledUpRef.current) {
         scroller.scrollTop = scroller.scrollHeight;
@@ -38,7 +45,7 @@ export const useEditorScroll = ({ view, fileContent }: UseEditorScrollProps) => 
     }
 
     prevContentRef.current = fileContent;
-    return () => scroller.removeEventListener('scroll', handleScroll);
+    return () => scroller.removeEventListener("scroll", handleScroll);
   }, [fileContent, view]);
 
   return {

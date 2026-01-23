@@ -1,6 +1,7 @@
 import { useFileStore } from '@/components/WeIde/stores/fileStore';
 import { useState, useCallback, useMemo } from 'react';
 
+
 interface SearchMatch {
   path: string;
   matches: Array<{
@@ -31,7 +32,7 @@ export function useFileSearch() {
           matches.push({
             line: lineIndex + 1,
             content: line.trim(),
-            index,
+            index
           });
           index = line.toLowerCase().indexOf(query, index + 1);
         }
@@ -45,8 +46,8 @@ export function useFileSearch() {
     return results;
   }, [files, searchQuery]);
 
-  const totalMatches = useMemo(
-    () => searchResults.reduce((total, result) => total + result.matches.length, 0),
+  const totalMatches = useMemo(() => 
+    searchResults.reduce((total, result) => total + result.matches.length, 0),
     [searchResults]
   );
 
@@ -55,20 +56,17 @@ export function useFileSearch() {
     setCurrentMatchIndex(0);
   }, []);
 
-  const navigateMatch = useCallback(
-    (direction: 'prev' | 'next') => {
-      if (totalMatches === 0) return;
+  const navigateMatch = useCallback((direction: 'prev' | 'next') => {
+    if (totalMatches === 0) return;
 
-      setCurrentMatchIndex((current) => {
-        if (direction === 'next') {
-          return (current + 1) % totalMatches;
-        } else {
-          return (current - 1 + totalMatches) % totalMatches;
-        }
-      });
-    },
-    [totalMatches]
-  );
+    setCurrentMatchIndex(current => {
+      if (direction === 'next') {
+        return (current + 1) % totalMatches;
+      } else {
+        return (current - 1 + totalMatches) % totalMatches;
+      }
+    });
+  }, [totalMatches]);
 
   return {
     searchQuery,
@@ -76,6 +74,6 @@ export function useFileSearch() {
     currentMatchIndex,
     totalMatches,
     handleSearch,
-    navigateMatch,
+    navigateMatch
   };
 }
