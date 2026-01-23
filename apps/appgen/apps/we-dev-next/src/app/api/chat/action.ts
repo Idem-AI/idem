@@ -13,7 +13,7 @@ export type StreamingOptions = Omit<Parameters<typeof _streamText>[0], 'model'>;
 let initOptions = {};
 export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
   const provider = modelConfig.find((item) => item.modelKey === model)?.provider;
-  if (provider === 'gemini') {
+  if (provider === 'gemini' || provider === 'google') {
     const gemini = createGoogleGenerativeAI({
       apiKey,
       baseURL,
@@ -39,8 +39,19 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string) {
     };
     return openai(model);
   }
+  if (provider === 'openai') {
+    const openai = createOpenAI({
+      apiKey,
+      baseURL,
+    });
+    initOptions = {};
+    return openai(model);
+  }
 
-  throw new Error(`Provider not found for model: ${model}`);
+  const availableProviders = ['gemini', 'google', 'deepseek', 'claude', 'openai'];
+  throw new Error(
+    `Provider "${provider}" not found for model: ${model}. Available providers: ${availableProviders.join(', ')}. Please check your AI_MODELS_CONFIG.`
+  );
 }
 
 export type Messages = Message[];
