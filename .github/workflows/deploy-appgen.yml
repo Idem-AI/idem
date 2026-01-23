@@ -85,6 +85,8 @@ jobs:
             
             # Determine environment and deploy
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+
+              cd /root/application/
               # Production deployment
               COMPOSE_FILE="docker-compose.prod.yml"
               SERVICE_NAME="idem-webgen"

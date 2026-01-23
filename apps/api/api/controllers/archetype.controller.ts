@@ -120,7 +120,7 @@ export const getArchetypeByIdController = async (
   logger.info(`Retrieving archetype: ${archetypeId}`);
 
   try {
-    const archetype = await archetypeService.getArchetypeById(archetypeId);
+    const archetype = await archetypeService.getArchetypeById(archetypeId as string);
 
     if (!archetype) {
       logger.warn(`Archetype not found: ${archetypeId}`);
@@ -180,7 +180,7 @@ export const updateArchetypeController = async (
   logger.info(`Updating archetype: ${archetypeId}`);
 
   try {
-    const archetype = await archetypeService.updateArchetype(archetypeId, payload);
+    const archetype = await archetypeService.updateArchetype(archetypeId as string, payload);
 
     if (!archetype) {
       logger.warn(`Archetype not found for update: ${archetypeId}`);
@@ -240,7 +240,7 @@ export const deleteArchetypeController = async (
   logger.info(`Deleting archetype: ${archetypeId}`);
 
   try {
-    const deleted = await archetypeService.deleteArchetype(archetypeId);
+    const deleted = await archetypeService.deleteArchetype(archetypeId as string);
 
     if (!deleted) {
       logger.warn(`Archetype not found for deletion: ${archetypeId}`);
@@ -344,7 +344,7 @@ export const getArchetypesByCategoryController = async (
   logger.info(`Retrieving archetypes by category: ${category}`);
 
   try {
-    const archetypes = await archetypeService.getArchetypesByCategory(category);
+    const archetypes = await archetypeService.getArchetypesByCategory(category as string);
 
     logger.info(`Retrieved ${archetypes.length} archetypes for category ${category}`);
 
@@ -393,7 +393,7 @@ export const generateTerraformTfvarsController = async (
 
   try {
     // Get the archetype
-    const archetype = await archetypeService.getArchetypeById(archetypeId);
+    const archetype = await archetypeService.getArchetypeById(archetypeId as string);
 
     if (!archetype) {
       logger.warn(`Archetype not found for tfvars generation:`, {

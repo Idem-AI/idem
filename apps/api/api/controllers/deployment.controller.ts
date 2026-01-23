@@ -33,7 +33,7 @@ export const ExecuteDeploymentController = async (
 
     logger.info(`Executing deployment for userId: ${userId}, deploymentId: ${deploymentId}`);
 
-    await deploymentService.executeDeployment(userId, deploymentId);
+    await deploymentService.executeDeployment(userId, deploymentId as string);
 
     res.status(200).json({
       success: true,
@@ -122,7 +122,7 @@ export const GetDeploymentsByProjectController = async (
 
     logger.info(`Getting deployments for userId: ${userId}, projectId: ${projectId}`);
 
-    const deployments = await deploymentService.getDeploymentsByProject(userId, projectId);
+    const deployments = await deploymentService.getDeploymentsByProject(userId, projectId as string);
 
     res.status(200).json(deployments);
   } catch (error: any) {
@@ -156,7 +156,7 @@ export const GetDeploymentByIdController = async (
 
     logger.info(`Getting deployment for userId: ${userId}, deploymentId: ${deploymentId}`);
 
-    const deployment = await deploymentService.getDeploymentById(userId, deploymentId);
+    const deployment = await deploymentService.getDeploymentById(userId, deploymentId as string);
 
     if (!deployment) {
       res.status(404).json({
@@ -199,7 +199,7 @@ export const UpdateDeploymentController = async (
 
     logger.info(`Updating deployment for userId: ${userId}, deploymentId: ${deploymentId}`);
 
-    const deployment = await deploymentService.updateDeployment(userId, deploymentId, updates);
+    const deployment = await deploymentService.updateDeployment(userId, deploymentId as string, updates);
 
     if (!deployment) {
       res.status(404).json({
@@ -245,7 +245,7 @@ export const DeleteDeploymentController = async (
 
     logger.info(`Deleting deployment for userId: ${userId}, deploymentId: ${deploymentId}`);
 
-    const success = await deploymentService.deleteDeployment(userId, deploymentId);
+    const success = await deploymentService.deleteDeployment(userId, deploymentId as string);
 
     if (!success) {
       res.status(404).json({
@@ -365,7 +365,7 @@ export const StartPipelineController = async (req: CustomRequest, res: Response)
 
     logger.info(`Starting pipeline for userId: ${userId}, deploymentId: ${deploymentId}`);
 
-    const deployment = await deploymentService.startDeploymentPipeline(userId, deploymentId);
+    const deployment = await deploymentService.startDeploymentPipeline(userId, deploymentId as string);
 
     if (!deployment) {
       res.status(404).json({
@@ -411,7 +411,7 @@ export const GetPipelineStatusController = async (
 
     logger.info(`Getting pipeline status for userId: ${userId}, deploymentId: ${deploymentId}`);
 
-    const deployment = await deploymentService.getDeploymentById(userId, deploymentId);
+    const deployment = await deploymentService.getDeploymentById(userId, deploymentId as string);
 
     if (!deployment) {
       res.status(404).json({
@@ -527,7 +527,7 @@ export const editTerraformTfvarsFileController = async (
     const updatedDeployment = await deploymentService.editTerraformTfvarsFile(
       userId,
       projectId,
-      deploymentId,
+      deploymentId as string,
       tfvarsFileContent
     );
 
@@ -625,7 +625,7 @@ export const ExecuteDeploymentStreamingController = async (
     // Appel au service avec le callback de streaming
     await deploymentService.executeDeploymentWithStreaming(
       userId,
-      deploymentId,
+      deploymentId as string,
       streamCallback // Passer le callback de streaming
     );
 
@@ -718,8 +718,8 @@ export const storeSensitiveVariablesController = async (
 
     const updatedDeployment = await deploymentService.storeSensitiveVariables(
       userId,
-      projectId,
-      deploymentId,
+      projectId as string,
+      deploymentId as string,
       sensitiveVariables
     );
 

@@ -56,7 +56,7 @@ export async function acceptInvitation(req: Request, res: Response): Promise<voi
 export async function rejectInvitation(req: Request, res: Response): Promise<void> {
   try {
     const { token } = req.params;
-    await invitationService.rejectInvitation(token);
+    await invitationService.rejectInvitation(token as string);
 
     res.status(200).json({ success: true, data: { message: 'Invitation rejected' } });
   } catch (error: any) {
@@ -82,7 +82,7 @@ export async function resendInvitation(req: CustomRequest, res: Response): Promi
     }
 
     const { invitationId } = req.params;
-    await invitationService.resendInvitation(invitationId);
+    await invitationService.resendInvitation(invitationId as string);
 
     res.status(200).json({ success: true, data: { message: 'Invitation resent' } });
   } catch (error: any) {
@@ -99,7 +99,7 @@ export async function resendInvitation(req: CustomRequest, res: Response): Promi
 export async function getInvitationByToken(req: Request, res: Response): Promise<void> {
   try {
     const { token } = req.params;
-    const invitation = await invitationService.findInvitationByToken(token);
+    const invitation = await invitationService.findInvitationByToken(token as string);
 
     if (!invitation) {
       res.status(404).json({

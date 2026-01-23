@@ -33,7 +33,7 @@ export const getBusinessPlansByProjectController = async (
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
-    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId);
+    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId as string);
     if (businessPlan) {
       logger.info(
         `Business plan fetched successfully for project - UserId: ${userId}, ProjectId: ${projectId}`
@@ -83,7 +83,7 @@ export const generateBusinessPlanPdfController = async (
     }
 
     // Générer le PDF à partir des sections du business plan
-    const pdfPath = await businessPlanService.generateBusinessPlanPdf(userId, projectId);
+    const pdfPath = await businessPlanService.generateBusinessPlanPdf(userId, projectId as string);
 
     if (pdfPath === '') {
       res.status(404).json({ message: 'No business plan found' });
@@ -136,7 +136,7 @@ export const getBusinessPlanByIdController = async (
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId);
+    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId as string);
     if (businessPlan) {
       logger.info(
         `Business plan fetched successfully - UserId: ${userId}, ProjectId: ${projectId}`
@@ -172,7 +172,7 @@ export const updateBusinessPlanController = async (
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    const item = await businessPlanService.updateBusinessPlan(userId, itemId, req.body);
+    const item = await businessPlanService.updateBusinessPlan(userId, itemId as string, req.body);
     if (item) {
       logger.info(`Business plan updated successfully - UserId: ${userId}, ItemId: ${itemId}`);
       res.status(200).json(item);
@@ -204,7 +204,7 @@ export const deleteBusinessPlanController = async (
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    await businessPlanService.deleteBusinessPlan(userId, itemId);
+    await businessPlanService.deleteBusinessPlan(userId, itemId as string);
     logger.info(`Business plan deleted successfully - UserId: ${userId}, ItemId: ${itemId}`);
     res.status(204).send();
   } catch (error: any) {
@@ -282,7 +282,7 @@ export const generateBusinessPlanStreamingController = async (
     // Appel au service avec le callback de streaming
     const updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
       userId,
-      projectId,
+      projectId as string,
       streamCallback // Passer le callback de streaming
     );
 
@@ -390,7 +390,7 @@ export const setAdditionalInfoController = async (
 
     const result = await businessPlanService.setAdditionalInfos(
       userId,
-      projectId,
+      projectId as string,
       additionalInfos,
       teamMemberImages
     );
