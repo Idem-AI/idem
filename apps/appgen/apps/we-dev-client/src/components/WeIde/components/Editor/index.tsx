@@ -1,9 +1,9 @@
-import { useFileStore } from '../../stores/fileStore';
-import { useEditorStore } from '../../stores/editorStore';
-import { useEditorSetup } from './hooks/useEditorSetup';
-import { useEditorScroll } from './hooks/useEditorScroll';
-import './styles/diff.css';
-import { useRef } from 'react';
+import { useFileStore } from "../../stores/fileStore";
+import { useEditorStore } from "../../stores/editorStore";
+import { useEditorSetup } from "./hooks/useEditorSetup";
+import { useEditorScroll } from "./hooks/useEditorScroll";
+import "./styles/diff.css";
+import { useRef } from "react";
 
 interface EditorProps {
   fileName: string;

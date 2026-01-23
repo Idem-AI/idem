@@ -108,7 +108,7 @@ export function HeaderActions() {
     if (choice === 'idem') {
       const idemUrl = process.env.REACT_APP_IDEM_MAIN_APP_URL;
       if (idemUrl) {
-        window.open(`${idemUrl}/deployments`, '_blank');
+        window.open(`${idemUrl}/console/deployments`, '_blank');
       } else {
         toast.error('REACT_APP_IDEM_MAIN_APP_URL not configured');
       }
@@ -119,7 +119,7 @@ export function HeaderActions() {
 
   const publishToNetlify = async () => {
     setIsDeploying(true);
-    const API_BASE = process.env.REACT_REACT_APP_BASE_URL;
+    const API_BASE = process.env.REACT_APP_NEXT_API_BASE_URL || 'http://localhost:3000';
 
     try {
       const webcontainer = await getWebContainerInstance();
@@ -148,11 +148,16 @@ export function HeaderActions() {
             body: formData,
           });
           const data = await response.json();
+          console.log('Deploy API response:', data);
 
           if (data.success) {
             setDeployUrl(data.url);
             setShowModal(true);
             toast.success(t('header.deploySuccess'));
+          } else {
+            console.error('Deploy failed:', data);
+            const errorMessage = data.message || 'Deployment failed';
+            toast.error(`Deployment failed: ${errorMessage}`);
           }
         } catch (error) {
           console.error('Failed to read dist directory:', error);

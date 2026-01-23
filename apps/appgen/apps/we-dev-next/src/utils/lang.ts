@@ -1,16 +1,16 @@
 export enum Language {
-  English = 'en',
-  'Chinese(Simplified)' = 'zh-CN',
+  English = "en",
+  "Chinese(Simplified)" = "zh-CN",
 }
 
 export const LanguageNativeNames: { name: string; locale: Language }[] = [
   {
-    name: 'English',
+    name: "English",
     locale: Language.English,
   },
   {
-    name: 'Simplified Chinese',
-    locale: Language['Chinese(Simplified)'],
+    name: "Simplified Chinese",
+    locale: Language["Chinese(Simplified)"],
   },
 ];
 

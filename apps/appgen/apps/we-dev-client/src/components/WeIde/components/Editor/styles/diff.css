@@ -8,6 +8,7 @@
   background-color: rgba(220, 53, 69, 0.15) !important;
 }
 
+
 .diff-marker {
   opacity: 0.6 !important;
   user-select: none !important;
@@ -23,6 +24,7 @@
   color: #2ecc71 !important;
   font-weight: bold !important;
 }
+
 
 .diff-hide {
   display: none !important;

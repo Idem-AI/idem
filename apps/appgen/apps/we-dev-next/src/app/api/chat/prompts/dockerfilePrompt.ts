@@ -1,13 +1,13 @@
-import { ProjectModel } from '../types/project';
+import { ProjectModel } from "../types/project";
 
 /**
  * Generate Dockerfile prompt based on project configuration
  */
 export function generateDockerfilePrompt(projectData: ProjectModel): string {
   const configs = projectData.analysisResultModel?.development?.configs;
-
+  
   if (!configs) {
-    return '';
+    return "";
   }
 
   const frontend = configs.frontend;
@@ -33,7 +33,7 @@ export function generateDockerfilePrompt(projectData: ProjectModel): string {
     dockerPrompt += `### Backend Dockerfile\n`;
     dockerPrompt += `- **Language**: ${backend.language}\n`;
     dockerPrompt += `- **Framework**: ${backend.framework}\n`;
-
+    
     switch (backend.language.toLowerCase()) {
       case 'node':
       case 'nodejs':
@@ -73,7 +73,7 @@ export function generateDockerfilePrompt(projectData: ProjectModel): string {
   if (database && database.provider && database.provider !== 'none') {
     dockerPrompt += `### Database Configuration\n`;
     dockerPrompt += `- **Provider**: ${database.provider}${database.version ? ` v${database.version}` : ''}\n`;
-
+    
     switch (database.provider.toLowerCase()) {
       case 'postgresql':
       case 'postgres':
