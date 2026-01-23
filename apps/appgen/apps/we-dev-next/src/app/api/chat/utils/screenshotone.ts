@@ -4,20 +4,20 @@ export const bytesToDataUrl = (bytes: Buffer, mimeType: string) => {
 };
 export const screenshotOne = async (targetUrl: string) => {
   const apiKey = process.env.SCREENSHOTONE_API_KEY;
-  const apiBaseUrl = 'https://api.screenshotone.com/take';
+  const apiBaseUrl = "https://api.screenshotone.com/take" 
   const params = {
-    access_key: apiKey,
-    url: targetUrl,
-    full_page: 'true',
-    device_scale_factor: '1',
-    format: 'png',
-    block_ads: 'true',
-    block_cookie_banners: 'true',
-    block_trackers: 'true',
-    cache: 'false',
-    viewport_width: '1280',
-    viewport_height: '832',
-  };
+        "access_key": apiKey,
+        "url": targetUrl,
+        "full_page": "true",
+        "device_scale_factor": "1",
+        "format": "png",
+        "block_ads": "true",
+        "block_cookie_banners": "true",
+        "block_trackers": "true",
+        "cache": "false",
+        "viewport_width": "1280",
+        "viewport_height": "832",
+    }
   // 构建查询字符串
   const searchParams = new URLSearchParams(params);
   const url = `${apiBaseUrl}?${searchParams.toString()}`;
@@ -26,9 +26,9 @@ export const screenshotOne = async (targetUrl: string) => {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        Accept: 'image/png',
+        'Accept': 'image/png',
       },
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(60000), 
     });
 
     if (!response.ok) {
@@ -42,4 +42,5 @@ export const screenshotOne = async (targetUrl: string) => {
     console.error('Screenshot capture failed:', error);
     throw new Error('Error taking screenshot');
   }
-};
+}
+ 

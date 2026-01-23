@@ -1,7 +1,7 @@
-import React from 'react';
-import classNames from 'classnames';
-import type { SendButtonProps } from './types';
-import { useTranslation } from 'react-i18next';
+import React from "react";
+import classNames from "classnames";
+import type { SendButtonProps } from "./types";
+import { useTranslation } from "react-i18next";
 
 export const SendButton: React.FC<SendButtonProps> = ({
   isLoading,
@@ -9,7 +9,7 @@ export const SendButton: React.FC<SendButtonProps> = ({
   hasInput,
   hasUploadingImages,
   onClick,
-  stop,
+  stop
 }) => {
   const { t } = useTranslation();
 
@@ -21,13 +21,13 @@ export const SendButton: React.FC<SendButtonProps> = ({
       }}
       // disabled={(!hasInput && !hasUploadingImages) || isUploading}
       className={classNames(
-        'p-2 flex items-center gap-2',
-        isLoading
-          ? 'bg-danger hover:bg-red-600 text-white rounded-lg transition-all duration-200'
+        "p-2 flex items-center gap-2",
+        isLoading 
+          ? "bg-danger hover:bg-red-600 text-white rounded-lg transition-all duration-200"
           : hasInput && !isUploading && !hasUploadingImages
-            ? 'inner-button'
-            : 'outer-button opacity-50',
-        isUploading && 'opacity-50 cursor-not-allowed'
+            ? "inner-button"
+            : "outer-button opacity-50",
+        isUploading && "opacity-50 cursor-not-allowed"
       )}
     >
       {isLoading ? (

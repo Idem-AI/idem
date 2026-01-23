@@ -1,4 +1,4 @@
-import { Message } from 'ai/react';
+import { Message } from "ai/react";
 
 interface ChatRecord {
   data: {
@@ -13,29 +13,27 @@ type DBEventListener = () => void;
 
 export class DBManager {
   private db: IDBDatabase | null = null;
-  private readonly DB_NAME = "WeDevDB";
-  private readonly STORE_NAME = "chatRecords";
+  private readonly DB_NAME = 'WeDevDB';
+  private readonly STORE_NAME = 'chatRecords';
   private listeners: Set<DBEventListener> = new Set();
 
   constructor() {
     // Initialize IndexedDB for web environment
-    this.init()
-      .then(() => {
-        console.log('DBManager initialization completed');
-      })
-      .catch((error) => {
-        console.error('DBManager initialization failed', error);
-        // Fallback to localStorage if IndexedDB fails
-        this.initLocalStorage();
-      });
+    this.init().then(() => {
+      console.log('DBManager initialization completed');
+    }).catch((error) => {
+      console.error('DBManager initialization failed', error);
+      // Fallback to localStorage if IndexedDB fails
+      this.initLocalStorage();
+    });
   }
 
   // Application is now 100% web
 
   private initLocalStorage() {
     // Initialize localStorage
-    if (!localStorage.getItem("chatRecords")) {
-      localStorage.setItem("chatRecords", JSON.stringify([]));
+    if (!localStorage.getItem('chatRecords')) {
+      localStorage.setItem('chatRecords', JSON.stringify([]));
     }
   }
 
@@ -45,29 +43,28 @@ export class DBManager {
         const request = indexedDB.open(this.DB_NAME, 1);
 
         request.onerror = (event) => {
-          console.error("Failed to open database:", event);
+          console.error('Failed to open database:', event);
           reject(request.error);
         };
 
         request.onupgradeneeded = (event) => {
-          console.log("Upgrading database...");
+          console.log('Upgrading database...');
           const db = (event.target as IDBOpenDBRequest).result;
           if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-            const store = db.createObjectStore(this.STORE_NAME, {
-              keyPath: ["uuid", "time"],
-            });
-            store.createIndex("uuid", "uuid", { unique: false });
-            store.createIndex("time", "time", { unique: false });
+            const store = db.createObjectStore(this.STORE_NAME, { keyPath: ['uuid', 'time'] });
+            store.createIndex('uuid', 'uuid', { unique: false });
+            store.createIndex('time', 'time', { unique: false });
           }
         };
 
         request.onsuccess = () => {
-          console.log("Database opened successfully");
+          console.log('Database opened successfully');
           this.db = request.result;
           resolve();
         };
+
       } catch (error) {
-        console.error("Database initialization error:", error);
+        console.error('Database initialization error:', error);
         reject(error);
       }
     });
@@ -78,9 +75,10 @@ export class DBManager {
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
       const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
-      const uuids = Array.from(
-        new Set(records.sort((a, b) => b.time - a.time).map((record) => record.uuid))
-      ).slice(0, 300);
+      const uuids = Array.from(new Set(
+        records.sort((a, b) => b.time - a.time)
+          .map(record => record.uuid)
+      )).slice(0, 300);
 
       if (uuids.length === 300) {
         this.cleanOldRecords(uuids);
@@ -91,15 +89,16 @@ export class DBManager {
 
     await this.ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([this.STORE_NAME], "readonly");
+      const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
-      const request = store.index("time").getAll();
+      const request = store.index('time').getAll();
 
       request.onsuccess = () => {
         const records = request.result as ChatRecord[];
-        const uuids = Array.from(
-          new Set(records.sort((a, b) => b.time - a.time).map((record) => record.uuid))
-        ).slice(0, 300);
+        const uuids = Array.from(new Set(
+          records.sort((a, b) => b.time - a.time)
+            .map(record => record.uuid)
+        )).slice(0, 300);
 
         if (uuids.length === 300) {
           this.cleanOldRecords(uuids);
@@ -112,27 +111,25 @@ export class DBManager {
   }
 
   // Insert message
-  async insert(uuid: string, data: ChatRecord["data"]): Promise<void> {
+  async insert(uuid: string, data: ChatRecord['data']): Promise<void> {
     const record: ChatRecord = {
       data,
       time: Date.now(),
-      uuid,
+      uuid
     };
 
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
-      const records = JSON.parse(
-        localStorage.getItem("chatRecords") || "[]",
-      ) as ChatRecord[];
+      const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
       records.push(record);
-      localStorage.setItem("chatRecords", JSON.stringify(records));
+      localStorage.setItem('chatRecords', JSON.stringify(records));
       this.notify();
       return;
     }
 
     await this.ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([this.STORE_NAME], "readwrite");
+      const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
       const store = transaction.objectStore(this.STORE_NAME);
       const request = store.add(record);
 
@@ -149,7 +146,7 @@ export class DBManager {
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
       const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
-      const filteredRecords = records.filter((record) => record.uuid !== uuid);
+      const filteredRecords = records.filter(record => record.uuid !== uuid);
       localStorage.setItem('chatRecords', JSON.stringify(filteredRecords));
       this.notify();
       return;
@@ -157,20 +154,19 @@ export class DBManager {
 
     await this.ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([this.STORE_NAME], "readwrite");
+      const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
       const store = transaction.objectStore(this.STORE_NAME);
-      const index = store.index("uuid");
+      const index = store.index('uuid');
       const request = index.getAll(uuid);
 
       request.onsuccess = () => {
         const records = request.result as ChatRecord[];
-        const deletePromises = records.map(
-          (record) =>
-            new Promise<void>((res, rej) => {
-              const deleteReq = store.delete([record.uuid, record.time]);
-              deleteReq.onsuccess = () => res();
-              deleteReq.onerror = () => rej(deleteReq.error);
-            })
+        const deletePromises = records.map(record =>
+          new Promise<void>((res, rej) => {
+            const deleteReq = store.delete([record.uuid, record.time]);
+            deleteReq.onsuccess = () => res();
+            deleteReq.onerror = () => rej(deleteReq.error);
+          })
         );
 
         Promise.all(deletePromises)
@@ -189,14 +185,16 @@ export class DBManager {
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
       const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
-      return records.filter((record) => record.uuid === uuid).sort((a, b) => b.time - a.time);
+      return records
+        .filter(record => record.uuid === uuid)
+        .sort((a, b) => b.time - a.time);
     }
 
     await this.ensureDB();
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([this.STORE_NAME], "readonly");
+      const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
-      const index = store.index("uuid");
+      const index = store.index('uuid');
       const request = index.getAll(uuid);
 
       request.onsuccess = () => {
@@ -213,12 +211,12 @@ export class DBManager {
     }
 
     if (!this.db) {
-      console.log("Database not initialized, initializing...");
+      console.log('Database not initialized, initializing...');
       try {
         await this.init();
-        console.log("Database initialization completed");
+        console.log('Database initialization completed');
       } catch (error) {
-        console.error("Database initialization failed:", error);
+        console.error('Database initialization failed:', error);
         throw error;
       }
     }
@@ -228,22 +226,22 @@ export class DBManager {
     // Utilise le localStorage si IndexedDB n'est pas disponible
     if (!this.db) {
       const records = JSON.parse(localStorage.getItem('chatRecords') || '[]') as ChatRecord[];
-      const filteredRecords = records.filter((record) => activeUuids.includes(record.uuid));
+      const filteredRecords = records.filter(record => activeUuids.includes(record.uuid));
       localStorage.setItem('chatRecords', JSON.stringify(filteredRecords));
       return;
     }
 
     if (!this.db) return;
 
-    const transaction = this.db.transaction([this.STORE_NAME], "readwrite");
+    const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
     const store = transaction.objectStore(this.STORE_NAME);
-    const request = store.index("time").getAll();
+    const request = store.index('time').getAll();
 
     request.onsuccess = () => {
       const records = request.result as ChatRecord[];
       records
-        .filter((record) => !activeUuids.includes(record.uuid))
-        .forEach((record) => {
+        .filter(record => !activeUuids.includes(record.uuid))
+        .forEach(record => {
           store.delete([record.uuid, record.time]);
         });
     };
@@ -255,7 +253,7 @@ export class DBManager {
   }
 
   private notify() {
-    this.listeners.forEach((listener) => listener());
+    this.listeners.forEach(listener => listener());
   }
 }
 

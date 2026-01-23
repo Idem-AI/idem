@@ -21,7 +21,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": true,
     "plugins": [
       {
@@ -31,18 +31,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@idem/shared-models": [
-        "../../../../packages/shared-models/src"
-      ],
-      "@idem/shared-models/*": [
-        "../../../../packages/shared-models/src/*"
-      ],
-      "@idem/shared-auth-client": [
-        "../../../../packages/shared-auth-client/src"
-      ],
-      "@idem/shared-auth-client/*": [
-        "../../../../packages/shared-auth-client/src/*"
       ]
     },
     "strict": false
@@ -53,11 +41,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "./src/utils/messagepParseJson.ts",
-    "next.config.mjs",
-    "src/components/Postcard/postcard.jsx",
-    "../we-dev-client/src/components/AiChat/chat/services/appGenService.ts",
-    ".next/dev/types/**/*.ts"
-  ],
+    "next.config.mjs"
+, "src/components/Postcard/postcard.jsx", "../we-dev-client/src/components/AiChat/chat/services/appGenService.ts"  ],
   "exclude": [
     "node_modules"
   ]

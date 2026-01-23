@@ -19,18 +19,18 @@ interface SearchResultsProps {
   className?: string;
 }
 
-export function SearchResults({
-  results,
+export function SearchResults({ 
+  results, 
   currentMatchIndex,
-  onFileSelect,
-  className,
+  onFileSelect, 
+  className 
 }: SearchResultsProps) {
   if (results.length === 0) return null;
 
   let matchCounter = 0;
 
   return (
-    <div className={cn('mt-2 space-y-1 overflow-y-auto max-h-[calc(100vh-120px)]', className)}>
+    <div className={cn("mt-2 space-y-1 overflow-y-auto max-h-[calc(100vh-120px)]", className)}>
       {results.map((result) => (
         <div key={result.path} className="space-y-0.5">
           <div className="flex items-center text-[13px] px-2 text-[#6F6F6F] dark:text-[#CCCCCC]">
@@ -44,17 +44,16 @@ export function SearchResults({
           {result.matches.map((match) => {
             const isCurrentMatch = matchCounter === currentMatchIndex;
             matchCounter++;
-
+            
             return (
               <div
                 key={`${match.line}-${match.index}`}
                 onClick={() => onFileSelect(result.path, match.line)}
                 className={cn(
-                  'ml-6 text-[12px] cursor-pointer rounded px-2 py-0.5',
-                  'text-[#4B4B4B] dark:text-[#BBBBBB]',
-                  'hover:bg-[#F0F0F0] dark:hover:bg-[#2A2D2E]',
-                  isCurrentMatch &&
-                    'bg-[#E4E6F1] dark:bg-[#094771] text-[#333333] dark:text-[#FFFFFF]'
+                  "ml-6 text-[12px] cursor-pointer rounded px-2 py-0.5",
+                  "text-[#4B4B4B] dark:text-[#BBBBBB]",
+                  "hover:bg-[#F0F0F0] dark:hover:bg-[#2A2D2E]",
+                  isCurrentMatch && "bg-[#E4E6F1] dark:bg-[#094771] text-[#333333] dark:text-[#FFFFFF]"
                 )}
               >
                 <div className="flex items-center space-x-2">

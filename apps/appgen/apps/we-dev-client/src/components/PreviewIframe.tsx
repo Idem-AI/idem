@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef, Dispatch, SetStateAction } from 'react';
-import { getContainerInstance } from './WeIde/services';
-import { Smartphone, Tablet, Laptop, Monitor, ChevronDown } from 'lucide-react';
+import { useEffect, useState, useRef, Dispatch, SetStateAction } from "react";
+import { getContainerInstance } from "./WeIde/services";
+import { Smartphone, Tablet, Laptop, Monitor, ChevronDown } from "lucide-react";
 // Supprimé l'import de findWeChatDevToolsPath car il n'existe plus
-import { useFileStore } from './WeIde/stores/fileStore';
-import { useTranslation } from 'react-i18next';
+import { useFileStore } from "./WeIde/stores/fileStore";
+import { useTranslation } from "react-i18next";
 
 interface PreviewIframeProps {
   setShowIframe: Dispatch<SetStateAction<string>>;
@@ -16,21 +16,24 @@ interface WindowSize {
   icon: React.ComponentType<{ size?: string | number }>;
 }
 const WINDOW_SIZES: WindowSize[] = [
-  { name: 'Desktop', width: '100%', height: '100%', icon: Monitor },
-  { name: 'Mobile', width: 375, height: 667, icon: Smartphone },
+  { name: "Desktop", width: '100%', height:'100%', icon: Monitor },
+  { name: "Mobile", width: 375, height: 667, icon: Smartphone },
   {
-    name: 'Tablet',
+    name: "Tablet",
     width: Number((768 / 1.5).toFixed(0)),
     height: Number((1024 / 1.5).toFixed(0)),
     icon: Tablet,
   },
-  { name: 'Laptop', width: 1366, height: 768, icon: Laptop },
+  { name: "Laptop", width: 1366, height: 768, icon: Laptop },
 ];
 
-const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinPrograme }) => {
+const PreviewIframe: React.FC<PreviewIframeProps> = ({
+  setShowIframe,
+  isMinPrograme,
+}) => {
   // Supprimé la référence à ipcRenderer qui n'existe plus dans la version web
-  const [url, setUrl] = useState<string>('');
-  const [port, setPort] = useState<string>('');
+  const [url, setUrl] = useState<string>("");
+  const [port, setPort] = useState<string>("");
   const { projectRoot } = useFileStore();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = useState<number>(1);
@@ -44,23 +47,24 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
   useEffect(() => {
     (async () => {
       const instance = await getContainerInstance();
-      instance?.on('server-ready', (port, url) => {
-        console.log('server-ready', port, url);
+      instance?.on("server-ready", (port, url) => {
+        console.log("server-ready", port, url);
         setUrl(url);
-        setShowIframe('preview');
+        setShowIframe("preview");
         setPort(port.toString());
       });
     })();
+
   }, []);
 
   const handleRefresh = () => {
-    console.log('Refresh handleRefresh', iframeRef.current);
+    console.log("Refresh handleRefresh", iframeRef.current);
     if (iframeRef.current) {
       iframeRef.current.src = iframeRef.current.src;
     }
   };
 
-  const displayUrl = port
+    const displayUrl = port
     ? `http://localhost:${port}`
     : isMinPrograme
       ? t('preview.wxminiPreview')
@@ -108,14 +112,14 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
       }
     };
 
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    container.addEventListener('touchstart', handleTouchStart);
-    container.addEventListener('touchmove', handleTouchMove);
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    container.addEventListener("touchstart", handleTouchStart);
+    container.addEventListener("touchmove", handleTouchMove);
 
     return () => {
-      container.removeEventListener('wheel', handleWheel);
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
     };
   }, [scale]);
 
@@ -133,7 +137,7 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
 
   const openExternal = () => {
     // Version web - ouvrir dans un nouvel onglet au lieu d'utiliser ipcRenderer
-    window.open('http://localhost:5174/', '_blank');
+    window.open("http://localhost:5174/", "_blank");
   };
 
   useEffect(() => {
@@ -142,13 +146,14 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
         const injectScript = `
          
         `;
-
+        
         const iframeWindow = iframeRef.current.contentWindow;
         const script = iframeWindow.document.createElement('script');
         script.textContent = injectScript;
         iframeWindow.document.head.appendChild(script);
+        
       } catch (error) {
-        console.error(error);
+        console.error( error);
       }
     }
   }, [iframeLoaded]);
@@ -158,30 +163,29 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
       if (event.data.type === 'REQUEST_BLOB_ACCESS') {
         const blobUrl = event.data.blobUrl;
         const requestId = event.data.requestId;
-
+      
+      
         fetch(blobUrl)
-          .then((response) => response.blob())
-          .then((blob) => {
+          .then(response => response.blob())
+          .then(blob => {
             const reader = new FileReader();
-            reader.onloadend = function () {
+            reader.onloadend = function() {
               const base64data = reader.result as string;
               const base64Content = base64data.split(',')[1];
               if (iframeRef.current?.contentWindow) {
-                iframeRef.current.contentWindow.postMessage(
-                  {
-                    type: 'BLOB_ACCESS_GRANTED',
-                    blobData: base64Content,
-                    contentType: blob.type,
-                    originalUrl: blobUrl,
-                    requestId: requestId,
-                  },
-                  '*'
-                );
+                iframeRef.current.contentWindow.postMessage({
+                  type: 'BLOB_ACCESS_GRANTED',
+                  blobData: base64Content,
+                  contentType: blob.type,
+                  originalUrl: blobUrl,
+                  requestId: requestId
+                }, '*');
+              
               }
             };
             reader.readAsDataURL(blob);
           })
-          .catch((error) => console.error(error));
+          .catch(error => console.error( error));
       }
     };
 
@@ -190,17 +194,22 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
   }, []);
 
   return (
-    <div className="preview-container w-full h-full relative flex flex-col overflow-hidden">
+    <div     className="preview-container w-full h-full relative flex flex-col overflow-hidden">
       <div className="browser-header glass border-b px-4 py-1 flex items-center space-x-2">
         <div className="flex space-x-1.5">
           <div className="w-3 h-3 rounded-full bg-red-500"></div>
           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500" onClick={openExternal}></div>
+          <div
+            className="w-3 h-3 rounded-full bg-green-500"
+            onClick={openExternal}
+          ></div>
         </div>
         <div className="relative">
           <button
             className="ml-2 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c2c2c] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-2"
-            onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
+            onClick={() =>
+              setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)
+            }
           >
             <selectedSize.icon size={16} />
             <ChevronDown size={16} />
@@ -220,12 +229,11 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
                       setSelectedSize(size);
                       setIsWindowSizeDropdownOpen(false);
                       if (isMinPrograme) {
-                        console.log(
-                          "La prévisualisation WeChat n'est pas disponible dans la version web"
-                        );
+                        console.log("La prévisualisation WeChat n'est pas disponible dans la version web");
                         // Code de prévisualisation web standard sera utilisé par défaut
                       }
-                    }}
+                    }
+}
                   >
                     <size.icon size={20} />
                     <div className="flex flex-col">
@@ -314,20 +322,14 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
         ref={containerRef}
         className="flex-1 relative bg-white overflow-hidden rounded-b-lg flex items-center justify-center"
         style={{
-          cursor: isDragging ? 'grabbing' : 'grab',
+          cursor: isDragging ? "grabbing" : "grab",
         }}
       >
         <div
           className="bg-white transition-all duration-200 origin-center"
           style={{
-            width:
-              String(selectedSize?.width)?.indexOf('%') > -1
-                ? `${Number.parseFloat(String(selectedSize.width)) * (1 / scale)}%`
-                : `${Number(selectedSize.width) * (1 / scale)}px`,
-            height:
-              String(selectedSize?.height)?.indexOf('%') > -1
-                ? `${Number.parseFloat(String(selectedSize.height)) * (1 / scale)}%`
-                : `${Number(selectedSize.height) * (1 / scale)}px`,
+            width: String(selectedSize?.width)?.indexOf('%') > -1 ?  `${(Number.parseFloat(String(selectedSize.width)) * ((1 / scale)))}%`  : `${(Number(selectedSize.width) * (1 / scale))}px`,
+            height: String(selectedSize?.height)?.indexOf('%') > -1 ?`${(Number.parseFloat(String(selectedSize.height)) * (1 / scale))}%`  : `${(Number(selectedSize.height) * (1 / scale))}px`,
             transform: `scale(${scale})`,
           }}
         >
@@ -337,7 +339,7 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
             className="w-full h-full border-none rounded-b-lg bg-white"
             style={{
               width: '100%',
-              minHeight: '400px',
+              minHeight: "400px",
             }}
             title="preview"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
@@ -347,12 +349,12 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
         </div>
         {isMinPrograme && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-            <div className="text-gray-400">{t('preview.wxminiPreview')}</div>
+            <div className="text-gray-400">{t("preview.wxminiPreview")}</div>
           </div>
         )}
         {!url && !isMinPrograme && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-            <div className="text-gray-400">{t('preview.noserver')}</div>
+            <div className="text-gray-400">{t("preview.noserver")}</div>
           </div>
         )}
       </div>
