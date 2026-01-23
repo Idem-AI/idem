@@ -135,7 +135,7 @@ export class GitHubController {
 
       const result = await this.developmentService.pushProjectToGitHub(
         userId,
-        projectId,
+        projectId as string,
         pushRequest
       );
 

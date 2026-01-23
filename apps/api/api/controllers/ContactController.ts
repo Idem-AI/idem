@@ -130,7 +130,7 @@ export class ContactController {
   async getContact(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const contact = await this.contactService.getContact(id);
+      const contact = await this.contactService.getContact(id as string);
 
       if (!contact) {
         res.status(404).json({
@@ -214,7 +214,7 @@ export class ContactController {
       const { id } = req.params;
       const { status } = req.body;
 
-      const updated = await this.contactService.updateContactStatus(id, status);
+      const updated = await this.contactService.updateContactStatus(id as string, status);
 
       if (!updated) {
         res.status(404).json({
