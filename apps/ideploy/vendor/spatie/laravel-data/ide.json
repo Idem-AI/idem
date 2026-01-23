@@ -1,0 +1,132 @@
+{
+    "$schema": "https://laravel-ide.com/schema/laravel-ide-v2.json",
+    "completions": [
+        {
+            "complete": "classFields",
+            "options": {
+                "fieldsFilter": {
+                    "fetch": "all",
+                    "modifier": ["public"]
+                }
+            },
+            "condition": [
+                {
+                    "methodNames": ["from", "optional"],
+                    "classFqn": ["\\Spatie\\LaravelData\\Concerns\\BaseData"],
+                    "place": "arrayKey"
+                },
+                {
+                    "methodNames": ["empty"],
+                    "classFqn": ["\\Spatie\\LaravelData\\Concerns\\EmptyData"],
+                    "place": "arrayKey"
+                },
+                {
+                    "methodNames": ["collect"],
+                    "classFqn": ["\\Spatie\\LaravelData\\Concerns\\BaseData"],
+                    "place": "arrayInArrayKey"
+                },
+                {
+                    "methodNames": ["collection"],
+                    "classFqn": ["\\Spatie\\LaravelData\\Concerns\\WithDeprecatedCollectionMethod"],
+                    "place": "arrayInArrayKey"
+                },
+                {
+                    "methodNames": [
+                        "include", "exclude", "only", "except",
+                        "includePermanently", "excludePermanently", "onlyPermanently", "exceptPermanently"
+                    ],
+                    "classParentFqn": ["\\Spatie\\LaravelData\\Concerns\\IncludeableData"],
+                    "place": "parameter"
+                },
+                {
+                    "methodNames": ["includeWhen", "excludeWhen", "onlyWhen", "exceptWhen"],
+                    "classParentFqn": ["\\Spatie\\LaravelData\\Concerns\\IncludeableData"],
+                    "place": "parameter",
+                    "parameters": [1]
+                }
+            ]
+        }
+    ],
+    "codeGenerations": [
+        {
+            "id": "spatie.create-laravel-data",
+            "name": "Create Data",
+            "classSuffix": "Data",
+            "files": [
+                {
+                    "appNamespace": "Data",
+                    "name": "${INPUT_CLASS|className|upperCamelCase}.php",
+                    "template": {
+                        "type": "stub",
+                        "path": "/stubs/data.stub",
+                        "fallbackPath": "stubs/data.stub",
+                        "parameters": {
+                            "DummyClass": "${INPUT_CLASS|className|upperCamelCase}",
+                            "DummyNamespace": "${INPUT_FQN|namespace}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "spatie.create-laravel-data-cast",
+            "name": "Create Data Cast",
+            "classSuffix": "Cast",
+            "files": [
+                {
+                    "appNamespace": "Data\\Casts",
+                    "name": "${INPUT_CLASS|className|upperCamelCase}.php",
+                    "template": {
+                        "type": "stub",
+                        "path": "/stubs/data-cast.stub",
+                        "fallbackPath": "stubs/data-cast.stub",
+                        "parameters": {
+                            "DummyClass": "${INPUT_CLASS|className|upperCamelCase}",
+                            "DummyNamespace": "${INPUT_FQN|namespace}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "spatie.create-laravel-data-transformer",
+            "name": "Create Data Transformer",
+            "classSuffix": "Transformer",
+            "files": [
+                {
+                    "appNamespace": "Data\\Transformers",
+                    "name": "${INPUT_CLASS|className|upperCamelCase}.php",
+                    "template": {
+                        "type": "stub",
+                        "path": "/stubs/data-transformer.stub",
+                        "fallbackPath": "stubs/data-transformer.stub",
+                        "parameters": {
+                            "DummyClass": "${INPUT_CLASS|className|upperCamelCase}",
+                            "DummyNamespace": "${INPUT_FQN|namespace}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "spatie.create-laravel-data-rule",
+            "name": "Create Data Rule",
+            "classSuffix": "Rule",
+            "files": [
+                {
+                    "appNamespace": "Data\\Rules",
+                    "name": "${INPUT_CLASS|className|upperCamelCase}.php",
+                    "template": {
+                        "type": "stub",
+                        "path": "/stubs/data-rule.stub",
+                        "fallbackPath": "stubs/data-rule.stub",
+                        "parameters": {
+                            "DummyClass": "${INPUT_CLASS|className|upperCamelCase}",
+                            "DummyNamespace": "${INPUT_FQN|namespace}"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

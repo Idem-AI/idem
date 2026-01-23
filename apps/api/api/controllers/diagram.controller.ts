@@ -27,7 +27,7 @@ export const generateDiagramController = async (
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
-    const updatedProject = await diagramService.generateDiagram(userId!, projectId);
+    const updatedProject = await diagramService.generateDiagram(userId!, projectId as string);
     if (!updatedProject) {
       logger.warn(`Failed to generate diagram - UserId: ${userId}, ProjectId: ${projectId}`);
       res.status(500).json({ message: 'Failed to generate diagram' });
@@ -70,7 +70,7 @@ export const getDiagramsByProjectController = async (
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
-    const diagrams = await diagramService.getDiagramsByProjectId(userId!, projectId);
+    const diagrams = await diagramService.getDiagramsByProjectId(userId!, projectId as string);
     if (!diagrams) {
       logger.warn(`No diagrams found for project - UserId: ${userId}, ProjectId: ${projectId}`);
       res.status(404).json({ message: 'No diagrams found for project' });
@@ -101,7 +101,7 @@ export const getDiagramByIdController = async (
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    const diagram = await diagramService.getDiagramById(userId!, diagramId);
+    const diagram = await diagramService.getDiagramById(userId!, diagramId as string);
     if (diagram) {
       logger.info(
         `Diagram fetched successfully - UserId: ${userId}, DiagramId: ${diagram.id || diagramId}`
@@ -129,7 +129,7 @@ export const updateDiagramController = async (req: CustomRequest, res: Response)
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    const updatedProject = await diagramService.updateDiagram(userId!, diagramId, req.body);
+    const updatedProject = await diagramService.updateDiagram(userId!, diagramId as string, req.body);
     if (updatedProject) {
       logger.info(`Diagram updated successfully - UserId: ${userId}, DiagramId: ${diagramId}`);
       // Find the updated diagram in the project to return it
@@ -213,7 +213,7 @@ export const generateDiagramStreamingController = async (
     // Appel au service avec le callback de streaming
     const updatedProject = await diagramService.generateDiagram(
       userId,
-      projectId,
+      projectId as string,
       streamCallback // Passer le callback de streaming
     );
 
@@ -258,7 +258,7 @@ export const deleteDiagramController = async (req: CustomRequest, res: Response)
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    const success = await diagramService.deleteDiagram(userId!, diagramId);
+    const success = await diagramService.deleteDiagram(userId!, diagramId as string);
     if (success) {
       logger.info(`Diagram deleted successfully - UserId: ${userId}, DiagramId: ${diagramId}`);
       res.status(204).send();

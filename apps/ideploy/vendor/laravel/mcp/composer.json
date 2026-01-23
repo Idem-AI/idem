@@ -1,0 +1,76 @@
+{
+    "name": "laravel/mcp",
+    "description": "The easiest way to add MCP servers to your Laravel app.",
+    "keywords": [
+        "dev",
+        "mcp",
+        "laravel"
+    ],
+    "homepage": "https://github.com/laravel/mcp",
+    "support": {
+        "issues": "https://github.com/laravel/mcp/issues",
+        "source": "https://github.com/laravel/mcp"
+    },
+    "type": "library",
+    "require": {
+        "php": "^8.1|^8.2",
+        "illuminate/console": "^10.0|^11.0|^12.0",
+        "illuminate/contracts": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "illuminate/routing": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/validation": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.14",
+        "orchestra/testbench": "^8.22.0|^9.0|^10.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Laravel\\Mcp\\": "src/",
+            "Laravel\\Mcp\\Server\\": "src/Server/",
+            "Laravel\\Mcp\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Laravel\\Mcp\\Server\\McpServiceProvider"
+            ],
+            "aliases": {
+                "Mcp": "Laravel\\Mcp\\Server\\Facades\\Mcp"
+            }
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@clear",
+            "@prepare"
+        ],
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
+        "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "build": "@php vendor/bin/testbench workbench:build --ansi",
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "@build",
+            "@php vendor/bin/testbench serve --ansi"
+        ],
+        "check": [
+            "vendor/bin/pint",
+            "vendor/bin/phpstan",
+            "vendor/bin/phpunit"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

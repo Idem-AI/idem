@@ -126,9 +126,9 @@ COPY --chown=www-data:www-data changelogs/ ./changelogs/
 RUN composer dump-autoload
 
 # Configure Nginx and S6 overlay
-COPY docker/production/etc/nginx/conf.d/custom.conf /etc/nginx/conf.d/custom.conf
-COPY docker/production/etc/nginx/site-opts.d/http.conf /etc/nginx/site-opts.d/http.conf
-COPY --chmod=755 docker/production/etc/s6-overlay/ /etc/s6-overlay/
+COPY etc/nginx/conf.d/custom.conf /etc/nginx/conf.d/custom.conf
+COPY etc/nginx/site-opts.d/http.conf /etc/nginx/site-opts.d/http.conf
+COPY etc/s6-overlay/ /etc/s6-overlay/
 
 RUN mkdir -p /etc/nginx/conf.d && \
     chown -R www-data:www-data /etc/nginx && \

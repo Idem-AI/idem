@@ -1,0 +1,68 @@
+{
+    "name": "lorisleiva/lody",
+    "description": "Load files and classes as lazy collections in Laravel.",
+    "keywords": [
+        "laravel",
+        "load",
+        "files",
+        "classes",
+        "collection"
+    ],
+    "homepage": "https://github.com/lorisleiva/lody",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Loris Leiva",
+            "email": "loris.leiva@gmail.com",
+            "homepage": "https://lorisleiva.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/contracts": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^2.34|^3.0",
+        "phpunit/phpunit": "^10.5|^11.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lorisleiva\\Lody\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Lorisleiva\\Lody\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit --colors=always",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Lorisleiva\\Lody\\LodyServiceProvider"
+            ],
+            "aliases": {
+                "Lody": "Lorisleiva\\Lody\\Lody"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/lorisleiva"
+        }
+    ]
+}
