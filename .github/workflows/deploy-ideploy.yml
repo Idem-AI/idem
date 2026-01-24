@@ -1,24 +1,26 @@
-name: Deploy AppGen
+name: Deploy API
 
 on:
   push:
     branches: [ dev, main ]
     paths:
-      - 'apps/appgen/**'
-      - 'Dockerfile.appgen'
-      - '.github/workflows/deploy-appgen.yml'
+      - 'apps/ideploy/**'
+      - 'Dockerfile.ideploy'
+      - 'packages/shared-models/**'
+      - '.github/workflows/deploy-ideploy.yml'
   pull_request:
     types: [ closed ]
     branches: [ main ]
     paths:
-      - 'apps/appgen/**'
-      - 'Dockerfile.appgen'
-      - '.github/workflows/deploy-appgen.yml'
+      - 'apps/ideploy/**'
+      - 'Dockerfile.ideploy'
+      - 'packages/shared-models/**'
+      - '.github/workflows/deploy-ideploy.yml'
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
-    name: Build & Deploy AppGen
+    name: Build & Deploy API
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     environment:
@@ -44,14 +46,15 @@ jobs:
             
             # Variables
             REPO_DIR="/root/idem"
+            DEPLOYMENT_DIR="/root/application"
             BRANCH="${{ steps.vars.outputs.branch }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-            DEPLOYMENT_DIR="/root/application"
+            
             # Different tags for staging and production
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
-              IMAGE_TAG="ghcr.io/idem-ai/appgen-client:$COMMIT_ID"
+              IMAGE_TAG="ghcr.io/idem-ai/ideploy:$COMMIT_ID"
             else
-              IMAGE_TAG="ghcr.io/idem-ai/appgen-client:$COMMIT_ID-staging"
+              IMAGE_TAG="ghcr.io/idem-ai/ideploy:$COMMIT_ID-staging"
             fi
             
             echo "Branch: $BRANCH"
@@ -77,7 +80,7 @@ jobs:
             
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.appgen-client -t $IMAGE_TAG .
+            docker build -f Dockerfile.ideploy -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
@@ -87,12 +90,12 @@ jobs:
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
 
               cd $DEPLOYMENT_DIR
-              # Production dep
+              # Production deployment
               COMPOSE_FILE="docker-compose.prod.yml"
-              SERVICE_NAME="idem-webgen"
+              SERVICE_NAME="ideploy"
               
               echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/appgen-client:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
+              sed -i "s|image: ghcr.io/idem-ai/ideploy:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
               
               echo "Deploying to production..."
               docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
@@ -100,10 +103,10 @@ jobs:
             else
               # Staging deployment
               COMPOSE_FILE="docker-compose.staging.yml"
-              SERVICE_NAME="idem-webgen-staging"
+              SERVICE_NAME="ideploy-staging"
               
               echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/appgen-client:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
+              sed -i "s|image: ghcr.io/idem-ai/ideploy:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
               
               echo "Deploying to staging..."
               docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
@@ -114,4 +117,4 @@ jobs:
             echo "Cleaning up old images..."
             docker image prune -f
             
-            echo "AppGen deployed successfully!"
+            echo "API deployed successfully!"

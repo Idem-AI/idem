@@ -5,15 +5,15 @@ on:
     branches: [ dev, main ]
     paths:
       - 'apps/appgen/**'
-      - 'Dockerfile.appgen'
-      - '.github/workflows/deploy-appgen.yml'
+      - 'Dockerfile.appgen-server'
+      - '.github/workflows/deploy-appgen_server.yml'
   pull_request:
     types: [ closed ]
     branches: [ main ]
     paths:
       - 'apps/appgen/**'
-      - 'Dockerfile.appgen'
-      - '.github/workflows/deploy-appgen.yml'
+      - 'Dockerfile.appgen-server'
+      - '.github/workflows/deploy-appgen_server.yml'
   workflow_dispatch:
 
 jobs:
@@ -46,12 +46,12 @@ jobs:
             REPO_DIR="/root/idem"
             BRANCH="${{ steps.vars.outputs.branch }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
-            DEPLOYMENT_DIR="/root/application"
+            
             # Different tags for staging and production
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
-              IMAGE_TAG="ghcr.io/idem-ai/appgen-client:$COMMIT_ID"
+              IMAGE_TAG="ghcr.io/idem-ai/appgen-server:$COMMIT_ID"
             else
-              IMAGE_TAG="ghcr.io/idem-ai/appgen-client:$COMMIT_ID-staging"
+              IMAGE_TAG="ghcr.io/idem-ai/appgen-server:$COMMIT_ID-staging"
             fi
             
             echo "Branch: $BRANCH"
@@ -77,7 +77,7 @@ jobs:
             
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.appgen-client -t $IMAGE_TAG .
+            docker build -f Dockerfile.appgen -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
@@ -86,13 +86,13 @@ jobs:
             # Determine environment and deploy
             if [ "$BRANCH" = "main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
 
-              cd $DEPLOYMENT_DIR
-              # Production dep
+              cd /root/application/
+              # Production deployment
               COMPOSE_FILE="docker-compose.prod.yml"
-              SERVICE_NAME="idem-webgen"
+              SERVICE_NAME="appgen-server"
               
               echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/appgen-client:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
+              sed -i "s|image: ghcr.io/idem-ai/appgen-server:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
               
               echo "Deploying to production..."
               docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME
@@ -100,10 +100,10 @@ jobs:
             else
               # Staging deployment
               COMPOSE_FILE="docker-compose.staging.yml"
-              SERVICE_NAME="idem-webgen-staging"
+              SERVICE_NAME="appgen-server-staging"
               
               echo "Updating $COMPOSE_FILE..."
-              sed -i "s|image: ghcr.io/idem-ai/appgen-client:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
+              sed -i "s|image: ghcr.io/idem-ai/appgen-server:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
               
               echo "Deploying to staging..."
               docker-compose -f $COMPOSE_FILE pull $SERVICE_NAME

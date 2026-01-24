@@ -29,6 +29,7 @@ jobs:
       chart: ${{ steps.filter.outputs.chart }}
       appgen: ${{ steps.filter.outputs.appgen }}
       packages: ${{ steps.filter.outputs.packages }}
+      ideploy: ${{ steps.filter.outputs.ideploy }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -54,6 +55,8 @@ jobs:
               - 'packages/**'
             packages:
               - 'packages/**'
+            ideploy:
+              - 'apps/ideploy/**'
 
   # ==========================
   # Quality checks
@@ -149,6 +152,28 @@ jobs:
       needs.detect-changes.outputs.appgen == 'true'
     uses: ./.github/workflows/deploy-appgen.yml
     secrets: inherit
+
+  deploy-appgen-server:
+    name: Deploy AppGen Server
+    needs: [detect-changes, quality]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
+      needs.detect-changes.outputs.appgen == 'true'
+    uses: ./.github/workflows/deploy-appgen_server.yml
+    secrets: inherit
+
+
+  deploy-ideploy:
+    name: Deploy IDEPLOY
+    needs: [detect-changes, quality]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
+      needs.detect-changes.outputs.ideploy == 'true'
+    uses: ./.github/workflows/deploy-ideploy.yml
+    secrets: inherit
+
 
   # ==========================
   # Summary
