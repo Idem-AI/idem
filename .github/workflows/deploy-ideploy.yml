@@ -20,7 +20,7 @@ on:
 
 jobs:
   build-and-deploy:
-    name: Build & Deploy API
+    name: Build & Deploy Ideploy
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     environment:
@@ -46,6 +46,7 @@ jobs:
             
             # Variables
             REPO_DIR="/root/idem"
+            FILE_DIR="/root/idem/apps/ideploy"
             DEPLOYMENT_DIR="/root/application"
             BRANCH="${{ steps.vars.outputs.branch }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
@@ -77,10 +78,10 @@ jobs:
               echo "Retry $i/5..."
               rm -f .git/index.lock .git/index
             done
-            
+            cd $FILE_DIR
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.ideploy -t $IMAGE_TAG .
+            docker build -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
