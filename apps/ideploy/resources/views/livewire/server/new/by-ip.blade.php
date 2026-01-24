@@ -63,6 +63,53 @@
                     @endif
                 </div>
             </div>
+            
+            {{-- Géolocalisation & Spécifications (Admins uniquement) --}}
+            @if(auth()->user() && auth()->user()->idem_role === 'admin')
+                <div class="border-t border-red-500/20 pt-4 mt-3">
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+                        </svg>
+                        <h4 class="text-sm font-semibold text-red-400">Admin: Géolocalisation & Spécifications</h4>
+                        <span class="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">ADMIN ONLY</span>
+                    </div>
+                    
+                    {{-- Géolocalisation --}}
+                    <div class="mb-4">
+                        <h5 class="text-xs font-medium text-gray-400 mb-2">📍 Géolocalisation</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <x-forms.select label="Pays" id="country_code" helper="Sélectionnez le pays du serveur">
+                                <option value="">-- Sélectionner --</option>
+                                @foreach($african_countries as $country)
+                                    <option value="{{ $country['code'] }}">{{ $country['name'] }}</option>
+                                @endforeach
+                            </x-forms.select>
+                            <x-forms.input id="city" label="Ville" helper="Ex: Douala, Dakar" />
+                            <x-forms.input type="number" step="0.000001" id="latitude" label="Latitude" helper="Ex: 4.0511" />
+                            <x-forms.input type="number" step="0.000001" id="longitude" label="Longitude" helper="Ex: 9.7679" />
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Région auto-remplie: <span class="text-blue-400 font-medium">{{ $region ?? 'Non définie' }}</span>
+                        </div>
+                    </div>
+                    
+                    {{-- Spécifications --}}
+                    <div class="mb-4">
+                        <h5 class="text-xs font-medium text-gray-400 mb-2">⚙️ Spécifications Serveur</h5>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                            <x-forms.input type="number" id="cpu_cores" label="CPU Cores" helper="Ex: 8" />
+                            <x-forms.input type="number" id="ram_mb" label="RAM (MB)" helper="Ex: 16384" />
+                            <x-forms.input type="number" id="disk_gb" label="Disk (GB)" helper="Ex: 500" />
+                            <x-forms.input type="number" id="max_applications" label="Max Apps" helper="Limite d'apps" />
+                            <div class="flex items-end">
+                                <x-forms.checkbox type="checkbox" id="is_available" label="Disponible?" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+            
             {{-- Submit Button --}}
             <div class="flex items-center justify-end gap-2 pt-3 mt-2 border-t border-gray-800/30">
                 <button type="submit" 
