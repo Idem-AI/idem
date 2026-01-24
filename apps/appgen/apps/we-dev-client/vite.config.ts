@@ -87,7 +87,7 @@ export default defineConfig(async ({ mode }) => {
       postcss: {
         plugins: [require("tailwindcss"), require("autoprefixer")],
       },
-5    },
+     },
 
     define: {
       "process.env": env,
