@@ -1,0 +1,41 @@
+{
+  "editor.formatOnSave": true,
+  "cSpell.blockCheckingWhenLineLengthGreaterThan": 150,
+  "cSpell.words": [
+    "asyncable",
+    "Browserslist",
+    "ckppp",
+    "corg",
+    "cssnano",
+    "esserializer",
+    "gantt",
+    "gitgraph",
+    "KROKI",
+    "localstorage",
+    "mermaidchart",
+    "mindmap",
+    "Pageview",
+    "pako",
+    "panzoom",
+    "pzoom",
+    "roughjs",
+    "Serde",
+    "serdes",
+    "Stackable",
+    "tailwindcss",
+    "uparrow"
+  ],
+  "vitest.commandLine": "pnpm test:unit",
+  "vitest.enable": true,
+  "testing.autoRun.mode": "rerun",
+  "svelte.enable-ts-plugin": true,
+  "githubPullRequests.ignoredPullRequestBranches": ["develop"],
+  "[svelte]": {
+    "editor.defaultFormatter": "svelte.svelte-vscode"
+  },
+  "tailwindCSS.classAttributes": ["class", "className", ".*Classes"],
+  "tailwindCSS.experimental.classRegex": [
+    ["([\"'`][^\"'`]*.*?[\"'`])", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+  "tailwindCSS.emmetCompletions": true
+}

@@ -1,0 +1,66 @@
+{
+    "name": "socialiteproviders/manager",
+    "description": "Easily add new or override built-in providers in Laravel Socialite.",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "manager",
+        "oauth",
+        "providers",
+        "socialite"
+    ],
+    "authors": [
+        {
+            "name": "Andy Wendt",
+            "email": "andy@awendt.com"
+        },
+        {
+            "name": "Anton Komarev",
+            "email": "a.komarev@cybercog.su"
+        },
+        {
+            "name": "Miguel Piedrafita",
+            "email": "soy@miguelpiedrafita.com"
+        },
+        {
+            "name": "atymic",
+            "email": "atymicq@gmail.com",
+            "homepage": "https://atymic.dev"
+        }
+    ],
+    "homepage": "https://socialiteproviders.com",
+    "support": {
+        "issues": "https://github.com/socialiteproviders/manager/issues",
+        "source": "https://github.com/socialiteproviders/manager"
+    },
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^8.0 || ^9.0 || ^10.0 || ^11.0 || ^12.0",
+        "laravel/socialite": "^5.5"
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.2",
+        "phpunit/phpunit": "^9.0"
+    },
+    "minimum-stability": "stable",
+    "autoload": {
+        "psr-4": {
+            "SocialiteProviders\\Manager\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SocialiteProviders\\Manager\\Test\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SocialiteProviders\\Manager\\ServiceProvider"
+            ]
+        }
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "title": "Tableau de bord",
+  "tabs": {
+    "projects": "Projets",
+    "teams": "Équipes"
+  },
+  "sections": {
+    "recentProjects": "Projets récents",
+    "allProjects": "Tous les projets",
+    "recentTeams": "Équipes récentes",
+    "allTeams": "Toutes les équipes"
+  },
+  "cards": {
+    "createProject": {
+      "title": "Créer un nouveau projet",
+      "subtitle": "Commencez à construire quelque chose d'incroyable"
+    },
+    "createTeam": {
+      "title": "Créer une nouvelle équipe",
+      "subtitle": "Construisez l'équipe de vos rêves"
+    }
+  },
+  "empty": {
+    "noProjects": "Aucun projet pour le moment",
+    "noTeams": "Aucune équipe pour le moment",
+    "noDescription": "Aucune description"
+  },
+  "buttons": {
+    "createProject": "Créer votre premier projet",
+    "createTeam": "Créer votre première équipe"
+  },
+  "members": "membres"
+}

@@ -1,0 +1,44 @@
+{
+  "title": "Configuration prête",
+  "subtitle": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
+  "buttons": {
+    "generate": "Générer l'application",
+    "preview": "Aperçu",
+    "export": "Exporter la configuration",
+    "edit": "Modifier la configuration"
+  },
+  "sections": {
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "database": "Base de données",
+    "projectConfig": "Configuration du projet",
+    "constraints": "Contraintes"
+  },
+  "techStack": {
+    "styling": "Style",
+    "stateManagement": "Gestion d'état",
+    "features": "Fonctionnalités",
+    "orm": "ORM",
+    "noFeatures": "Aucune fonctionnalité configurée"
+  },
+  "projectFeatures": {
+    "seo": "SEO",
+    "contactForm": "Formulaire de contact",
+    "analytics": "Analytique",
+    "i18n": "i18n",
+    "performance": "Performance",
+    "authentication": "Authentification",
+    "authorization": "Autorisation",
+    "uiTheme": "Thème UI",
+    "payment": "Paiement",
+    "enabled": "Activé",
+    "disabled": "Désactivé",
+    "optimized": "Optimisé",
+    "standard": "Standard",
+    "integrated": "Intégré",
+    "notIntegrated": "Non intégré",
+    "modern": "Moderne"
+  },
+  "customOptions": "Options personnalisées",
+  "technicalDetails": "Détails techniques"
+}

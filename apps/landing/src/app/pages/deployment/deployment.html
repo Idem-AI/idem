@@ -1,0 +1,445 @@
+<!-- Deployment Page -->
+<div class="relative min-h-screen bg-black overflow-hidden">
+  <!-- Background Effects -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div
+      class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"
+    ></div>
+    <div
+      class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-1000"
+    ></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <!-- Page Header -->
+    <div class="text-center mb-16">
+      <div
+        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
+      >
+        <i class="pi pi-cloud-upload text-primary"></i>
+        <span class="text-white" i18n="@@deployment.deployment_solutions"
+          >Deployment Solutions</span
+        >
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        Deploy Your Way with
+        <span class="text-primary" i18n="@@deployment.idem">IDEM</span>
+      </h1>
+
+      <p
+        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@deployment.description"
+      >
+        From zero-config quick deployments to custom cloud architectures, IDEM offers a complete
+        range of deployment methods tailored to your expertise level and infrastructure needs.
+      </p>
+    </div>
+
+    <!-- Hero Image -->
+    <div class="mb-16 rounded-2xl overflow-hidden border border-white/10 max-w-5xl mx-auto">
+      <img
+        src="assets/images/deployment-page/cloud-deployment.webp"
+        i18n-alt="@@deployment.alt.cloud"
+        alt="Cloud deployment and infrastructure"
+        loading="lazy"
+        class="w-full h-96 object-cover"
+      />
+    </div>
+
+    <!-- Deployment Modes Navigation -->
+    <div class="mb-16">
+      <div class="flex flex-wrap justify-center gap-4 mb-8">
+        @for (mode of deploymentModes; track mode.id) {
+          <button
+            (click)="selectMode(mode.id)"
+            class="group relative px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02]"
+            [ngClass]="{
+              'glass-dark border-2 text-white shadow-lg': selectedMode() === mode.id,
+              'glass border text-white/70 hover:text-white hover:border-white/30':
+                selectedMode() !== mode.id,
+            }"
+            [style.border-color]="selectedMode() === mode.id ? mode.color : ''"
+          >
+            <div class="flex items-center gap-3">
+              <i
+                [class]="'pi ' + mode.icon + ' text-xl'"
+                [style.color]="selectedMode() === mode.id ? mode.color : ''"
+              ></i>
+              <span i18n="@@deployment.mode.title">{{ mode.title }}</span>
+            </div>
+          </button>
+        }
+      </div>
+
+      <!-- Selected Mode Details -->
+      <div class="glass-card p-8 rounded-2xl border border-white/10">
+        <div class="flex items-start gap-6 mb-6">
+          <div
+            class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
+            [style.background-color]="getSelectedMode().color + '20'"
+          >
+            <i
+              [class]="'pi ' + getSelectedMode().icon + ' text-3xl'"
+              [style.color]="getSelectedMode().color"
+            ></i>
+          </div>
+          <div class="flex-1">
+            <h2 class="text-3xl font-bold text-white mb-2" i18n="@@deployment.selectedMode.title">
+              {{ getSelectedMode().title }}
+            </h2>
+            <p
+              class="text-primary text-lg font-semibold mb-4"
+              i18n="@@deployment.selectedMode.subtitle"
+            >
+              {{ getSelectedMode().subtitle }}
+            </p>
+            <p class="text-gray-300 leading-relaxed" i18n="@@deployment.selectedMode.description">
+              {{ getSelectedMode().description }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="mb-6">
+          <h3 class="text-xl font-bold text-white mb-4" i18n="@@deployment.key_features">
+            Key Features
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @for (feature of getSelectedMode().features; track feature) {
+              <div class="flex items-start gap-3 p-4 glass rounded-lg border border-white/5">
+                <i class="pi pi-check-circle text-primary mt-1 flex-shrink-0"></i>
+                <span class="text-gray-300 text-sm" i18n="@@deployment.selectedMode.feature">{{
+                  feature
+                }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Target Audience & Use Cases -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="glass p-6 rounded-xl border border-white/5">
+            <h3
+              class="text-lg font-bold text-white mb-3 flex items-center gap-2"
+              i18n="@@deployment.selectedMode.targetAudience.title"
+            >
+              <i class="pi pi-users text-primary"></i>
+              Target Audience
+            </h3>
+            <p class="text-gray-300" i18n="@@deployment.selectedMode.targetAudience.description">
+              {{ getSelectedMode().targetAudience }}
+            </p>
+          </div>
+
+          <div class="glass p-6 rounded-xl border border-white/5">
+            <h3
+              class="text-lg font-bold text-white mb-3 flex items-center gap-2"
+              i18n="@@deployment.selectedMode.perfectFor.title"
+            >
+              <i class="pi pi-bookmark text-primary"></i>
+              Perfect For
+            </h3>
+            <ul class="space-y-2">
+              @for (useCase of getSelectedMode().useCases; track useCase) {
+                <li class="text-gray-300 text-sm flex items-start gap-2">
+                  <i class="pi pi-angle-right text-primary mt-1 flex-shrink-0"></i>
+                  <span i18n="@@deployment.selectedMode.useCase">{{ useCase }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architecture Design Modes (for Architecture mode) -->
+    @if (selectedMode() === 'architecture') {
+      <div class="mb-16">
+        <h2
+          class="text-3xl font-bold text-white text-center mb-8"
+          i18n="@@deployment.architecture_design_modes"
+        >
+          Architecture Design Modes
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          @for (archMode of architectureModes; track archMode.id) {
+            <div
+              class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/50 transition-all duration-300 hover:transform hover:scale-[1.02]"
+            >
+              <div
+                class="w-14 h-14 rounded-xl flex items-center justify-center mb-4"
+                [style.background-color]="archMode.color + '20'"
+              >
+                <i [class]="'pi ' + archMode.icon + ' text-2xl'" [style.color]="archMode.color"></i>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.archMode.title">
+                {{ archMode.title }}
+              </h3>
+              <p
+                class="text-gray-400 text-sm mb-4 leading-relaxed"
+                i18n="@@deployment.archMode.description"
+              >
+                {{ archMode.description }}
+              </p>
+              <div class="flex items-center gap-2 text-sm">
+                <i class="pi pi-user text-primary"></i>
+                <span class="text-gray-300" i18n="@@deployment.archMode.audience">{{
+                  archMode.audience
+                }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Comparison Table -->
+    <div class="mb-16">
+      <h2
+        class="text-3xl font-bold text-white text-center mb-8"
+        i18n="@@deployment.chooseMethod.title"
+      >
+        Choose the Right Deployment Method
+      </h2>
+      <div class="glass-card rounded-2xl border border-white/10 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-white/10">
+                <th class="text-left p-4 text-white font-semibold" i18n="@@deployment.feature">
+                  Feature
+                </th>
+                <th class="text-center p-4 text-white font-semibold" i18n="@@deployment.quick">
+                  Quick
+                </th>
+                <th class="text-center p-4 text-white font-semibold" i18n="@@deployment.vps">
+                  VPS
+                </th>
+                <th class="text-center p-4 text-white font-semibold" i18n="@@deployment.cloud">
+                  Cloud
+                </th>
+                <th
+                  class="text-center p-4 text-white font-semibold"
+                  i18n="@@deployment.architecture"
+                >
+                  Architecture
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-white/5">
+                <td class="p-4 text-gray-300" i18n="@@deployment.setup_time">Setup Time</td>
+                <td class="text-center p-4">
+                  <span class="text-green-400 font-semibold" i18n="@@deployment.seconds"
+                    >Seconds</span
+                  >
+                </td>
+                <td class="text-center p-4">
+                  <span class="text-blue-400 font-semibold" i18n="@@deployment.minutes"
+                    >Minutes</span
+                  >
+                </td>
+                <td class="text-center p-4">
+                  <span class="text-purple-400 font-semibold" i18n="@@deployment.minutes"
+                    >Minutes</span
+                  >
+                </td>
+                <td class="text-center p-4">
+                  <span class="text-yellow-400 font-semibold" i18n="@@deployment.515_min"
+                    >5-15 min</span
+                  >
+                </td>
+              </tr>
+              <tr class="border-b border-white/5">
+                <td class="p-4 text-gray-300" i18n="@@deployment.configuration_required">
+                  Configuration Required
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-times text-red-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+              </tr>
+              <tr class="border-b border-white/5">
+                <td class="p-4 text-gray-300" i18n="@@deployment.custom_domain">Custom Domain</td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+              </tr>
+              <tr class="border-b border-white/5">
+                <td class="p-4 text-gray-300" i18n="@@deployment.own_infrastructure">
+                  Own Infrastructure
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-times text-red-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+              </tr>
+              <tr class="border-b border-white/5">
+                <td class="p-4 text-gray-300" i18n="@@deployment.monitoring_logs">
+                  Monitoring & Logs
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+                <td class="text-center p-4">
+                  <i class="pi pi-check text-green-400"></i>
+                </td>
+              </tr>
+              <tr>
+                <td class="p-4 text-gray-300" i18n="@@deployment.skill_level">Skill Level</td>
+                <td class="text-center p-4">
+                  <span class="text-green-400 text-sm" i18n="@@deployment.beginner">Beginner</span>
+                </td>
+                <td class="text-center p-4">
+                  <span class="text-blue-400 text-sm" i18n="@@deployment.intermediate"
+                    >Intermediate</span
+                  >
+                </td>
+                <td class="text-center p-4">
+                  <span class="text-purple-400 text-sm" i18n="@@deployment.all_levels"
+                    >All Levels</span
+                  >
+                </td>
+                <td class="text-center p-4">
+                  <span class="text-yellow-400 text-sm" i18n="@@deployment.all_levels"
+                    >All Levels</span
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Infrastructure Highlights -->
+    <div class="mb-16">
+      <h2
+        class="text-3xl font-bold text-white text-center mb-8"
+        i18n="@@deployment.built_robust_infrastructure"
+      >
+        Built on Robust Infrastructure
+      </h2>
+
+      <!-- Infrastructure Images -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div class="rounded-xl overflow-hidden border border-white/10">
+          <img
+            src="assets/images/deployment-page/server-infrastructure.webp"
+            i18n-alt="@@deployment.alt.servers"
+            alt="Server infrastructure and data centers"
+            loading="lazy"
+            class="w-full h-64 object-cover"
+          />
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/10">
+          <img
+            src="assets/images/deployment-page/monitoring-dashboard.webp"
+            i18n-alt="@@deployment.alt.monitoring"
+            alt="Monitoring dashboard and analytics"
+            loading="lazy"
+            class="w-full h-64 object-cover"
+          />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-card p-6 rounded-xl border border-white/10 text-center">
+          <div
+            class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+          >
+            <i class="pi pi-shield text-3xl text-primary"></i>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.docker_swarm_clusters">
+            Docker Swarm Clusters
+          </h3>
+          <p class="text-gray-400 text-sm" i18n="@@deployment.docker.description">
+            High availability infrastructure designed to maintain 99.9% uptime for your applications
+          </p>
+        </div>
+
+        <div class="glass-card p-6 rounded-xl border border-white/10 text-center">
+          <div
+            class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+          >
+            <i class="pi pi-chart-line text-3xl text-primary"></i>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.realtime_monitoring">
+            Real-Time Monitoring
+          </h3>
+          <p class="text-gray-400 text-sm" i18n="@@deployment.monitoring.description">
+            Visualize all containers, track performance metrics, and access logs directly from IDEM
+            platform
+          </p>
+        </div>
+
+        <div class="glass-card p-6 rounded-xl border border-white/10 text-center">
+          <div
+            class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4"
+          >
+            <i class="pi pi-lock text-3xl text-primary"></i>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2" i18n="@@deployment.automatic_ssl">
+            Automatic SSL
+          </h3>
+          <p class="text-gray-400 text-sm" i18n="@@deployment.ssl.description">
+            Free SSL certificates automatically provisioned and renewed for all your deployments
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
+      <h2 class="text-3xl font-bold text-white mb-4" i18n="@@deployment.ready_deploy">
+        Ready to Deploy?
+      </h2>
+      <p class="text-gray-400 mb-8 max-w-2xl mx-auto" i18n="@@deployment.cta.description">
+        Start with our free tier and deploy your first application in minutes. No credit card
+        required.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-rocket mr-2"></i>
+          <ng-container i18n="@@deployment.cta.startDeploying">Start Deploying Free</ng-container>
+        </a>
+        <a routerLink="/" class="outer-button px-8 py-3 rounded-lg font-semibold">
+          <i class="pi pi-arrow-left mr-2"></i>
+          <ng-container i18n="@@deployment.cta.backHome">Back to Home</ng-container>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
