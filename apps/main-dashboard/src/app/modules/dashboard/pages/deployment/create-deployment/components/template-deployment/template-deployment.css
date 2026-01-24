@@ -1,0 +1,66 @@
+/* Template Deployment component styles - using Tailwind CSS classes in template */
+
+/* Animations */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Glass effect enhancements */
+:host ::ng-deep .backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+:host ::ng-deep .backdrop-blur-xl {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* Button hover effects */
+:host ::ng-deep button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:host ::ng-deep button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 206, 201, 0.15);
+}
+
+/* Card hover animations */
+:host ::ng-deep .template-card:hover {
+  box-shadow: 0 0 25px rgba(45, 212, 191, 0.15);
+  border-color: rgba(45, 212, 191, 0.5);
+}
+
+/* Form input focus effects */
+:host ::ng-deep input:focus,
+:host ::ng-deep select:focus {
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.25);
+  border-color: rgba(45, 212, 191, 0.7);
+}
+
+/* Pulse animation for loading state */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+:host ::ng-deep .animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

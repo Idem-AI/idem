@@ -1,0 +1,69 @@
+{
+    "name": "laravel/telescope",
+    "description": "An elegant debug assistant for the Laravel framework.",
+    "keywords": ["laravel", "monitoring", "debugging"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Taylor Otwell",
+            "email": "taylor@laravel.com"
+        },
+        {
+            "name": "Mohamed Said",
+            "email": "mohamed@laravel.com"
+        }
+    ],
+    "require": {
+        "php": "^8.0",
+        "ext-json": "*",
+        "laravel/framework": "^8.37|^9.0|^10.0|^11.0|^12.0",
+        "symfony/console": "^5.3|^6.0|^7.0",
+        "symfony/var-dumper": "^5.0|^6.0|^7.0"
+    },
+    "require-dev": {
+        "ext-gd": "*",
+        "guzzlehttp/guzzle": "^6.0|^7.0",
+        "laravel/octane": "^1.4|^2.0|dev-develop",
+        "orchestra/testbench": "^6.40|^7.37|^8.17|^9.0|^10.0",
+        "phpstan/phpstan": "^1.10",
+        "phpunit/phpunit": "^9.0|^10.5|^11.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Laravel\\Telescope\\": "src/",
+            "Laravel\\Telescope\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Laravel\\Telescope\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\": "workbench/database/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Laravel\\Telescope\\TelescopeServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "post-autoload-dump": "@composer run prepare",
+        "prepare": "@php ./vendor/bin/testbench package:discover --ansi",
+        "build": [
+            "@php ./vendor/bin/testbench package:create-sqlite-db",
+            "@php ./vendor/bin/testbench telescope:publish --force",
+            "@php ./vendor/bin/testbench migrate:refresh"
+        ],
+        "serve": [
+            "@composer run build",
+            "@php ./vendor/bin/testbench serve"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -1,0 +1,18 @@
+{
+  "title": "Before continuing, we need more information about your project",
+  "sections": {
+    "details": "Project Details",
+    "businessOptions": "Business Options"
+  },
+  "fields": {
+    "projectName": "Project Name",
+    "projectType": "Project Type",
+    "projectScope": "Project Scope",
+    "projectTarget": "Main Project Target"
+  },
+  "placeholders": {
+    "selectType": "Select a type",
+    "selectScope": "Select a scope",
+    "selectTarget": "Select a target"
+  }
+}

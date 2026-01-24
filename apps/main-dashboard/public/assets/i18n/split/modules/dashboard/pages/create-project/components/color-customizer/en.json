@@ -1,0 +1,22 @@
+{
+  "title": "Edit Colors",
+  "pick": "Pick",
+  "hex": "HEX",
+  "hexPlaceholder": "#000000",
+  "preview": "Preview",
+  "tip": "Click any color circle to open the picker. Related colors auto-adjust for harmony.",
+  "labels": {
+    "primary": "Primary Color",
+    "secondary": "Secondary Color",
+    "accent": "Accent Color",
+    "background": "Background Color",
+    "text": "Text Color"
+  },
+  "descriptions": {
+    "primary": "Main brand color used for buttons and key elements",
+    "secondary": "Supporting color that complements your primary",
+    "accent": "Highlighting color for calls-to-action",
+    "background": "Base background color for your designs",
+    "text": "Primary text color for readability"
+  }
+}

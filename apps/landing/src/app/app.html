@@ -1,0 +1,7 @@
+@if (isInitialLoading()) {
+  <app-splash-screen></app-splash-screen>
+}
+
+<app-header />
+<router-outlet (activate)="resetPosition()"></router-outlet>
+<app-footer />

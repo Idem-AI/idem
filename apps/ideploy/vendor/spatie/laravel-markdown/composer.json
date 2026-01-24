@@ -1,0 +1,68 @@
+{
+    "name": "spatie/laravel-markdown",
+    "description": "A highly configurable markdown renderer and Blade component for Laravel",
+    "keywords": [
+        "spatie",
+        "laravel",
+        "laravel-markdown"
+    ],
+    "homepage": "https://github.com/spatie/laravel-markdown",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Freek Van der Herten",
+            "email": "freek@spatie.be",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/cache": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/contracts": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/support": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/view": "^9.0|^10.0|^11.0|^12.0",
+        "league/commonmark": "^2.6.0",
+        "spatie/commonmark-shiki-highlighter": "^2.5",
+        "spatie/laravel-package-tools": "^1.4.3"
+    },
+    "require-dev": {
+        "brianium/paratest": "^6.2|^7.8",
+        "nunomaduro/collision": "^5.3|^6.0|^7.0|^8.0",
+        "orchestra/testbench": "^6.15|^7.0|^8.0|^10.0",
+        "pestphp/pest": "^1.22|^2.0|^3.7",
+        "phpunit/phpunit": "^9.3|^11.5.3",
+        "spatie/laravel-ray": "^1.23",
+        "spatie/pest-plugin-snapshots": "^1.1|^2.2|^3.0",
+        "vimeo/psalm": "^4.8|^6.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "Spatie\\LaravelMarkdown\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Spatie\\LaravelMarkdown\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "./vendor/bin/pest",
+        "test-coverage": "XDEBUG_MODE=coverage vendor/bin/pest --coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true,
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Spatie\\LaravelMarkdown\\MarkdownServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
