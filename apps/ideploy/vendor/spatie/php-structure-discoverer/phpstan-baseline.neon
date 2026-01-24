@@ -1,0 +1,36 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Parameter \\$file of class Spatie\\\\StructureDiscoverer\\\\Data\\\\DiscoveredClass constructor expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Data/DiscoveredClass.php
+
+		-
+			message: "#^Parameter \\$file of class Spatie\\\\StructureDiscoverer\\\\Data\\\\DiscoveredEnum constructor expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Data/DiscoveredEnum.php
+
+		-
+			message: "#^Parameter \\$file of class Spatie\\\\StructureDiscoverer\\\\Data\\\\DiscoveredInterface constructor expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Data/DiscoveredInterface.php
+
+		-
+			message: "#^Parameter \\$file of class Spatie\\\\StructureDiscoverer\\\\Data\\\\DiscoveredTrait constructor expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Data/DiscoveredTrait.php
+
+		-
+			message: "#^Match arm is unreachable because previous comparison is always true\\.$#"
+			count: 1
+			path: src/Enums/DiscoveredStructureType.php
+
+		-
+			message: "#^Parameter \\#1 \\$objectOrClass of class ReflectionEnum constructor expects class\\-string\\<T of UnitEnum\\>\\|T of UnitEnum, class\\-string\\<object\\> given\\.$#"
+			count: 1
+			path: src/StructureParsers/ReflectionStructureParser.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/StructureScout.php

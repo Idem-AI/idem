@@ -1,0 +1,40 @@
+{
+  "title": "Add Team to Project",
+  "subtitle": "Choose an existing team or create a new one to add to this project",
+  "tabs": {
+    "existingTeam": "Existing Team",
+    "createNewTeam": "Create New Team"
+  },
+  "fields": {
+    "selectTeam": "Select Team",
+    "projectRoles": "Project Roles",
+    "teamName": "Team Name",
+    "description": "Description"
+  },
+  "placeholders": {
+    "chooseTeam": "Choose a team...",
+    "teamName": "e.g., Frontend Team",
+    "description": "Brief description of the team's purpose..."
+  },
+  "noTeamsAvailable": "No teams available",
+  "createNewTeamSuggestion": "Create a new team to get started",
+  "buttons": {
+    "addTeam": "Add Team",
+    "createAndAdd": "Create & Add Team"
+  },
+  "newTeamInfo": "The team will be created and immediately added to this project with the selected roles.",
+  "errors": {
+    "failedToLoadTeams": "Failed to load teams",
+    "failedToAddTeam": "Failed to add team to project",
+    "teamCreatedButFailedToAdd": "Team created but failed to add to project",
+    "failedToCreateTeam": "Failed to create team"
+  },
+  "roles": {
+    "project-owner": "Project Owner",
+    "project-admin": "Project Admin",
+    "developer": "Developer",
+    "designer": "Designer",
+    "viewer": "Viewer",
+    "contributor": "Contributor"
+  }
+}

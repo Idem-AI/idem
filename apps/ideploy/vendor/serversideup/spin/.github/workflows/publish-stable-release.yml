@@ -1,0 +1,13 @@
+name: publish-stable
+
+on:
+  workflow_dispatch:
+  release:
+    types: [released]
+
+jobs:
+  publish-stable-release:
+    uses: ./.github/workflows/service_publish-node-package.yml
+    with:
+      release-tag: latest
+    secrets: inherit

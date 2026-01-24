@@ -1,0 +1,56 @@
+{
+    "name": "visus/cuid2",
+    "description": "A PHP library for generating collision-resistant ids (CUIDs).",
+    "license": "MIT",
+    "type": "library",
+    "keywords": [
+        "cuid",
+        "identifier"
+    ],
+    "authors": [
+        {
+            "name": "Alan Brault",
+            "email": "alan.brault@visus.io"
+        }
+    ],
+    "require": {
+        "php": "^8.1"
+    },
+    "require-dev": {
+        "ext-ctype": "*",
+        "ergebnis/composer-normalize": "^2.29",
+        "phpstan/phpstan": "^1.9",
+        "phpunit/phpunit": "^10.0",
+        "squizlabs/php_codesniffer": "^3.7",
+        "vimeo/psalm": "^5.4"
+    },
+    "suggest": {
+        "ext-gmp": "*"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "Visus\\Cuid2\\": "src/"
+        },
+        "files": [
+            "src/compat.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Visus\\Cuid2\\Test\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true
+        }
+    },
+    "scripts": {
+        "phpstan": [
+            "phpstan analyse -c phpstan.neon --no-progress --memory-limit=1G"
+        ],
+        "psalm": "psalm --show-info=false --config=psalm.xml"
+    }
+}

@@ -1,0 +1,20 @@
+{
+  "locale": "fr",
+  "translations": {
+    "premium-beta-access.premium_beta_access": "ACCÈS BÊTA PREMIUM",
+    "premium-beta-access.beta_tester": "TESTEUR BÊTA",
+    "premium-beta-access.spotsLeft": "Seulement {$START_TAG_SPAN}25{$CLOSE_TAG_SPAN} places premium restantes",
+    "premium-beta-access.join_waitlist": "REJOINDRE LA LISTE D'ATTENTE",
+    "premium-beta-access.benefits.title": "{$START_TAG__SVG_SVG}{$START_TAG__SVG_PATH}{$CLOSE_TAG__SVG_PATH}{$CLOSE_TAG__SVG_SVG} Avantages Premium {$START_TAG_SPAN}✦{$CLOSE_TAG_SPAN}",
+    "premium-beta-access.more_credits_than": "2x plus de crédits que les utilisateurs standard",
+    "premium-beta-access.early_access_new": "Accès anticipé aux nouvelles fonctionnalités IA",
+    "premium-beta-access.priority_support_via": "Support prioritaire via un canal dédié",
+    "premium-beta-access.lifetime_discount_after": "Réduction à vie de 25% après le lancement",
+    "premium-beta-access.features.title": "{$START_TAG__SVG_SVG}{$START_TAG__SVG_PATH}{$CLOSE_TAG__SVG_PATH}{$CLOSE_TAG__SVG_SVG} Fonctionnalités Exclusives {$START_TAG_SPAN}✦{$CLOSE_TAG_SPAN}",
+    "premium-beta-access.advanced_brand_generation": "Outils avancés de génération de marque par IA",
+    "premium-beta-access.experimental_deployment_options": "Options de déploiement expérimentales",
+    "premium-beta-access.monthly_beta_tester": "Appels communautaires mensuels des testeurs bêta",
+    "premium-beta-access.premium_spots_claimed": "48 places premium réclamées",
+    "premium-beta-access.join_premium_waitlist": "REJOINDRE LA LISTE D'ATTENTE PREMIUM"
+  }
+}

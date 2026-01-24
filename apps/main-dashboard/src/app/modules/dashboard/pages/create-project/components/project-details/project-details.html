@@ -1,0 +1,105 @@
+<section
+  class="flex flex-col min-h-[60vh] items-center justify-center text-gray-100 w-full px-4 sm:px-6 lg:px-8"
+>
+  <!-- Main Title - Responsive Typography and Width -->
+  <div class="text-center mb-8 sm:mb-12 max-w-4xl">
+    <h1
+      class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 leading-tight px-4"
+    >
+      {{ 'dashboard.projectDetails.title' | translate }}
+    </h1>
+  </div>
+
+  <!-- Form Container - Responsive Width and Padding -->
+  <div class="w-full max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
+    <div class="rounded-xl p-4 sm:p-6 lg:p-8 border border-white/10 glass">
+      <!-- Project Details Section -->
+      <div class="mb-6 sm:mb-8">
+        <h2 class="text-lg sm:text-xl font-semibold text-gray-100 mb-4 sm:mb-6">
+          {{ 'dashboard.projectDetails.sections.details' | translate }}
+        </h2>
+
+        <!-- Project Name Input -->
+        <div class="mb-4 sm:mb-6 w-full">
+          <p-floatlabel variant="in">
+            <input
+              pInputText
+              id="in_label"
+              [ngModel]="project()!.name"
+              (ngModelChange)="onNameChange($event)"
+              autocomplete="off"
+              class="w-full text-sm sm:text-base"
+            />
+            <label for="in_label" class="text-sm sm:text-base">{{
+              'dashboard.projectDetails.fields.projectName' | translate
+            }}</label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Project Type Select -->
+        <div class="mb-6 sm:mb-8">
+          <label for="projectType" class="block text-sm sm:text-base font-medium mb-2">
+            {{ 'dashboard.projectDetails.fields.projectType' | translate }}
+          </label>
+          <div class="card flex justify-start w-full z-50">
+            <p-select
+              [options]="groupedProjectTypes()"
+              [ngModel]="project()!.type"
+              (ngModelChange)="onTypeChange($event)"
+              [placeholder]="'dashboard.projectDetails.placeholders.selectType' | translate"
+              [editable]="false"
+              optionLabel="name"
+              class="w-full text-sm sm:text-base z-50"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Business Options Section -->
+      <div>
+        <h2 class="text-lg sm:text-xl font-semibold text-gray-100 mb-4 sm:mb-6">
+          {{ 'dashboard.projectDetails.sections.businessOptions' | translate }}
+        </h2>
+
+        <!-- Responsive Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+          <!-- Project Scope -->
+          <div class="space-y-2">
+            <label for="projectScope" class="block text-sm sm:text-base font-medium">
+              {{ 'dashboard.projectDetails.fields.projectScope' | translate }}
+            </label>
+            <div class="card flex justify-start w-full">
+              <p-select
+                [options]="groupedScopes()"
+                [ngModel]="project()!.scope"
+                (ngModelChange)="onScopeChange($event)"
+                [placeholder]="'dashboard.projectDetails.placeholders.selectScope' | translate"
+                [editable]="false"
+                optionLabel="name"
+                class="w-full text-sm sm:text-base"
+              />
+            </div>
+          </div>
+
+          <!-- Main Project Target -->
+          <div class="space-y-2">
+            <label for="projectTargets" class="block text-sm sm:text-base font-medium">
+              {{ 'dashboard.projectDetails.fields.projectTarget' | translate }}
+            </label>
+            <div class="card flex justify-start w-full">
+              <p-select
+                [options]="groupedTargets()"
+                [ngModel]="project()!.targets"
+                (ngModelChange)="onTargetsChange($event)"
+                [placeholder]="'dashboard.projectDetails.placeholders.selectTarget' | translate"
+                [editable]="false"
+                optionLabel="name"
+                class="w-full text-sm sm:text-base"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,6 @@
+{
+  "generic": "An error occurred",
+  "notFound": "Not found",
+  "unauthorized": "Unauthorized",
+  "serverError": "Server error"
+}

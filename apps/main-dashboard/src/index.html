@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" class="dark" style="color-scheme: dark; background-color: #0f141b; color: #ffffff;">
+  <head>
+    <meta charset="utf-8" />
+    <title>MainDashboard</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script>
+      // Force dark mode immediately to prevent any flash
+      (function() {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+        document.documentElement.style.colorScheme = 'dark';
+        document.documentElement.style.backgroundColor = '#0f141b';
+        document.documentElement.style.color = '#ffffff';
+      })();
+    </script>
+  </head>
+  <body style="background-color: #0f141b; color: #ffffff;">
+    <app-root></app-root>
+  </body>
+</html>

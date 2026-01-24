@@ -1,0 +1,41 @@
+{
+  "title": "Profile",
+  "subtitle": "Manage your account settings and preferences",
+  "alt": {
+    "profilePicture": "'s profile picture"
+  },
+  "sections": {
+    "personalInfo": "Personal Information",
+    "betaAccess": "Beta Access",
+    "quotaUsage": "Quota Usage"
+  },
+  "fields": {
+    "name": "Name",
+    "email": "Email",
+    "accountType": "Account Type",
+    "memberSince": "Member Since"
+  },
+  "accountTypes": {
+    "free": "Free",
+    "premium": "Premium"
+  },
+  "beta": {
+    "message": "You are part of our Beta program with special access and limitations.",
+    "limitations": "Beta Limitations",
+    "maxStyles": "Maximum {{count}} styles per generation",
+    "resolution": "Maximum {{resolution}} resolution",
+    "maxTokens": "Maximum {{count}} output tokens"
+  },
+  "quota": {
+    "daily": "Daily Quota",
+    "weekly": "Weekly Quota",
+    "usedToday": "Used today: {{count}} requests",
+    "usedThisWeek": "Used this week: {{count}} requests",
+    "warning": "You're approaching your quota limit. Consider upgrading for unlimited access.",
+    "exceeded": "You've exceeded your quota limit. Please upgrade or wait for the next reset."
+  },
+  "buttons": {
+    "upgrade": "Upgrade to Premium",
+    "settings": "Account Settings"
+  }
+}

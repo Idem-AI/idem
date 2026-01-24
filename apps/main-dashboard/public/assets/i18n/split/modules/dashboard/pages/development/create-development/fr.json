@@ -1,0 +1,76 @@
+{
+  "title": "Configuration du développement",
+  "subtitle": "Configurez les paramètres de développement de votre application",
+  "errors": {
+    "submissionTitle": "Il y a eu des erreurs avec votre soumission"
+  },
+  "modeSelection": {
+    "title": "Choisissez votre mode de développement",
+    "subtitle": "Sélectionnez comment vous voulez configurer votre application",
+    "quick": {
+      "title": "Rapide",
+      "subtitle": "Configuration pré-établie avec React, Express.js et Supabase",
+      "features": {
+        "react": "React",
+        "express": "Express.js"
+      }
+    },
+    "advanced": {
+      "title": "Avancé",
+      "subtitle": "Contrôle total sur tous les choix technologiques et paramètres",
+      "features": {
+        "custom": "Personnalisé",
+        "fullControl": "Contrôle total"
+      }
+    }
+  },
+  "generationType": {
+    "title": "Que voulez-vous générer ?",
+    "subtitle": "Choisissez le type d'application que vous voulez créer",
+    "landing": {
+      "title": "Landing",
+      "subtitle": "Un beau site web marketing autonome pour présenter votre produit ou service",
+      "badge": "Marketing"
+    },
+    "app": {
+      "title": "Application Web",
+      "subtitle": "Une application web complète avec authentification utilisateur et base de données",
+      "badge": "App"
+    },
+    "integrated": {
+      "title": "Intégré",
+      "subtitle": "Page de destination intégrée dans l'application web pour une expérience utilisateur fluide",
+      "badge": "Unifié"
+    },
+    "both": {
+      "title": "Complet",
+      "subtitle": "Page de destination + application web séparées pour une flexibilité et évolutivité maximales",
+      "badge": "Full Stack"
+    }
+  },
+  "configuration": {
+    "title": "Résumé de la configuration",
+    "subtitle": "Vérifiez vos paramètres de génération rapide",
+    "generationType": "Type de génération",
+    "techStack": "Stack technologique",
+    "features": {
+      "react": "Frontend React",
+      "express": "Backend Express.js",
+      "supabase": "Base de données Supabase"
+    },
+    "buttons": {
+      "generate": "Générer l'application",
+      "save": "Enregistrer les configurations"
+    }
+  },
+  "advanced": {
+    "title": "Configuration avancée",
+    "subtitle": "Configurez tous les aspects de votre application",
+    "tabs": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Base de données",
+      "deployment": "Déploiement"
+    }
+  }
+}

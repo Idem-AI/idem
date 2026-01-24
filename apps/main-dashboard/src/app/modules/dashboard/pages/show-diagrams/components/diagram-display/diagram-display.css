@@ -1,0 +1,196 @@
+/* Diagram Display Component Styles */
+
+/* Responsive prose styles */
+.prose {
+  max-width: none;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.prose p {
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.prose code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.prose pre {
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+}
+
+.prose blockquote {
+  border-left: 4px solid #3b82f6;
+  padding-left: 1rem;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.5rem;
+}
+
+.prose li {
+  margin: 0.5rem 0;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  overflow-x: auto;
+  display: block;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .prose table {
+    display: table;
+    white-space: normal;
+  }
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: left;
+  min-width: 100px;
+}
+
+.prose th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+/* Responsive diagram styles */
+.responsive-diagram {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Mermaid diagram responsive adjustments */
+.mermaid-diagram {
+  width: 100%;
+  height: auto;
+}
+
+/* Ensure mermaid SVGs are responsive */
+.mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 640px) {
+  .mermaid-diagram {
+    font-size: 12px;
+  }
+
+  .mermaid-diagram svg {
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
+
+  .prose {
+    font-size: 14px;
+  }
+
+  .prose h1 {
+    font-size: 1.5rem;
+  }
+  .prose h2 {
+    font-size: 1.25rem;
+  }
+  .prose h3 {
+    font-size: 1.125rem;
+  }
+  .prose h4 {
+    font-size: 1rem;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .mermaid-diagram {
+    font-size: 14px;
+  }
+
+  .mermaid-diagram svg {
+    transform: scale(0.9);
+    transform-origin: top center;
+  }
+}
+
+/* Desktop and larger screens */
+@media (min-width: 1025px) {
+  .mermaid-diagram {
+    font-size: 16px;
+  }
+
+  .mermaid-diagram svg {
+    transform: scale(1);
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    color: #f9fafb;
+  }
+
+  .prose p {
+    color: #d1d5db;
+  }
+
+  .prose code {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+
+  .prose th {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+
+  .prose td {
+    border-color: #4b5563;
+    color: #d1d5db;
+  }
+
+  .prose blockquote {
+    color: #9ca3af;
+    border-left-color: #60a5fa;
+  }
+}
+
+/* Custom breakpoint for extra small screens */
+@media (min-width: 475px) {
+  .xs\:inline {
+    display: inline !important;
+  }
+}

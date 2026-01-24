@@ -1,0 +1,73 @@
+{
+  "initialGreeting": "Hello! I'm your AI assistant. Describe the infrastructure you'd like to deploy.",
+  "architectureAccepted": "Great! The architecture has been accepted. Now let me check if any sensitive variables are needed for this deployment...",
+  "architectureAcceptedMessage": "The architecture has been accepted. Please analyze the components and let me know if any sensitive variables (API keys, passwords, database credentials, etc.) are needed for this deployment.",
+  "greeting": "Hello! {{userName}}, I'm IDEM DevOps Assistant. I can generate and deploy your project or infrastructure for you, and manage responsive deployments. How can I help you today?",
+  "buttons": {
+    "enterSensitiveVariables": "Enter Sensitive Variables",
+    "submitVariables": "Submit Variables",
+    "acceptArchitecture": "Accept Architecture",
+    "saveConfiguration": "Save Configuration",
+    "saveAndContinue": "Save & Continue",
+    "validateFields": "Validate Fields"
+  },
+  "sensitiveVariables": {
+    "title": "Sensitive Variables Required",
+    "description": "The AI needs some sensitive information to complete your deployment configuration. These values will be stored securely and encrypted.",
+    "validated": "✅ Sensitive variables validated and ready to submit. You can now click the \"Submit Variables\" button to store them securely.",
+    "storedSuccessfully": "✅ Successfully stored {{count}} sensitive variables securely. Your deployment configuration is now complete.",
+    "creatingAndStoring": "🔄 Creating deployment and storing sensitive variables securely...",
+    "dialogTitle": "Secure Variables Configuration",
+    "securityNotice": {
+      "title": "Security Notice",
+      "body": "These sensitive values will be encrypted and stored securely. They will only be used for your deployment configuration and will never be logged or exposed."
+    }
+  },
+  "architecture": {
+    "title": "Proposed Architecture",
+    "diagram": "Architecture Diagram"
+  },
+  "placeholders": {
+    "prompt": "Describe your infrastructure needs..."
+  },
+  "pressEnterToSend": "Press Enter to send",
+  "configure": {
+    "title": "Configure {{componentName}}"
+  },
+  "deploymentConfig": {
+    "title": "Deployment Configuration",
+    "fields": {
+      "name": "Deployment Name",
+      "environment": "Environment"
+    },
+    "placeholders": {
+      "name": "My AI-Generated App"
+    },
+    "environments": {
+      "development": "Development",
+      "staging": "Staging",
+      "production": "Production"
+    },
+    "git": {
+      "title": "Git Repository (Optional)",
+      "repoUrl": "Repository URL",
+      "branch": "Branch"
+    }
+  },
+  "errors": {
+    "noProjectSelected": "No project selected. Please select a project first.",
+    "requestProcessing": "Sorry, I encountered an error processing your request. Please try again.",
+    "apiError": "Failed to get AI response",
+    "noInteraction": "Please interact with the AI assistant before creating a deployment",
+    "formNotInitialized": "Form not initialized.",
+    "fillRequiredFields": "Please fill in all required fields correctly.",
+    "validationFailed": "Validation failed: ",
+    "formHasErrors": "Form has validation errors. ",
+    "variablesNotValidated": "Variables not validated. ",
+    "failedToCreateDeployment": "Failed to create deployment",
+    "failedToStoreVariables": "Failed to store sensitive variables: missing form or deployment ID",
+    "failedToStoreSecurely": "Failed to store sensitive variables securely",
+    "communicationFailed": "Failed to communicate with AI assistant",
+    "configureComponents": "Please configure all {{count}} component(s) before accepting the architecture"
+  }
+}

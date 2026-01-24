@@ -1,0 +1,17 @@
+{
+  "backToTeams": "Retour aux équipes du projet",
+  "sections": {
+    "teamMembers": "Membres de l'équipe"
+  },
+  "cards": {
+    "teamRole": "Rôle dans l'équipe",
+    "joined": "Rejoint le {{date}}"
+  },
+  "buttons": {
+    "remove": "Retirer"
+  },
+  "empty": {
+    "noMembers": "Aucun membre dans cette équipe"
+  },
+  "members": "membres"
+}
