@@ -16,7 +16,7 @@ COPY ./apps/appgen/apps/we-dev-next ./apps/appgen/apps/we-dev-next
 # Go to server directory
 WORKDIR /app/apps/appgen/apps/we-dev-next
 
-COPY .env.appgen .env
+COPY .env .env
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
