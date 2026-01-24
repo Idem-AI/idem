@@ -1,27 +1,33 @@
-<div>
+<div class="min-h-screen bg-[#0a0e1a]">
     {{-- Header --}}
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h2 class="text-2xl font-bold dark:text-white">Team Management</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage all teams and their members</p>
-        </div>
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white mb-2">Team Management</h1>
+        <p class="text-gray-400">Manage all teams and their members</p>
     </div>
 
     {{-- Search --}}
-    <div class="mb-4">
-        <input type="text" wire:model.live="search" placeholder="Search teams by name..." 
-               class="input w-full md:w-96">
+    <div class="mb-6">
+        <div class="relative max-w-md">
+            <input type="text" wire:model.live="search" placeholder="Search teams by name..." 
+                   class="w-full bg-[#0f1419] text-white px-5 py-4 pl-12 rounded-xl border border-gray-700/50 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200">
+            <svg class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        </div>
     </div>
 
     {{-- Teams Grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @forelse($teams as $team)
-            <div class="box p-5">
-                <div class="flex items-start justify-between mb-3">
+            <div class="bg-[#0f1419] rounded-xl p-6 border border-gray-800/50 hover:border-blue-500/30 transition-all duration-300 group">
+                <div class="flex items-start justify-between mb-4">
                     <div class="flex-1">
-                        <h3 class="font-semibold dark:text-white text-lg">{{ $team->name }}</h3>
+                        <h3 class="font-bold text-white text-xl mb-2">{{ $team->name }}</h3>
                         @if($team->personal_team)
-                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded mt-1">
+                            <span class="inline-flex items-center px-3 py-1 text-xs font-medium bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                                </svg>
                                 Personal
                             </span>
                         @endif
@@ -29,37 +35,38 @@
                 </div>
 
                 {{-- Stats --}}
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                    <div class="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2 text-center">
-                        <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ $team->members_count }}</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Members</div>
+                <div class="grid grid-cols-3 gap-3 mb-5">
+                    <div class="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-3 text-center border border-blue-500/20">
+                        <div class="text-2xl font-bold text-blue-400 mb-1">{{ $team->members_count }}</div>
+                        <div class="text-xs text-gray-400 font-medium">Members</div>
                     </div>
                     
-                    <div class="bg-green-50 dark:bg-green-950/20 rounded-md p-2 text-center">
-                        <div class="text-lg font-bold text-green-600 dark:text-green-400">{{ $team->projects()->count() }}</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Projects</div>
+                    <div class="bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-lg p-3 text-center border border-green-500/20">
+                        <div class="text-2xl font-bold text-green-400 mb-1">{{ $team->projects()->count() }}</div>
+                        <div class="text-xs text-gray-400 font-medium">Projects</div>
                     </div>
                     
-                    <div class="bg-purple-50 dark:bg-purple-950/20 rounded-md p-2 text-center">
-                        <div class="text-lg font-bold text-purple-600 dark:text-purple-400">{{ $team->servers()->count() }}</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Servers</div>
+                    <div class="bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-lg p-3 text-center border border-purple-500/20">
+                        <div class="text-2xl font-bold text-purple-400 mb-1">{{ $team->servers()->count() }}</div>
+                        <div class="text-xs text-gray-400 font-medium">Servers</div>
                     </div>
                 </div>
 
                 {{-- Subscription Plan --}}
                 @if($team->idem_subscription_plan)
-                    <div class="mb-3">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">Plan:</span>
-                        <span class="ml-1 text-sm font-medium dark:text-white">
+                    <div class="mb-4 flex items-center gap-2">
+                        <span class="text-xs text-gray-400 font-medium">Plan:</span>
+                        <span class="inline-flex items-center px-3 py-1 text-sm font-bold bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30">
                             {{ ucfirst($team->idem_subscription_plan) }}
                         </span>
                     </div>
                 @endif
 
                 {{-- Actions --}}
-                <div class="flex items-center gap-2 pt-3 border-t dark:border-coolgray-200">
-                    <button wire:click="showDetails({{ $team->id }})" class="button text-xs flex-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center gap-3 pt-4 border-t border-gray-700/50">
+                    <button wire:click="showDetails({{ $team->id }})" 
+                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 hover:border-blue-500/50 transition-all duration-200 font-medium text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                         </svg>
@@ -68,16 +75,21 @@
                     
                     <button wire:click="deleteTeam({{ $team->id }})" 
                             onclick="return confirm('Delete this team? This action cannot be undone.')"
-                            class="button bg-red-600 text-xs">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="inline-flex items-center justify-center p-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg border border-red-500/30 hover:border-red-500/50 transition-all duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
                     </button>
                 </div>
             </div>
         @empty
-            <div class="col-span-full text-center py-8 text-gray-500 dark:text-gray-400">
-                No teams found.
+            <div class="col-span-full">
+                <div class="bg-[#0f1419] rounded-xl p-12 border border-gray-800/50 text-center">
+                    <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <p class="text-gray-400 text-lg">No teams found.</p>
+                </div>
             </div>
         @endforelse
     </div>
