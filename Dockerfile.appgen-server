@@ -1,0 +1,63 @@
+# Dockerfile.appgen-server
+# Build AppGen Server (Next.js)
+FROM node:20.18-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.4
+
+# Copy root configuration files
+COPY package.json package-lock.json* tsconfig.base.json* ./
+
+# Copy appgen server application
+COPY ./apps/appgen/apps/we-dev-next ./apps/appgen/apps/we-dev-next
+
+# Go to server directory
+WORKDIR /app/apps/appgen/apps/we-dev-next
+
+COPY .env.appgen .env
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile
+
+# Build application
+RUN pnpm build
+
+# ============ Production Stage ============
+FROM node:20.18-alpine AS production
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.4
+
+# Copy package.json and dependencies
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/package.json ./
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/node_modules ./node_modules
+
+# Copy Next.js build
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/.next ./.next
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/next.config.js* ./
+
+# Copy public folder if it exists (optional)
+RUN mkdir -p ./public
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Change ownership
+RUN chown -R nextjs:nodejs /app
+
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Start Next.js server
+CMD ["pnpm", "start"]
