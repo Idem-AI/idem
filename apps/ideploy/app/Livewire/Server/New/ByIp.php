@@ -5,6 +5,7 @@ namespace App\Livewire\Server\New;
 use App\Enums\ProxyTypes;
 use App\Models\Server;
 use App\Models\Team;
+use App\Services\ServerSchedulingService;
 use App\Support\ValidationPatterns;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Collection;
@@ -47,8 +48,26 @@ class ByIp extends Component
 
     public bool $is_build_server = false;
 
+    // Géolocalisation (pour admins uniquement)
+    public ?string $country = null;
+    public ?string $country_code = null;
+    public ?string $region = null;
+    public ?string $city = null;
+    public ?float $latitude = null;
+    public ?float $longitude = null;
+    
+    // Spécifications serveur (pour admins uniquement)
+    public ?int $cpu_cores = null;
+    public ?int $ram_mb = null;
+    public ?int $disk_gb = null;
+    public int $max_applications = 50;
+    public bool $is_available = true;
+
     #[Locked]
     public Collection $swarm_managers;
+    
+    #[Locked]
+    public array $african_countries = [];
 
     public function mount()
     {
@@ -58,6 +77,9 @@ class ByIp extends Component
         if ($this->swarm_managers->count() > 0) {
             $this->selected_swarm_cluster = $this->swarm_managers->first()->id;
         }
+        
+        // Charger la liste des pays africains
+        $this->african_countries = ServerSchedulingService::getAfricanCountries();
     }
 
     protected function rules(): array
@@ -76,6 +98,19 @@ class ByIp extends Component
             'is_swarm_worker' => 'required|boolean',
             'selected_swarm_cluster' => 'nullable|integer',
             'is_build_server' => 'required|boolean',
+            // Géolocalisation
+            'country' => 'nullable|string|max:255',
+            'country_code' => 'nullable|string|size:2',
+            'region' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            // Spécifications
+            'cpu_cores' => 'nullable|integer|min:1',
+            'ram_mb' => 'nullable|integer|min:512',
+            'disk_gb' => 'nullable|integer|min:10',
+            'max_applications' => 'required|integer|min:1',
+            'is_available' => 'required|boolean',
         ];
     }
 
@@ -113,6 +148,20 @@ class ByIp extends Component
     {
         // $this->dispatch('success', 'Application settings updated!');
     }
+    
+    /**
+     * Auto-remplir les champs quand un pays est sélectionné
+     */
+    public function updatedCountryCode($value)
+    {
+        if ($value) {
+            $country = collect($this->african_countries)->firstWhere('code', $value);
+            if ($country) {
+                $this->country = $country['name'];
+                $this->region = $country['region'];
+            }
+        }
+    }
 
     public function submit()
     {
@@ -144,6 +193,21 @@ class ByIp extends Component
                 'port' => $this->port,
                 'team_id' => currentTeam()->id,
                 'private_key_id' => $this->private_key_id,
+                // Géolocalisation
+                'country' => $this->country,
+                'country_code' => $this->country_code,
+                'region' => $this->region,
+                'city' => $this->city,
+                'latitude' => $this->latitude,
+                'longitude' => $this->longitude,
+                // Spécifications
+                'cpu_cores' => $this->cpu_cores,
+                'ram_mb' => $this->ram_mb,
+                'disk_gb' => $this->disk_gb,
+                'max_applications' => $this->max_applications,
+                'current_applications' => 0,
+                'is_available' => $this->is_available,
+                'load_score' => 0,
             ];
             if ($this->is_swarm_worker) {
                 $payload['swarm_cluster'] = $this->selected_swarm_cluster;
@@ -157,6 +221,7 @@ class ByIp extends Component
             if ($isIdemAdmin) {
                 $server->idem_managed = true;
                 $server->idem_load_score = 0;
+                $server->save();
             }
             
             $server->proxy->set('status', 'exited');
