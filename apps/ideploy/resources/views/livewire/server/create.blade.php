@@ -36,60 +36,6 @@
     @endif
 
     <div class="flex flex-col gap-4">
-        @can('viewAny', App\Models\CloudProviderToken::class)
-            @if($can_use_cloud_providers)
-                <div>
-                    <x-modal-input title="Connect a Hetzner Server">
-                        <x-slot:content>
-                            <div class="relative gap-2 cursor-pointer box group">
-                                <div class="flex items-center gap-4 mx-6">
-                                    <svg class="w-10 h-10 flex-shrink-0" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                                        <rect width="200" height="200" fill="#D50C2D" rx="8" />
-                                        <path d="M40 40 H60 V90 H140 V40 H160 V160 H140 V110 H60 V160 H40 Z" fill="white" />
-                                    </svg>
-                                    <div class="flex flex-col justify-center flex-1">
-                                        <div class="box-title">Connect a Hetzner Server</div>
-                                        <div class="box-description">
-                                            Deploy servers directly from your Hetzner Cloud account
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </x-slot:content>
-                        <livewire:server.new.by-hetzner :private_keys="$private_keys" :limit_reached="$limit_reached" />
-                    </x-modal-input>
-                </div>
-
-                <div class="border-t border-gray-800/50 my-4"></div>
-            @else
-                {{-- Message pour plans Free et Basic --}}
-                <div class="relative gap-2 box opacity-60">
-                    <div class="flex items-center gap-4 mx-6">
-                        <svg class="w-10 h-10 flex-shrink-0" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="200" height="200" fill="#D50C2D" rx="8" />
-                            <path d="M40 40 H60 V90 H140 V40 H160 V160 H140 V110 H60 V160 H40 Z" fill="white" />
-                        </svg>
-                        <div class="flex flex-col justify-center flex-1">
-                            <div class="flex items-center gap-2">
-                                <div class="box-title">Connect a Hetzner Server</div>
-                                <span class="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">
-                                    Pro Plan Required
-                                </span>
-                            </div>
-                            <div class="box-description">
-                                Cloud provider integration is available on Pro and Enterprise plans
-                            </div>
-                            <a href="{{ route('idem.subscription') }}" class="mt-2 text-sm text-[#4F46E5] hover:text-[#6366F1] hover:underline">
-                                ⬆️ Upgrade to Pro to unlock this feature
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="border-t border-gray-800/50 my-4"></div>
-            @endif
-        @endcan
-
         <div>
             <h3 class="text-lg font-semibold text-white mb-4">Add Server by IP Address</h3>
             <livewire:server.new.by-ip :private_keys="$private_keys" :limit_reached="$limit_reached" />
