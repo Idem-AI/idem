@@ -12,11 +12,16 @@ class PrivateKeySeeder extends Seeder
      */
     public function run(): void
     {
-        PrivateKey::create([
-            'team_id' => 0,
-            'name' => 'Testing Host Key',
-            'description' => 'This is a test docker container',
-            'private_key' => '-----BEGIN OPENSSH PRIVATE KEY-----
+        // Check if localhost key (id=0) already exists
+        if (PrivateKey::where('id', 0)->exists()) {
+            $this->command->info('Localhost private key already exists, skipping creation.');
+        } else {
+            PrivateKey::create([
+                'id' => 0,
+                'team_id' => 0,
+                'name' => 'localhost\'s key',
+                'description' => 'The private key for the Coolify host machine (localhost).',
+                'private_key' => '-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
 QyNTUxOQAAACBbhpqHhqv6aI67Mj9abM3DVbmcfYhZAhC7ca4d9UCevAAAAJi/QySHv0Mk
 hwAAAAtzc2gtZWQyNTUxOQAAACBbhpqHhqv6aI67Mj9abM3DVbmcfYhZAhC7ca4d9UCevA
@@ -24,13 +29,20 @@ AAAECBQw4jg1WRT2IGHMncCiZhURCts2s24HoDS0thHnnRKVuGmoeGq/pojrsyP1pszcNV
 uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
 -----END OPENSSH PRIVATE KEY-----
 ',
-        ]);
+            ]);
+            $this->command->info('Localhost private key created.');
+        }
 
-        PrivateKey::create([
-            'team_id' => 0,
-            'name' => 'development-github-app',
-            'description' => 'This is the key for using the development GitHub app',
-            'private_key' => '-----BEGIN RSA PRIVATE KEY-----
+        // Check if development-github-app key already exists
+        if (PrivateKey::where('id', 2)->exists()) {
+            $this->command->info('Development GitHub app key already exists, skipping creation.');
+        } else {
+            PrivateKey::create([
+                'id' => 2,
+                'team_id' => 0,
+                'name' => 'development-github-app',
+                'description' => 'This is the key for using the development GitHub app',
+                'private_key' => '-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAstJo/SfYh3tquc2BA29a1X3pdPpXazRgtKsb5fHOwQs1rE04
 VyJYW6QCToSH4WS1oKt6iI4ma4uivn8rnkZFdw3mpcLp2ofcoeV3YPKX6pN/RiJC
 if+g8gCaFywOxy2pjXOLPZeFJSXFqc4UOymbhESUyDnMfk4/RvnubMiv3jINo4Ow
@@ -57,7 +69,9 @@ oV2PBC0CgYAXOm08kFOQA+bPBdLAte8Ga89frh6asH/Z8ucfsz9/zMMG/hhq5nF3
 7TItY9Pblc2Fp805J13G96zWLX4YGyLwXXkYs+Ae7QoqjonTw7/mUDARY1Zxs9m/
 a1C8EDKapCw5hAhizEFOUQKOygL8Ipn+tmEUkORYdZ8Q8cWFCv9nIw==
 -----END RSA PRIVATE KEY-----',
-            'is_git_related' => true,
-        ]);
+                'is_git_related' => true,
+            ]);
+            $this->command->info('Development GitHub app key created.');
+        }
     }
 }
