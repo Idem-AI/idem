@@ -178,6 +178,21 @@ class Server extends BaseModel
         'crowdsec_api_key',
         'crowdsec_bouncer_key',
         'traffic_logger_installed',
+        // Géolocalisation
+        'country',
+        'country_code',
+        'region',
+        'city',
+        'latitude',
+        'longitude',
+        // Spécifications
+        'cpu_cores',
+        'ram_mb',
+        'disk_gb',
+        'max_applications',
+        'current_applications',
+        'is_available',
+        'load_score',
     ];
 
     protected $guarded = [];
@@ -932,6 +947,64 @@ $schema://$host {
     public function updateLoadScore(int $score)
     {
         $this->update(['idem_load_score' => $score]);
+    }
+
+    // ============================================
+    // IDEM: Query Scopes pour filtrage des serveurs
+    // ============================================
+
+    /**
+     * Scope: Serveurs accessibles par l'utilisateur actuel
+     * - Admin: tous les serveurs (managés + personnels de toutes les teams)
+     * - User: UNIQUEMENT serveurs de ses teams (PAS les managés - invisibles)
+     */
+    public function scopeAccessibleBy($query, $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0'); // Aucun serveur si pas de user
+        }
+
+        if ($user->isIdemAdmin()) {
+            // Admin: accès à tous les serveurs
+            return $query;
+        }
+
+        // User normal: UNIQUEMENT serveurs de ses teams (pas les managés)
+        $teamIds = $user->teams()->pluck('teams.id')->toArray();
+        
+        return $query->where('idem_managed', false)
+                    ->whereIn('team_id', $teamIds);
+    }
+
+    /**
+     * Scope: Seulement les serveurs managés par la plateforme
+     */
+    public function scopeManaged($query)
+    {
+        return $query->where('idem_managed', true);
+    }
+
+    /**
+     * Scope: Seulement les serveurs personnels (non managés)
+     */
+    public function scopePersonal($query)
+    {
+        return $query->where('idem_managed', false);
+    }
+
+    /**
+     * Scope: Serveurs disponibles pour déploiement (managés + actifs)
+     */
+    public function scopeAvailableForDeployment($query)
+    {
+        return $query->where('idem_managed', true)
+                    ->where('is_available', true)
+                    ->whereRaw('current_applications < max_applications')
+                    ->whereHas('settings', function($q) {
+                        $q->where('is_reachable', true)
+                          ->where('is_usable', true)
+                          ->where('force_disabled', false);
+                    });
     }
 
     public function sslCertificates()
