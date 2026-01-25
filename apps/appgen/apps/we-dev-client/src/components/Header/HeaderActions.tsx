@@ -320,27 +320,37 @@ export function HeaderActions() {
           }}
         >
           <div className="text-center mb-6">
-            <div className="text-5xl mb-4">🚀</div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {t('header.deploySuccess')}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">{t('header.deployToCloud')}</p>
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-white">{t('header.deploySuccess')}</h3>
+            <p className="text-gray-300 mt-2">{t('header.deployToCloud')}</p>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-              {t('header.accessLink')}
-            </p>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
+            <p className="text-sm text-gray-300 mb-2">{t('header.accessLink')}</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={deployUrl}
                 readOnly
-                className="flex-1 p-2 text-sm border rounded-lg bg-white dark:bg-gray-600 text-gray-900 dark:text-white"
+                className="flex-1 p-2 text-sm border border-gray-600 rounded-lg bg-gray-700 text-white focus:border-blue-500 focus:outline-none"
               />
               <button
                 onClick={copyToClipboard}
-                className="px-3 py-2 bg-white dark:bg-gray-500 text-gray-700 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-400 transition-colors flex items-center gap-1"
+                className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -358,13 +368,13 @@ export function HeaderActions() {
           <div className="flex justify-end gap-3">
             <button
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
             >
               {t('header.close')}
             </button>
             <button
               onClick={() => window.open(deployUrl, '_blank')}
-              className="px-4 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg hover:from-blue-700 hover:to-blue-900 transition-all flex items-center gap-2"
             >
               <span>{t('header.visitSite')}</span>
               <svg className="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -475,9 +485,9 @@ export function HeaderActions() {
                   </div>
                   <div>
                     <h4 className="font-bold text-lg text-gray-400">Déploiement personnalisé</h4>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                    <span className="inline-block text-xs text-white uppercase tracking-wide font-bold bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1.5 rounded-full shadow-lg">
                       Disponible bientôt
-                    </p>
+                    </span>
                   </div>
                 </div>
 
@@ -502,11 +512,11 @@ export function HeaderActions() {
             {/* Quick Deployment */}
             <button
               onClick={() => handleDeployChoice('netlify')}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left transition-all duration-300 hover:border-green-400 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left transition-all duration-300 hover:border-blue-400 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
             >
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center flex-shrink-0">
                     <svg
                       className="w-5 h-5 text-white"
                       fill="none"
@@ -522,7 +532,7 @@ export function HeaderActions() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-bold text-lg text-white group-hover:text-green-400 transition-colors">
+                    <h4 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">
                       Déploiement rapide
                     </h4>
                     <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">
@@ -536,20 +546,20 @@ export function HeaderActions() {
                 </p>
 
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2 py-1 text-xs bg-green-900/50 text-green-300 rounded-md font-medium">
+                  <span className="px-2 py-1 text-xs bg-blue-900/50 text-blue-300 rounded-md font-medium">
                     Instantané
                   </span>
-                  <span className="px-2 py-1 text-xs bg-emerald-900/50 text-emerald-300 rounded-md font-medium">
+                  <span className="px-2 py-1 text-xs bg-blue-800/50 text-blue-200 rounded-md font-medium">
                     CDN Global
                   </span>
-                  <span className="px-2 py-1 text-xs bg-teal-900/50 text-teal-300 rounded-md font-medium">
+                  <span className="px-2 py-1 text-xs bg-blue-700/50 text-blue-100 rounded-md font-medium">
                     SSL Auto
                   </span>
                 </div>
               </div>
 
               {/* Hover effect overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-700/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </button>
           </div>
 
