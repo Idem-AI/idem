@@ -27,6 +27,7 @@ import {
   saveProjectGeneration,
   sendZipToBackend,
   sendToGitHub,
+  getProjectCodeFromFirebase,
 } from '@/api/persistence/db';
 import {
   createZipFromFiles,
@@ -426,7 +427,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [showStartButton, setShowStartButton] = useState(false);
   const [hasGeneration, setHasGeneration] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
-  const [showGitHubButton, setShowGitHubButton] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [projectLoadError, setProjectLoadError] = useState<string | null>(null);
 
@@ -598,7 +598,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           }
 
           setIsGenerationComplete(true);
-          setShowGitHubButton(true);
+          // Ne plus afficher les boutons GitHub - le code est automatiquement sauvé sur Firebase
         } catch (error) {
           console.error('Error saving generation:', error);
         }
@@ -670,11 +670,58 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           if (existingGeneration) {
             setHasGeneration(true);
             setIsGenerationComplete(true);
-            setShowGitHubButton(true);
             console.log('Existing generation found for project:', project.name);
           } else {
             setShowStartButton(true);
             console.log('No generation found, showing start button for:', project.name);
+          }
+
+          // Vérifier et charger le code existant depuis Firebase Storage
+          try {
+            console.log('Checking for existing code in Firebase Storage for project:', projectId);
+            const existingCode = await getProjectCodeFromFirebase(projectId);
+
+            if (existingCode && Object.keys(existingCode).length > 0) {
+              console.log(
+                'Found existing code in Firebase Storage, loading into workspace:',
+                Object.keys(existingCode).length,
+                'files'
+              );
+
+              // Charger le code dans l'espace de travail
+              setFiles(existingCode);
+
+              // Marquer les fichiers comme étant déjà envoyés (réinitialiser d'abord)
+              setIsFirstSend();
+
+              // Créer un message initial avec le code existant si on est en mode Builder
+              if (mode === ChatMode.Builder && messages.length === 0) {
+                const boltAction = convertToBoltAction(existingCode);
+                setMessages([
+                  {
+                    id: '1',
+                    role: 'user',
+                    content: `<boltArtifact id="existing-code" title="Existing project code">\n${boltAction}\n</boltArtifact>\n\n`,
+                  },
+                ]);
+                setMessagesa([
+                  {
+                    id: '1',
+                    role: 'user',
+                    content: `<boltArtifact id="existing-code" title="Existing project code">\n${boltAction}\n</boltArtifact>\n\n`,
+                  },
+                ]);
+              }
+
+              toast.success(
+                `Code existant chargé depuis Firebase Storage (${Object.keys(existingCode).length} fichiers)`
+              );
+            } else {
+              console.log('No existing code found in Firebase Storage for project:', projectId);
+            }
+          } catch (error) {
+            console.error('Error loading existing code from Firebase Storage:', error);
+            // Ne pas afficher d'erreur à l'utilisateur car ce n'est pas critique
           }
         } else {
           console.warn('Project not found with ID:', projectId);
@@ -721,47 +768,26 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     }
   };
 
-  // Handle sending zip to backend
-  const handleSendZip = async () => {
-    if (!projectId || !files) return;
+  // Fonction pour sauvegarder automatiquement le code sur Firebase Storage
+  const saveCodeToFirebase = async (generatedFiles: Record<string, string>) => {
+    if (!projectId || !generatedFiles || Object.keys(generatedFiles).length === 0) return;
 
     try {
-      // Create zip from files
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
+      console.log('Saving code to Firebase Storage for project:', projectId);
 
-      // Add files to zip
-      Object.entries(files).forEach(([filePath, content]) => {
-        zip.file(filePath, content);
-      });
+      // Create ZIP from generated files
+      const zipBlob = await createZipFromFiles(generatedFiles);
 
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-
+      // Upload ZIP to backend (Firebase Storage)
       await sendZipToBackend(projectId, zipBlob);
-      toast.success('Generation saved successfully!');
+
+      console.log('Code successfully saved to Firebase Storage');
+      toast.success(
+        `Code sauvegardé sur Firebase Storage (${Object.keys(generatedFiles).length} fichiers)`
+      );
     } catch (error) {
-      console.error('Error sending zip:', error);
-      toast.error('Error saving generation');
-    }
-  };
-
-  // Handle sending to GitHub
-  const handleSendToGitHub = async () => {
-    if (!projectId || !projectData) return;
-
-    try {
-      const githubData = {
-        projectName: projectData.name,
-        description: projectData.description || 'Generated project',
-        files: files,
-        isPublic: true, // You can make this configurable
-      };
-
-      await sendToGitHub(projectId, githubData);
-      toast.success('Project sent to GitHub successfully!');
-    } catch (error) {
-      console.error('Error sending to GitHub:', error);
-      toast.error('Error sending to GitHub');
+      console.error('Error saving code to Firebase Storage:', error);
+      toast.error('Erreur lors de la sauvegarde sur Firebase Storage');
     }
   };
 
@@ -1326,83 +1352,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             </div>
           )}
 
-          {/* Export Actions */}
-          {isGenerationComplete && showGitHubButton && (
-            <div className="max-w-[640px] w-full mx-auto mt-6">
-              <div
-                className="rounded-xl p-6"
-                style={{
-                  background: `linear-gradient(135deg, ${projectColors.accent}15 0%, ${projectColors.primary}15 100%)`,
-                  border: `1px solid ${projectColors.accent}30`,
-                }}
-              >
-                <div className="text-center mb-4">
-                  <h3
-                    className="text-lg font-semibold mb-2"
-                    style={{ color: projectColors.primary }}
-                  >
-                    Export Your Application
-                  </h3>
-                  <p className="text-sm" style={{ color: `${projectColors.text}CC` }}>
-                    Choose how you'd like to export your generated code
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    onClick={handleSendZip}
-                    className="text-white p-4 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 group hover:shadow-lg hover:opacity-90"
-                    style={{
-                      background: `linear-gradient(135deg, ${projectColors.primary} 0%, ${projectColors.secondary} 100%)`,
-                    }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
-                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-                        />
-                      </svg>
-                    </div>
-                    <div className="text-left">
-                      <div className="font-semibold">Download ZIP</div>
-                      <div className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                        Get all files as archive
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={handleSendToGitHub}
-                    className="text-white p-4 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 group hover:shadow-lg hover:opacity-90"
-                    style={{
-                      background: `linear-gradient(135deg, ${projectColors.accent} 0%, ${projectColors.secondary} 100%)`,
-                    }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
-                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-                    >
-                      <svg className="w-5 h-5" fill="white" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                      </svg>
-                    </div>
-                    <div className="text-left">
-                      <div className="font-semibold">Push to GitHub</div>
-                      <div className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                        Create repository
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Les boutons d'export ont été supprimés - le code est automatiquement sauvé sur Firebase Storage */}
 
           <div ref={messagesEndRef} className="h-px" />
         </div>
@@ -1416,7 +1366,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     showStartButton,
     hasGeneration,
     isGenerationComplete,
-    showGitHubButton,
     projectData,
     projectLoadError,
     retryLoadProject,
