@@ -390,6 +390,91 @@ export class StorageService {
   }
 
   /**
+   * Download and extract project code ZIP from Firebase Storage
+   * @param projectId - Project ID for folder structure
+   * @param userId - User ID for folder structure (optional)
+   * @returns Extracted files as Record<string, string> or null if not found
+   */
+  async downloadProjectCodeZip(
+    projectId: string,
+    userId?: string
+  ): Promise<Record<string, string> | null> {
+    try {
+      const folderPath = userId
+        ? `users/${userId}/projects/${projectId}/code`
+        : `projects/${projectId}/code`;
+
+      logger.info(`Downloading project code ZIP from Firebase Storage`, {
+        projectId,
+        userId,
+        folderPath,
+      });
+
+      // List files in the folder to find the latest ZIP
+      const [files] = await this.bucket.getFiles({
+        prefix: folderPath,
+      });
+
+      if (!files || files.length === 0) {
+        logger.info(`No code ZIP files found for project ${projectId}`);
+        return null;
+      }
+
+      // Find the most recent ZIP file
+      const zipFiles = files.filter((file: any) => file.name.endsWith('.zip'));
+      if (zipFiles.length === 0) {
+        logger.info(`No ZIP files found for project ${projectId}`);
+        return null;
+      }
+
+      // Sort by creation time and get the latest
+      zipFiles.sort((a: any, b: any) => {
+        const aTime = a.metadata.timeCreated || '0';
+        const bTime = b.metadata.timeCreated || '0';
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
+
+      const latestZipFile = zipFiles[0];
+      logger.info(`Found latest ZIP file: ${latestZipFile.name}`);
+
+      // Download the ZIP file
+      const [zipBuffer] = await latestZipFile.download();
+
+      // Extract the ZIP file using JSZip
+      const JSZip = require('jszip');
+      const zip = new JSZip();
+      const zipContent = await zip.loadAsync(zipBuffer);
+
+      const extractedFiles: Record<string, string> = {};
+
+      // Extract all files from the ZIP
+      for (const [filePath, file] of Object.entries(zipContent.files)) {
+        const zipFile = file as any;
+        if (!zipFile.dir) {
+          const content = await zipFile.async('string');
+          extractedFiles[filePath] = content;
+        }
+      }
+
+      logger.info(`Successfully extracted ${Object.keys(extractedFiles).length} files from ZIP`, {
+        projectId,
+        userId,
+        zipFileName: latestZipFile.name,
+      });
+
+      return extractedFiles;
+    } catch (error: any) {
+      logger.error(`Error downloading project code ZIP`, {
+        projectId,
+        userId,
+        error: error.message,
+        stack: error.stack,
+      });
+      return null;
+    }
+  }
+
+  /**
    * Generate a unique project ID for storage purposes
    * @returns A unique project ID
    */

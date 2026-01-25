@@ -208,7 +208,11 @@ class ProjectController {
     }
   }
 
-  async saveProjectGeneration(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
+  async saveProjectGeneration(
+    req: CustomRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     const userId = req.user?.uid;
     const { projectId } = req.params;
     const generationData = req.body;
@@ -268,15 +272,15 @@ class ProjectController {
         return;
       }
       if (!req.file) {
-        logger.warn(
-          `Save project ZIP failed for projectId ${projectId}: No ZIP file provided.`
-        );
+        logger.warn(`Save project ZIP failed for projectId ${projectId}: No ZIP file provided.`);
         res.status(400).json({ message: 'ZIP file is required' });
         return;
       }
 
       const zipUrl = await projectService.saveProjectZip(userId, projectId as string, req.file);
-      logger.info(`ZIP saved successfully for project ${projectId} and user ${userId}. URL: ${zipUrl}`);
+      logger.info(
+        `ZIP saved successfully for project ${projectId} and user ${userId}. URL: ${zipUrl}`
+      );
       res.status(200).json({ message: 'ZIP saved successfully', url: zipUrl });
     } catch (error: any) {
       logger.error(
@@ -315,12 +319,59 @@ class ProjectController {
         return;
       }
 
-      const repoUrl = await projectService.sendProjectToGitHub(userId, projectId as string, githubData);
-      logger.info(`Project ${projectId} sent to GitHub successfully for user ${userId}. Repo: ${repoUrl}`);
+      const repoUrl = await projectService.sendProjectToGitHub(
+        userId,
+        projectId as string,
+        githubData
+      );
+      logger.info(
+        `Project ${projectId} sent to GitHub successfully for user ${userId}. Repo: ${repoUrl}`
+      );
       res.status(200).json({ message: 'Project sent to GitHub successfully', repoUrl });
     } catch (error: any) {
       logger.error(
         `Error in sendProjectToGitHub controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      next(error);
+    }
+  }
+
+  async getProjectCode(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    logger.info(
+      `Attempting to get project code from Firebase Storage. ProjectId: ${projectId}, UserId from token: ${userId}`
+    );
+    try {
+      if (!userId) {
+        logger.warn(
+          `Get project code failed for projectId ${projectId}: User ID not found in token.`
+        );
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+      if (!projectId) {
+        logger.warn('Get project code failed: Project ID missing in params.');
+        res.status(400).json({ message: 'Project ID is required' });
+        return;
+      }
+
+      const codeFiles = await projectService.getProjectCodeFromFirebase(
+        userId,
+        projectId as string
+      );
+      if (!codeFiles) {
+        logger.info(`No code found for project ${projectId} and user ${userId}.`);
+        res.status(404).json({ message: 'No code found for this project' });
+        return;
+      }
+
+      logger.info(`Successfully retrieved code for project ${projectId} and user ${userId}.`);
+      res.status(200).json({ files: codeFiles });
+    } catch (error: any) {
+      logger.error(
+        `Error in getProjectCode controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
         { stack: error.stack, details: error }
       );
       next(error);
