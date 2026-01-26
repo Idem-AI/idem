@@ -177,7 +177,9 @@
         <h3 class="text-lg font-semibold text-light-text mb-2">
           {{ 'dashboard.logoVariations.features.lightBackground.title' | translate }}
         </h3>
-        <p class="text-sm text-light-text/70">Optimized for white and light backgrounds</p>
+        <p class="text-sm text-light-text/70">
+          {{ 'dashboard.logoVariations.features.lightBackground.description' | translate }}
+        </p>
       </div>
 
       <div class="glass-card p-6 text-center">
@@ -189,7 +191,9 @@
         <h3 class="text-lg font-semibold text-light-text mb-2">
           {{ 'dashboard.logoVariations.features.darkBackground.title' | translate }}
         </h3>
-        <p class="text-sm text-light-text/70">Optimized for dark and modern backgrounds</p>
+        <p class="text-sm text-light-text/70">
+          {{ 'dashboard.logoVariations.features.darkBackground.description' | translate }}
+        </p>
       </div>
 
       <div class="glass-card p-6 text-center">
@@ -234,7 +238,7 @@
           class="outer-button px-8 py-4 bg-danger/20 border-danger/30 hover:bg-danger/30"
         >
           <i class="pi pi-refresh mr-2"></i>
-          Retry
+          {{ 'dashboard.logoVariations.buttons.retry' | translate }}
         </button>
       </div>
     </div>
@@ -323,21 +327,7 @@
       </div>
 
       <!-- Manual Proceed Section -->
-      @if (isCompleted()) {
-        <div class="glass-card p-6 text-center">
-          <p class="text-lg text-light-text mb-6">
-            <i class="pi pi-check-circle text-success mr-2"></i>
-            {{ 'dashboard.logoVariations.status.allGenerated' | translate }}
-          </p>
-          <p class="text-sm text-light-text/70 mb-6">
-            {{ 'dashboard.logoVariations.status.readyToProceed' | translate }}
-          </p>
-          <button (click)="nextStep.emit()" class="inner-button px-8 py-4">
-            <i class="pi pi-arrow-right mr-2"></i>
-            {{ 'dashboard.logoVariations.buttons.continueToSummary' | translate }}
-          </button>
-        </div>
-      } @else {
+      @if (!isCompleted()) {
         <div class="glass-card p-6 text-center">
           <p class="text-lg text-light-text mb-4">
             <i class="pi pi-check-circle text-success mr-2"></i>

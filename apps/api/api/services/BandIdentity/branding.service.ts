@@ -26,12 +26,10 @@ import { PdfService } from '../pdf.service';
 import { cacheService } from '../cache.service';
 import crypto from 'crypto';
 import { projectService } from '../project.service';
-import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
-  private logoJsonToSvgService: LogoJsonToSvgService;
 
   // Configuration LLM pour la génération de logos et variations
   // Temperature modérée pour équilibrer créativité et cohérence
@@ -39,7 +37,7 @@ export class BrandingService extends GenericService {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3-flash-preview',
     llmOptions: {
-      maxOutputTokens: 1500,
+      maxOutputTokens: 500,
       temperature: 0.4, // Équilibre entre créativité et cohérence
       topP: 0.9,
       topK: 55,
@@ -73,7 +71,6 @@ export class BrandingService extends GenericService {
   constructor(promptService: PromptService) {
     super(promptService);
     this.pdfService = new PdfService();
-    this.logoJsonToSvgService = new LogoJsonToSvgService();
     logger.info('BrandingService initialized with optimized logo generation');
   }
 
