@@ -37,7 +37,7 @@ export class BrandingService extends GenericService {
   // Temperature modérée pour équilibrer créativité et cohérence
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-2.0-flash',
+    modelName: 'gemini-3-flash-preview',
     llmOptions: {
       maxOutputTokens: 3500,
       temperature: 0.4, // Équilibre entre créativité et cohérence
@@ -1744,7 +1744,7 @@ export class BrandingService extends GenericService {
    */
   private generateReadmeContent(project: any, extension: string, fileCount: number): string {
     return `Logo Package - ${project.name}
-    
+
 Project: ${project.name}
 Description: ${project.description || 'No description available'}
 Format: ${extension.toUpperCase()}
@@ -1775,7 +1775,7 @@ Features:
 
 Variations:
 - light-background: Optimized for light backgrounds
-- dark-background: Optimized for dark backgrounds  
+- dark-background: Optimized for dark backgrounds
 - monochrome: Single color version
 
 ${

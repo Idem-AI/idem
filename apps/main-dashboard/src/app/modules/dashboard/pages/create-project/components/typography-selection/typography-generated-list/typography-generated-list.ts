@@ -2,13 +2,12 @@ import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { TypographyModel } from '../../../../../models/brand-identity.model';
-import { CarouselComponent } from '../../../../../../../shared/components/carousel/carousel.component';
 import { TypographyCardComponent } from '../typography-card/typography-card';
 
 @Component({
   selector: 'app-typography-generated-list',
   standalone: true,
-  imports: [CommonModule, TranslateModule, CarouselComponent, TypographyCardComponent],
+  imports: [CommonModule, TranslateModule, TypographyCardComponent],
   templateUrl: './typography-generated-list.html',
   styleUrls: ['./typography-generated-list.css'],
 })
