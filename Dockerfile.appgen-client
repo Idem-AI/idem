@@ -22,7 +22,6 @@ RUN pnpm add -D autoprefixer
 
 # Copy all application files
 COPY ./apps/appgen/apps/we-dev-client/ ./
-
 COPY .env .env
 # Build the application
 RUN pnpm build
