@@ -123,53 +123,6 @@
           ></app-typography-preview>
         </div>
       </div>
-
-      <!-- Action Buttons -->
-      <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-700/50">
-        <button
-          (click)="goBack()"
-          class="px-6 py-3 text-gray-400 hover:text-white transition-colors inline-flex items-center"
-        >
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 19l-7-7 7-7"
-            ></path>
-          </svg>
-          {{ 'dashboard.typographySelection.actions.back' | translate }}
-        </button>
-
-        <div class="flex space-x-4">
-          <button
-            (click)="saveAsDraft()"
-            class="px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-500 rounded-lg font-medium transition-colors"
-          >
-            {{ 'dashboard.typographySelection.actions.saveAsDraft' | translate }}
-          </button>
-          <button
-            (click)="continueToNext()"
-            [disabled]="!canContinue()"
-            class="px-8 py-3 rounded-lg font-medium transition-all duration-200 inline-flex items-center"
-            [class]="
-              canContinue()
-                ? 'bg-primary hover:bg-primary-600 text-white transform hover:-translate-y-0.5 shadow-lg'
-                : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-            "
-          >
-            {{ 'dashboard.typographySelection.actions.continue' | translate }}
-            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              ></path>
-            </svg>
-          </button>
-        </div>
-      </div>
     </div>
   </section>
 }
