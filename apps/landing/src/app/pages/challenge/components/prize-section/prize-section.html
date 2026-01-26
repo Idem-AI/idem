@@ -1,43 +1,75 @@
 <section class="min-h-screen flex items-center relative overflow-hidden py-24 bg-black">
   <!-- Dark Cinematic Background -->
-  <div class="absolute inset-0 bg-radial-[circle_at_center,var(--tw-gradient-stops)] from-gray-900 via-black to-black opacity-80"></div>
+  <div
+    class="absolute inset-0 bg-radial-[circle_at_center,var(--tw-gradient-stops)] from-gray-900 via-black to-black opacity-80"
+  ></div>
 
   <!-- Spotlight Effect -->
-  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-primary/20 blur-[150px] opacity-30 pointer-events-none"></div>
+  <div
+    class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-primary/20 blur-[150px] opacity-30 pointer-events-none"
+  ></div>
 
-  <div class=" mx-auto max-w-7xl px-6 relative z-10 grid lg:grid-cols-2 gap-20 items-center">
+  <div class="mx-auto max-w-7xl px-6 relative z-10 grid lg:grid-cols-2 gap-20 items-center">
     <!-- Text Content -->
     <div class="order-2 lg:order-1 text-left">
       <div class="flex items-center gap-4 mb-6">
         <div class="h-px w-12 bg-primary"></div>
-        <h2 class="text-sm font-bold tracking-[0.5em] text-primary uppercase" i18n="@@challenge.prize.section_title">The Reward</h2>
+        <h2
+          class="text-sm font-bold tracking-[0.5em] text-primary uppercase"
+          i18n="@@challenge.prize.section_title"
+        >
+          The Reward
+        </h2>
       </div>
 
       <h3 class="text-6xl md:text-8xl font-black mb-8 text-white tracking-tighter leading-none">
-        MACBOOK<br>
-        <span class="text-transparent bg-clip-text bg-linear-to-r from-gray-100 to-gray-500"> PRO</span>
+        MACBOOK<br />
+        <span class="text-transparent bg-clip-text bg-linear-to-r from-gray-100 to-gray-500">
+          PRO</span
+        >
       </h3>
 
       <p class="text-2xl text-gray-400 mb-10 max-w-xl font-light leading-relaxed">
-        <span i18n="@@challenge.prize.description">To build the future, you need the best tools.</span> <br>
-        <strong class="text-white font-medium" i18n="@@challenge.prize.subtitle">Raw power for the builder who will earn everyone's respect.</strong>
+        <span i18n="@@challenge.prize.description"
+          >To build the future, you need the best tools.</span
+        >
+        <br />
+        <strong class="text-white font-medium" i18n="@@challenge.prize.subtitle"
+          >Raw power for the builder who will earn everyone's respect.</strong
+        >
       </p>
 
       <div class="grid grid-cols-2 gap-8 border-t border-white/10 pt-8">
         <div>
-          <span class="text-xs text-gray-500 uppercase tracking-widest block mb-1" i18n="@@challenge.prize.spec_chip">Chip</span>
-          <span class="text-xl text-white font-mono">Apple MACBOOK  Pro</span>
+          <span
+            class="text-xs text-gray-500 uppercase tracking-widest block mb-1"
+            i18n="@@challenge.prize.spec_chip"
+            >Chip</span
+          >
+          <span class="text-xl text-white font-mono">Apple MACBOOK Pro</span>
         </div>
         <div>
-          <span class="text-xs text-gray-500 uppercase tracking-widest block mb-1" i18n="@@challenge.prize.spec_memory">Memory</span>
+          <span
+            class="text-xs text-gray-500 uppercase tracking-widest block mb-1"
+            i18n="@@challenge.prize.spec_memory"
+            >Memory</span
+          >
           <span class="text-xl text-white font-mono">16GB </span>
         </div>
         <div>
-          <span class="text-xs text-gray-500 uppercase tracking-widest block mb-1" i18n="@@challenge.prize.spec_storage">Storage</span>
-          <span class="text-xl text-white font-mono">512GB SSD</span>
+          <span
+            class="text-xs text-gray-500 uppercase tracking-widest block mb-1"
+            i18n="@@challenge.prize.spec_storage"
+            >Storage</span
+          >
+          <span class="text-xl text-white font-mono">256GB SSD</span>
         </div>
         <div>
-          <span class="text-xs text-gray-500 uppercase tracking-widest block mb-1" i18n="@@challenge.prize.spec_display">Display</span>
+          <span
+            class="text-xs text-gray-500 uppercase tracking-widest block mb-1"
+            i18n="@@challenge.prize.spec_display"
+            >Display</span
+          >
           <span class="text-xl text-white font-mono">14" Liquid Retina XDR</span>
         </div>
       </div>
@@ -45,15 +77,22 @@
 
     <!-- MacBook Visual -->
     <div class="order-1 lg:order-2 relative perspective-[2000px] group">
-      <div class="relative transform group-hover:rotate-y-[-5deg] group-hover:rotate-x-[5deg] transition-transform duration-700 ease-out preserve-3d">
+      <div
+        class="relative transform group-hover:rotate-y-[-5deg] group-hover:rotate-x-[5deg] transition-transform duration-700 ease-out preserve-3d"
+      >
         <!-- Glow behind -->
         <div class="absolute inset-0 bg-primary/30 blur-[80px] rounded-full opacity-50"></div>
 
-        <img src="assets/images/macbook-mockup.png" alt="M3" class="relative z-10 w-full drop-shadow-2xl"
-             onerror="this.src='https://placehold.co/800x600/101010/FFF?text=MacBook+Pro '">
+        <img
+          src="assets/images/challenge/mac_pic.png"
+          alt="Macbook Pro to win for Idem Challenge"
+          class="relative z-10 w-full drop-shadow-2xl"
+        />
 
         <!-- Reflection/Floor -->
-        <div class="absolute -bottom-12 left-0 w-full h-12 bg-linear-to-b from-primary/10 to-transparent blur-xl transform scale-y-[-1] opacity-50"></div>
+        <div
+          class="absolute -bottom-12 left-0 w-full h-12 bg-linear-to-b from-primary/10 to-transparent blur-xl transform scale-y-[-1] opacity-50"
+        ></div>
       </div>
     </div>
   </div>
