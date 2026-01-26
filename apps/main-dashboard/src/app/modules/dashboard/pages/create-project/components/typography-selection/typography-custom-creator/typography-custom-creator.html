@@ -1,0 +1,106 @@
+<div class="space-y-6">
+  <!-- Custom Typographies List (if any) -->
+  @if (customTypographies.length > 0) {
+    <div>
+      <h3 class="text-white font-medium mb-4">
+        {{ 'dashboard.typographySelection.custom.title' | translate }}
+      </h3>
+      <div class="space-y-3">
+        @for (typography of customTypographies; track trackCustomTypography($index, typography)) {
+          <div
+            class="flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer"
+            [class.border-primary]="selectedCustomTypography?.id === typography.id"
+            [class.bg-primary-900_20]="selectedCustomTypography?.id === typography.id"
+            [class.border-gray-700]="selectedCustomTypography?.id !== typography.id"
+            [class.bg-gray-800_50]="selectedCustomTypography?.id !== typography.id"
+            (click)="onCustomTypographySelected(typography)"
+          >
+            <div>
+              <div class="text-white font-medium text-sm">
+                {{ typography.primaryFont }}
+              </div>
+              <div class="text-gray-400 text-xs">+ {{ typography.secondaryFont }}</div>
+            </div>
+            <div class="w-6 h-6"></div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Custom Typography Creator -->
+  <div class="bg-gray-800/40 border border-gray-700/50 rounded-xl p-6 backdrop-blur-sm">
+    <h3 class="text-white font-semibold mb-4 flex items-center">
+      <svg
+        class="w-5 h-5 mr-2 text-indigo-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+        ></path>
+      </svg>
+      {{ 'dashboard.typographySelection.custom.createNew' | translate }}
+    </h3>
+
+    <!-- Typography Search Component -->
+    <app-typography-search
+      [searchResults]="searchResults"
+      [isSearching]="isSearching"
+      (searchInput)="onSearchInput($event)"
+      (fontSelected)="onFontSelected($event)"
+      (customTypographyCreated)="onCreateCustomTypography()"
+    ></app-typography-search>
+
+    <!-- Selection Display -->
+    <div class="grid grid-cols-2 gap-4 mb-6 mt-6">
+      <div class="p-3 bg-gray-900/50 rounded-lg border border-gray-700/50">
+        <div class="text-xs text-indigo-400 font-semibold uppercase mb-1">
+          {{ 'dashboard.typographySelection.custom.primaryFont' | translate }}
+        </div>
+        <div class="text-white font-medium truncate" [class.text-gray-500]="!selectedPrimaryFont">
+          {{
+            selectedPrimaryFont || ('dashboard.typographySelection.custom.notSelected' | translate)
+          }}
+        </div>
+      </div>
+      <div class="p-3 bg-gray-900/50 rounded-lg border border-gray-700/50">
+        <div class="text-xs text-purple-400 font-semibold uppercase mb-1">
+          {{ 'dashboard.typographySelection.custom.secondaryFont' | translate }}
+        </div>
+        <div class="text-white font-medium truncate" [class.text-gray-500]="!selectedSecondaryFont">
+          {{
+            selectedSecondaryFont ||
+              ('dashboard.typographySelection.custom.notSelected' | translate)
+          }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Button -->
+    <button
+      (click)="onCreateCustomTypography()"
+      [disabled]="!canCreateCustom"
+      class="w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center shadow-lg"
+      [class]="
+        canCreateCustom
+          ? 'bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transform hover:-translate-y-0.5'
+          : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+      "
+    >
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 4v16m8-8H4"
+        ></path>
+      </svg>
+      {{ 'dashboard.typographySelection.custom.addButton' | translate }}
+    </button>
+  </div>
+</div>
