@@ -770,7 +770,7 @@ Please provide only the terraform.tfvars file content as output.`;
       // Use AI to generate the tfvars content
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
-        modelName: 'gemini-2.5-flash',
+        modelName: 'gemini-3-flash-preview',
         llmOptions: {
           temperature: 0.3,
           maxOutputTokens: 4000,
@@ -1140,7 +1140,7 @@ Please provide only the terraform.tfvars file content as output.`;
           const aiResponse = await this.promptService.runPrompt(
             {
               provider: LLMProvider.GEMINI,
-              modelName: 'gemini-2.5-flash',
+              modelName: 'gemini-3-flash-preview',
               llmOptions: {
                 temperature: 0.7,
                 maxOutputTokens: 1024,
