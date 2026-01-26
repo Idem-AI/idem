@@ -153,12 +153,12 @@ export class SidebarDashboard implements OnInit {
       route: 'project/development',
       isActive: false,
     },
-    {
-      labelKey: 'dashboard.sidebar.deployment',
-      icon: 'pi pi-globe',
-      route: 'project/deployments',
-      isActive: false,
-    },
+    // {
+    //   labelKey: 'dashboard.sidebar.deployment',
+    //   icon: 'pi pi-globe',
+    //   route: 'project/deployments',
+    //   isActive: false,
+    // },
   ]);
 
   // Signals for UI State

@@ -102,6 +102,25 @@ export class CreateDevelopmentComponent implements OnInit {
   }
 
   /**
+   * Select Landing Page and redirect to show-development
+   */
+  protected async selectLandingPage(): Promise<void> {
+    try {
+      // Set quick mode and landing generation type
+      this.selectedMode.set('quick');
+      this.selectedGenerationType.set('landing');
+
+      // Use the existing save configuration process
+      await this.onSaveConfiguration();
+
+      // The redirection to show-development is handled in onSaveConfiguration()
+    } catch (error) {
+      console.error('Error selecting landing page:', error);
+      this.errorMessages.set(['Failed to save landing page configuration']);
+    }
+  }
+
+  /**
    * Go back to previous step
    */
   protected back(): void {
