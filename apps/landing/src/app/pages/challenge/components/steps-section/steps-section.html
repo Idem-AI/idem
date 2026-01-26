@@ -8,11 +8,91 @@
     </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-      <!-- Step 1 -->
+      <!-- Step 1 - Follow Idem (moved to first position) -->
       <div
         class="challenge-card glass-panel p-10 relative h-[400px] flex flex-col justify-end group overflow-hidden rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all duration-500"
       >
         <span class="number-outline">01</span>
+        <div class="relative z-10">
+          <h3 class="text-3xl font-bold mb-4 text-white group-hover:text-primary transition-colors">
+            FOLLOW
+          </h3>
+          <p class="text-gray-400 text-lg mb-4" i18n="@@challenge.steps.follow_description">
+            Follow Idem on at least two social networks to stay updated.
+          </p>
+          <!-- Social Media Links -->
+          <div class="flex space-x-2 flex-wrap">
+            <a
+              href="https://github.com/Idem-AI"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.github"
+              aria-label="Visit Idem Engine on GitHub"
+              class="glass w-8 h-8 flex items-center justify-center text-gray-200 hover:text-white transition-all duration-300 rounded-lg hover:bg-white/10 hover:border-white/15 hover:-translate-y-1 hover:scale-105"
+            >
+              <i class="pi pi-github" style="font-size: 1rem"></i>
+            </a>
+            <a
+              href="https://www.linkedin.com/company/idemafrica"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.linkedin"
+              aria-label="Visit Idem Engine on LinkedIn"
+              class="glass w-8 h-8 flex items-center justify-center text-gray-200 hover:text-white transition-all duration-300 rounded-lg hover:bg-white/10 hover:border-white/15 hover:-translate-y-1 hover:scale-105"
+            >
+              <i class="pi pi-linkedin" style="font-size: 1rem"></i>
+            </a>
+            <a
+              href="https://www.facebook.com/profile.php?id=61580303204333"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.facebook"
+              aria-label="Visit Idem Engine on Facebook"
+              class="glass w-8 h-8 flex items-center justify-center text-gray-200 hover:text-white transition-all duration-300 rounded-lg hover:bg-white/10 hover:border-white/15 hover:-translate-y-1 hover:scale-105"
+            >
+              <i class="pi pi-facebook" style="font-size: 1rem"></i>
+            </a>
+            <a
+              href="https://www.instagram.com/idemafrica/"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.instagram"
+              aria-label="Visit Idem Engine on Instagram"
+              class="glass w-8 h-8 flex items-center justify-center text-gray-200 hover:text-white transition-all duration-300 rounded-lg hover:bg-white/10 hover:border-white/15 hover:-translate-y-1 hover:scale-105"
+            >
+              <i class="pi pi-instagram" style="font-size: 1rem"></i>
+            </a>
+            <a
+              href="https://x.com/idem_ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.x"
+              aria-label="Visit Idem Engine on X"
+              class="glass w-8 h-8 flex items-center justify-center text-gray-200 hover:text-white transition-all duration-300 rounded-lg hover:bg-white/10 hover:border-white/15 hover:-translate-y-1 hover:scale-105"
+            >
+              <i class="pi pi-twitter" style="font-size: 1rem"></i>
+            </a>
+          </div>
+        </div>
+        <div
+          class="absolute top-0 right-0 p-8 opacity-20 group-hover:opacity-100 transition-opacity transform group-hover:scale-110 duration-500"
+        >
+          <svg class="w-24 h-24 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            ></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Step 2 - Build -->
+      <div
+        class="challenge-card glass-panel p-10 relative h-[400px] flex flex-col justify-end group overflow-hidden rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all duration-500"
+      >
+        <span class="number-outline">02</span>
         <div class="relative z-10">
           <h3 class="text-3xl font-bold mb-4 text-white group-hover:text-primary transition-colors">
             BUILD
@@ -36,11 +116,11 @@
         </div>
       </div>
 
-      <!-- Step 2 -->
+      <!-- Step 3 - Record -->
       <div
         class="challenge-card glass-panel p-10 relative h-[400px] flex flex-col justify-end group overflow-hidden rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all duration-500"
       >
-        <span class="number-outline">02</span>
+        <span class="number-outline">03</span>
         <div class="relative z-10">
           <h3 class="text-3xl font-bold mb-4 text-white group-hover:text-primary transition-colors">
             RECORD
@@ -63,11 +143,11 @@
         </div>
       </div>
 
-      <!-- Step 3 -->
+      <!-- Step 4 - Publish -->
       <div
         class="challenge-card glass-panel p-10 relative h-[400px] flex flex-col justify-end group overflow-hidden rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all duration-500"
       >
-        <span class="number-outline">03</span>
+        <span class="number-outline">04</span>
         <div class="relative z-10">
           <h3 class="text-3xl font-bold mb-4 text-white group-hover:text-primary transition-colors">
             PUBLISH
@@ -85,33 +165,6 @@
               stroke-linejoin="round"
               stroke-width="1"
               d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11"
-            ></path>
-          </svg>
-        </div>
-      </div>
-
-      <!-- Step 4 -->
-      <div
-        class="challenge-card glass-panel p-10 relative h-[400px] flex flex-col justify-end group overflow-hidden rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all duration-500"
-      >
-        <span class="number-outline">04</span>
-        <div class="relative z-10">
-          <h3 class="text-3xl font-bold mb-4 text-white group-hover:text-primary transition-colors">
-            FOLLOW
-          </h3>
-          <p class="text-gray-400 text-lg" i18n="@@challenge.steps.follow_description">
-            Follow Idem on at least two social networks to stay updated.
-          </p>
-        </div>
-        <div
-          class="absolute top-0 right-0 p-8 opacity-20 group-hover:opacity-100 transition-opacity transform group-hover:scale-110 duration-500"
-        >
-          <svg class="w-24 h-24 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1"
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             ></path>
           </svg>
         </div>

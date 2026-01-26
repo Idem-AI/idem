@@ -37,10 +37,10 @@
 /* Utilities */
 .text-shimmer {
   background: linear-gradient(
-    90deg, 
-    #ffffff 0%, 
-    #888888 20%, 
-    #ffffff 40%, 
+    90deg,
+    #ffffff 0%,
+    #888888 20%,
+    #ffffff 40%,
     #ffffff 100%
   );
   background-size: 200% auto;
@@ -51,12 +51,17 @@
 }
 
 .bg-grid-pattern {
-  background-image: 
+  background-image:
     linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
   perspective: 1000px;
   transform-style: preserve-3d;
+}
+
+.inner-button{
+  padding: 1rem 2rem;
+  font-size: 30px;
 }
 
 .glass-panel {

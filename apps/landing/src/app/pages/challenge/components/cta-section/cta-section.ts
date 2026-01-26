@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-cta-section',
@@ -8,5 +9,5 @@ import { Component } from '@angular/core';
   styleUrl: './cta-section.css',
 })
 export class CtaSection {
-
+  protected dashboardUrl = environment.services.dashboard.url;
 }
