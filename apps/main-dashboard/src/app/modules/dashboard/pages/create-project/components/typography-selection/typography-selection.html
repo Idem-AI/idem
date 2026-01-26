@@ -1,32 +1,153 @@
-<!-- Error State -->
-@if (error()) {
-  <div class="flex flex-col items-center justify-center min-h-[60vh] w-full px-4 sm:px-6 lg:px-8">
-    <div class="text-center max-w-md mx-auto">
-      <div class="mb-6">
-        <div
-          class="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4"
-        >
-          <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
+@if (isLoading()) {
+  <!-- Loading State -->
+  <section class="py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-8">
+        <div class="animate-pulse">
+          <div class="h-8 bg-gray-700 rounded w-64 mx-auto mb-4"></div>
+          <div class="h-4 bg-gray-800 rounded w-96 mx-auto"></div>
         </div>
-        <h3 class="text-xl font-semibold text-white mb-2">
-          {{ 'dashboard.typographySelection.errors.title' | translate }}
-        </h3>
-        <p class="text-gray-400 mb-6">{{ error() }}</p>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-3 justify-center">
-        <button
-          (click)="goToPreviousStep()"
-          class="flex items-center justify-center px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+      <!-- Loading Tabs -->
+      <div class="animate-pulse mb-6">
+        <div class="flex space-x-1 bg-gray-800/50 p-1 rounded-lg border border-gray-700/50">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="flex-1 h-12 bg-gray-700 rounded-md"></div>
+          }
+        </div>
+      </div>
+
+      <!-- Loading Content -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div class="lg:col-span-5">
+          <div class="animate-pulse space-y-4">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <div class="h-20 bg-gray-700 rounded-lg"></div>
+            }
+          </div>
+        </div>
+        <div class="lg:col-span-7">
+          <div class="animate-pulse">
+            <div class="h-96 bg-gray-700 rounded-2xl"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+} @else if (hasError()) {
+  <!-- Error State -->
+  <section class="py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center py-12">
+        <svg
+          class="w-16 h-16 mx-auto text-red-500 mb-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+          ></path>
+        </svg>
+        <h3 class="text-lg font-medium text-white mb-2">
+          {{ 'dashboard.typographySelection.error.title' | translate }}
+        </h3>
+        <p class="text-gray-400 mb-6">
+          {{ 'dashboard.typographySelection.error.description' | translate }}
+        </p>
+        <button
+          (click)="retry()"
+          class="px-6 py-3 bg-primary hover:bg-primary-600 text-white rounded-lg font-medium transition-colors"
+        >
+          {{ 'dashboard.typographySelection.error.retry' | translate }}
+        </button>
+      </div>
+    </div>
+  </section>
+} @else {
+  <!-- Main Content -->
+  <section class="py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-white mb-4">
+          {{ 'dashboard.typographySelection.title' | translate }}
+        </h2>
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto">
+          {{ 'dashboard.typographySelection.subtitle' | translate }}
+        </p>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <app-typography-tabs
+        [activeTab]="activeTab()"
+        [hasGeneratedTypographies]="hasGeneratedTypographies()"
+        (tabChanged)="onTabChanged($event)"
+      ></app-typography-tabs>
+
+      <!-- Tab Content -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left Column: Content -->
+        <div class="lg:col-span-5">
+          @if (activeTab() === 'generated') {
+            <!-- Generated Typography Tab -->
+            <app-typography-generated-list
+              [typographies]="typographyModels()"
+              [selectedTypographyId]="selectedTypographyId()"
+              [isLoading]="isGenerating()"
+              (typographySelected)="onTypographySelected($event)"
+              (regenerateRequest)="onRegenerateTypographies()"
+            ></app-typography-generated-list>
+          }
+          @else if (activeTab() === 'custom') {
+            <!-- Custom Typography Tab -->
+            <app-typography-custom-creator
+              [customTypographies]="customTypographies()"
+              [selectedCustomTypography]="selectedCustomTypography()"
+              [selectedPrimaryFont]="selectedPrimaryFont()"
+              [selectedSecondaryFont]="selectedSecondaryFont()"
+              [searchResults]="searchResults()"
+              [isSearching]="isSearching()"
+              [canCreateCustom]="canCreateCustom()"
+              (customTypographySelected)="selectCustomTypography($event)"
+              (searchInput)="onSearchInput($event)"
+              (fontSelected)="selectFont($event)"
+              (customTypographyCreated)="createCustomTypography()"
+            ></app-typography-custom-creator>
+          }
+        </div>
+
+        <!-- Right Column: Preview Panel -->
+        <div class="lg:col-span-7">
+          @if (activeTab() === 'generated' || activeTab() === 'popular') {
+            <!-- Typography Preview for Generated/Popular -->
+            <app-typography-preview
+              [typography]="currentSelectedTypography()"
+              [previewText]="previewText"
+            ></app-typography-preview>
+          } @else if (activeTab() === 'custom') {
+            <!-- Custom Typography Preview Panel -->
+            <app-typography-preview-panel
+              [typography]="customPreviewTypography()"
+              [previewText]="previewText"
+              [selectedPrimaryFont]="selectedPrimaryFont()"
+              [selectedSecondaryFont]="selectedSecondaryFont()"
+            ></app-typography-preview-panel>
+          }
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-700/50">
+        <button
+          (click)="goBack()"
+          class="px-6 py-3 text-gray-400 hover:text-white transition-colors inline-flex items-center"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -34,180 +155,38 @@
               d="M15 19l-7-7 7-7"
             ></path>
           </svg>
-          {{ 'common.back' | translate }}
+          {{ 'dashboard.typographySelection.actions.back' | translate }}
         </button>
-      </div>
-    </div>
-  </div>
-}
 
-<!-- Loading State -->
-@if (isLoading()) {
-  <section
-    class="sm:min-h-[90vh] flex flex-col items-center justify-center w-full px-4 mt-[80px] sm:mt-0"
-  >
-    <div class="text-center mb-8">
-      <h1
-        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
-      >
-        {{ 'dashboard.typographySelection.loading.title' | translate }}
-      </h1>
-      <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
-        {{ 'dashboard.typographySelection.loading.subtitle' | translate }}
-      </p>
-    </div>
-
-    <div class="w-full max-w-7xl mx-auto">
-      <!-- Loading Carousel -->
-      <app-carousel
-        [items]="[1, 2, 3]"
-        [selectedItem]="null"
-        [trackByFn]="trackSkeleton"
-        [gridCols]="3"
-        [showDots]="true"
-        [showArrows]="false"
-        [infinite]="false"
-      >
-        <ng-template let-item>
-          <div class="p-4 sm:p-6 border-2 border-gray-700/50 glass rounded-xl">
-            <div class="h-6 bg-gray-700/50 rounded-lg animate-pulse mb-3"></div>
-
-            <!-- Typography Preview Skeleton -->
-            <div class="bg-white/5 rounded-lg p-4 mb-4 border border-gray-600/30">
-              <div class="h-6 bg-gray-700/50 rounded animate-pulse mb-2"></div>
-              <div class="h-4 bg-gray-700/30 rounded animate-pulse w-3/4"></div>
-            </div>
-
-            <!-- Font Details Skeleton -->
-            <div class="space-y-2">
-              <div class="flex justify-between">
-                <div class="h-4 bg-gray-700/30 rounded animate-pulse w-16"></div>
-                <div class="h-4 bg-gray-700/50 rounded animate-pulse w-20"></div>
-              </div>
-              <div class="flex justify-between">
-                <div class="h-4 bg-gray-700/30 rounded animate-pulse w-20"></div>
-                <div class="h-4 bg-gray-700/50 rounded animate-pulse w-24"></div>
-              </div>
-            </div>
-          </div>
-        </ng-template>
-      </app-carousel>
-    </div>
-  </section>
-}
-
-<!-- Success State - Typography Selection -->
-@if (!error() && !isLoading() && typographyModels().length > 0) {
-  <section
-    class="sm:min-h-[78vh] flex flex-col items-center justify-center w-full px-4 mt-[80px] sm:mt-0"
-  >
-    <div class="text-center mb-8">
-      <h1
-        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
-      >
-        {{ 'dashboard.typographySelection.success.title' | translate }}
-      </h1>
-      <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
-        {{ 'dashboard.typographySelection.success.subtitle' | translate }}
-      </p>
-    </div>
-
-    <div class="w-full max-w-7xl mx-auto">
-      <!-- Responsive Typography Display -->
-      <app-carousel
-        [items]="typographyModels()"
-        [selectedItem]="null"
-        [trackByFn]="trackTypography"
-        [gridCols]="3"
-        [showDots]="true"
-        [showArrows]="true"
-        [infinite]="false"
-        (currentItemChanged)="onCarouselItemChanged($event)"
-      >
-        <ng-template let-typography let-index="index" let-isSelected="isSelected">
-          <div
-            class="p-4 sm:p-6 border-2 border-transparent glass hover:border-gray-600 rounded-xl hover:shadow-lg hover:shadow-primary/30 hover:bg-gray-900/50 transition-all duration-300 cursor-pointer group relative overflow-hidden hover:-translate-y-1"
-            [style.boxShadow]="
-              selectedTypographyId() === typography.id ? '0 0 15px rgba(99, 102, 241, 0.5)' : 'none'
-            "
-            [class.border-primary]="selectedTypographyId() === typography.id"
-            [class.bg-gray-900]="selectedTypographyId() === typography.id"
-            [style.borderColor]="
-              selectedTypographyId() === typography.id ? 'rgb(99, 102, 241)' : ''
-            "
-            (click)="selectTypography(typography.id)"
+        <div class="flex space-x-4">
+          <button
+            (click)="saveAsDraft()"
+            class="px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-500 rounded-lg font-medium transition-colors"
           >
-            <div
-              class="absolute inset-0 bg-linear-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
-              [class.opacity-20]="selectedTypographyId() === typography.id"
-            ></div>
-
-            <div class="relative z-10">
-              <h3 class="text-white text-lg font-medium mb-3">{{ typography.name }}</h3>
-
-              <!-- Typography Preview -->
-              <div class="bg-white/5 rounded-lg p-4 mb-4 border border-gray-600/30">
-                <div class="mb-3">
-                  <h4
-                    [style.fontFamily]="typography.primaryFont"
-                    class="text-white text-xl font-bold mb-2"
-                  >
-                    {{ 'dashboard.typographySelection.preview.brandName' | translate }}
-                  </h4>
-                  <p [style.fontFamily]="typography.secondaryFont" class="text-gray-300 text-sm">
-                    {{ 'dashboard.typographySelection.preview.subtitle' | translate }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Font Details -->
-              <div class="space-y-2 text-sm">
-                <div class="flex justify-between">
-                  <span class="text-gray-400"
-                    >{{ 'dashboard.typographySelection.preview.primary' | translate }}:</span
-                  >
-                  <span class="text-white font-medium">{{ typography.primaryFont }}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-400"
-                    >{{ 'dashboard.typographySelection.preview.secondary' | translate }}:</span
-                  >
-                  <span class="text-white font-medium">{{ typography.secondaryFont }}</span>
-                </div>
-              </div>
-
-              @if (selectedTypographyId() === typography.id) {
-                <div class="absolute top-2 right-2">
-                  <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                    <svg
-                      class="w-4 h-4 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 13l4 4L19 7"
-                      ></path>
-                    </svg>
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-        </ng-template>
-      </app-carousel>
-
-      <!-- Navigation Hint -->
-      @if (selectedTypographyId()) {
-        <div class="text-center mt-8">
-          <p class="text-gray-400 text-sm">
-            {{ 'dashboard.typographySelection.success.perfectChoice' | translate }}
-          </p>
+            {{ 'dashboard.typographySelection.actions.saveAsDraft' | translate }}
+          </button>
+          <button
+            (click)="continueToNext()"
+            [disabled]="!canContinue()"
+            class="px-8 py-3 rounded-lg font-medium transition-all duration-200 inline-flex items-center"
+            [class]="
+              canContinue()
+                ? 'bg-primary hover:bg-primary-600 text-white transform hover:-translate-y-0.5 shadow-lg'
+                : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+            "
+          >
+            {{ 'dashboard.typographySelection.actions.continue' | translate }}
+            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              ></path>
+            </svg>
+          </button>
         </div>
-      }
+      </div>
     </div>
   </section>
 }
