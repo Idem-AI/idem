@@ -89,7 +89,7 @@ jobs:
               cd $DEPLOYMENT_DIR
               # Production dep
               COMPOSE_FILE="docker-compose.prod.yml"
-              SERVICE_NAME="idem-webgen"
+              SERVICE_NAME="appgen-client"
               
               echo "Updating $COMPOSE_FILE..."
               sed -i "s|image: ghcr.io/idem-ai/appgen-client:.*|image: $IMAGE_TAG|" $COMPOSE_FILE
