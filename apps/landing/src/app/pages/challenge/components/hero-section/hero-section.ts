@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-hero-section',
@@ -8,5 +9,5 @@ import { Component } from '@angular/core';
   styleUrl: './hero-section.css',
 })
 export class HeroSection {
-
+  protected dashboardUrl = environment.services.dashboard.url;
 }
