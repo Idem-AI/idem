@@ -203,7 +203,7 @@
   font-feature-settings: 'tnum';
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-  background: linear-gradient(180deg, #ffffff 0%, #a5b4fc 100%);
+  background: white;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
