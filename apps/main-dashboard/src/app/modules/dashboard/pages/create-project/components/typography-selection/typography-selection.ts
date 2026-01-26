@@ -59,8 +59,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   // Outputs
   @Output() readonly typographySelected = new EventEmitter<TypographyModel>();
   @Output() readonly projectUpdate = new EventEmitter<Partial<ProjectModel>>();
-  @Output() readonly nextStep = new EventEmitter<void>();
-  @Output() readonly previousStep = new EventEmitter<void>();
+  @Output() readonly typographySelectionChanged = new EventEmitter<boolean>();
 
   // Signals
   protected activeTab = signal<TypographyTab>('generated');
@@ -119,12 +118,14 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     // If switching to generated, ensure something is selected if possible
     if (tab === 'generated' && !this.selectedTypographyId() && this.typographyModels().length > 0) {
       this.selectedTypographyId.set(this.typographyModels()[0].id);
+      this.notifySelectionChange();
     }
   }
 
   protected onTypographySelected(typography: TypographyModel): void {
     this.selectedTypographyId.set(typography.id);
     this.typographySelected.emit(typography);
+    this.notifySelectionChange();
   }
 
   protected onRegenerateTypographies(): void {
@@ -137,68 +138,50 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     this.initializeTypographies();
   }
 
-  protected goBack(): void {
-    this.previousStep.emit();
-  }
-
-  protected saveAsDraft(): void {
+  // Method to prepare and emit project data when parent requests it
+  public prepareTypographyData(): Partial<ProjectModel> | null {
     const selectedTypography = this.currentSelectedTypography();
-    if (!selectedTypography) return;
+    if (!selectedTypography) return null;
 
-    const draftData: Partial<ProjectModel> = {
+    // For custom typography, add it to the generatedTypography list so it can be found in project-summary
+    let updatedGeneratedTypography =
+      this.project.analysisResultModel?.branding?.generatedTypography || [];
+
+    if (this.activeTab() === 'custom' && selectedTypography.id === 'custom-preview') {
+      // Create a proper custom typography with unique ID
+      const customTypography: TypographyModel = {
+        ...selectedTypography,
+        id: `custom-${Date.now()}`, // Unique ID for custom typography
+      };
+
+      // Add custom typography to the list if not already present
+      const existingCustomIndex = updatedGeneratedTypography.findIndex((t) =>
+        t.id.startsWith('custom-'),
+      );
+      if (existingCustomIndex >= 0) {
+        updatedGeneratedTypography[existingCustomIndex] = customTypography;
+      } else {
+        updatedGeneratedTypography = [...updatedGeneratedTypography, customTypography];
+      }
+
+      selectedTypography.id = customTypography.id; // Update the selected typography ID
+    }
+
+    return {
       analysisResultModel: {
         ...this.project.analysisResultModel,
         branding: {
           ...this.project.analysisResultModel?.branding,
           typography: selectedTypography,
+          generatedTypography: updatedGeneratedTypography,
         },
       },
     };
-    this.projectUpdate.emit(draftData);
   }
 
-  protected continueToNext(): void {
-    if (this.canContinue()) {
-      const selectedTypography = this.currentSelectedTypography();
-      if (!selectedTypography) return;
-
-      // For custom typography, add it to the generatedTypography list so it can be found in project-summary
-      let updatedGeneratedTypography =
-        this.project.analysisResultModel?.branding?.generatedTypography || [];
-
-      if (this.activeTab() === 'custom' && selectedTypography.id === 'custom-preview') {
-        // Create a proper custom typography with unique ID
-        const customTypography: TypographyModel = {
-          ...selectedTypography,
-          id: `custom-${Date.now()}`, // Unique ID for custom typography
-        };
-
-        // Add custom typography to the list if not already present
-        const existingCustomIndex = updatedGeneratedTypography.findIndex((t) =>
-          t.id.startsWith('custom-'),
-        );
-        if (existingCustomIndex >= 0) {
-          updatedGeneratedTypography[existingCustomIndex] = customTypography;
-        } else {
-          updatedGeneratedTypography = [...updatedGeneratedTypography, customTypography];
-        }
-
-        selectedTypography.id = customTypography.id; // Update the selected typography ID
-      }
-
-      const projectData: Partial<ProjectModel> = {
-        analysisResultModel: {
-          ...this.project.analysisResultModel,
-          branding: {
-            ...this.project.analysisResultModel?.branding,
-            typography: selectedTypography,
-            generatedTypography: updatedGeneratedTypography,
-          },
-        },
-      };
-      this.projectUpdate.emit(projectData);
-      this.nextStep.emit();
-    }
+  // Notify parent about selection state changes
+  private notifySelectionChange(): void {
+    this.typographySelectionChanged.emit(this.canContinue());
   }
 
   protected onSearchInput(query: string): void {
@@ -214,6 +197,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       this.selectedSecondaryFont.set(font.family);
     }
     this.typographyService.loadGoogleFont(font.family);
+    this.notifySelectionChange();
   }
 
   ngOnInit(): void {
@@ -233,6 +217,11 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       if (generatedTypography && generatedTypography.length > 0) {
         this.typographyModels.set(generatedTypography);
         this.isLoading.set(false);
+        // Auto-select first typography if none selected
+        if (!this.selectedTypographyId()) {
+          this.selectedTypographyId.set(generatedTypography[0].id);
+          this.notifySelectionChange();
+        }
       } else {
         this.regenerateTypographies();
       }
@@ -273,6 +262,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       // Auto-select first item
       if (mockTypographies.length > 0) {
         this.selectedTypographyId.set(mockTypographies[0].id);
+        this.notifySelectionChange();
       }
     }, 2000);
   }

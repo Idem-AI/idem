@@ -39,7 +39,7 @@ export class BrandingService extends GenericService {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3-flash-preview',
     llmOptions: {
-      maxOutputTokens: 3500,
+      maxOutputTokens: 1500,
       temperature: 0.4, // Équilibre entre créativité et cohérence
       topP: 0.9,
       topK: 55,

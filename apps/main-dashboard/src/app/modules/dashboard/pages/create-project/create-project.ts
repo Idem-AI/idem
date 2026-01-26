@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ProjectModel } from '../../models/project.model';
@@ -110,6 +110,12 @@ export class CreateProjectComponent implements OnInit {
     marketing: false,
   });
 
+  // Step-specific validation state
+  protected readonly typographySelectionValid = signal(false);
+
+  // ViewChild to access typography component
+  @ViewChild(TypographySelectionComponent) typographyComponent?: TypographySelectionComponent;
+
   // Static data
   protected readonly projectTypes = CreateProjectDatas.groupedProjectTypes;
   protected readonly targets = CreateProjectDatas.groupedTargets;
@@ -160,7 +166,7 @@ export class CreateProjectComponent implements OnInit {
       case 'colors':
         return !!project.analysisResultModel?.branding?.generatedColors?.length;
       case 'typography':
-        return !!project.analysisResultModel?.branding?.typography;
+        return this.typographySelectionValid();
       case 'logo':
         return !!project.analysisResultModel?.branding?.logo;
       case 'variations':
@@ -186,9 +192,25 @@ export class CreateProjectComponent implements OnInit {
   }
 
   /**
+   * Handle typography selection change
+   */
+  protected onTypographySelectionChanged(isValid: boolean): void {
+    this.typographySelectionValid.set(isValid);
+  }
+
+  /**
    * Navigate to next step
    */
   protected goToNextStep(): void {
+    // For typography step, prepare and save typography data before proceeding
+    if (this.currentStepIndex() === 3 && this.typographyComponent) {
+      // Typography step
+      const typographyData = this.typographyComponent.prepareTypographyData();
+      if (typographyData) {
+        this.onProjectUpdate(typographyData);
+      }
+    }
+
     if (this.canGoNext()) {
       const nextIndex = this.currentStepIndex() + 1;
       if (nextIndex < this.steps.length) {
