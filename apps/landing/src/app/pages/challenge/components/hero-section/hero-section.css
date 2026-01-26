@@ -59,9 +59,30 @@
   transform-style: preserve-3d;
 }
 
-.inner-button{
-  padding: 1rem 2rem;
-  font-size: 30px;
+.inner-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+}
+
+@media (min-width: 640px) {
+  .inner-button {
+    padding: 0.875rem 1.75rem;
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .inner-button {
+    padding: 1rem 2rem;
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .inner-button {
+    padding: 1rem 2rem;
+    font-size: 1.5rem;
+  }
 }
 
 .glass-panel {
