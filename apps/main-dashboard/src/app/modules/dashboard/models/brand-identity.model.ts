@@ -18,9 +18,10 @@ export interface BrandIdentityModel {
 export interface TypographyModel {
   id: string;
   name: string;
-  url: string;
+  url?: string;
   primaryFont: string;
   secondaryFont: string;
+  description?: string;
 }
 
 export interface ColorModel {
