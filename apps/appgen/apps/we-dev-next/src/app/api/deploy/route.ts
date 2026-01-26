@@ -42,13 +42,42 @@ export async function POST(request: Request) {
       });
     }
 
+    // Create a new site first
+    console.log('Creating new site on Netlify...');
+    const createSiteResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        name: `idem-app-${Date.now()}`, // Generate unique site name
+      }),
+    });
+
+    if (!createSiteResponse.ok) {
+      const errorText = await createSiteResponse.text();
+      console.error('Failed to create site:', createSiteResponse.status, errorText);
+      return NextResponse.json({
+        success: false,
+        message: `Failed to create site: ${createSiteResponse.status} - ${errorText}`,
+      });
+    }
+
+    const siteData = await createSiteResponse.json();
+    console.log('Site created:', siteData);
+
+    // Now deploy to the created site
+    const deployUrl = `${url}/${siteData.id}/deploys`;
+    console.log('Deploying to site:', deployUrl);
+
     const headers = {
       'Content-Type': 'application/zip',
       Authorization: `Bearer ${accessToken}`,
     };
 
-    console.log('Sending request to Netlify...');
-    const response = await fetch(url, {
+    console.log('Sending deployment request to Netlify...');
+    const response = await fetch(deployUrl, {
       method: 'POST',
       headers: headers,
       body: file,

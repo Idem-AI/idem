@@ -320,27 +320,35 @@ export function HeaderActions() {
           }}
         >
           <div className="text-center mb-6">
-            <div className="text-5xl mb-4">🚀</div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {t('header.deploySuccess')}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">{t('header.deployToCloud')}</p>
+            <svg
+              className="w-16 h-16 mx-auto mb-4 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="text-xl font-semibold text-white">{t('header.deploySuccess')}</h3>
+            <p className="text-gray-300 mt-2">{t('header.deployToCloud')}</p>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-              {t('header.accessLink')}
-            </p>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
+            <p className="text-sm text-gray-300 mb-2">{t('header.accessLink')}</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={deployUrl}
                 readOnly
-                className="flex-1 p-2 text-sm border rounded-lg bg-white dark:bg-gray-600 text-gray-900 dark:text-white"
+                className="flex-1 p-2 text-sm border border-gray-600 rounded-lg bg-gray-700 text-white focus:border-blue-500 focus:outline-none"
               />
               <button
                 onClick={copyToClipboard}
-                className="px-3 py-2 bg-white dark:bg-gray-500 text-gray-700 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-400 transition-colors flex items-center gap-1"
+                className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -358,13 +366,13 @@ export function HeaderActions() {
           <div className="flex justify-end gap-3">
             <button
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
             >
               {t('header.close')}
             </button>
             <button
               onClick={() => window.open(deployUrl, '_blank')}
-              className="px-4 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg hover:from-blue-700 hover:to-blue-900 transition-all flex items-center gap-2"
             >
               <span>{t('header.visitSite')}</span>
               <svg className="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -449,94 +457,107 @@ export function HeaderActions() {
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Deploy Your Project</h3>
-            <p className="text-gray-300 text-sm">Choose how you want to deploy your application</p>
+            <h3 className="text-2xl font-bold text-white mb-2">Déployer votre projet</h3>
+            <p className="text-gray-300 text-sm">Choisissez votre méthode de déploiement</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Idem Option - Custom Deployment */}
+            {/* Custom Deployment - Coming Soon */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left opacity-60 cursor-not-allowed">
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center flex-shrink-0">
+                    <svg
+                      className="w-5 h-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg text-gray-400">Déploiement personnalisé</h4>
+                    <span className="inline-block text-xs text-white uppercase tracking-wide font-bold bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1.5 rounded-full shadow-lg">
+                      Disponible bientôt
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-400 mb-4 leading-relaxed">
+                  Déployez sur votre infrastructure avec Idem Deploy
+                </p>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-1 text-xs bg-gray-800/50 text-gray-500 rounded-md font-medium">
+                    AWS
+                  </span>
+                  <span className="px-2 py-1 text-xs bg-gray-800/50 text-gray-500 rounded-md font-medium">
+                    Docker
+                  </span>
+                  <span className="px-2 py-1 text-xs bg-gray-800/50 text-gray-500 rounded-md font-medium">
+                    Kubernetes
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Deployment */}
             <button
-              onClick={() => handleDeployChoice('idem')}
-              className="group relative overflow-hidden rounded-2xl  bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => handleDeployChoice('netlify')}
+              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left transition-all duration-300 hover:border-blue-400 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
             >
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                    <img src="public/assets/icons/idem.png" alt="Netlify" />
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center flex-shrink-0">
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
                   </div>
                   <div>
                     <h4 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">
-                      Idem
+                      Déploiement rapide
                     </h4>
                     <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">
-                      Custom Deployment
+                      En un clic
                     </p>
                   </div>
                 </div>
 
                 <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-                  Deploy to any cloud provider, your own server, or infrastructure of choice
+                  Déploiement instantané avec CDN global et SSL automatique
                 </p>
 
                 <div className="flex flex-wrap gap-1.5">
                   <span className="px-2 py-1 text-xs bg-blue-900/50 text-blue-300 rounded-md font-medium">
-                    AWS
+                    Instantané
                   </span>
-                  <span className="px-2 py-1 text-xs bg-indigo-900/50 text-indigo-300 rounded-md font-medium">
-                    Docker
+                  <span className="px-2 py-1 text-xs bg-blue-800/50 text-blue-200 rounded-md font-medium">
+                    CDN Global
                   </span>
-                  <span className="px-2 py-1 text-xs bg-purple-900/50 text-purple-300 rounded-md font-medium">
-                    K8s
-                  </span>
-                  <span className="px-2 py-1 text-xs bg-blue-900/50 text-blue-300 rounded-md font-medium">
-                    Terraform
+                  <span className="px-2 py-1 text-xs bg-blue-700/50 text-blue-100 rounded-md font-medium">
+                    SSL Auto
                   </span>
                 </div>
               </div>
 
               {/* Hover effect overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-
-            {/* Netlify Option - Quick Deployment */}
-            <button
-              onClick={() => handleDeployChoice('netlify')}
-              className="group relative overflow-hidden rounded-2xl  bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left transition-all duration-300 hover:border-teal-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
-                    <img src="public/assets/icons/netlify.svg" alt="Netlify" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-lg text-white group-hover:text-teal-400 transition-colors">
-                      Netlify
-                    </h4>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">
-                      Quick Deploy
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-                  Instant deployment with global CDN and automatic builds
-                </p>
-
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2 py-1 text-xs bg-teal-900/50 text-teal-300 rounded-md font-medium">
-                    One-click
-                  </span>
-                  <span className="px-2 py-1 text-xs bg-cyan-900/50 text-cyan-300 rounded-md font-medium">
-                    Global CDN
-                  </span>
-                  <span className="px-2 py-1 text-xs bg-emerald-900/50 text-emerald-300 rounded-md font-medium">
-                    Auto SSL
-                  </span>
-                </div>
-              </div>
-
-              {/* Hover effect overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-700/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </button>
           </div>
 
@@ -545,7 +566,7 @@ export function HeaderActions() {
               onClick={() => setShowDeployChoiceModal(false)}
               className="px-6 py-2 text-gray-400 hover:text-gray-200 transition-colors font-medium"
             >
-              Cancel
+              Annuler
             </button>
           </div>
         </Modal>
