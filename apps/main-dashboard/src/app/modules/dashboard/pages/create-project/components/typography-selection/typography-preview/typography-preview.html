@@ -1,67 +1,71 @@
-@if (typography) {
+<div class="sticky top-4 h-full">
   <div
-    class="grow overflow-y-auto custom-scrollbar relative bg-white flex flex-col justify-center min-h-full"
+    class="bg-white border border-gray-200 rounded-2xl overflow-hidden relative h-[600px] flex flex-col shadow-sm"
   >
-    <div class="max-w-4xl mx-auto p-12 space-y-16 w-full">
-      <!-- Title & Subtitle Section -->
-      <div class="space-y-8 text-center">
-        <h1
-          class="text-6xl md:text-7xl font-bold text-gray-900 leading-tight tracking-tight"
-          [style.fontFamily]="typography.primaryFont"
-        >
-          {{ previewText() }}
-        </h1>
-        <p
-          class="text-2xl text-gray-500 leading-relaxed max-w-2xl mx-auto"
-          [style.fontFamily]="typography.secondaryFont"
-        >
-          {{ 'dashboard.typographySelection.preview.heroSubtitle' | translate }}
-        </p>
-      </div>
-
-      <!-- Quote Section -->
-      <div class="relative max-w-3xl mx-auto text-center pt-8 border-t border-gray-50">
-        <svg class="w-10 h-10 text-gray-200 mx-auto mb-6" fill="currentColor" viewBox="0 0 24 24">
-          <path
-            d="M14.017 21L14.017 18C14.017 16.896 14.321 16.068 14.929 15.516C15.537 14.964 16.277 14.688 17.149 14.688L17.149 14C17.149 12.344 16.781 11.056 16.045 10.136C15.309 9.216 14.285 8.756 12.973 8.756L12.973 5.756C15.325 5.756 17.149 6.452 18.445 7.844C19.741 9.236 20.389 11.288 20.389 14L20.389 21L14.017 21ZM5.017 21L5.017 18C5.017 16.896 5.321 16.068 5.929 15.516C6.537 14.964 7.277 14.688 8.149 14.688L8.149 14C8.149 12.344 7.781 11.056 7.045 10.136C6.309 9.216 5.285 8.756 3.973 8.756L3.973 5.756C6.325 5.756 8.149 6.452 9.445 7.844C10.741 9.236 11.389 11.288 11.389 14L11.389 21L5.017 21Z"
-          />
-        </svg>
-        <blockquote
-          class="text-3xl italic mb-6 leading-relaxed text-gray-800"
-          [style.fontFamily]="typography.secondaryFont"
-        >
-          "{{ 'dashboard.typographySelection.preview.quote' | translate }}"
-        </blockquote>
-        <cite
-          class="text-sm font-bold text-gray-400 not-italic uppercase tracking-widest"
-          [style.fontFamily]="typography.primaryFont"
-        >
-          — {{ 'dashboard.typographySelection.preview.author' | translate }}
-        </cite>
-      </div>
-    </div>
-  </div>
-} @else {
-  <div class="flex items-center justify-center h-full bg-white">
-    <div class="text-center p-8 bg-gray-50 rounded-2xl border border-gray-100">
+    @if (typography) {
       <div
-        class="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-4 mx-auto text-indigo-500"
+        class="grow overflow-y-auto custom-scrollbar relative bg-white flex flex-col justify-center"
       >
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
-          ></path>
-        </svg>
+        <div class="p-12 space-y-16 w-full">
+          <!-- Title & Subtitle Section -->
+          <div class="space-y-8 text-center">
+            <h1
+              class="text-5xl md:text-6xl font-bold text-gray-900 leading-tight tracking-tight"
+              [style.fontFamily]="typography.primaryFont"
+            >
+              {{ previewText() }}
+            </h1>
+            <p
+              class="text-xl text-gray-500 leading-relaxed max-w-lg mx-auto"
+              [style.fontFamily]="typography.secondaryFont"
+            >
+              {{ 'dashboard.typographySelection.preview.heroSubtitle' | translate }}
+            </p>
+          </div>
+
+          <!-- Quote Section -->
+          <div class="relative max-w-2xl mx-auto text-center pt-8 border-t border-gray-50">
+            <svg class="w-8 h-8 text-gray-200 mx-auto mb-6" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M14.017 21L14.017 18C14.017 16.896 14.321 16.068 14.929 15.516C15.537 14.964 16.277 14.688 17.149 14.688L17.149 14C17.149 12.344 16.781 11.056 16.045 10.136C15.309 9.216 14.285 8.756 12.973 8.756L12.973 5.756C15.325 5.756 17.149 6.452 18.445 7.844C19.741 9.236 20.389 11.288 20.389 14L20.389 21L14.017 21ZM5.017 21L5.017 18C5.017 16.896 5.321 16.068 5.929 15.516C6.537 14.964 7.277 14.688 8.149 14.688L8.149 14C8.149 12.344 7.781 11.056 7.045 10.136C6.309 9.216 5.285 8.756 3.973 8.756L3.973 5.756C6.325 5.756 8.149 6.452 9.445 7.844C10.741 9.236 11.389 11.288 11.389 14L11.389 21L5.017 21Z"
+              />
+            </svg>
+            <blockquote
+              class="text-2xl italic mb-6 leading-relaxed text-gray-800"
+              [style.fontFamily]="typography.secondaryFont"
+            >
+              "{{ 'dashboard.typographySelection.preview.quote' | translate }}"
+            </blockquote>
+            <cite
+              class="text-xs font-bold text-gray-400 not-italic uppercase tracking-widest"
+              [style.fontFamily]="typography.primaryFont"
+            >
+              — {{ 'dashboard.typographySelection.preview.author' | translate }}
+            </cite>
+          </div>
+        </div>
       </div>
-      <p class="text-lg font-medium text-gray-900">
-        {{ 'dashboard.typographySelection.selectToPreview' | translate }}
-      </p>
-      <p class="text-sm text-gray-500 mt-2">
-        Click any font card on the left to see the magic happen
-      </p>
-    </div>
+    } @else {
+      <div class="grow flex items-center justify-center bg-gray-50/50">
+        <div class="text-center p-8">
+          <div
+            class="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-4 mx-auto text-indigo-500"
+          >
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+              ></path>
+            </svg>
+          </div>
+          <p class="text-lg font-medium text-gray-900">
+            {{ 'dashboard.typographySelection.selectToPreview' | translate }}
+          </p>
+          <p class="text-sm text-gray-500 mt-2">Select fonts to see the preview</p>
+        </div>
+      </div>
+    }
   </div>
-}
+</div>

@@ -22,7 +22,6 @@ import { ProjectService } from '../../../../services/project.service';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 import { Subject, of } from 'rxjs';
 import { TypographyPreviewComponent } from './typography-preview/typography-preview';
-import { PopularTypographyListComponent } from './popular-typography-list/popular-typography-list';
 import { ProjectModel } from '../../../../models/project.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 
@@ -30,7 +29,6 @@ import { BrandingService } from '../../../../services/ai-agents/branding.service
 import { TypographyTabsComponent, TypographyTab } from './typography-tabs/typography-tabs';
 import { TypographyGeneratedListComponent } from './typography-generated-list/typography-generated-list';
 import { TypographyCustomCreatorComponent } from './typography-custom-creator/typography-custom-creator';
-import { TypographyPreviewPanelComponent } from './typography-preview-panel/typography-preview-panel';
 
 @Component({
   selector: 'app-typography-selection',
@@ -40,11 +38,9 @@ import { TypographyPreviewPanelComponent } from './typography-preview-panel/typo
     FormsModule,
     TranslateModule,
     TypographyPreviewComponent,
-    PopularTypographyListComponent,
     TypographyTabsComponent,
     TypographyGeneratedListComponent,
     TypographyCustomCreatorComponent,
-    TypographyPreviewPanelComponent,
   ],
   templateUrl: './typography-selection.html',
   styleUrls: ['./typography-selection.css'],
@@ -63,8 +59,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   // Outputs
   @Output() readonly typographySelected = new EventEmitter<TypographyModel>();
   @Output() readonly projectUpdate = new EventEmitter<Partial<ProjectModel>>();
-  @Output() readonly nextStep = new EventEmitter<void>();
-  @Output() readonly previousStep = new EventEmitter<void>();
+  @Output() readonly typographySelectionChanged = new EventEmitter<boolean>();
 
   // Signals
   protected activeTab = signal<TypographyTab>('generated');
@@ -73,11 +68,12 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   protected isGenerating = signal(false);
   protected typographyModels = signal<TypographyModel[]>([]);
   protected selectedTypographyId = signal<string | null>(null);
-  protected popularTypographies = signal<TypographyPreview[]>([]);
-  protected customTypographies = signal<TypographyPreview[]>([]);
-  protected selectedCustomTypography = signal<TypographyPreview | null>(null);
+
+  // Custom Selection Signals
   protected selectedPrimaryFont = signal('');
   protected selectedSecondaryFont = signal('');
+
+  // Search Signals
   protected searchResults = signal<GoogleFont[]>([]);
   protected isSearching = signal(false);
   protected searchQuery = signal('');
@@ -86,60 +82,50 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
 
   // Computed properties
   protected hasGeneratedTypographies = computed(() => this.typographyModels().length > 0);
-  protected canCreateCustom = computed(
-    () => this.selectedPrimaryFont().length > 0 && this.selectedSecondaryFont().length > 0,
-  );
-  protected canContinue = computed(() => {
-    return (
-      this.selectedTypographyId() !== null ||
-      this.selectedCustomTypography() !== null ||
-      (this.selectedPrimaryFont() && this.selectedSecondaryFont())
-    );
-  });
-  protected currentSelectedTypography = computed(() =>
-    this.typographyModels().find((t) => t.id === this.selectedTypographyId()),
-  );
 
-  protected customPreviewTypography = computed(() => {
-    if (this.selectedCustomTypography()) {
+  protected canContinue = computed(() => {
+    if (this.activeTab() === 'generated') {
+      return this.selectedTypographyId() !== null;
+    }
+    // For custom tab, we need both fonts selected
+    return this.selectedPrimaryFont().length > 0 && this.selectedSecondaryFont().length > 0;
+  });
+
+  protected currentSelectedTypography = computed(() => {
+    if (this.activeTab() === 'generated') {
+      return this.typographyModels().find(
+        (t: TypographyModel) => t.id === this.selectedTypographyId(),
+      );
+    }
+
+    // For custom tab, return a live preview object
+    if (this.selectedPrimaryFont() || this.selectedSecondaryFont()) {
       return {
-        id: this.selectedCustomTypography()!.id,
-        name: this.selectedCustomTypography()!.name,
-        primaryFont: this.selectedCustomTypography()!.primaryFont,
-        secondaryFont: this.selectedCustomTypography()!.secondaryFont,
-        description: '',
+        id: 'custom-preview',
+        name: 'Custom Selection',
+        primaryFont: this.selectedPrimaryFont() || 'Inter', // Fallback for preview
+        secondaryFont: this.selectedSecondaryFont() || 'Inter', // Fallback for preview
+        description: 'Your custom font combination',
       } as TypographyModel;
     }
 
-    return {
-      id: 'preview',
-      name: 'Custom Preview',
-      primaryFont: this.selectedPrimaryFont(),
-      secondaryFont: this.selectedSecondaryFont(),
-      description: 'Preview of your custom selection',
-    } as TypographyModel;
+    return null;
   });
 
   // Event handlers for new template
   protected onTabChanged(tab: TypographyTab): void {
     this.activeTab.set(tab);
+    // If switching to generated, ensure something is selected if possible
+    if (tab === 'generated' && !this.selectedTypographyId() && this.typographyModels().length > 0) {
+      this.selectedTypographyId.set(this.typographyModels()[0].id);
+      this.notifySelectionChange();
+    }
   }
 
   protected onTypographySelected(typography: TypographyModel): void {
     this.selectedTypographyId.set(typography.id);
     this.typographySelected.emit(typography);
-  }
-
-  protected onPopularTypographySelected(typography: TypographyPreview): void {
-    const typographyModel: TypographyModel = {
-      id: typography.id,
-      name: typography.name,
-      primaryFont: typography.primaryFont,
-      secondaryFont: typography.secondaryFont,
-      description: `Popular typography: ${typography.name}`,
-    };
-    this.selectedTypographyId.set(typography.id);
-    this.typographySelected.emit(typographyModel);
+    this.notifySelectionChange();
   }
 
   protected onRegenerateTypographies(): void {
@@ -152,44 +138,50 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     this.initializeTypographies();
   }
 
-  protected goBack(): void {
-    this.previousStep.emit();
-  }
+  // Method to prepare and emit project data when parent requests it
+  public prepareTypographyData(): Partial<ProjectModel> | null {
+    const selectedTypography = this.currentSelectedTypography();
+    if (!selectedTypography) return null;
 
-  protected saveAsDraft(): void {
-    const selectedTypography = this.currentSelectedTypography() || this.customPreviewTypography();
-    const draftData: Partial<ProjectModel> = {
+    // For custom typography, add it to the generatedTypography list so it can be found in project-summary
+    let updatedGeneratedTypography =
+      this.project.analysisResultModel?.branding?.generatedTypography || [];
+
+    if (this.activeTab() === 'custom' && selectedTypography.id === 'custom-preview') {
+      // Create a proper custom typography with unique ID
+      const customTypography: TypographyModel = {
+        ...selectedTypography,
+        id: `custom-${Date.now()}`, // Unique ID for custom typography
+      };
+
+      // Add custom typography to the list if not already present
+      const existingCustomIndex = updatedGeneratedTypography.findIndex((t) =>
+        t.id.startsWith('custom-'),
+      );
+      if (existingCustomIndex >= 0) {
+        updatedGeneratedTypography[existingCustomIndex] = customTypography;
+      } else {
+        updatedGeneratedTypography = [...updatedGeneratedTypography, customTypography];
+      }
+
+      selectedTypography.id = customTypography.id; // Update the selected typography ID
+    }
+
+    return {
       analysisResultModel: {
         ...this.project.analysisResultModel,
         branding: {
           ...this.project.analysisResultModel?.branding,
           typography: selectedTypography,
+          generatedTypography: updatedGeneratedTypography,
         },
       },
     };
-    this.projectUpdate.emit(draftData);
   }
 
-  protected continueToNext(): void {
-    if (this.canContinue()) {
-      const selectedTypography = this.currentSelectedTypography() || this.customPreviewTypography();
-      const projectData: Partial<ProjectModel> = {
-        analysisResultModel: {
-          ...this.project.analysisResultModel,
-          branding: {
-            ...this.project.analysisResultModel?.branding,
-            typography: selectedTypography,
-          },
-        },
-      };
-      this.projectUpdate.emit(projectData);
-      this.nextStep.emit();
-    }
-  }
-
-  protected selectCustomTypography(typography: TypographyPreview): void {
-    this.selectedCustomTypography.set(typography);
-    this.selectedTypographyId.set(null);
+  // Notify parent about selection state changes
+  private notifySelectionChange(): void {
+    this.typographySelectionChanged.emit(this.canContinue());
   }
 
   protected onSearchInput(query: string): void {
@@ -205,31 +197,12 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       this.selectedSecondaryFont.set(font.family);
     }
     this.typographyService.loadGoogleFont(font.family);
-  }
-
-  protected createCustomTypography(): void {
-    if (!this.canCreateCustom()) return;
-
-    const customTypography: TypographyPreview = {
-      id: `custom-${Date.now()}`,
-      name: `${this.selectedPrimaryFont()} + ${this.selectedSecondaryFont()}`,
-      primaryFont: this.selectedPrimaryFont(),
-      secondaryFont: this.selectedSecondaryFont(),
-      category: 'custom',
-      isLoaded: true,
-    };
-
-    const current = this.customTypographies();
-    this.customTypographies.set([...current, customTypography]);
-    this.selectedCustomTypography.set(customTypography);
-    this.selectedPrimaryFont.set('');
-    this.selectedSecondaryFont.set('');
+    this.notifySelectionChange();
   }
 
   ngOnInit(): void {
     this.initializeTypographies();
     this.setupSearch();
-    this.loadPopularTypographies();
   }
 
   ngOnDestroy(): void {
@@ -244,6 +217,11 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       if (generatedTypography && generatedTypography.length > 0) {
         this.typographyModels.set(generatedTypography);
         this.isLoading.set(false);
+        // Auto-select first typography if none selected
+        if (!this.selectedTypographyId()) {
+          this.selectedTypographyId.set(generatedTypography[0].id);
+          this.notifySelectionChange();
+        }
       } else {
         this.regenerateTypographies();
       }
@@ -281,12 +259,12 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
 
       this.typographyModels.set(mockTypographies);
       this.isGenerating.set(false);
+      // Auto-select first item
+      if (mockTypographies.length > 0) {
+        this.selectedTypographyId.set(mockTypographies[0].id);
+        this.notifySelectionChange();
+      }
     }, 2000);
-  }
-
-  private loadPopularTypographies(): void {
-    const popular = this.typographyService.getPopularTypographies();
-    this.popularTypographies.set(popular);
   }
 
   private setupSearch(): void {
