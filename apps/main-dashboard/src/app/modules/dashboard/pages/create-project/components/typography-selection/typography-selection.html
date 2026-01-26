@@ -102,42 +102,25 @@
               (typographySelected)="onTypographySelected($event)"
               (regenerateRequest)="onRegenerateTypographies()"
             ></app-typography-generated-list>
-          }
-          @else if (activeTab() === 'custom') {
+          } @else if (activeTab() === 'custom') {
             <!-- Custom Typography Tab -->
             <app-typography-custom-creator
-              [customTypographies]="customTypographies()"
-              [selectedCustomTypography]="selectedCustomTypography()"
               [selectedPrimaryFont]="selectedPrimaryFont()"
               [selectedSecondaryFont]="selectedSecondaryFont()"
               [searchResults]="searchResults()"
               [isSearching]="isSearching()"
-              [canCreateCustom]="canCreateCustom()"
-              (customTypographySelected)="selectCustomTypography($event)"
               (searchInput)="onSearchInput($event)"
               (fontSelected)="selectFont($event)"
-              (customTypographyCreated)="createCustomTypography()"
             ></app-typography-custom-creator>
           }
         </div>
 
         <!-- Right Column: Preview Panel -->
         <div class="lg:col-span-7">
-          @if (activeTab() === 'generated' || activeTab() === 'popular') {
-            <!-- Typography Preview for Generated/Popular -->
-            <app-typography-preview
-              [typography]="currentSelectedTypography()"
-              [previewText]="previewText"
-            ></app-typography-preview>
-          } @else if (activeTab() === 'custom') {
-            <!-- Custom Typography Preview Panel -->
-            <app-typography-preview-panel
-              [typography]="customPreviewTypography()"
-              [previewText]="previewText"
-              [selectedPrimaryFont]="selectedPrimaryFont()"
-              [selectedSecondaryFont]="selectedSecondaryFont()"
-            ></app-typography-preview-panel>
-          }
+          <app-typography-preview
+            [typography]="currentSelectedTypography()"
+            [previewText]="previewText"
+          ></app-typography-preview>
         </div>
       </div>
 

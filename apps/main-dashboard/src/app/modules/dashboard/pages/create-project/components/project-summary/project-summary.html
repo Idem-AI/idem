@@ -36,7 +36,7 @@
                   <span class="text-gray-400"
                     >{{ 'dashboard.projectSummary.fields.type' | translate }}:</span
                   >
-                  {{ project().type }}
+                  {{ formattedProjectType() }}
                 </p>
               </div>
             </div>
@@ -55,19 +55,19 @@
                   <span class="text-gray-400"
                     >{{ 'dashboard.projectSummary.fields.scope' | translate }}:</span
                   >
-                  {{ project().scope }}
+                  {{ formattedScope() }}
                 </p>
                 <p class="text-gray-300">
                   <span class="text-gray-400"
                     >{{ 'dashboard.projectSummary.fields.budget' | translate }}:</span
                   >
-                  {{ project().budgetIntervals }}
+                  {{ formattedBudget() }}
                 </p>
                 <p class="text-gray-300">
                   <span class="text-gray-400"
                     >{{ 'dashboard.projectSummary.fields.target' | translate }}:</span
                   >
-                  {{ project().targets }}
+                  {{ formattedTargets() }}
                 </p>
               </div>
             </div>
