@@ -77,7 +77,7 @@ export function getDefaultModelKey(): string {
   }
 
   // Fallback to first available model
-  const fallbackModel = modelConfig[0]?.modelKey || 'gemini-2.5-flash';
+  const fallbackModel = modelConfig[0]?.modelKey || 'gemini-3-flash-preview';
   console.log(`Using fallback default model: ${fallbackModel}`);
   return fallbackModel;
 }
