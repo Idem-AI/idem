@@ -76,12 +76,18 @@ export default defineConfig(async ({ mode }) => {
         ignored: ["**/workspace/**"],
       },
     },
+   
+    preview: {
+      host: '0.0.0.0', // permet l’accès depuis l’extérieur
+      port: 4173,      // port de preview
+      allowedHosts: ['appgen.idem.africa', 'appgen.idem-ai.com'], // domaine autorisé
+    },
 
     css: {
       postcss: {
         plugins: [require("tailwindcss"), require("autoprefixer")],
       },
-    },
+     },
 
     define: {
       "process.env": env,

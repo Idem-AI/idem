@@ -11,7 +11,7 @@
     "dev": "vite",
     "build": "vite build",
     "tsc": "tsc",
-    "start": "vite preview"
+    "start": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",
