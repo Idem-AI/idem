@@ -66,11 +66,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   });
 
   protected readonly shouldShowVariations = computed(() => {
-    return this.generatedVariations().length > 0 && !this.isCompleted();
-  });
-
-  protected readonly shouldShowSuccess = computed(() => {
-    return this.isCompleted() && this.generatedVariations().length > 0;
+    return this.generatedVariations().length > 0;
   });
 
   protected readonly shouldShowInitialPrompt = computed(() => {
@@ -231,13 +227,8 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
       },
     } as ProjectModel);
 
-    // Mark as completed and show success state briefly
+    // Mark as completed - user can now proceed manually
     this.isCompleted.set(true);
-
-    // Auto-advance to next step after a brief delay to show success
-    setTimeout(() => {
-      this.nextStep.emit();
-    }, 2000); // 2 second delay to show the success state
   }
 
   private simulateProgress(): void {
