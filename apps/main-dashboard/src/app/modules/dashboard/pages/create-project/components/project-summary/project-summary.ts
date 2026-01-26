@@ -54,6 +54,48 @@ export class ProjectSummaryComponent {
     return requiredPolicies && betaRequired;
   });
 
+  // Computed properties for formatted display
+  protected readonly formattedProjectType = computed(() => {
+    const type = this.project().type;
+    if (typeof type === 'object' && type !== null) {
+      return (type as any).name || JSON.stringify(type);
+    }
+    return type || 'Non spécifié';
+  });
+
+  protected readonly formattedScope = computed(() => {
+    const scope = this.project().scope;
+    if (typeof scope === 'object' && scope !== null) {
+      return (scope as any).name || JSON.stringify(scope);
+    }
+    return scope || 'Non spécifié';
+  });
+
+  protected readonly formattedTargets = computed(() => {
+    const targets = this.project().targets;
+    if (typeof targets === 'object' && targets !== null) {
+      if (Array.isArray(targets)) {
+        return targets
+          .map((t) => (typeof t === 'object' ? (t as any).name || JSON.stringify(t) : t))
+          .join(', ');
+      }
+      return (targets as any).name || JSON.stringify(targets);
+    }
+    return targets || 'Non spécifié';
+  });
+
+  protected readonly formattedBudget = computed(() => {
+    const budget = this.project().budgetIntervals;
+    if (typeof budget === 'object' && budget !== null) {
+      const budgetObj = budget as any;
+      if (budgetObj.min && budgetObj.max) {
+        return `${budgetObj.min} - ${budgetObj.max}`;
+      }
+      return budgetObj.name || JSON.stringify(budget);
+    }
+    return budget || 'Non spécifié';
+  });
+
   protected getSelectedLogo(): LogoModel | undefined {
     const logo = this.logos().find((logo) => logo.id === this.selectedLogo());
     console.log('Selected logo', logo);

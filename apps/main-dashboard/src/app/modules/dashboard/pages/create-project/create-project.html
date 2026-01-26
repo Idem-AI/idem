@@ -86,7 +86,7 @@
           [project]="project()"
           [selectedLogo]="project().analysisResultModel.branding.logo.id || ''"
           [selectedColor]="project().analysisResultModel.branding.colors.id || ''"
-          [selectedTypography]="project().analysisResultModel.branding.typography.id || ''"
+          [selectedTypography]="project().analysisResultModel?.branding?.typography?.id || ''"
           [logos]="project().analysisResultModel.branding.generatedLogos || []"
           [colorPalettes]="project().analysisResultModel.branding.generatedColors || []"
           [typographyOptions]="project().analysisResultModel.branding.generatedTypography || []"
