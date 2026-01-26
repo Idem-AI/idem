@@ -510,6 +510,8 @@
       }
     },
     "typographySelection": {
+      "title": "Typography Selection",
+      "subtitle": "Choose the perfect typography that reflects your brand's personality and enhances readability.",
       "errors": {
         "title": "Typography Not Available",
         "noOptions": "No typography options available. Please go back to the color selection step."
@@ -523,11 +525,69 @@
         "subtitle": "Select the typography style that best complements your brand's voice and personality.",
         "perfectChoice": "Perfect choice! Click Next to continue to the next step."
       },
+      "popular": {
+        "title": "Popular Typography Collections",
+        "subtitle": "Curated typography combinations loved by designers worldwide."
+      },
+      "tabs": {
+        "generated": "AI Generated",
+        "popular": "Popular Collections",
+        "custom": "Custom Mix"
+      },
       "preview": {
         "brandName": "Your Brand Name",
         "subtitle": "This is how your content will look with this typography combination.",
         "primary": "Primary",
-        "secondary": "Secondary"
+        "secondary": "Secondary",
+        "livePreview": "Live Preview",
+        "tryText": "Try your text:",
+        "headingExample": "The future of digital design",
+        "bodyTitle": "Typography Details",
+        "bodyText": "Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing.",
+        "buttonPrimary": "Get Started",
+        "buttonSecondary": "Learn More",
+        "fontPrimary": "Primary Font",
+        "fontSecondary": "Secondary Font",
+        "launchingSoon": "Launching Soon",
+        "heroSubtitle": "Create an unforgettable digital experience with our new visual identity. Innovation starts here.",
+        "getStarted": "Get Started",
+        "learnMore": "Learn More",
+        "cardTitle1": "Modern Design",
+        "cardText1": "A minimalist approach that highlights the essentials of your content without unnecessary distractions.",
+        "cardTitle2": "Intuitive Experience",
+        "cardText2": "Fluid and natural interactions designed to engage your users from the first click.",
+        "quote": "Design is not just what it looks like and feels like. Design is how it works.",
+        "author": "Steve Jobs"
+      },
+      "generated": {
+        "title": "AI Generated Typography",
+        "empty": {
+          "title": "No Typography Generated",
+          "description": "We couldn't generate typography options for your project. Click regenerate to try again with different parameters."
+        },
+        "regenerate": "Regenerate"
+      },
+      "actions": {
+        "back": "Back",
+        "saveAsDraft": "Save as Draft",
+        "continue": "Continue"
+      },
+      "searchPlaceholder": "Search fonts (e.g. Roboto, Open Sans)...",
+      "searching": "Searching fonts...",
+      "noResults": "No fonts found for your search",
+      "searchHint": "Start typing to search Google Fonts",
+      "selectToPreview": "Select fonts to preview your custom typography mix",
+      "custom": {
+        "title": "Your Custom Mixes",
+        "createNew": "Create New Mix",
+        "searchLabel": "SEARCH GOOGLE FONTS",
+        "searchPlaceholder": "Search fonts (e.g. Roboto, Open Sans)...",
+        "setPrimary": "Set Primary",
+        "setSecondary": "Set Secondary",
+        "primaryFont": "PRIMARY FONT",
+        "secondaryFont": "SECONDARY FONT",
+        "notSelected": "Not selected",
+        "addButton": "Add Custom Mix"
       }
     },
     "createProject": {
