@@ -361,7 +361,9 @@
       "buttons": {
         "generate": "Generate Variations",
         "clickToSelect": "Click to select",
-        "proceed": "Proceed with selection"
+        "proceed": "Proceed with selection",
+        "retry": "Retry",
+        "continueToSummary": "Continue to Summary"
       },
       "estimatedTime": "Estimated time: {{time}}",
       "generating": {
@@ -385,7 +387,9 @@
       },
       "success": {
         "title": "Logo Variations",
-        "subtitle": "Select the variations you want to keep for your project."
+        "subtitle": "Select the variations you want to keep for your project.",
+        "completed": "Variations Generated Successfully!",
+        "reviewAndProceed": "Review your variations and proceed when ready."
       },
       "categories": {
         "withText": "With Text",
@@ -397,7 +401,10 @@
         "withTextMonochrome": "With Text - Monochrome",
         "iconOnlyLight": "Icon Only - Light Background",
         "iconOnlyDark": "Icon Only - Dark Background",
-        "iconOnlyMonochrome": "Icon Only - Monochrome"
+        "iconOnlyMonochrome": "Icon Only - Monochrome",
+        "lightBackground": "Light Background",
+        "darkBackground": "Dark Background",
+        "monochrome": "Monochrome"
       },
       "descriptions": {
         "withTextLight": "Full logo optimized for light backgrounds",
@@ -405,7 +412,18 @@
         "withTextMonochrome": "Full logo in monochrome version",
         "iconOnlyLight": "Icon only optimized for light backgrounds",
         "iconOnlyDark": "Icon only optimized for dark backgrounds",
-        "iconOnlyMonochrome": "Icon only in monochrome version"
+        "iconOnlyMonochrome": "Icon only in monochrome version",
+        "lightBackground": "Optimized for white and light backgrounds",
+        "darkBackground": "Optimized for dark and modern backgrounds",
+        "monochrome": "Version in black and white for all uses"
+      },
+      "status": {
+        "generated": "Generated",
+        "processing": "Processing variations...",
+        "preparingNext": "Preparing next step...",
+        "allGenerated": "All variations generated successfully!",
+        "readyToProceed": "Ready to proceed to the next step.",
+        "advancing": "Advancing to next step..."
       },
       "selectionsMade": "{{count}} selection(s) made"
     },

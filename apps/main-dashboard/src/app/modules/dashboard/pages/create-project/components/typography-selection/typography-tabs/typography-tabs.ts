@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 
-export type TypographyTab = 'generated' | 'popular' | 'custom';
+export type TypographyTab = 'generated' | 'custom';
 
 @Component({
   selector: 'app-typography-tabs',

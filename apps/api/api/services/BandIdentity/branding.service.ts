@@ -26,20 +26,18 @@ import { PdfService } from '../pdf.service';
 import { cacheService } from '../cache.service';
 import crypto from 'crypto';
 import { projectService } from '../project.service';
-import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
-  private logoJsonToSvgService: LogoJsonToSvgService;
 
   // Configuration LLM pour la génération de logos et variations
   // Temperature modérée pour équilibrer créativité et cohérence
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-2.0-flash',
+    modelName: 'gemini-3-flash-preview',
     llmOptions: {
-      maxOutputTokens: 3500,
+      maxOutputTokens: 500,
       temperature: 0.4, // Équilibre entre créativité et cohérence
       topP: 0.9,
       topK: 55,
@@ -73,7 +71,6 @@ export class BrandingService extends GenericService {
   constructor(promptService: PromptService) {
     super(promptService);
     this.pdfService = new PdfService();
-    this.logoJsonToSvgService = new LogoJsonToSvgService();
     logger.info('BrandingService initialized with optimized logo generation');
   }
 
@@ -1744,7 +1741,7 @@ export class BrandingService extends GenericService {
    */
   private generateReadmeContent(project: any, extension: string, fileCount: number): string {
     return `Logo Package - ${project.name}
-    
+
 Project: ${project.name}
 Description: ${project.description || 'No description available'}
 Format: ${extension.toUpperCase()}
@@ -1775,7 +1772,7 @@ Features:
 
 Variations:
 - light-background: Optimized for light backgrounds
-- dark-background: Optimized for dark backgrounds  
+- dark-background: Optimized for dark backgrounds
 - monochrome: Single color version
 
 ${
