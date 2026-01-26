@@ -54,9 +54,8 @@
       @if (isStepActive(3)) {
         <app-typography-selection
           [project]="project()"
-          (nextStep)="goToNextStep()"
-          (previousStep)="goToPreviousStep()"
           (projectUpdate)="onProjectUpdate($event)"
+          (typographySelectionChanged)="onTypographySelectionChanged($event)"
         ></app-typography-selection>
       }
       @if (isStepActive(4)) {

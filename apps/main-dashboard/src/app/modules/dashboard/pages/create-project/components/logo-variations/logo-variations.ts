@@ -21,13 +21,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 interface DisplayVariation {
   id: string;
-  type: 'withText' | 'iconOnly';
   background: 'lightBackground' | 'darkBackground' | 'monochrome';
   label: string;
   svgContent: string;
   description: string;
   backgroundColor: string;
-  category: string;
 }
 
 @Component({
@@ -60,7 +58,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   protected readonly estimatedTime = signal('1-2 minutes');
   protected readonly hasStartedGeneration = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected readonly selectedVariations = signal<string[]>([]);
+  protected readonly isCompleted = signal(false);
 
   // Computed properties
   protected readonly shouldShowLoader = computed(() => {
@@ -68,7 +66,11 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   });
 
   protected readonly shouldShowVariations = computed(() => {
-    return this.generatedVariations().length > 0;
+    return this.generatedVariations().length > 0 && !this.isCompleted();
+  });
+
+  protected readonly shouldShowSuccess = computed(() => {
+    return this.isCompleted() && this.generatedVariations().length > 0;
   });
 
   protected readonly shouldShowInitialPrompt = computed(() => {
@@ -76,7 +78,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   });
 
   protected readonly canProceed = computed(() => {
-    return this.selectedVariations().length > 0;
+    return this.isCompleted();
   });
 
   // Track function for carousel
@@ -126,105 +128,49 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
         next: (response) => {
           console.log('Logo variations generated successfully:', response);
 
-          // Transform the response into DisplayVariation objects
+          // Transform the response into DisplayVariation objects (simplified to 3 variations)
           const variations: DisplayVariation[] = [];
 
-          // Process withText variations
+          // Use withText variations as primary (since logos are now complete)
           if (response.variations.withText) {
             const withText = response.variations.withText;
 
             if (withText.lightBackground) {
               variations.push({
-                id: 'withText-lightBackground',
-                type: 'withText',
+                id: 'lightBackground',
                 background: 'lightBackground',
-                label: this.translate.instant('dashboard.logoVariations.labels.withTextLight'),
+                label: this.translate.instant('dashboard.logoVariations.labels.lightBackground'),
                 svgContent: withText.lightBackground,
                 description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.withTextLight',
+                  'dashboard.logoVariations.descriptions.lightBackground',
                 ),
                 backgroundColor: '#ffffff',
-                category: this.translate.instant('dashboard.logoVariations.categories.withText'),
               });
             }
 
             if (withText.darkBackground) {
               variations.push({
-                id: 'withText-darkBackground',
-                type: 'withText',
+                id: 'darkBackground',
                 background: 'darkBackground',
-                label: this.translate.instant('dashboard.logoVariations.labels.withTextDark'),
+                label: this.translate.instant('dashboard.logoVariations.labels.darkBackground'),
                 svgContent: withText.darkBackground,
                 description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.withTextDark',
+                  'dashboard.logoVariations.descriptions.darkBackground',
                 ),
                 backgroundColor: '#1f2937',
-                category: this.translate.instant('dashboard.logoVariations.categories.withText'),
               });
             }
 
             if (withText.monochrome) {
               variations.push({
-                id: 'withText-monochrome',
-                type: 'withText',
+                id: 'monochrome',
                 background: 'monochrome',
-                label: this.translate.instant('dashboard.logoVariations.labels.withTextMonochrome'),
+                label: this.translate.instant('dashboard.logoVariations.labels.monochrome'),
                 svgContent: withText.monochrome,
                 description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.withTextMonochrome',
+                  'dashboard.logoVariations.descriptions.monochrome',
                 ),
                 backgroundColor: '#f3f4f6',
-                category: this.translate.instant('dashboard.logoVariations.categories.withText'),
-              });
-            }
-          }
-
-          // Process iconOnly variations
-          if (response.variations.iconOnly) {
-            const iconOnly = response.variations.iconOnly;
-
-            if (iconOnly.lightBackground) {
-              variations.push({
-                id: 'iconOnly-lightBackground',
-                type: 'iconOnly',
-                background: 'lightBackground',
-                label: this.translate.instant('dashboard.logoVariations.labels.iconOnlyLight'),
-                svgContent: iconOnly.lightBackground,
-                description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.iconOnlyLight',
-                ),
-                backgroundColor: '#ffffff',
-                category: this.translate.instant('dashboard.logoVariations.categories.iconOnly'),
-              });
-            }
-
-            if (iconOnly.darkBackground) {
-              variations.push({
-                id: 'iconOnly-darkBackground',
-                type: 'iconOnly',
-                background: 'darkBackground',
-                label: this.translate.instant('dashboard.logoVariations.labels.iconOnlyDark'),
-                svgContent: iconOnly.darkBackground,
-                description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.iconOnlyDark',
-                ),
-                backgroundColor: '#1f2937',
-                category: this.translate.instant('dashboard.logoVariations.categories.iconOnly'),
-              });
-            }
-
-            if (iconOnly.monochrome) {
-              variations.push({
-                id: 'iconOnly-monochrome',
-                type: 'iconOnly',
-                background: 'monochrome',
-                label: this.translate.instant('dashboard.logoVariations.labels.iconOnlyMonochrome'),
-                svgContent: iconOnly.monochrome,
-                description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.iconOnlyMonochrome',
-                ),
-                backgroundColor: '#f3f4f6',
-                category: this.translate.instant('dashboard.logoVariations.categories.iconOnly'),
               });
             }
           }
@@ -240,8 +186,8 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
             this.translate.instant('dashboard.logoVariations.progress.completed'),
           );
 
-          // Auto-select all variations by default
-          this.selectedVariations.set(variations.map((v) => v.id));
+          // Auto-accept all variations and update project immediately
+          this.autoAcceptVariations(response.variations);
         },
         error: (error) => {
           console.error('Error in logo variation generation:', error);
@@ -253,80 +199,22 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
       });
   }
 
-  protected toggleVariationSelection(variationType: string): void {
-    const currentSelections = this.selectedVariations();
-
-    if (currentSelections.includes(variationType)) {
-      // Remove from selection
-      this.selectedVariations.set(currentSelections.filter((type) => type !== variationType));
-    } else {
-      // Add to selection
-      this.selectedVariations.set([...currentSelections, variationType]);
-    }
+  // Simplified: return all variations since we only have 3 now
+  protected getAllVariations(): DisplayVariation[] {
+    return this.generatedVariations();
   }
 
-  protected isVariationSelected(variationType: string): boolean {
-    return this.selectedVariations().includes(variationType);
-  }
-
-  protected getVariationsByCategory(category: string): DisplayVariation[] {
-    const categoryMap: { [key: string]: 'withText' | 'iconOnly' } = {
-      [this.translate.instant('dashboard.logoVariations.categories.withText')]: 'withText',
-      [this.translate.instant('dashboard.logoVariations.categories.iconOnly')]: 'iconOnly',
-    };
-    const mappedCategory = categoryMap[category];
-    return this.generatedVariations().filter((v) => v.type === mappedCategory);
-  }
-
-  protected hasVariationsForCategory(category: string): boolean {
-    return this.getVariationsByCategory(category).length > 0;
-  }
-
-  protected goToNextStep(): void {
-    if (!this.canProceed()) {
-      return;
-    }
-
-    // Update project with selected logo variations
-    const selectedVariations = this.generatedVariations().filter((variation) =>
-      this.selectedVariations().includes(variation.id),
-    );
-
+  /**
+   * Auto-accept all generated variations and update project
+   */
+  private autoAcceptVariations(variations: LogoVariations): void {
     const currentProject = this.project();
     const currentBranding = currentProject?.analysisResultModel?.branding;
 
-    // Build the variations object from selected variations
-    const withTextVariations = {
-      lightBackground: selectedVariations.find(
-        (v) => v.type === 'withText' && v.background === 'lightBackground',
-      )?.svgContent,
-      darkBackground: selectedVariations.find(
-        (v) => v.type === 'withText' && v.background === 'darkBackground',
-      )?.svgContent,
-      monochrome: selectedVariations.find(
-        (v) => v.type === 'withText' && v.background === 'monochrome',
-      )?.svgContent,
-    };
-
-    const iconOnlyVariations = {
-      lightBackground: selectedVariations.find(
-        (v) => v.type === 'iconOnly' && v.background === 'lightBackground',
-      )?.svgContent,
-      darkBackground: selectedVariations.find(
-        (v) => v.type === 'iconOnly' && v.background === 'darkBackground',
-      )?.svgContent,
-      monochrome: selectedVariations.find(
-        (v) => v.type === 'iconOnly' && v.background === 'monochrome',
-      )?.svgContent,
-    };
-
-    // Update the logo with variations
+    // Update the logo with all variations
     const updatedLogo: LogoModel = {
       ...this.selectedLogo(),
-      variations: {
-        withText: withTextVariations,
-        iconOnly: iconOnlyVariations,
-      },
+      variations: variations,
     };
 
     const updatedBranding = {
@@ -334,6 +222,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
       logo: updatedLogo,
     };
 
+    // Update project immediately
     this.projectUpdate.emit({
       ...currentProject,
       analysisResultModel: {
@@ -342,7 +231,13 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
       },
     } as ProjectModel);
 
-    this.nextStep.emit();
+    // Mark as completed and show success state briefly
+    this.isCompleted.set(true);
+
+    // Auto-advance to next step after a brief delay to show success
+    setTimeout(() => {
+      this.nextStep.emit();
+    }, 2000); // 2 second delay to show the success state
   }
 
   private simulateProgress(): void {
@@ -395,7 +290,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     this.hasStartedGeneration.set(false);
     this.generatedVariations.set([]);
     this.generationProgress.set(0);
-    this.selectedVariations.set([]);
+    this.isCompleted.set(false);
 
     // Restart generation
     this.startVariationGeneration();
