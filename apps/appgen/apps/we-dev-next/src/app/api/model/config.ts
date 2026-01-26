@@ -16,11 +16,11 @@ interface ModelConfig {
 // Default model configurations
 const defaultModelConfigs: ModelConfig[] = [
   {
-    modelName: 'gemini-3-flash-preview',
-    modelKey: 'gemini-3-flash-preview',
+    modelName: 'gemini-3-pro-preview',
+    modelKey: 'gemini-3-pro-preview',
     useImage: true,
     provider: 'gemini',
-    description: 'Gemini 3 Flash model',
+    description: 'Gemini 3 Pro model',
     functionCall: true,
   }
 ];
@@ -77,7 +77,7 @@ export function getDefaultModelKey(): string {
   }
 
   // Fallback to first available model
-  const fallbackModel = modelConfig[0]?.modelKey || 'gemini-3-flash-preview';
+  const fallbackModel = modelConfig[0]?.modelKey || 'gemini-3-pro-preview';
   console.log(`Using fallback default model: ${fallbackModel}`);
   return fallbackModel;
 }
