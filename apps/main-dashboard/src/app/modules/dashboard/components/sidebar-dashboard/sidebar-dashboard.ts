@@ -123,12 +123,12 @@ export class SidebarDashboard implements OnInit {
       route: 'project/dashboard',
       isActive: false,
     },
-    {
-      labelKey: 'dashboard.sidebar.teams',
-      icon: 'pi pi-users',
-      route: 'project/teams',
-      isActive: false,
-    },
+    // {
+    //   labelKey: 'dashboard.sidebar.teams',
+    //   icon: 'pi pi-users',
+    //   route: 'project/teams',
+    //   isActive: false,
+    // },
     {
       labelKey: 'dashboard.sidebar.branding',
       icon: 'pi pi-palette',
