@@ -79,7 +79,7 @@ const API_BASE = process.env.REACT_APP_BASE_URL;
 console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
-  Gemini25Flash = 'gemini-3-flash-preview',
+  Gemini3Flash = 'gemini-3-flash-preview',
   Claude37sonnet = 'claude-3-7-sonnet-20250219',
   Claude35sonnet = 'claude-3-5-sonnet-20240620',
   gpt4oMini = 'gpt-4o-mini',
@@ -135,8 +135,8 @@ async function fetchModelConfig(): Promise<IModelOption[]> {
     // Fallback vers la configuration par défaut
     return [
       {
-        value: ModelTypes.Gemini25Flash,
-        label: 'Gemini 2.5 Flash',
+        value: ModelTypes.Gemini3Flash,
+        label: 'Gemini 3 Flash',
         useImage: true,
         from: 'default',
         quota: 2,
@@ -154,10 +154,10 @@ async function fetchDefaultModel(): Promise<string> {
       throw new Error('Failed to fetch default model');
     }
     const data = await response.json();
-    return data.defaultModel || ModelTypes.Gemini25Flash;
+    return data.defaultModel || ModelTypes.Gemini3Flash;
   } catch (error) {
     console.error('Error fetching default model:', error);
-    return ModelTypes.Gemini25Flash;
+    return ModelTypes.Gemini3Flash;
   }
 }
 
@@ -179,7 +179,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [checkCount, setCheckCount] = useState(0);
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
-    value: ModelTypes.Gemini25Flash,
+    value: ModelTypes.Gemini3Flash,
     label: 'Gemini 2.5 Flash',
     useImage: true,
     from: 'default',
