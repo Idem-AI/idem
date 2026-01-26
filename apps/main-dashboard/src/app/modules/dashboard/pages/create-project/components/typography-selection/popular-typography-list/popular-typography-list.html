@@ -1,0 +1,9 @@
+<div class="grid grid-cols-1 gap-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+  @for (typography of typographies; track trackTypography($index, typography)) {
+    <app-typography-card
+      [typography]="typography"
+      [isSelected]="selectedTypographyId === typography.id"
+      (selected)="onTypographySelected($event)"
+    ></app-typography-card>
+  }
+</div>

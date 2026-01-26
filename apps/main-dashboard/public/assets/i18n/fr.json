@@ -510,6 +510,8 @@
       }
     },
     "typographySelection": {
+      "title": "Sélection de typographie",
+      "subtitle": "Choisissez la typographie parfaite qui reflète la personnalité de votre marque et améliore la lisibilité.",
       "errors": {
         "title": "Typographie non disponible",
         "noOptions": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs."
@@ -523,11 +525,69 @@
         "subtitle": "Sélectionnez le style de typographie qui complète le mieux la voix et la personnalité de votre marque.",
         "perfectChoice": "Choix parfait ! Cliquez sur Suivant pour passer à l'étape suivante."
       },
+      "popular": {
+        "title": "Collections de typographie populaires",
+        "subtitle": "Combinaisons de typographies sélectionnées et appréciées par les designers du monde entier."
+      },
+      "tabs": {
+        "generated": "Générées par l'IA",
+        "popular": "Collections populaires",
+        "custom": "Mélange personnalisé"
+      },
       "preview": {
         "brandName": "Le nom de votre marque",
         "subtitle": "Voici à quoi ressemblera votre contenu avec cette combinaison de typographie.",
         "primary": "Primaire",
-        "secondary": "Secondaire"
+        "secondary": "Secondaire",
+        "livePreview": "Aperçu en direct",
+        "tryText": "Essayez votre texte :",
+        "headingExample": "L'avenir du design numérique",
+        "bodyTitle": "Détails de la typographie",
+        "bodyText": "La typographie est l'art et la technique d'arranger les caractères pour rendre le langage écrit lisible et attrayant lorsqu'il est affiché. L'arrangement des caractères implique la sélection de polices, de tailles de points, de longueurs de ligne, d'interlignage et d'espacement entre les lettres.",
+        "buttonPrimary": "Commencer",
+        "buttonSecondary": "En savoir plus",
+        "fontPrimary": "Police primaire",
+        "fontSecondary": "Police secondaire",
+        "launchingSoon": "Lancement Prochain",
+        "heroSubtitle": "Créez une expérience numérique inoubliable avec notre nouvelle identité visuelle. L'innovation commence ici.",
+        "getStarted": "Commencer",
+        "learnMore": "En savoir plus",
+        "cardTitle1": "Design Moderne",
+        "cardText1": "Une approche minimaliste qui met en valeur l'essentiel de votre contenu sans distractions inutiles.",
+        "cardTitle2": "Expérience Intuitive",
+        "cardText2": "Des interactions fluides et naturelles conçues pour engager vos utilisateurs dès le premier clic.",
+        "quote": "Le design n'est pas seulement ce à quoi il ressemble et ce qu'on ressent. Le design est comment ça marche.",
+        "author": "Steve Jobs"
+      },
+      "generated": {
+        "title": "Typographie générée par l'IA",
+        "empty": {
+          "title": "Aucune typographie générée",
+          "description": "Nous n'avons pas pu générer d'options de typographie pour votre projet. Cliquez sur régénérer pour réessayer avec des paramètres différents."
+        },
+        "regenerate": "Régénérer"
+      },
+      "actions": {
+        "back": "Retour",
+        "saveAsDraft": "Sauvegarder comme brouillon",
+        "continue": "Continuer"
+      },
+      "searchPlaceholder": "Rechercher des polices (ex: Roboto, Open Sans)...",
+      "searching": "Recherche de polices...",
+      "noResults": "Aucune police trouvée pour votre recherche",
+      "searchHint": "Commencez à taper pour rechercher dans Google Fonts",
+      "selectToPreview": "Sélectionnez des polices pour prévisualiser votre mélange typographique personnalisé",
+      "custom": {
+        "title": "Vos mélanges personnalisés",
+        "createNew": "Créer un nouveau mélange",
+        "searchLabel": "RECHERCHER GOOGLE FONTS",
+        "searchPlaceholder": "Rechercher des polices (ex: Roboto, Open Sans)...",
+        "setPrimary": "Définir primaire",
+        "setSecondary": "Définir secondaire",
+        "primaryFont": "POLICE PRIMAIRE",
+        "secondaryFont": "POLICE SECONDAIRE",
+        "notSelected": "Non sélectionnée",
+        "addButton": "Ajouter le mélange personnalisé"
       }
     },
     "createProject": {
