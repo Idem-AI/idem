@@ -9,7 +9,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
-  }
+  },
 });
 
 export const projectRoutes = Router();
@@ -323,7 +323,12 @@ projectRoutes.post('/:projectId/generation', authenticate, projectController.sav
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.post('/:projectId/zip', authenticate, upload.single('zip'), projectController.saveProjectZip);
+projectRoutes.post(
+  '/:projectId/zip',
+  authenticate,
+  upload.single('zip'),
+  projectController.saveProjectZip
+);
 
 // Send project to GitHub
 /**
@@ -384,3 +389,40 @@ projectRoutes.post('/:projectId/zip', authenticate, upload.single('zip'), projec
  *         description: Internal server error.
  */
 projectRoutes.post('/:projectId/github', authenticate, projectController.sendProjectToGitHub);
+
+// Get project code from Firebase Storage
+/**
+ * @openapi
+ * /projects/{projectId}/code:
+ *   get:
+ *     tags:
+ *       - Project Generation
+ *     summary: Get project code from Firebase Storage
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project.
+ *     responses:
+ *       '200':
+ *         description: Project code retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 files:
+ *                   type: object
+ *                   description: Project files as key-value pairs (filename -> content).
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: No code found for this project.
+ *       '500':
+ *         description: Internal server error.
+ */
+projectRoutes.get('/:projectId/code', authenticate, projectController.getProjectCode);

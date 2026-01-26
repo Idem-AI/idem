@@ -582,6 +582,41 @@ class ProjectService {
       throw error;
     }
   }
+
+  async getProjectCodeFromFirebase(
+    userId: string,
+    projectId: string
+  ): Promise<Record<string, string> | null> {
+    if (!userId || !projectId) {
+      logger.error('User ID and Project ID are required to get project code from Firebase.');
+      return null;
+    }
+
+    try {
+      logger.info(
+        `Attempting to retrieve project code from Firebase Storage for project ${projectId} and user ${userId}`
+      );
+
+      // Use storage service to download and extract the project code ZIP
+      const codeFiles = await storageService.downloadProjectCodeZip(projectId, userId);
+
+      if (!codeFiles || Object.keys(codeFiles).length === 0) {
+        logger.info(`No code files found for project ${projectId} and user ${userId}`);
+        return null;
+      }
+
+      logger.info(
+        `Successfully retrieved ${Object.keys(codeFiles).length} code files for project ${projectId} and user ${userId}`
+      );
+      return codeFiles;
+    } catch (error: any) {
+      logger.error(
+        `Error retrieving project code from Firebase for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      return null;
+    }
+  }
 }
 
 export const projectService = new ProjectService();
