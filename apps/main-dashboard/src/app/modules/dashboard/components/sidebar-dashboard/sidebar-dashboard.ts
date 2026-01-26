@@ -123,12 +123,12 @@ export class SidebarDashboard implements OnInit {
       route: 'project/dashboard',
       isActive: false,
     },
-    {
-      labelKey: 'dashboard.sidebar.teams',
-      icon: 'pi pi-users',
-      route: 'project/teams',
-      isActive: false,
-    },
+    // {
+    //   labelKey: 'dashboard.sidebar.teams',
+    //   icon: 'pi pi-users',
+    //   route: 'project/teams',
+    //   isActive: false,
+    // },
     {
       labelKey: 'dashboard.sidebar.branding',
       icon: 'pi pi-palette',
@@ -153,12 +153,12 @@ export class SidebarDashboard implements OnInit {
       route: 'project/development',
       isActive: false,
     },
-    {
-      labelKey: 'dashboard.sidebar.deployment',
-      icon: 'pi pi-globe',
-      route: 'project/deployments',
-      isActive: false,
-    },
+    // {
+    //   labelKey: 'dashboard.sidebar.deployment',
+    //   icon: 'pi pi-globe',
+    //   route: 'project/deployments',
+    //   isActive: false,
+    // },
   ]);
 
   // Signals for UI State
