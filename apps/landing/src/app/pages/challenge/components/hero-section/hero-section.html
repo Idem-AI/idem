@@ -1,36 +1,116 @@
-<section class="min-h-screen flex flex-col justify-center items-center px-4 relative overflow-hidden">
-      <!-- Decorator lines -->
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-px h-screen bg-linear-to-b from-transparent via-white/20 to-transparent"></div>
+<section
+  class="min-h-screen flex flex-col justify-center items-center px-4 py-8 md:py-16 lg:py-20 relative overflow-hidden"
+>
+  <!-- Decorator lines -->
+  <div
+    class="absolute top-0 left-1/2 -translate-x-1/2 w-px h-screen bg-linear-to-b from-transparent via-white/20 to-transparent"
+  ></div>
 
-      <div class="text-center z-10 max-w-[90vw]">
+  <div class="text-center z-10 max-w-[90vw]">
+    <h1 class="hero-title text-white mb-1 md:mb-2 leading-none relative">
+      <span
+        class="block text-stroke-white text-transparent opacity-30 absolute top-0 left-0 w-full transform -translate-y-2 md:-translate-y-4 blur-[2px]"
+        >IDEM</span
+      >
+      IDEM
+    </h1>
+    <h1
+      class="hero-title text-transparent bg-clip-text bg-linear-to-r from-primary via-white to-primary mb-6 md:mb-8 lg:mb-12"
+    >
+      CHALLENGE
+    </h1>
 
+    <p
+      class="text-lg md:text-xl lg:text-2xl font-light text-gray-400 max-w-2xl lg:max-w-3xl mx-auto mb-6 md:mb-8 leading-relaxed"
+    >
+      <span i18n="@@challenge.hero.description">Prove that Africa builds the future.</span><br />
+      <span class="text-white font-medium" i18n="@@challenge.hero.subtitle"
+        >1 Project. 1 Video. 1 MacBook Pro to win.</span
+      >
+    </p>
 
-        <h1 class="hero-title text-white mb-2 leading-none relative">
-          <span class="block text-stroke-white text-transparent opacity-30 absolute top-0 left-0 w-full transform -translate-y-4 blur-[2px]">IDEM</span>
-          IDEM
-        </h1>
-        <h1 class="hero-title text-transparent bg-clip-text bg-linear-to-r from-primary via-white to-primary mb-12">
-          CHALLENGE
-        </h1>
-
-        <p class="text-xl md:text-3xl font-light text-gray-400 max-w-3xl mx-auto mb-16 leading-relaxed">
-          <span i18n="@@challenge.hero.description">Prove that Africa builds the future.</span><br>
-          <span class="text-white font-medium" i18n="@@challenge.hero.subtitle">1 Project. 1 Video. 1 MacBook Pro to win.</span>
-        </p>
-
-        <div class="flex flex-col md:flex-row gap-6 justify-center items-center">
-          <a routerLink="/create-project" fragment="participate" class="inner-button text-4xl font-semibold" i18n="@@challenge.hero.cta_button">
-            Take the Challenge
-          </a>
-          <a href="#rules" class="text-gray-400 hover:text-white uppercase tracking-widest text-sm border-b border-transparent hover:border-white transition-all pb-1" i18n="@@challenge.hero.rules_link">
-            See the Rules
-          </a>
+    <div
+      class="flex flex-col md:flex-row gap-4 md:gap-6 justify-center items-center mb-8 md:mb-12 lg:mb-16"
+    >
+      <!-- Countdown -->
+      <div
+        class="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 justify-center select-none p-4 md:p-6 glass-panel rounded-xl md:rounded-2xl border border-white/5"
+      >
+        <div class="flex flex-col items-center w-12 sm:w-14 md:w-16 lg:w-20">
+          <span
+            class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white countdown-number font-mono"
+            >{{ days() }}</span
+          >
+          <span
+            class="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-primary uppercase tracking-[0.15em] md:tracking-[0.2em] mt-1 md:mt-2"
+            i18n="@@challenge.hero.countdown.days"
+            >Days</span
+          >
+        </div>
+        <div class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white/20 font-light mt-1">
+          :
+        </div>
+        <div class="flex flex-col items-center w-12 sm:w-14 md:w-16 lg:w-20">
+          <span
+            class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white countdown-number font-mono"
+            >{{ hours() }}</span
+          >
+          <span
+            class="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-primary uppercase tracking-[0.15em] md:tracking-[0.2em] mt-1 md:mt-2"
+            i18n="@@challenge.hero.countdown.hours"
+            >Hours</span
+          >
+        </div>
+        <div class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white/20 font-light mt-1">
+          :
+        </div>
+        <div class="flex flex-col items-center w-12 sm:w-14 md:w-16 lg:w-20">
+          <span
+            class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white countdown-number font-mono"
+            >{{ minutes() }}</span
+          >
+          <span
+            class="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-primary uppercase tracking-[0.15em] md:tracking-[0.2em] mt-1 md:mt-2"
+            i18n="@@challenge.hero.countdown.minutes"
+            >Minutes</span
+          >
+        </div>
+        <div class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white/20 font-light mt-1">
+          :
+        </div>
+        <div class="flex flex-col items-center w-12 sm:w-14 md:w-16 lg:w-20">
+          <span
+            class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white countdown-number font-mono"
+            >{{ seconds() }}</span
+          >
+          <span
+            class="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-primary uppercase tracking-[0.15em] md:tracking-[0.2em] mt-1 md:mt-2"
+            i18n="@@challenge.hero.countdown.seconds"
+            >Seconds</span
+          >
         </div>
       </div>
+    </div>
 
-      <!-- Scroll Indicator -->
-      <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
-        <span class="text-[10px] uppercase tracking-[0.3em]" i18n="@@challenge.hero.scroll_indicator">Scroll</span>
-        <div class="w-px h-16 bg-linear-to-b from-white to-transparent"></div>
-      </div>
-    </section>
+    <div class="flex flex-col md:flex-row gap-6 justify-center items-center">
+      <a
+        href="{{ dashboardUrl }}/create-project"
+        fragment="participate"
+        class="text-4xl font-semibold p-10 inner-button"
+        i18n="@@challenge.hero.cta_button"
+      >
+        Take the Challenge
+      </a>
+    </div>
+  </div>
+
+  <!-- Scroll Indicator -->
+  <div
+    class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50"
+  >
+    <span class="text-[10px] uppercase tracking-[0.3em]" i18n="@@challenge.hero.scroll_indicator"
+      >Scroll</span
+    >
+    <div class="w-px h-16 bg-linear-to-b from-white to-transparent"></div>
+  </div>
+</section>
