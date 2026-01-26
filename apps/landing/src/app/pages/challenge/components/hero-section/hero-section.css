@@ -5,7 +5,6 @@
   box-shadow: 0 0 30px rgba(20, 71, 230, 0.5);
 }
 
-
 /* Challenge Page Styles */
 :host {
   display: block;
@@ -13,36 +12,37 @@
   overflow-x: hidden;
 }
 
-/* Animations */
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(20, 71, 230, 0.3); }
-  50% { box-shadow: 0 0 50px rgba(20, 71, 230, 0.6); }
-}
-
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 @keyframes text-shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 @keyframes grid-move {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(50px); }
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(50px);
+  }
 }
 
 /* Utilities */
 .text-shimmer {
-  background: linear-gradient(
-    90deg,
-    #ffffff 0%,
-    #888888 20%,
-    #ffffff 40%,
-    #ffffff 100%
-  );
+  background: linear-gradient(90deg, #ffffff 0%, #888888 20%, #ffffff 40%, #ffffff 100%);
   background-size: 200% auto;
   color: transparent;
   -webkit-background-clip: text;
@@ -94,11 +94,30 @@
 }
 
 .hero-title {
-  font-size: clamp(3rem, 10vw, 9rem);
-  line-height: 0.9;
+  font-size: clamp(2.5rem, 8vw, 7rem);
+  line-height: 0.85;
   letter-spacing: -0.05em;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+/* Responsive breakpoints pour le titre */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .hero-title {
+    font-size: clamp(3rem, 6vw, 5rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-title {
+    font-size: clamp(4rem, 8vw, 7rem);
+  }
+}
+
+@media (min-width: 1280px) {
+  .hero-title {
+    font-size: clamp(5rem, 9vw, 8rem);
+  }
 }
 
 .number-outline {
@@ -135,7 +154,7 @@
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
-  background: var(--color-primary);;
+  background: var(--color-primary);
   color: white;
   font-weight: 900;
   text-transform: uppercase;
@@ -158,7 +177,9 @@
 }
 
 .btn-neon:hover {
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 60px rgba(20, 71, 230, 0.5);
+  box-shadow:
+    0 0 20px rgba(255, 255, 255, 0.5),
+    0 0 60px rgba(20, 71, 230, 0.5);
   transform: scale(1.05);
 }
 
@@ -175,4 +196,16 @@
 
 .macbook:hover {
   transform: rotateX(5deg) scale(1.05);
+}
+
+/* Countdown Styles */
+.countdown-number {
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  background: linear-gradient(180deg, #ffffff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(20, 71, 230, 0.3));
 }
