@@ -241,66 +241,32 @@
   </div>
 }
 
-<!-- Success State - Show completed variations -->
-@if (shouldShowSuccess()) {
-  <div class="p-6 min-h-[78vh]">
-    <div class="max-w-6xl mx-auto space-y-8">
-      <!-- Success Header -->
-      <div class="text-center space-y-4">
-        <div
-          class="w-20 h-20 mx-auto bg-success/20 rounded-2xl flex items-center justify-center mb-6 glow-success"
-        >
-          <i class="pi pi-check text-3xl text-success"></i>
-        </div>
-        <h2 class="text-3xl font-bold text-light-text text-glow-success">
-          {{ 'dashboard.logoVariations.success.completed' | translate }}
-        </h2>
-        <p class="text-lg text-light-text/80">
-          {{ 'dashboard.logoVariations.success.autoAdvancing' | translate }}
-        </p>
-      </div>
-
-      <!-- Quick Preview of Generated Variations -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        @for (variation of getAllVariations(); track variation.id) {
-          <div class="glass-card p-4">
-            <div
-              class="w-full h-32 rounded-lg flex items-center justify-center mb-3 border border-glass-border"
-              [style.background-color]="variation.backgroundColor"
-            >
-              <div
-                class="w-16 h-16 flex items-center justify-center"
-                [innerHTML]="variation.svgContent | safeHtml"
-              ></div>
-            </div>
-            <h4 class="text-sm font-medium text-light-text text-center">{{ variation.label }}</h4>
-          </div>
-        }
-      </div>
-
-      <!-- Progress Indicator -->
-      <div class="text-center">
-        <div class="inline-flex items-center space-x-2 text-light-text/70">
-          <i class="pi pi-spin pi-spinner"></i>
-          <span>{{ 'dashboard.logoVariations.status.advancing' | translate }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-}
-
 <!-- Variations Display -->
 @if (shouldShowVariations()) {
   <div class="p-6 min-h-[78vh]">
     <div class="max-w-6xl mx-auto space-y-8">
       <!-- Header -->
       <div class="text-center space-y-4">
-        <h2 class="text-3xl font-bold text-light-text text-glow-primary">
-          {{ 'dashboard.logoVariations.success.title' | translate }}
-        </h2>
-        <p class="text-lg text-light-text/80">
-          {{ 'dashboard.logoVariations.success.subtitle' | translate }}
-        </p>
+        @if (isCompleted()) {
+          <div
+            class="w-20 h-20 mx-auto bg-success/20 rounded-2xl flex items-center justify-center mb-6 glow-success"
+          >
+            <i class="pi pi-check text-3xl text-success"></i>
+          </div>
+          <h2 class="text-3xl font-bold text-light-text text-glow-success">
+            {{ 'dashboard.logoVariations.success.completed' | translate }}
+          </h2>
+          <p class="text-lg text-light-text/80">
+            {{ 'dashboard.logoVariations.success.reviewAndProceed' | translate }}
+          </p>
+        } @else {
+          <h2 class="text-3xl font-bold text-light-text text-glow-primary">
+            {{ 'dashboard.logoVariations.success.title' | translate }}
+          </h2>
+          <p class="text-lg text-light-text/80">
+            {{ 'dashboard.logoVariations.success.subtitle' | translate }}
+          </p>
+        }
       </div>
 
       <!-- Variations Display (Simplified to 3 variations) -->
@@ -356,17 +322,33 @@
         </app-carousel>
       </div>
 
-      <!-- Generation Complete - Processing -->
-      <div class="glass-card p-6 text-center">
-        <p class="text-lg text-light-text mb-4">
-          <i class="pi pi-check-circle text-success mr-2"></i>
-          {{ 'dashboard.logoVariations.status.processing' | translate }}
-        </p>
-        <div class="inline-flex items-center space-x-2 text-light-text/70">
-          <i class="pi pi-spin pi-spinner"></i>
-          <span>{{ 'dashboard.logoVariations.status.preparingNext' | translate }}</span>
+      <!-- Manual Proceed Section -->
+      @if (isCompleted()) {
+        <div class="glass-card p-6 text-center">
+          <p class="text-lg text-light-text mb-6">
+            <i class="pi pi-check-circle text-success mr-2"></i>
+            {{ 'dashboard.logoVariations.status.allGenerated' | translate }}
+          </p>
+          <p class="text-sm text-light-text/70 mb-6">
+            {{ 'dashboard.logoVariations.status.readyToProceed' | translate }}
+          </p>
+          <button (click)="nextStep.emit()" class="inner-button px-8 py-4">
+            <i class="pi pi-arrow-right mr-2"></i>
+            {{ 'dashboard.logoVariations.buttons.continueToSummary' | translate }}
+          </button>
         </div>
-      </div>
+      } @else {
+        <div class="glass-card p-6 text-center">
+          <p class="text-lg text-light-text mb-4">
+            <i class="pi pi-check-circle text-success mr-2"></i>
+            {{ 'dashboard.logoVariations.status.processing' | translate }}
+          </p>
+          <div class="inline-flex items-center space-x-2 text-light-text/70">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>{{ 'dashboard.logoVariations.status.preparingNext' | translate }}</span>
+          </div>
+        </div>
+      }
     </div>
   </div>
 }
