@@ -212,30 +212,34 @@ Generate the complete application code with all necessary files.`;
     console.log('🔍 typeof projectData.type:', typeof projectData.type);
     console.log('🔍 projectData.type structure:', JSON.stringify(projectData.type, null, 2));
 
-    // Safely extract type information
-    const typeInfo = projectData.type
-      ? typeof projectData.type === 'object' && projectData.type !== null && projectData.type.name
+    // CORRECTION CRITIQUE : Extraire correctement les informations des objets
+    const typeInfo =
+      projectData.type && typeof projectData.type === 'object' && projectData.type.name
         ? `${projectData.type.name} (${projectData.type.code || 'N/A'})`
-        : String(projectData.type)
-      : 'web';
+        : projectData.type
+          ? String(projectData.type)
+          : 'web';
 
     console.log('🔍 Final typeInfo:', typeInfo);
 
-    // Safely extract scope information
-    const scopeInfo = projectData.scope
-      ? typeof projectData.scope === 'object'
-        ? JSON.stringify(projectData.scope)
-        : String(projectData.scope)
-      : 'Not specified';
+    // CORRECTION CRITIQUE : Extraire correctement les informations de scope
+    const scopeInfo =
+      projectData.scope && typeof projectData.scope === 'object' && projectData.scope.name
+        ? `${projectData.scope.name} (${projectData.scope.code || 'N/A'})`
+        : projectData.scope
+          ? String(projectData.scope)
+          : 'Not specified';
 
-    // Safely extract targets information
+    console.log('🔍 Final scopeInfo:', scopeInfo);
+
+    // CORRECTION CRITIQUE : Extraire correctement les informations de targets
     let targetsInfo = 'Not specified';
     if (projectData.targets) {
       if (Array.isArray(projectData.targets)) {
         targetsInfo = projectData.targets
           .map((target) =>
             target && typeof target === 'object' && target.name
-              ? target.name
+              ? `${target.name} (${target.code || 'N/A'})`
               : String(target || 'Unknown')
           )
           .join(', ');
@@ -244,11 +248,13 @@ Generate the complete application code with all necessary files.`;
         typeof projectData.targets === 'object' &&
         projectData.targets.name
       ) {
-        targetsInfo = projectData.targets.name;
+        targetsInfo = `${projectData.targets.name} (${projectData.targets.code || 'N/A'})`;
       } else {
         targetsInfo = String(projectData.targets);
       }
     }
+
+    console.log('🔍 Final targetsInfo:', targetsInfo);
 
     return `## Project Information
 - **Name**: ${projectData.name}
