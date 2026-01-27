@@ -77,27 +77,49 @@ export async function generateObjectFn(messages: Messages) {
 }
 
 export function streamTextFn(messages: Messages, options?: StreamingOptions, modelKey?: string) {
-  console.log(`Attempting to use model: ${modelKey}`);
-  console.log(`Available models: ${modelConfig.map((m) => m.modelKey).join(', ')}`);
+  console.log(`[StreamTextFn] Attempting to use model: ${modelKey}`);
+  console.log(`[StreamTextFn] Available models: ${modelConfig.map((m) => m.modelKey).join(', ')}`);
+  console.log(`[StreamTextFn] Model config loaded: ${JSON.stringify(modelConfig, null, 2)}`);
 
   const modelConf = modelConfig.find((item) => item.modelKey === modelKey);
 
   if (!modelConf) {
-    throw new Error(`Model configuration not found for model: ${modelKey}`);
+    console.error(`[StreamTextFn] Model configuration not found for model: ${modelKey}`);
+    console.error(`[StreamTextFn] Available model keys: ${modelConfig.map((m) => m.modelKey)}`);
+    throw new Error(
+      `Model configuration not found for model: ${modelKey}. Available models: ${modelConfig.map((m) => m.modelKey).join(', ')}`
+    );
   }
 
+  console.log(`[StreamTextFn] Found model config:`, modelConf);
+
   const { apiKey = process.env.THIRD_API_KEY, apiUrl = process.env.THIRD_API_URL } = modelConf;
-  const model = getOpenAIModel(apiUrl, apiKey, modelKey) as LanguageModel;
-  const newMessages = messages.map((item) => {
-    if (item.role === 'assistant') {
-      delete item.parts;
-    }
-    return item;
-  });
-  return _streamText({
-    model: model || defaultModel,
-    messages: convertToCoreMessages(newMessages),
-    ...initOptions,
-    ...options,
-  });
+
+  console.log(`[StreamTextFn] Using API URL: ${apiUrl}`);
+  console.log(`[StreamTextFn] API Key present: ${!!apiKey}`);
+
+  try {
+    const model = getOpenAIModel(apiUrl, apiKey, modelKey) as LanguageModel;
+    console.log(`[StreamTextFn] Model created successfully for provider: ${modelConf.provider}`);
+
+    const newMessages = messages.map((item) => {
+      if (item.role === 'assistant') {
+        delete item.parts;
+      }
+      return item;
+    });
+
+    console.log(`[StreamTextFn] Processing ${newMessages.length} messages`);
+    console.log(`[StreamTextFn] Message types: ${newMessages.map((m) => m.role).join(', ')}`);
+
+    return _streamText({
+      model: model || defaultModel,
+      messages: convertToCoreMessages(newMessages),
+      ...initOptions,
+      ...options,
+    });
+  } catch (error) {
+    console.error(`[StreamTextFn] Error creating model or streaming:`, error);
+    throw error;
+  }
 }
