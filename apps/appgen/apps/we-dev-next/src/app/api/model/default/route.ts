@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching default model:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch default model', defaultModel: 'gemini-3-pro-preview' },
+      { error: 'Failed to fetch default model', defaultModel: 'gemini-2.5-flash' },
       {
         status: 500,
         headers: {
