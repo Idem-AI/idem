@@ -444,6 +444,24 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     }
   }, [enabledMCPs]);
 
+  // Log projectData information before sending
+  useEffect(() => {
+    if (projectData) {
+      console.log('🚀 CLIENT: ProjectData available for chat');
+      console.log('📊 CLIENT: Project name:', projectData.name);
+      console.log('📊 CLIENT: Project description:', projectData.description);
+      console.log('📊 CLIENT: Has analysisResultModel:', !!projectData.analysisResultModel);
+      console.log(
+        '📊 CLIENT: Landing page config:',
+        projectData.analysisResultModel?.development?.configs?.landingPageConfig
+      );
+      console.log('📊 CLIENT: Mode:', mode);
+      console.log('📊 CLIENT: API URL:', `${baseChatUrl}/api/chat`);
+    } else {
+      console.log('⚠️ CLIENT: No projectData available for chat');
+    }
+  }, [projectData, mode, baseChatUrl]);
+
   // modify useChat configuration
   const {
     messages: realMessages,
@@ -486,6 +504,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     },
     id: chatUuid,
     onResponse: async (response) => {
+      console.log('📡 CLIENT: Received response from API');
+      console.log('📡 CLIENT: Response status:', response.status);
+      console.log('📡 CLIENT: Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        console.error('❌ CLIENT: API response error:', response.status, response.statusText);
+      }
       if (baseModal.from === 'ollama') {
         const reader = response.body?.getReader();
         if (!reader) return;
@@ -751,6 +776,23 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     if (!projectData) return;
 
     try {
+      console.log('🚀 CLIENT: Starting project generation');
+      console.log('📊 CLIENT: Project data available:', !!projectData);
+      console.log('📊 CLIENT: Mode:', mode);
+      console.log('📊 CLIENT: Base modal:', baseModal.value);
+
+      if (projectData) {
+        console.log('📋 CLIENT: Project details for generation:');
+        console.log('  - Name:', projectData.name);
+        console.log('  - Description:', projectData.description);
+        console.log('  - Type:', projectData.type);
+        console.log('  - Has analysis:', !!projectData.analysisResultModel);
+        console.log(
+          '  - Landing config:',
+          projectData.analysisResultModel?.development?.configs?.landingPageConfig
+        );
+      }
+
       // Send simple message to chat - project data will be sent to server in body
       // No need to generate the full prompt on client side anymore
       append({
@@ -933,6 +975,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // modify submit handler
   const handleSubmitWithFiles = async (_: React.KeyboardEvent, text?: string) => {
     if (!text && !input.trim() && uploadedImages.length === 0) return;
+
+    console.log('💬 CLIENT: Submitting message to chat');
+    console.log('📝 CLIENT: Message content:', text || input);
+    console.log('📊 CLIENT: Mode:', mode);
+    console.log('📊 CLIENT: Has projectData:', !!projectData);
+    console.log('📊 CLIENT: Uploaded images count:', uploadedImages.length);
+    console.log('📡 CLIENT: API endpoint:', `${baseChatUrl}/api/chat`);
 
     try {
       // process file references

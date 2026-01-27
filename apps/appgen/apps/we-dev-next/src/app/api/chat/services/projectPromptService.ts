@@ -208,12 +208,54 @@ Generate the complete application code with all necessary files.`;
   }
 
   private getCompleteProjectInfo(projectData: ProjectModel): string {
+    console.log('🔍 getCompleteProjectInfo - Raw projectData.type:', projectData.type);
+    console.log('🔍 typeof projectData.type:', typeof projectData.type);
+    console.log('🔍 projectData.type structure:', JSON.stringify(projectData.type, null, 2));
+
+    // Safely extract type information
+    const typeInfo = projectData.type
+      ? typeof projectData.type === 'object' && projectData.type !== null && projectData.type.name
+        ? `${projectData.type.name} (${projectData.type.code || 'N/A'})`
+        : String(projectData.type)
+      : 'web';
+
+    console.log('🔍 Final typeInfo:', typeInfo);
+
+    // Safely extract scope information
+    const scopeInfo = projectData.scope
+      ? typeof projectData.scope === 'object'
+        ? JSON.stringify(projectData.scope)
+        : String(projectData.scope)
+      : 'Not specified';
+
+    // Safely extract targets information
+    let targetsInfo = 'Not specified';
+    if (projectData.targets) {
+      if (Array.isArray(projectData.targets)) {
+        targetsInfo = projectData.targets
+          .map((target) =>
+            target && typeof target === 'object' && target.name
+              ? target.name
+              : String(target || 'Unknown')
+          )
+          .join(', ');
+      } else if (
+        projectData.targets &&
+        typeof projectData.targets === 'object' &&
+        projectData.targets.name
+      ) {
+        targetsInfo = projectData.targets.name;
+      } else {
+        targetsInfo = String(projectData.targets);
+      }
+    }
+
     return `## Project Information
 - **Name**: ${projectData.name}
 - **Description**: ${projectData.description || 'No description provided'}
-- **Type**: ${projectData.type || 'web'}
-- **Scope**: ${projectData.scope || 'Not specified'}
-- **Targets**: ${Array.isArray(projectData.targets) ? projectData.targets.join(', ') : projectData.targets || 'Not specified'}`;
+- **Type**: ${typeInfo}
+- **Scope**: ${scopeInfo}
+- **Targets**: ${targetsInfo}`;
   }
 
   private getCompleteBrandInfo(projectData: ProjectModel): string {
