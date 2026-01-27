@@ -2347,44 +2347,6 @@ ${LOGO_EDIT_PROMPT}`;
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           ${mockupCards}
         </div>
-
-        <!-- Guidelines Section -->
-        <div class="bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-blue-500/20 rounded-xl p-8">
-          <h3 class="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-            <i class="pi pi-check-circle text-green-400"></i>
-            Mockup Guidelines
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="space-y-2">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-eye text-blue-400"></i>
-                <h4 class="font-medium text-white">Logo Integration</h4>
-              </div>
-              <p class="text-gray-300 text-sm">Maintain logo visibility and proportions across all applications</p>
-            </div>
-            <div class="space-y-2">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-palette text-purple-400"></i>
-                <h4 class="font-medium text-white">Brand Consistency</h4>
-              </div>
-              <p class="text-gray-300 text-sm">Ensure consistent color usage and brand elements</p>
-            </div>
-            <div class="space-y-2">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-cog text-green-400"></i>
-                <h4 class="font-medium text-white">Visual Quality</h4>
-              </div>
-              <p class="text-gray-300 text-sm">Maintain high-resolution, professional presentation standards</p>
-            </div>
-            <div class="space-y-2">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-check-circle text-orange-400"></i>
-                <h4 class="font-medium text-white">Industry Standards</h4>
-              </div>
-              <p class="text-gray-300 text-sm">Follow industry-specific design and application guidelines</p>
-            </div>
-          </div>
-        </div>
       </div>
     `;
   }
