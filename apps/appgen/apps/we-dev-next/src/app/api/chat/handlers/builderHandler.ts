@@ -50,17 +50,17 @@ export async function handleBuilderMode(
   const filesPath = Object.keys(files);
   let nowFiles = files;
   const type = determineFileType(filesPath);
-
+  
   // If projectData is provided, generate prompt on server side
   if (projectData) {
     try {
       const projectPromptService = new ProjectPromptService();
       const projectPrompt = projectPromptService.generatePrompt(projectData);
-
+      
       // Replace the last message content with the generated prompt
       // Add XML output instructions (same as original logic)
-      messages[messages.length - 1].content = buildSystemPrompt(type, otherConfig) +
-        'Note the requirements above, when writing code, do not give me markdown, output must be XML!! Emphasis!; My question is: ' +
+      messages[messages.length - 1].content = buildSystemPrompt(type, otherConfig) + 
+        'Note the requirements above, when writing code, do not give me markdown, output must be XML!! Emphasis!; My question is: ' + 
         projectPrompt;
     } catch (error) {
       console.error('Error generating project prompt:', error);
@@ -82,4 +82,4 @@ export async function handleBuilderMode(
   } catch (err) {
     throw err
   }
-}
+} 
