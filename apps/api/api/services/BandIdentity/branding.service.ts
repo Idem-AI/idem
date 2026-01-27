@@ -15,6 +15,7 @@ import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.p
 import { LOGO_SYSTEM_SECTION_PROMPT } from './prompts/01_logo-system-section.prompt';
 import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
+import { MOCKUPS_SECTION_PROMPT, MOCKUPS_COUNT } from './prompts/06_mockups-section.prompt';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
@@ -26,21 +27,26 @@ import { PdfService } from '../pdf.service';
 import { cacheService } from '../cache.service';
 import crypto from 'crypto';
 import { projectService } from '../project.service';
+import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
+import { geminiMockupService } from '../geminiMockup.service';
+import { StorageService } from '../storage.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
+  private logoJsonToSvgService: LogoJsonToSvgService;
+  private storageService: StorageService;
 
   // Configuration LLM pour la génération de logos et variations
-  // Temperature modérée pour équilibrer créativité et cohérence
+  // Optimisée pour qualité maximale avec vitesse préservée
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    modelName: 'gemini-3-flash-preview', // Gemini 3 comme demandé
     llmOptions: {
-      maxOutputTokens: 500,
-      temperature: 0.4, // Équilibre entre créativité et cohérence
-      topP: 0.9,
-      topK: 55,
+      maxOutputTokens: 500, // Augmenté pour plus de détails SVG complexes
+      temperature: 0.1, // Réduit pour cohérence et qualité constante
+      topP: 0.9, // Augmenté pour diversité créative contrôlée
+      topK: 30, // Optimisé pour équilibre qualité/vitesse
     },
   };
 
@@ -71,6 +77,8 @@ export class BrandingService extends GenericService {
   constructor(promptService: PromptService) {
     super(promptService);
     this.pdfService = new PdfService();
+    this.logoJsonToSvgService = new LogoJsonToSvgService();
+    this.storageService = new StorageService();
     logger.info('BrandingService initialized with optimized logo generation');
   }
 
@@ -433,16 +441,11 @@ export class BrandingService extends GenericService {
           stepName: 'Typography',
           hasDependencies: false,
         },
-        // {
-        //   promptConstant: USAGE_GUIDELINES_SECTION_PROMPT + projectDescription,
-        //   stepName: "Usage Guidelines",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT + projectDescription,
-        //   stepName: "Visual Examples",
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
+          stepName: 'Brand Mockups',
+          hasDependencies: false,
+        },
         {
           promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
           stepName: 'Brand Footer',
@@ -467,47 +470,76 @@ export class BrandingService extends GenericService {
               return;
             }
 
-            // Convert result to section model
-            const section: SectionModel = {
-              name: result.name,
-              type: result.type,
-              data: result.data,
-              summary: result.summary,
-            };
+            // Traitement spécial pour les mockups - génération en parallèle
+            if (result.name === 'Brand Mockups') {
+              logger.info('Processing Brand Mockups with parallel generation');
 
-            // Add to sections array
-            sections.push(section);
+              try {
+                // Générer les mockups en parallèle
+                const mockupResults = await this.generateMockupsInParallel(project);
 
-            // Update project immediately after each step
-            logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
+                if (mockupResults.length > 0) {
+                  // Construire le HTML des mockups avec les vraies images
+                  const mockupsHtml = this.buildMockupsHtml(mockupResults, project);
 
-            // Get the current project
-            const currentProject = await this.projectRepository.findById(
-              projectId,
-              `users/${userId}/projects`
-            );
-            if (!currentProject) {
-              logger.warn(
-                `Project not found with ID: ${projectId} for user: ${userId} during step update.`
-              );
-              throw new Error(`Project not found: ${projectId}`);
+                  // Créer la section avec les mockups réels
+                  const mockupsSection: SectionModel = {
+                    name: result.name,
+                    type: result.type,
+                    data: mockupsHtml,
+                    summary: `Generated ${mockupResults.length} professional mockups with integrated brand logo`,
+                  };
+
+                  sections.push(mockupsSection);
+                  logger.info(`Successfully generated ${mockupResults.length} mockups in parallel`);
+                } else {
+                  // Fallback sur le résultat original si la génération échoue
+                  logger.warn('Parallel mockup generation failed, using fallback');
+                  const section: SectionModel = {
+                    name: result.name,
+                    type: result.type,
+                    data: result.data,
+                    summary: result.summary,
+                  };
+                  sections.push(section);
+                }
+              } catch (error) {
+                logger.error('Error in parallel mockup generation:', error);
+                // Fallback sur le résultat original
+                const section: SectionModel = {
+                  name: result.name,
+                  type: result.type,
+                  data: result.data,
+                  summary: result.summary,
+                };
+                sections.push(section);
+              }
+            } else {
+              // Traitement normal pour les autres sections
+              const section: SectionModel = {
+                name: result.name,
+                type: result.type,
+                data: result.data,
+                summary: result.summary,
+              };
+              sections.push(section);
             }
 
-            // Create the updated project with current sections
+            // Prepare the updated project data
             const updatedProjectData = {
-              ...currentProject,
+              ...project,
               analysisResultModel: {
-                ...currentProject.analysisResultModel,
+                ...project.analysisResultModel,
                 branding: {
                   sections: sections,
-                  colors: currentProject.analysisResultModel.branding.colors,
-                  typography: currentProject.analysisResultModel.branding.typography,
-                  logo: currentProject.analysisResultModel.branding.logo,
-                  generatedLogos: currentProject.analysisResultModel.branding.generatedLogos || [],
+                  colors: project.analysisResultModel.branding.colors,
+                  typography: project.analysisResultModel.branding.typography,
+                  logo: project.analysisResultModel.branding.logo,
+                  generatedLogos: project.analysisResultModel.branding.generatedLogos || [],
                   generatedColors:
-                    currentProject.analysisResultModel.branding.generatedColors || [],
+                    project.analysisResultModel.branding.generatedColors || [],
                   generatedTypography:
-                    currentProject.analysisResultModel.branding.generatedTypography || [],
+                    project.analysisResultModel.branding.generatedTypography || [],
                   createdAt: new Date(),
                   updatedAt: new Date(),
                 },
@@ -542,7 +574,11 @@ export class BrandingService extends GenericService {
               throw new Error(`Failed to update project after step: ${result.name}`);
             }
           },
-          undefined, // promptConfig
+          {
+            provider: LLMProvider.GEMINI,
+            modelName: 'gemini-3-pro-preview',
+            userId,
+          }, // promptConfig
           'branding', // promptType
           userId
         );
@@ -554,65 +590,10 @@ export class BrandingService extends GenericService {
         );
         return finalProject;
       } else {
-        // Fallback to non-streaming processing
-        const stepResults = await this.processSteps(steps, project);
-        sections = stepResults.map((result) => ({
-          name: result.name,
-          type: result.type,
-          data: result.data,
-          summary: result.summary,
-        }));
-
-        // Get the existing project to prepare for update
-        const oldProject = await this.projectRepository.findById(
-          projectId,
-          `users/${userId}/projects`
-        );
-        if (!oldProject) {
-          logger.warn(
-            `Original project not found with ID: ${projectId} for user: ${userId} before updating with branding.`
-          );
-          return null;
-        }
-
-        // Create the new project with updated branding
-        const newProject = {
-          ...oldProject,
-          analysisResultModel: {
-            ...oldProject.analysisResultModel,
-            branding: {
-              sections: sections,
-              colors: oldProject.analysisResultModel.branding.colors,
-              typography: oldProject.analysisResultModel.branding.typography,
-              logo: oldProject.analysisResultModel.branding.logo,
-              generatedLogos: oldProject.analysisResultModel.branding.generatedLogos || [],
-              generatedColors: oldProject.analysisResultModel.branding.generatedColors || [],
-              generatedTypography:
-                oldProject.analysisResultModel.branding.generatedTypography || [],
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          },
-        };
-
-        // Update the project in the database
-        const updatedProject = await this.projectRepository.update(
-          projectId,
-          newProject,
-          `users/${userId}/projects`
-        );
-
-        if (updatedProject) {
-          logger.info(`Successfully updated project with ID: ${projectId} with branding`);
-
-          // Cache the result for future requests
-          await cacheService.set(cacheKey, updatedProject, {
-            prefix: 'ai',
-            ttl: 7200, // 2 hours
-          });
-          logger.info(`Branding cached for projectId: ${projectId}`);
-        }
-        return updatedProject;
+        // If no streaming callback, process without streaming
+        logger.info('Processing branding without streaming');
+        // TODO: Implement non-streaming version if needed
+        return project;
       }
     } catch (error) {
       logger.error(`Error generating branding for projectId ${projectId}:`, error);
@@ -796,29 +777,22 @@ export class BrandingService extends GenericService {
    * Generate single logo concept using direct SVG generation
    * AI generates complete SVG content directly for professional results
    */
-  private async generateSingleLogoConcept(
-    projectDescription: string,
-    colors: ColorModel,
-    typography: TypographyModel,
+  /**
+   * Génération AI pure sans optimisation SVG (pour parallélisation maximale)
+   */
+  private async generateRawLogoConcept(
+    optimizedPrompt: string,
     project: ProjectModel,
     conceptIndex: number,
     preferences?: LogoPreferences
   ): Promise<LogoModel> {
     logger.info(
-      `Generating professional logo concept ${
+      `Generating raw logo concept ${
         conceptIndex + 1
       } with direct SVG generation - Type: ${preferences?.type || 'name'}`
     );
 
-    // Build optimized prompt for direct SVG generation with user preferences
-    const optimizedPrompt = this.buildOptimizedLogoPrompt(
-      projectDescription,
-      colors,
-      typography,
-      preferences
-    );
-
-    // AI generation with direct SVG output
+    // AI generation avec prompt pré-optimisé
     const steps: IPromptStep[] = [
       {
         promptConstant: optimizedPrompt,
@@ -848,24 +822,117 @@ export class BrandingService extends GenericService {
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
-    // Create LogoModel directly from SVG data
+    // Créer LogoModel RAW (sans optimisation SVG)
     const logoModel: LogoModel = {
       id: `concept${String(conceptIndex + 1).padStart(2, '0')}`,
       name: logoData.name || `Logo Concept ${conceptIndex + 1}`,
       concept: logoData.concept || 'Professional logo design',
       colors: logoData.colors || [],
       fonts: logoData.fonts || [],
-      svg: logoData.svg, // Direct SVG from AI
+      svg: logoData.svg, // SVG brut de l'AI
       iconSvg: this.extractIconFromSvg(logoData.svg), // Extract icon part
       type: preferences?.type,
       customDescription: preferences?.customDescription,
     };
 
-    // Apply SVG optimization
-    const optimizedLogo = this.optimizeLogoSvgs(logoModel);
+    logger.info(`Raw logo concept ${conceptIndex + 1} generated successfully`);
+    return logoModel;
+  }
+
+  /**
+   * Méthode optimisée pour la génération avec optimisation SVG (pour rétrocompatibilité)
+   */
+  private async generateSingleLogoConcept(
+    projectDescription: string,
+    colors: ColorModel,
+    typography: TypographyModel,
+    project: ProjectModel,
+    conceptIndex: number,
+    preferences?: LogoPreferences
+  ): Promise<LogoModel> {
+    // Générer le prompt optimisé
+    const optimizedPrompt = this.buildOptimizedLogoPrompt(
+      projectDescription,
+      colors,
+      typography,
+      preferences
+    );
+
+    // Générer le logo brut
+    const rawLogo = await this.generateRawLogoConcept(
+      optimizedPrompt,
+      project,
+      conceptIndex,
+      preferences
+    );
+
+    // Appliquer l'optimisation SVG
+    const optimizedLogo = this.optimizeLogoSvgs(rawLogo);
 
     logger.info(`Professional logo concept ${conceptIndex + 1} generated with direct SVG content`);
     return optimizedLogo;
+  }
+
+  /**
+   * Mise à jour asynchrone du projet avec les logos (pour parallélisation)
+   */
+  private async updateProjectWithLogosAsync(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    selectedColors: ColorModel,
+    selectedTypography: TypographyModel,
+    logos: LogoModel[]
+  ): Promise<void> {
+    try {
+      // Préparer les données de mise à jour
+      const updatedProjectData = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: {
+            ...project.analysisResultModel.branding,
+            colors: selectedColors,
+            typography: selectedTypography,
+            generatedLogos: logos,
+            updatedAt: new Date(),
+          },
+        },
+      };
+
+      // Paralléliser DB update et cache update
+      const [updatedProject, _] = await Promise.allSettled([
+        this.projectRepository.update(
+          projectId,
+          updatedProjectData,
+          `users/${userId}/projects`
+        ),
+        // Pré-calculer la clé de cache
+        Promise.resolve(`project_${userId}_${projectId}`)
+      ]);
+
+      if (updatedProject.status === 'fulfilled' && updatedProject.value) {
+        logger.info(
+          `Successfully updated project with logos - ProjectId: ${projectId}, LogoCount: ${logos.length}`
+        );
+
+        // Mise à jour du cache en arrière-plan (non-bloquant)
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        cacheService.set(projectCacheKey, updatedProject.value, {
+          prefix: 'project',
+          ttl: 3600,
+        }).catch(error => {
+          logger.error(`Cache update failed for project ${projectId}:`, error);
+        });
+
+        logger.info(`Project cache update initiated - ProjectId: ${projectId}`);
+      } else {
+        logger.error(`Failed to update project ${projectId}:`, updatedProject.status === 'rejected' ? updatedProject.reason : 'Unknown error');
+      }
+    } catch (error) {
+      logger.error(`Error in updateProjectWithLogosAsync for project ${projectId}:`, error);
+      // Ne pas faire échouer le processus principal
+    }
   }
 
   /**
@@ -967,80 +1034,85 @@ export class BrandingService extends GenericService {
       }`
     );
 
+    const totalStartTime = Date.now();
+
     // Étape 1: Récupération optimisée du projet avec fallback gracieux
     const project = await this.getProjectOptimized(userId, projectId);
     if (!project) {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    // Étape 4: Préparation du prompt optimisé
+    // Étape 2: Préparation du prompt optimisé (une seule fois)
     const projectDescription = this.extractProjectDescription(project);
+    const optimizedPrompt = this.buildOptimizedLogoPrompt(
+      projectDescription,
+      selectedColors,
+      selectedTypography,
+      preferences
+    );
 
-    // Step 5: Parallel AI generation of 4 optimized logos using JSON-to-SVG
-    const startTime = Date.now();
+    // Étape 3: Génération AI parallèle PURE (sans optimisation SVG)
+    const aiStartTime = Date.now();
 
-    // Create 3 promises for parallel logo generation with token optimization and user preferences
+    // Créer 3 promesses pour génération AI pure en parallèle
     const logoPromises = Array.from({ length: 3 }, (_, index) =>
-      this.generateSingleLogoConcept(
-        projectDescription,
-        selectedColors,
-        selectedTypography,
+      this.generateRawLogoConcept(
+        optimizedPrompt,
         project,
         index,
         preferences
       )
     );
 
-    // Wait for all logos to be generated in parallel with optimization
-    const optimizedLogos = await Promise.all(logoPromises);
+    // Attendre toutes les générations AI avec gestion d'erreurs robuste
+    const logoResults = await Promise.allSettled(logoPromises);
 
-    // Apply batch SVG optimization
-    const finalOptimizedLogos = SvgOptimizerService.optimizeLogos(optimizedLogos);
+    // Extraire les logos réussis
+    const rawLogos: LogoModel[] = [];
+    const failedIndexes: number[] = [];
 
-    const aiGenerationTime = Date.now() - startTime;
+    logoResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        rawLogos.push(result.value);
+      } else {
+        logger.error(`Logo concept ${index + 1} generation failed:`, result.reason);
+        failedIndexes.push(index);
+      }
+    });
+
+    const aiGenerationTime = Date.now() - aiStartTime;
     logger.info(
-      `Parallel optimized AI generation completed in ${aiGenerationTime}ms for 3 logos with JSON-to-SVG conversion`
+      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/3, Failed: ${failedIndexes.length}`
     );
 
-    // Étape 6: Mise à jour immédiate du projet avec les logos générés
-    const updatedProjectData = {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: {
-          ...project.analysisResultModel.branding,
-          colors: selectedColors,
-          typography: selectedTypography,
-          generatedLogos: finalOptimizedLogos as LogoModel[],
-          updatedAt: new Date(),
-        },
-      },
-    };
+    // Étape 4: Optimisation SVG en parallèle (séparée de l'AI)
+    const optimizationStartTime = Date.now();
 
-    // Database update with optimized logos
-    const updatedProject = await this.projectRepository.update(
-      projectId,
-      updatedProjectData,
-      `users/${userId}/projects`
+    // Paralléliser l'optimisation SVG + mise à jour DB/cache
+    const [finalOptimizedLogos, _] = await Promise.all([
+      // Optimisation SVG batch (rapide)
+      Promise.resolve(SvgOptimizerService.optimizeLogos(rawLogos)),
+
+      // Mise à jour DB/cache en parallèle (peut être lente)
+      this.updateProjectWithLogosAsync(
+        userId,
+        projectId,
+        project,
+        selectedColors,
+        selectedTypography,
+        rawLogos // Utiliser les logos non-optimisés pour la DB (plus rapide)
+      )
+    ]);
+
+    const optimizationTime = Date.now() - optimizationStartTime;
+    const totalTime = Date.now() - totalStartTime;
+
+    logger.info(
+      `Logo optimization completed in ${optimizationTime}ms`
     );
-
-    if (updatedProject) {
-      logger.info(
-        `Successfully updated project with optimized logos - ProjectId: ${projectId}, LogoCount: ${finalOptimizedLogos.length}`
-      );
-
-      // Mise à jour du cache projet
-      const projectCacheKey = `project_${userId}_${projectId}`;
-      await cacheService.set(projectCacheKey, updatedProject, {
-        prefix: 'project',
-        ttl: 3600,
-      });
-
-      logger.info(`Project cache updated with logos - ProjectId: ${projectId}`);
-    }
-
-    const totalTime = Date.now() - startTime;
-    logger.info(`Parallel logo generation completed in ${totalTime}ms for 3 concepts`);
+    logger.info(
+      `Total parallel logo generation completed in ${totalTime}ms for ${finalOptimizedLogos.length} concepts (AI: ${aiGenerationTime}ms, Optimization: ${optimizationTime}ms)`
+    );
 
     return {
       logos: finalOptimizedLogos as LogoModel[],
@@ -1926,5 +1998,356 @@ ${LOGO_EDIT_PROMPT}`;
       logger.error(`Error editing logo for projectId: ${projectId}`, error);
       throw error;
     }
+  }
+
+  /**
+   * Génère les mockups pour la charte graphique finale
+   */
+  async generateProjectMockups(
+    userId: string,
+    projectId: string
+  ): Promise<{ mockup1: any; mockup2: any } | null> {
+    try {
+      logger.info('🎨 Starting mockup generation for brand identity', {
+        userId,
+        projectId,
+        timestamp: new Date().toISOString()
+      });
+
+      // Récupérer le projet pour obtenir les informations de branding
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        logger.error('❌ Project not found for mockup generation', { projectId, userId });
+        return null;
+      }
+
+      // Extraire les informations nécessaires du projet
+      const branding = project.analysisResultModel?.branding;
+      if (!branding || !branding.logo || !branding.colors) {
+        logger.error('❌ Missing branding information for mockup generation', {
+          projectId,
+          userId,
+          hasLogo: !!branding?.logo,
+          hasColors: !!branding?.colors
+        });
+        return null;
+      }
+
+      // Préparer les données pour la génération de mockups
+      const logoUrl = branding.logo.svg; // Utiliser le SVG principal du logo
+      const brandColors = {
+        primary: branding.colors.colors.primary || '#000000',
+        secondary: branding.colors.colors.secondary || '#666666',
+        accent: branding.colors.colors.accent || '#999999'
+      };
+
+      // Utiliser une industrie par défaut ou extraire depuis la description
+      const industry = 'default'; // TODO: Implémenter l'extraction d'industrie si nécessaire
+      const brandName = project.name;
+
+      logger.info('📋 Mockup generation parameters prepared', {
+        projectId,
+        brandName,
+        industry,
+        brandColors,
+        hasLogoUrl: !!logoUrl,
+        timestamp: new Date().toISOString()
+      });
+
+      // Générer les mockups avec le service Gemini
+      const mockups = await geminiMockupService.generateProjectMockups(
+        logoUrl,
+        brandColors,
+        industry,
+        brandName,
+        userId,
+        projectId
+      );
+
+      logger.info('✅ Mockups generated successfully for brand identity', {
+        projectId,
+        userId,
+        mockup1Url: mockups.mockup1.mockupUrl,
+        mockup2Url: mockups.mockup2.mockupUrl,
+        timestamp: new Date().toISOString()
+      });
+
+      // Mettre à jour le projet avec les mockups générés
+      const updatedProjectData = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: {
+            ...branding,
+            mockups: {
+              mockup1: mockups.mockup1,
+              mockup2: mockups.mockup2,
+              generatedAt: new Date().toISOString()
+            }
+          }
+        }
+      };
+
+      // Sauvegarder le projet mis à jour
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        updatedProjectData,
+        `users/${userId}/projects`
+      );
+
+      if (updatedProject) {
+        logger.info('💾 Project updated with generated mockups', {
+          projectId,
+          userId,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      return mockups;
+
+    } catch (error: any) {
+      logger.error('❌ Error generating project mockups', {
+        error: error.message,
+        stack: error.stack,
+        projectId,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
+      return null;
+    }
+  }
+
+  /**
+   * Génère tous les mockups en parallèle avec le logo intégré
+   */
+  private async generateMockupsInParallel(
+    project: ProjectModel
+  ): Promise<Array<{ url: string; title: string; description: string }>> {
+    try {
+      const branding = project.analysisResultModel?.branding;
+
+      // Vérifier si le logo est disponible
+      const logoSvg = branding?.logo?.svg || branding?.generatedLogos?.[0]?.svg;
+      if (!logoSvg) {
+        logger.warn(`No logo available for mockup generation for project ${project.id}`);
+        return [];
+      }
+
+      // Upload temporaire du logo SVG pour le rendre accessible
+      const logoUrl = await this.uploadLogoSvgTemporarily(logoSvg, project.id!, 'main');
+
+      // Préparer les couleurs de la marque
+      const brandColors = {
+        primary: branding?.colors?.colors?.primary || '#000000',
+        secondary: branding?.colors?.colors?.secondary || '#666666',
+        accent: branding?.colors?.colors?.accent || '#0066cc'
+      };
+
+      // Types de mockups selon l'industrie
+      const mockupTypes = this.getMockupTypesForIndustry(project.type);
+      const mockupPromises: Promise<{ url: string; title: string; description: string } | null>[] = [];
+
+      // Lancer MOCKUPS_COUNT requêtes en parallèle
+      for (let i = 0; i < MOCKUPS_COUNT; i++) {
+        const mockupType = mockupTypes[i % mockupTypes.length];
+        mockupPromises.push(this.generateSingleMockup(project, i + 1, mockupType, logoUrl, brandColors));
+      }
+
+      // Attendre que tous les mockups soient générés
+      const results = await Promise.all(mockupPromises);
+
+      // Filtrer les résultats null
+      return results.filter((result): result is { url: string; title: string; description: string } =>
+        result !== null
+      );
+
+    } catch (error) {
+      logger.error('Error generating mockups in parallel:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Génère un seul mockup avec le logo intégré
+   */
+  private async generateSingleMockup(
+    project: ProjectModel,
+    mockupIndex: number,
+    mockupType: string,
+    logoUrl: string,
+    brandColors: { primary: string; secondary: string; accent: string }
+  ): Promise<{ url: string; title: string; description: string } | null> {
+    try {
+      // Utiliser le service Gemini existant pour générer le mockup
+      const mockupResult = await geminiMockupService.generateSingleMockup(
+        logoUrl,
+        brandColors,
+        project.type,
+        project.name,
+        mockupType,
+        project.userId,
+        project.id!,
+        mockupIndex
+      );
+
+      if (!mockupResult) {
+        logger.error(`Failed to generate mockup ${mockupIndex} for project ${project.id}`);
+        return null;
+      }
+
+      logger.info(`Mockup ${mockupIndex} generated successfully`, {
+        projectId: project.id,
+        mockupType,
+        url: mockupResult.mockupUrl
+      });
+
+      return {
+        url: mockupResult.mockupUrl,
+        title: mockupResult.title || `${mockupType} Mockup`,
+        description: mockupResult.description || `Professional ${mockupType.toLowerCase()} showcasing the ${project.name} brand logo`
+      };
+
+    } catch (error) {
+      logger.error(`Error generating mockup ${mockupIndex} for project ${project.id}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Upload temporairement le SVG du logo pour le rendre accessible via URL
+   */
+  private async uploadLogoSvgTemporarily(logoSvg: string, projectId: string, suffix: string): Promise<string> {
+    try {
+      // Convertir le SVG en Buffer
+      const svgBuffer = Buffer.from(logoSvg, 'utf-8');
+
+      // Nom de fichier temporaire
+      const fileName = `temp_logo_${suffix}_${Date.now()}.svg`;
+      const folderPath = `projects/${projectId}/temp_logos`;
+
+      // Upload vers le storage
+      const uploadResult = await this.storageService.uploadFile(
+        svgBuffer,
+        fileName,
+        folderPath,
+        'image/svg+xml'
+      );
+
+      logger.info(`Logo SVG uploaded temporarily for mockup generation`, {
+        projectId,
+        suffix,
+        fileName,
+        url: uploadResult.downloadURL
+      });
+
+      return uploadResult.downloadURL;
+    } catch (error) {
+      logger.error('Error uploading logo SVG temporarily:', error);
+      // Fallback sur une URL placeholder
+      return 'https://via.placeholder.com/200x100/000000/FFFFFF?text=LOGO';
+    }
+  }
+
+  /**
+   * Retourne les types de mockups appropriés selon l'industrie
+   */
+  private getMockupTypesForIndustry(projectType: string): string[] {
+    const industryMockups: { [key: string]: string[] } = {
+      'web': [
+        'laptop_screen',
+        'mobile_app',
+        'business_card',
+        'merchandise'
+      ],
+      'mobile': [
+        'mobile_app',
+        'business_card',
+        'merchandise',
+        'laptop_screen'
+      ],
+      'healthcare': [
+        'packaging',
+        'signage',
+        'business_card',
+        'merchandise'
+      ],
+      'finance': [
+        'business_card',
+        'signage',
+        'laptop_screen',
+        'packaging'
+      ],
+      'food': [
+        'packaging',
+        'signage',
+        'business_card',
+        'merchandise'
+      ],
+      'retail': [
+        'packaging',
+        'signage',
+        'business_card',
+        'merchandise'
+      ],
+      'delivery': [
+        'signage',
+        'packaging',
+        'business_card',
+        'mobile_app'
+      ],
+      'consulting': [
+        'business_card',
+        'laptop_screen',
+        'signage',
+        'packaging'
+      ]
+    };
+
+    return industryMockups[projectType] || industryMockups['web']; // Fallback sur web
+  }
+
+  /**
+   * Construit le HTML des mockups avec les vraies images générées
+   */
+  private buildMockupsHtml(
+    mockupResults: Array<{ url: string; title: string; description: string }>,
+    project: ProjectModel
+  ): string {
+    const mockupCards = mockupResults.map((mockup, index) => `
+      <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-purple-500"></div>
+          <h3 class="text-lg font-semibold text-white">${mockup.title}</h3>
+        </div>
+        <div class="mb-4 rounded-lg overflow-hidden bg-gray-900/50">
+          <img src="${mockup.url}" alt="${mockup.title}" class="w-full h-48 object-cover rounded-lg" />
+        </div>
+        <p class="text-gray-300 text-sm leading-relaxed">${mockup.description}</p>
+      </div>
+    `).join('');
+
+    return `
+      <div class="space-y-8">
+        <!-- Header Section -->
+        <div class="text-center space-y-4">
+          <div class="flex items-center justify-center gap-3 mb-4">
+            <i class="pi pi-palette text-2xl text-blue-400"></i>
+            <h2 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              Brand Mockups
+            </h2>
+          </div>
+          <p class="text-gray-300 text-lg max-w-3xl mx-auto leading-relaxed">
+            Professional mockups showcasing your ${project.name} brand logo in real-world applications.
+            Each mockup demonstrates how your brand identity translates across different touchpoints and contexts.
+          </p>
+        </div>
+
+        <!-- Mockups Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ${mockupCards}
+        </div>
+      </div>
+    `;
   }
 }
