@@ -143,7 +143,7 @@ export class BusinessPlanService extends GenericService {
       ];
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
-        modelName: 'gemini-3-flash-preview',
+        modelName: 'gemini-3-pro-preview',
       };
 
       // Initialize empty sections array to collect results as they come in
