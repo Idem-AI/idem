@@ -1,0 +1,272 @@
+{
+  "header": {
+    "pricing": "定价",
+    "aboutUs": "关于我们",
+    "webVersion": "网页版",
+    "account": "账户",
+    "logout": "退出登录",
+    "login": "登录"
+  },
+  "hero": {
+    "language": "zh-CN",
+    "title": "一键生成任何代码或者设计稿",
+    "slogan": "使用ai创建应用程序，包括 Vue、React、Next.js、Python、Java 和微信小程序。",
+    "download": {
+      "macIntel": "下载 Mac 版本 (Intel)",
+      "macArm": "下载 Mac 版本 (Apple Silicon)",
+      "windows": "下载 Windows 版本"
+    }
+  },
+  "inputSection": {
+    "title": "从简单的提示开始",
+    "placeholder": "开始使用idem appgen创建一个程序",
+    "button": "生成",
+    "importImage": "导入图片",
+    "sketchFile": "Sketch 或者 Figma 文件",
+    "generateDesign": "生成设计稿",
+    "send": "发送",
+    "maxImagesAlert": "最多只能上传5张图片",
+    "uploadSuccess": "上传成功：",
+    "uploadFailed": "上传失败：",
+    "uploadError": "上传出错：",
+    "inputRequired": "请输入文字或上传图片",
+    "uploadedImage": "已上传图片",
+    "removeImage": "删除图片",
+    "dropImageHere": "拖放图片到这里",
+    "uploading": "上传中..."
+  },
+  "projectsSection": {
+    "title": "项目展示",
+    "subtitle": "查看其他人使用 Idem Appgen 构建的项目",
+    "viewMore": "查看更多",
+    "saas": {
+      "description": "后台可视化页面"
+    },
+    "business": {
+      "description": "后台首页"
+    },
+    "corporate": {
+      "description": "PC端登录页面"
+    },
+    "product": {
+      "description": "移动端登录页面"
+    }
+  },
+  "pricingPlans": {
+    "paymentSuccess": "支付成功！",
+    "upgradePlan": "升级套餐",
+    "title": "选择适合您的计划",
+    "subtitle": "我们为不同的开发需求提供灵活的定价选项",
+    "loginRequired": "请先登录",
+    "currentPlan": "当前方案",
+    "downgradeToFree": "降级到免费版",
+    "upgradeToPro": "升级到高级版",
+    "upgradeToProMax": "升级到高级专业版",
+    "upgradeToEnterprise": "升级到专业版",
+    "getStarted": "开始使用",
+    "free": {
+      "name": "免费版",
+      "price": "免费",
+      "description": "适合个人开发者和小型项目",
+      "features": ["AI 代码生成", "基础项目模板", "社区支持", "基础开发工具", "每月 15 次请求"],
+      "button": "开始使用"
+    },
+    "pro": {
+      "name": "高级版",
+      "price": "¥ 99",
+      "period": "/月",
+      "description": "适合进阶开发者和团队",
+      "features": [
+        "包含免费版全部功能",
+        "优先 AI 响应",
+        "后端 API 生成功能",
+        "Sketch 设计稿转代码功能",
+        "每月 200 次请求"
+      ],
+      "button": "开始使用",
+      "popular": "最受欢迎"
+    },
+    "enterprise": {
+      "name": "专业版",
+      "price": "¥ 199",
+      "period": "/月",
+      "description": "适合专业级开发需求",
+      "features": [
+        "包含高级版全部功能",
+        "每月 500 次请求",
+        "专属客户支持",
+        "自定义模型训练",
+        "高级API集成"
+      ],
+      "button": "开始使用"
+    }
+  },
+  "userPage": {
+    "title": "设置",
+    "subtitle": "你可以在这里管理你的账户以及账单",
+    "upgradeToPro": "升级到高级版",
+    "upgradeToProMax": "升级到高级专业版",
+    "getMoreToken": "获取更多次数",
+    "basicInfo": {
+      "title": "基础信息",
+      "username": "用户名",
+      "email": "邮箱",
+      "setEmail": "点击此处去设置你的邮箱"
+    },
+    "emailDialog": {
+      "title": "设置邮箱",
+      "description": "设置好电子邮件地址后，你才能使用付费服务",
+      "confirm": "确定",
+      "invalidEmail": "请输入有效的邮箱地址",
+      "sendSuccess": "发送成功",
+      "emailUsed": "该邮箱已经被其他用户使用"
+    },
+    "account": {
+      "title": "账户",
+      "advanced": "高级设置"
+    },
+    "usage": {
+      "title": "使用情况",
+      "requestsLeft": "剩余请求次数",
+      "unlimited": "无限制",
+      "tier": "当前套餐",
+      "free": "免费版",
+      "pro": "高级版",
+      "enterprise": "专业版",
+      "nextResetDate": "下次重置日期",
+      "totalQuota": "总配额",
+      "quotaDescription": "您已使用 {used} 次请求，总配额为 {total} 次。",
+      "refillQuota": "补充配额",
+      "refillQuotaDescription": "您还有 {remaining} 次补充配额可用。"
+    }
+  },
+  "login": {
+    "signIn": "登录",
+    "signingIn": "登录中...",
+    "or": "或者",
+    "createAccount": "创建账户",
+    "emailAddress": "邮箱地址",
+    "emailPlaceholder": "您的邮箱",
+    "password": "密码",
+    "passwordPlaceholder": "密码",
+    "signInWithGithub": "使用 GitHub 登录",
+    "signInWithWechat": "使用微信登录",
+    "loginFailed": "登录失败",
+    "wechatLoginFailed": "微信登录失败",
+    "githubLoginFailed": "GitHub 登录失败",
+    "passwordError": "密码错误"
+  },
+  "payment": {
+    "updateToPro": "升级到专业版",
+    "updateToProMax": "升级到高级专业版",
+    "getMoreToken": "获取更多次数",
+    "paymentSuccess": "支付成功！",
+    "upgradePlan": "升级套餐",
+    "selectPaymentMethod": "选择支付方式",
+    "confirmPayment": "确认支付",
+    "paymentCompleted": "支付已完成",
+    "orderError": "订单出现异常，请联系官方",
+    "orderCancelled": "订单已取消",
+    "loginRequired": "请先登录",
+    "loginFirst": "请先登录后再进行购买",
+    "goToLogin": "去登录",
+    "stripePayment": "Stripe支付",
+    "stripePaymentDesc": "正在跳转到Stripe支付页面",
+    "processingPayment": "正在处理支付...",
+    "paymentSuccessDesc": "支付成功，正在更新您的账户信息",
+    "paymentFailed": "支付失败",
+    "paymentFailedDesc": "支付过程中出现错误，请重试",
+    "cancelPayment": "取消支付",
+    "stripeError": "Stripe支付出错",
+    "paymentError": "支付过程出错",
+    "features": {
+      "title": "{name} - {price}/月",
+      "pro": "专业版",
+      "proMax": "高级专业版"
+    },
+    "wechat": {
+      "title": "微信支付",
+      "subtitle": "请使用微信扫描二维码完成支付",
+      "amount": "支付金额",
+      "validityPeriod": "二维码有效期：{time}",
+      "expired": "二维码已过期",
+      "getNew": "重新获取",
+      "cancel": "取消支付",
+      "refresh": "刷新二维码",
+      "tips": {
+        "title": "温馨提示：",
+        "scanWithWechat": "请使用微信扫码支付",
+        "refreshIfNeeded": "如果支付遇到问题，请点击刷新二维码",
+        "autoRedirect": "支付完成后将自动跳转"
+      },
+      "orderError": "订单信息获取失败，请联系客服"
+    }
+  },
+  "downloadButton": {
+    "comingSoon": "即将推出，请稍等...您现在可以使用网页版"
+  },
+  "register": {
+    "createAccount": "创建账户",
+    "alreadyHaveAccount": "已经有账户了？",
+    "signInNow": "立即登录",
+    "emailAddress": "邮箱地址",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "register": "注册",
+    "registering": "注册中...",
+    "or": "或者",
+    "registerWithGithub": "使用 GitHub 注册",
+    "registerWithWechat": "使用微信注册",
+    "passwordsNotMatch": "两次输入的密码不一致",
+    "registrationFailed": "注册失败",
+    "wechatRegisterFailed": "微信注册失败",
+    "githubRegisterFailed": "GitHub 注册失败",
+    "emailAlreadyExists": "用户已存在"
+  },
+  "forgotPassword": {
+    "title": "重置密码",
+    "email": "邮箱地址",
+    "emailPlaceholder": "请输入邮箱",
+    "oldPassword": "旧密码",
+    "oldPasswordPlaceholder": "请输入旧密码",
+    "newPassword": "新密码",
+    "newPasswordPlaceholder": "请输入新密码",
+    "submit": "更新密码",
+    "submitting": "更新中...",
+    "backToLogin": "返回登录",
+    "success": "密码更新成功",
+    "error": {
+      "missingFields": "请填写所有字段",
+      "userNotFound": "用户不存在",
+      "invalidOldPassword": "旧密码错误",
+      "updateFailed": "密码更新失败"
+    }
+  },
+  "featureCards": {
+    "title": "Idem Appgen的代码生成能力",
+    "screenshotToCode": {
+      "title": "截图转代码",
+      "description": "上传任任意网站截图，直接生成完美复刻的代码。"
+    },
+    "urlToCode": {
+      "title": "网址转代码",
+      "description": "只需粘贴网址即可复刻任何网站。"
+    },
+    "figmaToCode": {
+      "title": "Figma转代码",
+      "description": "与Figma/Sketch直接集成,一键转换您的设计。"
+    },
+    "smartComponentDetection": {
+      "title": "智能组件检测",
+      "description": "AI自动识别并复刻UI组件。"
+    },
+    "frameworkChoice": {
+      "title": "框架选择",
+      "description": "生成 Vue、React、Next.js、Python、Java 和微信小程序代码"
+    },
+    "responsiveByDefault": {
+      "title": "默认响应式",
+      "description": "所有生成的代码都适合移动设备且响应迅速。"
+    }
+  }
+}
