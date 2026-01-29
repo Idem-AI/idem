@@ -793,12 +793,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         );
       }
 
-      // Send simple message to chat - project data will be sent to server in body
-      // No need to generate the full prompt on client side anymore
+      // Send explicit message to chat - project data will be sent to server in body
+      // Include project name to prevent cache confusion
       append({
         id: uuidv4(),
         role: 'user',
-        content: 'Start generation',
+        content: `Generate landing page for project: ${projectData.name}`,
       });
 
       setShowStartButton(false);
