@@ -200,33 +200,58 @@ export async function handleBuilderMode(
         projectData.name === 'MUI' ? 'MUI-African-Artisans-Marketplace' : projectData.name;
       const artifactTitle = `${projectDisplayName} - Full Implementation`;
 
-      const userRequest = `PROJECT CONTEXT AND REQUIREMENTS:
+      // Extract branding info from project data to avoid contradictions
+      const primaryColor = projectData.analysisResultModel?.branding?.colors?.primary || '#000000';
+      const primaryFont =
+        projectData.analysisResultModel?.branding?.typography?.primaryFont || 'Inter';
+      const projectType = (
+        typeof projectData.type === 'object' && projectData.type && 'name' in projectData.type
+          ? (projectData.type as any).name
+          : 'application'
+      ) as string;
+
+      // Validate no contradictions in project data
+      console.log('\n🔍 VALIDATING PROJECT DATA FOR CONTRADICTIONS...');
+      const validationErrors: string[] = [];
+
+      // Check if project description matches the branding/type
+      if (
+        projectData.description.toLowerCase().includes('marketplace') &&
+        projectData.description.toLowerCase().includes('mobile money')
+      ) {
+        validationErrors.push(
+          'Project description contains contradictory concepts: marketplace AND mobile money'
+        );
+      }
+
+      if (validationErrors.length > 0) {
+        console.log('\n❌ VALIDATION ERRORS DETECTED:');
+        validationErrors.forEach((error) => console.log('  - ' + error));
+        console.log('\n⚠️  Proceeding with project data as-is, but AI may be confused.\n');
+        ChatLogger.warn('VALIDATION', 'Prompt contradictions detected', {
+          errors: validationErrors,
+        });
+      } else {
+        console.log('✅ No contradictions detected in project data\n');
+      }
+
+      const userRequest = `=== SOURCE OF TRUTH ===
+This project data is FINAL. Follow it exactly.
+=== END SOURCE OF TRUTH ===
+
 ${projectPrompt}
 
-=== YOUR TASK ===
-Build a complete landing page for: ${projectDisplayName}
+=== TASK ===
+Project: ${projectDisplayName}
+Type: ${projectType}
+Description: ${projectData.description}
 
-Project Description: ${projectData.description}
+Branding (MANDATORY):
+- Primary: ${primaryColor}
+- Font: ${primaryFont}
 
-REQUIREMENTS:
-1. Use the EXACT branding specified above (colors, fonts, logo URLs)
-2. Create a modern, professional landing page with:
-   - Hero section with compelling headline and CTA
-   - Features section highlighting key benefits
-   - About/Story section
-   - Contact section
-3. This is NOT a generic React template - customize everything for this specific project
-4. Use the provided color scheme, typography, and logo
-
-⚠️ CRITICAL FINAL INSTRUCTIONS:
-- Project name "${projectData.name}" refers to THIS specific project, NOT any UI library
-- This is a cultural marketplace for African artisans, NOT a dashboard or admin panel
-- Primary color is #A37939 (earthy gold), NOT Material UI blue
-- Use Poppins font, NOT Roboto
-- Start your response IMMEDIATELY with the <boltArtifact> tag containing the complete implementation
-
-<boltArtifact id="${projectId}" title="${artifactTitle}">
-...your complete implementation here...
+Start with <boltArtifact id="${projectId}" title="${artifactTitle}">
+...complete implementation...
 </boltArtifact>`;
 
       const finalContent = systemInstructions + '\n\n' + userRequest;
