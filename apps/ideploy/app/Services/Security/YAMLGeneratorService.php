@@ -155,28 +155,39 @@ class YAMLGeneratorService
      */
     public function convertRuleToAppSecYAML(FirewallRule $rule): array
     {
+        // Ensure conditions are properly decoded to array
+        $conditions = $rule->conditions;
+        if (is_string($conditions)) {
+            $conditions = json_decode($conditions, true) ?? [];
+        }
+        
+        // Filter out empty conditions
+        $conditions = array_filter($conditions, function($condition) {
+            return !empty($condition) && isset($condition['operator']) && isset($condition['field']);
+        });
+        
         $yamlRule = [
             'name' => $this->sanitizeRuleName($rule->name),
-            'zones' => $this->extractZones($rule->conditions),
+            'zones' => $this->extractZones($conditions),
         ];
         
         // Add variables for specific headers
-        $variables = $this->extractVariables($rule->conditions);
+        $variables = $this->extractVariables($conditions);
         if (!empty($variables)) {
             $yamlRule['variables'] = $variables;
         }
         
         // Add transforms if needed
-        $transforms = $this->getTransforms($rule->conditions);
+        $transforms = $this->getTransforms($conditions);
         if (!empty($transforms)) {
             $yamlRule['transform'] = $transforms;
         }
         
         // Build match pattern
-        if (count($rule->conditions) === 1) {
-            $yamlRule['match'] = $this->buildSingleMatch($rule->conditions[0]);
+        if (count($conditions) === 1) {
+            $yamlRule['match'] = $this->buildSingleMatch($conditions[0]);
         } else {
-            $yamlRule['match'] = $this->buildMultipleMatch($rule->conditions, $rule->logical_operator);
+            $yamlRule['match'] = $this->buildMultipleMatch($conditions, $rule->logical_operator);
         }
         
         // NOTE: inline rules don't support 'action' field
@@ -191,30 +202,41 @@ class YAMLGeneratorService
      */
     public function convertRuleToYAML(FirewallRule $rule): array
     {
+        // Ensure conditions are properly decoded to array
+        $conditions = $rule->conditions;
+        if (is_string($conditions)) {
+            $conditions = json_decode($conditions, true) ?? [];
+        }
+        
+        // Filter out empty conditions
+        $conditions = array_filter($conditions, function($condition) {
+            return !empty($condition) && isset($condition['operator']) && isset($condition['field']);
+        });
+        
         $yamlRule = [
             'name' => $this->sanitizeRuleName($rule->name),
-            'zones' => $this->extractZones($rule->conditions),
+            'zones' => $this->extractZones($conditions),
         ];
         
         // Add variables for specific headers
-        $variables = $this->extractVariables($rule->conditions);
+        $variables = $this->extractVariables($conditions);
         if (!empty($variables)) {
             $yamlRule['variables'] = $variables;
         }
         
         // Add transforms if needed
-        $transforms = $this->getTransforms($rule->conditions);
+        $transforms = $this->getTransforms($conditions);
         if (!empty($transforms)) {
             $yamlRule['transform'] = $transforms;
         }
         
         // Build match pattern
-        if (count($rule->conditions) === 1) {
+        if (count($conditions) === 1) {
             // Single condition
-            $yamlRule['match'] = $this->buildSingleMatch($rule->conditions[0]);
+            $yamlRule['match'] = $this->buildSingleMatch($conditions[0]);
         } else {
             // Multiple conditions with logical operator
-            $yamlRule['match'] = $this->buildMultipleMatch($rule->conditions, $rule->logical_operator);
+            $yamlRule['match'] = $this->buildMultipleMatch($conditions, $rule->logical_operator);
         }
         
         // NOTE: Actions are NOT defined at rule level in CrowdSec AppSec
@@ -332,6 +354,11 @@ class YAMLGeneratorService
      */
     private function buildSingleMatch(array $condition): array
     {
+        // Defensive programming - ensure operator exists
+        if (!isset($condition['operator']) || !$condition['operator']) {
+            throw new \InvalidArgumentException('Condition missing operator: ' . json_encode($condition));
+        }
+        
         $matchType = $this->getMatchType($condition['operator']);
         
         // ML-based operators don't need value
@@ -355,6 +382,16 @@ class YAMLGeneratorService
         $matches = [];
         
         foreach ($conditions as $condition) {
+            // Ensure condition is array (defensive programming)
+            if (is_string($condition)) {
+                $condition = json_decode($condition, true) ?? [];
+            }
+            
+            // Skip empty conditions
+            if (empty($condition) || !isset($condition['operator']) || !isset($condition['field'])) {
+                continue;
+            }
+            
             $matches[] = $this->buildSingleMatch($condition);
         }
         

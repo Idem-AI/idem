@@ -102,7 +102,7 @@ class FirewallOverview extends Component
                 'id' => $rule->id,
                 'name' => $rule->name,
                 'action' => $rule->action,
-                'conditions_count' => count($rule->conditions),
+                'conditions_count' => $this->getConditionsCount($rule->conditions),
                 'match_count' => $rule->match_count,
                 'last_match_at' => $rule->last_match_at?->diffForHumans(),
             ])
@@ -133,36 +133,62 @@ class FirewallOverview extends Component
             return;
         }
         
-        // Load REAL traffic metrics from Traefik access logs (cached 2 min)
-        $traefikCacheKey = "traefik_metrics_{$this->application->id}";
-        $traefikMetrics = \Cache::remember($traefikCacheKey, now()->addMinutes(2), function() {
+        // Load REAL traffic metrics from Traefik access logs (cached 1 min for real-time feel)
+        $traefikCacheKey = "traefik_metrics_{$this->application->id}_{$this->timeRange}";
+        $traefikMetrics = \Cache::remember($traefikCacheKey, now()->addMinutes(1), function() {
             $traefikService = app(\App\Services\Security\TraefikAccessLogService::class);
-            return $traefikService->getMetrics($this->application, 24);
+            $hours = match($this->timeRange) {
+                '1h' => 1,
+                '24h' => 24,
+                '7d' => 168, // 7 * 24
+                '30d' => 720, // 30 * 24
+                default => 24
+            };
+            return $traefikService->getMetrics($this->application, $hours);
         });
         
-        // Load CrowdSec metrics for blocked traffic details
-        $cacheKey = "firewall_metrics_{$this->config->id}";
-        $crowdsecMetrics = \Cache::remember($cacheKey, now()->addMinutes(5), function() {
+        // Load CrowdSec metrics for blocked traffic details (cached 2 min)
+        $cacheKey = "firewall_metrics_{$this->config->id}_{$this->timeRange}";
+        $crowdsecMetrics = \Cache::remember($cacheKey, now()->addMinutes(2), function() {
             $metricsService = app(\App\Services\Security\CrowdSecMetricsService::class);
             return $metricsService->getMetrics($this->config);
         });
         
-        // Combine metrics: Traefik for total/allowed, CrowdSec for denied details
+        // Combine metrics: Traefik for REAL total/allowed, CrowdSec for firewall-specific denied
+        $traefikDenied = $traefikMetrics['total_denied'] ?? 0;
+        $crowdSecBlocked = count($crowdsecMetrics['active_decisions'] ?? []);
+        
         $this->stats = [
             'all_traffic' => $traefikMetrics['total_requests'],
             'allowed' => $traefikMetrics['total_allowed'],
-            'denied' => $traefikMetrics['total_denied'],
-            'challenged' => 0, // TODO: implement captcha tracking
+            'denied' => max($traefikDenied, $crowdSecBlocked), // Use the higher count for accuracy
+            'challenged' => 0, // TODO: implement captcha tracking when AppSec supports it
         ];
         
-        // Load hourly data from Traefik (real traffic)
-        $this->hourlyTrafficData = $traefikMetrics['hourly_data'];
+        // Load hourly data from Traefik (real traffic patterns)
+        $this->hourlyTrafficData = $traefikMetrics['hourly_data'] ?? [];
         
-        // Load recent events from Traefik (real traffic)
-        $this->recentEvents = collect($traefikMetrics['recent_events'])
+        // Combine recent events from both sources
+        $traefikEvents = $traefikMetrics['recent_events'] ?? [];
+        $crowdsecEvents = collect($crowdsecMetrics['recent_alerts'] ?? [])
+            ->map(fn($alert) => [
+                'ip' => $alert['source_ip'] ?? 'Unknown',
+                'method' => 'BLOCKED',
+                'path' => $alert['scenario'] ?? 'Firewall Rule',
+                'status' => 403,
+                'action' => 'denied',
+                'timestamp' => Carbon\Carbon::parse($alert['created_at'] ?? now()),
+            ])
+            ->toArray();
+        
+        // Merge and sort by timestamp
+        $allEvents = array_merge($traefikEvents, $crowdsecEvents);
+        usort($allEvents, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
+        
+        $this->recentEvents = collect(array_slice($allEvents, 0, 10))
             ->map(fn($event) => [
                 'ip' => $event['ip'],
-                'reason' => $event['method'] . ' ' . $event['path'] . ' (' . $event['status'] . ')',
+                'reason' => ($event['method'] ?? 'GET') . ' ' . ($event['path'] ?? '/') . ' (' . ($event['status'] ?? 200) . ')',
                 'action' => $event['action'],
                 'timestamp' => $event['timestamp'],
             ])
@@ -599,6 +625,22 @@ class FirewallOverview extends Component
         $this->botProtectionEnabled = $botRuleExists;
         
         ray("Bot protection status: " . ($botRuleExists ? 'ACTIVE' : 'INACTIVE'));
+    }
+    
+    /**
+     * Safely count conditions, handling both JSON strings and arrays
+     */
+    private function getConditionsCount($conditions): int
+    {
+        if (is_string($conditions)) {
+            $conditions = json_decode($conditions, true) ?? [];
+        }
+        
+        if (!is_array($conditions)) {
+            return 0;
+        }
+        
+        return count($conditions);
     }
     
     public function render()

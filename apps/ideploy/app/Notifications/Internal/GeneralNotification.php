@@ -28,7 +28,7 @@ class GeneralNotification extends Notification implements ShouldQueue
     public function toDiscord(): DiscordMessage
     {
         return new DiscordMessage(
-            title: 'Coolify: General Notification',
+            title: 'iDeploy: General Notification',
             description: $this->message,
             color: DiscordMessage::infoColor(),
         );
@@ -53,7 +53,7 @@ class GeneralNotification extends Notification implements ShouldQueue
     public function toSlack(): SlackMessage
     {
         return new SlackMessage(
-            title: 'Coolify: General Notification',
+            title: 'iDeploy: General Notification',
             description: $this->message,
             color: SlackMessage::infoColor(),
         );

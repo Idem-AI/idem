@@ -49,31 +49,26 @@
                 <div x-show="filteredGitBasedApplications.length > 0">
                     <div class="mb-6">
                         <h2 class="text-2xl font-bold text-white mb-2">Applications</h2>
-                        <p class="text-sm text-gray-400 uppercase tracking-wide">Git Based</p>
+                        <p class="text-sm text-gray-500">Deploy applications from Git repositories</p>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <template x-for="application in filteredGitBasedApplications" :key="application.name">
                             <div x-on:click='setType(application.id)'
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                                class="group relative bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 transition-all hover:border-blue-500 hover:bg-[#0f0f0f]">
+                                class="group relative bg-[#0f0f0f] border border-gray-800/50 rounded-xl overflow-hidden transition-all hover:border-gray-700 hover:bg-[#141414]">
                                 
-                                {{-- Category Tag --}}
-                                <div class="absolute top-4 left-4">
-                                    <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Application</span>
+                                {{-- Header avec nom --}}
+                                <div class="p-4 border-b border-gray-800/50">
+                                    <h3 class="text-base font-semibold text-white truncate group-hover:text-gray-200 transition-colors" x-text="application.name"></h3>
+                                    <p class="text-sm text-gray-500 mt-1.5 line-clamp-2" x-html="window.sanitizeHTML(application.description)"></p>
                                 </div>
-                                
-                                {{-- Logo --}}
-                                <div class="flex items-center justify-center py-8 mt-6">
-                                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center overflow-hidden">
-                                        <img :src="application.logo" class="w-12 h-12 object-contain transition-transform group-hover:scale-110" />
+
+                                {{-- Logo Section --}}
+                                <div class="flex items-center justify-center p-8 bg-[#0a0a0a]">
+                                    <div class="w-16 h-16 rounded-xl bg-[#141414] border border-gray-800/50 flex items-center justify-center overflow-hidden">
+                                        <img :src="application.logo" class="w-10 h-10 object-contain transition-transform group-hover:scale-110" />
                                     </div>
-                                </div>
-                                
-                                {{-- Content --}}
-                                <div class="text-center mt-4">
-                                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors" x-text="application.name"></h3>
-                                    <p class="text-sm text-gray-400 line-clamp-2" x-html="window.sanitizeHTML(application.description)"></p>
                                 </div>
                             </div>
                         </template>
@@ -83,31 +78,27 @@
                 {{-- Docker Based Applications --}}
                 <div x-show="filteredDockerBasedApplications.length > 0">
                     <div class="mb-6">
-                        <p class="text-sm text-gray-400 uppercase tracking-wide">Docker Based</p>
+                        <h2 class="text-2xl font-bold text-white mb-2">Docker Applications</h2>
+                        <p class="text-sm text-gray-500">Deploy containerized applications with Docker</p>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <template x-for="application in filteredDockerBasedApplications" :key="application.name">
                             <div x-on:click="setType(application.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                                class="group relative bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 transition-all hover:border-blue-500 hover:bg-[#0f0f0f]">
+                                class="group relative bg-[#0f0f0f] border border-gray-800/50 rounded-xl overflow-hidden transition-all hover:border-gray-700 hover:bg-[#141414]">
                                 
-                                {{-- Category Tag --}}
-                                <div class="absolute top-4 left-4">
-                                    <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Docker</span>
+                                {{-- Header avec nom --}}
+                                <div class="p-4 border-b border-gray-800/50">
+                                    <h3 class="text-base font-semibold text-white truncate group-hover:text-gray-200 transition-colors" x-text="application.name"></h3>
+                                    <p class="text-sm text-gray-500 mt-1.5 line-clamp-2" x-text="application.description"></p>
                                 </div>
-                                
-                                {{-- Logo --}}
-                                <div class="flex items-center justify-center py-8 mt-6">
-                                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center overflow-hidden">
-                                        <img :src="application.logo" class="w-12 h-12 object-contain transition-transform group-hover:scale-110" />
+
+                                {{-- Logo Section --}}
+                                <div class="flex items-center justify-center p-8 bg-[#0a0a0a]">
+                                    <div class="w-16 h-16 rounded-xl bg-[#141414] border border-gray-800/50 flex items-center justify-center overflow-hidden">
+                                        <img :src="application.logo" class="w-10 h-10 object-contain transition-transform group-hover:scale-110" />
                                     </div>
-                                </div>
-                                
-                                {{-- Content --}}
-                                <div class="text-center mt-4">
-                                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors" x-text="application.name"></h3>
-                                    <p class="text-sm text-gray-400 line-clamp-2" x-text="application.description"></p>
                                 </div>
                             </div>
                         </template>
@@ -118,31 +109,26 @@
                 <div x-show="filteredDatabases.length > 0">
                     <div class="mb-6">
                         <h2 class="text-2xl font-bold text-white mb-2">Databases</h2>
-                        <p class="text-sm text-gray-400">Popular database engines for your applications</p>
+                        <p class="text-sm text-gray-500">Popular database engines for your applications</p>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <template x-for="database in filteredDatabases" :key="database.id">
                             <div x-on:click="setType(database.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                                class="group relative bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 transition-all hover:border-green-500 hover:bg-[#0f0f0f]">
+                                class="group relative bg-[#0f0f0f] border border-gray-800/50 rounded-xl overflow-hidden transition-all hover:border-gray-700 hover:bg-[#141414]">
                                 
-                                {{-- Category Tag --}}
-                                <div class="absolute top-4 left-4">
-                                    <span class="text-xs text-green-500 uppercase tracking-wider font-semibold">Database</span>
+                                {{-- Header avec nom --}}
+                                <div class="p-4 border-b border-gray-800/50">
+                                    <h3 class="text-base font-semibold text-white truncate group-hover:text-gray-200 transition-colors" x-text="database.name"></h3>
+                                    <p class="text-sm text-gray-500 mt-1.5 line-clamp-2" x-text="database.description"></p>
                                 </div>
-                                
-                                {{-- Logo --}}
-                                <div class="flex items-center justify-center py-8 mt-6">
-                                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-600/20 border border-green-500/30 flex items-center justify-center">
-                                        <span x-show="database.logo" x-html="database.logo" class="text-4xl transition-transform group-hover:scale-110"></span>
+
+                                {{-- Logo Section --}}
+                                <div class="flex items-center justify-center p-8 bg-[#0a0a0a]">
+                                    <div class="w-16 h-16 rounded-xl bg-[#141414] border border-gray-800/50 flex items-center justify-center overflow-hidden">
+                                        <span x-show="database.logo" x-html="database.logo" class="text-3xl transition-transform group-hover:scale-110"></span>
                                     </div>
-                                </div>
-                                
-                                {{-- Content --}}
-                                <div class="text-center mt-4">
-                                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-green-400 transition-colors" x-text="database.name"></h3>
-                                    <p class="text-sm text-gray-400 line-clamp-2" x-text="database.description"></p>
                                 </div>
                             </div>
                         </template>
@@ -154,61 +140,55 @@
                     <div class="mb-6 flex items-center justify-between">
                         <div>
                             <h2 class="text-2xl font-bold text-white mb-2">Services</h2>
-                            <p class="text-sm text-gray-400">One-click services and integrations</p>
+                            <p class="text-sm text-gray-500">This list only includes services that are available as one-click services in iDeploy.</p>
                         </div>
                         <button x-on:click="loadResources" 
-                                class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg border border-gray-700 transition-all">
-                            Reload List
+                                class="px-4 py-2 bg-gray-800/50 hover:bg-gray-700 text-white text-sm rounded-lg border border-gray-700/50 transition-all flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Reload
                         </button>
                     </div>
-
-                    <div class="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                        <p class="text-sm text-blue-300">
-                            <strong>Note:</strong> The respective trademarks mentioned here are owned by the respective companies. 
-                            Use of them does not imply any affiliation or endorsement. 
-                            <a class="underline hover:text-blue-200" target="_blank" href="https://coolify.io/docs/services/overview">Learn more →</a>
-                        </p>
-                    </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <template x-for="service in filteredServices" :key="service.name">
                             <div x-on:click="setType('one-click-service-' + service.name)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                                class="group relative bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 transition-all hover:border-purple-500 hover:bg-[#0f0f0f]">
+                                class="group relative bg-[#0f0f0f] border border-gray-800/50 rounded-xl overflow-hidden transition-all hover:border-gray-700 hover:bg-[#141414]">
                                 
-                                {{-- Category Tag --}}
-                                <div class="absolute top-4 left-4">
-                                    <span class="text-xs text-purple-500 uppercase tracking-wider font-semibold">Service</span>
+                                {{-- Header avec nom et documentation --}}
+                                <div class="p-4 border-b border-gray-800/50">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="text-base font-semibold text-white truncate group-hover:text-gray-200 transition-colors" x-text="service.name"></h3>
+                                        </div>
+                                        <div x-show="service.documentation" class="flex-shrink-0">
+                                            <a :href="service.documentation" 
+                                               target="_blank"
+                                               onclick="event.stopPropagation()"
+                                               class="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-500 mt-1.5 line-clamp-2" x-text="service.slogan"></p>
                                 </div>
 
-                                {{-- Documentation Link --}}
-                                <div class="absolute top-4 right-4" x-show="service.documentation">
-                                    <a :href="service.documentation" 
-                                       target="_blank"
-                                       onclick="event.stopPropagation()"
-                                       class="text-xs text-gray-500 hover:text-blue-400 transition-colors">
-                                        Docs →
-                                    </a>
-                                </div>
-                                
-                                {{-- Logo --}}
-                                <div class="flex items-center justify-center py-8 mt-6">
-                                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-600/20 border border-purple-500/30 flex items-center justify-center overflow-hidden">
+                                {{-- Logo Section --}}
+                                <div class="flex items-center justify-center p-8 bg-[#0a0a0a]">
+                                    <div class="w-16 h-16 rounded-xl bg-[#141414] border border-gray-800/50 flex items-center justify-center overflow-hidden">
                                         <template x-if="service.logo">
                                             <img :src='service.logo'
-                                                class="w-12 h-12 object-contain transition-transform group-hover:scale-110"
+                                                class="w-10 h-10 object-contain transition-transform group-hover:scale-110"
                                                 x-on:error.window="$event.target.src = service.logo_github_url"
                                                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
                                                 x-on:error="$event.target.src = '/coolify-logo.svg'"
                                                 :data-fallback='service.logo_github_url' />
                                         </template>
                                     </div>
-                                </div>
-                                
-                                {{-- Content --}}
-                                <div class="text-center mt-4">
-                                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-purple-400 transition-colors" x-text="service.name"></h3>
-                                    <p class="text-sm text-gray-400 line-clamp-2" x-text="service.slogan"></p>
                                 </div>
                             </div>
                         </template>
