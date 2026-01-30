@@ -125,7 +125,7 @@ function extractCustomProxyCommands(Server $server, string $existing_config): ar
             return $custom_commands;
         }
 
-        // Define default commands that Coolify generates
+        // Define default commands that iDeploy generates
         $default_command_prefixes = [
             '--ping=',
             '--api.',

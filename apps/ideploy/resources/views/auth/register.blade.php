@@ -14,7 +14,7 @@ $email = getOldOrLocal('email', 'test3@example.com');
             <div class="w-full max-w-md space-y-8">
                 <div class="text-center space-y-2">
                     <h1 class="!text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                        Coolify
+                        iDeploy
                     </h1>
                     <p class="text-lg dark:text-neutral-400">
                         Create your account
