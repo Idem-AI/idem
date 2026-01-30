@@ -127,7 +127,35 @@ class ApplyCrowdSecBouncerJob implements ShouldQueue
             }
         }
         
-        // Rebuild labels (do NOT modify router middlewares - that's done by generateLabelsApplication)
+        // CRITICAL: Also apply the middleware to the router
+        $routerMiddlewareLine = "traefik.http.routers.http-0-{$uuid}.middlewares";
+        $middlewareUpdated = false;
+        
+        foreach ($lines as $i => $line) {
+            $line = trim($line);
+            if (str_starts_with($line, $routerMiddlewareLine . '=')) {
+                // Extract current middlewares
+                $currentMiddlewares = explode('=', $line, 2)[1] ?? '';
+                
+                // Add crowdsec middleware if not present
+                if (!str_contains($currentMiddlewares, "crowdsec-{$uuid}")) {
+                    $newMiddlewares = $currentMiddlewares ? 
+                        $currentMiddlewares . ",crowdsec-{$uuid}" : 
+                        "crowdsec-{$uuid}";
+                    
+                    $lines[$i] = $routerMiddlewareLine . '=' . $newMiddlewares;
+                    ray("Updated router middlewares: {$newMiddlewares}");
+                    $middlewareUpdated = true;
+                }
+                break;
+            }
+        }
+        
+        if (!$middlewareUpdated) {
+            ray("⚠️ Router middleware line not found - middleware definitions added but not applied to router");
+        }
+        
+        // Rebuild labels
         $newLabels = implode("\n", $lines);
         
         // Update application with plain text labels

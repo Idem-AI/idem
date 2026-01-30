@@ -69,7 +69,7 @@ class SubscriptionInvoiceFailedJob implements ShouldBeEncrypted, ShouldQueue
             $mail->view('emails.subscription-invoice-failed', [
                 'stripeCustomerPortal' => $session->url,
             ]);
-            $mail->subject('Your last payment was failed for Coolify Cloud.');
+            $mail->subject('Your last payment was failed for iDeploy Cloud.');
             $this->team->members()->each(function ($member) use ($mail) {
                 if ($member->isAdmin()) {
                     send_user_an_email($mail, $member->email);

@@ -44,7 +44,7 @@ class ServersOverview extends Component
         $server = Server::findOrFail($serverId);
         
         // Réinstaller tous les composants
-        \App\Jobs\Security\InstallCrowdSecJob::dispatch($server)->delay(now()->addSeconds(10));
+        \App\Jobs\Server\InstallCrowdSecJob::dispatch($server)->delay(now()->addSeconds(10));
         \App\Jobs\ConfigureTraefikLoggingJob::dispatch($server)->delay(now()->addMinutes(2));
         \App\Jobs\Security\DeployTrafficLoggerJob::dispatch($server)->delay(now()->addMinutes(4));
         \App\Jobs\Security\ValidateServerInstallationJob::dispatch($server)->delay(now()->addMinutes(6));

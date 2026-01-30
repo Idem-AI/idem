@@ -1444,7 +1444,7 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                 $savedService->save();
 
                 if (! $hasValidNetworkMode) {
-                    // Add Coolify specific networks
+                    // Add iDeploy specific networks
                     $definedNetworkExists = $topLevelNetworks->contains(function ($value, $_) use ($definedNetwork) {
                         return $value == $definedNetwork;
                     });

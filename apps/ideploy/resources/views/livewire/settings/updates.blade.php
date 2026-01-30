@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Auto Update | Coolify
+        Auto Update | iDeploy
     </x-slot>
     <x-settings.navbar />
     <div x-data="{ activeTab: window.location.hash ? window.location.hash.substring(1) : 'general' }" class="flex flex-col h-full gap-8 sm:flex-row">
@@ -19,7 +19,7 @@
                 <div class="flex items-end gap-2">
                     <x-forms.input required id="update_check_frequency" label="Update Check Frequency"
                         placeholder="0 * * * *"
-                        helper="Frequency (cron expression) to check for new Coolify versions and pull new Service Templates from CDN.<br>You can use every_minute, hourly, daily, weekly, monthly, yearly.<br><br>Default is every hour." />
+                        helper="Frequency (cron expression) to check for new iDeploy versions and pull new Service Templates from CDN.<br>You can use every_minute, hourly, daily, weekly, monthly, yearly.<br><br>Default is every hour." />
                     <x-forms.button wire:click='checkManually'>Check Manually</x-forms.button>
                 </div>
 
