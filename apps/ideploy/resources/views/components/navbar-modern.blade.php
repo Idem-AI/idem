@@ -97,6 +97,27 @@
 
     {{-- Navigation Menu --}}
     <ul role="list" class="flex flex-col flex-1 px-3 py-4 gap-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+        {{-- Admin Panel - Toujours visible pour les admins --}}
+        @auth
+            @if(auth()->user()->idem_role === 'admin')
+                <li>
+                    <a href="{{ route('idem.admin.dashboard') }}" 
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 {{ request()->is('idem/admin*') ? 'bg-red-500/20 text-white border-l-4 border-red-500' : 'text-red-400 hover:text-white hover:bg-red-500/10 border-l-4 border-transparent hover:border-red-500/50' }}">
+                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+                        </svg>
+                        <span class="font-bold">Admin Panel</span>
+                        <span class="ml-auto px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">ADMIN</span>
+                    </a>
+                </li>
+                
+                {{-- Divider après Admin Panel --}}
+                <li class="my-2">
+                    <div class="h-px bg-red-500/20"></div>
+                </li>
+            @endif
+        @endauth
+        
         @if (isSubscribed() || !isCloud())
             {{-- Dashboard --}}
             <li>
@@ -175,6 +196,23 @@
                     <span>S3 Storages</span>
                 </a>
             </li>
+
+            {{-- Settings (Admin Only) --}}
+            @auth
+                @if(auth()->user()->idem_role === 'admin')
+                    <li>
+                        <a href="{{ route('settings.index') }}" 
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 {{ request()->is('settings*') ? 'bg-gray-800/80 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800/50' }}">
+                            <svg class="w-5 h-5 {{ request()->is('settings*') ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-300' }}" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/>
+                                <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
+                            </svg>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                @endif
+            @endauth
 
             {{-- Divider --}}
             <li class="my-2">

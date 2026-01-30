@@ -46,7 +46,12 @@ class AppSecRuleGeneratorService
      */
     private function shouldUseAppSec(FirewallRule $rule): bool
     {
-        foreach ($rule->conditions as $condition) {
+        $conditions = $rule->conditions;
+        if (is_string($conditions)) {
+            $conditions = json_decode($conditions, true) ?? [];
+        }
+        
+        foreach ($conditions as $condition) {
             $field = $condition['field'] ?? '';
             
             // These fields work better with AppSec

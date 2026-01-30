@@ -3,9 +3,11 @@
 namespace App\Observers;
 
 use App\Models\Server;
-use App\Jobs\Security\InstallCrowdSecJob;
+use App\Jobs\Server\InstallCrowdSecJob;
 use App\Jobs\ConfigureTraefikLoggingJob;
 use App\Jobs\Security\DeployTrafficLoggerJob;
+use App\Jobs\Security\EnableTraefikHeaderLoggingJob;
+use App\Jobs\Security\ConfigureCrowdSecTraefikLogsJob;
 
 class ServerObserver
 {
@@ -13,53 +15,78 @@ class ServerObserver
      * Handle the Server "created" event.
      * 
      * Quand un nouveau serveur est ajouté à la plateforme,
-     * on installe automatiquement les outils de sécurité:
-     * - CrowdSec (firewall)
-     * - Traffic Logger (métriques temps réel)
-     * - Traefik Logging (logs JSON)
+     * on installe automatiquement TOUS les outils de sécurité EN MÊME TEMPS:
+     * - CrowdSec (firewall + AppSec)
+     * - Traefik Logging (logs JSON pour CrowdSec)
+     * - Traefik Header Logging (User-Agent, Referer pour bot protection)
+     * - Traffic Logger (métriques temps réel + ForwardAuth)
+     * - CrowdSec-Traefik integration (logs parsing)
+     * 
+     * Installation synchronisée pour une sécurité complète immédiate
      */
     public function created(Server $server): void
     {
-        ray("🆕 Nouveau serveur créé: {$server->name}");
+        ray("🆕 Nouveau serveur créé: {$server->name} - Installation sécurité complète");
         
-        // Attendre que le serveur soit validé et accessible
-        // On dispatch les jobs avec un délai pour laisser le temps à l'utilisateur
+        // Délai initial de 2 minutes pour laisser le temps à l'utilisateur 
         // de configurer le serveur (clés SSH, etc.)
+        $baseDelay = now()->addMinutes(2);
         
-        // Installation CrowdSec (délai 2 minutes)
+        // 🔥 INSTALLATION SIMULTANÉE DE TOUS LES COMPOSANTS SÉCURITÉ
+        
+        // 1. CrowdSec (Firewall + AppSec) - PRIORITÉ HAUTE
         if (!$server->crowdsec_installed) {
-            ray("📅 Scheduling CrowdSec installation for: {$server->name}");
+            ray("🔥 Scheduling CrowdSec (Firewall+AppSec) installation for: {$server->name}");
             
             InstallCrowdSecJob::dispatch($server)
-                ->delay(now()->addMinutes(2))
-                ->onQueue('low'); // Queue basse priorité pour ne pas bloquer
+                ->delay($baseDelay)
+                ->onQueue('security'); // Queue dédiée sécurité
         }
         
-        // Configuration Traefik Logging (délai 5 minutes, après CrowdSec)
+        // 2. Traefik Logging - EN PARALLÈLE (légèrement décalé pour éviter conflit)
         if (!$server->traefik_logging_enabled) {
-            ray("📅 Scheduling Traefik logging configuration for: {$server->name}");
+            ray("📊 Scheduling Traefik logging configuration for: {$server->name}");
             
             ConfigureTraefikLoggingJob::dispatch($server)
-                ->delay(now()->addMinutes(5))
-                ->onQueue('low');
+                ->delay($baseDelay->addSeconds(30)) // 30s après CrowdSec
+                ->onQueue('security');
         }
         
-        // Déploiement Traffic Logger (délai 7 minutes, après Traefik)
+        // 3. Traefik Header Logging - ESSENTIEL pour bot protection
+        ray("🔍 Scheduling Traefik header logging (User-Agent, Referer) for: {$server->name}");
+        EnableTraefikHeaderLoggingJob::dispatch($server)
+            ->delay($baseDelay->addSeconds(45)) // 45s après CrowdSec
+            ->onQueue('security');
+        
+        // 4. CrowdSec-Traefik Logs Integration - Connexion logs JSON
+        ray("🔗 Scheduling CrowdSec-Traefik logs integration for: {$server->name}");
+        ConfigureCrowdSecTraefikLogsJob::dispatch($server)
+            ->delay($baseDelay->addMinutes(1)) // 1min après CrowdSec
+            ->onQueue('security');
+        
+        // 5. Traffic Logger - EN PARALLÈLE (optimisé pour métriques temps réel)
         if (!$server->traffic_logger_installed) {
-            ray("📅 Scheduling Traffic Logger deployment for: {$server->name}");
+            ray("⚡ Scheduling Traffic Logger deployment for: {$server->name}");
             
             DeployTrafficLoggerJob::dispatch($server)
-                ->delay(now()->addMinutes(7))
-                ->onQueue('low');
+                ->delay($baseDelay->addMinutes(2)) // 2min après CrowdSec
+                ->onQueue('security');
         }
         
-        // Validation finale (délai 10 minutes, après tous les composants)
-        ray("📅 Scheduling installation validation for: {$server->name}");
+        // 6. Validation finale - APRÈS INSTALLATION COMPLÈTE
+        ray("✅ Scheduling comprehensive security validation for: {$server->name}");
         \App\Jobs\Security\ValidateServerInstallationJob::dispatch($server)
-            ->delay(now()->addMinutes(10))
-            ->onQueue('low');
+            ->delay($baseDelay->addMinutes(6)) // 6min après début pour laisser temps à tout
+            ->onQueue('security');
         
-        ray("✅ Security tools scheduled for installation on: {$server->name}");
+        ray("🛡️ STACK SÉCURITÉ COMPLÈTE scheduled for: {$server->name}");
+        ray("   ✅ CrowdSec (Firewall + AppSec)");
+        ray("   ✅ Traefik Logging (JSON logs)"); 
+        ray("   ✅ Header Logging (Bot protection)");
+        ray("   ✅ CrowdSec-Traefik Integration");
+        ray("   ✅ Traffic Logger (Métriques)");
+        ray("   ✅ Validation automatique");
+        ray("🚀 Installation complète en ~6 minutes");
     }
     
     /**
