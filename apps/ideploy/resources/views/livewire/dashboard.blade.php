@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
-        Dashboard | Coolify
+        Dashboard | iDeploy
     </x-slot>
     
     @if (session('error'))

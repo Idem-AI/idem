@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Cloud Tokens | Coolify
+        Cloud Tokens | iDeploy
     </x-slot>
     <x-security.navbar />
     <livewire:security.cloud-provider-tokens />

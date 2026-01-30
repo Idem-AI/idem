@@ -423,7 +423,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
         // convert environment variables to one format
         $environment = convertToKeyValueCollection($environment);
 
-        // Add Coolify defined environments
+        // Add iDeploy defined environments
         $allEnvironments = $resource->environment_variables()->get(['key', 'value']);
 
         $allEnvironments = $allEnvironments->mapWithKeys(function ($item) {
@@ -507,7 +507,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
 
         $allMagicEnvironments = $allMagicEnvironments->merge($magicEnvironments);
         if ($magicEnvironments->count() > 0) {
-            // Generate Coolify environment variables
+            // Generate iDeploy environment variables
             foreach ($magicEnvironments as $key => $value) {
                 $key = str($key);
                 $value = replaceVariables($value);
@@ -997,7 +997,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
                         $isRequired = true;
                     }
                     if ($originalValue->value() === $value->value()) {
-                        // This means the variable does not have a default value, so it needs to be created in Coolify
+                        // This means the variable does not have a default value, so it needs to be created in iDeploy
                         $parsedKeyValue = replaceVariables($value);
                         $resource->environment_variables()->firstOrCreate([
                             'key' => $parsedKeyValue,
@@ -1162,7 +1162,7 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
             $environment = $environment->filter(function ($value, $key) {
                 return ! str($key)->startsWith('SERVICE_FQDN_');
             })->map(function ($value, $key) use ($resource) {
-                // if value is empty, set it to null so if you set the environment variable in the .env file (Coolify's UI), it will used
+                // if value is empty, set it to null so if you set the environment variable in the .env file (iDeploy's UI), it will used
                 if (str($value)->isEmpty()) {
                     if ($resource->environment_variables()->where('key', $key)->exists()) {
                         $value = $resource->environment_variables()->where('key', $key)->first()->value;
@@ -1447,7 +1447,7 @@ function serviceParser(Service $resource): Collection
         // convert environment variables to one format
         $environment = convertToKeyValueCollection($environment);
 
-        // Add Coolify defined environments
+        // Add iDeploy defined environments
         $allEnvironments = $resource->environment_variables()->get(['key', 'value']);
 
         $allEnvironments = $allEnvironments->mapWithKeys(function ($item) {
@@ -2019,7 +2019,7 @@ function serviceParser(Service $resource): Collection
                         $isRequired = true;
                     }
                     if ($originalValue->value() === $value->value()) {
-                        // This means the variable does not have a default value, so it needs to be created in Coolify
+                        // This means the variable does not have a default value, so it needs to be created in iDeploy
                         $parsedKeyValue = replaceVariables($value);
                         $resource->environment_variables()->firstOrCreate([
                             'key' => $parsedKeyValue,
@@ -2091,7 +2091,7 @@ function serviceParser(Service $resource): Collection
             $environment = $environment->filter(function ($value, $key) {
                 return ! str($key)->startsWith('SERVICE_FQDN_');
             })->map(function ($value, $key) use ($resource) {
-                // if value is empty, set it to null so if you set the environment variable in the .env file (Coolify's UI), it will used
+                // if value is empty, set it to null so if you set the environment variable in the .env file (iDeploy's UI), it will used
                 if (str($value)->isEmpty()) {
                     if ($resource->environment_variables()->where('key', $key)->exists()) {
                         $value = $resource->environment_variables()->where('key', $key)->first()->value;

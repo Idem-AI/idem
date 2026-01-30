@@ -24,8 +24,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Force HTTPS for all URLs
-        URL::forceScheme('https');
+        // Force HTTPS uniquement en production (pas en local/dev)
+        if (App::isProduction()) {
+            URL::forceScheme('https');
+        }
 
         $this->configureCommands();
         $this->configureModels();

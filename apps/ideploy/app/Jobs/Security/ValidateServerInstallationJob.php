@@ -115,7 +115,7 @@ class ValidateServerInstallationJob implements ShouldQueue
         // Retry CrowdSec installation if failed
         if (!$validationResults['crowdsec']) {
             ray("🔄 Retry CrowdSec installation");
-            InstallCrowdSecJob::dispatch($this->server)->delay(now()->addMinutes(2));
+            \App\Jobs\Server\InstallCrowdSecJob::dispatch($this->server)->delay(now()->addMinutes(2));
         }
         
         // Retry Traefik Logging if failed
