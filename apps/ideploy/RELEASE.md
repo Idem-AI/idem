@@ -1,6 +1,6 @@
-# Coolify Release Guide
+# iDeploy Release Guide
 
-This guide outlines the release process for Coolify, intended for developers and those interested in understanding how Coolify releases are managed and deployed.
+This guide outlines the release process for iDeploy, intended for developers and those interested in understanding how iDeploy releases are managed and deployed.
 
 ## Table of Contents
 
@@ -116,7 +116,7 @@ When a new version is released and a new GitHub release is created, it doesn't i
   - Updates are managed by Andras, who ensures each cloud version is thoroughly tested and stable before releasing it.
 
 > [!IMPORTANT]
-> The cloud version of Coolify may be several versions behind the latest GitHub releases even if the CDN is updated. This is intentional to ensure stability and reliability for cloud users and Andras will manully update the cloud version when the update is ready.
+> The cloud version of iDeploy may be several versions behind the latest GitHub releases even if the CDN is updated. This is intentional to ensure stability and reliability for cloud users and Andras will manully update the cloud version when the update is ready.
 
 ## Manually Update/ Downgrade to Specific Versions
 
@@ -126,7 +126,7 @@ When a new version is released and a new GitHub release is created, it doesn't i
 > [!IMPORTANT]
 > Downgrading is supported but not recommended and can cause issues because of database migrations and other changes.
 
-To update your Coolify instance to a specific version, use the following command:
+To update your iDeploy instance to a specific version, use the following command:
 
 ```bash
 curl -fsSL https://cdn.coollabs.io/ideploy/install.sh | bash -s <version>

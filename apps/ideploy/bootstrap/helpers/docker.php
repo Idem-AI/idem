@@ -364,6 +364,12 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
     }
     $labels->push('traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https');
 
+    // Add CrowdSec middleware definitions if firewall is enabled
+    if ($application && function_exists('isFirewallEnabled') && isFirewallEnabled($application)) {
+        $crowdsecLabels = crowdSecLabelsForApplication($application, $uuid);
+        $labels = $labels->merge($crowdsecLabels);
+    }
+
     $is_http_basic_auth_enabled = $is_http_basic_auth_enabled && $http_basic_auth_username !== null && $http_basic_auth_password !== null;
     $http_basic_auth_label = "http-basic-auth-{$uuid}";
     if ($is_http_basic_auth_enabled) {
