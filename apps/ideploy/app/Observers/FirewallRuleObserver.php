@@ -13,6 +13,8 @@ class FirewallRuleObserver
      */
     public function saved(FirewallRule $rule): void
     {
+        ray("🔥 FirewallRuleObserver::saved triggered for rule: {$rule->name}");
+        
         // Only deploy if firewall is enabled
         if (!$rule->config->enabled) {
             ray("Rule saved but firewall disabled, skipping deployment");
