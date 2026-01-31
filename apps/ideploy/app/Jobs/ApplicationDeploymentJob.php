@@ -2410,6 +2410,10 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     $labelValue = trim($labelValue, '"\'');
                 }
                 
+                // Escape YAML special chars with quotes
+                if (str_contains($labelValue, ':')) {
+                    $labelValue = '"' . str_replace('"', '\\"', $labelValue) . '"';
+                }
                 $labelsArray[$labelKey] = $labelValue;
             }
         }
