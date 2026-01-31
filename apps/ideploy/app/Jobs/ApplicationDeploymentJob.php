@@ -2403,17 +2403,6 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 // It's a "key=value" string, split it
                 [$labelKey, $labelValue] = explode('=', $label, 2);
                 
-                // CRITICAL FIX: Remove quotes from CrowdsecLapiKey values
-                // The CrowdSec bouncer plugin validates against: /^[a-zA-Z0-9 !#$%&'*+-.^_`|~=/]*$/
-                // Quotes are NOT in this regex, so we must remove them
-                if (str_contains($labelKey, 'CrowdsecLapiKey')) {
-                    $labelValue = trim($labelValue, '"\'');
-                }
-                
-                // Escape YAML special chars with quotes
-                if (str_contains($labelValue, ':')) {
-                    $labelValue = '"' . str_replace('"', '\\"', $labelValue) . '"';
-                }
                 $labelsArray[$labelKey] = $labelValue;
             }
         }
@@ -2627,7 +2616,11 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             // Ignore debug errors
         }
 
-        $this->docker_compose = Yaml::dump($docker_compose, 10);
+        // CRITICAL FIX: Quote all label values containing special YAML chars BEFORE Yaml::dump
+        // This prevents "yaml: line X: could not find expected ':'" errors
+        $this->quoteYamlSpecialChars($docker_compose);
+
+        $this->docker_compose = Yaml::dump($docker_compose, 10, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
         $this->docker_compose_base64 = base64_encode($this->docker_compose);
         $this->execute_remote_command(
             [
@@ -2635,6 +2628,31 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 'hidden' => true,
             ]
         );
+    }
+
+    /**
+     * Recursively quote YAML special characters in all string values
+     * This prevents YAML parsing errors like "could not find expected ':'"
+     */
+    private function quoteYamlSpecialChars(&$array)
+    {
+        foreach ($array as $key => &$value) {
+            if (is_array($value)) {
+                // Recursively process nested arrays
+                $this->quoteYamlSpecialChars($value);
+            } elseif (is_string($value)) {
+                // Quote if contains : or starts with special chars
+                if (str_contains($value, ':') || 
+                    str_starts_with($value, '@') || 
+                    str_starts_with($value, '`') ||
+                    str_starts_with($value, '#')) {
+                    // Only quote if not already quoted
+                    if (!str_starts_with($value, '"') && !str_starts_with($value, "'")) {
+                        $value = '"' . str_replace('"', '\\"', $value) . '"';
+                    }
+                }
+            }
+        }
     }
 
     private function generate_local_persistent_volumes()
