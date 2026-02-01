@@ -2616,9 +2616,14 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             // Ignore debug errors
         }
 
-        // CRITICAL FIX: Quote all label values containing special YAML chars BEFORE Yaml::dump
+        // CRITICAL FIX: Quote ONLY label values containing : (not image names, ports, etc.)
         // This prevents "yaml: line X: could not find expected ':'" errors
-        $this->quoteYamlSpecialChars($docker_compose);
+        if (isset($docker_compose['services'][$this->container_name]['labels'])) {
+            $this->quoteYamlLabels($docker_compose['services'][$this->container_name]['labels']);
+        }
+        if ($this->server->isSwarm() && isset($docker_compose['services'][$this->container_name]['deploy']['labels'])) {
+            $this->quoteYamlLabels($docker_compose['services'][$this->container_name]['deploy']['labels']);
+        }
 
         $this->docker_compose = Yaml::dump($docker_compose, 10, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
         $this->docker_compose_base64 = base64_encode($this->docker_compose);
@@ -2631,21 +2636,16 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
     }
 
     /**
-     * Recursively quote YAML special characters in all string values
+     * Quote YAML special characters in label values ONLY
      * This prevents YAML parsing errors like "could not find expected ':'"
+     * Does NOT quote image names, ports, or volumes
      */
-    private function quoteYamlSpecialChars(&$array)
+    private function quoteYamlLabels(&$labels)
     {
-        foreach ($array as $key => &$value) {
-            if (is_array($value)) {
-                // Recursively process nested arrays
-                $this->quoteYamlSpecialChars($value);
-            } elseif (is_string($value)) {
-                // Quote if contains : or starts with special chars
-                if (str_contains($value, ':') || 
-                    str_starts_with($value, '@') || 
-                    str_starts_with($value, '`') ||
-                    str_starts_with($value, '#')) {
+        foreach ($labels as $key => &$value) {
+            if (is_string($value)) {
+                // Quote if contains : (like crowdsec-live:8080, http://..., etc.)
+                if (str_contains($value, ':')) {
                     // Only quote if not already quoted
                     if (!str_starts_with($value, '"') && !str_starts_with($value, "'")) {
                         $value = '"' . str_replace('"', '\\"', $value) . '"';
