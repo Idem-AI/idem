@@ -89,7 +89,7 @@ class FirewallRules extends Component
                 'enabled' => $rule->enabled,
                 'priority' => $rule->priority,
                 'rule_type' => $rule->rule_type,
-                'conditions' => $rule->conditions,
+                'conditions' => is_string($rule->conditions) ? json_decode($rule->conditions, true) : $rule->conditions,
                 'logical_operator' => $rule->logical_operator,
                 'action' => $rule->action,
                 'match_count' => $rule->match_count,
