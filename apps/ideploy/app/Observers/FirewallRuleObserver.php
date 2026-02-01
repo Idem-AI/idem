@@ -61,25 +61,21 @@ class FirewallRuleObserver
     }
     
     /**
-     * Ensure CrowdSec middlewares are applied to the application's Traefik routes
-     * This handles the case where the app was deployed before firewall activation
+     * Ensure application is redeployed to:
+     * 1. Apply CrowdSec middlewares to Traefik labels (if first rule)
+     * 2. Upload updated YAML rules to CrowdSec (always)
      * 
-     * SOLUTION: Trigger automatic redeployment to regenerate labels with firewall middlewares
+     * CRITICAL: We must ALWAYS redeploy when rules change to upload new YAML
      */
     private function ensureMiddlewaresApplied(FirewallRule $rule): void
     {
         $application = $rule->config->application;
         
-        // Check if firewall middlewares are already in labels
-        if ($this->hasFirewallMiddlewares($application)) {
-            ray("Firewall middlewares already present, skipping");
-            return;
-        }
+        ray("🔄 Triggering automatic redeployment to apply new firewall rule");
         
-        ray("⚠️ Firewall middlewares missing, triggering automatic redeployment");
-        
-        // Trigger automatic redeployment to apply firewall labels
-        // This will call generateLabelsApplication() which includes CrowdSec labels
+        // ALWAYS trigger redeployment to:
+        // 1. Ensure Traefik middlewares are applied
+        // 2. Upload new YAML rules to CrowdSec container
         $deploymentUuid = new \Visus\Cuid2\Cuid2();
         
         queue_application_deployment(
@@ -89,30 +85,5 @@ class FirewallRuleObserver
         );
         
         ray("✅ Automatic redeployment dispatched: {$deploymentUuid}");
-    }
-    
-    /**
-     * Check if application labels contain firewall middlewares
-     */
-    private function hasFirewallMiddlewares(\App\Models\Application $application): bool
-    {
-        $labels = $application->custom_labels ?? '';
-        
-        // Decode base64 if needed (single or double encoding)
-        $decodedLabels = $labels;
-        if (base64_decode($labels, true) !== false && 
-            base64_encode(base64_decode($labels)) === $labels) {
-            $decodedLabels = base64_decode($labels);
-            
-            // Check for double encoding
-            if (base64_decode($decodedLabels, true) !== false && 
-                base64_encode(base64_decode($decodedLabels)) === $decodedLabels) {
-                $decodedLabels = base64_decode($decodedLabels);
-            }
-        }
-        
-        // Check if crowdsec middleware is present
-        return str_contains($decodedLabels, "crowdsec-{$application->uuid}") ||
-               str_contains($decodedLabels, "middlewares.crowdsec-");
     }
 }
