@@ -2403,13 +2403,6 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 // It's a "key=value" string, split it
                 [$labelKey, $labelValue] = explode('=', $label, 2);
                 
-                // CRITICAL FIX: Remove quotes from CrowdsecLapiKey values
-                // The CrowdSec bouncer plugin validates against: /^[a-zA-Z0-9 !#$%&'*+-.^_`|~=/]*$/
-                // Quotes are NOT in this regex, so we must remove them
-                if (str_contains($labelKey, 'CrowdsecLapiKey')) {
-                    $labelValue = trim($labelValue, '"\'');
-                }
-                
                 $labelsArray[$labelKey] = $labelValue;
             }
         }
@@ -2623,7 +2616,16 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             // Ignore debug errors
         }
 
-        $this->docker_compose = Yaml::dump($docker_compose, 10);
+        // CRITICAL FIX: Quote ONLY label values containing : (not image names, ports, etc.)
+        // This prevents "yaml: line X: could not find expected ':'" errors
+        if (isset($docker_compose['services'][$this->container_name]['labels'])) {
+            $this->quoteYamlLabels($docker_compose['services'][$this->container_name]['labels']);
+        }
+        if ($this->server->isSwarm() && isset($docker_compose['services'][$this->container_name]['deploy']['labels'])) {
+            $this->quoteYamlLabels($docker_compose['services'][$this->container_name]['deploy']['labels']);
+        }
+
+        $this->docker_compose = Yaml::dump($docker_compose, 10, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
         $this->docker_compose_base64 = base64_encode($this->docker_compose);
         $this->execute_remote_command(
             [
@@ -2631,6 +2633,26 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 'hidden' => true,
             ]
         );
+    }
+
+    /**
+     * Quote YAML special characters in label values ONLY
+     * This prevents YAML parsing errors like "could not find expected ':'"
+     * Does NOT quote image names, ports, or volumes
+     */
+    private function quoteYamlLabels(&$labels)
+    {
+        foreach ($labels as $key => &$value) {
+            if (is_string($value)) {
+                // Quote if contains : (like crowdsec-live:8080, http://..., etc.)
+                if (str_contains($value, ':')) {
+                    // Only quote if not already quoted
+                    if (!str_starts_with($value, '"') && !str_starts_with($value, "'")) {
+                        $value = '"' . str_replace('"', '\\"', $value) . '"';
+                    }
+                }
+            }
+        }
     }
 
     private function generate_local_persistent_volumes()
@@ -2773,9 +2795,9 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
 
     private function build_image()
     {
-        // Add Coolify related variables to the build args/secrets
+        // Add iDeploy related variables to the build args/secrets
         if ($this->dockerBuildkitSupported) {
-            // Coolify variables are already included in the secrets from generate_build_env_variables
+            // iDeploy variables are already included in the secrets from generate_build_env_variables
             // build_secrets is already a string at this point
         } else {
             // Traditional build args approach - generate COOLIFY_ variables locally
@@ -3136,7 +3158,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         } else {
             if ($this->application->dockerfile || $this->application->build_pack === 'dockerfile' || $this->application->build_pack === 'dockerimage') {
                 $this->application_deployment_queue->addLogEntry('----------------------------------------');
-                $this->application_deployment_queue->addLogEntry("WARNING: Dockerfile or Docker Image based deployment detected. The healthcheck needs a curl or wget command to check the health of the application. Please make sure that it is available in the image or turn off healthcheck on Coolify's UI.");
+                $this->application_deployment_queue->addLogEntry("WARNING: Dockerfile or Docker Image based deployment detected. The healthcheck needs a curl or wget command to check the health of the application. Please make sure that it is available in the image or turn off healthcheck on iDeploy's UI.");
                 $this->application_deployment_queue->addLogEntry('----------------------------------------');
             }
             $this->application_deployment_queue->addLogEntry('New container is not healthy, rolling back to the old container.');

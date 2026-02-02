@@ -43,6 +43,10 @@ class ValidateServerInstallationJob implements ShouldQueue
         
         if ($isComplete) {
             ray("✅ Serveur {$this->server->name} - Installation complète et validée");
+            // Update server metadata based on successful validations
+            $this->updateServerMetadata($validationResults);
+            
+            ray("🎉 All firewall components validated successfully!");
         } else {
             ray("⚠️ Serveur {$this->server->name} - Installation incomplète: " . json_encode($validationResults));
             
@@ -115,7 +119,7 @@ class ValidateServerInstallationJob implements ShouldQueue
         // Retry CrowdSec installation if failed
         if (!$validationResults['crowdsec']) {
             ray("🔄 Retry CrowdSec installation");
-            InstallCrowdSecJob::dispatch($this->server)->delay(now()->addMinutes(2));
+            \App\Jobs\Server\InstallCrowdSecJob::dispatch($this->server)->delay(now()->addMinutes(2));
         }
         
         // Retry Traefik Logging if failed
@@ -128,6 +132,29 @@ class ValidateServerInstallationJob implements ShouldQueue
         if (!$validationResults['traffic_logger']) {
             ray("🔄 Retry Traffic Logger deployment");
             \App\Jobs\Security\DeployTrafficLoggerJob::dispatch($this->server)->delay(now()->addMinutes(3));
+        }
+    }
+    
+    private function updateServerMetadata(array $validationResults): void
+    {
+        $updateData = [];
+        
+        if ($validationResults['crowdsec'] ?? false) {
+            $updateData['crowdsec_installed'] = true;
+            $updateData['crowdsec_available'] = true;
+        }
+        
+        if ($validationResults['traefik_logging'] ?? false) {
+            $updateData['traefik_logging_enabled'] = true;
+        }
+        
+        if ($validationResults['traffic_logger'] ?? false) {
+            $updateData['traffic_logger_installed'] = true;
+        }
+        
+        if (!empty($updateData)) {
+            $this->server->update($updateData);
+            ray("✅ Server metadata updated: " . implode(', ', array_keys($updateData)));
         }
     }
 }

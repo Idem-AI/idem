@@ -5,14 +5,14 @@ on:
     branches: [ dev, main ]
     paths:
       - 'apps/appgen/**'
-      - 'Dockerfile.appgen'
+      - 'Dockerfile.appgen-client'
       - '.github/workflows/deploy-appgen.yml'
   pull_request:
     types: [ closed ]
     branches: [ main ]
     paths:
       - 'apps/appgen/**'
-      - 'Dockerfile.appgen'
+      - 'Dockerfile.appgen-client'
       - '.github/workflows/deploy-appgen.yml'
   workflow_dispatch:
 

@@ -31,7 +31,7 @@ class DeployTrafficLoggerJob implements ShouldQueue
             ], $this->server);
             
             // 2. Upload script Python
-            $loggerScript = base_path('traffic-logger-v2.py');
+            $loggerScript = base_path('templates/traffic-logger/app/logger.py');
             
             if (!file_exists($loggerScript)) {
                 ray("❌ Traffic Logger script not found: {$loggerScript}");
@@ -44,7 +44,18 @@ class DeployTrafficLoggerJob implements ShouldQueue
                 $this->server
             );
             
-            ray("✅ Script uploaded");
+            // 2.1. Upload requirements.txt
+            $requirementsFile = base_path('templates/traffic-logger/app/requirements.txt');
+            if (file_exists($requirementsFile)) {
+                instant_scp(
+                    $requirementsFile,
+                    '/opt/traffic-logger/requirements.txt',
+                    $this->server
+                );
+                ray("✅ Requirements uploaded");
+            }
+            
+            ray("✅ Traffic Logger files uploaded");
             
             // 3. Arrêter ancien container si existe
             instant_remote_process([
@@ -56,10 +67,17 @@ class DeployTrafficLoggerJob implements ShouldQueue
             // IMPORTANT: iDeploy est sur un serveur différent, utiliser l'IP publique
             $iDeployPublicUrl = config('app.url');
             
-            // Si URL locale, utiliser l'IP du serveur iDeploy
+            // Si URL locale, utiliser l'IP accessible depuis le serveur distant
             if (str_contains($iDeployPublicUrl, 'localhost') || str_contains($iDeployPublicUrl, '127.0.0.1')) {
-                // Récupérer l'IP publique du serveur iDeploy depuis les settings
-                $iDeployPublicUrl = 'http://' . gethostname() . ':8000';
+                // Utiliser une IP réellement accessible depuis le serveur de production
+                // Solution temporaire : utiliser l'IP publique ou un tunnel
+                $iDeployPublicUrl = 'http://142.93.201.15:8000'; // Remplacer par votre IP publique réelle
+            }
+            
+            // Generate API key for secure communication
+            $apiKey = $this->server->traffic_logger_api_key ?? \Str::random(32);
+            if (!$this->server->traffic_logger_api_key) {
+                $this->server->update(['traffic_logger_api_key' => $apiKey]);
             }
             
             ray("Traffic Logger will connect to: {$iDeployPublicUrl}");
@@ -68,12 +86,13 @@ class DeployTrafficLoggerJob implements ShouldQueue
                 "docker run -d --name traffic-logger \\
                     --network coolify \\
                     --restart unless-stopped \\
-                    -v /var/log/traefik:/var/log/traefik:ro \\
+                    -v /data/coolify/proxy:/var/log/traefik:ro \\
                     -v /opt/traffic-logger:/app \\
                     -e IDEPLOY_API_URL={$iDeployPublicUrl}/api/internal/traffic-metrics \\
+                    -e IDEPLOY_API_KEY={$apiKey} \\
                     -e CROWDSEC_LAPI_URL=http://crowdsec-live:8080 \\
                     python:3.11-slim \\
-                    sh -c 'pip install requests && python /app/logger.py'"
+                    sh -c 'cd /app && pip install -r requirements.txt && python logger.py'"
             ], $this->server);
             
             ray("✅ Container started");

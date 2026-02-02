@@ -179,7 +179,7 @@ class FirewallConfigService
         try {
             // Create bouncer directly via SSH (more reliable than LAPI)
             $result = instant_remote_process([
-                "docker exec crowdsec cscli bouncers add {$bouncerName} -o raw"
+                "docker exec crowdsec-live cscli bouncers add {$bouncerName} -o raw"
             ], $server);
             
             $apiKey = trim($result);
@@ -271,7 +271,7 @@ class FirewallConfigService
     {
         // Send SIGHUP to CrowdSec container to reload config
         instant_remote_process([
-            'docker exec crowdsec kill -SIGHUP 1',
+            'docker exec crowdsec-live kill -SIGHUP 1',
         ], $server);
         
         ray('CrowdSec configuration reloaded');
