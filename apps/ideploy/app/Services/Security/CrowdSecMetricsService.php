@@ -62,7 +62,8 @@ class CrowdSecMetricsService
     {
         try {
             // Get alerts which contain decisions
-            $command = "docker exec crowdsec-live cscli alerts list -o json --limit 100";
+            $containerName = config('crowdsec.docker.container_name');
+            $command = "docker exec {$containerName} cscli alerts list -o json --limit 100";
             $output = instant_remote_process([$command], $server, false);
             
             if (empty($output)) {
@@ -104,7 +105,8 @@ class CrowdSecMetricsService
     private function getAlerts(Server $server, string $appUuid): array
     {
         try {
-            $command = "docker exec crowdsec-live cscli alerts list -o json --limit 100";
+            $containerName = config('crowdsec.docker.container_name');
+            $command = "docker exec {$containerName} cscli alerts list -o json --limit 100";
             $output = instant_remote_process([$command], $server, false);
             
             if (empty($output)) {
