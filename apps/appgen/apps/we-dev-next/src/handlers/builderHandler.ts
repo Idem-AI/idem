@@ -250,8 +250,40 @@ Branding (MANDATORY):
 - Primary: ${primaryColor}
 - Font: ${primaryFont}
 
-Start with <boltArtifact id="${projectId}" title="${artifactTitle}">
-...complete implementation...
+CRITICAL: You MUST respond with a complete <boltArtifact> containing ALL files.
+Start IMMEDIATELY with:
+
+<boltArtifact id="${projectId}" title="${artifactTitle}">
+  <boltAction type="file" filePath="package.json">
+  ...complete package.json with all dependencies...
+  </boltAction>
+  <boltAction type="file" filePath="vite.config.js">
+  ...complete vite config...
+  </boltAction>
+  <boltAction type="file" filePath="tailwind.config.js">
+  ...complete tailwind config...
+  </boltAction>
+  <boltAction type="file" filePath="postcss.config.js">
+  ...complete postcss config...
+  </boltAction>
+  <boltAction type="file" filePath="index.html">
+  ...complete HTML...
+  </boltAction>
+  <boltAction type="file" filePath="src/main.jsx">
+  ...complete main.jsx...
+  </boltAction>
+  <boltAction type="file" filePath="src/index.css">
+  ...complete CSS with Tailwind...
+  </boltAction>
+  <boltAction type="file" filePath="src/App.jsx">
+  ...complete App component with all sections...
+  </boltAction>
+  <boltAction type="shell">
+  npm install
+  </boltAction>
+  <boltAction type="start">
+  npm run dev
+  </boltAction>
 </boltArtifact>`;
 
       const finalContent = systemInstructions + '\n\n' + userRequest;
