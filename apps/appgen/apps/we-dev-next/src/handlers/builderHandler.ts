@@ -10,6 +10,7 @@ import { screenshotOne } from '../utils/screenshotone.js';
 import { ProjectPromptService } from '../services/projectPromptService.js';
 import { ChatLogger } from '../utils/logger.js';
 import { streamResponse } from '../utils/streamResponse.js';
+import { tokenLimits } from '../config/tokenLimits.js';
 
 export async function handleBuilderMode(
   messages: Messages,
@@ -371,9 +372,12 @@ Start IMMEDIATELY with:
   } else {
     ChatLogger.info('NO_PROJECT_DATA', 'No project data provided, using original logic');
     const tokenCount = estimateTokens(allContent);
-    ChatLogger.debug('TOKEN_ESTIMATE', 'Estimated tokens', { tokenCount, threshold: 128000 });
+    ChatLogger.debug('TOKEN_ESTIMATE', 'Estimated tokens', {
+      tokenCount,
+      threshold: tokenLimits.standardTokenLimit,
+    });
 
-    if (tokenCount > 128000) {
+    if (tokenCount > tokenLimits.standardTokenLimit) {
       ChatLogger.warn('TOKEN_LIMIT', 'Token limit exceeded, handling token limit...');
       const { files } = processFiles(messages, true);
       nowFiles = await handleTokenLimit(messages, files, filesPath);
