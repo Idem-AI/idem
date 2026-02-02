@@ -70,6 +70,37 @@ NETLIFY_DEPLOY_URL=https://api.netlify.com/api/v1/sites
 
 # CORS Configuration
 CORS_ORIGIN=*
+
+# AI Generation Token Limits
+AI_MAX_OUTPUT_TOKENS=8192      # Maximum tokens in AI response
+AI_MAX_INPUT_TOKENS=128000     # Maximum tokens in input context
+AI_STANDARD_TOKEN_LIMIT=128000 # Threshold for token-limited mode
+```
+
+### Token Limits Configuration
+
+Control AI generation token limits via environment variables. See [TOKEN_LIMITS.md](./TOKEN_LIMITS.md) for detailed documentation.
+
+**Quick Configuration:**
+
+- `AI_MAX_OUTPUT_TOKENS` - Maximum tokens the AI can generate (default: 8192)
+- `AI_MAX_INPUT_TOKENS` - Maximum tokens in input context (default: 128000)
+- `AI_STANDARD_TOKEN_LIMIT` - Threshold for smart token management (default: 128000)
+
+**Example configurations:**
+
+```env
+# Standard (recommended)
+AI_MAX_OUTPUT_TOKENS=8192
+AI_MAX_INPUT_TOKENS=128000
+
+# High performance
+AI_MAX_OUTPUT_TOKENS=16384
+AI_MAX_INPUT_TOKENS=200000
+
+# Cost-effective
+AI_MAX_OUTPUT_TOKENS=4096
+AI_MAX_INPUT_TOKENS=32000
 ```
 
 ## 🏃 Running the Application
@@ -344,6 +375,7 @@ This is a replica of the Next.js version. Maintain feature parity when making ch
 
 ## 📚 Documentation
 
+- [Token Limits Configuration](./TOKEN_LIMITS.md) - Configure AI generation token limits
 - [Next.js Original](../we-dev-next/README.md)
 - [API Documentation](./docs/API.md)
 - [Architecture](./docs/ARCHITECTURE.md)

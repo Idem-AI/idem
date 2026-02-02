@@ -1,3 +1,5 @@
+import { tokenLimits } from './tokenLimits.js';
+
 interface ModelConfig {
   modelName: string;
   modelKey: string;
@@ -23,6 +25,7 @@ const defaultModelConfigs: ModelConfig[] = [
     functionCall: true,
     temperature: 0.7,
     topP: 0.95,
+    maxOutputTokens: tokenLimits.maxOutputTokens,
   },
 ];
 

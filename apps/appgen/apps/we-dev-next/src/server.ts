@@ -8,6 +8,7 @@ import chatRouter from './routes/chat.js';
 import deployRouter from './routes/deploy.js';
 import enhancedPromptRouter from './routes/enhancedPrompt.js';
 import modelRouter from './routes/model.js';
+import { logTokenLimits } from './config/tokenLimits.js';
 
 dotenv.config();
 
@@ -83,6 +84,10 @@ app.listen(PORT, () => {
   console.log(`   GET    /api/model/config      - Get model configuration`);
   console.log(`   GET    /api/model/default     - Get default model`);
   console.log(`   GET    /health                - Health check`);
+  console.log('='.repeat(80));
+
+  logTokenLimits();
+
   console.log('='.repeat(80));
   console.log('\n');
 });
