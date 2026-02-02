@@ -341,11 +341,22 @@ class ScenarioGeneratorService
         // Générer scenarios avec isolation par app_uuid
         foreach ($config->rules()->enabled()->get() as $rule) {
             try {
+                // Ensure conditions are properly decoded
+                $conditions = $rule->conditions;
+                if (is_string($conditions)) {
+                    $conditions = json_decode($conditions, true) ?? [];
+                }
+                
+                // Filter out empty conditions
+                $conditions = array_filter($conditions, function($condition) {
+                    return !empty($condition) && isset($condition['operator']) && isset($condition['field']);
+                });
+                
                 // Utiliser le nouveau ParserGeneratorService qui inclut l'isolation
                 $scenarioYaml = $parserService->generateScenario(
                     $config->application->uuid,
                     $rule->name,
-                    $rule->conditions,
+                    $conditions,
                     $rule->action,
                     $rule->id  // Pass rule ID to guarantee unique scenario names
                 );

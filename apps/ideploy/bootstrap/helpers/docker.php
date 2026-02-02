@@ -364,6 +364,12 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
     }
     $labels->push('traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https');
 
+    // Add CrowdSec middleware definitions if firewall is enabled
+    if ($application && function_exists('isFirewallEnabled') && isFirewallEnabled($application)) {
+        $crowdsecLabels = crowdSecLabelsForApplication($application, $uuid);
+        $labels = $labels->merge($crowdsecLabels);
+    }
+
     $is_http_basic_auth_enabled = $is_http_basic_auth_enabled && $http_basic_auth_username !== null && $http_basic_auth_password !== null;
     $http_basic_auth_label = "http-basic-auth-{$uuid}";
     if ($is_http_basic_auth_enabled) {
@@ -442,7 +448,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
             ];
             if ($schema === 'https') {
                 // Set labels for https
-                $labels->push("traefik.http.routers.{$https_label}.rule=Host(`{$host}`) && PathPrefix(`{$path}`)");
+                $labels->push("traefik.http.routers.{$https_label}.rule=\"Host(`{$host}`) && PathPrefix(`{$path}`)\"");
                 $labels->push("traefik.http.routers.{$https_label}.entryPoints=https");
                 if ($port) {
                     $labels->push("traefik.http.routers.{$https_label}.service={$https_label}");
@@ -536,7 +542,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                 $labels->push("traefik.http.routers.{$https_label}.tls.certresolver=letsencrypt");
 
                 // Set labels for http (redirect to https)
-                $labels->push("traefik.http.routers.{$http_label}.rule=Host(`{$host}`) && PathPrefix(`{$path}`)");
+                $labels->push("traefik.http.routers.{$http_label}.rule=\"Host(`{$host}`) && PathPrefix(`{$path}`)\"" );
                 $labels->push("traefik.http.routers.{$http_label}.entryPoints=http");
                 if ($port) {
                     $labels->push("traefik.http.services.{$http_label}.loadbalancer.server.port=$port");
@@ -547,7 +553,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                 }
             } else {
                 // Set labels for http
-                $labels->push("traefik.http.routers.{$http_label}.rule=Host(`{$host}`) && PathPrefix(`{$path}`)");
+                $labels->push("traefik.http.routers.{$http_label}.rule=\"Host(`{$host}`) && PathPrefix(`{$path}`)\"");
                 $labels->push("traefik.http.routers.{$http_label}.entryPoints=http");
                 if ($port) {
                     $labels->push("traefik.http.services.{$http_label}.loadbalancer.server.port=$port");

@@ -20,6 +20,9 @@ RUN npm install --legacy-peer-deps --ignore-scripts
 WORKDIR /app/apps/main-dashboard
 RUN npm install --legacy-peer-deps --ignore-scripts
 
+# Copier les assets ngx-extended-pdf-viewer en utilisant le script postinstall
+RUN npm run postinstall
+
 RUN node -r dotenv/config mynode.js
 # Builder l'application main-dashboard
 RUN npm run build
