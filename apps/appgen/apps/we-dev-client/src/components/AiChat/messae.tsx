@@ -89,9 +89,6 @@ export class StreamingMessageParser {
   constructor(private options: StreamingMessageParserOptions = {}) {}
 
   parse(input: string, messageId: string): string {
-    console.log(' [PARSER] Input length:', input.length);
-    console.log(' [PARSER] First 200 chars:', input.substring(0, 200));
-
     // Clean the input before parsing to handle BOM, invisible chars, markdown fences
     let cleanedInput = input
       .replace(/\uFEFF/g, '') // Remove BOM
@@ -103,13 +100,8 @@ export class StreamingMessageParser {
     // Remove any text before the first < tag
     const firstTagIndex = cleanedInput.indexOf('<');
     if (firstTagIndex > 0) {
-      console.log(' [PARSER] Removed', firstTagIndex, 'chars before first tag');
       cleanedInput = cleanedInput.substring(firstTagIndex);
     }
-
-    console.log(' [PARSER] Cleaned length:', cleanedInput.length);
-    console.log(' [PARSER] Has <boltArtifact>:', cleanedInput.includes('<boltArtifact'));
-    console.log(' [PARSER] Has </boltArtifact>:', cleanedInput.includes('</boltArtifact>'));
 
     let state = this.messages.get(messageId);
     if (!state) {
