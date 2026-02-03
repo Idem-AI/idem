@@ -11,7 +11,7 @@ COPY ./apps/appgen/apps/we-dev-next ./apps/appgen/apps/we-dev-next
 WORKDIR /app/apps/appgen/apps/we-dev-next
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci 
 
 # Build TypeScript application
 RUN npm run build
