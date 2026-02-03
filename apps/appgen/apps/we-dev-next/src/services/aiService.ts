@@ -238,13 +238,5 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
     streamConfig.system = systemInstruction;
   }
 
-  // Force Gemini to process new prompts instead of using cached responses
-  if (modelConf.provider === 'gemini' || modelConf.provider === 'google') {
-    streamConfig.experimental_telemetry = {
-      isEnabled: true,
-      functionId: `chat-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-    };
-  }
-
   return streamText(streamConfig);
 }
