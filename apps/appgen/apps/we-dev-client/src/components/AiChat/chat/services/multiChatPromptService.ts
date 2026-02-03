@@ -1,6 +1,6 @@
-import { LandingPageConfig } from "@/api/persistence/models/development.model";
-import { ChatType } from "../../../Sidebar/ProjectSidebar";
-import { ProjectModel } from "@/api/persistence/models/project.model";
+import { LandingPageConfig } from '@/api/persistence/models/development.model';
+import { ChatType } from '../../../Sidebar/ProjectSidebar';
+import { ProjectModel } from '@/api/persistence/models/project.model';
 
 export class MultiChatPromptService {
   /**
@@ -8,8 +8,8 @@ export class MultiChatPromptService {
    */
   generatePrompt(projectData: ProjectModel): string {
     const landingPageConfig =
-      projectData.analysisResultModel?.development?.configs
-        ?.landingPageConfig || LandingPageConfig.NONE;
+      projectData.analysisResultModel?.development?.configs?.landingPageConfig ||
+      LandingPageConfig.NONE;
 
     switch (landingPageConfig) {
       case LandingPageConfig.SEPARATE:
@@ -30,14 +30,11 @@ export class MultiChatPromptService {
   /**
    * Generate prompt for SEPARATE config (two separate chats)
    */
-  private generateSeparatePrompt(
-    projectData: ProjectModel,
-    chatType: ChatType
-  ): string {
+  private generateSeparatePrompt(projectData: ProjectModel, chatType: ChatType): string {
     if (chatType === ChatType.LANDING_PAGE) {
-      return this.generateLandingPagePrompt(projectData, "separate");
+      return this.generateLandingPagePrompt(projectData, 'separate');
     } else {
-      return this.generateApplicationPrompt(projectData, "separate");
+      return this.generateApplicationPrompt(projectData, 'separate');
     }
   }
 
@@ -45,40 +42,35 @@ export class MultiChatPromptService {
    * Generate prompt for INTEGRATED config (single chat with landing page)
    */
   private generateIntegratedPrompt(projectData: ProjectModel): string {
-    return this.generateApplicationPrompt(projectData, "integrated");
+    return this.generateApplicationPrompt(projectData, 'integrated');
   }
 
   /**
    * Generate prompt for ONLY_LANDING config (landing page only)
    */
   private generateLandingOnlyPrompt(projectData: ProjectModel): string {
-    return this.generateLandingPagePrompt(projectData, "only");
+    return this.generateLandingPagePrompt(projectData, 'only');
   }
 
   /**
    * Generate prompt for NONE config (application only)
    */
   private generateAppOnlyPrompt(projectData: ProjectModel): string {
-    return this.generateApplicationPrompt(projectData, "none");
+    return this.generateApplicationPrompt(projectData, 'none');
   }
 
   /**
    * Generate comprehensive landing page prompt
    */
-  private generateLandingPagePrompt(
-    projectData: ProjectModel,
-    type: "separate" | "only"
-  ): string {
+  private generateLandingPagePrompt(projectData: ProjectModel, type: 'separate' | 'only'): string {
     const projectInfo = this.getCompleteProjectInfo(projectData);
     const brandInfo = this.getCompleteBrandInfo(projectData);
     const techStack = this.getCompleteTechStack(projectData);
 
     const title =
-      type === "separate"
-        ? "Separate Landing Page Generation"
-        : "Landing Page Only Generation";
+      type === 'separate' ? 'Separate Landing Page Generation' : 'Landing Page Only Generation';
     const objective =
-      type === "separate"
+      type === 'separate'
         ? `Create a separate and independent landing page to present the "${projectData.name}" project.`
         : `Create a standalone landing page for "${projectData.name}" without any application functionality.`;
 
@@ -92,9 +84,9 @@ ${brandInfo}
 ${objective}
 
 ## Landing Page Specifications
-- **Type**: Marketing landing page ${type === "separate" ? "separate from the application" : "only"}
+- **Type**: Marketing landing page ${type === 'separate' ? 'separate from the application' : 'only'}
 - **Goal**: Present the product, convert visitors to users
-- **Integration**: ${type === "separate" ? "Link to main application but separate codebase" : "No application integration needed"}
+- **Integration**: ${type === 'separate' ? 'Link to main application but separate codebase' : 'No application integration needed'}
 
 ${techStack}
 
@@ -109,14 +101,14 @@ ${techStack}
 
 
 ## Instructions
-- Create a high-converting ${type === "separate" ? "separate" : "standalone"} landing page
+- Create a high-converting ${type === 'separate' ? 'separate' : 'standalone'} landing page
 - Focus on marketing and conversion optimization
 - Implement modern design with smooth animations
 - Optimize for SEO and performance
 - Include clear call-to-action buttons
 - Make it fully responsive across all devices
 - Use the provided brand assets and colors
-- ${type === "separate" ? "Include clear CTAs to the application" : "No application functionality needed"}
+- ${type === 'separate' ? 'Include clear CTAs to the application' : 'No application functionality needed'}
 
 Generate the complete landing page code with all necessary files.`;
   }
@@ -126,7 +118,7 @@ Generate the complete landing page code with all necessary files.`;
    */
   private generateApplicationPrompt(
     projectData: ProjectModel,
-    type: "separate" | "integrated" | "none"
+    type: 'separate' | 'integrated' | 'none'
   ): string {
     const projectInfo = this.getCompleteProjectInfo(projectData);
     const brandInfo = this.getCompleteBrandInfo(projectData);
@@ -134,14 +126,14 @@ Generate the complete landing page code with all necessary files.`;
     const features = this.getCompleteFeatures(projectData);
     const useCaseDiagrams = this.getUseCaseDiagrams(projectData);
 
-    let title = "Web Application Generation";
-    let objective = "";
-    let specifications = "";
-    let instructions = "";
+    let title = 'Web Application Generation';
+    let objective = '';
+    let specifications = '';
+    let instructions = '';
 
     switch (type) {
-      case "separate":
-        title = "Application Generation (Separate Configuration)";
+      case 'separate':
+        title = 'Application Generation (Separate Configuration)';
         objective = `Create the main "${projectData.name}" application without integrated landing page.`;
         specifications = `## Application Specifications
 - **Type**: Complete web application
@@ -156,8 +148,8 @@ Generate the complete landing page code with all necessary files.`;
 - Landing page will be managed separately
 - Use the provided brand assets and design system`;
         break;
-      case "integrated":
-        title = "Application Generation with Integrated Landing Page";
+      case 'integrated':
+        title = 'Application Generation with Integrated Landing Page';
         objective = `Create a complete "${projectData.name}" web application with integrated landing page.`;
         specifications = `## Architecture
 - **Type**: Monolithic application with integrated landing page
@@ -180,8 +172,8 @@ Generate the complete landing page code with all necessary files.`;
 - Use the provided brand assets throughout
 - Implement all features based on use case diagrams`;
         break;
-      case "none":
-        title = "Web Application Generation";
+      case 'none':
+        title = 'Web Application Generation';
         objective = `Create the "${projectData.name}" web application without landing page.`;
         specifications = `## Specifications
 - **Type**: Pure web application
@@ -224,12 +216,26 @@ Generate the complete application code with all necessary files.`;
    * Get complete project information
    */
   private getCompleteProjectInfo(projectData: ProjectModel): string {
+    const typeStr =
+      typeof projectData.type === 'object'
+        ? JSON.stringify(projectData.type)
+        : projectData.type || 'web';
+    const scopeStr =
+      typeof projectData.scope === 'object'
+        ? JSON.stringify(projectData.scope)
+        : projectData.scope || 'Not specified';
+    const targetsStr = Array.isArray(projectData.targets)
+      ? projectData.targets.join(', ')
+      : typeof projectData.targets === 'object'
+        ? JSON.stringify(projectData.targets)
+        : projectData.targets || 'Not specified';
+
     return `## Project Information
 - **Name**: ${projectData.name}
-- **Description**: ${projectData.description || "No description provided"}
-- **Type**: ${projectData.type || "web"}
-- **Scope**: ${projectData.scope || "Not specified"}
-- **Targets**: ${Array.isArray(projectData.targets) ? projectData.targets.join(", ") : projectData.targets || "Not specified"}`;
+- **Description**: ${projectData.description || 'No description provided'}
+- **Type**: ${typeStr}
+- **Scope**: ${scopeStr}
+- **Targets**: ${targetsStr}`;
   }
 
   /**
@@ -237,31 +243,14 @@ Generate the complete application code with all necessary files.`;
    */
   private getCompleteBrandInfo(projectData: ProjectModel): string {
     const branding = projectData.analysisResultModel?.branding;
-    if (!branding)
-      return "## Brand Information\n- No brand information specified";
+    if (!branding) return '## Brand Information\n- No brand information specified';
 
-    let brandInfo = "## Brand Information\n";
+    let brandInfo = '## Brand Information\n';
 
-    // Logo information
+    // Logo information - simplified to just URL
     if (branding.logo) {
       brandInfo += `### Logo\n`;
-      brandInfo += `- **Main Logo**: ${branding.logo.svg} (URL)\n`;
-      brandInfo += `- **Concept**: ${branding.logo.concept}\n`;
-      brandInfo += `- **Colors**: ${branding.logo.colors?.join(", ") || "Not specified"}\n`;
-      brandInfo += `- **Fonts**: ${branding.logo.fonts?.join(", ") || "Not specified"}\n`;
-
-      if (branding.logo.variations) {
-        brandInfo += `- **Variations**:\n`;
-        if (branding.logo.variations.lightBackground) {
-          brandInfo += `  - Light Background: ${branding.logo.variations.lightBackground} (URL)\n`;
-        }
-        if (branding.logo.variations.darkBackground) {
-          brandInfo += `  - Dark Background: ${branding.logo.variations.darkBackground} (URL)\n`;
-        }
-        if (branding.logo.variations.monochrome) {
-          brandInfo += `  - Monochrome: ${branding.logo.variations.monochrome} (URL)\n`;
-        }
-      }
+      brandInfo += `- **Logo URL**: ${branding.logo.svg}\n`;
     }
 
     // Colors
@@ -295,9 +284,9 @@ Generate the complete application code with all necessary files.`;
    */
   private getCompleteTechStack(projectData: ProjectModel): string {
     const configs = projectData.analysisResultModel?.development?.configs;
-    if (!configs) return "## Technology Stack\n- No technology stack specified";
+    if (!configs) return '## Technology Stack\n- No technology stack specified';
 
-    let techStack = "## Technology Stack\n";
+    let techStack = '## Technology Stack\n';
 
     // Frontend
     if (configs.frontend) {
@@ -307,7 +296,7 @@ Generate the complete application code with all necessary files.`;
         techStack += ` v${configs.frontend.frameworkVersion}`;
       }
       techStack += `\n`;
-      techStack += `- **Styling**: ${Array.isArray(configs.frontend.styling) ? configs.frontend.styling.join(", ") : configs.frontend.styling}\n`;
+      techStack += `- **Styling**: ${Array.isArray(configs.frontend.styling) ? configs.frontend.styling.join(', ') : configs.frontend.styling}\n`;
 
       if (configs.frontend.features) {
         techStack += `- **Frontend Features**: ${JSON.stringify(configs.frontend.features)}\n`;
@@ -317,13 +306,13 @@ Generate the complete application code with all necessary files.`;
     // Backend
     if (configs.backend) {
       techStack += `### Backend\n`;
-      techStack += `- **Language**: ${configs.backend.language || "Not specified"}\n`;
-      techStack += `- **Framework**: ${configs.backend.framework || "Not specified"}`;
+      techStack += `- **Language**: ${configs.backend.language || 'Not specified'}\n`;
+      techStack += `- **Framework**: ${configs.backend.framework || 'Not specified'}`;
       if (configs.backend.frameworkVersion) {
         techStack += ` v${configs.backend.frameworkVersion}`;
       }
       techStack += `\n`;
-      techStack += `- **API Type**: ${configs.backend.apiType || "REST"}\n`;
+      techStack += `- **API Type**: ${configs.backend.apiType || 'REST'}\n`;
 
       if (configs.backend.features) {
         techStack += `- **Backend Features**: ${JSON.stringify(configs.backend.features)}\n`;
@@ -344,14 +333,14 @@ Generate the complete application code with all necessary files.`;
     if (configs.projectConfig) {
       techStack += `### Project Configuration\n`;
       const projectConfig = configs.projectConfig;
-      techStack += `- **Authentication**: ${projectConfig.authentication ? "Enabled" : "Disabled"}\n`;
-      techStack += `- **Authorization**: ${projectConfig.authorization ? "Enabled" : "Disabled"}\n`;
-      techStack += `- **SEO**: ${projectConfig.seoEnabled ? "Enabled" : "Disabled"}\n`;
-      techStack += `- **Contact Form**: ${projectConfig.contactFormEnabled ? "Enabled" : "Disabled"}\n`;
-      techStack += `- **Analytics**: ${projectConfig.analyticsEnabled ? "Enabled" : "Disabled"}\n`;
-      techStack += `- **Internationalization**: ${projectConfig.i18nEnabled ? "Enabled" : "Disabled"}\n`;
-      techStack += `- **Performance Optimization**: ${projectConfig.performanceOptimized ? "Enabled" : "Disabled"}\n`;
-      techStack += `- **Payment Integration**: ${projectConfig.paymentIntegration ? "Enabled" : "Disabled"}\n`;
+      techStack += `- **Authentication**: ${projectConfig.authentication ? 'Enabled' : 'Disabled'}\n`;
+      techStack += `- **Authorization**: ${projectConfig.authorization ? 'Enabled' : 'Disabled'}\n`;
+      techStack += `- **SEO**: ${projectConfig.seoEnabled ? 'Enabled' : 'Disabled'}\n`;
+      techStack += `- **Contact Form**: ${projectConfig.contactFormEnabled ? 'Enabled' : 'Disabled'}\n`;
+      techStack += `- **Analytics**: ${projectConfig.analyticsEnabled ? 'Enabled' : 'Disabled'}\n`;
+      techStack += `- **Internationalization**: ${projectConfig.i18nEnabled ? 'Enabled' : 'Disabled'}\n`;
+      techStack += `- **Performance Optimization**: ${projectConfig.performanceOptimized ? 'Enabled' : 'Disabled'}\n`;
+      techStack += `- **Payment Integration**: ${projectConfig.paymentIntegration ? 'Enabled' : 'Disabled'}\n`;
     }
 
     return techStack;
@@ -362,13 +351,13 @@ Generate the complete application code with all necessary files.`;
    */
   private getCompleteFeatures(projectData: ProjectModel): string {
     const configs = projectData.analysisResultModel?.development?.configs;
-    if (!configs) return "## Features\n- No features specified";
+    if (!configs) return '## Features\n- No features specified';
 
-    let featuresInfo = "## Features to Implement\n";
+    let featuresInfo = '## Features to Implement\n';
 
     // Frontend features
     if (configs.frontend?.features) {
-      featuresInfo += "### Frontend Features\n";
+      featuresInfo += '### Frontend Features\n';
       const frontendFeatures = configs.frontend.features;
       if (Array.isArray(frontendFeatures)) {
         frontendFeatures.forEach((feature) => {
@@ -381,12 +370,12 @@ Generate the complete application code with all necessary files.`;
           }
         });
       }
-      featuresInfo += "\n";
+      featuresInfo += '\n';
     }
 
     // Backend features
     if (configs.backend?.features) {
-      featuresInfo += "### Backend Features\n";
+      featuresInfo += '### Backend Features\n';
       const backendFeatures = configs.backend.features;
       if (Array.isArray(backendFeatures)) {
         backendFeatures.forEach((feature) => {
@@ -399,28 +388,24 @@ Generate the complete application code with all necessary files.`;
           }
         });
       }
-      featuresInfo += "\n";
+      featuresInfo += '\n';
     }
 
     // Project configuration features
     if (configs.projectConfig) {
-      featuresInfo += "### Project Features\n";
+      featuresInfo += '### Project Features\n';
       const projectConfig = configs.projectConfig;
-      if (projectConfig.authentication)
-        featuresInfo += "- User Authentication\n";
-      if (projectConfig.authorization) featuresInfo += "- User Authorization\n";
-      if (projectConfig.seoEnabled) featuresInfo += "- SEO Optimization\n";
-      if (projectConfig.contactFormEnabled) featuresInfo += "- Contact Form\n";
-      if (projectConfig.analyticsEnabled)
-        featuresInfo += "- Analytics Integration\n";
-      if (projectConfig.i18nEnabled) featuresInfo += "- Internationalization\n";
-      if (projectConfig.performanceOptimized)
-        featuresInfo += "- Performance Optimization\n";
-      if (projectConfig.paymentIntegration)
-        featuresInfo += "- Payment Integration\n";
+      if (projectConfig.authentication) featuresInfo += '- User Authentication\n';
+      if (projectConfig.authorization) featuresInfo += '- User Authorization\n';
+      if (projectConfig.seoEnabled) featuresInfo += '- SEO Optimization\n';
+      if (projectConfig.contactFormEnabled) featuresInfo += '- Contact Form\n';
+      if (projectConfig.analyticsEnabled) featuresInfo += '- Analytics Integration\n';
+      if (projectConfig.i18nEnabled) featuresInfo += '- Internationalization\n';
+      if (projectConfig.performanceOptimized) featuresInfo += '- Performance Optimization\n';
+      if (projectConfig.paymentIntegration) featuresInfo += '- Payment Integration\n';
     }
 
-    return featuresInfo || "## Features\n- No features specified";
+    return featuresInfo || '## Features\n- No features specified';
   }
 
   /**
@@ -429,12 +414,12 @@ Generate the complete application code with all necessary files.`;
   private getUseCaseDiagrams(projectData: ProjectModel): string {
     const diagrams = projectData.analysisResultModel?.design;
     if (!diagrams || !diagrams.sections || diagrams.sections.length === 0) {
-      return "## Use Case Diagrams\n- No use case diagrams specified";
+      return '## Use Case Diagrams\n- No use case diagrams specified';
     }
 
-    let diagramsInfo = "## Use Case Diagrams\n";
+    let diagramsInfo = '## Use Case Diagrams\n';
     diagramsInfo +=
-      "**IMPORTANT**: Implement the application based on these use case diagrams:\n\n";
+      '**IMPORTANT**: Implement the application based on these use case diagrams:\n\n';
 
     diagrams.sections.forEach((section, index) => {
       diagramsInfo += `### ${section.name}\n`;
