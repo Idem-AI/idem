@@ -29,16 +29,28 @@ PROJECT SETUP:
 
 OUTPUT FORMAT:
 <boltArtifact id="project-id" title="Project Title">
-  <boltAction type="file" filePath="path">code</boltAction>
-  <boltAction type="shell">npm install package-name</boltAction>
+  <boltAction type="file" filePath="package.json">package.json content</boltAction>
+  <boltAction type="file" filePath="path">other files</boltAction>
+  <boltAction type="shell">npm install</boltAction>
   <boltAction type="start">npm run dev</boltAction>
 </boltArtifact>
 
 IMPORTANT RULES:
 1. NEVER run project initialization commands (create-vite, create-react-app, etc.)
 2. Work with the existing project structure
-3. Only add/modify files and install dependencies
-4. Start with file modifications, then install dependencies, then start dev server
+3. ALWAYS create/update package.json as the FIRST file action
+4. Create package.json with all required dependencies before any other files
+5. After package.json, create other files in logical order (config files, then source files)
+6. Run "npm install" after all files are created
+7. Finally, start the dev server with "npm run dev"
+
+FILE CREATION ORDER (CRITICAL):
+1. package.json (MUST BE FIRST)
+2. Configuration files (vite.config.js, tailwind.config.js, etc.)
+3. index.html
+4. Source files (src/main.jsx, src/App.jsx, etc.)
+5. npm install
+6. npm run dev
 
 `;
 }
