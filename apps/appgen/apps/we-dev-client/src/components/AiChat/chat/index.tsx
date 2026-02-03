@@ -39,6 +39,7 @@ import useMCPTools from '@/hooks/useMCPTools';
 import { ProjectTutorial } from '../../Onboarding/ProjectTutorial';
 import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
+import { MultiChatPromptService } from './services/multiChatPromptService';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -793,12 +794,23 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         );
       }
 
-      // Send explicit message to chat - project data will be sent to server in body
-      // Include project name to prevent cache confusion
+      // Generate complete prompt with all project details using multiChatPromptService
+      const promptService = new MultiChatPromptService();
+      const completePrompt = promptService.generatePrompt(projectData);
+
+      console.log('📝 Generated complete prompt with project details:');
+      console.log('  - Prompt length:', completePrompt.length, 'characters');
+      console.log('  - Includes description:', projectData.description ? 'Yes' : 'No');
+      console.log(
+        '  - Includes branding:',
+        projectData.analysisResultModel?.branding ? 'Yes' : 'No'
+      );
+
+      // Send complete prompt to chat - all project info is now in the message content
       append({
         id: uuidv4(),
         role: 'user',
-        content: `Generate landing page for project: ${projectData.name}`,
+        content: completePrompt,
       });
 
       setShowStartButton(false);
