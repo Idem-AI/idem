@@ -29,6 +29,7 @@
               {{ currentProject.description || "{{ 'dashboard.dashboard.hero.defaultDescription' | translate
 
 
+
               }}" }}
             </p>
 
@@ -107,7 +108,7 @@
 
           <!-- Right: Progress Circle & Milestones -->
           <div class="hero-right">
-            <div class="progress-wrapper" [routerLink]="['/projects']" style="cursor: pointer;">
+            <div class="progress-wrapper" [routerLink]="['/projects']" style="cursor: pointer">
               <svg class="progress-circle" viewBox="0 0 200 200">
                 <circle class="progress-bg" cx="100" cy="100" r="85" />
                 <circle
@@ -132,7 +133,7 @@
                 class="milestone-item"
                 [class.completed]="currentProject.analysisResultModel!.branding.sections.length > 0"
                 [routerLink]="['/project/branding']"
-                style="cursor: pointer;"
+                style="cursor: pointer"
               >
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
@@ -144,7 +145,7 @@
                 class="milestone-item"
                 [class.completed]="!!currentProject.analysisResultModel!.businessPlan"
                 [routerLink]="['/project/business-plan']"
-                style="cursor: pointer;"
+                style="cursor: pointer"
               >
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
@@ -156,7 +157,7 @@
                 class="milestone-item"
                 [class.completed]="!!currentProject.analysisResultModel!.design"
                 [routerLink]="['/project/diagrams']"
-                style="cursor: pointer;"
+                style="cursor: pointer"
               >
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
@@ -168,7 +169,7 @@
                 class="milestone-item"
                 [class.completed]="!!currentProject.analysisResultModel!.development"
                 [routerLink]="['/project/development']"
-                style="cursor: pointer;"
+                style="cursor: pointer"
               >
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
@@ -176,12 +177,12 @@
                 <span>{{ 'dashboard.dashboard.milestones.development' | translate }}</span>
               </div>
 
-              <div class="milestone-item" [routerLink]="['/deployment']" style="cursor: pointer;">
+              <!-- <div class="milestone-item" [routerLink]="['/deployment']" style="cursor: pointer;">
                 <div class="milestone-check">
                   <i class="pi pi-check"></i>
                 </div>
                 <span>{{ 'dashboard.dashboard.milestones.launch' | translate }}</span>
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
@@ -408,7 +409,7 @@
               </div>
 
               <!-- Step 5: Deploy -->
-              <div class="step-card-modern" [routerLink]="['/deployment']" style="--offset: 4">
+              <!-- <div class="step-card-modern" [routerLink]="['/deployment']" style="--offset: 4">
                 <div class="step-image-section">
                   <div class="step-icon-modern deploy-icon">
                     <img
@@ -435,7 +436,7 @@
                     <i class="pi pi-arrow-right"></i>
                   </div>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
