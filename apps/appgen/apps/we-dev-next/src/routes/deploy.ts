@@ -66,7 +66,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
       });
     }
 
-    const siteData = await createSiteResponse.json();
+    const siteData = (await createSiteResponse.json()) as { id: string };
     console.log('Site created:', siteData);
 
     const deployUrl = `${url}/${siteData.id}/deploys`;

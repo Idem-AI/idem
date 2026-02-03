@@ -44,7 +44,7 @@ export function generateDockerfilePrompt(projectData: ProjectModel): string {
   }
 
   // Backend Docker instructions (seulement si language défini)
-  if (hasBackend) {
+  if (hasBackend && backend.language) {
     dockerPrompt += `### Backend Dockerfile\n`;
     dockerPrompt += `- **Language**: ${backend.language}\n`;
     if (backend.framework && backend.framework !== 'undefined') {
