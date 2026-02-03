@@ -1,23 +1,25 @@
-export function stripIndents(
-  arg0: string | TemplateStringsArray,
-  ...values: any[]
-) {
-  if (typeof arg0 !== "string") {
-    const processedString = arg0.reduce((acc, curr, i) => {
-      acc += curr + (values[i] ?? "");
-      return acc;
-    }, "");
+export function stripIndents(strings: TemplateStringsArray, ...values: any[]): string {
+  let result = '';
 
-    return _stripIndents(processedString);
+  for (let i = 0; i < strings.length; i++) {
+    result += strings[i];
+    if (i < values.length) {
+      result += values[i];
+    }
   }
 
-  return _stripIndents(arg0);
-}
-function _stripIndents(value: string) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .join("\n")
-    .trimStart()
-    .replace(/[\r\n]$/, "");
+  const lines = result.split('\n');
+  const minIndent = lines
+    .filter((line) => line.trim().length > 0)
+    .reduce((min, line) => {
+      const indent = line.match(/^(\s*)/)?.[1]?.length || 0;
+      return Math.min(min, indent);
+    }, Infinity);
+
+  if (minIndent === Infinity) return result.trim();
+
+  return lines
+    .map((line) => line.slice(minIndent))
+    .join('\n')
+    .trim();
 }

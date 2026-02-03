@@ -23,6 +23,7 @@ export class ProjectSummaryComponent {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
+  readonly landingUrl = environment.services.domain;
 
   // Angular inputs
   readonly project = input.required<ProjectModel>();

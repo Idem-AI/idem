@@ -40,7 +40,7 @@ export interface ArtifactCallbackData extends BoltArtifactData {
     type?: 'file' | 'shell';
     filePath?: string;
     content?: string;
-  }
+  };
 }
 
 export interface ActionCallbackData {
@@ -86,11 +86,24 @@ interface MessageState {
 export class StreamingMessageParser {
   private messages = new Map<string, MessageState>();
   public isUseStartCommand = false;
-  constructor(private options: StreamingMessageParserOptions = {}) { }
+  constructor(private options: StreamingMessageParserOptions = {}) {}
 
-  parse(messageId: string, input: string) {
+  parse(input: string, messageId: string): string {
+    // Clean the input before parsing to handle BOM, invisible chars, markdown fences
+    let cleanedInput = input
+      .replace(/\uFEFF/g, '') // Remove BOM
+      .replace(/^\s*```[\s\S]*?```\s*/g, '') // Remove markdown code fences at start
+      .replace(/```xml\s*/gi, '') // Remove xml code fence markers
+      .replace(/```\s*$/g, '') // Remove trailing code fences
+      .trim();
+
+    // Remove any text before the first < tag
+    const firstTagIndex = cleanedInput.indexOf('<');
+    if (firstTagIndex > 0) {
+      cleanedInput = cleanedInput.substring(firstTagIndex);
+    }
+
     let state = this.messages.get(messageId);
-
     if (!state) {
       state = {
         position: 0,
@@ -105,13 +118,16 @@ export class StreamingMessageParser {
 
     let output = '';
     const regex = {
-      artifactOpen: /<boltArtifact[^>]*>/g,
-      artifactClose: /<\/boltArtifact>/g,
-      actionOpen: /<boltAction[^>]*>/g,
-      actionClose: /<\/boltAction>/g
+      artifactOpen: /<boltArtifact[^>]*>/gi,
+      artifactClose: /<\/boltArtifact>/gi,
+      actionOpen: /<boltAction[^>]*>/gi,
+      actionClose: /<\/boltAction>/gi,
     };
 
-    const allActionData = {}
+    // Use cleaned input for parsing
+    input = cleanedInput;
+
+    const allActionData = {};
 
     while (state.position < input.length) {
       if (state.insideArtifact) {
@@ -119,10 +135,10 @@ export class StreamingMessageParser {
           // 查找动作结束标签
           regex.actionClose.lastIndex = state.position;
           const actionCloseMatch = regex.actionClose.exec(input);
-          
+
           if (actionCloseMatch) {
             const content = input.slice(state.position, actionCloseMatch.index);
-            
+
             // 处理 file 和 shell 类型的 action
             if ('type' in state.currentAction) {
               const actionData = {
@@ -135,16 +151,13 @@ export class StreamingMessageParser {
                 },
               };
 
-
               // 根据 action 类型调用不同的回调
               if (state.currentAction.type === 'file') {
-
                 allActionData[state.currentAction.filePath] = actionData;
-
               } else if (state.currentAction.type === 'shell' || 'start') {
                 // shell 类型只在关闭时处理
                 this.options.callbacks?.onActionClose?.(actionData);
-              } 
+              }
             }
 
             state.position = actionCloseMatch.index + actionCloseMatch[0].length;
@@ -152,17 +165,21 @@ export class StreamingMessageParser {
           } else {
             // 只对 file 类型进行流式处理
             const remainingContent = input.slice(state.position);
-            if ('type' in state.currentAction && state.currentAction.type === 'file' && !allActionData[state.currentAction.filePath]) {
+            if (
+              'type' in state.currentAction &&
+              state.currentAction.type === 'file' &&
+              !allActionData[state.currentAction.filePath]
+            ) {
               allActionData[state.currentAction.filePath] = {
                 artifactId: state.currentArtifact!.id,
                 messageId,
                 actionId: String(state.actionId - 1),
                 action: {
-                  ...state.currentAction as FileAction,
+                  ...(state.currentAction as FileAction),
                   content: remainingContent,
                   filePath: state.currentAction.filePath,
                 },
-              }
+              };
               // this.options.callbacks?.onActionStream?.({
               //   artifactId: state.currentArtifact!.id,
               //   messageId,
@@ -180,13 +197,16 @@ export class StreamingMessageParser {
           // 查找下一个动作开始标签或者 artifact 结束标签
           const nextActionMatch = regex.actionOpen.exec(input.slice(state.position));
           const artifactCloseMatch = regex.artifactClose.exec(input.slice(state.position));
-          
-          if (nextActionMatch && (!artifactCloseMatch || nextActionMatch.index < artifactCloseMatch.index)) {
+
+          if (
+            nextActionMatch &&
+            (!artifactCloseMatch || nextActionMatch.index < artifactCloseMatch.index)
+          ) {
             const actionTag = nextActionMatch[0];
             state.currentAction = this.parseActionTag(actionTag);
             state.insideAction = true;
             state.position += nextActionMatch.index + nextActionMatch[0].length;
-            
+
             this.options.callbacks?.onActionOpen?.({
               artifactId: state.currentArtifact!.id,
               messageId,
@@ -196,9 +216,9 @@ export class StreamingMessageParser {
           } else if (artifactCloseMatch) {
             state.position += artifactCloseMatch.index + artifactCloseMatch[0].length;
             state.insideArtifact = false;
-            this.options.callbacks?.onArtifactClose?.({ 
-              messageId, 
-              ...state.currentArtifact! 
+            this.options.callbacks?.onArtifactClose?.({
+              messageId,
+              ...state.currentArtifact!,
             });
           } else {
             break;
@@ -210,23 +230,23 @@ export class StreamingMessageParser {
         if (artifactMatch) {
           output += input.slice(state.position, state.position + artifactMatch.index);
           const artifactTag = artifactMatch[0];
-          
+
           const artifactTitle = this.extractAttribute(artifactTag, 'title');
           const artifactId = this.extractAttribute(artifactTag, 'id');
-          
+
           state.currentArtifact = {
             id: artifactId!,
             title: artifactTitle!,
           };
-          
+
           state.insideArtifact = true;
           state.position += artifactMatch.index + artifactMatch[0].length;
-          
-          this.options.callbacks?.onArtifactOpen?.({ 
-            messageId, 
-            ...state.currentArtifact 
+
+          this.options.callbacks?.onArtifactOpen?.({
+            messageId,
+            ...state.currentArtifact,
           });
-          
+
           const artifactFactory = this.options.artifactElement ?? createArtifactElement;
           output += artifactFactory({ messageId });
         } else {
@@ -236,7 +256,7 @@ export class StreamingMessageParser {
       }
     }
 
-    Object.keys(allActionData).forEach(key => {
+    Object.keys(allActionData).forEach((key) => {
       this.options.callbacks?.onActionStream?.(allActionData[key]);
     });
 
@@ -266,7 +286,7 @@ export class StreamingMessageParser {
         console.debug('File path not specified');
       }
       (actionAttributes as FileAction).filePath = filePath || '';
-    } else if (!(['shell', 'start'].includes(actionType))) {
+    } else if (!['shell', 'start'].includes(actionType)) {
       console.warn(`Unknown action type '${actionType}'`);
       return { type: 'file', content: '', filePath: '' } as FileAction;
     }

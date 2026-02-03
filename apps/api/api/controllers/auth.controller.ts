@@ -59,7 +59,7 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
-      domain: '.idem.africa'
+      ...(isProduction && { domain: '.idem.africa' }),
     };
 
     res.cookie('session', sessionCookie, options);
