@@ -248,33 +248,24 @@ Generate the complete application code with all necessary files.`;
 
   private getCompleteProjectInfo(projectData: ProjectModel): string {
     console.log('🔍 getCompleteProjectInfo - Raw projectData.type:', projectData.type);
-    return `## 🎯 PROJECT CORE REQUIREMENTS (CRITICAL)
-
-### Project Name
-${projectData.name}
-
-### 📝 Project Description (THIS DEFINES WHAT TO BUILD)
-${projectData.description || 'No description provided'}
-
-⚠️ IMPORTANT: The application MUST implement the functionality described above.
-Do NOT generate a generic template. Build EXACTLY what the description specifies.
+    return `## Project Information
+- **Name**: ${projectData.name}
+- **Description**: ${projectData.description || 'No description provided'}
 `;
   }
 
   private getCompleteBrandInfo(projectData: ProjectModel): string {
     const branding = projectData.analysisResultModel?.branding;
-    if (!branding) return '## 🎨 Brand Information\n- No brand information specified';
+    if (!branding) return '## Brand Information\n- No brand information specified';
 
-    let brandInfo =
-      '## 🎨 BRANDING REQUIREMENTS (MUST BE APPLIED)\n\n⚠️ These branding elements are MANDATORY and must be integrated throughout the application:\n\n';
+    let brandInfo = '## Brand Information\n';
 
     if (branding.logo) {
-      brandInfo += `### 🖼️ Logo (REQUIRED)\n`;
-      brandInfo += `- **Main Logo URL**: ${branding.logo.svg}\n`;
-      brandInfo += `- **Logo Concept**: ${branding.logo.concept}\n`;
-      brandInfo += `- **Logo Colors**: ${branding.logo.colors?.join(', ') || 'Not specified'}\n`;
-      brandInfo += `- **Logo Fonts**: ${branding.logo.fonts?.join(', ') || 'Not specified'}\n`;
-      brandInfo += `\n⚠️ USE THIS LOGO in the header/navbar of the application.\n`;
+      brandInfo += `### Logo\n`;
+      brandInfo += `- **Main Logo**: ${branding.logo.svg} (URL)\n`;
+      brandInfo += `- **Concept**: ${branding.logo.concept}\n`;
+      brandInfo += `- **Colors**: ${branding.logo.colors?.join(', ') || 'Not specified'}\n`;
+      brandInfo += `- **Fonts**: ${branding.logo.fonts?.join(', ') || 'Not specified'}\n`;
 
       if (branding.logo.variations) {
         brandInfo += `- **Variations**:\n`;
@@ -291,27 +282,24 @@ Do NOT generate a generic template. Build EXACTLY what the description specifies
     }
 
     if (branding.colors) {
-      brandInfo += `\n### 🎨 Color Palette (MANDATORY)\n`;
-      brandInfo += `- **Color Scheme Name**: ${branding.colors.name}\n`;
-      brandInfo += `- **Palette Reference**: ${branding.colors.url}\n\n`;
+      brandInfo += `### Colors\n`;
+      brandInfo += `- **Color Scheme**: ${branding.colors.name}\n`;
+      brandInfo += `- **Reference**: ${branding.colors.url} (URL)\n`;
       if (branding.colors.colors) {
-        brandInfo += `**REQUIRED COLORS TO USE:**\n`;
-        brandInfo += `- **Primary Color**: ${branding.colors.colors.primary} (buttons, links, highlights)\n`;
-        brandInfo += `- **Secondary Color**: ${branding.colors.colors.secondary} (secondary elements)\n`;
-        brandInfo += `- **Accent Color**: ${branding.colors.colors.accent} (call-to-action, emphasis)\n`;
-        brandInfo += `- **Background Color**: ${branding.colors.colors.background} (page background)\n`;
-        brandInfo += `- **Text Color**: ${branding.colors.colors.text} (main text)\n`;
-        brandInfo += `\n⚠️ APPLY THESE COLORS in tailwind.config.js and throughout the application.\n`;
+        brandInfo += `- **Primary**: ${branding.colors.colors.primary}\n`;
+        brandInfo += `- **Secondary**: ${branding.colors.colors.secondary}\n`;
+        brandInfo += `- **Accent**: ${branding.colors.colors.accent}\n`;
+        brandInfo += `- **Background**: ${branding.colors.colors.background}\n`;
+        brandInfo += `- **Text**: ${branding.colors.colors.text}\n`;
       }
     }
 
     if (branding.typography) {
-      brandInfo += `\n### ✍️ Typography (REQUIRED)\n`;
+      brandInfo += `### Typography\n`;
       brandInfo += `- **Font System**: ${branding.typography.name}\n`;
-      brandInfo += `- **Font Reference**: ${branding.typography.url}\n`;
-      brandInfo += `- **Primary Font**: ${branding.typography.primaryFont} (headings, important text)\n`;
-      brandInfo += `- **Secondary Font**: ${branding.typography.secondaryFont} (body text)\n`;
-      brandInfo += `\n⚠️ IMPORT AND USE these fonts in the application (Google Fonts or similar).\n`;
+      brandInfo += `- **Reference**: ${branding.typography.url} (URL)\n`;
+      brandInfo += `- **Primary Font**: ${branding.typography.primaryFont}\n`;
+      brandInfo += `- **Secondary Font**: ${branding.typography.secondaryFont}\n`;
     }
 
     return brandInfo;

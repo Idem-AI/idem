@@ -1,5 +1,3 @@
-import { tokenLimits } from './tokenLimits.js';
-
 interface ModelConfig {
   modelName: string;
   modelKey: string;
@@ -17,17 +15,6 @@ interface ModelConfig {
 
 const defaultModelConfigs: ModelConfig[] = [
   {
-    modelName: 'gemini-3-flash-preview',
-    modelKey: 'gemini-3-flash-preview',
-    useImage: true,
-    provider: 'gemini',
-    description: 'Gemini 3 Flash model',
-    functionCall: true,
-    temperature: 0.7,
-    topP: 0.95,
-    maxOutputTokens: tokenLimits.maxOutputTokens,
-  },
-  {
     modelName: 'gemini-3-pro-preview',
     modelKey: 'gemini-3-pro-preview',
     useImage: true,
@@ -36,7 +23,6 @@ const defaultModelConfigs: ModelConfig[] = [
     functionCall: true,
     temperature: 0.7,
     topP: 0.95,
-    maxOutputTokens: tokenLimits.maxOutputTokens,
   },
 ];
 
