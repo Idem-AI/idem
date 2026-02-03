@@ -24,6 +24,16 @@ const defaultModelConfigs: ModelConfig[] = [
     temperature: 0.7,
     topP: 0.95,
   },
+  {
+    modelName: 'gemini-3-flash-preview',
+    modelKey: 'gemini-3-flash-preview',
+    useImage: true,
+    provider: 'gemini',
+    description: 'Gemini 3 Flash model (faster)',
+    functionCall: true,
+    temperature: 0.7,
+    topP: 0.95,
+  },
 ];
 
 export function getDefaultModelKey(): string {
