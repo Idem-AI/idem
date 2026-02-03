@@ -2,7 +2,7 @@ name: Deploy Landing Page
 
 on:
   push:
-    branches: [ dev, main ]
+    branches: [ main ]
     paths:
       - 'apps/landing/**'
       - 'Dockerfile.landing'

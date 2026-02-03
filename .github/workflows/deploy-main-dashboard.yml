@@ -2,7 +2,7 @@ name: Deploy Main Dashboard
 
 on:
   push:
-    branches: [ dev, main ]
+    branches: [ main ]
     paths:
       - 'apps/main-dashboard/**'
       - 'Dockerfile.main-dashboard'
