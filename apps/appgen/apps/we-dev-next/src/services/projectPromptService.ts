@@ -237,11 +237,6 @@ ${specifications}
 
 ${techStack}
 
-${features}
-
-${useCaseDiagrams}
-
-${instructions}
 
 Generate the complete application code with all necessary files.`;
   }
