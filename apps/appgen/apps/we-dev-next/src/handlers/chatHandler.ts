@@ -15,7 +15,7 @@ export async function handleChatMode(
   model: string,
   userId: string | null,
   tools?: ToolInfo[]
-): Promise<Response> {
+) {
   const stream = new SwitchableStream();
   let toolList = {};
 

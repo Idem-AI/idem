@@ -16,7 +16,7 @@ export async function streamResponse(
   model: string,
   userId: string | null,
   tools?: ToolInfo[]
-): Promise<Response> {
+) {
   const startTime = Date.now();
   ChatLogger.setContext('StreamResponse');
   ChatLogger.stepStart('streamResponse');
