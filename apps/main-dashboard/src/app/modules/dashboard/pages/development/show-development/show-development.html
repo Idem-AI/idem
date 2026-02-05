@@ -20,8 +20,6 @@
       <div class="w-full max-w-4xl">
         <!-- Hero Section -->
         <div class="glass-card p-12 text-center relative overflow-hidden mb-8">
-
-
           <div class="relative z-10">
             <!-- Success Icon with animation -->
             <div
@@ -49,7 +47,7 @@
             <!-- Main CTA Button -->
             <button
               (click)="redirectToWebGenerator(projectId())"
-              class="inner-button inline-flex items-center gap-4 text-xl px-12 py-6 mb-8 glow-accent transform  transition-all duration-300"
+              class="inner-button inline-flex items-center gap-4 text-xl px-12 py-6 mb-8 glow-accent transform transition-all duration-300"
             >
               <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -171,12 +169,12 @@
 
             <!-- Title -->
             <h1 class="text-4xl font-bold text-white text-glow-primary mb-4">
-              Configuration Ready
+              {{ 'dashboard.showDevelopment.title' | translate }}
             </h1>
 
             <!-- Concise explanation -->
             <p class="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-              Your tech stack is configured. Launch the generation to create your full application.
+              {{ 'dashboard.showDevelopment.subtitle' | translate }}
             </p>
 
             <!-- Main CTA -->
@@ -184,7 +182,7 @@
               (click)="redirectToWebGenerator(projectId())"
               class="inner-button inline-flex items-center gap-3 text-lg px-8 py-4 mb-6 glow-accent"
             >
-              <span>Generate Application</span>
+              <span>{{ 'dashboard.showDevelopment.buttons.generate' | translate }}</span>
             </button>
 
             <!-- Tech Stack Cards -->
