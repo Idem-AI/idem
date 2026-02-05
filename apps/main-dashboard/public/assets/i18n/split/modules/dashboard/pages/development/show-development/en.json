@@ -1,6 +1,25 @@
 {
   "title": "Configuration Ready",
   "subtitle": "Your tech stack is configured. Launch the generation to create your full application.",
+  "landingPage": {
+    "title": "Your Landing Page is Ready to Generate",
+    "subtitle": "Your configuration is complete. Start the generation to create your professional and modern landing page in minutes.",
+    "cta": "Generate My Landing Page",
+    "features": {
+      "modern": {
+        "title": "Modern Design",
+        "description": "Elegant and responsive interface"
+      },
+      "seo": {
+        "title": "SEO Optimized",
+        "description": "Natural search engine optimization"
+      },
+      "customizable": {
+        "title": "Customizable",
+        "description": "Easily modifiable to your needs"
+      }
+    }
+  },
   "buttons": {
     "generate": "Generate Application",
     "preview": "Preview",
