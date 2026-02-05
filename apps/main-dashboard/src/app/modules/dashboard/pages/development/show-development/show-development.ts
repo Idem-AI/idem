@@ -1,8 +1,9 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { DevelopmentService } from '../../../services/ai-agents/development.service';
-import { DevelopmentConfigsModel } from '../../../models/development.model';
+import { DevelopmentConfigsModel, LandingPageConfig } from '../../../models/development.model';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { catchError, finalize, of, tap } from 'rxjs';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
@@ -12,7 +13,7 @@ import { environment } from '../../../../../../environments/environment';
 @Component({
   selector: 'app-show-development',
   standalone: true,
-  imports: [CommonModule, RouterModule, Loader],
+  imports: [CommonModule, RouterModule, TranslateModule, Loader],
   templateUrl: './show-development.html',
   styleUrls: ['./show-development.css'],
 })
@@ -37,6 +38,9 @@ export class ShowDevelopment implements OnInit {
   protected readonly database = computed(() => this.developmentConfigs()?.database);
   protected readonly projectConfig = computed(() => this.developmentConfigs()?.projectConfig);
   protected readonly constraints = computed(() => this.developmentConfigs()?.constraints);
+  protected readonly isLandingPageOnly = computed(
+    () => this.developmentConfigs()?.landingPageConfig === LandingPageConfig.ONLY_LANDING,
+  );
 
   /**
    * Redirects to the web generator application with the project ID
