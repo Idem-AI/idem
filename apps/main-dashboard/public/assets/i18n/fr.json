@@ -1035,6 +1035,25 @@
     "showDevelopment": {
       "title": "Configuration prête",
       "subtitle": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
+      "landingPage": {
+        "title": "Votre Landing Page est Prête à Générer",
+        "subtitle": "Votre configuration est finalisée. Lancez la génération pour créer votre landing page professionnelle et moderne en quelques minutes.",
+        "cta": "Générer ma Landing Page",
+        "features": {
+          "modern": {
+            "title": "Design Moderne",
+            "description": "Interface élégante et responsive"
+          },
+          "seo": {
+            "title": "Optimisé SEO",
+            "description": "Référencement naturel optimisé"
+          },
+          "customizable": {
+            "title": "Personnalisable",
+            "description": "Facilement modifiable selon vos besoins"
+          }
+        }
+      },
       "buttons": {
         "generate": "Générer l'application",
         "preview": "Aperçu",

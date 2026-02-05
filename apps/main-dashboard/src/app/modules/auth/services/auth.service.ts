@@ -8,6 +8,8 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   user,
   User,
@@ -29,6 +31,30 @@ export class AuthService {
 
   constructor() {
     this.user$ = user(this.auth);
+    this.handleRedirectResult();
+  }
+
+  /**
+   * Détecte si l'appareil est mobile
+   */
+  private isMobileDevice(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent,
+    );
+  }
+
+  /**
+   * Gère le résultat de la redirection OAuth
+   */
+  private async handleRedirectResult(): Promise<void> {
+    try {
+      const result = await getRedirectResult(this.auth);
+      if (result?.user) {
+        await this.postLogin(result.user);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la gestion du résultat de redirection:', error);
+    }
   }
 
   login(email: string, password: string): Observable<void> {
@@ -40,14 +66,30 @@ export class AuthService {
 
   async loginWithGithub() {
     const provider = new GithubAuthProvider();
-    const result = await signInWithPopup(this.auth, provider);
-    await this.postLogin(result.user);
+
+    if (this.isMobileDevice()) {
+      // Sur mobile, utiliser redirect pour éviter les problèmes de sessionStorage
+      await signInWithRedirect(this.auth, provider);
+      // Le résultat sera géré par handleRedirectResult() au prochain chargement
+    } else {
+      // Sur desktop, utiliser popup
+      const result = await signInWithPopup(this.auth, provider);
+      await this.postLogin(result.user);
+    }
   }
 
   async loginWithGoogle() {
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(this.auth, provider);
-    await this.postLogin(result.user);
+
+    if (this.isMobileDevice()) {
+      // Sur mobile, utiliser redirect pour éviter les problèmes de sessionStorage
+      await signInWithRedirect(this.auth, provider);
+      // Le résultat sera géré par handleRedirectResult() au prochain chargement
+    } else {
+      // Sur desktop, utiliser popup
+      const result = await signInWithPopup(this.auth, provider);
+      await this.postLogin(result.user);
+    }
   }
 
   private async postLogin(user: User) {
