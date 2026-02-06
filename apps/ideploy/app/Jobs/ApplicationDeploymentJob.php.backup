@@ -2672,12 +2672,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     continue;
                 }
                 
-                // Don't quote CrowdSec configuration values (host names, ports, etc.)
-                if (str_contains($key, 'Crowdsec') || str_contains($key, 'crowdsec')) {
-                    continue;
-                }
-                
-                // Quote if contains : (like http://..., ports, etc.)
+                // Quote if contains : (like crowdsec-live:8080, http://..., etc.)
                 if (str_contains($value, ':')) {
                     // Only quote if not already quoted
                     if (!str_starts_with($value, '"') && !str_starts_with($value, "'")) {
