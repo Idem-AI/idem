@@ -23,7 +23,15 @@ class FirewallRuleObserver
         
         ray("FirewallRule saved, deploying rules: {$rule->name}");
         
-        // Déployer les règles YAML sur CrowdSec
+        // Handle IP ban rules differently - create CrowdSec decisions directly
+        if ($rule->protection_mode === 'ip_ban') {
+            ray("IP ban rule detected, creating CrowdSec decisions");
+            \App\Jobs\Security\ApplyIpBanRulesJob::dispatch($rule)
+                ->delay(now()->addSeconds(1));
+            return;
+        }
+        
+        // Déployer les règles YAML sur CrowdSec (for inband/outofband rules)
         app(FirewallRulesDeploymentService::class)->deployRule($rule);
         
         // CRITICAL: Ensure middlewares are applied to Traefik
