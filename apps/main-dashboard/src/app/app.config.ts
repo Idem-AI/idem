@@ -11,7 +11,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService, provideTranslateLoader } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
-import { provideAuth, getAuth, browserLocalPersistence, setPersistence } from '@angular/fire/auth';
+import { provideAuth, getAuth } from '@angular/fire/auth';
 import { providePrimeNG } from 'primeng/config';
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
@@ -27,14 +27,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimations(),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
-    provideAuth(() => {
-      const auth = getAuth();
-      // Utiliser indexedDB au lieu de sessionStorage pour meilleure compatibilité mobile
-      setPersistence(auth, browserLocalPersistence).catch((error) => {
-        console.error('Erreur lors de la configuration de la persistance Firebase:', error);
-      });
-      return auth;
-    }),
+    provideAuth(() => getAuth()),
     providePrimeNG({
       theme: {
         preset: MyPreset,

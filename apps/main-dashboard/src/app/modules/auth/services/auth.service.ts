@@ -1,6 +1,5 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, forwardRef } from '@angular/core';
-import { Router } from '@angular/router';
 import { TokenService } from '../../../shared/services/token.service';
 import { CookieService } from '../../../shared/services/cookie.service';
 import {
@@ -9,8 +8,6 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signOut,
   user,
   User,
@@ -23,7 +20,6 @@ import { environment } from '../../../../environments/environment';
 })
 export class AuthService {
   private auth = inject(Auth);
-  private router = inject(Router);
   user$: Observable<User | null>;
   private http = inject(HttpClient);
   private tokenService = inject(forwardRef(() => TokenService));
@@ -33,34 +29,6 @@ export class AuthService {
 
   constructor() {
     this.user$ = user(this.auth);
-    this.handleRedirectResult();
-  }
-
-  /**
-   * Détecte si l'appareil est mobile
-   */
-  private isMobileDevice(): boolean {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    );
-  }
-
-  /**
-   * Gère le résultat de la redirection OAuth
-   */
-  private async handleRedirectResult(): Promise<void> {
-    try {
-      const result = await getRedirectResult(this.auth);
-      if (result?.user) {
-        console.log('Utilisateur authentifié via redirect, traitement du login...');
-        await this.postLogin(result.user);
-        // Rediriger vers le dashboard après une authentification réussie
-        console.log('Navigation vers /console après authentification mobile réussie');
-        await this.router.navigate(['/console']);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la gestion du résultat de redirection:', error);
-    }
   }
 
   login(email: string, password: string): Observable<void> {
@@ -72,30 +40,14 @@ export class AuthService {
 
   async loginWithGithub() {
     const provider = new GithubAuthProvider();
-
-    if (this.isMobileDevice()) {
-      // Sur mobile, utiliser redirect pour éviter les problèmes de sessionStorage
-      await signInWithRedirect(this.auth, provider);
-      // Le résultat sera géré par handleRedirectResult() au prochain chargement
-    } else {
-      // Sur desktop, utiliser popup
-      const result = await signInWithPopup(this.auth, provider);
-      await this.postLogin(result.user);
-    }
+    const result = await signInWithPopup(this.auth, provider);
+    await this.postLogin(result.user);
   }
 
   async loginWithGoogle() {
     const provider = new GoogleAuthProvider();
-
-    if (this.isMobileDevice()) {
-      // Sur mobile, utiliser redirect pour éviter les problèmes de sessionStorage
-      await signInWithRedirect(this.auth, provider);
-      // Le résultat sera géré par handleRedirectResult() au prochain chargement
-    } else {
-      // Sur desktop, utiliser popup
-      const result = await signInWithPopup(this.auth, provider);
-      await this.postLogin(result.user);
-    }
+    const result = await signInWithPopup(this.auth, provider);
+    await this.postLogin(result.user);
   }
 
   private async postLogin(user: User) {
