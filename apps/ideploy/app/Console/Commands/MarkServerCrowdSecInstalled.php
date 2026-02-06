@@ -31,12 +31,12 @@ class MarkServerCrowdSecInstalled extends Command
         // Generate a fake API key
         $fakeApiKey = bin2hex(random_bytes(32));
         
-        // Mark server as having CrowdSec
+        // Mark server as having CrowdSec (using direct columns)
         $server->update([
             'crowdsec_installed' => true,
             'crowdsec_available' => true,
-            'crowdsec_lapi_url' => 'http://crowdsec:8080',
-            'crowdsec_api_key' => encrypt($fakeApiKey),
+            'crowdsec_lapi_url' => 'http://crowdsec-live:8080',
+            'crowdsec_bouncer_key' => $fakeApiKey,
         ]);
         
         $this->info('✅ Server marked as CrowdSec ready');
