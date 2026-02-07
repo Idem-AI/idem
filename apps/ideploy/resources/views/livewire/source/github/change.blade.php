@@ -245,7 +245,7 @@
                                     @endif
                                 </x-forms.select>
                                 <x-forms.button isHighlighted
-                                    x-on:click.prevent="createGithubApp('{{ $webhook_endpoint }}','{{ $preview_deployment_permissions }}',{{ $administration }})">
+                                    x-on:click.prevent="createGithubApp('{{ $webhook_endpoint ?? config('app.url') }}','{{ $preview_deployment_permissions }}',{{ $administration }})">
                                     Register Now
                                 </x-forms.button>
                             </div>
@@ -253,7 +253,7 @@
                             <div class="flex gap-2">
                                 <h2>Register a GitHub App</h2>
                                 <x-forms.button isHighlighted
-                                    x-on:click.prevent="createGithubApp('{{ $webhook_endpoint }}','{{ $preview_deployment_permissions }}',{{ $administration }})">
+                                    x-on:click.prevent="createGithubApp('{{ $webhook_endpoint ?? config('app.url') }}','{{ $preview_deployment_permissions }}',{{ $administration }})">
                                     Register Now
                                 </x-forms.button>
                             </div>
