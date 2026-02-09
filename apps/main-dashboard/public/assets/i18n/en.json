@@ -286,23 +286,36 @@
           "title": "Initial Based",
           "description": "Initials as the main element of your logo design",
           "example": "IBM, HP, CNN"
-        }
+        },
+        "examplesLabel": "Ex:"
       },
       "modes": {
         "ai": {
           "title": "AI Generation",
-          "description": "AI creates unique logos based on your brand"
+          "description": "AI creates unique logos based on your brand",
+          "badge": "Recommended",
+          "features": {
+            "smart": "Smart design",
+            "multiple": "Multiple options",
+            "fast": "Instant results"
+          }
         },
         "custom": {
           "title": "Custom Description",
-          "description": "Describe exactly how you want your logo"
+          "description": "Describe exactly how you want your logo",
+          "features": {
+            "control": "Full control",
+            "precise": "Precise vision",
+            "unique": "Unique result"
+          }
         }
       },
       "fields": {
         "description": {
           "label": "Logo Description",
           "placeholder": "Example: Minimalist logo with a mountain peak, blue and white colors, adventure and trust...",
-          "charCount": "characters (min {{min}})"
+          "charCount": "characters",
+          "tip": "Be specific about colors, shapes, style and mood. The more details you provide, the better the result will match your vision."
         }
       },
       "buttons": {
@@ -371,6 +384,7 @@
         "subtitle": "Creating different versions of your logo for various use cases."
       },
       "progress": {
+        "label": "Progress",
         "initializing": "Initializing logo variation generation...",
         "analyzing": "Analyzing selected logo design...",
         "generatingLight": "Generating light background variation...",
@@ -390,6 +404,14 @@
         "subtitle": "Select the variations you want to keep for your project.",
         "completed": "Variations Generated Successfully!",
         "reviewAndProceed": "Review your variations and proceed when ready."
+      },
+      "status": {
+        "generated": "Generated",
+        "processing": "Processing variations...",
+        "preparingNext": "Preparing next step...",
+        "allGenerated": "All variations generated successfully!",
+        "readyToProceed": "Ready to proceed to the next step.",
+        "advancing": "Advancing to next step..."
       },
       "categories": {
         "withText": "With Text",
@@ -416,14 +438,6 @@
         "lightBackground": "Optimized for white and light backgrounds",
         "darkBackground": "Optimized for dark and modern backgrounds",
         "monochrome": "Version in black and white for all uses"
-      },
-      "status": {
-        "generated": "Generated",
-        "processing": "Processing variations...",
-        "preparingNext": "Preparing next step...",
-        "allGenerated": "All variations generated successfully!",
-        "readyToProceed": "Ready to proceed to the next step.",
-        "advancing": "Advancing to next step..."
       },
       "selectionsMade": "{{count}} selection(s) made"
     },
@@ -530,6 +544,11 @@
     "typographySelection": {
       "title": "Typography Selection",
       "subtitle": "Choose the perfect typography that reflects your brand's personality and enhances readability.",
+      "error": {
+        "title": "Typography Not Available",
+        "description": "No typography options available. Please go back to the color selection step.",
+        "retry": "Retry"
+      },
       "errors": {
         "title": "Typography Not Available",
         "noOptions": "No typography options available. Please go back to the color selection step."

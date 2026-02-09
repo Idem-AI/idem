@@ -1,1 +1,76 @@
-/* All styles migrated to Tailwind CSS classes in the HTML template */
+/* Color Selection Component Styles */
+
+@keyframes color-float-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(5px, -8px) rotate(3deg);
+  }
+}
+
+@keyframes color-float-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-6px, -5px) rotate(-4deg);
+  }
+}
+
+@keyframes color-float-3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(3px, -4px) scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.color-shape-1 {
+  animation: color-float-1 6s ease-in-out infinite;
+}
+
+.color-shape-2 {
+  animation: color-float-2 7s ease-in-out infinite;
+  animation-delay: -2s;
+}
+
+.color-shape-3 {
+  animation: color-float-3 5s ease-in-out infinite;
+  animation-delay: -4s;
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.palette-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
