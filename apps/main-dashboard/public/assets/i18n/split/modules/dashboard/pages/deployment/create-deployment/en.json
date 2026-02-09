@@ -1,0 +1,10 @@
+{
+  "title": "Create Deployment",
+  "subtitle": "Deploy your application to the cloud",
+  "modes": {
+    "beginner": "Quick Deployment",
+    "ai-assistant": "AI-Assisted Deployment",
+    "template": "Template-Based Deployment",
+    "expert": "Expert Mode"
+  }
+}

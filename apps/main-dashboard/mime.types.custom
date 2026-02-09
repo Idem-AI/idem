@@ -1,0 +1,42 @@
+# MIME types personnalisés pour ngx-extended-pdf-viewer
+
+types {
+    # Types par défaut
+    text/html                             html htm shtml;
+    text/css                              css;
+    text/xml                              xml;
+    image/gif                             gif;
+    image/jpeg                            jpeg jpg;
+    image/png                             png;
+    image/svg+xml                         svg svgz;
+    image/webp                            webp;
+
+    # JavaScript et modules
+    application/javascript                js;
+    application/javascript                mjs;
+    text/javascript                       js mjs;
+
+    # WebAssembly
+    application/wasm                      wasm;
+
+    # Fonts
+    font/woff                             woff;
+    font/woff2                            woff2;
+    application/font-woff                 woff;
+    application/font-woff2                woff2;
+    font/ttf                              ttf;
+    font/otf                              otf;
+    application/vnd.ms-fontobject         eot;
+
+    # Archives et documents
+    application/pdf                       pdf;
+    application/zip                       zip;
+
+    # Autres
+    application/json                      json;
+    application/octet-stream              bin exe dll;
+    application/octet-stream              deb;
+    application/octet-stream              dmg;
+    application/octet-stream              iso img;
+    application/octet-stream              msi msp msm;
+}

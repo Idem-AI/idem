@@ -1,0 +1,18 @@
+{
+  "loading": {
+    "checking": "Vérification de votre plan d'affaires..."
+  },
+  "buttons": {
+    "backToProjects": "Retour aux projets",
+    "generate": "Générer le plan d'affaires",
+    "selectProject": "Sélectionner un projet"
+  },
+  "empty": {
+    "title": "Aucun plan d'affaires pour le moment",
+    "subtitle": "Générez un plan d'affaires complet pour votre projet",
+    "noProject": {
+      "title": "Aucun projet sélectionné",
+      "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "backToProjectTeams": "Back to Project Teams",
+  "title": "Add Team to Project",
+  "subtitle": "Select a team and assign roles for this project",
+  "selectTeam": "Select Team",
+  "assignRoles": "Assign Project Roles",
+  "assignRolesDescription": "Select one or more roles for",
+  "inThisProject": "in this project",
+  "noTeamsYet": "You don't have any teams yet",
+  "createTeamButton": "Create Team",
+  "members": "members",
+  "selectAtLeastOneRole": "Please select at least one role",
+  "cancel": "Cancel",
+  "addingTeam": "Adding Team...",
+  "addTeamToProject": "Add Team to Project",
+  "loading": "Loading...",
+  "error": "Error",
+  "roles": {
+    "project-owner": {
+      "label": "Project Owner",
+      "description": "Full control over the project"
+    },
+    "project-admin": {
+      "label": "Project Admin",
+      "description": "Manage project settings and members"
+    },
+    "developer": {
+      "label": "Developer",
+      "description": "Write and review code"
+    },
+    "designer": {
+      "label": "Designer",
+      "description": "Create and manage designs"
+    },
+    "viewer": {
+      "label": "Viewer",
+      "description": "View project content only"
+    },
+    "contributor": {
+      "label": "Contributor",
+      "description": "Contribute to project tasks"
+    }
+  }
+}

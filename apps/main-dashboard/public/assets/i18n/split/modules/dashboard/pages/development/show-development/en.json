@@ -1,0 +1,44 @@
+{
+  "title": "Configuration Ready",
+  "subtitle": "Your tech stack is configured. Launch the generation to create your full application.",
+  "buttons": {
+    "generate": "Generate Application",
+    "preview": "Preview",
+    "export": "Export Config",
+    "edit": "Edit Config"
+  },
+  "sections": {
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "database": "Database",
+    "projectConfig": "Project Configuration",
+    "constraints": "Constraints"
+  },
+  "techStack": {
+    "styling": "Styling",
+    "stateManagement": "State Management",
+    "features": "Features",
+    "orm": "ORM",
+    "noFeatures": "No features configured"
+  },
+  "projectFeatures": {
+    "seo": "SEO",
+    "contactForm": "Contact Form",
+    "analytics": "Analytics",
+    "i18n": "i18n",
+    "performance": "Performance",
+    "authentication": "Authentication",
+    "authorization": "Authorization",
+    "uiTheme": "UI Theme",
+    "payment": "Payment",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "optimized": "Optimized",
+    "standard": "Standard",
+    "integrated": "Integrated",
+    "notIntegrated": "Not Integrated",
+    "modern": "Modern"
+  },
+  "customOptions": "Custom Options",
+  "technicalDetails": "Technical Details"
+}

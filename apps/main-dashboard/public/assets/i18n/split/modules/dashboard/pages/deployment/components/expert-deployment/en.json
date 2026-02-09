@@ -1,0 +1,35 @@
+{
+  "yourArchitecture": "Your Architecture",
+  "notConfigured": "Not configured",
+  "buttons": {
+    "saveConfigs": "Save configs"
+  },
+  "empty": {
+    "startBuilding": "Start building",
+    "addComponents": "Add components from the catalog."
+  },
+  "properties": {
+    "title": "Properties",
+    "selectComponent": "Select a component to configure it."
+  },
+  "dialog": {
+    "header": "Enter Deployment Name"
+  },
+  "fields": {
+    "name": "Deployment Name",
+    "branch": "Branch"
+  },
+  "placeholders": {
+    "name": "Enter a name for your deployment",
+    "repoUrl": "https://github.com/username/repository.git",
+    "branch": "Select a branch"
+  },
+  "tooltips": {
+    "repoUrl": "Enter a valid Git repository URL to fetch available branches"
+  },
+  "repoValidated": "Repository validated successfully",
+  "errors": {
+    "noBranches": "No branches found or repository not accessible",
+    "failedToCreate": "Failed to create deployment"
+  }
+}

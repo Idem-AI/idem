@@ -1,0 +1,13 @@
+{
+  "locale": "en",
+  "translations": {
+    "cta.startBuildingToday": " Start Building Today ",
+    "cta.description": " Join Idem and transform your ideas into complete projects with our AI-powered open source platform. Generate logos, business plans, and deploy applications - all for free. ",
+    "cta.signUpButton": "Sign Up",
+    "cta.getStartedButton": " Get Started ",
+    "cta.alt.idemPlatformInterface": "Idem AI platform interface showing project creation workflow",
+    "cta.seo.name": "Call to Action",
+    "cta.seo.description": "Get started with Idem platform for AI-powered brand creation and deployment",
+    "cta.seo.actionName": "Sign Up"
+  }
+}

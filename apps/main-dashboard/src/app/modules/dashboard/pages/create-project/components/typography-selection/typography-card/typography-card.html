@@ -1,0 +1,50 @@
+<div
+  class="group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer h-full flex flex-col gap-3"
+  [ngClass]="{
+    'border-primary bg-primary/5 ring-1 ring-primary/20': isSelected,
+    'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800': !isSelected,
+  }"
+  (click)="onSelect()"
+>
+  <!-- Font Preview (Aa) -->
+  <div class="flex items-end gap-3 pb-3 border-b border-gray-700/50">
+    <span class="text-4xl leading-none text-white" [style.fontFamily]="typography.primaryFont">
+      Aa
+    </span>
+    <span class="text-2xl leading-none text-gray-400" [style.fontFamily]="typography.secondaryFont">
+      Aa
+    </span>
+  </div>
+
+  <!-- Font Names -->
+  <div class="flex flex-col gap-1">
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wider">Headings</span>
+      <span
+        class="text-sm text-white font-medium truncate max-w-[120px]"
+        [title]="typography.primaryFont"
+      >
+        {{ typography.primaryFont }}
+      </span>
+    </div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-500 uppercase tracking-wider">Body</span>
+      <span class="text-sm text-gray-300 truncate max-w-[120px]" [title]="typography.secondaryFont">
+        {{ typography.secondaryFont }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Selection Indicator -->
+  @if (isSelected) {
+    <div class="absolute top-3 right-3 text-primary">
+      <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+        <path
+          fill-rule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+          clip-rule="evenodd"
+        />
+      </svg>
+    </div>
+  }
+</div>

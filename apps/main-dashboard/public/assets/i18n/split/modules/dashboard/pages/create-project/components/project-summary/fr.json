@@ -1,0 +1,38 @@
+{
+  "loading": "Finalisation de votre projet...",
+  "title": "Vérifiez tous vos choix et finalisez votre projet",
+  "sections": {
+    "projectInfo": "Informations sur le projet",
+    "visualIdentity": "Identité visuelle",
+    "legal": "Légal et confidentialité"
+  },
+  "subsections": {
+    "details": "Détails du projet",
+    "businessInfo": "Informations commerciales",
+    "logo": "Logo",
+    "colorPalette": "Palette de couleurs",
+    "typography": "Typographie"
+  },
+  "fields": {
+    "name": "Nom",
+    "type": "Type",
+    "teamSize": "Taille de l'équipe",
+    "scope": "Portée",
+    "budget": "Budget",
+    "target": "Cible"
+  },
+  "agreements": {
+    "iAgreeTo": "J'accepte les",
+    "privacyPolicy": "Politique de confidentialité",
+    "termsOfService": "Conditions d'utilisation",
+    "betaTerms": "Conditions du programme bêta",
+    "marketing": "J'accepte de recevoir des communications marketing sur les produits, services et promotions"
+  },
+  "errors": {
+    "requiredFields": "Les champs obligatoires doivent être acceptés pour continuer"
+  },
+  "buttons": {
+    "create": "Créer le projet",
+    "acceptPolicies": "Accepter les politiques requises"
+  }
+}

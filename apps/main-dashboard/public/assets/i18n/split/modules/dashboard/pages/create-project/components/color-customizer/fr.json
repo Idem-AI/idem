@@ -1,0 +1,22 @@
+{
+  "title": "Modifier les couleurs",
+  "pick": "Choisir",
+  "hex": "HEX",
+  "hexPlaceholder": "#000000",
+  "preview": "Aperçu",
+  "tip": "Cliquez sur un cercle de couleur pour ouvrir le sélecteur. Les couleurs associées s'ajustent automatiquement pour l'harmonie.",
+  "labels": {
+    "primary": "Couleur primaire",
+    "secondary": "Couleur secondaire",
+    "accent": "Couleur d'accentuation",
+    "background": "Couleur de fond",
+    "text": "Couleur du texte"
+  },
+  "descriptions": {
+    "primary": "Couleur principale de la marque utilisée pour les boutons et les éléments clés",
+    "secondary": "Couleur de soutien qui complète votre couleur primaire",
+    "accent": "Couleur de mise en évidence pour les appels à l'action",
+    "background": "Couleur de fond de base pour vos créations",
+    "text": "Couleur de texte principale pour la lisibilité"
+  }
+}

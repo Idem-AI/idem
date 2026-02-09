@@ -1,0 +1,53 @@
+{
+  "steps": {
+    "type": {
+      "title": "Choose Logo Type",
+      "subtitle": "Select one logo type"
+    },
+    "mode": {
+      "title": "How to create your logo?",
+      "subtitle": "AI generation or custom description"
+    },
+    "description": {
+      "title": "Describe Your Logo",
+      "subtitle": "Tell us what you want"
+    }
+  },
+  "types": {
+    "icon": {
+      "title": "Icon Based",
+      "description": "An easy to remember shape in the center of your logo design",
+      "example": "Apple, Nike, Twitter"
+    },
+    "name": {
+      "title": "Name Based",
+      "description": "Your company name as a key element of your logo design",
+      "example": "Coca-Cola, Google, FedEx"
+    },
+    "initial": {
+      "title": "Initial Based",
+      "description": "Initials as the main element of your logo design",
+      "example": "IBM, HP, CNN"
+    }
+  },
+  "modes": {
+    "ai": {
+      "title": "AI Generation",
+      "description": "AI creates unique logos based on your brand"
+    },
+    "custom": {
+      "title": "Custom Description",
+      "description": "Describe exactly how you want your logo"
+    }
+  },
+  "fields": {
+    "description": {
+      "label": "Logo Description",
+      "placeholder": "Example: Minimalist logo with a mountain peak, blue and white colors, adventure and trust...",
+      "charCount": "characters (min {{min}})"
+    }
+  },
+  "buttons": {
+    "generate": "Generate Logos"
+  }
+}

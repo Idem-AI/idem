@@ -1,0 +1,31 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "extends": "../../tsconfig.base.json",
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "moduleResolution": "bundler",
+    "module": "ES2022",
+    "paths": {
+      "@idem/shared-models": ["../../packages/shared-models/src"],
+      "@idem/shared-models/*": ["../../packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["../../packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["../../packages/shared-auth-client/src/*"],
+      "@idem/shared-styles": ["../../packages/shared-styles"],
+      "@idem/shared-styles/*": ["../../packages/shared-styles/*"]
+    }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

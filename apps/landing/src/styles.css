@@ -1,0 +1,7 @@
+/* Import shared design system (includes Tailwind 4 and theme) */
+@import '@idem/shared-styles/styles.css';
+
+/* PrimeNG Icons */
+@import 'primeicons/primeicons.css';
+
+/* Angular-specific or project-specific styles can be added below */

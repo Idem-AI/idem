@@ -1,0 +1,10 @@
+{
+  "title": "Créer un déploiement",
+  "subtitle": "Déployez votre application dans le cloud",
+  "modes": {
+    "beginner": "Déploiement rapide",
+    "ai-assistant": "Déploiement assisté par IA",
+    "template": "Déploiement basé sur un modèle",
+    "expert": "Mode expert"
+  }
+}

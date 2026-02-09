@@ -1,0 +1,20 @@
+{
+  "dashboard": "Dashboard",
+  "projects": "Projects",
+  "teams": "Teams",
+  "sr": {
+    "openMobileMenu": "Open mobile menu",
+    "toggleSidebar": "Toggle sidebar"
+  },
+  "logoAlt": "Lexi",
+  "userAvatarAlt": "Avatar",
+  "userMenu": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "poweredBy": "Powered by",
+  "mobile": {
+    "navigation": "Navigation"
+  }
+}

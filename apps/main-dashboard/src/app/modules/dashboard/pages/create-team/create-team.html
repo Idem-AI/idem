@@ -1,0 +1,132 @@
+<div class="min-h-screen text-white flex flex-col">
+  <div class="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
+    <main class="flex-1 space-y-6 sm:space-y-8 max-w-3xl mx-auto w-full">
+      <!-- Header -->
+      <section class="space-y-4">
+        <button
+          (click)="onCancel()"
+          class="flex items-center gap-2 text-gray-400 hover:text-white transition"
+        >
+          <i class="pi pi-arrow-left"></i>
+          <span>{{ 'dashboard.createTeam.backToTeams' | translate }}</span>
+        </button>
+
+        <div>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold">
+            {{ 'dashboard.createTeam.title' | translate }}
+          </h1>
+          <p class="text-gray-400 mt-2">
+            {{ 'dashboard.createTeam.subtitle' | translate }}
+          </p>
+        </div>
+      </section>
+
+      <!-- Error Message -->
+      @if (errorMessage()) {
+        <div class="glass-card p-4 border border-red-500/50">
+          <div class="flex items-center gap-3 text-red-400">
+            <i class="pi pi-exclamation-triangle text-xl"></i>
+            <p class="text-sm">{{ errorMessage() }}</p>
+          </div>
+        </div>
+      }
+
+      <!-- Form -->
+      <form [formGroup]="teamForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        <div class="glass-card p-6 space-y-6">
+          <!-- Team Name -->
+          <div class="space-y-2">
+            <label for="name" class="block text-sm font-medium text-gray-300">
+              {{ 'dashboard.createTeam.fields.name' | translate }}
+              <span class="text-red-400">*</span>
+            </label>
+            <input
+              pInputText
+              id="name"
+              type="text"
+              formControlName="name"
+              [placeholder]="'dashboard.createTeam.placeholders.name' | translate"
+              class="w-full"
+              [class.ng-invalid]="
+                hasError('name', 'required') ||
+                hasError('name', 'minlength') ||
+                hasError('name', 'maxlength')
+              "
+              [class.ng-dirty]="
+                hasError('name', 'required') ||
+                hasError('name', 'minlength') ||
+                hasError('name', 'maxlength')
+              "
+            />
+            @if (
+              hasError('name', 'required') ||
+              hasError('name', 'minlength') ||
+              hasError('name', 'maxlength')
+            ) {
+              <p class="text-red-400 text-sm">{{ getErrorMessage('name') }}</p>
+            }
+          </div>
+
+          <!-- {{ 'dashboard.createTeam.fields.description' | translate }} -->
+          <div class="space-y-2">
+            <label for="description" class="block text-sm font-medium text-gray-300">
+              {{ 'dashboard.createTeam.fields.description' | translate }}
+            </label>
+            <textarea
+              pTextarea
+              id="description"
+              formControlName="description"
+              rows="4"
+              [placeholder]="'dashboard.createTeam.placeholders.description' | translate"
+              class="w-full"
+              [class.ng-invalid]="hasError('description', 'maxlength')"
+              [class.ng-dirty]="hasError('description', 'maxlength')"
+            ></textarea>
+            @if (hasError('description', 'maxlength')) {
+              <p class="text-red-400 text-sm">{{ getErrorMessage('description') }}</p>
+            }
+          </div>
+
+          <!-- Info Box -->
+          <div class="bg-primary/10 border border-primary/30 rounded-lg p-4">
+            <div class="flex gap-3">
+              <i class="pi pi-info-circle text-primary text-xl shrink-0"></i>
+              <div class="text-sm text-gray-300">
+                <p class="font-medium text-white mb-1">
+                  {{ 'dashboard.createTeam.info.afterCreationTitle' | translate }}
+                </p>
+                <p>{{ 'dashboard.createTeam.info.afterCreationBody' | translate }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button
+            type="button"
+            (click)="onCancel()"
+            class="flex-1 outer-button"
+            [disabled]="isSubmitting()"
+          >
+            <i class="pi pi-times mr-2"></i>
+            {{ 'common.cancel' | translate }}
+          </button>
+          <button
+            type="submit"
+            class="flex-1 inner-button"
+            [disabled]="isSubmitting() || teamForm.invalid"
+          >
+            @if (isSubmitting()) {
+              <i class="pi pi-spin pi-spinner mr-2"></i>
+              {{ 'common.creating' | translate }}
+            } @else {
+              <i class="pi pi-check mr-2"></i>
+              {{ 'dashboard.createTeam.buttons.create' | translate }}
+            }
+          </button>
+        </div>
+      </form>
+    </main>
+  </div>
+</div>
