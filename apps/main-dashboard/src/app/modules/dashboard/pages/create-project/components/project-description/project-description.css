@@ -1,8 +1,0 @@
-/* Project Description component styles */
-/* All styles converted to Tailwind CSS classes in the HTML template */
-
-.gradient-border {
-  position: relative;
-  border: 1px solid transparent;
-  border-radius: 1rem;
-}
