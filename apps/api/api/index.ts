@@ -1,8 +1,9 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
 import admin from 'firebase-admin';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { authRoutes } from './routes/auth.routes';
@@ -10,6 +11,8 @@ import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import swaggerOptions from './config/swagger.config';
+import { apiLimiter, authLimiter, aiLimiter } from './middleware/rateLimiter.middleware';
+import { errorHandler } from './middleware/errorHandler.middleware';
 
 dotenv.config();
 
@@ -117,6 +120,21 @@ app.use(
   })
 );
 
+// Security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+}));
+
+// Global rate limiter (100 req/15min)
+app.use(apiLimiter);
+
+// Stricter rate limiting for auth routes (5 attempts/hour)
+app.use('/auth', authLimiter);
+
+// AI/Prompt rate limiting (20 req/hour)
+app.use('/prompt', aiLimiter);
+
 app.use('/projects', projectRoutes);
 app.use('/project', brandingRoutes);
 app.use('/project', diagramRoutes);
@@ -158,10 +176,8 @@ app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
-  console.error('Global error handler:', err);
-  res.status(500).send('Something broke!');
-});
+// Centralized error handler (must be last)
+app.use(errorHandler);
 
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
