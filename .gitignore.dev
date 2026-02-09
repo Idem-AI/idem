@@ -1,8 +1,0 @@
-# Branch-specific gitignore for DEV branch
-# This file documents what should be ignored on dev branch
-
-# Production docker-compose should NOT be versioned on dev
-docker-compose.prod.yml
-
-# Dev branch only manages staging environment
-# Main branch manages production environment
