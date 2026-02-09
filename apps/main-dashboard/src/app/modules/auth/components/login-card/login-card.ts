@@ -1,4 +1,4 @@
-import { Component, inject, signal, output } from '@angular/core';
+import { Component, inject, signal, output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
@@ -10,12 +10,25 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
   templateUrl: './login-card.html',
   styleUrl: './login-card.css',
 })
-export class LoginCardComponent {
+export class LoginCardComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   protected isLoading = signal<boolean>(false);
 
   // Output to notify parent when login is successful
   readonly loginSuccess = output<void>();
+
+  async ngOnInit(): Promise<void> {
+    // Handle mobile redirect login: show loading while checking redirect result
+    if (this.authService.redirectLoginInProgress()) {
+      this.isLoading.set(true);
+    }
+    const redirectUser = await this.authService.redirectResultReady;
+    if (redirectUser) {
+      // User returned from redirect login (mobile) — navigate
+      this.loginSuccess.emit();
+    }
+    this.isLoading.set(false);
+  }
 
   protected async loginWithGoogle(): Promise<void> {
     try {

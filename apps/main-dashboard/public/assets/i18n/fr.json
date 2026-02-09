@@ -286,23 +286,36 @@
           "title": "Basé sur les initiales",
           "description": "Les initiales comme élément principal de la conception de votre logo",
           "example": "IBM, HP, CNN"
-        }
+        },
+        "examplesLabel": "Ex :"
       },
       "modes": {
         "ai": {
           "title": "Génération par IA",
-          "description": "L'IA crée des logos uniques basés sur votre marque"
+          "description": "L'IA crée des logos uniques basés sur votre marque",
+          "badge": "Recommandé",
+          "features": {
+            "smart": "Design intelligent",
+            "multiple": "Plusieurs options",
+            "fast": "Résultats instantanés"
+          }
         },
         "custom": {
           "title": "Description personnalisée",
-          "description": "Décrivez exactement comment vous voulez votre logo"
+          "description": "Décrivez exactement comment vous voulez votre logo",
+          "features": {
+            "control": "Contrôle total",
+            "precise": "Vision précise",
+            "unique": "Résultat unique"
+          }
         }
       },
       "fields": {
         "description": {
           "label": "Description du logo",
           "placeholder": "Exemple : Logo minimaliste avec un sommet de montagne, couleurs bleu et blanc, aventure et confiance...",
-          "charCount": "caractères (min {{min}})"
+          "charCount": "caractères",
+          "tip": "Soyez précis sur les couleurs, formes, style et ambiance. Plus vous donnez de détails, mieux le résultat correspondra à votre vision."
         }
       },
       "buttons": {
@@ -371,6 +384,7 @@
         "subtitle": "Création de différentes versions de votre logo pour divers cas d'utilisation."
       },
       "progress": {
+        "label": "Progression",
         "initializing": "Initialisation de la génération des variations de logo...",
         "analyzing": "Analyse du design du logo sélectionné...",
         "generatingLight": "Génération de la variation pour fond clair...",
@@ -390,6 +404,14 @@
         "subtitle": "Sélectionnez les variations que vous souhaitez conserver pour votre projet.",
         "completed": "Variations générées avec succès !",
         "reviewAndProceed": "Examinez vos variations et continuez quand vous êtes prêt."
+      },
+      "status": {
+        "generated": "Généré",
+        "processing": "Traitement des variations...",
+        "preparingNext": "Préparation de l'étape suivante...",
+        "allGenerated": "Toutes les variations générées avec succès !",
+        "readyToProceed": "Prêt à passer à l'étape suivante.",
+        "advancing": "Passage à l'étape suivante..."
       },
       "categories": {
         "withText": "Avec texte",
@@ -416,14 +438,6 @@
         "lightBackground": "Optimisé pour les fonds blancs et clairs",
         "darkBackground": "Optimisé pour les fonds sombres et modernes",
         "monochrome": "Version en noir et blanc pour toutes les utilisations"
-      },
-      "status": {
-        "generated": "Généré",
-        "processing": "Traitement des variations...",
-        "preparingNext": "Préparation de l'étape suivante...",
-        "allGenerated": "Toutes les variations générées avec succès !",
-        "readyToProceed": "Prêt à passer à l'étape suivante.",
-        "advancing": "Passage à l'étape suivante..."
       },
       "selectionsMade": "{{count}} sélection(s) faite(s)"
     },
@@ -528,8 +542,13 @@
       }
     },
     "typographySelection": {
-      "title": "Sélection de typographie",
+      "title": "Sélection de la typographie",
       "subtitle": "Choisissez la typographie parfaite qui reflète la personnalité de votre marque et améliore la lisibilité.",
+      "error": {
+        "title": "Typographie non disponible",
+        "description": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs.",
+        "retry": "Réessayer"
+      },
       "errors": {
         "title": "Typographie non disponible",
         "noOptions": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs."
@@ -545,10 +564,10 @@
       },
       "popular": {
         "title": "Collections de typographie populaires",
-        "subtitle": "Combinaisons de typographies sélectionnées et appréciées par les designers du monde entier."
+        "subtitle": "Combinaisons de typographie sélectionnées et aimées par les designers du monde entier."
       },
       "tabs": {
-        "generated": "Générées par l'IA",
+        "generated": "Généré par l'IA",
         "popular": "Collections populaires",
         "custom": "Mélange personnalisé"
       },
@@ -561,20 +580,20 @@
         "tryText": "Essayez votre texte :",
         "headingExample": "L'avenir du design numérique",
         "bodyTitle": "Détails de la typographie",
-        "bodyText": "La typographie est l'art et la technique d'arranger les caractères pour rendre le langage écrit lisible et attrayant lorsqu'il est affiché. L'arrangement des caractères implique la sélection de polices, de tailles de points, de longueurs de ligne, d'interlignage et d'espacement entre les lettres.",
+        "bodyText": "La typographie est l'art et la technique d'organiser les caractères pour rendre le langage écrit lisible, compréhensible et attrayant à l'affichage. L'organisation des caractères implique de sélectionner les polices, les tailles de points, les longueurs de ligne, l'espacement des lignes et l'espacement des lettres.",
         "buttonPrimary": "Commencer",
         "buttonSecondary": "En savoir plus",
         "fontPrimary": "Police primaire",
         "fontSecondary": "Police secondaire",
-        "launchingSoon": "Lancement Prochain",
+        "launchingSoon": "Lancement bientôt",
         "heroSubtitle": "Créez une expérience numérique inoubliable avec notre nouvelle identité visuelle. L'innovation commence ici.",
         "getStarted": "Commencer",
         "learnMore": "En savoir plus",
-        "cardTitle1": "Design Moderne",
-        "cardText1": "Une approche minimaliste qui met en valeur l'essentiel de votre contenu sans distractions inutiles.",
-        "cardTitle2": "Expérience Intuitive",
+        "cardTitle1": "Design moderne",
+        "cardText1": "Une approche minimaliste qui met en évidence l'essentiel de votre contenu sans distractions inutiles.",
+        "cardTitle2": "Expérience intuitive",
         "cardText2": "Des interactions fluides et naturelles conçues pour engager vos utilisateurs dès le premier clic.",
-        "quote": "Le design n'est pas seulement ce à quoi il ressemble et ce qu'on ressent. Le design est comment ça marche.",
+        "quote": "Le design n'est pas seulement ce qu'il paraît et ce qu'il ressent. Le design, c'est comment ça marche.",
         "author": "Steve Jobs"
       },
       "generated": {
@@ -587,25 +606,25 @@
       },
       "actions": {
         "back": "Retour",
-        "saveAsDraft": "Sauvegarder comme brouillon",
+        "saveAsDraft": "Enregistrer comme brouillon",
         "continue": "Continuer"
       },
-      "searchPlaceholder": "Rechercher des polices (ex: Roboto, Open Sans)...",
+      "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
       "searching": "Recherche de polices...",
       "noResults": "Aucune police trouvée pour votre recherche",
       "searchHint": "Commencez à taper pour rechercher dans Google Fonts",
-      "selectToPreview": "Sélectionnez des polices pour prévisualiser votre mélange typographique personnalisé",
+      "selectToPreview": "Sélectionnez les polices pour prévisualiser votre mélange de typographie personnalisé",
       "custom": {
         "title": "Vos mélanges personnalisés",
         "createNew": "Créer un nouveau mélange",
         "searchLabel": "RECHERCHER GOOGLE FONTS",
-        "searchPlaceholder": "Rechercher des polices (ex: Roboto, Open Sans)...",
-        "setPrimary": "Définir primaire",
-        "setSecondary": "Définir secondaire",
+        "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
+        "setPrimary": "Définir comme primaire",
+        "setSecondary": "Définir comme secondaire",
         "primaryFont": "POLICE PRIMAIRE",
         "secondaryFont": "POLICE SECONDAIRE",
-        "notSelected": "Non sélectionnée",
-        "addButton": "Ajouter le mélange personnalisé"
+        "notSelected": "Non sélectionné",
+        "addButton": "Ajouter un mélange personnalisé"
       }
     },
     "createProject": {
