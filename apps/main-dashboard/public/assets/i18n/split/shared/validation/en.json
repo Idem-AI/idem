@@ -1,0 +1,10 @@
+{
+  "required": "{{fieldName}} is required",
+  "email": "Please enter a valid email address",
+  "minLength": "Minimum {{min}} characters required",
+  "maxLength": "Maximum {{max}} characters allowed",
+  "selectAtLeastOneRole": "Please select at least one role",
+  "teamNameMinLength": "Team name must be at least {{min}} characters",
+  "deploymentName": "Deployment name is required (minimum {{min}} characters)",
+  "invalid": "Invalid field"
+}

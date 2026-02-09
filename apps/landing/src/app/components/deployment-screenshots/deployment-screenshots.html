@@ -1,0 +1,445 @@
+<!-- Deployment Section - Grandiose Design -->
+<section class="relative py-16 sm:py-20 lg:py-24 overflow-hidden">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Section Header -->
+    <div class="text-center mb-16 lg:mb-20">
+      <h2
+        class="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight"
+        i18n="@@deployment-screenshots.title"
+      >
+        Deploy <span class="i-underline">Your Way</span><br />with IDEM
+      </h2>
+
+      <p
+        class="text-lg sm:text-xl lg:text-2xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@deployment-screenshots.description"
+      >
+        One-click deployment to any cloud.
+        <span class="text-white font-semibold">AWS, Google Cloud, Azure, or your own servers.</span>
+        Production-ready in minutes.
+      </p>
+    </div>
+
+    <div class="space-y-24 lg:space-y-32">
+      <!-- Mode 1: Quick Deploy - Rocket Launch -->
+      <div class="relative">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div>
+            <h3
+              class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 lg:mb-6"
+              i18n="@@deployment-screenshots.screenshots.quick.title"
+            >
+              Quick Deployment
+            </h3>
+            <p
+              class="text-base sm:text-lg text-white/80 mb-6 lg:mb-8"
+              i18n="@@deployment-screenshots.screenshots.quick.description"
+            >
+              Zero configuration deployment. We handle everything and provide you with a live URL
+              instantly.
+            </p>
+            <div class="grid grid-cols-2 gap-3 sm:gap-4">
+              <div class="glass-card p-3 sm:p-4 rounded-xl">
+                <div class="text-white font-bold text-base sm:text-lg mb-1">0s</div>
+                <div class="text-white/60 text-xs" i18n="@@deployment-screenshots.quick.configTime">
+                  Config Time
+                </div>
+              </div>
+              <div class="glass-card p-3 sm:p-4 rounded-xl">
+                <div class="text-white font-bold text-base sm:text-lg mb-1">< 2min</div>
+                <div class="text-white/60 text-xs" i18n="@@deployment-screenshots.quick.deployTime">
+                  Deploy Time
+                </div>
+              </div>
+              <div class="glass-card p-3 sm:p-4 rounded-xl">
+                <div
+                  class="text-white font-bold text-base sm:text-lg mb-1"
+                  i18n="@@deployment-screenshots.quick.free"
+                >
+                  Free
+                </div>
+                <div class="text-white/60 text-xs" i18n="@@deployment-screenshots.quick.subdomain">
+                  Subdomain
+                </div>
+              </div>
+              <div class="glass-card p-3 sm:p-4 rounded-xl">
+                <div class="text-white font-bold text-base sm:text-lg mb-1">SSL</div>
+                <div class="text-white/60 text-xs" i18n="@@deployment-screenshots.quick.autoHttps">
+                  Auto HTTPS
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="relative h-[400px] sm:h-[500px] rounded-2xl overflow-hidden border border-white/10 bg-white/5"
+          >
+            <div class="absolute inset-0 flex items-center justify-center">
+              <!-- Rocket Animation -->
+              <div class="relative">
+                <svg
+                  class="w-32 h-32 sm:w-40 sm:h-40 text-white/80"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"
+                  />
+                </svg>
+                <div
+                  class="absolute -bottom-8 left-1/2 -translate-x-1/2 w-24 h-24 bg-white/10 rounded-full blur-xl"
+                ></div>
+              </div>
+            </div>
+            <div class="absolute bottom-8 left-0 right-0 text-center">
+              <div class="glass-card inline-block px-6 py-3 rounded-xl">
+                <div class="text-white font-bold text-lg">yourapp.idem.dev</div>
+                <div
+                  class="text-white/60 text-xs mt-1"
+                  i18n="@@deployment-screenshots.quick.liveIn"
+                >
+                  Live in 90 seconds
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode 2: VPS Deploy - Server Cluster -->
+      <div class="relative">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div class="order-2 lg:order-1 relative h-[400px] sm:h-[500px]">
+            <!-- Server Cluster Visual -->
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="grid grid-cols-3 gap-4">
+                <div
+                  class="w-20 h-24 sm:w-24 sm:h-28 glass-card rounded-xl border border-white/10 p-3 flex flex-col justify-between"
+                >
+                  <div class="space-y-1">
+                    <div class="h-1 bg-white/50 rounded w-full"></div>
+                    <div class="h-1 bg-white/30 rounded w-3/4"></div>
+                  </div>
+                  <div class="w-2 h-2 rounded-full bg-primary mx-auto"></div>
+                </div>
+                <div
+                  class="w-20 h-24 sm:w-24 sm:h-28 glass-card rounded-xl border border-white/10 p-3 flex flex-col justify-between"
+                >
+                  <div class="space-y-1">
+                    <div class="h-1 bg-white/50 rounded w-full"></div>
+                    <div class="h-1 bg-white/30 rounded w-3/4"></div>
+                  </div>
+                  <div class="w-2 h-2 rounded-full bg-primary mx-auto"></div>
+                </div>
+                <div
+                  class="w-20 h-24 sm:w-24 sm:h-28 glass-card rounded-xl border border-white/10 p-3 flex flex-col justify-between"
+                >
+                  <div class="space-y-1">
+                    <div class="h-1 bg-white/50 rounded w-full"></div>
+                    <div class="h-1 bg-white/30 rounded w-3/4"></div>
+                  </div>
+                  <div class="w-2 h-2 rounded-full bg-primary mx-auto"></div>
+                </div>
+              </div>
+            </div>
+            <div class="absolute top-8 left-0 right-0 text-center">
+              <div class="glass-card inline-block px-4 py-2 rounded-lg">
+                <div class="text-white font-bold text-sm">Docker Swarm</div>
+                <div
+                  class="text-white/60 text-xs"
+                  i18n="@@deployment-screenshots.vps.highAvailability"
+                >
+                  High Availability
+                </div>
+              </div>
+            </div>
+            <div class="absolute bottom-8 left-0 right-0 flex justify-center gap-2">
+              <div class="glass-card px-3 py-1.5 rounded-lg text-xs text-white/80">CPU: 45%</div>
+              <div class="glass-card px-3 py-1.5 rounded-lg text-xs text-white/80">RAM: 2.1GB</div>
+              <div
+                class="glass-card px-3 py-1.5 rounded-lg text-xs text-white/80"
+                i18n="@@deployment-screenshots.vps.uptime"
+              >
+                Uptime: 99.9%
+              </div>
+            </div>
+          </div>
+          <div class="order-1 lg:order-2">
+            <h3
+              class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 lg:mb-6"
+              i18n="@@deployment-screenshots.screenshots.vps.title"
+            >
+              VPS Deployment
+            </h3>
+            <p
+              class="text-base sm:text-lg text-white/80 mb-6 lg:mb-8"
+              i18n="@@deployment-screenshots.screenshots.vps.description"
+            >
+              Deploy on IDEM servers or your own VPS with full control and Docker Swarm high
+              availability.
+            </p>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0"
+                >
+                  <svg class="w-4 h-4 text-white/80" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                    />
+                  </svg>
+                </div>
+                <div class="text-white/90 text-sm" i18n="@@deployment-screenshots.vps.yourServer">
+                  Your server or ours
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0"
+                >
+                  <svg class="w-4 h-4 text-white/80" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"
+                    />
+                  </svg>
+                </div>
+                <div class="text-white/90 text-sm" i18n="@@deployment-screenshots.vps.monitoring">
+                  Full monitoring & logs
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode 3: Cloud Deploy - Multi-Cloud -->
+      <div class="relative">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div>
+            <h3
+              class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 lg:mb-6"
+              i18n="@@deployment-screenshots.screenshots.cloud.title"
+            >
+              Cloud Deployment
+            </h3>
+            <p
+              class="text-base sm:text-lg text-white/80 mb-6 lg:mb-8"
+              i18n="@@deployment-screenshots.screenshots.cloud.description"
+            >
+              AI-powered deployment on AWS, GCP with automatic resource provisioning and cost
+              optimization.
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <div class="glass-card px-4 py-2 rounded-lg flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
+                  <span class="text-white/80 text-xs font-bold">AWS</span>
+                </div>
+                <span class="text-white/80 text-sm" i18n="@@deployment-screenshots.cloud.aws"
+                  >Amazon Web Services</span
+                >
+              </div>
+              <div class="glass-card px-4 py-2 rounded-lg flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
+                  <span class="text-white/80 text-xs font-bold">GCP</span>
+                </div>
+                <span class="text-white/80 text-sm" i18n="@@deployment-screenshots.cloud.gcp"
+                  >Google Cloud</span
+                >
+              </div>
+              <div class="glass-card px-4 py-2 rounded-lg flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
+                  <span class="text-white/80 text-xs font-bold">AZ</span>
+                </div>
+                <span class="text-white/80 text-sm" i18n="@@deployment-screenshots.cloud.azure"
+                  >Microsoft Azure</span
+                >
+              </div>
+            </div>
+          </div>
+          <div
+            class="relative h-[400px] sm:h-[500px] rounded-2xl overflow-hidden border border-white/10"
+          >
+            <div class="absolute inset-0 bg-white/5"></div>
+            <div class="relative h-full flex flex-col items-center justify-center p-8">
+              <!-- AI Brain -->
+              <div class="relative mb-8">
+                <div
+                  class="w-24 h-24 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center"
+                >
+                  <svg class="w-12 h-12 text-white/80" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13 7H7v6h6V7z" />
+                    <path
+                      fill-rule="evenodd"
+                      d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div class="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-primary"></div>
+              </div>
+              <div class="text-center space-y-2">
+                <div
+                  class="text-white font-bold"
+                  i18n="@@deployment-screenshots.cloud.aiOptimizing"
+                >
+                  AI Optimizing...
+                </div>
+                <div class="text-white/60 text-sm" i18n="@@deployment-screenshots.cloud.cost">
+                  Cost: $12/mo → $8/mo
+                </div>
+                <div
+                  class="text-white/60 text-sm"
+                  i18n="@@deployment-screenshots.cloud.performance"
+                >
+                  Performance: +35%
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode 4: Custom Architecture - Visual Designer -->
+      <div class="relative">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div
+            class="order-2 lg:order-1 relative h-[400px] sm:h-[500px] rounded-2xl overflow-hidden border border-white/10 bg-white/5"
+          >
+            <!-- Architecture Designer -->
+            <div class="absolute inset-0 p-6">
+              <div class="flex gap-4 h-full">
+                <!-- Nodes -->
+                <div class="flex-1 space-y-4">
+                  <div class="glass-card p-3 rounded-lg border border-white/20">
+                    <div
+                      class="text-white text-xs font-bold mb-1"
+                      i18n="@@deployment-screenshots.architecture.loadBalancer"
+                    >
+                      Load Balancer
+                    </div>
+                    <div class="h-1 bg-white/30 rounded w-full"></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="glass-card p-2 rounded border border-white/10">
+                      <div
+                        class="text-white/80 text-xs"
+                        i18n="@@deployment-screenshots.architecture.app1"
+                      >
+                        App 1
+                      </div>
+                    </div>
+                    <div class="glass-card p-2 rounded border border-white/10">
+                      <div
+                        class="text-white/80 text-xs"
+                        i18n="@@deployment-screenshots.architecture.app2"
+                      >
+                        App 2
+                      </div>
+                    </div>
+                  </div>
+                  <div class="glass-card p-3 rounded-lg border border-white/20">
+                    <div
+                      class="text-white text-xs font-bold mb-1"
+                      i18n="@@deployment-screenshots.architecture.database"
+                    >
+                      Database
+                    </div>
+                    <div class="h-1 bg-white/30 rounded w-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="absolute bottom-4 right-4">
+              <div class="glass-card px-3 py-1.5 rounded-lg text-xs text-white font-bold">
+                <span i18n="@@deployment-screenshots.architecture.visualDesignerBadge"
+                  >Visual Designer</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="order-1 lg:order-2">
+            <h3
+              class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 lg:mb-6"
+              i18n="@@deployment-screenshots.screenshots.architecture.title"
+            >
+              Custom Architecture
+            </h3>
+            <p
+              class="text-base sm:text-lg text-white/80 mb-6 lg:mb-8"
+              i18n="@@deployment-screenshots.screenshots.architecture.description"
+            >
+              Design and deploy custom cloud architectures with AI assistance, templates, or total
+              control.
+            </p>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-primary"></div>
+                <span
+                  class="text-white/90 text-sm"
+                  i18n="@@deployment-screenshots.architecture.aiAssistant"
+                  >AI Assistant</span
+                >
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-primary"></div>
+                <span
+                  class="text-white/90 text-sm"
+                  i18n="@@deployment-screenshots.architecture.templates"
+                  >Templates</span
+                >
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-primary"></div>
+                <span
+                  class="text-white/90 text-sm"
+                  i18n="@@deployment-screenshots.architecture.customConfig"
+                  >Custom Config</span
+                >
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-primary"></div>
+                <span
+                  class="text-white/90 text-sm"
+                  i18n="@@deployment-screenshots.architecture.visualDesigner"
+                  >Visual Designer</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="mt-20 lg:mt-24 text-center">
+      <div class="glass-card p-8 lg:p-12 rounded-2xl border border-primary/20">
+        <h3
+          class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4"
+          i18n="@@deployment-screenshots.start_deploying_minutes"
+        >
+          Start Deploying in Minutes
+        </h3>
+        <p
+          class="text-white/70 mb-8 max-w-2xl mx-auto text-base sm:text-lg"
+          i18n="@@deployment-screenshots.chooseMethod"
+        >
+          Choose your deployment method and go live. No DevOps expertise required.
+        </p>
+        <a
+          routerLink="/deployment"
+          class="inner-button px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold inline-flex items-center gap-2 text-base sm:text-lg"
+        >
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <ng-container i18n="@@deployment-screenshots.exploreOptionsButton"
+            >Explore Deployment Options</ng-container
+          >
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

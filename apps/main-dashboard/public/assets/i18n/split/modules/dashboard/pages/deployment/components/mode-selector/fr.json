@@ -1,0 +1,22 @@
+{
+  "quick": {
+    "title": "Déploiement rapide",
+    "description": "Le moyen le plus simple : un lien de dépôt, une branche, et c'est parti.",
+    "button": "Lancement rapide"
+  },
+  "ai": {
+    "title": "Assistant IA",
+    "description": "Décrivez vos besoins en infrastructure en langage naturel.",
+    "button": "Démarrer le chat"
+  },
+  "templates": {
+    "title": "Modèles d'architecture",
+    "description": "Commencez avec des architectures éprouvées et prêtes pour la production.",
+    "button": "Parcourir les modèles"
+  },
+  "expert": {
+    "title": "Mode Expert",
+    "description": "Construisez votre architecture personnalisée avec un contrôle total.",
+    "button": "Construire l'architecture"
+  }
+}

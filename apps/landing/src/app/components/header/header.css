@@ -1,0 +1,123 @@
+/* Modern Glass Header Design */
+
+/* Header Container */
+.glass-header {
+  background: rgba(10, 10, 20, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Navigation Links */
+.glass-nav-link {
+  position: relative;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-nav-link:hover {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.glass-nav-link.active {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Dropdown Menu */
+.glass-dropdown {
+  background: rgba(15, 15, 25, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.dropdown-link {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 1);
+}
+
+/* Mobile Sidebar */
+.glass-mobile-sidebar {
+  background: rgba(10, 10, 20, 0.98);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.mobile-nav-link {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.mobile-nav-link.active-mobile {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 1);
+  border-left: 3px solid rgba(255, 255, 255, 0.8);
+  padding-left: calc(1rem - 3px);
+}
+
+.mobile-nav-group {
+  margin-top: 1rem;
+}
+
+/* Glass Button */
+.glass-button {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+/* Logo Animation */
+@keyframes logoPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.logo-pulse {
+  animation: logoPulse 4s infinite ease-in-out;
+}
+
+/* Scrollbar for Mobile Sidebar */
+.glass-mobile-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.glass-mobile-sidebar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.glass-mobile-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.glass-mobile-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

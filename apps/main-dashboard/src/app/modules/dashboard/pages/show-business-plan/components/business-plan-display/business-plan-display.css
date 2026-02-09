@@ -1,0 +1,58 @@
+/* Business Plan Display Component Styles */
+
+/* PDF Container styling - minimal styling */
+.pdf-container {
+  background-color: #ffffff;
+  padding: 10px;
+}
+
+/* Custom PDF Viewer styling with clean page margins */
+.pdf-viewer-custom ::ng-deep .ng2-pdf-viewer-container {
+  background-color: #ffffff !important;
+  padding: 0 !important;
+}
+
+/* Add clean margins between PDF pages without visual effects */
+.pdf-viewer-custom ::ng-deep .page {
+  margin-bottom: 15px !important;
+  /* Remove all visual effects that modify PDF appearance */
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  background-color: transparent !important;
+}
+
+/* Keep PDF pages in their original format */
+.pdf-viewer-custom ::ng-deep .page canvas {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+/* Keep text layer clean */
+.pdf-viewer-custom ::ng-deep .textLayer {
+  border-radius: 0 !important;
+}
+
+/* Ensure proper spacing for the last page */
+.pdf-viewer-custom ::ng-deep .page:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Improve scrollbar appearance */
+.pdf-viewer-custom::-webkit-scrollbar {
+  width: 8px;
+}
+
+.pdf-viewer-custom::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.pdf-viewer-custom::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.pdf-viewer-custom::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

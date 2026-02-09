@@ -1,0 +1,20 @@
+@if (pdfSrc()) {
+  <app-pdf-viewer
+    [pdfSrc]="pdfSrc()"
+    [isLoading]="isDownloadingPdf()"
+    [error]="pdfError()"
+    [title]="'dashboard.businessPlanDisplay.title' | translate"
+    [showPagination]="true"
+    (regenerateRequested)="regeneratePdf()"
+    (downloadRequested)="downloadPdf()"
+  ></app-pdf-viewer>
+} @else if (businessPlan() && businessPlan()!.sections.length > 0) {
+  <div class="w-full h-64 sm:h-96 flex flex-col items-center justify-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+    <p class="text-gray-600">{{ 'dashboard.businessPlanDisplay.loading' | translate }}</p>
+  </div>
+} @else {
+  <div class="w-full h-64 sm:h-96 flex flex-col items-center justify-center">
+    <p class="text-gray-600 mb-4 text-center px-4">{{ 'dashboard.businessPlanDisplay.empty.subtitle' | translate }}</p>
+  </div>
+}

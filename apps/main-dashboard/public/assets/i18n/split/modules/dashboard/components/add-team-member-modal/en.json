@@ -1,0 +1,31 @@
+{
+  "title": "Add Team Member",
+  "fields": {
+    "email": "Email Address",
+    "displayName": "Display Name",
+    "role": "Role"
+  },
+  "placeholders": {
+    "email": "member@example.com",
+    "displayName": "John Doe"
+  },
+  "roles": {
+    "admin": {
+      "label": "Admin",
+      "description": "Can manage team and members"
+    },
+    "member": {
+      "label": "Member",
+      "description": "Can view and contribute"
+    },
+    "viewer": {
+      "label": "Viewer",
+      "description": "Can only view"
+    }
+  },
+  "invitationInfo": "An invitation will be sent to the member's email address.",
+  "addMemberButton": "Add Member",
+  "errors": {
+    "failedToAddMember": "Failed to add member"
+  }
+}

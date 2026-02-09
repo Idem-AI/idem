@@ -1,0 +1,309 @@
+<div class="min-h-screen sm:p-6">
+  <div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-white mb-2">
+        {{ 'dashboard.profile.title' | translate }}
+      </h1>
+      <p class="text-gray-400">{{ 'dashboard.profile.subtitle' | translate }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Personal Information Card -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center mb-6">
+          @if (userInfo(); as user) {
+            @if (user.photoURL) {
+              <img
+                [src]="user.photoURL"
+                [alt]="user.name + ('dashboard.profile.alt.profilePicture' | translate)"
+                class="w-12 h-12 rounded-full object-cover mr-4 border-2 border-white/20"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+              />
+              <div
+                class="w-12 h-12 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center mr-4"
+                style="display: none"
+              >
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+              </div>
+            } @else {
+              <div
+                class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4"
+              >
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+              </div>
+            }
+          } @else {
+            <div
+              class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4"
+            >
+              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+            </div>
+          }
+          <h2 class="text-xl font-semibold text-white">
+            {{ 'dashboard.profile.sections.personalInfo' | translate }}
+          </h2>
+        </div>
+
+        @if (userInfo(); as user) {
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">{{
+                'dashboard.profile.fields.name' | translate
+              }}</label>
+              <p class="text-white">{{ user.name || 'Not specified' }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">{{
+                'dashboard.profile.fields.email' | translate
+              }}</label>
+              <p class="text-white">{{ user.email || 'Not specified' }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">{{
+                'dashboard.profile.fields.accountType' | translate
+              }}</label>
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                [class]="
+                  user.accountType === 'premium'
+                    ? 'bg-secondary/20 text-secondary'
+                    : 'bg-primary/20 text-primary'
+                "
+              >
+                {{
+                  (user.accountType === 'premium'
+                    ? 'dashboard.profile.accountTypes.premium'
+                    : 'dashboard.profile.accountTypes.free'
+                  ) | translate
+                }}
+              </span>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">{{
+                'dashboard.profile.fields.memberSince' | translate
+              }}</label>
+              <p class="text-white">{{ formatDate(user.createdAt) }}</p>
+            </div>
+          </div>
+        } @else {
+          <div class="animate-pulse space-y-4">
+            <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+            <div class="h-4 bg-gray-700 rounded w-1/2"></div>
+            <div class="h-4 bg-gray-700 rounded w-2/3"></div>
+          </div>
+        }
+      </div>
+
+      <!-- Beta Status Card -->
+      @if (isBeta()) {
+        <div class="glass rounded-2xl p-6">
+          <div class="flex items-center mb-6">
+            <div
+              class="w-12 h-12 bg-gradient-to-r from-secondary to-accent rounded-full flex items-center justify-center mr-4"
+            >
+              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+            </div>
+            <h2 class="text-xl font-semibold text-white">
+              {{ 'dashboard.profile.sections.betaAccess' | translate }}
+            </h2>
+          </div>
+
+          <div class="space-y-4">
+            <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+              <p class="text-orange-300 text-sm mb-2">
+                {{ 'dashboard.profile.beta.message' | translate }}
+              </p>
+            </div>
+
+            @if (betaRestrictions(); as restrictions) {
+              <div>
+                <h3 class="text-sm font-medium text-gray-400 mb-2">
+                  {{ 'dashboard.profile.beta.limitations' | translate }}
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-300">
+                  <li class="flex items-center">
+                    <span class="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
+                    {{
+                      'dashboard.profile.beta.maxStyles'
+                        | translate: { count: restrictions.maxStyles }
+                    }}
+                  </li>
+                  <li class="flex items-center">
+                    <span class="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
+                    {{
+                      'dashboard.profile.beta.resolution'
+                        | translate: { resolution: restrictions.maxResolution }
+                    }}
+                  </li>
+                  <li class="flex items-center">
+                    <span class="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
+                    {{
+                      'dashboard.profile.beta.maxTokens'
+                        | translate: { count: restrictions.maxOutputTokens }
+                    }}
+                  </li>
+                </ul>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Quota Information Card -->
+      <div class="glass rounded-2xl p-6" [class.lg:col-span-2]="!isBeta()">
+        <div class="flex items-center mb-6">
+          <div
+            class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mr-4"
+          >
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </div>
+          <h2 class="text-xl font-semibold text-white">
+            {{ 'dashboard.profile.sections.quotaUsage' | translate }}
+          </h2>
+        </div>
+
+        @if (quotaInfo(); as quota) {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Daily Quota -->
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <h3 class="text-sm font-medium text-gray-400">
+                  {{ 'dashboard.profile.quota.daily' | translate }}
+                </h3>
+                <span class="text-sm" [class]="getDailyStatusClass()">
+                  {{ quota.remainingDaily }}/{{ quota.dailyLimit }}
+                  {{ 'common.remaining' | translate }}
+                </span>
+              </div>
+              <div class="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  class="h-2 rounded-full transition-all duration-300"
+                  [class]="getDailyProgressClass()"
+                  [style.width.%]="getDailyPercentage()"
+                ></div>
+              </div>
+              <p class="text-xs text-gray-400">
+                {{ 'dashboard.profile.quota.usedToday' | translate: { count: quota.dailyUsage } }}
+              </p>
+            </div>
+
+            <!-- Weekly Quota -->
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <h3 class="text-sm font-medium text-gray-400">
+                  {{ 'dashboard.profile.quota.weekly' | translate }}
+                </h3>
+                <span class="text-sm" [class]="getWeeklyStatusClass()">
+                  {{ quota.remainingWeekly }}/{{ quota.weeklyLimit }}
+                  {{ 'common.remaining' | translate }}
+                </span>
+              </div>
+              <div class="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  class="h-2 rounded-full transition-all duration-300"
+                  [class]="getWeeklyProgressClass()"
+                  [style.width.%]="getWeeklyPercentage()"
+                ></div>
+              </div>
+              <p class="text-xs text-gray-400">
+                {{
+                  'dashboard.profile.quota.usedThisWeek' | translate: { count: quota.weeklyUsage }
+                }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Quota Status Alert -->
+          @if (quotaDisplay(); as display) {
+            @if (
+              display.dailyStatus === QuotaStatus.WARNING ||
+              display.weeklyStatus === QuotaStatus.WARNING
+            ) {
+              <div class="mt-6 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <div class="flex items-center">
+                  <svg class="w-5 h-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"
+                      clip-rule="evenodd"
+                    ></path>
+                  </svg>
+                  <p class="text-yellow-300 text-sm">
+                    {{ 'dashboard.profile.quota.warning' | translate }}
+                  </p>
+                </div>
+              </div>
+            } @else if (
+              display.dailyStatus === QuotaStatus.EXCEEDED ||
+              display.weeklyStatus === QuotaStatus.EXCEEDED
+            ) {
+              <div class="mt-6 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <div class="flex items-center">
+                  <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clip-rule="evenodd"
+                    ></path>
+                  </svg>
+                  <p class="text-red-300 text-sm">
+                    {{ 'dashboard.profile.quota.exceeded' | translate }}
+                  </p>
+                </div>
+              </div>
+            }
+          }
+        } @else {
+          <div class="animate-pulse space-y-4">
+            <div class="h-4 bg-gray-700 rounded w-full"></div>
+            <div class="h-2 bg-gray-700 rounded w-full"></div>
+            <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="mt-8 flex flex-wrap gap-4">
+      <button
+        class="px-6 py-2 bg-gradient-to-r inner-button transition-all duration-200 font-medium"
+      >
+        {{ 'dashboard.profile.buttons.upgrade' | translate }}
+      </button>
+      <button class="px-6 py-2 glass outer-button transition-all duration-200 font-medium">
+        {{ 'dashboard.profile.buttons.settings' | translate }}
+      </button>
+    </div>
+  </div>
+</div>

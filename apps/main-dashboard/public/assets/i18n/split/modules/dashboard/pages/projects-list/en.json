@@ -1,0 +1,18 @@
+{
+  "sections": {
+    "recent": "Recent Projects",
+    "all": "All Projects"
+  },
+  "cards": {
+    "create": {
+      "title": "Create New Project",
+      "subtitle": "Start building something amazing"
+    }
+  },
+  "empty": {
+    "noProjects": "No projects yet. Create your first project to get started!"
+  },
+  "buttons": {
+    "create": "Create your first project"
+  }
+}
