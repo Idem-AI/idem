@@ -58,9 +58,14 @@ function crowdSecLabelsForApplication(Application $application, ?string $appUuid
         ];
         
         // AppSec middleware configuration (WAF - HTTP inspection)
-        // Only add if inband (blocking) mode is enabled OR has path_only rules
+        // IMPORTANT: AppSec requires a separate CrowdSec AppSec component running on port 7422
+        // Only add AppSec labels if explicitly enabled AND AppSec is available on the server
+        // For now, we disable AppSec by default as it requires additional setup
+        // TODO: Add server-level check for AppSec availability before enabling
         $hasPathRules = $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
-        if ($firewallConfig->inband_enabled || $hasPathRules) {
+        $shouldEnableAppSec = false; // Disabled by default - requires AppSec installation
+        
+        if ($shouldEnableAppSec && $firewallConfig->appsec_enabled && ($firewallConfig->inband_enabled || $hasPathRules)) {
             $appSecLabels = [
                 "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.enabled" => "true",
                 // LAPI params (required)
