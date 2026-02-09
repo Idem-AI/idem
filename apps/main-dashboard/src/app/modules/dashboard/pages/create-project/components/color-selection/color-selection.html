@@ -172,81 +172,80 @@
       >
         <ng-template let-color let-index="index" let-isSelected="isSelected">
           <div
-            class="p-4 sm:p-6 border-2 border-transparent glass rounded-xl hover:shadow-lg hover:shadow-primary/30 hover:bg-gray-900/50 transition-all duration-300 cursor-pointer group relative hover:-translate-y-1"
+            class="relative rounded-2xl cursor-pointer transition-all duration-500 overflow-hidden group hover:-translate-y-2 border-2"
+            [ngClass]="{
+              'scale-[1.02]': selectedColorId() === color.id,
+              'border-transparent hover:border-white/10': selectedColorId() !== color.id,
+            }"
             [style.boxShadow]="
-              selectedColorId() === color.id ? '0 0 15px ' + color.colors.primary : 'none'
+              selectedColorId() === color.id
+                ? '0 0 40px ' +
+                  color.colors.primary +
+                  '33, inset 0 0 30px ' +
+                  color.colors.primary +
+                  '10'
+                : 'none'
             "
-            [class.border-primary]="selectedColorId() === color.id"
-            [class.bg-gray-900]="selectedColorId() === color.id"
             [style.borderColor]="selectedColorId() === color.id ? color.colors.primary : ''"
             (click)="selectColor(color.id)"
           >
-            <div
-              class="absolute inset-0 bg-linear-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-300"
-              [style.backgroundImage]="
-                'linear-gradient(to bottom right, ' +
-                color.colors.primary +
-                ', ' +
-                color.colors.accent +
-                ')'
-              "
-              [class.opacity-20]="selectedColorId() === color.id"
-            ></div>
-
-            <div class="relative z-10">
-              <h3 class="text-white text-lg font-medium mb-3">{{ color.name }}</h3>
-
-              <div class="flex flex-wrap gap-2 sm:gap-3 mb-4">
-                <div
-                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-sm ring-2 ring-white/20"
-                  [style.backgroundColor]="color.colors.primary"
-                  [title]="'dashboard.colorSelection.tooltips.primary' | translate"
-                ></div>
-                <div
-                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-sm ring-2 ring-white/20"
-                  [style.backgroundColor]="color.colors.secondary"
-                  [title]="'dashboard.colorSelection.tooltips.secondary' | translate"
-                ></div>
-                <div
-                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-sm ring-2 ring-white/20"
-                  [style.backgroundColor]="color.colors.accent"
-                  [title]="'dashboard.colorSelection.tooltips.accent' | translate"
-                ></div>
-                <div
-                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-gray-500 shadow-sm"
-                  [style.backgroundColor]="color.colors.background"
-                  [title]="'dashboard.colorSelection.tooltips.background' | translate"
-                ></div>
-              </div>
-
+            <!-- Color Strips — Pantone Style -->
+            <div class="flex h-36 sm:h-44">
               <div
-                class="mt-3 p-3 sm:p-4 rounded-lg border border-gray-600/30"
+                class="flex-1 relative group/strip transition-all duration-300 hover:flex-[1.4]"
+                [style.backgroundColor]="color.colors.primary"
+                [title]="'dashboard.colorSelection.tooltips.primary' | translate"
+              >
+                <span
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/70 uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  >Primary</span
+                >
+              </div>
+              <div
+                class="flex-1 relative group/strip transition-all duration-300 hover:flex-[1.4]"
+                [style.backgroundColor]="color.colors.secondary"
+                [title]="'dashboard.colorSelection.tooltips.secondary' | translate"
+              >
+                <span
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/70 uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  >Secondary</span
+                >
+              </div>
+              <div
+                class="flex-1 relative group/strip transition-all duration-300 hover:flex-[1.4]"
+                [style.backgroundColor]="color.colors.accent"
+                [title]="'dashboard.colorSelection.tooltips.accent' | translate"
+              >
+                <span
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/70 uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  >Accent</span
+                >
+              </div>
+              <div
+                class="flex-[0.6] relative group/strip transition-all duration-300 hover:flex-1"
                 [style.backgroundColor]="color.colors.background"
               >
-                <p [style.color]="color.colors.text" class="font-medium text-sm sm:text-base mb-2">
-                  {{ 'dashboard.colorSelection.preview.sampleText' | translate }}
-                </p>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    class="px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-all hover:scale-105 shadow-sm"
-                    [style.backgroundColor]="color.colors.primary"
-                    [style.color]="'white'"
-                  >
-                    {{ 'dashboard.colorSelection.preview.primary' | translate }}
-                  </button>
-                  <button
-                    class="px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-all hover:scale-105 shadow-sm"
-                    [style.backgroundColor]="color.colors.accent"
-                    [style.color]="color.colors.text"
-                  >
-                    {{ 'dashboard.colorSelection.preview.accent' | translate }}
-                  </button>
-                </div>
+                <span
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  [style.color]="color.colors.text"
+                  >Bg</span
+                >
               </div>
+            </div>
 
-              @if (selectedColorId() === color.id) {
-                <div class="absolute top-2 right-2">
-                  <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+            <!-- Card Info -->
+            <div class="relative bg-gray-950 p-4 sm:p-5">
+              <!-- Palette Name + Check -->
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-white text-base font-bold tracking-tight">{{ color.name }}</h3>
+                @if (selectedColorId() === color.id) {
+                  <div
+                    class="w-7 h-7 rounded-full flex items-center justify-center shadow-lg"
+                    [style.backgroundColor]="color.colors.primary"
+                    style="
+                      animation: scale-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                    "
+                  >
                     <svg
                       class="w-4 h-4 text-white"
                       fill="none"
@@ -256,13 +255,51 @@
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        stroke-width="2"
+                        stroke-width="2.5"
                         d="M5 13l4 4L19 7"
-                      ></path>
+                      />
                     </svg>
                   </div>
+                }
+              </div>
+
+              <!-- Live Typography Preview -->
+              <div
+                class="rounded-xl overflow-hidden border border-white/5"
+                [style.backgroundColor]="color.colors.background"
+              >
+                <div class="p-4">
+                  <p class="text-xl font-bold mb-1 leading-tight" [style.color]="color.colors.text">
+                    Aa Bb Cc
+                  </p>
+                  <p class="text-xs mb-3 opacity-60" [style.color]="color.colors.text">
+                    The quick brown fox jumps over the lazy dog
+                  </p>
+                  <div class="flex items-center gap-2">
+                    <div
+                      class="h-7 px-4 rounded-lg flex items-center justify-center"
+                      [style.backgroundColor]="color.colors.primary"
+                    >
+                      <span class="text-[10px] font-bold text-white tracking-wide">Button</span>
+                    </div>
+                    <div
+                      class="h-7 px-4 rounded-lg flex items-center justify-center border"
+                      [style.borderColor]="color.colors.accent"
+                      [style.backgroundColor]="color.colors.accent + '15'"
+                    >
+                      <span
+                        class="text-[10px] font-bold tracking-wide"
+                        [style.color]="color.colors.accent"
+                        >Action</span
+                      >
+                    </div>
+                    <div
+                      class="ml-auto w-5 h-5 rounded-full"
+                      [style.backgroundColor]="color.colors.secondary"
+                    ></div>
+                  </div>
                 </div>
-              }
+              </div>
             </div>
           </div>
         </ng-template>
