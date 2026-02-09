@@ -2,7 +2,7 @@
   class="flex flex-col items-center justify-center w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10"
 >
   <!-- Step Indicator -->
-  <div class="w-full max-w-2xl mx-auto mb-10 sm:mb-14">
+  <div class="w-full max-w-2xl mx-auto mb-6 sm:mb-14">
     <div class="relative flex items-center justify-between">
       <div
         class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-white/10 rounded-full z-0"
@@ -10,7 +10,7 @@
       @for (step of stepsList; track step.key) {
         <div class="relative z-10 flex flex-col items-center gap-2.5">
           <div
-            class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300"
+            class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold border-2 transition-all duration-300"
             [ngClass]="{
               'bg-primary border-primary text-white shadow-lg shadow-primary/30':
                 currentStep() === step.key,
@@ -51,16 +51,18 @@
   <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'type') {
     <div class="w-full max-w-6xl mx-auto animate-fade-in">
-      <div class="text-center mb-10">
-        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 tracking-tight">
+      <div class="text-center mb-6 sm:mb-10">
+        <h1
+          class="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3 tracking-tight"
+        >
           {{ 'dashboard.logoPreferences.steps.type.title' | translate }}
         </h1>
-        <p class="text-gray-400 text-lg max-w-2xl mx-auto font-light">
+        <p class="text-gray-400 text-sm sm:text-lg max-w-2xl mx-auto font-light">
           {{ 'dashboard.logoPreferences.steps.type.subtitle' | translate }}
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-10">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-10">
         @for (option of logoTypes; track option.type) {
           <div
             (click)="selectType(option.type)"
@@ -73,7 +75,7 @@
             }"
           >
             <!-- Logo Showcase Area -->
-            <div class="relative h-52 sm:h-56 w-full overflow-hidden bg-gray-800/30">
+            <div class="relative h-36 sm:h-56 w-full overflow-hidden bg-gray-800/30">
               <div class="absolute inset-0 flex items-center justify-center p-5">
                 <!-- Icon-Based Logos: Apple, X, Nike -->
                 @if (option.type === 'icon') {
@@ -198,9 +200,11 @@
             </div>
 
             <!-- Card Content -->
-            <div class="p-5 sm:p-6 flex-1 flex flex-col">
-              <h3 class="text-lg font-bold text-white mb-1.5">{{ option.titleKey | translate }}</h3>
-              <p class="text-sm text-gray-400 leading-relaxed mb-4 flex-1">
+            <div class="p-4 sm:p-6 flex-1 flex flex-col">
+              <h3 class="text-base sm:text-lg font-bold text-white mb-1 sm:mb-1.5">
+                {{ option.titleKey | translate }}
+              </h3>
+              <p class="text-xs sm:text-sm text-gray-400 leading-relaxed mb-3 sm:mb-4 flex-1">
                 {{ option.descriptionKey | translate }}
               </p>
               <div class="pt-3 border-t border-white/5 flex items-center gap-2">
@@ -220,7 +224,7 @@
         <button
           (click)="goToModeSelection()"
           [disabled]="!canProceed()"
-          class="inner-button flex items-center gap-2 px-12 py-4 text-lg group shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
+          class="inner-button flex items-center gap-2 px-8 sm:px-12 py-3 sm:py-4 text-base sm:text-lg group shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
         >
           <span>{{ 'common.continue' | translate }}</span>
           <svg
@@ -246,20 +250,22 @@
   <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'mode') {
     <div class="w-full max-w-5xl mx-auto animate-fade-in">
-      <div class="text-center mb-10">
-        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 tracking-tight">
+      <div class="text-center mb-6 sm:mb-10">
+        <h1
+          class="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3 tracking-tight"
+        >
           {{ 'dashboard.logoPreferences.steps.mode.title' | translate }}
         </h1>
-        <p class="text-gray-400 text-lg max-w-xl mx-auto font-light">
+        <p class="text-gray-400 text-sm sm:text-lg max-w-xl mx-auto font-light">
           {{ 'dashboard.logoPreferences.steps.mode.subtitle' | translate }}
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mb-10">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 lg:gap-12 mb-6 sm:mb-10">
         <!-- AI Generation Card -->
         <div
           (click)="selectGenerationMode('ai')"
-          class="group relative h-[500px] rounded-3xl cursor-pointer transition-all duration-500 overflow-hidden"
+          class="group relative h-auto sm:h-[500px] rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-500 overflow-hidden"
           [ngClass]="{
             'ring-2 ring-primary shadow-[0_0_50px_rgba(var(--primary-rgb),0.3)] scale-[1.02]':
               generationMode() === 'ai',
@@ -277,10 +283,10 @@
           </div>
 
           <!-- Content Container -->
-          <div class="relative h-full flex flex-col items-center justify-between p-8 z-10">
+          <div class="relative h-full flex flex-col items-center justify-between p-5 sm:p-8 z-10">
             <!-- Grandiose AI SVG Illustration -->
-            <div class="flex-1 flex items-center justify-center w-full">
-              <div class="relative w-48 h-48">
+            <div class="flex-1 flex items-center justify-center w-full py-4 sm:py-0">
+              <div class="relative w-28 h-28 sm:w-48 sm:h-48">
                 <!-- Spinning Rings -->
                 <svg
                   class="absolute inset-0 w-full h-full text-primary/30 animate-spin-slow"
@@ -327,7 +333,7 @@
                   <!-- Central Core -->
                   <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                     <svg
-                      class="w-24 h-24 drop-shadow-[0_0_15px_rgba(var(--primary-rgb),0.8)]"
+                      class="w-14 h-14 sm:w-24 sm:h-24 drop-shadow-[0_0_15px_rgba(var(--primary-rgb),0.8)]"
                       viewBox="0 0 24 24"
                       fill="none"
                     >
@@ -370,9 +376,9 @@
             </div>
 
             <!-- Text Content -->
-            <div class="text-center mt-6">
-              <div class="flex items-center justify-center gap-3 mb-3">
-                <h3 class="text-2xl font-bold text-white tracking-tight">
+            <div class="text-center mt-3 sm:mt-6">
+              <div class="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                <h3 class="text-lg sm:text-2xl font-bold text-white tracking-tight">
                   {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
                 </h3>
                 <span
@@ -382,16 +388,18 @@
                 </span>
               </div>
 
-              <p class="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs mx-auto">
+              <p
+                class="text-gray-400 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6 max-w-xs mx-auto"
+              >
                 {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
               </p>
 
               <!-- Features Grid -->
               <div
-                class="grid grid-cols-1 gap-2 text-left bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm"
+                class="grid grid-cols-1 gap-1.5 sm:gap-2 text-left bg-white/5 rounded-xl p-3 sm:p-4 border border-white/5 backdrop-blur-sm"
               >
                 @for (feature of aiFeatures; track feature) {
-                  <div class="flex items-center gap-3 text-sm text-gray-300">
+                  <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-300">
                     <svg
                       class="w-4 h-4 text-primary shrink-0"
                       fill="none"
@@ -414,7 +422,7 @@
             <!-- Selection Indicator -->
             @if (generationMode() === 'ai') {
               <div
-                class="absolute top-6 right-6 w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary-rgb),0.6)] animate-scale-in"
+                class="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary-rgb),0.6)] animate-scale-in"
               >
                 <svg
                   class="w-6 h-6 text-white"
@@ -437,7 +445,7 @@
         <!-- Custom Description Card -->
         <div
           (click)="selectGenerationMode('custom')"
-          class="group relative h-[500px] rounded-3xl cursor-pointer transition-all duration-500 overflow-hidden"
+          class="group relative h-auto sm:h-[500px] rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-500 overflow-hidden"
           [ngClass]="{
             'ring-2 ring-secondary shadow-[0_0_50px_rgba(var(--secondary-rgb),0.3)] scale-[1.02]':
               generationMode() === 'custom',
@@ -457,10 +465,13 @@
           </div>
 
           <!-- Content Container -->
-          <div class="relative h-full flex flex-col items-center justify-between p-8 z-10">
+          <div class="relative h-full flex flex-col items-center justify-between p-5 sm:p-8 z-10">
             <!-- Grandiose Custom SVG Illustration -->
-            <div class="flex-1 flex items-center justify-center w-full">
-              <div class="relative w-48 h-48 animate-float" style="animation-delay: -3s">
+            <div class="flex-1 flex items-center justify-center w-full py-4 sm:py-0">
+              <div
+                class="relative w-28 h-28 sm:w-48 sm:h-48 animate-float"
+                style="animation-delay: -3s"
+              >
                 <!-- Abstract Creative Shapes -->
                 <svg
                   class="absolute inset-0 w-full h-full drop-shadow-[0_0_15px_rgba(var(--secondary-rgb),0.4)]"
@@ -528,21 +539,23 @@
             </div>
 
             <!-- Text Content -->
-            <div class="text-center mt-6">
-              <h3 class="text-2xl font-bold text-white tracking-tight mb-3">
+            <div class="text-center mt-3 sm:mt-6">
+              <h3 class="text-lg sm:text-2xl font-bold text-white tracking-tight mb-2 sm:mb-3">
                 {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
               </h3>
 
-              <p class="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs mx-auto">
+              <p
+                class="text-gray-400 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6 max-w-xs mx-auto"
+              >
                 {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
               </p>
 
               <!-- Features Grid -->
               <div
-                class="grid grid-cols-1 gap-2 text-left bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm"
+                class="grid grid-cols-1 gap-1.5 sm:gap-2 text-left bg-white/5 rounded-xl p-3 sm:p-4 border border-white/5 backdrop-blur-sm"
               >
                 @for (feature of customFeatures; track feature) {
-                  <div class="flex items-center gap-3 text-sm text-gray-300">
+                  <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-300">
                     <svg
                       class="w-4 h-4 text-secondary shrink-0"
                       fill="none"
@@ -565,7 +578,7 @@
             <!-- Selection Indicator -->
             @if (generationMode() === 'custom') {
               <div
-                class="absolute top-6 right-6 w-10 h-10 bg-secondary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--secondary-rgb),0.6)] animate-scale-in"
+                class="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 bg-secondary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--secondary-rgb),0.6)] animate-scale-in"
               >
                 <svg
                   class="w-6 h-6 text-white"
@@ -586,9 +599,12 @@
         </div>
       </div>
 
-      <div class="flex justify-center gap-4">
-        <button (click)="back()" class="outer-button px-8 py-3.5 text-base flex items-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="flex justify-center gap-3 sm:gap-4">
+        <button
+          (click)="back()"
+          class="outer-button px-5 sm:px-8 py-2.5 sm:py-3.5 text-sm sm:text-base flex items-center gap-2"
+        >
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -601,7 +617,7 @@
         <button
           (click)="goToDescription()"
           [disabled]="!canProceed()"
-          class="inner-button px-10 py-3.5 text-base flex items-center gap-2 group shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
+          class="inner-button px-6 sm:px-10 py-2.5 sm:py-3.5 text-sm sm:text-base flex items-center gap-2 group shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
         >
           <span>{{ 'common.continue' | translate }}</span>
           <svg
@@ -627,23 +643,27 @@
   <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'description') {
     <div class="w-full max-w-4xl mx-auto animate-fade-in">
-      <div class="text-center mb-10">
-        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">
+      <div class="text-center mb-6 sm:mb-10">
+        <h1 class="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
           {{ 'dashboard.logoPreferences.steps.description.title' | translate }}
         </h1>
-        <p class="text-gray-400 text-lg">
+        <p class="text-gray-400 text-sm sm:text-lg">
           {{ 'dashboard.logoPreferences.steps.description.subtitle' | translate }}
         </p>
       </div>
 
-      <div class="bg-gray-900/50 rounded-3xl border border-white/10 p-1 shadow-2xl mb-8">
+      <div
+        class="bg-gray-900/50 rounded-2xl sm:rounded-3xl border border-white/10 p-1 shadow-2xl mb-6 sm:mb-8"
+      >
         <div class="bg-gray-950/80 rounded-[22px] overflow-hidden">
           <!-- Toolbar -->
           <div
-            class="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between"
+            class="px-4 sm:px-6 py-3 sm:py-4 bg-white/5 border-b border-white/5 flex items-center justify-between"
           >
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+            <div class="flex items-center gap-2 sm:gap-3">
+              <div
+                class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/20 flex items-center justify-center"
+              >
                 <svg
                   class="w-4 h-4 text-primary"
                   fill="none"
@@ -658,7 +678,7 @@
                   />
                 </svg>
               </div>
-              <span class="text-white font-semibold">{{
+              <span class="text-white font-semibold text-sm sm:text-base">{{
                 'dashboard.logoPreferences.fields.description.label' | translate
               }}</span>
             </div>
@@ -684,7 +704,7 @@
             <textarea
               [value]="customDescription()"
               (input)="updateDescription($event)"
-              class="w-full h-64 bg-transparent text-lg text-white p-6 focus:outline-none resize-none placeholder-gray-600 leading-relaxed"
+              class="w-full h-40 sm:h-64 bg-transparent text-base sm:text-lg text-white p-4 sm:p-6 focus:outline-none resize-none placeholder-gray-600 leading-relaxed"
               [placeholder]="'dashboard.logoPreferences.fields.description.placeholder' | translate"
             ></textarea>
             <div
@@ -693,7 +713,9 @@
           </div>
 
           <!-- Helper Tips -->
-          <div class="bg-primary/5 px-6 py-4 border-t border-primary/10 flex items-start gap-3">
+          <div
+            class="bg-primary/5 px-4 sm:px-6 py-3 sm:py-4 border-t border-primary/10 flex items-start gap-2 sm:gap-3"
+          >
             <svg
               class="w-5 h-5 text-primary shrink-0 mt-0.5"
               fill="none"
@@ -707,16 +729,19 @@
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p class="text-sm text-gray-300">
+            <p class="text-xs sm:text-sm text-gray-300">
               {{ 'dashboard.logoPreferences.fields.description.tip' | translate }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-center gap-4">
-        <button (click)="back()" class="outer-button px-8 py-3.5 text-base flex items-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="flex justify-center gap-3 sm:gap-4">
+        <button
+          (click)="back()"
+          class="outer-button px-5 sm:px-8 py-2.5 sm:py-3.5 text-sm sm:text-base flex items-center gap-2"
+        >
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -729,7 +754,7 @@
         <button
           (click)="completePreferences()"
           [disabled]="!canProceed()"
-          class="inner-button px-10 py-3.5 text-base flex items-center gap-2 group shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
+          class="inner-button px-6 sm:px-10 py-2.5 sm:py-3.5 text-sm sm:text-base flex items-center gap-2 group shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
         >
           <span class="mr-2">{{ 'dashboard.logoPreferences.buttons.generate' | translate }}</span>
           <div class="relative w-5 h-5">
