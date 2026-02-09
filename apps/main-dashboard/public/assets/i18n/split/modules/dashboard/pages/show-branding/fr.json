@@ -1,0 +1,138 @@
+{
+  "title": "Identité de marque",
+  "loading": {
+    "checking": "Vérification de votre identité de marque..."
+  },
+  "showBranding": {
+    "title": "Identité de Marque",
+    "empty": {
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Veuillez sélectionner un projet pour voir son identité de marque"
+      }
+    },
+    "buttons": {
+      "selectProject": "Sélectionner un projet"
+    }
+  },
+  "buttons": {
+    "backToOverview": "Retour à l'aperçu",
+    "backToProjects": "Retour aux projets",
+    "getCharter": "Obtenir la charte graphique",
+    "downloadZip": "Télécharger tous les logos en ZIP",
+    "selectProject": "Sélectionner un projet",
+    "generate": "Générer l'identité de marque",
+    "viewIdentity": "Voir mon identité visuelle",
+    "generateIdentity": "Générer mon identité visuelle"
+  },
+  "tooltips": {
+    "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
+  },
+  "sections": {
+    "logos": {
+      "title": "Logos",
+      "subtitle": "Variations de votre logo",
+      "main": "Logo principal",
+      "selected": "Sélectionné",
+      "lightBg": "Fond clair",
+      "darkBg": "Fond sombre",
+      "iconOnly": "Icône seule",
+      "monochrome": "Monochrome"
+    },
+    "colors": {
+      "title": "Palette de couleurs",
+      "subtitle": "Les couleurs de votre marque",
+      "selected": "Palette sélectionnée",
+      "primary": "Primaire",
+      "secondary": "Secondaire",
+      "accent": "Accent",
+      "background": "Arrière-plan"
+    },
+    "typography": {
+      "title": "Typographie",
+      "subtitle": "Les polices de votre marque",
+      "heading": "Police de titre",
+      "body": "Police de corps",
+      "selected": "Typographie sélectionnée",
+      "primary": "Police Principale",
+      "secondary": "Police Secondaire"
+    }
+  },
+  "empty": {
+    "noLogos": "Aucun logo disponible",
+    "noColors": "Aucune palette de couleurs définie",
+    "noTypography": "Aucune typographie définie",
+    "noProject": {
+      "title": "Aucun projet sélectionné",
+      "subtitle": "Veuillez sélectionner un projet pour voir son identité de marque"
+    },
+    "title": "Créez votre identité de marque",
+    "subtitle": "Générez une identité de marque complète avec logos, couleurs et typographie pour votre projet"
+  },
+  "identityCard": {
+    "existing": {
+      "title": "Votre identité visuelle est prête !",
+      "subtitle": "Découvrez votre charte graphique complète avec logos, couleurs et typographie.",
+      "features": [
+        "Charte graphique PDF",
+        "Logos en plusieurs formats",
+        "Palette de couleurs",
+        "Guide typographique"
+      ]
+    },
+    "generate": {
+      "title": "Créez votre identité visuelle unique",
+      "subtitle": "Générez une identité de marque professionnelle adaptée à votre projet.",
+      "features": [
+        "IA créative avancée",
+        "Logos personnalisés",
+        "Couleurs harmonieuses",
+        "Typographie adaptée"
+      ],
+      "estimatedTime": "Temps estimé : 2-3 minutes"
+    }
+  },
+  "features": {
+    "colors": {
+      "title": "Palette de couleurs",
+      "description": "Schémas de couleurs professionnels"
+    },
+    "logo": {
+      "title": "Variations de logo",
+      "description": "Multiples formats de logo"
+    },
+    "typography": {
+      "title": "Typographie",
+      "description": "Recommandations de polices"
+    }
+  },
+  "generationTime": "La génération prend 2-3 minutes",
+  "status": {
+    "ready": "Prêt",
+    "pending": "En attente"
+  },
+  "brandingDisplay": {
+    "title": "Document d'identité de marque",
+    "loading": "Préparation du contenu de branding..."
+  },
+  "dialog": {
+    "title": "Télécharger les Logos",
+    "subtitle": "Choisissez le format que vous souhaitez télécharger :",
+    "preparing": "Préparation du téléchargement...",
+    "wait": "Cela peut prendre quelques instants",
+    "formats": {
+      "svg": {
+        "name": "Format SVG",
+        "description": "Format vectoriel, redimensionnable"
+      },
+      "png": {
+        "name": "Format PNG",
+        "description": "Image raster haute qualité"
+      },
+      "psd": {
+        "name": "Format PSD",
+        "description": "Fichier éditable Photoshop"
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "template": "Template",
+  "fields": {
+    "name": "Deployment Name",
+    "environment": "Environment",
+    "branch": "Branch"
+  },
+  "placeholders": {
+    "name": "My Template Deployment",
+    "repoUrl": "https://github.com/user/repo.git",
+    "branch": "main"
+  },
+  "environments": {
+    "development": "Development",
+    "staging": "Staging",
+    "production": "Production"
+  },
+  "git": {
+    "title": "Git Repository (Optional)",
+    "repoUrl": "Repository URL"
+  },
+  "buttons": {
+    "changeTemplate": "Change Template",
+    "save": "Save Template"
+  },
+  "errors": {
+    "noProjectSelected": "No project selected. Please select a project first.",
+    "noTemplateSelected": "Please select an architecture template",
+    "fillRequiredFields": "Please fill in all required fields.",
+    "failedToCreate": "Failed to create template deployment"
+  }
+}

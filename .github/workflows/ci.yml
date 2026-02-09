@@ -1,0 +1,179 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NODE_VERSION: '20.x'
+  REGISTRY: ghcr.io
+  REGISTRY_USERNAME: ${{ github.actor }}
+
+jobs:
+  # ==========================
+  # Detect changes
+  # ==========================
+  detect-changes:
+    name: Detect Changed Applications
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      landing: ${{ steps.filter.outputs.landing }}
+      main-dashboard: ${{ steps.filter.outputs.main-dashboard }}
+      chart: ${{ steps.filter.outputs.chart }}
+      appgen: ${{ steps.filter.outputs.appgen }}
+      packages: ${{ steps.filter.outputs.packages }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'packages/**'
+            landing:
+              - 'apps/landing/**'
+              - 'packages/**'
+            main-dashboard:
+              - 'apps/main-dashboard/**'
+              - 'packages/**'
+            chart:
+              - 'apps/chart/**'
+            appgen:
+              - 'apps/appgen/**'
+              - 'packages/**'
+            packages:
+              - 'packages/**'
+
+  # ==========================
+  # Quality checks
+  # ==========================
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.api == 'true' ||
+      needs.detect-changes.outputs.landing == 'true' ||
+      needs.detect-changes.outputs.main-dashboard == 'true' ||
+      needs.detect-changes.outputs.chart == 'true' ||
+      needs.detect-changes.outputs.appgen == 'true' ||
+      needs.detect-changes.outputs.packages == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run Prettier format check
+        run: npm run format:check
+        continue-on-error: true
+
+      - name: Run ESLint
+        run: npm run lint:all
+        continue-on-error: true
+
+  # ==========================
+  # Deploy jobs
+  # ==========================
+  deploy-api:
+    name: Deploy API
+    needs: [detect-changes, quality]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
+      needs.detect-changes.outputs.api == 'true'
+    uses: ./.github/workflows/deploy-api.yml
+    secrets: inherit
+
+  deploy-landing:
+    name: Deploy Landing Page
+    needs: [detect-changes, quality]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
+      needs.detect-changes.outputs.landing == 'true'
+    uses: ./.github/workflows/deploy-landing.yml
+    secrets: inherit
+
+  deploy-main-dashboard:
+    name: Deploy Main Dashboard
+    needs: [detect-changes, quality]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
+      needs.detect-changes.outputs.main-dashboard == 'true'
+    uses: ./.github/workflows/deploy-main-dashboard.yml
+    secrets: inherit
+
+  deploy-chart:
+    name: Deploy Chart
+    needs: [detect-changes, quality]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      needs.detect-changes.outputs.chart == 'true'
+    uses: ./.github/workflows/deploy-chart.yml
+    secrets: inherit
+
+  deploy-appgen:
+    name: Deploy AppGen
+    needs: [detect-changes, quality]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
+      needs.detect-changes.outputs.appgen == 'true'
+    uses: ./.github/workflows/deploy-appgen.yml
+    secrets: inherit
+
+  # ==========================
+  # Summary
+  # ==========================
+  summary:
+    name: CI/CD Summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes, quality, deploy-api, deploy-landing, deploy-main-dashboard, deploy-chart, deploy-appgen]
+    if: always()
+    steps:
+      - name: Display CI/CD Summary
+        run: |
+          echo "## 📊 CI/CD Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changes Detected:" >> $GITHUB_STEP_SUMMARY
+          echo "- **API**: ${{ needs.detect-changes.outputs.api == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Landing Page**: ${{ needs.detect-changes.outputs.landing == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Main Dashboard**: ${{ needs.detect-changes.outputs.main-dashboard == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Chart**: ${{ needs.detect-changes.outputs.chart == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AppGen**: ${{ needs.detect-changes.outputs.appgen == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Packages**: ${{ needs.detect-changes.outputs.packages == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployments:" >> $GITHUB_STEP_SUMMARY
+          echo "- **API**: ${{ needs.deploy-api.result == 'success' && '✅ Deployed' || (needs.deploy-api.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Landing Page**: ${{ needs.deploy-landing.result == 'success' && '✅ Deployed' || (needs.deploy-landing.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Main Dashboard**: ${{ needs.deploy-main-dashboard.result == 'success' && '✅ Deployed' || (needs.deploy-main-dashboard.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Chart**: ${{ needs.deploy-chart.result == 'success' && '✅ Deployed' || (needs.deploy-chart.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AppGen**: ${{ needs.deploy-appgen.result == 'success' && '✅ Deployed' || (needs.deploy-appgen.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY

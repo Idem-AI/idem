@@ -1,0 +1,27 @@
+{
+  "title": "Assistant d'édition de logo",
+  "subtitle": "Modifications de logo assistées par l'IA",
+  "initialGreeting": "Voici le logo que vous avez sélectionné. Vous pouvez me demander de le modifier !",
+  "welcomeMessage": "Dites-moi quelles modifications vous souhaitez apporter. Par exemple : \"Rends-le plus moderne\", \"Change les couleurs en bleu\", \"Ajoute un effet de dégradé\", etc.",
+  "workingMessage": "Travail en cours sur vos modifications...",
+  "modifiedLogo": "Voici votre logo modifié !",
+  "pressEnterToSend": "Appuyez sur Entrée pour envoyer",
+  "buttons": {
+    "choose": "Choisir ce logo"
+  },
+  "placeholders": {
+    "prompt": "Décrivez les changements que vous souhaitez... (Appuyez sur Entrée pour envoyer)"
+  },
+  "quickSuggestions": {
+    "title": "Suggestions rapides :",
+    "modern": "Plus moderne",
+    "gradient": "Ajouter un dégradé",
+    "simplify": "Simplifier",
+    "professional": "Plus professionnel"
+  },
+  "errors": {
+    "noLogoToEdit": "Aucun logo à modifier n'a été trouvé",
+    "modificationFailed": "Désolé, j'ai rencontré une erreur lors de la modification du logo. Veuillez réessayer avec une autre instruction.",
+    "failedToEdit": "Échec de la modification du logo"
+  }
+}

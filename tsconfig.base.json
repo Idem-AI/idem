@@ -1,0 +1,35 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "esnext",
+    "lib": ["ES2022", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@idem/shared-models": ["packages/shared-models/src"],
+      "@idem/shared-models/*": ["packages/shared-models/src/*"],
+      "@idem/shared-auth-client": ["packages/shared-auth-client/src"],
+      "@idem/shared-auth-client/*": ["packages/shared-auth-client/src/*"],
+      "@idem/shared-styles": ["packages/shared-styles"],
+      "@idem/shared-styles/*": ["packages/shared-styles/*"]
+    },
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true
+  },
+  "exclude": ["node_modules", "tmp", "dist", "build"]
+}

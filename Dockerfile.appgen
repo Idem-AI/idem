@@ -1,0 +1,46 @@
+# Dockerfile for We-Dev Server (Next.js) - AppGen
+FROM node:20.18-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.4
+
+# Copy all appgen files
+COPY apps/appgen /app
+
+# Go to server directory
+WORKDIR /app/apps/we-dev-next
+
+# Create dummy .env.local for build
+RUN echo 'NEXT_PUBLIC_FIREBASE_API_KEY="build-dummy-key"' > .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="build-dummy.firebaseapp.com"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_PROJECT_ID="build-dummy"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="build-dummy.appspot.com"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="000000000000"' >> .env.local && \
+    echo 'NEXT_PUBLIC_FIREBASE_APP_ID="1:000000000000:web:dummy"' >> .env.local && \
+    echo 'FIREBASE_STORAGE_BUCKET="build-dummy.appspot.com"' >> .env.local && \
+    echo 'FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIBogIBAAJBAKj34GkxFhD90vcNLYLI\n-----END PRIVATE KEY-----"' >> .env.local && \
+    echo 'FIREBASE_CLIENT_EMAIL="firebase-adminsdk@build-dummy.iam.gserviceaccount.com"' >> .env.local
+
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile
+
+# Build
+RUN pnpm build
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Créer un utilisateur non-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Changer les permissions
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+EXPOSE 3000
+
+CMD ["pnpm", "start"]

@@ -1,0 +1,31 @@
+{
+  "title": "Ajouter un membre à l'équipe",
+  "fields": {
+    "email": "Adresse e-mail",
+    "displayName": "Nom d'affichage",
+    "role": "Rôle"
+  },
+  "placeholders": {
+    "email": "membre@example.com",
+    "displayName": "John Doe"
+  },
+  "roles": {
+    "admin": {
+      "label": "Admin",
+      "description": "Peut gérer l'équipe et les membres"
+    },
+    "member": {
+      "label": "Membre",
+      "description": "Peut voir et contribuer"
+    },
+    "viewer": {
+      "label": "Lecteur",
+      "description": "Peut seulement voir"
+    }
+  },
+  "invitationInfo": "Une invitation sera envoyée à l'adresse e-mail du membre.",
+  "addMemberButton": "Ajouter le membre",
+  "errors": {
+    "failedToAddMember": "Échec de l'ajout du membre"
+  }
+}

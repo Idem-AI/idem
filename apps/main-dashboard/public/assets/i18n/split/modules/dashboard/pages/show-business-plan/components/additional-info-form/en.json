@@ -1,0 +1,45 @@
+{
+  "title": "Additional Information",
+  "subtitle": "Help us create a more accurate business plan by providing additional details",
+  "sections": {
+    "company": "Company Information",
+    "team": "Team Members",
+    "social": "Social Links"
+  },
+  "fields": {
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "city": "City",
+    "country": "Country",
+    "zipCode": "Zip Code",
+    "fullName": "Full Name",
+    "role": "Role",
+    "bio": "Bio",
+    "profilePicture": "Profile Picture"
+  },
+  "placeholders": {
+    "email": "company@example.com",
+    "phone": "+1 234 567 8900",
+    "address": "123 Main Street",
+    "city": "New York",
+    "country": "United States",
+    "zipCode": "12345",
+    "fullName": "John Doe",
+    "memberEmail": "john@example.com",
+    "role": "CEO",
+    "bio": "Brief description about this team member",
+    "linkedin": "https://linkedin.com/in/username",
+    "github": "https://github.com/username",
+    "twitter": "https://twitter.com/username"
+  },
+  "buttons": {
+    "addMember": "Add Team Member",
+    "chooseImage": "Choose Image",
+    "continue": "Continue"
+  },
+  "member": "Team Member {{index}}",
+  "alt": {
+    "profilePicture": "Profile picture"
+  }
+}

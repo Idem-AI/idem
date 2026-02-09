@@ -1,0 +1,44 @@
+{
+  "hello": "Bonjour",
+  "whatToBuild": "Que voulez-vous construire ?",
+  "tellUsMore": "Dites-nous en plus sur votre idée de projet",
+  "placeholder": "Une application qui génère des poèmes à partir de photos",
+  "buttons": {
+    "improvePrompt": "Améliorer l'invite",
+    "feelingLucky": "J'ai de la chance",
+    "continue": "Continuer"
+  },
+  "needInspiration": "Besoin d'inspiration ?",
+  "examples": {
+    "mpesa": {
+      "name": "Clone de M-Pesa",
+      "description": "Un service de transfert d'argent mobile et de microfinancement pour les marchés africains",
+      "prompt": "Une plateforme d'argent mobile comme M-Pesa avec des transactions sécurisées, la gestion du réseau d'agents et des fonctionnalités d'inclusion financière pour les communautés rurales en Afrique"
+    },
+    "agritech": {
+      "name": "Plateforme Agri-Tech",
+      "description": "Système de gestion agricole pour les petits agriculteurs africains",
+      "prompt": "Une plateforme de gestion agricole pour les petits agriculteurs africains avec prévisions météorologiques, détection des maladies des cultures par l'IA et une place de marché pour vendre les produits directement aux acheteurs"
+    },
+    "solar": {
+      "name": "Solaire prépayé",
+      "description": "Système de paiement et de gestion de l'énergie solaire",
+      "prompt": "Un système de gestion de l'énergie solaire prépayé pour les communautés hors réseau en Afrique avec des paiements mobiles, un suivi de l'utilisation et des alertes de maintenance"
+    },
+    "health": {
+      "name": "Passeport Santé",
+      "description": "Dossiers de santé numériques pour les communautés mal desservies",
+      "prompt": "Une application de passeport de santé numérique pour les communautés africaines mal desservies qui fonctionne hors ligne, stocke les dossiers de vaccination et met en relation les patients avec les prestataires de soins de santé locaux"
+    },
+    "artisan": {
+      "name": "Marché des artisans africains",
+      "description": "Plateforme de commerce électronique pour les artisans africains",
+      "prompt": "Une plateforme de commerce électronique reliant directement les artisans africains aux acheteurs mondiaux, avec des paiements sécurisés, une gestion de la logistique et une narration culturelle pour chaque produit"
+    },
+    "edtech": {
+      "name": "EdTech pour faible bande passante",
+      "description": "Plateforme éducative optimisée pour une faible connectivité",
+      "prompt": "Une plateforme éducative conçue pour les régions africaines à faible bande passante avec mise en cache de contenu hors ligne, modules d'apprentissage par SMS et programme d'études localisé dans plusieurs langues africaines"
+    }
+  }
+}

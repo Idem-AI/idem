@@ -1,0 +1,74 @@
+{
+  "initial": {
+    "title": "Variations du logo",
+    "subtitle": "Nous allons créer plusieurs variations de votre logo sélectionné pour différents contextes d'utilisation."
+  },
+  "features": {
+    "lightBackground": {
+      "title": "Fond clair",
+      "description": "Optimisé pour les fonds blancs et clairs"
+    },
+    "darkBackground": {
+      "title": "Fond sombre",
+      "description": "Optimisé pour les fonds sombres et modernes"
+    },
+    "monochrome": {
+      "title": "Monochrome",
+      "description": "Version en noir et blanc pour toutes les utilisations"
+    },
+    "multipleFormats": {
+      "title": "Formats multiples",
+      "description": "Avec texte et icône seuls pour tous les contextes"
+    }
+  },
+  "buttons": {
+    "generate": "Générer les variations",
+    "clickToSelect": "Cliquez pour sélectionner",
+    "proceed": "Continuer avec la sélection"
+  },
+  "estimatedTime": "Temps estimé : {{time}}",
+  "generating": {
+    "title": "Génération des variations de logo...",
+    "subtitle": "Création de différentes versions de votre logo pour divers cas d'utilisation."
+  },
+  "progress": {
+    "initializing": "Initialisation de la génération des variations de logo...",
+    "analyzing": "Analyse du design du logo sélectionné...",
+    "generatingLight": "Génération de la variation pour fond clair...",
+    "generatingDark": "Création de la version pour fond sombre...",
+    "generatingMonochrome": "Production de la variante monochrome...",
+    "optimizing": "Optimisation des sorties SVG...",
+    "finalizing": "Finalisation des variations...",
+    "completed": "Génération terminée !"
+  },
+  "errors": {
+    "title": "Erreur de génération",
+    "generationFailed": "Échec de la génération des variations de logo. Veuillez réessayer.",
+    "selectAtLeastOne": "Veuillez sélectionner au moins une variation pour continuer"
+  },
+  "success": {
+    "title": "Variations du logo",
+    "subtitle": "Sélectionnez les variations que vous souhaitez conserver pour votre projet."
+  },
+  "categories": {
+    "withText": "Avec texte",
+    "iconOnly": "Icône uniquement"
+  },
+  "labels": {
+    "withTextLight": "Avec texte - Fond clair",
+    "withTextDark": "Avec texte - Fond sombre",
+    "withTextMonochrome": "Avec texte - Monochrome",
+    "iconOnlyLight": "Icône uniquement - Fond clair",
+    "iconOnlyDark": "Icône uniquement - Fond sombre",
+    "iconOnlyMonochrome": "Icône uniquement - Monochrome"
+  },
+  "descriptions": {
+    "withTextLight": "Logo complet optimisé pour les fonds clairs",
+    "withTextDark": "Logo complet optimisé pour les fonds sombres",
+    "withTextMonochrome": "Logo complet en version monochrome",
+    "iconOnlyLight": "Icône uniquement optimisée pour les fonds clairs",
+    "iconOnlyDark": "Icône uniquement optimisée pour les fonds sombres",
+    "iconOnlyMonochrome": "Icône uniquement en version monochrome"
+  },
+  "selectionsMade": "{{count}} sélection(s) faite(s)"
+}

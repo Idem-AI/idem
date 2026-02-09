@@ -1,0 +1,204 @@
+<!-- Completed Diagram Display -->
+<div class="max-w-6xl mx-auto space-y-4 sm:space-y-8">
+  <!-- Sticky action bar -->
+  <div
+    class="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur border-b border-gray-200 dark:border-gray-800"
+  >
+    <div class="max-w-6xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
+      <!-- Mobile layout: stacked -->
+      <div class="block sm:hidden space-y-2">
+        <div class="text-xs font-medium text-gray-700 dark:text-gray-200 text-center">
+          Diagram Actions
+        </div>
+        <div class="flex items-center justify-center gap-1">
+          <!-- Mobile: Icon-only buttons -->
+          <button
+            class="p-2 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-colors flex items-center"
+            (click)="generateNewDiagrams()"
+            [title]="'dashboard.diagramDisplay.actions.add' | translate"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span class="ml-1 hidden xs:inline">{{ 'common.add' | translate }}</span>
+          </button>
+
+          <button
+            class="p-2 rounded-md text-xs font-medium bg-gray-900 hover:bg-black text-white shadow-sm transition-colors flex items-center dark:bg-gray-700 dark:hover:bg-gray-600"
+            (click)="makePdf()"
+            [title]="'dashboard.diagramDisplay.actions.download' | translate"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <span class="ml-1 hidden xs:inline">{{ 'common.pdf' | translate }}</span>
+          </button>
+
+          <button
+            class="p-2 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors flex items-center"
+            (click)="openEditor()"
+            [title]="'dashboard.diagramDisplay.actions.edit' | translate"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 5h2m2 0h2m-6 4h6m-6 4h6m-6 4h6M7 9h.01M7 13h.01M7 17h.01"
+              />
+            </svg>
+            <span class="ml-1 hidden xs:inline">{{ 'common.edit' | translate }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Desktop layout: horizontal -->
+      <div class="hidden sm:flex items-center justify-between">
+        <div class="text-sm font-medium text-gray-700 dark:text-gray-200">Diagram Actions</div>
+        <div class="flex items-center gap-2">
+          <!-- Add / Regenerate -->
+          <button
+            class="px-3 py-2 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-colors flex items-center"
+            (click)="generateNewDiagrams()"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span class="hidden md:inline">{{
+              'dashboard.diagramDisplay.actions.addNew' | translate
+            }}</span>
+            <span class="md:hidden">{{ 'common.add' | translate }}</span>
+          </button>
+
+          <!-- Download PDF -->
+          <button
+            class="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 hover:bg-black text-white shadow-sm transition-colors flex items-center dark:bg-gray-700 dark:hover:bg-gray-600"
+            (click)="makePdf()"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <span class="hidden lg:inline">{{
+              'dashboard.diagramDisplay.actions.downloadPdf' | translate
+            }}</span>
+            <span class="lg:hidden">{{ 'common.pdf' | translate }}</span>
+          </button>
+
+          <!-- Edit Diagrams (open chart service) -->
+          <button
+            class="px-3 py-2 rounded-md text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors flex items-center"
+            (click)="openEditor()"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 5h2m2 0h2m-6 4h6m-6 4h6m-6 4h6M7 9h.01M7 13h.01M7 17h.01"
+              />
+            </svg>
+            <span class="hidden lg:inline">{{
+              'dashboard.diagramDisplay.actions.editDiagrams' | translate
+            }}</span>
+            <span class="lg:hidden">{{ 'common.edit' | translate }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8">
+    <div class="text-center mb-6 sm:mb-8">
+      <div
+        class="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full mb-3 sm:mb-4"
+      >
+        <svg
+          class="w-6 h-6 sm:w-8 sm:h-8 text-green-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 13l4 4L19 7"
+          ></path>
+        </svg>
+      </div>
+      <h2 class="text-xl sm:text-2xl font-bold text-gray-900">
+        {{ 'dashboard.diagramDisplay.available.title' | translate }}
+      </h2>
+      <p class="text-gray-600 mt-2 text-sm sm:text-base">
+        {{ 'dashboard.diagramDisplay.available.subtitle' | translate }}
+      </p>
+    </div>
+
+    <!-- Final Diagram Content -->
+    @if (diagram().content) {
+      <div class="bg-gray-50 rounded-lg p-3 sm:p-4 lg:p-6 border border-gray-200">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">
+          {{ 'dashboard.diagramDisplay.generated' | translate }}
+        </h3>
+        <div class="prose max-w-none overflow-x-auto">
+          <markdown
+            mermaid
+            [data]="diagram().content"
+            class="mermaid-diagram responsive-diagram"
+          ></markdown>
+        </div>
+      </div>
+    }
+
+    <!-- Legacy sections support -->
+    @if (diagram().sections && !diagram().content) {
+      <div class="space-y-4 sm:space-y-6">
+        @for (section of diagram().sections; track section.id) {
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div
+              class="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 sm:px-4 lg:px-6 py-3 sm:py-4"
+            >
+              <h3 class="text-base sm:text-lg font-semibold text-gray-900">{{ section.name }}</h3>
+            </div>
+            <div class="p-3 sm:p-4 lg:p-6">
+              @if (section.data) {
+                <div class="prose max-w-none overflow-x-auto">
+                  <markdown
+                    mermaid
+                    [data]="section.data"
+                    class="mermaid-diagram responsive-diagram"
+                  ></markdown>
+                </div>
+              } @else {
+                <p class="text-gray-500 italic text-sm sm:text-base">
+                  {{ 'common.noContent' | translate }}
+                </p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- bottom actions removed; actions moved to sticky bar -->
+  </div>
+</div>

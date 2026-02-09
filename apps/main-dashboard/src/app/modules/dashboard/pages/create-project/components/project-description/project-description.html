@@ -1,0 +1,109 @@
+<section
+  class="flex flex-col min-h-[65vh] items-start justify-center w-full max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto sm:px-6 md:px-8 py-6 sm:py-8 md:py-4"
+>
+  <!-- Gradient Title -->
+  <h1
+    class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-white bg-clip-text text-transparent mb-3 sm:mb-4 leading-tight"
+  >
+    {{ 'dashboard.projectDescription.hello' | translate }},
+    <span
+      class="bg-primary text-white px-2 py-1 sm:px-3 sm:py-2 text-center inline-block mt-1 sm:mt-0"
+      >{{ userName() }}</span
+    >
+  </h1>
+
+  <!-- Subtitle -->
+  <h2 class="text-lg sm:text-xl text-gray-400 mb-6 sm:mb-8">
+    {{ 'dashboard.projectDescription.whatToBuild' | translate }}
+  </h2>
+
+  <!-- Prototype Label -->
+  <p class="text-gray-400 text-sm mb-3 sm:mb-4">
+    {{ 'dashboard.projectDescription.tellUsMore' | translate }}
+  </p>
+
+  <!-- Input Field -->
+  <div class="w-full mb-4">
+    <div class="relative">
+      <textarea
+        id="projectDescription"
+        [(ngModel)]="project()!.description"
+        rows="3"
+        class="w-full glass p-3 sm:p-4 text-[var(--color-light-text)] placeholder-gray-400 text-sm sm:text-base resize-none outline-none transition-all duration-200 focus:border-primary border-2 min-h-[120px] sm:min-h-[140px]"
+        [class.rounded-lg]="!hasContent()"
+        [class.rounded-2xl]="hasContent()"
+        [class.border]="!hasContent()"
+        [class.border-[var(--glass-border)]]="!hasContent()"
+        [class.border-primary]="hasContent()"
+        [placeholder]="'dashboard.projectDescription.placeholder' | translate"
+        (input)="autoResize($event)"
+        (focus)="onTextareaFocus()"
+        (blur)="onTextareaBlur()"
+      ></textarea>
+
+      <!-- TAB indicator - only show when no content -->
+      @if (!hasContent()) {
+        <div class="absolute top-3 sm:top-4 right-3 sm:right-4">
+          <span class="text-xs text-gray-400 glass-dark px-2 py-1 rounded"> TAB </span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Typing state buttons - Outside textarea -->
+  @if (hasContent()) {
+    <div class="w-full flex flex-row items-center justify-between gap-2 mb-4">
+      <button
+        class="flex items-center justify-center gap-2 text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 transition-colors py-1 px-2 text-xs sm:text-sm"
+      >
+        <i class="pi pi-sparkles text-sm"></i>
+        <span class="text-sm">{{
+          'dashboard.projectDescription.buttons.improvePrompt' | translate
+        }}</span>
+      </button>
+
+      <button
+        class="inner-button flex items-center justify-center gap-1 sm:gap-2 py-1 px-3 sm:py-2 sm:px-4 text-xs sm:text-sm"
+        (click)="goToNextStep()"
+      >
+        <span class="text-sm sm:text-base">{{
+          'dashboard.projectDescription.buttons.continue' | translate
+        }}</span>
+        <i class="pi pi-arrow-right text-sm"></i>
+      </button>
+    </div>
+  }
+
+  <!-- Ideas Section -->
+  <div class="w-full mt-6 sm:mt-8">
+    <!-- Section Title -->
+    <h3
+      class="text-base sm:text-lg font-medium text-gray-300 mb-4 sm:mb-6 text-center sm:text-left"
+    >
+      {{ 'dashboard.projectDescription.needInspiration' | translate }}
+    </h3>
+
+    <!-- African Projects Section -->
+    <div class="mb-6">
+      <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 w-full mb-6">
+        @for (project of africanProjectExamples; track project.name) {
+          <button
+            class="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-2 glass hover:glass-dark rounded-lg sm:rounded-full text-xs sm:text-sm text-[var(--color-light-text)] transition-all duration-200 min-h-[44px] sm:min-h-auto hover:cursor-pointer"
+            (click)="selectExample(project.prompt)"
+          >
+            <span class="truncate text-center sm:text-left">{{ project.name }}</span>
+          </button>
+        }
+        <button
+          class="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-2 glass hover:glass-dark rounded-lg sm:rounded-full text-xs sm:text-sm text-[var(--color-light-text)] transition-all duration-200 min-h-[44px] sm:min-h-auto hover:cursor-pointer"
+          (click)="selectExample('I am feeling lucky - surprise me with a random project idea')"
+        >
+          <i class="pi pi-sparkles text-xs flex-shrink-0 text-secondary"></i>
+          <span class="truncate text-center sm:text-left">{{
+            'dashboard.projectDescription.buttons.feelingLucky' | translate
+          }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
