@@ -220,9 +220,9 @@
         <button
           (click)="goToModeSelection()"
           [disabled]="!canProceed()"
-          class="inner-button px-12 py-4 text-lg group shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
+          class="inner-button flex items-center gap-2 px-12 py-4 text-lg group shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
         >
-          <span class="mr-2">{{ 'common.continue' | translate }}</span>
+          <span>{{ 'common.continue' | translate }}</span>
           <svg
             class="w-5 h-5 group-hover:translate-x-1 transition-transform"
             fill="none"
@@ -247,86 +247,153 @@
   @if (currentStep() === 'mode') {
     <div class="w-full max-w-5xl mx-auto animate-fade-in">
       <div class="text-center mb-10">
-        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 tracking-tight">
           {{ 'dashboard.logoPreferences.steps.mode.title' | translate }}
         </h1>
-        <p class="text-gray-400 text-lg max-w-xl mx-auto">
+        <p class="text-gray-400 text-lg max-w-xl mx-auto font-light">
           {{ 'dashboard.logoPreferences.steps.mode.subtitle' | translate }}
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 mb-10">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mb-10">
         <!-- AI Generation Card -->
         <div
           (click)="selectGenerationMode('ai')"
-          class="group relative rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
+          class="group relative h-[500px] rounded-3xl cursor-pointer transition-all duration-500 overflow-hidden"
           [ngClass]="{
-            'ring-2 ring-primary shadow-xl shadow-primary/20': generationMode() === 'ai',
-            'ring-1 ring-white/10 hover:ring-white/20 hover:shadow-lg': generationMode() !== 'ai',
+            'ring-2 ring-primary shadow-[0_0_50px_rgba(var(--primary-rgb),0.3)] scale-[1.02]':
+              generationMode() === 'ai',
+            'ring-1 ring-white/10 hover:ring-primary/50 hover:shadow-2xl hover:scale-[1.01]':
+              generationMode() !== 'ai',
           }"
         >
-          <!-- Image Header -->
-          <div class="relative h-48 sm:h-56 overflow-hidden">
-            <img
-              src="/assets/images/logo-modes/ai-generation.jpg"
-              alt="AI Generation"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
+          <!-- Background & Effects -->
+          <div class="absolute inset-0 bg-gray-900">
+            <div class="absolute inset-0 bg-linear-to-b from-gray-800/50 to-gray-950"></div>
+            <!-- Animated Glow -->
             <div
-              class="absolute inset-0 bg-linear-to-t from-gray-950 via-gray-950/60 to-transparent"
+              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/20 blur-[100px] rounded-full animate-pulse-glow"
             ></div>
-
-            <!-- Badge -->
-            <div class="absolute top-4 left-4">
-              <span
-                class="px-3 py-1.5 text-xs font-bold bg-primary/90 text-white rounded-full backdrop-blur-sm shadow-lg"
-              >
-                {{ 'dashboard.logoPreferences.modes.ai.badge' | translate }}
-              </span>
-            </div>
-
-            <!-- Selected check -->
-            @if (generationMode() === 'ai') {
-              <div
-                class="absolute top-4 right-4 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/40 animate-scale-in"
-              >
-                <svg
-                  class="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2.5"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-            }
-
-            <!-- Title overlay -->
-            <div class="absolute bottom-4 left-5 right-5">
-              <h3 class="text-2xl font-bold text-white">
-                {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
-              </h3>
-            </div>
           </div>
 
-          <!-- Content -->
-          <div class="p-5 sm:p-6 bg-gray-950/80">
-            <p class="text-sm text-gray-400 leading-relaxed mb-5">
-              {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
-            </p>
-            <div class="space-y-2.5">
-              @for (feature of aiFeatures; track feature) {
-                <div class="flex items-center gap-2.5 text-sm text-gray-300">
-                  <div
-                    class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0"
-                  >
+          <!-- Content Container -->
+          <div class="relative h-full flex flex-col items-center justify-between p-8 z-10">
+            <!-- Grandiose AI SVG Illustration -->
+            <div class="flex-1 flex items-center justify-center w-full">
+              <div class="relative w-48 h-48">
+                <!-- Spinning Rings -->
+                <svg
+                  class="absolute inset-0 w-full h-full text-primary/30 animate-spin-slow"
+                  viewBox="0 0 100 100"
+                >
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="0.5"
+                    stroke-dasharray="4 4"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="0.5"
+                    stroke-dasharray="10 10"
+                    opacity="0.5"
+                  />
+                </svg>
+
+                <svg
+                  class="absolute inset-0 w-full h-full text-indigo-400/30 animate-spin-reverse-slow"
+                  viewBox="0 0 100 100"
+                >
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="44"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1"
+                    stroke-dasharray="2 8"
+                  />
+                </svg>
+
+                <!-- Floating Particles -->
+                <div class="absolute inset-0 animate-float">
+                  <!-- Central Core -->
+                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                     <svg
-                      class="w-3 h-3 text-primary"
+                      class="w-24 h-24 drop-shadow-[0_0_15px_rgba(var(--primary-rgb),0.8)]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <defs>
+                        <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop
+                            offset="0%"
+                            style="stop-color: rgb(var(--primary-rgb)); stop-opacity: 1"
+                          />
+                          <stop offset="100%" style="stop-color: #818cf8; stop-opacity: 1" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M12 2L2 7L12 12L22 7L12 2Z"
+                        stroke="url(#aiGradient)"
+                        stroke-width="1"
+                        fill="rgba(var(--primary-rgb), 0.1)"
+                      />
+                      <path d="M2 17L12 22L22 17" stroke="url(#aiGradient)" stroke-width="1" />
+                      <path d="M2 7V17" stroke="url(#aiGradient)" stroke-width="1" />
+                      <path d="M22 7V17" stroke="url(#aiGradient)" stroke-width="1" />
+                      <path d="M12 12V22" stroke="url(#aiGradient)" stroke-width="1" />
+                      <!-- Inner Energy -->
+                      <circle cx="12" cy="12" r="4" fill="url(#aiGradient)" class="animate-pulse" />
+                    </svg>
+                  </div>
+
+                  <!-- Satellites -->
+                  <div
+                    class="absolute top-0 right-10 w-2 h-2 bg-white rounded-full shadow-[0_0_10px_white] animate-pulse"
+                  ></div>
+                  <div
+                    class="absolute bottom-10 left-4 w-1.5 h-1.5 bg-indigo-400 rounded-full shadow-[0_0_8px_indigo] animate-pulse delay-75"
+                  ></div>
+                  <div
+                    class="absolute top-12 left-2 w-1 h-1 bg-primary rounded-full animate-pulse delay-150"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Text Content -->
+            <div class="text-center mt-6">
+              <div class="flex items-center justify-center gap-3 mb-3">
+                <h3 class="text-2xl font-bold text-white tracking-tight">
+                  {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
+                </h3>
+                <span
+                  class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-linear-to-r from-primary to-indigo-600 text-white rounded-full shadow-lg"
+                >
+                  {{ 'dashboard.logoPreferences.modes.ai.badge' | translate }}
+                </span>
+              </div>
+
+              <p class="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs mx-auto">
+                {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
+              </p>
+
+              <!-- Features Grid -->
+              <div
+                class="grid grid-cols-1 gap-2 text-left bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm"
+              >
+                @for (feature of aiFeatures; track feature) {
+                  <div class="flex items-center gap-3 text-sm text-gray-300">
+                    <svg
+                      class="w-4 h-4 text-primary shrink-0"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -334,81 +401,150 @@
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        stroke-width="3"
+                        stroke-width="2"
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
+                    {{ feature | translate }}
                   </div>
-                  {{ feature | translate }}
-                </div>
-              }
+                }
+              </div>
             </div>
+
+            <!-- Selection Indicator -->
+            @if (generationMode() === 'ai') {
+              <div
+                class="absolute top-6 right-6 w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary-rgb),0.6)] animate-scale-in"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="3"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+            }
           </div>
         </div>
 
         <!-- Custom Description Card -->
         <div
           (click)="selectGenerationMode('custom')"
-          class="group relative rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
+          class="group relative h-[500px] rounded-3xl cursor-pointer transition-all duration-500 overflow-hidden"
           [ngClass]="{
-            'ring-2 ring-secondary shadow-xl shadow-secondary/20': generationMode() === 'custom',
-            'ring-1 ring-white/10 hover:ring-white/20 hover:shadow-lg':
+            'ring-2 ring-secondary shadow-[0_0_50px_rgba(var(--secondary-rgb),0.3)] scale-[1.02]':
+              generationMode() === 'custom',
+            'ring-1 ring-white/10 hover:ring-secondary/50 hover:shadow-2xl hover:scale-[1.01]':
               generationMode() !== 'custom',
           }"
         >
-          <!-- Image Header -->
-          <div class="relative h-48 sm:h-56 overflow-hidden">
-            <img
-              src="/assets/images/logo-modes/custom-description.jpg"
-              alt="Custom Description"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
+          <!-- Background & Effects -->
+          <div class="absolute inset-0 bg-gray-900">
+            <div class="absolute inset-0 bg-linear-to-b from-gray-800/50 to-gray-950"></div>
+            <!-- Grid Pattern -->
+            <div class="absolute inset-0 bg-[url('/assets/images/grid.svg')] opacity-[0.03]"></div>
+            <!-- Animated Glow -->
             <div
-              class="absolute inset-0 bg-linear-to-t from-gray-950 via-gray-950/60 to-transparent"
+              class="absolute bottom-0 right-0 w-64 h-64 bg-secondary/10 blur-[100px] rounded-full"
             ></div>
+          </div>
 
-            <!-- Selected check -->
-            @if (generationMode() === 'custom') {
-              <div
-                class="absolute top-4 right-4 w-8 h-8 bg-secondary rounded-full flex items-center justify-center shadow-lg shadow-secondary/40 animate-scale-in"
-              >
+          <!-- Content Container -->
+          <div class="relative h-full flex flex-col items-center justify-between p-8 z-10">
+            <!-- Grandiose Custom SVG Illustration -->
+            <div class="flex-1 flex items-center justify-center w-full">
+              <div class="relative w-48 h-48 animate-float" style="animation-delay: -3s">
+                <!-- Abstract Creative Shapes -->
                 <svg
-                  class="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  class="absolute inset-0 w-full h-full drop-shadow-[0_0_15px_rgba(var(--secondary-rgb),0.4)]"
+                  viewBox="0 0 200 200"
                 >
+                  <defs>
+                    <linearGradient id="customGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop
+                        offset="0%"
+                        style="stop-color: rgb(var(--secondary-rgb)); stop-opacity: 1"
+                      />
+                      <stop offset="100%" style="stop-color: #2dd4bf; stop-opacity: 1" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Pencil/Pen Tool -->
                   <path
+                    d="M140 40 L160 60 L80 140 L60 145 L65 125 Z"
+                    fill="url(#customGradient)"
+                    stroke="white"
+                    stroke-width="2"
+                  />
+                  <path d="M60 145 L50 155 L65 150" fill="#333" />
+
+                  <!-- Drawing Path -->
+                  <path
+                    d="M50 155 Q 90 180 120 150 T 170 120"
+                    stroke="url(#customGradient)"
+                    stroke-width="4"
+                    fill="none"
                     stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2.5"
-                    d="M5 13l4 4L19 7"
+                    stroke-dasharray="10 10"
+                    class="animate-spin-reverse-slow"
+                    style="animation-duration: 30s"
+                  />
+
+                  <!-- Floating UI Elements -->
+                  <rect
+                    x="40"
+                    y="50"
+                    width="60"
+                    height="40"
+                    rx="4"
+                    fill="rgba(255,255,255,0.05)"
+                    stroke="rgba(255,255,255,0.2)"
+                    transform="rotate(-15 70 70)"
+                  />
+                  <circle cx="50" cy="70" r="10" fill="url(#customGradient)" opacity="0.5" />
+                  <rect x="55" y="65" width="30" height="4" rx="2" fill="white" opacity="0.3" />
+                  <rect x="55" y="75" width="20" height="4" rx="2" fill="white" opacity="0.3" />
+
+                  <!-- Sparkles -->
+                  <path
+                    d="M150 50 L153 57 L160 60 L153 63 L150 70 L147 63 L140 60 L147 57 Z"
+                    fill="white"
+                    class="animate-pulse"
+                  />
+                  <path
+                    d="M30 130 L32 135 L37 137 L32 139 L30 144 L28 139 L23 137 L28 135 Z"
+                    fill="rgba(var(--secondary-rgb), 0.8)"
+                    class="animate-pulse delay-75"
                   />
                 </svg>
               </div>
-            }
+            </div>
 
-            <!-- Title overlay -->
-            <div class="absolute bottom-4 left-5 right-5">
-              <h3 class="text-2xl font-bold text-white">
+            <!-- Text Content -->
+            <div class="text-center mt-6">
+              <h3 class="text-2xl font-bold text-white tracking-tight mb-3">
                 {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
               </h3>
-            </div>
-          </div>
 
-          <!-- Content -->
-          <div class="p-5 sm:p-6 bg-gray-950/80">
-            <p class="text-sm text-gray-400 leading-relaxed mb-5">
-              {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
-            </p>
-            <div class="space-y-2.5">
-              @for (feature of customFeatures; track feature) {
-                <div class="flex items-center gap-2.5 text-sm text-gray-300">
-                  <div
-                    class="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0"
-                  >
+              <p class="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs mx-auto">
+                {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
+              </p>
+
+              <!-- Features Grid -->
+              <div
+                class="grid grid-cols-1 gap-2 text-left bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm"
+              >
+                @for (feature of customFeatures; track feature) {
+                  <div class="flex items-center gap-3 text-sm text-gray-300">
                     <svg
-                      class="w-3 h-3 text-secondary"
+                      class="w-4 h-4 text-secondary shrink-0"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -416,15 +552,36 @@
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        stroke-width="3"
+                        stroke-width="2"
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
+                    {{ feature | translate }}
                   </div>
-                  {{ feature | translate }}
-                </div>
-              }
+                }
+              </div>
             </div>
+
+            <!-- Selection Indicator -->
+            @if (generationMode() === 'custom') {
+              <div
+                class="absolute top-6 right-6 w-10 h-10 bg-secondary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--secondary-rgb),0.6)] animate-scale-in"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="3"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -444,7 +601,7 @@
         <button
           (click)="goToDescription()"
           [disabled]="!canProceed()"
-          class="inner-button px-10 py-3.5 text-base flex items-center gap-2 group"
+          class="inner-button px-10 py-3.5 text-base flex items-center gap-2 group shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
         >
           <span>{{ 'common.continue' | translate }}</span>
           <svg
