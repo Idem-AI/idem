@@ -371,6 +371,7 @@
         "subtitle": "Creating different versions of your logo for various use cases."
       },
       "progress": {
+        "label": "Progress",
         "initializing": "Initializing logo variation generation...",
         "analyzing": "Analyzing selected logo design...",
         "generatingLight": "Generating light background variation...",
@@ -390,6 +391,14 @@
         "subtitle": "Select the variations you want to keep for your project.",
         "completed": "Variations Generated Successfully!",
         "reviewAndProceed": "Review your variations and proceed when ready."
+      },
+      "status": {
+        "generated": "Generated",
+        "processing": "Processing variations...",
+        "preparingNext": "Preparing next step...",
+        "allGenerated": "All variations generated successfully!",
+        "readyToProceed": "Ready to proceed to the next step.",
+        "advancing": "Advancing to next step..."
       },
       "categories": {
         "withText": "With Text",
@@ -416,14 +425,6 @@
         "lightBackground": "Optimized for white and light backgrounds",
         "darkBackground": "Optimized for dark and modern backgrounds",
         "monochrome": "Version in black and white for all uses"
-      },
-      "status": {
-        "generated": "Generated",
-        "processing": "Processing variations...",
-        "preparingNext": "Preparing next step...",
-        "allGenerated": "All variations generated successfully!",
-        "readyToProceed": "Ready to proceed to the next step.",
-        "advancing": "Advancing to next step..."
       },
       "selectionsMade": "{{count}} selection(s) made"
     },
@@ -530,6 +531,11 @@
     "typographySelection": {
       "title": "Typography Selection",
       "subtitle": "Choose the perfect typography that reflects your brand's personality and enhances readability.",
+      "error": {
+        "title": "Typography Not Available",
+        "description": "No typography options available. Please go back to the color selection step.",
+        "retry": "Retry"
+      },
       "errors": {
         "title": "Typography Not Available",
         "noOptions": "No typography options available. Please go back to the color selection step."
