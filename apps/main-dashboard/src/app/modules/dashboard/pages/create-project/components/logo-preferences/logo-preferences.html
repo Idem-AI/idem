@@ -1,101 +1,216 @@
-<section class="flex flex-col items-center justify-center w-full px-0 sm:px-6 lg:px-8 py-0 sm:py-8">
-  <!-- Step 1: Logo Type Selection -->
+<section
+  class="flex flex-col items-center justify-center w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10"
+>
+  <!-- Step Indicator -->
+  <div class="w-full max-w-2xl mx-auto mb-10 sm:mb-14">
+    <div class="relative flex items-center justify-between">
+      <div
+        class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-white/10 rounded-full z-0"
+      ></div>
+      @for (step of stepsList; track step.key) {
+        <div class="relative z-10 flex flex-col items-center gap-2.5">
+          <div
+            class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300"
+            [ngClass]="{
+              'bg-primary border-primary text-white shadow-lg shadow-primary/30':
+                currentStep() === step.key,
+              'bg-primary border-primary text-white': isStepCompleted(step.key),
+              'bg-gray-900 border-gray-700 text-gray-500':
+                !isStepCompleted(step.key) && currentStep() !== step.key,
+            }"
+          >
+            @if (isStepCompleted(step.key)) {
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2.5"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            } @else {
+              {{ step.number }}
+            }
+          </div>
+          <span
+            class="text-xs font-medium uppercase tracking-wider transition-colors duration-300 hidden sm:block"
+            [ngClass]="{
+              'text-white': currentStep() === step.key || isStepCompleted(step.key),
+              'text-gray-600': !isStepCompleted(step.key) && currentStep() !== step.key,
+            }"
+          >
+            {{ 'dashboard.logoPreferences.steps.' + step.key + '.title' | translate }}
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- STEP 1: Logo Type Selection                -->
+  <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'type') {
-    <div class="w-full max-h-[50vh] sm:max-h-[74vh] max-w-6xl mx-auto">
-      <div class="text-center mb-4 sm:mb-8">
-        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
+    <div class="w-full max-w-6xl mx-auto animate-fade-in">
+      <div class="text-center mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 tracking-tight">
           {{ 'dashboard.logoPreferences.steps.type.title' | translate }}
         </h1>
-        <p class="text-sm sm:text-lg lg:text-xl text-gray-300">
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto font-light">
           {{ 'dashboard.logoPreferences.steps.type.subtitle' | translate }}
         </p>
       </div>
 
-      <div class="grid grid-cols-3 gap-2 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-10">
         @for (option of logoTypes; track option.type) {
           <div
             (click)="selectType(option.type)"
-            class="glass-card p-3 sm:p-6 lg:p-8 cursor-pointer transition-all duration-300 hover:scale-[1.02]"
-            [class.border-2]="selectedType() === option.type"
-            [class.border-primary]="selectedType() === option.type"
+            class="group relative flex flex-col h-full rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
+            [ngClass]="{
+              'ring-2 ring-primary shadow-xl shadow-primary/20 bg-gray-900/60 border border-primary/30':
+                selectedType() === option.type,
+              'bg-gray-900/40 border border-white/5 hover:border-white/15 hover:shadow-lg':
+                selectedType() !== option.type,
+            }"
           >
-            <div class="text-center">
-              <div class="mb-2 sm:mb-4 flex items-center justify-center">
+            <!-- Logo Showcase Area -->
+            <div class="relative h-52 sm:h-56 w-full overflow-hidden bg-gray-800/30">
+              <div class="absolute inset-0 flex items-center justify-center p-5">
+                <!-- Icon-Based Logos: Apple, X, Nike -->
                 @if (option.type === 'icon') {
-                  <svg
-                    class="w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-primary"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                  </svg>
-                }
-                @if (option.type === 'name') {
-                  <svg
-                    class="w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-secondary"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M4 4h16v4H4V4zm0 6h16v4H4v-4zm0 6h16v4H4v-4z" />
-                  </svg>
-                }
-                @if (option.type === 'initial') {
-                  <svg
-                    class="w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-accent"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <text
-                      x="50%"
-                      y="50%"
-                      text-anchor="middle"
-                      dominant-baseline="middle"
-                      font-size="16"
-                      fill="currentColor"
+                  <div class="grid grid-cols-3 gap-4 w-full max-w-[280px]">
+                    <div
+                      class="aspect-square rounded-2xl bg-black flex items-center justify-center p-3 shadow-lg group-hover:scale-105 transition-transform duration-500"
                     >
-                      A
-                    </text>
-                    <rect
-                      x="2"
-                      y="2"
-                      width="20"
-                      height="20"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      rx="4"
-                    />
-                  </svg>
+                      <img
+                        src="/assets/images/brands/apple.svg"
+                        alt="Apple"
+                        class="w-9 h-9 object-contain"
+                      />
+                    </div>
+                    <div
+                      class="aspect-square rounded-2xl bg-black flex items-center justify-center p-3 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-75"
+                    >
+                      <img
+                        src="/assets/images/brands/x.svg"
+                        alt="X"
+                        class="w-9 h-9 object-contain"
+                      />
+                    </div>
+                    <div
+                      class="aspect-square rounded-2xl bg-white flex items-center justify-center p-3 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-100"
+                    >
+                      <img
+                        src="/assets/images/brands/nike.svg"
+                        alt="Nike"
+                        class="w-9 h-9 object-contain invert"
+                      />
+                    </div>
+                  </div>
+                }
+
+                <!-- Name-Based Logos: Google, Coca-Cola, FedEx -->
+                @if (option.type === 'name') {
+                  <div class="flex flex-col gap-4 w-full px-4">
+                    <div
+                      class="h-14 rounded-2xl bg-white flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500"
+                    >
+                      <img
+                        src="/assets/images/brands/google.png"
+                        alt="Google"
+                        class="h-7 object-contain"
+                      />
+                    </div>
+                    <div
+                      class="h-14 rounded-2xl bg-[#ED1C16] flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-75"
+                    >
+                      <img
+                        src="/assets/images/brands/cocacola.svg"
+                        alt="Coca-Cola"
+                        class="h-20 object-contain brightness-0 invert"
+                      />
+                    </div>
+                    <div
+                      class="h-14 rounded-2xl bg-white flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-100"
+                    >
+                      <img
+                        src="/assets/images/brands/fedex.svg"
+                        alt="FedEx"
+                        class="h-20 object-contain"
+                      />
+                    </div>
+                  </div>
+                }
+
+                <!-- Initial-Based Logos: IBM, HP, CNN -->
+                @if (option.type === 'initial') {
+                  <div class="flex flex-col gap-4 w-full px-4">
+                    <div
+                      class="h-14 rounded-2xl bg-white flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500"
+                    >
+                      <img
+                        src="/assets/images/brands/ibm.png"
+                        alt="IBM"
+                        class="h-8 object-contain"
+                      />
+                    </div>
+                    <div
+                      class="h-14 rounded-2xl bg-[#0096D6] flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-75"
+                    >
+                      <img
+                        src="/assets/images/brands/hp.svg"
+                        alt="HP"
+                        class="h-8 object-contain brightness-0 invert"
+                      />
+                    </div>
+                    <div
+                      class="h-14 rounded-2xl bg-[#CC0000] flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-100"
+                    >
+                      <img
+                        src="/assets/images/brands/cnn.svg"
+                        alt="CNN"
+                        class="h-20 object-contain brightness-0 invert"
+                      />
+                    </div>
+                  </div>
                 }
               </div>
 
-              <h3 class="text-xs sm:text-base lg:text-xl font-bold text-white mb-1 sm:mb-2">
-                {{ option.titleKey | translate }}
-              </h3>
-              <p
-                class="text-[10px] sm:text-xs lg:text-sm text-gray-400 mb-1 sm:mb-2 leading-tight hidden sm:block"
-              >
-                {{ option.descriptionKey | translate }}
-              </p>
-              <p class="text-[9px] sm:text-xs text-gray-500 italic hidden lg:block">
-                {{ option.exampleKey | translate }}
-              </p>
-
+              <!-- Selected badge -->
               @if (selectedType() === option.type) {
-                <div class="mt-1 sm:mt-3 flex items-center justify-center">
+                <div
+                  class="absolute top-3 right-3 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/40 animate-scale-in"
+                >
                   <svg
-                    class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-primary"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
+                    class="w-4 h-4 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
                     <path
-                      fill-rule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clip-rule="evenodd"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2.5"
+                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                 </div>
               }
+            </div>
+
+            <!-- Card Content -->
+            <div class="p-5 sm:p-6 flex-1 flex flex-col">
+              <h3 class="text-lg font-bold text-white mb-1.5">{{ option.titleKey | translate }}</h3>
+              <p class="text-sm text-gray-400 leading-relaxed mb-4 flex-1">
+                {{ option.descriptionKey | translate }}
+              </p>
+              <div class="pt-3 border-t border-white/5 flex items-center gap-2">
+                <span class="text-xs text-gray-500 uppercase tracking-wider font-medium">
+                  {{ 'dashboard.logoPreferences.types.examplesLabel' | translate }}
+                </span>
+                <span class="text-xs text-gray-300 font-medium">
+                  {{ option.exampleKey | translate }}
+                </span>
+              </div>
             </div>
           </div>
         }
@@ -105,193 +220,376 @@
         <button
           (click)="goToModeSelection()"
           [disabled]="!canProceed()"
-          class="inner-button px-6 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
+          class="inner-button px-12 py-4 text-lg group shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
         >
-          {{ 'common.continue' | translate }}
+          <span class="mr-2">{{ 'common.continue' | translate }}</span>
+          <svg
+            class="w-5 h-5 group-hover:translate-x-1 transition-transform"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 7l5 5m0 0l-5 5m5-5H6"
+            />
+          </svg>
         </button>
       </div>
     </div>
   }
 
-  <!-- Step 2: Generation Mode Selection -->
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- STEP 2: Generation Mode Selection          -->
+  <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'mode') {
-    <div class="w-full max-w-6xl mx-auto">
-      <div class="text-center mb-4 sm:mb-8">
-        <h1 class="text-xl sm:text-3xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
+    <div class="w-full max-w-5xl mx-auto animate-fade-in">
+      <div class="text-center mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">
           {{ 'dashboard.logoPreferences.steps.mode.title' | translate }}
         </h1>
-        <p class="text-xs sm:text-base lg:text-xl text-gray-300">
+        <p class="text-gray-400 text-lg max-w-xl mx-auto">
           {{ 'dashboard.logoPreferences.steps.mode.subtitle' | translate }}
         </p>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:gap-8 mb-4 sm:mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 mb-10">
+        <!-- AI Generation Card -->
         <div
           (click)="selectGenerationMode('ai')"
-          class="glass-card p-4 sm:p-8 lg:p-12 cursor-pointer transition-all duration-300 hover:scale-[1.02]"
-          [class.border-2]="generationMode() === 'ai'"
-          [class.border-primary]="generationMode() === 'ai'"
+          class="group relative rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
+          [ngClass]="{
+            'ring-2 ring-primary shadow-xl shadow-primary/20': generationMode() === 'ai',
+            'ring-1 ring-white/10 hover:ring-white/20 hover:shadow-lg': generationMode() !== 'ai',
+          }"
         >
-          <div class="text-center">
+          <!-- Image Header -->
+          <div class="relative h-48 sm:h-56 overflow-hidden">
+            <img
+              src="/assets/images/logo-modes/ai-generation.jpg"
+              alt="AI Generation"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
             <div
-              class="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 mx-auto mb-3 sm:mb-6 lg:mb-8 rounded-full bg-primary/20 flex items-center justify-center"
-            >
-              <svg
-                class="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-base sm:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 lg:mb-4">
-              {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
-            </h3>
-            <p
-              class="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-tight sm:leading-relaxed"
-            >
-              {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
-            </p>
+              class="absolute inset-0 bg-linear-to-t from-gray-950 via-gray-950/60 to-transparent"
+            ></div>
 
+            <!-- Badge -->
+            <div class="absolute top-4 left-4">
+              <span
+                class="px-3 py-1.5 text-xs font-bold bg-primary/90 text-white rounded-full backdrop-blur-sm shadow-lg"
+              >
+                {{ 'dashboard.logoPreferences.modes.ai.badge' | translate }}
+              </span>
+            </div>
+
+            <!-- Selected check -->
             @if (generationMode() === 'ai') {
-              <div class="mt-3 sm:mt-5 lg:mt-6 flex items-center justify-center">
+              <div
+                class="absolute top-4 right-4 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/40 animate-scale-in"
+              >
                 <svg
-                  class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-primary"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+                  class="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
                   <path
-                    fill-rule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clip-rule="evenodd"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M5 13l4 4L19 7"
                   />
                 </svg>
               </div>
             }
+
+            <!-- Title overlay -->
+            <div class="absolute bottom-4 left-5 right-5">
+              <h3 class="text-2xl font-bold text-white">
+                {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
+              </h3>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="p-5 sm:p-6 bg-gray-950/80">
+            <p class="text-sm text-gray-400 leading-relaxed mb-5">
+              {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
+            </p>
+            <div class="space-y-2.5">
+              @for (feature of aiFeatures; track feature) {
+                <div class="flex items-center gap-2.5 text-sm text-gray-300">
+                  <div
+                    class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0"
+                  >
+                    <svg
+                      class="w-3 h-3 text-primary"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="3"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                  {{ feature | translate }}
+                </div>
+              }
+            </div>
           </div>
         </div>
 
+        <!-- Custom Description Card -->
         <div
           (click)="selectGenerationMode('custom')"
-          class="glass-card p-4 sm:p-8 lg:p-12 cursor-pointer transition-all duration-300 hover:scale-[1.02]"
-          [class.border-2]="generationMode() === 'custom'"
-          [class.border-secondary]="generationMode() === 'custom'"
+          class="group relative rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
+          [ngClass]="{
+            'ring-2 ring-secondary shadow-xl shadow-secondary/20': generationMode() === 'custom',
+            'ring-1 ring-white/10 hover:ring-white/20 hover:shadow-lg':
+              generationMode() !== 'custom',
+          }"
         >
-          <div class="text-center">
+          <!-- Image Header -->
+          <div class="relative h-48 sm:h-56 overflow-hidden">
+            <img
+              src="/assets/images/logo-modes/custom-description.jpg"
+              alt="Custom Description"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
             <div
-              class="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 mx-auto mb-3 sm:mb-6 lg:mb-8 rounded-full bg-secondary/20 flex items-center justify-center"
-            >
-              <svg
-                class="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-base sm:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 lg:mb-4">
-              {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
-            </h3>
-            <p
-              class="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-tight sm:leading-relaxed"
-            >
-              {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
-            </p>
+              class="absolute inset-0 bg-linear-to-t from-gray-950 via-gray-950/60 to-transparent"
+            ></div>
 
+            <!-- Selected check -->
             @if (generationMode() === 'custom') {
-              <div class="mt-3 sm:mt-5 lg:mt-6 flex items-center justify-center">
+              <div
+                class="absolute top-4 right-4 w-8 h-8 bg-secondary rounded-full flex items-center justify-center shadow-lg shadow-secondary/40 animate-scale-in"
+              >
                 <svg
-                  class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+                  class="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
                   <path
-                    fill-rule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clip-rule="evenodd"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M5 13l4 4L19 7"
                   />
                 </svg>
               </div>
             }
+
+            <!-- Title overlay -->
+            <div class="absolute bottom-4 left-5 right-5">
+              <h3 class="text-2xl font-bold text-white">
+                {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
+              </h3>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="p-5 sm:p-6 bg-gray-950/80">
+            <p class="text-sm text-gray-400 leading-relaxed mb-5">
+              {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
+            </p>
+            <div class="space-y-2.5">
+              @for (feature of customFeatures; track feature) {
+                <div class="flex items-center gap-2.5 text-sm text-gray-300">
+                  <div
+                    class="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0"
+                  >
+                    <svg
+                      class="w-3 h-3 text-secondary"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="3"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                  {{ feature | translate }}
+                </div>
+              }
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-center gap-2 sm:gap-4">
-        <button
-          (click)="back()"
-          class="outer-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
-        >
+      <div class="flex justify-center gap-4">
+        <button (click)="back()" class="outer-button px-8 py-3.5 text-base flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11 17l-5-5m0 0l5-5m-5 5h12"
+            />
+          </svg>
           {{ 'common.back' | translate }}
         </button>
         <button
           (click)="goToDescription()"
           [disabled]="!canProceed()"
-          class="inner-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
+          class="inner-button px-10 py-3.5 text-base flex items-center gap-2 group"
         >
-          {{ 'common.continue' | translate }}
+          <span>{{ 'common.continue' | translate }}</span>
+          <svg
+            class="w-5 h-5 group-hover:translate-x-1 transition-transform"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 7l5 5m0 0l-5 5m5-5H6"
+            />
+          </svg>
         </button>
       </div>
     </div>
   }
 
-  <!-- Step 3: Custom Description -->
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- STEP 3: Description (Creative Brief)       -->
+  <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'description') {
-    <div class="w-full sm:max-w-5xl mx-auto">
-      <div class="text-center mb-3 sm:mb-6">
-        <h1 class="text-xl sm:text-3xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">
+    <div class="w-full max-w-4xl mx-auto animate-fade-in">
+      <div class="text-center mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">
           {{ 'dashboard.logoPreferences.steps.description.title' | translate }}
         </h1>
-        <p class="text-xs sm:text-base lg:text-xl text-gray-300">
+        <p class="text-gray-400 text-lg">
           {{ 'dashboard.logoPreferences.steps.description.subtitle' | translate }}
         </p>
       </div>
 
-      <div class="glass-card p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6">
-        <label
-          class="block text-white font-bold text-sm sm:text-lg lg:text-xl mb-2 sm:mb-3 text-left"
-        >
-          {{ 'dashboard.logoPreferences.fields.description.label' | translate }}
-        </label>
-        <textarea
-          [value]="customDescription()"
-          (input)="updateDescription($event)"
-          class="input w-full h-32 sm:h-48 lg:h-64 resize-none text-xs sm:text-base lg:text-lg"
-          [placeholder]="'dashboard.logoPreferences.fields.description.placeholder' | translate"
-        ></textarea>
-        <div class="text-right mt-2">
-          <span class="text-xs sm:text-sm lg:text-base text-gray-400">
-            {{ customDescription().length }}
-            {{ 'dashboard.logoPreferences.fields.description.charCount' | translate }}
-          </span>
+      <div class="bg-gray-900/50 rounded-3xl border border-white/10 p-1 shadow-2xl mb-8">
+        <div class="bg-gray-950/80 rounded-[22px] overflow-hidden">
+          <!-- Toolbar -->
+          <div
+            class="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <svg
+                  class="w-4 h-4 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </div>
+              <span class="text-white font-semibold">{{
+                'dashboard.logoPreferences.fields.description.label' | translate
+              }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span
+                class="text-xs font-bold px-3 py-1.5 rounded-full border transition-colors duration-300"
+                [ngClass]="{
+                  'bg-red-500/10 border-red-500/20 text-red-400': customDescription().length < 10,
+                  'bg-amber-500/10 border-amber-500/20 text-amber-400':
+                    customDescription().length >= 10 && customDescription().length < 30,
+                  'bg-emerald-500/10 border-emerald-500/20 text-emerald-400':
+                    customDescription().length >= 30,
+                }"
+              >
+                {{ customDescription().length }}
+                {{ 'dashboard.logoPreferences.fields.description.charCount' | translate }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Input Area -->
+          <div class="relative">
+            <textarea
+              [value]="customDescription()"
+              (input)="updateDescription($event)"
+              class="w-full h-64 bg-transparent text-lg text-white p-6 focus:outline-none resize-none placeholder-gray-600 leading-relaxed"
+              [placeholder]="'dashboard.logoPreferences.fields.description.placeholder' | translate"
+            ></textarea>
+            <div
+              class="absolute bottom-0 left-0 w-full h-0.5 bg-linear-to-r from-transparent via-primary to-transparent opacity-50"
+            ></div>
+          </div>
+
+          <!-- Helper Tips -->
+          <div class="bg-primary/5 px-6 py-4 border-t border-primary/10 flex items-start gap-3">
+            <svg
+              class="w-5 h-5 text-primary shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p class="text-sm text-gray-300">
+              {{ 'dashboard.logoPreferences.fields.description.tip' | translate }}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div class="flex justify-center gap-2 sm:gap-4">
-        <button
-          (click)="back()"
-          class="outer-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
-        >
+      <div class="flex justify-center gap-4">
+        <button (click)="back()" class="outer-button px-8 py-3.5 text-base flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11 17l-5-5m0 0l5-5m-5 5h12"
+            />
+          </svg>
           {{ 'common.back' | translate }}
         </button>
         <button
           (click)="completePreferences()"
           [disabled]="!canProceed()"
-          class="inner-button px-4 py-2 sm:px-8 sm:py-3 text-sm sm:text-base"
+          class="inner-button px-10 py-3.5 text-base flex items-center gap-2 group shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
         >
-          {{ 'dashboard.logoPreferences.buttons.generate' | translate }}
+          <span class="mr-2">{{ 'dashboard.logoPreferences.buttons.generate' | translate }}</span>
+          <div class="relative w-5 h-5">
+            <svg
+              class="w-5 h-5 absolute inset-0 transition-all duration-300 group-hover:scale-125 group-hover:rotate-12"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+              />
+            </svg>
+          </div>
         </button>
       </div>
     </div>

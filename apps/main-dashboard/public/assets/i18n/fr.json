@@ -286,23 +286,36 @@
           "title": "Basé sur les initiales",
           "description": "Les initiales comme élément principal de la conception de votre logo",
           "example": "IBM, HP, CNN"
-        }
+        },
+        "examplesLabel": "Ex :"
       },
       "modes": {
         "ai": {
           "title": "Génération par IA",
-          "description": "L'IA crée des logos uniques basés sur votre marque"
+          "description": "L'IA crée des logos uniques basés sur votre marque",
+          "badge": "Recommandé",
+          "features": {
+            "smart": "Design intelligent",
+            "multiple": "Plusieurs options",
+            "fast": "Résultats instantanés"
+          }
         },
         "custom": {
           "title": "Description personnalisée",
-          "description": "Décrivez exactement comment vous voulez votre logo"
+          "description": "Décrivez exactement comment vous voulez votre logo",
+          "features": {
+            "control": "Contrôle total",
+            "precise": "Vision précise",
+            "unique": "Résultat unique"
+          }
         }
       },
       "fields": {
         "description": {
           "label": "Description du logo",
           "placeholder": "Exemple : Logo minimaliste avec un sommet de montagne, couleurs bleu et blanc, aventure et confiance...",
-          "charCount": "caractères (min {{min}})"
+          "charCount": "caractères",
+          "tip": "Soyez précis sur les couleurs, formes, style et ambiance. Plus vous donnez de détails, mieux le résultat correspondra à votre vision."
         }
       },
       "buttons": {
