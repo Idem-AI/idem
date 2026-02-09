@@ -24,7 +24,9 @@
   "buttons": {
     "generate": "Générer les variations",
     "clickToSelect": "Cliquez pour sélectionner",
-    "proceed": "Continuer avec la sélection"
+    "proceed": "Continuer avec la sélection",
+    "retry": "Réessayer",
+    "continueToSummary": "Continuer vers le résumé"
   },
   "estimatedTime": "Temps estimé : {{time}}",
   "generating": {
@@ -32,6 +34,7 @@
     "subtitle": "Création de différentes versions de votre logo pour divers cas d'utilisation."
   },
   "progress": {
+    "label": "Progression",
     "initializing": "Initialisation de la génération des variations de logo...",
     "analyzing": "Analyse du design du logo sélectionné...",
     "generatingLight": "Génération de la variation pour fond clair...",
@@ -48,7 +51,17 @@
   },
   "success": {
     "title": "Variations du logo",
-    "subtitle": "Sélectionnez les variations que vous souhaitez conserver pour votre projet."
+    "subtitle": "Sélectionnez les variations que vous souhaitez conserver pour votre projet.",
+    "completed": "Variations générées avec succès !",
+    "reviewAndProceed": "Examinez vos variations et continuez quand vous êtes prêt."
+  },
+  "status": {
+    "generated": "Généré",
+    "processing": "Traitement des variations...",
+    "preparingNext": "Préparation de l'étape suivante...",
+    "allGenerated": "Toutes les variations générées avec succès !",
+    "readyToProceed": "Prêt à passer à l'étape suivante.",
+    "advancing": "Passage à l'étape suivante..."
   },
   "categories": {
     "withText": "Avec texte",
@@ -60,7 +73,10 @@
     "withTextMonochrome": "Avec texte - Monochrome",
     "iconOnlyLight": "Icône uniquement - Fond clair",
     "iconOnlyDark": "Icône uniquement - Fond sombre",
-    "iconOnlyMonochrome": "Icône uniquement - Monochrome"
+    "iconOnlyMonochrome": "Icône uniquement - Monochrome",
+    "lightBackground": "Fond clair",
+    "darkBackground": "Fond sombre",
+    "monochrome": "Monochrome"
   },
   "descriptions": {
     "withTextLight": "Logo complet optimisé pour les fonds clairs",
@@ -68,7 +84,10 @@
     "withTextMonochrome": "Logo complet en version monochrome",
     "iconOnlyLight": "Icône uniquement optimisée pour les fonds clairs",
     "iconOnlyDark": "Icône uniquement optimisée pour les fonds sombres",
-    "iconOnlyMonochrome": "Icône uniquement en version monochrome"
+    "iconOnlyMonochrome": "Icône uniquement en version monochrome",
+    "lightBackground": "Optimisé pour les fonds blancs et clairs",
+    "darkBackground": "Optimisé pour les fonds sombres et modernes",
+    "monochrome": "Version en noir et blanc pour toutes les utilisations"
   },
   "selectionsMade": "{{count}} sélection(s) faite(s)"
 }

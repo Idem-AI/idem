@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, forwardRef } from '@angular/core';
+import { inject, Injectable, forwardRef, signal } from '@angular/core';
 import { TokenService } from '../../../shared/services/token.service';
 import { CookieService } from '../../../shared/services/cookie.service';
 import {
@@ -8,6 +8,8 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   user,
   User,
@@ -27,8 +29,47 @@ export class AuthService {
   private apiUrl = `${environment.services.api.url}/auth`;
   private readonly CURRENT_USER_COOKIE = 'currentUser';
 
+  /** True while we're waiting for a redirect login result (mobile flow) */
+  readonly redirectLoginInProgress = signal(false);
+
+  /** Resolves when redirect result has been checked on app init */
+  readonly redirectResultReady: Promise<User | null>;
+
   constructor() {
     this.user$ = user(this.auth);
+    this.redirectResultReady = this.handleRedirectResult();
+  }
+
+  /**
+   * Detect mobile/tablet browsers where signInWithPopup is unreliable.
+   */
+  private isMobile(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent,
+    );
+  }
+
+  /**
+   * On page load, check if we're returning from a signInWithRedirect.
+   * If so, complete the login flow (postLogin + emit event via callback).
+   */
+  private async handleRedirectResult(): Promise<User | null> {
+    try {
+      this.redirectLoginInProgress.set(true);
+      const result = await getRedirectResult(this.auth);
+      if (result?.user) {
+        console.log('Redirect login successful for:', result.user.email);
+        await this.postLogin(result.user);
+        return result.user;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error handling redirect result:', error);
+      return null;
+    } finally {
+      this.redirectLoginInProgress.set(false);
+    }
   }
 
   login(email: string, password: string): Observable<void> {
@@ -40,14 +81,24 @@ export class AuthService {
 
   async loginWithGithub() {
     const provider = new GithubAuthProvider();
-    const result = await signInWithPopup(this.auth, provider);
-    await this.postLogin(result.user);
+    if (this.isMobile()) {
+      await signInWithRedirect(this.auth, provider);
+    } else {
+      const result = await signInWithPopup(this.auth, provider);
+      await this.postLogin(result.user);
+    }
   }
 
   async loginWithGoogle() {
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(this.auth, provider);
-    await this.postLogin(result.user);
+    if (this.isMobile()) {
+      // Mobile: use redirect flow (popup is unreliable on mobile browsers)
+      await signInWithRedirect(this.auth, provider);
+      // Page will reload — postLogin is handled in handleRedirectResult()
+    } else {
+      const result = await signInWithPopup(this.auth, provider);
+      await this.postLogin(result.user);
+    }
   }
 
   private async postLogin(user: User) {
