@@ -42,7 +42,7 @@ This monorepo contains four main applications:
 | ----------------- | ------------------ | ----------------------------------------------- | ---- |
 | **idem-ai**       | Angular 20         | Main AI-powered SDLC generation application     | 4200 |
 | **idem-chart** | Svelte 5           | Interactive Mermaid diagram editor module       | 5173 |
-| **idem-appgen**   | React/Next.js      | AI-powered application generator                | 3000 |
+| **idem-appgen**   | React/ExpressJs     | AI-powered application generator                | 3000 |
 | **idem-api**      | Express/TypeScript | Backend API for AI services and data management | 3001 |
 | **idem-ideploy** | PHP & React | Open-source & self-hostable alternative to Heroku / Netlify / Vercel | 8000 |
 
