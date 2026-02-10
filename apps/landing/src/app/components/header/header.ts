@@ -15,7 +15,6 @@ import { BadgeModule } from 'primeng/badge';
 import { AvatarModule } from 'primeng/avatar';
 import { InputTextModule } from 'primeng/inputtext';
 import { CommonModule } from '@angular/common';
-import { BetaBadgeComponent } from '../../shared/components/beta-badge/beta-badge';
 import { ButtonModule } from 'primeng/button';
 import { DOCUMENT } from '@angular/common';
 import { environment } from '../../../environments/environment';
@@ -29,7 +28,6 @@ import { environment } from '../../../environments/environment';
     AvatarModule,
     InputTextModule,
     CommonModule,
-    BetaBadgeComponent,
     ButtonModule,
   ],
   templateUrl: './header.html',
