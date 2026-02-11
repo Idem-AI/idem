@@ -7,6 +7,7 @@ use App\Models\FirewallConfig;
 use App\Services\Security\FirewallConfigService;
 use App\Services\Security\BotManagementTemplateService;
 use App\Services\Security\GeoBlockingService;
+use Carbon\Carbon;
 use Livewire\Component;
 
 class FirewallOverview extends Component
@@ -177,7 +178,7 @@ class FirewallOverview extends Component
                 'path' => $alert['scenario'] ?? 'Firewall Rule',
                 'status' => 403,
                 'action' => 'denied',
-                'timestamp' => Carbon\Carbon::parse($alert['created_at'] ?? now()),
+                'timestamp' => Carbon::parse($alert['created_at'] ?? now()),
             ])
             ->toArray();
         
