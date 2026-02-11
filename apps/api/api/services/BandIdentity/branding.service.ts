@@ -23,6 +23,11 @@ import { GenericService, IPromptStep, ISectionResult } from '../common/generic.s
 import { LogoModel, LogoPreferences } from '../../models/logo.model';
 import { COLORS_GENERATION_PROMPT } from './prompts/singleGenerations/colors-generation.prompt';
 import { TYPOGRAPHY_GENERATION_PROMPT } from './prompts/singleGenerations/typography-generation.prompt';
+import {
+  COLORS_FROM_LOGO_PROMPT,
+  TYPOGRAPHY_FROM_LOGO_PROMPT,
+} from './prompts/singleGenerations/colors-from-logo.prompt';
+import { generateLogoVariationsFromSvg } from '../logo-import.service';
 import { PdfService } from '../pdf.service';
 import { cacheService } from '../cache.service';
 import crypto from 'crypto';
@@ -536,8 +541,7 @@ export class BrandingService extends GenericService {
                   typography: project.analysisResultModel.branding.typography,
                   logo: project.analysisResultModel.branding.logo,
                   generatedLogos: project.analysisResultModel.branding.generatedLogos || [],
-                  generatedColors:
-                    project.analysisResultModel.branding.generatedColors || [],
+                  generatedColors: project.analysisResultModel.branding.generatedColors || [],
                   generatedTypography:
                     project.analysisResultModel.branding.generatedTypography || [],
                   createdAt: new Date(),
@@ -902,13 +906,9 @@ export class BrandingService extends GenericService {
 
       // Paralléliser DB update et cache update
       const [updatedProject, _] = await Promise.allSettled([
-        this.projectRepository.update(
-          projectId,
-          updatedProjectData,
-          `users/${userId}/projects`
-        ),
+        this.projectRepository.update(projectId, updatedProjectData, `users/${userId}/projects`),
         // Pré-calculer la clé de cache
-        Promise.resolve(`project_${userId}_${projectId}`)
+        Promise.resolve(`project_${userId}_${projectId}`),
       ]);
 
       if (updatedProject.status === 'fulfilled' && updatedProject.value) {
@@ -918,16 +918,21 @@ export class BrandingService extends GenericService {
 
         // Mise à jour du cache en arrière-plan (non-bloquant)
         const projectCacheKey = `project_${userId}_${projectId}`;
-        cacheService.set(projectCacheKey, updatedProject.value, {
-          prefix: 'project',
-          ttl: 3600,
-        }).catch(error => {
-          logger.error(`Cache update failed for project ${projectId}:`, error);
-        });
+        cacheService
+          .set(projectCacheKey, updatedProject.value, {
+            prefix: 'project',
+            ttl: 3600,
+          })
+          .catch((error) => {
+            logger.error(`Cache update failed for project ${projectId}:`, error);
+          });
 
         logger.info(`Project cache update initiated - ProjectId: ${projectId}`);
       } else {
-        logger.error(`Failed to update project ${projectId}:`, updatedProject.status === 'rejected' ? updatedProject.reason : 'Unknown error');
+        logger.error(
+          `Failed to update project ${projectId}:`,
+          updatedProject.status === 'rejected' ? updatedProject.reason : 'Unknown error'
+        );
       }
     } catch (error) {
       logger.error(`Error in updateProjectWithLogosAsync for project ${projectId}:`, error);
@@ -1056,12 +1061,7 @@ export class BrandingService extends GenericService {
 
     // Créer 3 promesses pour génération AI pure en parallèle
     const logoPromises = Array.from({ length: 3 }, (_, index) =>
-      this.generateRawLogoConcept(
-        optimizedPrompt,
-        project,
-        index,
-        preferences
-      )
+      this.generateRawLogoConcept(optimizedPrompt, project, index, preferences)
     );
 
     // Attendre toutes les générations AI avec gestion d'erreurs robuste
@@ -1101,15 +1101,13 @@ export class BrandingService extends GenericService {
         selectedColors,
         selectedTypography,
         rawLogos // Utiliser les logos non-optimisés pour la DB (plus rapide)
-      )
+      ),
     ]);
 
     const optimizationTime = Date.now() - optimizationStartTime;
     const totalTime = Date.now() - totalStartTime;
 
-    logger.info(
-      `Logo optimization completed in ${optimizationTime}ms`
-    );
+    logger.info(`Logo optimization completed in ${optimizationTime}ms`);
     logger.info(
       `Total parallel logo generation completed in ${totalTime}ms for ${finalOptimizedLogos.length} concepts (AI: ${aiGenerationTime}ms, Optimization: ${optimizationTime}ms)`
     );
@@ -2011,7 +2009,7 @@ ${LOGO_EDIT_PROMPT}`;
       logger.info('🎨 Starting mockup generation for brand identity', {
         userId,
         projectId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Récupérer le projet pour obtenir les informations de branding
@@ -2028,7 +2026,7 @@ ${LOGO_EDIT_PROMPT}`;
           projectId,
           userId,
           hasLogo: !!branding?.logo,
-          hasColors: !!branding?.colors
+          hasColors: !!branding?.colors,
         });
         return null;
       }
@@ -2038,7 +2036,7 @@ ${LOGO_EDIT_PROMPT}`;
       const brandColors = {
         primary: branding.colors.colors.primary || '#000000',
         secondary: branding.colors.colors.secondary || '#666666',
-        accent: branding.colors.colors.accent || '#999999'
+        accent: branding.colors.colors.accent || '#999999',
       };
 
       // Utiliser une industrie par défaut ou extraire depuis la description
@@ -2051,7 +2049,7 @@ ${LOGO_EDIT_PROMPT}`;
         industry,
         brandColors,
         hasLogoUrl: !!logoUrl,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Générer les mockups avec le service Gemini
@@ -2069,7 +2067,7 @@ ${LOGO_EDIT_PROMPT}`;
         userId,
         mockup1Url: mockups.mockup1.mockupUrl,
         mockup2Url: mockups.mockup2.mockupUrl,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Mettre à jour le projet avec les mockups générés
@@ -2082,10 +2080,10 @@ ${LOGO_EDIT_PROMPT}`;
             mockups: {
               mockup1: mockups.mockup1,
               mockup2: mockups.mockup2,
-              generatedAt: new Date().toISOString()
-            }
-          }
-        }
+              generatedAt: new Date().toISOString(),
+            },
+          },
+        },
       };
 
       // Sauvegarder le projet mis à jour
@@ -2099,19 +2097,18 @@ ${LOGO_EDIT_PROMPT}`;
         logger.info('💾 Project updated with generated mockups', {
           projectId,
           userId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
 
       return mockups;
-
     } catch (error: any) {
       logger.error('❌ Error generating project mockups', {
         error: error.message,
         stack: error.stack,
         projectId,
         userId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       return null;
@@ -2141,27 +2138,29 @@ ${LOGO_EDIT_PROMPT}`;
       const brandColors = {
         primary: branding?.colors?.colors?.primary || '#000000',
         secondary: branding?.colors?.colors?.secondary || '#666666',
-        accent: branding?.colors?.colors?.accent || '#0066cc'
+        accent: branding?.colors?.colors?.accent || '#0066cc',
       };
 
       // Types de mockups selon l'industrie
       const mockupTypes = this.getMockupTypesForIndustry(project.type);
-      const mockupPromises: Promise<{ url: string; title: string; description: string } | null>[] = [];
+      const mockupPromises: Promise<{ url: string; title: string; description: string } | null>[] =
+        [];
 
       // Lancer MOCKUPS_COUNT requêtes en parallèle
       for (let i = 0; i < MOCKUPS_COUNT; i++) {
         const mockupType = mockupTypes[i % mockupTypes.length];
-        mockupPromises.push(this.generateSingleMockup(project, i + 1, mockupType, logoUrl, brandColors));
+        mockupPromises.push(
+          this.generateSingleMockup(project, i + 1, mockupType, logoUrl, brandColors)
+        );
       }
 
       // Attendre que tous les mockups soient générés
       const results = await Promise.all(mockupPromises);
 
       // Filtrer les résultats null
-      return results.filter((result): result is { url: string; title: string; description: string } =>
-        result !== null
+      return results.filter(
+        (result): result is { url: string; title: string; description: string } => result !== null
       );
-
     } catch (error) {
       logger.error('Error generating mockups in parallel:', error);
       return [];
@@ -2199,15 +2198,16 @@ ${LOGO_EDIT_PROMPT}`;
       logger.info(`Mockup ${mockupIndex} generated successfully`, {
         projectId: project.id,
         mockupType,
-        url: mockupResult.mockupUrl
+        url: mockupResult.mockupUrl,
       });
 
       return {
         url: mockupResult.mockupUrl,
         title: mockupResult.title || `${mockupType} Mockup`,
-        description: mockupResult.description || `Professional ${mockupType.toLowerCase()} showcasing the ${project.name} brand logo`
+        description:
+          mockupResult.description ||
+          `Professional ${mockupType.toLowerCase()} showcasing the ${project.name} brand logo`,
       };
-
     } catch (error) {
       logger.error(`Error generating mockup ${mockupIndex} for project ${project.id}:`, error);
       return null;
@@ -2217,7 +2217,11 @@ ${LOGO_EDIT_PROMPT}`;
   /**
    * Upload temporairement le SVG du logo pour le rendre accessible via URL
    */
-  private async uploadLogoSvgTemporarily(logoSvg: string, projectId: string, suffix: string): Promise<string> {
+  private async uploadLogoSvgTemporarily(
+    logoSvg: string,
+    projectId: string,
+    suffix: string
+  ): Promise<string> {
     try {
       // Convertir le SVG en Buffer
       const svgBuffer = Buffer.from(logoSvg, 'utf-8');
@@ -2238,7 +2242,7 @@ ${LOGO_EDIT_PROMPT}`;
         projectId,
         suffix,
         fileName,
-        url: uploadResult.downloadURL
+        url: uploadResult.downloadURL,
       });
 
       return uploadResult.downloadURL;
@@ -2254,57 +2258,246 @@ ${LOGO_EDIT_PROMPT}`;
    */
   private getMockupTypesForIndustry(projectType: string): string[] {
     const industryMockups: { [key: string]: string[] } = {
-      'web': [
-        'laptop_screen',
-        'mobile_app',
-        'business_card',
-        'merchandise'
-      ],
-      'mobile': [
-        'mobile_app',
-        'business_card',
-        'merchandise',
-        'laptop_screen'
-      ],
-      'healthcare': [
-        'packaging',
-        'signage',
-        'business_card',
-        'merchandise'
-      ],
-      'finance': [
-        'business_card',
-        'signage',
-        'laptop_screen',
-        'packaging'
-      ],
-      'food': [
-        'packaging',
-        'signage',
-        'business_card',
-        'merchandise'
-      ],
-      'retail': [
-        'packaging',
-        'signage',
-        'business_card',
-        'merchandise'
-      ],
-      'delivery': [
-        'signage',
-        'packaging',
-        'business_card',
-        'mobile_app'
-      ],
-      'consulting': [
-        'business_card',
-        'laptop_screen',
-        'signage',
-        'packaging'
-      ]
+      web: ['laptop_screen', 'mobile_app', 'business_card', 'merchandise'],
+      mobile: ['mobile_app', 'business_card', 'merchandise', 'laptop_screen'],
+      healthcare: ['packaging', 'signage', 'business_card', 'merchandise'],
+      finance: ['business_card', 'signage', 'laptop_screen', 'packaging'],
+      food: ['packaging', 'signage', 'business_card', 'merchandise'],
+      retail: ['packaging', 'signage', 'business_card', 'merchandise'],
+      delivery: ['signage', 'packaging', 'business_card', 'mobile_app'],
+      consulting: ['business_card', 'laptop_screen', 'signage', 'packaging'],
     };
 
     return industryMockups[projectType] || industryMockups['web']; // Fallback sur web
+  }
+
+  /**
+   * Generates color palettes and typography based on colors extracted from an imported logo.
+   * Primary colors come from the logo; AI proposes complementary secondary/accent/background/text.
+   */
+  async generateColorsAndTypographyFromLogo(
+    userId: string,
+    project: ProjectModel,
+    logoSvg: string,
+    logoColors: string[]
+  ): Promise<{
+    colors: ColorModel[];
+    typography: TypographyModel[];
+    project: ProjectModel;
+  }> {
+    logger.info(
+      `Generating colors and typography from imported logo for userId: ${userId}, logo colors: ${logoColors.join(', ')}`
+    );
+
+    // Créer le projet
+    project = {
+      ...project,
+      analysisResultModel: {
+        ...project.analysisResultModel,
+        branding: BrandIdentityBuilder.createEmpty(),
+      },
+    };
+    const createdProject = await projectService.createUserProject(userId, project);
+
+    if (!createdProject.id) {
+      throw new Error(`Failed to create project`);
+    }
+
+    // Cache le projet
+    try {
+      const projectCacheKey = `project_${userId}_${createdProject.id}`;
+      await cacheService.set(projectCacheKey, createdProject, {
+        prefix: 'project',
+        ttl: 3600,
+      });
+    } catch (error) {
+      logger.error(`Error caching project for userId: ${userId}`, error);
+    }
+
+    const projectDescription = this.extractProjectDescription(project);
+
+    // Determine primary, secondary colors and style hint from logo colors
+    const primaryColor = logoColors.length > 0 ? logoColors[0] : '#6a11cb';
+    const secondaryColor = logoColors.length > 1 ? logoColors[1] : primaryColor;
+    const logoColorsStr = logoColors.length > 0 ? logoColors.join(', ') : primaryColor;
+    const styleHint = this.inferStyleFromColors(logoColors);
+
+    // Build color prompt with logo colors injected (replace all occurrences)
+    const colorPrompt =
+      projectDescription +
+      '\n\n' +
+      COLORS_FROM_LOGO_PROMPT.replace(/\{\{LOGO_COLORS\}\}/g, logoColorsStr)
+        .replace(/\{\{PROJECT_DESCRIPTION\}\}/g, projectDescription)
+        .replace(/\{\{PRIMARY_FROM_LOGO\}\}/g, primaryColor)
+        .replace(/\{\{SECONDARY_FROM_LOGO\}\}/g, secondaryColor);
+
+    // Build typography prompt with logo context
+    const typographyPrompt =
+      projectDescription +
+      '\n\n' +
+      TYPOGRAPHY_FROM_LOGO_PROMPT.replace('{{PROJECT_DESCRIPTION}}', projectDescription)
+        .replace('{{LOGO_COLORS}}', logoColorsStr)
+        .replace('{{STYLE_HINT}}', styleHint);
+
+    const startTime = Date.now();
+
+    // Parallel generation of colors and typography
+    const [colors, typography] = await Promise.all([
+      this.generateColorsFromLogoPrompt(colorPrompt, createdProject),
+      this.generateTypographyFromLogoPrompt(typographyPrompt, createdProject),
+    ]);
+
+    const generationTime = Date.now() - startTime;
+    logger.info(`Logo-based colors and typography generation completed in ${generationTime}ms`);
+
+    // Generate logo variations (light/dark/monochrome) programmatically
+    logger.info(`Generating logo variations from imported SVG`);
+    const logoVariations = generateLogoVariationsFromSvg(logoSvg);
+
+    // Optimize variations
+    const optimizedVariations = {
+      withText: this.optimizeVariationSet(logoVariations.withText),
+      iconOnly: this.optimizeVariationSet(logoVariations.iconOnly),
+    };
+
+    // Update project with generated colors, typography, logo, and variations
+    const importedLogo: LogoModel = {
+      id: `imported-${Date.now()}`,
+      name: 'Imported Logo',
+      svg: logoSvg,
+      concept: 'User-imported logo',
+      colors: logoColors,
+      fonts: [],
+      variations: optimizedVariations,
+    };
+
+    const updatedProjectData = {
+      ...createdProject,
+      analysisResultModel: {
+        ...createdProject.analysisResultModel,
+        branding: {
+          ...createdProject.analysisResultModel.branding,
+          generatedColors: colors,
+          generatedTypography: typography,
+          logo: importedLogo,
+          generatedLogos: [importedLogo],
+          updatedAt: new Date(),
+        },
+      },
+    };
+
+    const updatedProject = await this.projectRepository.update(
+      createdProject.id!,
+      updatedProjectData,
+      `users/${userId}/projects`
+    );
+
+    if (updatedProject) {
+      logger.info(
+        `Successfully updated project with logo-based colors and typography - ProjectId: ${createdProject.id}`
+      );
+
+      const projectCacheKey = `project_${userId}_${createdProject.id}`;
+      await cacheService.set(projectCacheKey, updatedProject, {
+        prefix: 'project',
+        ttl: 3600,
+      });
+    }
+
+    return {
+      colors,
+      typography,
+      project: updatedProject || createdProject,
+    };
+  }
+
+  /**
+   * Generates colors using the logo-based prompt
+   */
+  private async generateColorsFromLogoPrompt(
+    prompt: string,
+    project: ProjectModel
+  ): Promise<ColorModel[]> {
+    logger.info(`Generating colors from logo prompt`);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: 'Colors From Logo Generation',
+        modelParser: (content) => {
+          try {
+            const parsedColors = JSON.parse(content);
+            return parsedColors.colors;
+          } catch (error) {
+            logger.error(`Error parsing logo-based colors:`, error);
+            throw new Error(`Failed to parse logo-based colors`);
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      BrandingService.COLORS_LLM_CONFIG
+    );
+    return sectionResults[0].parsedData as ColorModel[];
+  }
+
+  /**
+   * Generates typography using the logo-based prompt
+   */
+  private async generateTypographyFromLogoPrompt(
+    prompt: string,
+    project: ProjectModel
+  ): Promise<TypographyModel[]> {
+    logger.info(`Generating typography from logo prompt`);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: 'Typography From Logo Generation',
+        modelParser: (content) => {
+          try {
+            const parsedTypography = JSON.parse(content);
+            return parsedTypography.typography;
+          } catch (error) {
+            logger.error(`Error parsing logo-based typography:`, error);
+            throw new Error(`Failed to parse logo-based typography`);
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      BrandingService.TYPOGRAPHY_LLM_CONFIG
+    );
+    return sectionResults[0].parsedData as TypographyModel[];
+  }
+
+  /**
+   * Infers a style hint from logo colors for typography prompt context
+   */
+  private inferStyleFromColors(colors: string[]): string {
+    if (colors.length === 0) return 'modern and professional';
+
+    // Simple heuristic based on color characteristics
+    const primary = colors[0].toLowerCase();
+    const r = parseInt(primary.slice(1, 3), 16);
+    const g = parseInt(primary.slice(3, 5), 16);
+    const b = parseInt(primary.slice(5, 7), 16);
+
+    if (r > 200 && g < 100 && b < 100) return 'bold and energetic';
+    if (r < 100 && g < 100 && b > 200) return 'professional and trustworthy';
+    if (r < 100 && g > 200 && b < 100) return 'natural and fresh';
+    if (r > 200 && g > 150 && b < 100) return 'warm and creative';
+    if (r > 150 && g < 100 && b > 150) return 'luxurious and innovative';
+    if (r < 80 && g < 80 && b < 80) return 'minimalist and elegant';
+    return 'modern and versatile';
   }
 
   /**
@@ -2314,7 +2507,9 @@ ${LOGO_EDIT_PROMPT}`;
     mockupResults: Array<{ url: string; title: string; description: string }>,
     project: ProjectModel
   ): string {
-    const mockupCards = mockupResults.map((mockup, index) => `
+    const mockupCards = mockupResults
+      .map(
+        (mockup, index) => `
       <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
         <div class="flex items-center gap-3 mb-4">
           <div class="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-purple-500"></div>
@@ -2325,7 +2520,9 @@ ${LOGO_EDIT_PROMPT}`;
         </div>
         <p class="text-gray-300 text-sm leading-relaxed">${mockup.description}</p>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
     return `
       <div class="space-y-8">
