@@ -4,7 +4,13 @@ import {
   DecorationSet,
   WidgetType,
 } from "@codemirror/view";
-import { StateEffect, StateField, Extension, Range } from "@codemirror/state";
+import {
+  StateEffect,
+  StateField,
+  Extension,
+  Range,
+  Text,
+} from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { createDiffButtons } from "../../DiffButtons";
 
@@ -28,6 +34,86 @@ const DIFF_MARKERS = {
   REPLACE: ">>>>>>> REPLACE",
 } as const;
 
+const getDeleteRange = (doc: Text, fromLine: number, toLine: number) => {
+  const startLine = doc.line(fromLine);
+  const endLine = doc.line(toLine);
+  if (toLine < doc.lines) {
+    return { from: startLine.from, to: doc.line(toLine + 1).from };
+  } else if (fromLine > 1) {
+    return { from: doc.line(fromLine - 1).to, to: endLine.to };
+  } else {
+    return { from: startLine.from, to: endLine.to };
+  }
+};
+
+class DiffSeparatorWidget extends WidgetType {
+  eq() {
+    return false;
+  }
+
+  toDOM(view: EditorView) {
+    let container: HTMLElement;
+    const onAccept = () => {
+      if (!container) return;
+      const pos = view.posAtDOM(container);
+      const lineNum = view.state.doc.lineAt(pos).number;
+      const blocks = parseDiffBlocks(view.state.doc.toString());
+      const block = blocks.find((b) => b.search.end === lineNum);
+      if (block) {
+        const { search, replace } = block;
+        view.dispatch({
+          changes: [
+            getDeleteRange(view.state.doc, search.start, search.end),
+            getDeleteRange(view.state.doc, replace.end, replace.end),
+          ],
+        });
+      }
+    };
+
+    const onCancel = () => {
+      if (!container) return;
+      const pos = view.posAtDOM(container);
+      const lineNum = view.state.doc.lineAt(pos).number;
+      const blocks = parseDiffBlocks(view.state.doc.toString());
+      const block = blocks.find((b) => b.search.end === lineNum);
+      if (block) {
+        const { search, replace } = block;
+        view.dispatch({
+          changes: [
+            getDeleteRange(view.state.doc, search.start, search.start),
+            getDeleteRange(view.state.doc, search.end, replace.end),
+          ],
+        });
+      }
+    };
+
+    container = createDiffButtons(onAccept, onCancel);
+    return container;
+  }
+
+  updateDOM() {
+    return false;
+  }
+
+  get estimatedHeight() {
+    return 24;
+  }
+
+  ignoreEvent() {
+    return false;
+  }
+
+  get lineBreaks() {
+    return 0;
+  }
+
+  coordsAt() {
+    return null;
+  }
+
+  destroy() {}
+}
+
 // Decorator definitions
 const decorations = {
   add: {
@@ -38,41 +124,10 @@ const decorations = {
   },
   marker: {
     search: Decoration.mark({ class: "diff-marker diff-marker-search" }),
-    separator: Decoration.replace({
-      widget: new (class extends WidgetType {
-        eq() {
-          return false;
-        }
-        toDOM() {
-          return createDiffButtons(
-            () => {
-              console.log("Accept button clicked");
-              // TODO: Add logic for accepting changes, should not interfere with diff logic
-            },
-            () => {
-              console.log("Cancel button clicked");
-              // TODO: Add logic for canceling changes
-            }
-          );
-        }
-        updateDOM() {
-          return false;
-        }
-        get estimatedHeight() {
-          return 24;
-        }
-        ignoreEvent() {
-          return false;
-        }
-        get lineBreaks() {
-          return 0;
-        }
-        coordsAt() {
-          return null;
-        }
-        destroy() {}
-      })(),
-    }),
+    separator: () =>
+      Decoration.replace({
+        widget: new DiffSeparatorWidget(),
+      }),
     replace: Decoration.mark({ class: "diff-marker diff-marker-replace" }),
   },
 };
@@ -94,7 +149,12 @@ export const diffHighlightPlugin = StateField.define({
         const { from, to, type, markerType } = effect.value;
         if (from >= 0 && to <= tr.state.doc.length) {
           if (markerType) {
-            newDecorations.push(decorations.marker[markerType].range(from, to));
+            const dec = decorations.marker[markerType];
+            const range =
+              typeof dec === "function"
+                ? dec().range(from, to)
+                : dec.range(from, to);
+            newDecorations.push(range);
           } else {
             const line = tr.state.doc.lineAt(from);
             newDecorations.push(
