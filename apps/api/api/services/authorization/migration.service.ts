@@ -21,13 +21,23 @@ interface MigrationStatus {
   updatedAt: Date;
 }
 
-class MigrationService {
+interface AuthService {
+  listUsers(maxResults?: number, pageToken?: string): Promise<admin.auth.ListUsersResult>;
+}
+
+export class MigrationService {
   private userRepository: FirestoreRepository<UserModel>;
   private migrationRepository: FirestoreRepository<MigrationStatus>;
+  private authService: AuthService;
 
-  constructor() {
-    this.userRepository = new FirestoreRepository<UserModel>();
-    this.migrationRepository = new FirestoreRepository<MigrationStatus>();
+  constructor(
+    userRepository?: FirestoreRepository<UserModel>,
+    migrationRepository?: FirestoreRepository<MigrationStatus>,
+    authService?: AuthService
+  ) {
+    this.userRepository = userRepository || new FirestoreRepository<UserModel>();
+    this.migrationRepository = migrationRepository || new FirestoreRepository<MigrationStatus>();
+    this.authService = authService || admin.auth();
   }
 
   /**
@@ -118,65 +128,76 @@ class MigrationService {
 
     try {
       // Récupérer tous les utilisateurs de Firebase Auth
-      const listUsersResult = await admin.auth().listUsers();
+      const listUsersResult = await this.authService.listUsers();
       const totalUsers = listUsersResult.users.length;
       migrationStatus.totalRecords = totalUsers;
 
       logger.info(`Found ${totalUsers} users to migrate`);
 
-      for (const userRecord of listUsersResult.users) {
-        try {
-          // Vérifier si déjà migré
-          const alreadyMigrated = await this.isUserMigrated(userRecord.uid);
-          if (alreadyMigrated) {
-            logger.info(`User ${userRecord.uid} already migrated, skipping`);
-            migrationStatus.migratedRecords!++;
-            continue;
-          }
+      // Traiter les utilisateurs par lots pour éviter de surcharger Firestore
+      const BATCH_SIZE = 20;
+      for (let i = 0; i < listUsersResult.users.length; i += BATCH_SIZE) {
+        const batch = listUsersResult.users.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map(async (userRecord) => {
+            try {
+              // Vérifier si déjà migré
+              const alreadyMigrated = await this.isUserMigrated(userRecord.uid);
+              if (alreadyMigrated) {
+                logger.info(`User ${userRecord.uid} already migrated, skipping`);
+                migrationStatus.migratedRecords!++;
+                return;
+              }
 
-          // Récupérer les données Firestore de l'utilisateur
-          const firestoreUser = await this.userRepository.findById(
-            userRecord.uid,
-            USERS_COLLECTION
-          );
+              // Récupérer les données Firestore de l'utilisateur
+              const firestoreUser = await this.userRepository.findById(
+                userRecord.uid,
+                USERS_COLLECTION
+              );
 
-          if (!firestoreUser) {
-            // Créer un nouvel utilisateur si n'existe pas dans Firestore
-            const newUser: UserModel = {
-              uid: userRecord.uid,
-              email: userRecord.email || '',
-              displayName: userRecord.displayName,
-              photoURL: userRecord.photoURL,
-              subscription: 'free',
-              createdAt: new Date(userRecord.metadata.creationTime),
-              lastLogin: new Date(
-                userRecord.metadata.lastSignInTime || userRecord.metadata.creationTime
-              ),
-              quota: {},
-              authProvider: 'google',
-              isOwner: true,
-              teamMemberships: [],
-              isActive: !userRecord.disabled,
-              isEmailVerified: userRecord.emailVerified,
-              updatedAt: new Date(),
-            };
+              if (!firestoreUser) {
+                // Créer un nouvel utilisateur si n'existe pas dans Firestore
+                const newUser: UserModel = {
+                  uid: userRecord.uid,
+                  email: userRecord.email || '',
+                  displayName: userRecord.displayName,
+                  photoURL: userRecord.photoURL,
+                  subscription: 'free',
+                  createdAt: new Date(userRecord.metadata.creationTime),
+                  lastLogin: new Date(
+                    userRecord.metadata.lastSignInTime || userRecord.metadata.creationTime
+                  ),
+                  quota: {},
+                  authProvider: 'google',
+                  isOwner: true,
+                  teamMemberships: [],
+                  isActive: !userRecord.disabled,
+                  isEmailVerified: userRecord.emailVerified,
+                  updatedAt: new Date(),
+                };
 
-            await this.userRepository.create(newUser, USERS_COLLECTION, userRecord.uid);
-          } else {
-            // Migrer l'utilisateur existant
-            const migratedUser = this.migrateUser(firestoreUser as any);
-            await this.userRepository.update(userRecord.uid, migratedUser as any, USERS_COLLECTION);
-          }
+                await this.userRepository.create(newUser, USERS_COLLECTION, userRecord.uid);
+              } else {
+                // Migrer l'utilisateur existant
+                const migratedUser = this.migrateUser(firestoreUser as any);
+                await this.userRepository.update(
+                  userRecord.uid,
+                  migratedUser as any,
+                  USERS_COLLECTION
+                );
+              }
 
-          migrationStatus.migratedRecords!++;
-          logger.info(
-            `Migrated user ${userRecord.uid} (${migrationStatus.migratedRecords}/${totalUsers})`
-          );
-        } catch (error: any) {
-          logger.error(`Failed to migrate user ${userRecord.uid}: ${error.message}`);
-          migrationStatus.failedRecords!++;
-          migrationStatus.errors!.push(`${userRecord.uid}: ${error.message}`);
-        }
+              migrationStatus.migratedRecords!++;
+              logger.info(
+                `Migrated user ${userRecord.uid} (${migrationStatus.migratedRecords}/${totalUsers})`
+              );
+            } catch (error: any) {
+              logger.error(`Failed to migrate user ${userRecord.uid}: ${error.message}`);
+              migrationStatus.failedRecords!++;
+              migrationStatus.errors!.push(`${userRecord.uid}: ${error.message}`);
+            }
+          })
+        );
       }
 
       // Finaliser la migration
