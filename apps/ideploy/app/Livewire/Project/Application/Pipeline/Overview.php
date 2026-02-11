@@ -30,8 +30,13 @@ class Overview extends Component
     public $showAddToolModal = false;
     public $currentStage = null;
     
-    // Search
-    public $searchQuery = '';
+    // Search & Filters
+    public $search = '';
+    public $statusFilter = '';
+    
+    // Executions list
+    public $executions = [];
+    public $totalExecutions = 0;
     
     public function mount()
     {
@@ -54,6 +59,94 @@ class Overview extends Component
         
         $this->loadPipelineConfig();
         $this->loadAvailableTools();
+        $this->loadExecutions();
+    }
+    
+    /**
+     * Load pipeline executions with fake data for demo
+     */
+    public function loadExecutions()
+    {
+        // Fake data pour la démo
+        $this->executions = collect([
+            (object)[
+                'id' => 2314,
+                'status' => 'success',
+                'branch' => 'main',
+                'commit_message' => "Merge branch 'staging' into 'main'",
+                'commit_sha' => '1a30f31c',
+                'triggered_by' => 'Romuald DJETEJE',
+                'created_at' => now()->subMinutes(5),
+                'duration' => '2:43',
+                'stages' => [
+                    'sonarqube' => 'success',
+                    'trivy' => 'success',
+                    'deploy' => 'success',
+                ],
+            ],
+            (object)[
+                'id' => 2313,
+                'status' => 'failed',
+                'branch' => 'develop',
+                'commit_message' => 'Fix authentication bug',
+                'commit_sha' => '9b2c4d1e',
+                'triggered_by' => 'Webhook',
+                'created_at' => now()->subHours(2),
+                'duration' => '1:12',
+                'stages' => [
+                    'sonarqube' => 'success',
+                    'trivy' => 'failed',
+                    'deploy' => 'pending',
+                ],
+            ],
+            (object)[
+                'id' => 2312,
+                'status' => 'running',
+                'branch' => 'feature/new-ui',
+                'commit_message' => 'Update pipeline UI with GitLab style',
+                'commit_sha' => '7f8e9a2b',
+                'triggered_by' => 'Romuald DJETEJE',
+                'created_at' => now()->subMinutes(1),
+                'duration' => '0:45',
+                'stages' => [
+                    'sonarqube' => 'success',
+                    'trivy' => 'running',
+                    'deploy' => 'pending',
+                ],
+            ],
+            (object)[
+                'id' => 2311,
+                'status' => 'success',
+                'branch' => 'main',
+                'commit_message' => 'Add firewall security rules',
+                'commit_sha' => '3c5d7e9f',
+                'triggered_by' => 'Webhook',
+                'created_at' => now()->subHours(5),
+                'duration' => '3:21',
+                'stages' => [
+                    'sonarqube' => 'success',
+                    'trivy' => 'success',
+                    'deploy' => 'success',
+                ],
+            ],
+            (object)[
+                'id' => 2310,
+                'status' => 'pending',
+                'branch' => 'hotfix/urgent-fix',
+                'commit_message' => 'Critical security patch',
+                'commit_sha' => '2a4b6c8d',
+                'triggered_by' => 'Romuald DJETEJE',
+                'created_at' => now()->subSeconds(30),
+                'duration' => null,
+                'stages' => [
+                    'sonarqube' => 'pending',
+                    'trivy' => 'pending',
+                    'deploy' => 'pending',
+                ],
+            ],
+        ]);
+        
+        $this->totalExecutions = $this->executions->count();
     }
     
     public function loadAvailableTools()
@@ -83,88 +176,34 @@ class Overview extends Component
     {
         return [
             [
-                'id' => 'code-quality',
-                'name' => 'Code Quality',
-                'icon' => 'code',
-                'enabled' => false,
+                'id' => 'sonarqube',
+                'name' => 'SonarQube Analysis',
+                'icon' => '📊',
+                'enabled' => true,
                 'tool' => 'SonarQube',
-                'description' => 'Auto-detect language and analyze code quality',
+                'description' => 'Code quality analysis - bugs, vulnerabilities, code smells',
                 'order' => 1,
                 'blocking' => false,
-                'config' => [
-                    'auto_detect' => true,
-                    'quality_gate' => 'default',
-                ],
             ],
             [
-                'id' => 'security-scan',
-                'name' => 'Security Scan',
-                'icon' => 'shield',
+                'id' => 'trivy',
+                'name' => 'Trivy Security Scan',
+                'icon' => '🛡️',
                 'enabled' => true,
                 'tool' => 'Trivy',
-                'description' => 'Scan vulnerabilities in code, dependencies and secrets',
+                'description' => 'Security vulnerabilities and secrets detection',
                 'order' => 2,
                 'blocking' => true,
-                'config' => [
-                    'severity' => ['CRITICAL', 'HIGH'],
-                    'scan_type' => ['vuln', 'secret', 'config'],
-                ],
-            ],
-            [
-                'id' => 'tests',
-                'name' => 'Automated Tests',
-                'icon' => 'test-tube',
-                'enabled' => false,
-                'tool' => 'Auto-detected',
-                'description' => 'Run tests based on detected framework (pytest, jest, phpunit, etc.)',
-                'order' => 3,
-                'blocking' => false,
-                'config' => [
-                    'auto_detect' => true,
-                    'coverage' => false,
-                ],
-            ],
-            [
-                'id' => 'build',
-                'name' => 'Build Image',
-                'icon' => 'cog',
-                'enabled' => true,
-                'tool' => 'iDeploy Builder',
-                'description' => 'Build Docker image using iDeploy build system',
-                'order' => 4,
-                'blocking' => true,
-                'config' => [
-                    'use_cache' => true,
-                    'buildpack' => 'auto',
-                ],
-            ],
-            [
-                'id' => 'container-scan',
-                'name' => 'Container Scan',
-                'icon' => 'cube',
-                'enabled' => true,
-                'tool' => 'Trivy',
-                'description' => 'Scan built Docker image for vulnerabilities',
-                'order' => 5,
-                'blocking' => true,
-                'config' => [
-                    'severity' => ['CRITICAL', 'HIGH'],
-                    'ignore_unfixed' => false,
-                ],
             ],
             [
                 'id' => 'deploy',
                 'name' => 'Deploy',
-                'icon' => 'rocket',
+                'icon' => '🚀',
                 'enabled' => true,
                 'tool' => 'iDeploy',
-                'description' => 'Deploy to configured destination (Docker/Swarm)',
-                'order' => 6,
+                'description' => 'Deploy to production',
+                'order' => 3,
                 'blocking' => true,
-                'config' => [
-                    'zero_downtime' => true,
-                    'health_check' => true,
-                ],
             ],
         ];
     }
@@ -391,9 +430,20 @@ class Overview extends Component
      */
     public function getWebhookUrl(): string
     {
-        return route('api.pipeline.webhook', [
-            'applicationUuid' => $this->application->uuid,
-        ]);
+        $settings = instanceSettings();
+        
+        // Force HTTPS with FQDN if available
+        if ($settings->fqdn) {
+            $baseUrl = $settings->fqdn;
+        } else {
+            // Fallback to APP_URL from config
+            $baseUrl = config('app.url');
+        }
+        
+        // Ensure HTTPS
+        $baseUrl = str_replace('http://', 'https://', $baseUrl);
+        
+        return $baseUrl . '/api/v1/deploy/webhook/' . $this->application->uuid;
     }
 
     /**

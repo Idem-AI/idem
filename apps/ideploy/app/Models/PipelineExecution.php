@@ -59,6 +59,16 @@ class PipelineExecution extends Model
         return $this->hasMany(PipelineLog::class)->orderBy('logged_at');
     }
 
+    public function jobs(): HasMany
+    {
+        return $this->hasMany(PipelineJob::class)->orderBy('order');
+    }
+
+    public function scanResults(): HasMany
+    {
+        return $this->hasMany(PipelineScanResult::class);
+    }
+
     public function isRunning(): bool
     {
         return in_array($this->status, ['pending', 'running']);
