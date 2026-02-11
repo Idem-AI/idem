@@ -77,7 +77,7 @@ jobs:
             
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.appgen-server -t $IMAGE_TAG .
+            docker build -f Dockerfile/Dockerfile.appgen-server -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
