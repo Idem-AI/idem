@@ -1,0 +1,38 @@
+# Dockerfile.appgen-client
+# Build AppGen Client (Vite + React + Tailwind v4)
+
+FROM node:20.18-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.4
+
+# Copy package.json from the client app
+COPY ./apps/appgen/apps/we-dev-client/package.json ./
+
+# Copy shared packages
+COPY ./packages/shared-styles /packages/shared-styles
+
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile
+
+# Add autoprefixer (missing in package.json)
+RUN pnpm add -D autoprefixer
+
+# Copy all application files
+COPY ./apps/appgen/apps/we-dev-client/ ./
+COPY .env .env
+# Build the application
+RUN pnpm build
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=4173
+ENV HOST=0.0.0.0
+
+# Expose port
+EXPOSE 4173
+
+# Start the application
+CMD ["pnpm", "start"]
