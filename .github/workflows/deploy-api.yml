@@ -2,7 +2,7 @@ name: Deploy API
 
 on:
   push:
-    branches: [ dev, main ]
+    branches: [ main ]
     paths:
       - 'apps/api/**'
       - 'Dockerfile.api'
@@ -78,9 +78,10 @@ jobs:
               rm -f .git/index.lock .git/index
             done
             
+            
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.api -t $IMAGE_TAG .
+            docker build -f Dockerfile/Dockerfile.api -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."

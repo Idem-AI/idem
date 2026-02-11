@@ -78,7 +78,7 @@ jobs:
             
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.landing -t $IMAGE_TAG .
+            docker build -f Dockerfile/Dockerfile.landing -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
