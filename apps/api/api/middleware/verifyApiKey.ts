@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import logger from '../config/logger';
 
 /**
@@ -38,7 +39,14 @@ export const verifyApiKey = (req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  if (apiKey !== expectedApiKey) {
+  // Use constant-time comparison to prevent timing attacks
+  const bufferApiKey = Buffer.from(apiKey);
+  const bufferExpectedApiKey = Buffer.from(expectedApiKey);
+  const isMatch =
+    bufferApiKey.length === bufferExpectedApiKey.length &&
+    crypto.timingSafeEqual(bufferApiKey, bufferExpectedApiKey);
+
+  if (!isMatch) {
     logger.warn('API key verification failed: Invalid API key', {
       path: req.path,
       ip: req.ip,
