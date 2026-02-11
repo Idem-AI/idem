@@ -61,6 +61,66 @@ export const generateColorsAndTypographyController = async (
 };
 
 /**
+ * POST /project/brandings/generate/colors-typography-from-logo
+ * Generates color palettes and typography based on an imported logo's colors.
+ * Primary colors come from the logo; AI proposes complementary colors and matching typography.
+ */
+export const generateColorsAndTypographyFromLogoController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { project, logoSvg, logoColors } = req.body;
+  const userId = req.user?.uid;
+  logger.info(`generateColorsAndTypographyFromLogoController called - UserId: ${userId}`, {
+    logoColorsCount: logoColors?.length,
+  });
+  try {
+    if (!userId) {
+      logger.warn('User not authenticated for generateColorsAndTypographyFromLogoController');
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!project) {
+      logger.warn('Project data is required for generateColorsAndTypographyFromLogoController');
+      res.status(400).json({ message: 'Project data is required' });
+      return;
+    }
+    if (!logoSvg || !logoColors || !Array.isArray(logoColors)) {
+      logger.warn('Logo SVG and colors are required');
+      res.status(400).json({ message: 'Logo SVG and extracted colors are required' });
+      return;
+    }
+
+    const result = await brandingService.generateColorsAndTypographyFromLogo(
+      userId,
+      project,
+      logoSvg,
+      logoColors
+    );
+
+    if (!result) {
+      logger.warn(`Failed to generate colors and typography from logo - UserId: ${userId}`);
+      res.status(500).json({ message: 'Failed to generate colors and typography from logo' });
+      return;
+    }
+
+    logger.info(
+      `Successfully generated colors and typography from logo - UserId: ${userId}, ProjectId: ${result.project.id}`
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error(`Error in generateColorsAndTypographyFromLogoController - UserId: ${userId}`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+/**
  * Étape 1: Génère 4 concepts de logos principaux (sans variations)
  */
 export const generateLogoConceptsController = async (
@@ -282,7 +342,11 @@ export const updateBrandingController = async (
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
-    const updatedProject = await brandingService.updateBranding(userId, projectId as string, req.body);
+    const updatedProject = await brandingService.updateBranding(
+      userId,
+      projectId as string,
+      req.body
+    );
     if (!updatedProject) {
       logger.warn(
         `Project not found for branding update - UserId: ${userId}, ProjectId: ${projectId}`
@@ -536,7 +600,7 @@ export const generateLogosZipController = async (
 
     // Valider l'extension
     const validExtensions = ['svg', 'png', 'psd'];
-    if (!validExtensions.includes(((extension as string).toLowerCase()))) {
+    if (!validExtensions.includes((extension as string).toLowerCase())) {
       logger.warn(`Invalid extension: ${extension} for generateLogosZipController`);
       res.status(400).json({
         message: 'Invalid extension. Supported extensions: svg, png, psd',
@@ -548,7 +612,7 @@ export const generateLogosZipController = async (
     const zipBuffer = await brandingService.generateLogosZip(
       userId,
       projectId as string,
-      ((extension as string).toLowerCase()) as 'svg' | 'png' | 'psd'
+      (extension as string).toLowerCase() as 'svg' | 'png' | 'psd'
     );
 
     // Configurer les headers pour le téléchargement du ZIP
@@ -632,7 +696,12 @@ export const editLogoController = async (req: CustomRequest, res: Response): Pro
     }
 
     // Éditer le logo avec AI
-    const result = await brandingService.editLogo(userId, projectId as string, logosvg, modificationPrompt);
+    const result = await brandingService.editLogo(
+      userId,
+      projectId as string,
+      logosvg,
+      modificationPrompt
+    );
 
     logger.info(`Successfully edited logo - UserId: ${userId}, ProjectId: ${projectId}`);
 

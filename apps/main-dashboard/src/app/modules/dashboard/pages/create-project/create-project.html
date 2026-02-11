@@ -44,6 +44,15 @@
         ></app-project-details>
       }
       @if (isStepActive(2)) {
+        <app-logo-choice
+          [project]="project()"
+          (nextStep)="goToNextStep()"
+          (previousStep)="goToPreviousStep()"
+          (projectUpdate)="onProjectUpdate($event)"
+          (logoChoiceMade)="onLogoChoiceMade($event)"
+        ></app-logo-choice>
+      }
+      @if (isStepActive(3)) {
         <app-color-selection
           [project]="project()"
           (nextStep)="goToNextStep()"
@@ -51,14 +60,14 @@
           (projectUpdate)="onProjectUpdate($event)"
         ></app-color-selection>
       }
-      @if (isStepActive(3)) {
+      @if (isStepActive(4)) {
         <app-typography-selection
           [project]="project()"
           (projectUpdate)="onProjectUpdate($event)"
           (typographySelectionChanged)="onTypographySelectionChanged($event)"
         ></app-typography-selection>
       }
-      @if (isStepActive(4)) {
+      @if (isStepActive(5)) {
         <app-logo-selection
           [projectId]="project().id"
           [project]="project()"
@@ -72,7 +81,7 @@
           (nextStep)="goToNextStep()"
         ></app-logo-selection>
       }
-      @if (isStepActive(5)) {
+      @if (isStepActive(6)) {
         <app-logo-variations
           [selectedLogo]="project().analysisResultModel.branding.logo"
           [project]="project()"
@@ -80,7 +89,7 @@
           (nextStep)="goToNextStep()"
         ></app-logo-variations>
       }
-      @if (isStepActive(6)) {
+      @if (isStepActive(7)) {
         <app-project-summary
           [project]="project()"
           [selectedLogo]="project().analysisResultModel.branding.logo.id || ''"

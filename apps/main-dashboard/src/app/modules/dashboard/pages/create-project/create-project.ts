@@ -15,6 +15,7 @@ import { TypographySelectionComponent } from './components/typography-selection/
 import { LogoSelectionComponent } from './components/logo-selection/logo-selection';
 import { LogoVariationsComponent } from './components/logo-variations/logo-variations';
 import { ProjectSummaryComponent } from './components/project-summary/project-summary';
+import { LogoChoiceComponent } from './components/logo-choice/logo-choice';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
@@ -34,6 +35,7 @@ interface Step {
     ProjectDescriptionComponent,
     ProjectDetailsComponent,
     LogoSelectionComponent,
+    LogoChoiceComponent,
     ColorSelectionComponent,
     TypographySelectionComponent,
     LogoVariationsComponent,
@@ -67,6 +69,11 @@ export class CreateProjectComponent implements OnInit {
         id: 'details',
         title: this.translate.instant('dashboard.createProject.steps.details'),
         component: 'details',
+      },
+      {
+        id: 'logo-choice',
+        title: this.translate.instant('dashboard.createProject.steps.logoChoice'),
+        component: 'logo-choice',
       },
       {
         id: 'colors',
@@ -112,6 +119,9 @@ export class CreateProjectComponent implements OnInit {
 
   // Step-specific validation state
   protected readonly typographySelectionValid = signal(false);
+
+  // Logo choice: 'import' means user imported a logo, 'ai' means generate with AI
+  protected readonly logoChoice = signal<'import' | 'ai' | null>(null);
 
   // ViewChild to access typography component
   @ViewChild(TypographySelectionComponent) typographyComponent?: TypographySelectionComponent;
@@ -167,6 +177,8 @@ export class CreateProjectComponent implements OnInit {
         return !!project.analysisResultModel?.branding?.generatedColors?.length;
       case 'typography':
         return this.typographySelectionValid();
+      case 'logo-choice':
+        return this.logoChoice() !== null;
       case 'logo':
         return !!project.analysisResultModel?.branding?.logo;
       case 'variations':
@@ -203,8 +215,8 @@ export class CreateProjectComponent implements OnInit {
    */
   protected goToNextStep(): void {
     // For typography step, prepare and save typography data before proceeding
-    if (this.currentStepIndex() === 3 && this.typographyComponent) {
-      // Typography step
+    if (this.currentStepIndex() === 4 && this.typographyComponent) {
+      // Typography step (index shifted by logo-choice step)
       const typographyData = this.typographyComponent.prepareTypographyData();
       if (typographyData) {
         this.onProjectUpdate(typographyData);
@@ -212,7 +224,21 @@ export class CreateProjectComponent implements OnInit {
     }
 
     if (this.canGoNext()) {
-      const nextIndex = this.currentStepIndex() + 1;
+      let nextIndex = this.currentStepIndex() + 1;
+
+      // If user imported a logo, skip the AI logo generation step (index 5)
+      // and the logo variations step (index 6) — go straight to summary
+      if (this.logoChoice() === 'import') {
+        const nextStep = this.steps[nextIndex];
+        if (nextStep?.id === 'logo' || nextStep?.id === 'variations') {
+          // Skip to the step after variations (summary)
+          const summaryIndex = this.steps.findIndex((s) => s.id === 'summary');
+          if (summaryIndex !== -1) {
+            nextIndex = summaryIndex;
+          }
+        }
+      }
+
       if (nextIndex < this.steps.length) {
         this.navigateToStep(nextIndex);
       } else {
@@ -226,7 +252,20 @@ export class CreateProjectComponent implements OnInit {
    */
   protected goToPreviousStep(): void {
     if (this.canGoPrevious()) {
-      this.navigateToStep(this.currentStepIndex() - 1);
+      let prevIndex = this.currentStepIndex() - 1;
+
+      // If user imported a logo and we're at summary, skip back over logo/variations steps
+      if (this.logoChoice() === 'import') {
+        const prevStep = this.steps[prevIndex];
+        if (prevStep?.id === 'variations' || prevStep?.id === 'logo') {
+          const typographyIndex = this.steps.findIndex((s) => s.id === 'typography');
+          if (typographyIndex !== -1) {
+            prevIndex = typographyIndex;
+          }
+        }
+      }
+
+      this.navigateToStep(prevIndex);
     }
   }
 
@@ -272,6 +311,19 @@ export class CreateProjectComponent implements OnInit {
    */
   protected onLogoSelected(logoId: string): void {
     console.log('Logo selected:', logoId);
+  }
+
+  /**
+   * Handle logo choice (import vs AI) from logo-choice step
+   */
+  protected onLogoChoiceMade(choice: 'import' | 'ai'): void {
+    this.logoChoice.set(choice);
+
+    if (choice === 'ai') {
+      // Skip directly to colors step — logo generation happens later
+      // The logo-choice component already emits nextStep for AI
+    }
+    // For 'import', the logo-choice component handles the flow internally
   }
 
   /**
