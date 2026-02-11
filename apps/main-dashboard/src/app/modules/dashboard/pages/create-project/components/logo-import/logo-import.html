@@ -1,0 +1,181 @@
+<div class="w-full max-w-2xl mx-auto space-y-6">
+
+  <!-- Error message -->
+  @if (errorMessage()) {
+    <div class="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
+      <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+      <span class="text-sm">{{ errorMessage() }}</span>
+      <button (click)="reset()" class="ml-auto text-red-400 hover:text-red-300 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  }
+
+  <!-- Result: Imported SVG display -->
+  @if (hasResult()) {
+    <div class="space-y-4 animate-fadeIn">
+      <!-- SVG Preview -->
+      <div class="rounded-xl border border-white/10 glass p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-medium text-gray-300">
+            {{ 'dashboard.logoImport.result.title' | translate }}
+          </h3>
+          <span class="text-xs text-gray-500">
+            {{ importedWidth() }} x {{ importedHeight() }}px
+          </span>
+        </div>
+
+        <!-- SVG render area -->
+        <div class="flex items-center justify-center p-6 rounded-lg bg-white/5 border border-white/5 min-h-[200px]">
+          <div class="max-w-[300px] max-h-[300px] svg-container" [innerHTML]="safeSvgHtml()"></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-between gap-3">
+        <button
+          (click)="reset()"
+          class="outer-button px-4 py-2 text-sm rounded-lg"
+        >
+          <span class="flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {{ 'dashboard.logoImport.result.changeFile' | translate }}
+          </span>
+        </button>
+      </div>
+    </div>
+  } @else {
+
+    <!-- Upload area (no result yet) -->
+    @if (!selectedFile()) {
+      <!-- Drag & Drop zone -->
+      <div
+        class="relative rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer group"
+        [ngClass]="{
+          'border-primary bg-primary/5': isDragOver(),
+          'border-white/20 hover:border-white/40 hover:bg-white/5': !isDragOver()
+        }"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+        (click)="fileInput.click()"
+      >
+        <div class="flex flex-col items-center justify-center py-12 px-6 text-center">
+          <!-- Upload icon -->
+          <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:bg-white/10 transition-colors">
+            <svg class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+
+          <p class="text-sm font-medium text-gray-300 mb-1">
+            {{ 'dashboard.logoImport.dropzone.title' | translate }}
+          </p>
+          <p class="text-xs text-gray-500 mb-3">
+            {{ 'dashboard.logoImport.dropzone.subtitle' | translate }}
+          </p>
+
+          <!-- Accepted formats -->
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <span class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10">SVG</span>
+            <span class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10">PNG</span>
+            <span class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10">JPG</span>
+            <span class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10">WebP</span>
+          </div>
+          <p class="text-xs text-gray-600 mt-2">
+            {{ 'dashboard.logoImport.dropzone.maxSize' | translate }}
+          </p>
+        </div>
+
+        <!-- Hidden file input -->
+        <input
+          #fileInput
+          type="file"
+          accept=".svg,.png,.jpg,.jpeg,.webp"
+          class="hidden"
+          (change)="onFileSelected($event)"
+        />
+      </div>
+    } @else {
+
+      <!-- File selected: preview + upload button -->
+      <div class="rounded-xl border border-white/10 glass p-6 space-y-4">
+        <!-- Local preview -->
+        <div class="flex items-center gap-4">
+          @if (localPreviewUrl()) {
+            <div class="w-20 h-20 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+              <img
+                [src]="localPreviewUrl()"
+                alt="Logo preview"
+                class="max-w-full max-h-full object-contain"
+              />
+            </div>
+          }
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-gray-200 truncate">{{ selectedFile()!.name }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">
+              {{ (selectedFile()!.size / 1024).toFixed(1) }} KB
+            </p>
+          </div>
+          <button
+            (click)="reset()"
+            class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-gray-200 transition-colors shrink-0"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Progress bar -->
+        @if (isUploading() || isProcessing()) {
+          <div class="space-y-2">
+            <div class="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-300 ease-out"
+                [ngClass]="{
+                  'bg-primary': !isProcessing(),
+                  'bg-primary animate-pulse': isProcessing()
+                }"
+                [style.width.%]="isProcessing() ? 100 : uploadProgress()"
+              ></div>
+            </div>
+            <p class="text-xs text-gray-400 text-center">
+              @if (isProcessing()) {
+                {{ 'dashboard.logoImport.upload.processing' | translate }}
+              } @else {
+                {{ 'dashboard.logoImport.upload.uploading' | translate }} {{ uploadProgress() }}%
+              }
+            </p>
+          </div>
+        }
+
+        <!-- Upload button -->
+        @if (!isUploading() && !isProcessing()) {
+          <button
+            (click)="uploadFile()"
+            [disabled]="!canUpload()"
+            class="w-full inner-button px-4 py-3 text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              {{ 'dashboard.logoImport.upload.button' | translate }}
+            </span>
+          </button>
+        }
+      </div>
+    }
+  }
+</div>
