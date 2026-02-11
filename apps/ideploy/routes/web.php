@@ -26,6 +26,7 @@ use App\Livewire\Project\Application\Analytics\Overview as AnalyticsOverview;
 use App\Livewire\Project\Application\Insights\Overview as InsightsOverview;
 use App\Livewire\Project\Application\Pipeline\Overview as PipelineOverview;
 use App\Livewire\Project\Application\Pipeline\Executions as PipelineExecutions;
+use App\Livewire\Project\Application\Pipeline\ExecutionDetail;
 use App\Livewire\Project\CloneMe as ProjectCloneMe;
 use App\Livewire\Project\Database\Backup\Execution as DatabaseBackupExecution;
 use App\Livewire\Project\Database\Backup\Index as DatabaseBackupIndex;
@@ -237,6 +238,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // CI/CD Pipeline
         Route::get('/pipeline', PipelineOverview::class)->name('project.application.pipeline');
         Route::get('/pipeline/executions', PipelineExecutions::class)->name('project.application.pipeline.executions');
+        Route::get('/pipeline/execution/{execution_uuid}', ExecutionDetail::class)->name('project.application.pipeline.execution.detail');
 
         Route::get('/deployment', DeploymentIndex::class)->name('project.application.deployment.index');
         Route::get('/deployment/{deployment_uuid}', DeploymentShow::class)->name('project.application.deployment.show');
