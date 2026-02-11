@@ -629,7 +629,18 @@ function generateTagDeployWebhook($tag_name)
 }
 function generateDeployWebhook($resource)
 {
-    $baseUrl = base_url();
+    $settings = instanceSettings();
+    
+    // Force HTTPS with FQDN if available
+    if ($settings->fqdn) {
+        $baseUrl = $settings->fqdn;
+    } else {
+        $baseUrl = config('app.url');
+    }
+    
+    // Ensure HTTPS
+    $baseUrl = str_replace('http://', 'https://', $baseUrl);
+    
     $api = Url::fromString($baseUrl).'/api/v1';
     $endpoint = '/deploy';
     $uuid = data_get($resource, 'uuid');
@@ -642,7 +653,17 @@ function generateGitManualWebhook($resource, $type)
         return null;
     }
     if ($resource->getMorphClass() === \App\Models\Application::class) {
-        $baseUrl = base_url();
+        $settings = instanceSettings();
+        
+        // Force HTTPS with FQDN if available
+        if ($settings->fqdn) {
+            $baseUrl = $settings->fqdn;
+        } else {
+            $baseUrl = config('app.url');
+        }
+        
+        // Ensure HTTPS
+        $baseUrl = str_replace('http://', 'https://', $baseUrl);
 
         return Url::fromString($baseUrl)."/webhooks/source/$type/events/manual";
     }
