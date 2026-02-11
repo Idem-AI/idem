@@ -1,12 +1,27 @@
 <div>
-    {{-- Navigation --}}
-    <div class="mb-4">
-        <a href="{{ route('project.application.deployment.index', $parameters) }}" class="inline-flex items-center px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded transition">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
-            Back to Deployment
-        </a>
+    <x-slot:title>
+        {{ data_get_str($application, 'name')->limit(10) }} > Security | iDeploy
+    </x-slot>
+    
+    <livewire:project.shared.configuration-checker :resource="$application" />
+    <livewire:project.application.heading :application="$application" />
+
+    {{-- Sub-Navigation Tabs --}}
+    <div class="mb-6 border-b border-gray-800">
+        <nav class="flex gap-1">
+            <a href="{{ route('project.application.security.overview', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-white border-b-2 border-blue-500 -mb-px">
+                Overview
+            </a>
+            <a href="{{ route('project.application.security.traffic', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
+                Events
+            </a>
+            <a href="{{ route('project.application.security.rules', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
+                Rules
+            </a>
+        </nav>
     </div>
 
     <div wire:poll.3s="checkActivationStatus" class="flex gap-6">
@@ -369,40 +384,6 @@
             </div>
         </div>
         
-        {{-- Events Table --}}
-        @if(count($recentEvents) > 0)
-            <div class="bg-[#0a0a0a] border border-gray-800 rounded-lg overflow-hidden">
-                <table class="w-full">
-                    <thead class="bg-[#0f1724] border-b border-gray-800">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Events</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Action</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Hostname</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">IP Address</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Start</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-800">
-                        @foreach($recentEvents as $event)
-                            <tr class="hover:bg-[#151b2e] transition-colors">
-                                <td class="px-4 py-3 text-sm text-white">{{ $event['reason'] }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="px-2 py-1 rounded text-xs font-medium
-                                        @if($event['action'] === 'denied') bg-red-900/30 text-red-400
-                                        @elseif($event['action'] === 'challenged') bg-yellow-900/30 text-yellow-400
-                                        @else bg-green-900/30 text-green-400 @endif">
-                                        {{ ucfirst($event['action']) }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-400">{{ $application->name }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-400">{{ $event['ip'] }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-400">{{ $event['timestamp']->diffForHumans() }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
     </div>
     
     {{-- Bot Management Modal (unchanged) --}}
