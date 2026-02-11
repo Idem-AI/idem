@@ -226,13 +226,21 @@ export class FirestoreRepository<T extends { id?: string; createdAt?: Date; upda
       // Update the document
       await docRef.update(dataToUpdate);
 
-      // Get the updated document
-      const updatedDoc = await docRef.get();
-      const updatedData = updatedDoc.data();
+      // Optimistically construct the updated entity to avoid a second read
+      // This saves one read operation per update
+      const currentData = doc.data();
+      const updatedData = { ...currentData };
+
+      // Apply updates (respecting ignoreUndefinedProperties: true, which is set in constructor)
+      for (const key in dataToUpdate) {
+        if (dataToUpdate[key] !== undefined) {
+          updatedData[key] = dataToUpdate[key];
+        }
+      }
 
       // Return the updated entity
       const updatedEntity = {
-        id: updatedDoc.id,
+        id: doc.id,
         ...this.fromFirestore(updatedData),
       } as T;
 
