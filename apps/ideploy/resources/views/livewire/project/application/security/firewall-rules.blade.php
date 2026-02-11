@@ -1,4 +1,29 @@
 <div>
+    <x-slot:title>
+        {{ data_get_str($application, 'name')->limit(10) }} > Rules | iDeploy
+    </x-slot>
+    
+    <livewire:project.shared.configuration-checker :resource="$application" />
+    <livewire:project.application.heading :application="$application" />
+
+    {{-- Sub-Navigation Tabs --}}
+    <div class="mb-6 border-b border-gray-800">
+        <nav class="flex gap-1">
+            <a href="{{ route('project.application.security.overview', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
+                Overview
+            </a>
+            <a href="{{ route('project.application.security.traffic', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
+                Events
+            </a>
+            <a href="{{ route('project.application.security.rules', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-white border-b-2 border-blue-500 -mb-px">
+                Rules
+            </a>
+        </nav>
+    </div>
+
     {{-- Header --}}
     <div class="flex justify-between items-center mb-6">
         <div>

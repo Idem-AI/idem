@@ -11,10 +11,10 @@ use Livewire\Component;
 class ExecutionDetail extends Component
 {
     public Application $application;
-    public ?PipelineExecution $execution = null;
+    public $execution = null;
     public array $parameters = [];
-    public ?int $selectedJobId = null;
-    public string $execution_uuid;
+    public ?string $selectedStage = null;
+    public $execution_uuid;
 
     public function mount()
     {
@@ -39,81 +39,133 @@ class ExecutionDetail extends Component
             'application_uuid' => $this->application->uuid,
         ];
 
-        // Load execution with jobs and scan results
+        // Load execution with fake data for demo
         $this->execution_uuid = request()->route('execution_uuid');
-        $this->execution = PipelineExecution::with(['jobs.scanResults', 'application'])
-            ->where('uuid', $this->execution_uuid)
-            ->firstOrFail();
+        $this->loadExecution();
         
-        // Select first job by default
-        $firstJob = $this->execution->jobs->first();
-        if ($firstJob) {
-            $this->selectedJobId = $firstJob->id;
-        }
+        // Select first stage by default
+        $this->selectedStage = 'sonarqube';
+    }
+    
+    /**
+     * Load execution with fake data for demo
+     */
+    public function loadExecution()
+    {
+        // Fake data pour la démo - basé sur l'ID
+        $executions = [
+            2314 => [
+                'id' => 2314,
+                'status' => 'success',
+                'branch' => 'main',
+                'commit_message' => "Merge branch 'staging' into 'main'",
+                'commit_sha' => '1a30f31c',
+                'trigger_user' => 'Romuald DJETEJE',
+                'started_at' => now()->subMinutes(5),
+                'finished_at' => now()->subMinutes(2),
+                'duration_seconds' => 163,
+                'stages' => [
+                    'sonarqube' => ['status' => 'success', 'duration' => 92],
+                    'trivy' => ['status' => 'success', 'duration' => 45],
+                    'deploy' => ['status' => 'success', 'duration' => 26],
+                ],
+                'sonarqube_results' => [
+                    'bugs' => 0,
+                    'vulnerabilities' => 2,
+                    'code_smells' => 15,
+                    'coverage' => 87,
+                ],
+                'trivy_results' => [
+                    'critical' => 0,
+                    'high' => 1,
+                    'medium' => 5,
+                    'low' => 12,
+                ],
+                'logs' => [
+                    'sonarqube' => "[INFO] Starting SonarQube analysis...\n[INFO] Analyzing 247 files\n[INFO] Quality gate: PASSED\n[SUCCESS] Analysis completed successfully",
+                    'trivy' => "[INFO] Starting Trivy security scan...\n[WARN] Found 1 HIGH severity vulnerability\n[INFO] Scan completed\n[INFO] Generating report...",
+                    'deploy' => "[INFO] Starting deployment...\n[INFO] Building Docker image\n[INFO] Pushing to registry\n[SUCCESS] Deployment completed",
+                ],
+            ],
+            2313 => [
+                'id' => 2313,
+                'status' => 'failed',
+                'branch' => 'develop',
+                'commit_message' => 'Fix authentication bug',
+                'commit_sha' => '9b2c4d1e',
+                'trigger_user' => 'Webhook',
+                'started_at' => now()->subHours(2),
+                'finished_at' => now()->subHours(2)->addMinutes(1),
+                'duration_seconds' => 72,
+                'stages' => [
+                    'sonarqube' => ['status' => 'success', 'duration' => 48],
+                    'trivy' => ['status' => 'failed', 'duration' => 24],
+                    'deploy' => ['status' => 'pending', 'duration' => null],
+                ],
+                'sonarqube_results' => [
+                    'bugs' => 3,
+                    'vulnerabilities' => 1,
+                    'code_smells' => 8,
+                    'coverage' => 72,
+                ],
+                'trivy_results' => [
+                    'critical' => 2,
+                    'high' => 5,
+                    'medium' => 8,
+                    'low' => 15,
+                ],
+                'logs' => [
+                    'sonarqube' => "[INFO] Starting SonarQube analysis...\n[WARN] Found 3 bugs\n[INFO] Quality gate: PASSED",
+                    'trivy' => "[INFO] Starting Trivy security scan...\n[ERROR] Found 2 CRITICAL vulnerabilities\n[ERROR] Security gate: FAILED\n[ERROR] Pipeline stopped",
+                    'deploy' => "[INFO] Skipped due to previous stage failure",
+                ],
+            ],
+            2312 => [
+                'id' => 2312,
+                'status' => 'running',
+                'branch' => 'feature/new-ui',
+                'commit_message' => 'Update pipeline UI with GitLab style',
+                'commit_sha' => '7f8e9a2b',
+                'trigger_user' => 'Romuald DJETEJE',
+                'started_at' => now()->subMinutes(1),
+                'finished_at' => null,
+                'duration_seconds' => 45,
+                'stages' => [
+                    'sonarqube' => ['status' => 'success', 'duration' => 38],
+                    'trivy' => ['status' => 'running', 'duration' => null],
+                    'deploy' => ['status' => 'pending', 'duration' => null],
+                ],
+                'sonarqube_results' => [
+                    'bugs' => 0,
+                    'vulnerabilities' => 0,
+                    'code_smells' => 5,
+                    'coverage' => 92,
+                ],
+                'trivy_results' => null,
+                'logs' => [
+                    'sonarqube' => "[INFO] Starting SonarQube analysis...\n[INFO] Analyzing 312 files\n[INFO] Quality gate: PASSED\n[SUCCESS] Analysis completed",
+                    'trivy' => "[INFO] Starting Trivy security scan...\n[INFO] Scanning dependencies...\n[INFO] Progress: 67%",
+                    'deploy' => "[INFO] Waiting for previous stages...",
+                ],
+            ],
+        ];
+        
+        $this->execution = (object)($executions[$this->execution_uuid] ?? $executions[2314]);
     }
 
-    public function selectJob($jobId)
+    public function selectStage($stageName)
     {
-        $this->selectedJobId = $jobId;
-    }
-
-    public function getSelectedJobProperty()
-    {
-        if (!$this->selectedJobId) {
-            return null;
-        }
-        
-        return $this->execution->jobs->firstWhere('id', $this->selectedJobId);
+        $this->selectedStage = $stageName;
     }
 
     public function cancelExecution()
     {
-        if ($this->execution->isRunning()) {
-            $this->execution->update([
-                'status' => 'cancelled',
-                'finished_at' => now(),
-            ]);
-            
-            $this->dispatch('success', 'Pipeline execution cancelled');
-        }
+        $this->dispatch('success', 'Pipeline execution cancelled (demo mode)');
     }
 
     public function rerunExecution()
     {
-        try {
-            // Create new execution with same config
-            $newExecution = PipelineExecution::create([
-                'pipeline_config_id' => $this->execution->pipeline_config_id,
-                'application_id' => $this->execution->application_id,
-                'trigger_type' => 'manual',
-                'trigger_user' => auth()->user()->name ?? 'unknown',
-                'commit_sha' => $this->execution->commit_sha,
-                'commit_message' => $this->execution->commit_message,
-                'branch' => $this->execution->branch,
-                'status' => 'pending',
-                'started_at' => now(),
-            ]);
-
-            // Dispatch pipeline job
-            dispatch(new PipelineExecutionJob($newExecution));
-
-            $this->dispatch('success', 'Pipeline restarted successfully');
-            
-            // Redirect to new execution
-            return redirect()->route('project.application.pipeline.execution.detail', [
-                ...$this->parameters,
-                'execution_uuid' => $newExecution->uuid,
-            ]);
-
-        } catch (\Exception $e) {
-            $this->dispatch('error', 'Failed to restart pipeline: ' . $e->getMessage());
-        }
-    }
-
-    public function showTrivyDetails()
-    {
-        // This will be handled by the frontend to show a modal
-        $this->dispatch('show-trivy-modal');
+        $this->dispatch('success', 'Pipeline restarted successfully (demo mode)');
     }
 
     public function render()

@@ -235,13 +235,17 @@ class Change extends Component
                 }
             }
             $this->parameters = get_route_parameters();
-            if (isCloud() && ! isDev()) {
-                $this->webhook_endpoint = config('app.url');
+            
+            // Always prefer FQDN with HTTPS
+            if ($this->fqdn) {
+                $this->webhook_endpoint = $this->fqdn;
             } else {
-                // Use ipv4, ipv6, fqdn, or APP_URL as fallback
-                $this->webhook_endpoint = $this->ipv4 ?? $this->ipv6 ?? $this->fqdn ?? config('app.url');
-                $this->is_system_wide = $this->github_app->is_system_wide;
+                $this->webhook_endpoint = config('app.url');
             }
+            
+            // Ensure HTTPS
+            $this->webhook_endpoint = str_replace('http://', 'https://', $this->webhook_endpoint);
+            $this->is_system_wide = $this->github_app->is_system_wide;
         } catch (\Throwable $e) {
             return handleError($e, $this);
         }
