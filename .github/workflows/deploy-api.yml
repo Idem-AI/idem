@@ -2,7 +2,7 @@ name: Deploy API
 
 on:
   push:
-    branches: [ dev, main ]
+    branches: [ main ]
     paths:
       - 'apps/api/**'
       - 'Dockerfile.api'
