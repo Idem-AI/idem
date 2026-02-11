@@ -32,6 +32,27 @@ export class LogoPreferences {
     return false;
   });
 
+  // Step indicator
+  protected readonly stepsList = [
+    { key: 'type' as const, number: 1 },
+    { key: 'mode' as const, number: 2 },
+    { key: 'description' as const, number: 3 },
+  ];
+
+  // AI mode features
+  protected readonly aiFeatures = [
+    'dashboard.logoPreferences.modes.ai.features.smart',
+    'dashboard.logoPreferences.modes.ai.features.multiple',
+    'dashboard.logoPreferences.modes.ai.features.fast',
+  ];
+
+  // Custom mode features
+  protected readonly customFeatures = [
+    'dashboard.logoPreferences.modes.custom.features.control',
+    'dashboard.logoPreferences.modes.custom.features.precise',
+    'dashboard.logoPreferences.modes.custom.features.unique',
+  ];
+
   // Logo type options
   protected readonly logoTypes = [
     {
@@ -53,6 +74,13 @@ export class LogoPreferences {
       exampleKey: 'dashboard.logoPreferences.types.initial.example',
     },
   ];
+
+  protected isStepCompleted(stepKey: 'type' | 'mode' | 'description'): boolean {
+    const steps = ['type', 'mode', 'description'] as const;
+    const currentIndex = steps.indexOf(this.currentStep());
+    const stepIndex = steps.indexOf(stepKey);
+    return stepIndex < currentIndex;
+  }
 
   protected selectType(type: LogoType): void {
     this.selectedType.set(type);

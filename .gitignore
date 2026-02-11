@@ -6,6 +6,9 @@
 /out-tsc
 /build
 
+
+CLAUDE.md
+
 # Node
 node_modules
 npm-debug.log
@@ -19,11 +22,9 @@ yarn-error.log
 *.launch
 .settings/
 *.sublime-workspace
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vscode/
+.cursor/
+.cursorrules
 .history/*
 
 # Miscellaneous
@@ -90,3 +91,5 @@ data/
 # Branch-specific: Staging compose not versioned on main branch
 # Only dev branch should version docker-compose.staging.yml
 docker-compose.staging.yml
+
+.windsurf

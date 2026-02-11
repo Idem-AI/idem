@@ -78,7 +78,7 @@ jobs:
             
             # Build image
             echo "Building Docker image..."
-            docker build -f Dockerfile.chart \
+            docker build -f Dockerfile/Dockerfile.chart \
               --build-arg MERMAID_DOMAIN='mermaid.live' \
               --build-arg MERMAID_ANALYTICS_URL='https://p.mermaid.live' \
               --build-arg MERMAID_RENDERER_URL='https://mermaid.ink' \
