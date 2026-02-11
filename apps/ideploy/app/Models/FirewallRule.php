@@ -37,6 +37,11 @@ class FirewallRule extends Model
         'last_match_at' => 'datetime',
     ];
 
+    protected $attributes = [
+        'logical_operator' => 'AND',
+        'enabled' => true,
+    ];
+
     /**
      * Relationships
      */
