@@ -13,7 +13,7 @@ export const generateDiagramController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = 'sA6ZeSlrP9Ri8tCNAncPNKi83Nz2';
+  const userId = req.user?.uid;
   const { projectId } = req.params;
   logger.info(`generateDiagramController called - UserId: ${userId}, ProjectId: ${projectId}`);
   try {
