@@ -1,4 +1,11 @@
 <div>
+    <x-slot:title>
+        {{ data_get_str($application, 'name')->limit(10) }} > Insights | iDeploy
+    </x-slot>
+    
+    <livewire:project.shared.configuration-checker :resource="$application" />
+    <livewire:project.application.heading :application="$application" />
+
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-white">Insights</h1>

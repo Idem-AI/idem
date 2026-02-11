@@ -1,3 +1,25 @@
+<div>
+    <x-slot:title>
+        {{ data_get_str($application, 'name')->limit(10) }} > Pipeline Executions | iDeploy
+    </x-slot>
+    
+    <livewire:project.shared.configuration-checker :resource="$application" />
+    <livewire:project.application.heading :application="$application" />
+
+    {{-- Sub-Navigation Tabs --}}
+    <div class="mb-6 border-b border-gray-800">
+        <nav class="flex gap-1">
+            <a href="{{ route('project.application.pipeline', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
+                Overview
+            </a>
+            <a href="{{ route('project.application.pipeline.executions', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-white border-b-2 border-blue-500 -mb-px">
+                Executions
+            </a>
+        </nav>
+    </div>
+
 <div class="bg-[#0a0a0a] min-h-screen" wire:poll.3s="refreshExecution">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-white">Pipeline Executions</h1>
@@ -79,4 +101,5 @@
         </div>
         @endforeach
     </div>
+</div>
 </div>
