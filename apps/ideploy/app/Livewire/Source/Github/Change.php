@@ -16,7 +16,7 @@ class Change extends Component
 {
     use AuthorizesRequests;
 
-    public string $webhook_endpoint = '';
+    public ?string $webhook_endpoint = null;
 
     public ?string $ipv4 = null;
 
@@ -47,19 +47,19 @@ class Change extends Component
 
     public int $customPort;
 
-    public int $appId;
+    public ?int $appId = null;
 
-    public int $installationId;
+    public ?int $installationId = null;
 
-    public string $clientId;
+    public ?string $clientId = null;
 
-    public string $clientSecret;
+    public ?string $clientSecret = null;
 
-    public string $webhookSecret;
+    public ?string $webhookSecret = null;
 
     public bool $isSystemWide;
 
-    public int $privateKeyId;
+    public ?int $privateKeyId = null;
 
     public ?string $contents = null;
 
@@ -78,16 +78,16 @@ class Change extends Component
         'htmlUrl' => 'required|string',
         'customUser' => 'required|string',
         'customPort' => 'required|int',
-        'appId' => 'required|int',
-        'installationId' => 'required|int',
-        'clientId' => 'required|string',
-        'clientSecret' => 'required|string',
-        'webhookSecret' => 'required|string',
+        'appId' => 'nullable|int',
+        'installationId' => 'nullable|int',
+        'clientId' => 'nullable|string',
+        'clientSecret' => 'nullable|string',
+        'webhookSecret' => 'nullable|string',
         'isSystemWide' => 'required|bool',
         'contents' => 'nullable|string',
         'metadata' => 'nullable|string',
         'pullRequests' => 'nullable|string',
-        'privateKeyId' => 'required|int',
+        'privateKeyId' => 'nullable|int',
     ];
 
     public function boot()
@@ -130,13 +130,13 @@ class Change extends Component
             $this->htmlUrl = $this->github_app->html_url;
             $this->customUser = $this->github_app->custom_user;
             $this->customPort = $this->github_app->custom_port;
-            $this->appId = $this->github_app->app_id;
-            $this->installationId = $this->github_app->installation_id;
-            $this->clientId = $this->github_app->client_id;
-            $this->clientSecret = $this->github_app->client_secret;
-            $this->webhookSecret = $this->github_app->webhook_secret;
-            $this->isSystemWide = $this->github_app->is_system_wide;
-            $this->privateKeyId = $this->github_app->private_key_id;
+            $this->appId = $this->github_app->app_id ?? null;
+            $this->installationId = $this->github_app->installation_id ?? null;
+            $this->clientId = $this->github_app->client_id ?? null;
+            $this->clientSecret = $this->github_app->client_secret ?? null;
+            $this->webhookSecret = $this->github_app->webhook_secret ?? null;
+            $this->isSystemWide = $this->github_app->is_system_wide ?? false;
+            $this->privateKeyId = $this->github_app->private_key_id ?? null;
             $this->contents = $this->github_app->contents;
             $this->metadata = $this->github_app->metadata;
             $this->pullRequests = $this->github_app->pull_requests;
@@ -238,7 +238,8 @@ class Change extends Component
             if (isCloud() && ! isDev()) {
                 $this->webhook_endpoint = config('app.url');
             } else {
-                $this->webhook_endpoint = $this->ipv4 ?? '';
+                // Use ipv4, ipv6, fqdn, or APP_URL as fallback
+                $this->webhook_endpoint = $this->ipv4 ?? $this->ipv6 ?? $this->fqdn ?? config('app.url');
                 $this->is_system_wide = $this->github_app->is_system_wide;
             }
         } catch (\Throwable $e) {
