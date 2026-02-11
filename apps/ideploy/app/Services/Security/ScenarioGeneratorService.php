@@ -347,6 +347,12 @@ class ScenarioGeneratorService
                     $conditions = json_decode($conditions, true) ?? [];
                 }
                 
+                // Handle single condition object vs array of conditions
+                if (isset($conditions['field']) && isset($conditions['operator'])) {
+                    // Single condition object, wrap in array
+                    $conditions = [$conditions];
+                }
+                
                 // Filter out empty conditions
                 $conditions = array_filter($conditions, function($condition) {
                     return !empty($condition) && isset($condition['operator']) && isset($condition['field']);
