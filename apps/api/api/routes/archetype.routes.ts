@@ -90,7 +90,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized
  */
-router.post('/', createArchetypeController);
+router.post('/', authenticate, createArchetypeController);
 
 /**
  * @swagger
@@ -106,7 +106,7 @@ router.post('/', createArchetypeController);
  *       401:
  *         description: Unauthorized
  */
-router.get('/', getArchetypesController);
+router.get('/', authenticate, getArchetypesController);
 
 /**
  * @swagger
