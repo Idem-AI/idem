@@ -13,15 +13,6 @@ export const createArchetypeController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  // const userId = req.user?.uid;
-
-  // if (!userId) {
-  //   res.status(401).json({
-  //     success: false,
-  //     message: "Unauthorized",
-  //   });
-  //   return;
-  // }
   const payload: CreateArchetypePayload = req.body;
 
   logger.info(`Creating archetype...`, {
@@ -64,14 +55,6 @@ export const createArchetypeController = async (
 export const getArchetypesController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
 
-  // if (!userId) {
-  //   res.status(401).json({
-  //     success: false,
-  //     message: "Unauthorized",
-  //   });
-  //   return;
-  // }
-
   logger.info(`Retrieving archetypes`);
 
   try {
@@ -106,15 +89,6 @@ export const getArchetypeByIdController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.user?.uid;
-
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      message: 'Unauthorized',
-    });
-    return;
-  }
   const archetypeId = req.params.archetypeId;
 
   logger.info(`Retrieving archetype: ${archetypeId}`);
@@ -165,15 +139,6 @@ export const updateArchetypeController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.user?.uid;
-
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      message: 'Unauthorized',
-    });
-    return;
-  }
   const archetypeId = req.params.archetypeId;
   const payload: UpdateArchetypePayload = req.body;
 
@@ -226,15 +191,6 @@ export const deleteArchetypeController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.user?.uid;
-
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      message: 'Unauthorized',
-    });
-    return;
-  }
   const archetypeId = req.params.archetypeId;
 
   logger.info(`Deleting archetype: ${archetypeId}`);
@@ -283,15 +239,6 @@ export const getArchetypesByProviderController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.user?.uid;
-
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      message: 'Unauthorized',
-    });
-    return;
-  }
   const provider = req.params.provider as 'aws' | 'gcp' | 'azure';
 
   logger.info(`Retrieving archetypes by provider: ${provider}`);
@@ -330,15 +277,6 @@ export const getArchetypesByCategoryController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.user?.uid;
-
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      message: 'Unauthorized',
-    });
-    return;
-  }
   const category = req.params.category;
 
   logger.info(`Retrieving archetypes by category: ${category}`);
@@ -377,15 +315,6 @@ export const generateTerraformTfvarsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.user?.uid;
-
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      message: 'Unauthorized',
-    });
-    return;
-  }
   const archetypeId = req.params.archetypeId;
   const customValues = req.body.customValues || {};
 
