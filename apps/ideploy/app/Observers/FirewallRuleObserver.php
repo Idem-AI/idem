@@ -28,6 +28,10 @@ class FirewallRuleObserver
             ray("IP ban rule detected, creating CrowdSec decisions");
             \App\Jobs\Security\ApplyIpBanRulesJob::dispatch($rule)
                 ->delay(now()->addSeconds(1));
+            
+            // CRITICAL: Also ensure middlewares are applied for first rule
+            // This triggers redeployment if firewall was just enabled
+            $this->ensureMiddlewaresApplied($rule);
             return;
         }
         
@@ -61,6 +65,15 @@ class FirewallRuleObserver
         }
         
         ray("FirewallRule deleted, redeploying rules: {$rule->name}");
+        
+        // CRITICAL: Remove CrowdSec decisions for IP ban rules
+        if ($rule->protection_mode === 'ip_ban') {
+            ray("IP ban rule deleted, removing CrowdSec decisions");
+            \App\Jobs\Security\RemoveIpBanDecisionsJob::dispatch(
+                $rule,
+                $rule->config->application->destination->server
+            )->delay(now()->addSeconds(2));
+        }
         
         // Redéployer toutes les règles (sans celle qui est supprimée)
         app(FirewallRulesDeploymentService::class)->deployRules($rule->config);
