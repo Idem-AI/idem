@@ -30,6 +30,27 @@ ${projectInfo}
 
 ${brandInfo}
 
+## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
+This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
+
+### Images of People
+- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
+- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
+- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
+- For hero/team photos: show diverse African teams in modern work environments
+
+### UI and Cultural Context
+- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
+- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
+- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
+- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
+
+### Content and Messaging
+- Use inclusive language that resonates with African audiences
+- Social proof should mention African companies, organizations, or communities
+- Success stories should feature African entrepreneurs and businesses
+- Placeholder company names should be African-sounding or Africa-based
+
 Generate the complete landing page code with all necessary files.`;
   }
 
@@ -50,6 +71,27 @@ Generate the complete landing page code with all necessary files.`;
 ${projectInfo}
 
 ${brandInfo}
+
+## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
+This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
+
+### Images of People
+- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
+- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
+- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
+- For hero/team photos: show diverse African teams in modern work environments
+
+### UI and Cultural Context
+- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
+- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
+- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
+- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
+
+### Content and Messaging
+- Use inclusive language that resonates with African audiences
+- Social proof should mention African companies, organizations, or communities
+- Success stories should feature African entrepreneurs and businesses
+- Placeholder company names should be African-sounding or Africa-based
 
 Generate the complete application code with all necessary files.`;
   }
