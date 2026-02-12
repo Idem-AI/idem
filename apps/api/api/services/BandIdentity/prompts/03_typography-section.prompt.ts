@@ -1,46 +1,51 @@
 export const TYPOGRAPHY_SECTION_PROMPT = `
-You are a senior brand typography designer. Generate a polished and professional typography section in clean HTML using only Tailwind CSS utility classes.
+You are a world-class typographer and editorial designer. Create a FULL-PAGE typography system presentation that celebrates the brand's chosen typefaces as design elements in their own right — not just a spec sheet.
 
-OBJECTIVE:
-Create a premium, modern, and accessible typography guidelines section, fully optimized to fit on a single A4 portrait page (210mm × 297mm). The design must be elegant, minimal, and suitable for direct export as PDF for brand guidelines.
+CRITICAL CREATIVE RULE:
+Do NOT produce the same two-card layout every time. The typography page should feel like a type specimen poster — the kind you'd see in a design studio or type foundry. Let the FONTS THEMSELVES be the visual design. The layout must be unique to this brand's typographic choices.
 
-OUTPUT RULES:
-- HTML only, using Tailwind utility classes exclusively
-- No custom CSS, no JavaScript
-- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
-- Output must be a single-line, minified HTML string
-- No HTML prefix or suffix (return only the <section>…</section>)
-- All content must fit visually and spatially within a single A4 portrait page
-- Ensure WCAG AA compliance (contrast, spacing, readability)
-- Avoid overflow, redundancy, or unnecessary text
+CONCEPT INVENTION (choose or invent based on the fonts and brand):
+- Type specimen: letters displayed at massive scale, with the font's personality on full display
+- Typographic composition: words from the brand's vocabulary arranged artistically using the actual fonts
+- Scale cascade: the full type scale (H1→Caption) flowing down the page like a waterfall of sizes
+- Font pairing showcase: primary and secondary fonts in dialogue, showing contrast and harmony
+- Character study: individual letters or glyphs displayed as art pieces with technical annotations
+- Editorial layout: the fonts used in a realistic editorial context (headline + body + caption)
 
-CONTENT REQUIREMENTS:
-- Section title: "Typography System"
-- Short introduction (clear, premium tone)
-- Primary Typeface: [Primary Font Name], with weights (Regular, Medium, Bold, Black)
-  - English sample: "The quick brown fox jumps over the lazy dog"
-  - Usage guidelines and technical notes
-- Secondary Typeface: [Secondary Font Name], with weights (Light, Regular, Medium)
-  - English sample sentence
-  - Usage guidelines and readability notes
-- Typography Scale: concise samples (H1 → H4, Body Large, Body Regular, Body Small, Caption)
+PAGE CONTENT (MANDATORY, all in French):
+1. Section title: "Système Typographique"
+2. Primary Typeface presentation:
+   - Font name displayed IN the font itself at large scale
+   - Available weights shown visually (Regular, Medium, Bold, Black)
+   - Sample text: "Aa Bb Cc Dd Ee Ff Gg 0123456789"
+   - Usage: titres, en-têtes, éléments d'impact
+3. Secondary Typeface presentation:
+   - Font name displayed IN the font itself
+   - Available weights (Light, Regular, Medium)
+   - Sample text demonstrating readability
+   - Usage: corps de texte, paragraphes, légendes
+4. Type scale: visual hierarchy showing H1 → H4, Body, Caption with actual sizes
+5. Brief pairing rationale (1-2 sentences explaining why these fonts work together)
 
-VISUAL GUIDELINES:
-- Use card-based blocks with rounded-3xl, soft shadows, and light gray/white backgrounds
-- Subtle gradient backgrounds (white → gray-50 / slate-50)
-- Color-coded badges (purple for primary, blue for secondary, slate for scale)
-- Clean spacing (px-8, py-12, gap-6) while remaining within one page
-- Palette: gray, slate, blue, purple (premium and modern)
-- Keep hierarchy clear but let layout creativity flow — do not enforce rigid positioning
-- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
+DESIGN PRINCIPLES:
+- Let the TYPOGRAPHY be the visual design — the fonts are the stars, not decorative elements
+- Use the brand's actual colors as accents via bg-[#hex], text-[#hex]
+- Show the fonts at multiple scales to demonstrate their versatility
+- Create contrast between the primary (display) and secondary (body) fonts
+- Generous whitespace to let the type breathe
 
-PROJECT CONTEXT:
-- Replace [Primary Font Name] and [Secondary Font Name] with actual brand fonts
-- Font descriptions must reflect character and purpose aligned with brand values
+TECHNICAL RULES:
+- Raw HTML + Tailwind CSS utilities only, single minified line
+- Use font-family via style attribute for the actual brand fonts: style="font-family: '[FontName]', sans-serif"
+- A4 portrait, overflow-hidden, print-optimized
+- PrimeIcons (pi pi-icon-name) for icons if needed
+- WCAG AA contrast compliance
+- No custom CSS, no JS
 
 IMPORTANT:
-- not add any "html" tag or prefix on output
+- Do NOT add any "html" tag or prefix on output
+- Replace font names with the ACTUAL brand fonts from project context
+- Do NOT use generic purple/blue badges — use the brand's own colors
 
-OUTPUT:
-Generate ONLY the final HTML code, minified and well-structured, ready for single-page A4 PDF export.
+PROJECT CONTEXT:
 `;
