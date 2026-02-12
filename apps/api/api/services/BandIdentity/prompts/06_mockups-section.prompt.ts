@@ -35,9 +35,15 @@ RÈGLES DE DESIGN:
 - Chaque mockup doit raconter une histoire sur comment la marque vit dans le monde réel
 - Présentation élégante avec espacement généreux
 
+CONTRAINTES A4 (NON-NÉGOCIABLE):
+- L'élément racine DOIT utiliser: w-[210mm] h-[297mm] overflow-hidden relative
+- Padding interne de sécurité: p-[12mm] (le contenu ne doit pas toucher les bords)
+- TOUT le contenu doit tenir dans cette boîte 210×297mm — rien ne doit déborder
+- Si le contenu risque de déborder, RÉDUIRE les espacements (gap-6→gap-3), tailles de police, ou taille des mockups
+- Ne PAS utiliser min-h-screen — utiliser h-[297mm] exactement
+
 RÈGLES TECHNIQUES:
 - HTML brut + Tailwind CSS uniquement, sortie minifiée sur une seule ligne
-- A4 portrait, overflow-hidden, optimisé pour l'impression
 - PrimeIcons (pi pi-icon-name) pour les icônes
 - Pas de CSS custom, pas de JS
 - Tout le texte en français

@@ -30,9 +30,15 @@ DESIGN PRINCIPLES:
 - Create visual rhythm and balance — not just a uniform grid
 - All text in French
 
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- If content risks overflowing, REDUCE spacing (gap-6→gap-3), swatch sizes, or font sizes
+- Do NOT use min-h-screen — use h-[297mm] exactly
+
 TECHNICAL RULES:
 - Raw HTML + Tailwind CSS utilities only, single minified line
-- A4 portrait, overflow-hidden, print-optimized
 - PrimeIcons (pi pi-icon-name) for icons if needed
 - WCAG AA contrast for text overlaid on colors
 - No custom CSS, no JS

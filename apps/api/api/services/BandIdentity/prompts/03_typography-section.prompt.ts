@@ -34,10 +34,16 @@ DESIGN PRINCIPLES:
 - Create contrast between the primary (display) and secondary (body) fonts
 - Generous whitespace to let the type breathe
 
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- If content risks overflowing, REDUCE spacing, font sample sizes, or number of scale entries
+- Do NOT use min-h-screen — use h-[297mm] exactly
+
 TECHNICAL RULES:
 - Raw HTML + Tailwind CSS utilities only, single minified line
 - Use font-family via style attribute for the actual brand fonts: style="font-family: '[FontName]', sans-serif"
-- A4 portrait, overflow-hidden, print-optimized
 - PrimeIcons (pi pi-icon-name) for icons if needed
 - WCAG AA contrast compliance
 - No custom CSS, no JS

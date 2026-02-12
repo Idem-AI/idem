@@ -32,9 +32,16 @@ MOCKUP DESIGN RULES:
 - Make the mockup REALISTIC — it should look like a real product, not a wireframe
 - Add device frames (browser chrome with traffic lights, or phone frame) for context
 
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- Mockups must be sized to fit within the page — use max-h constraints on device frames
+- If two mockups side by side overflow, stack them vertically with reduced sizes
+- Do NOT use min-h-screen — use h-[297mm] exactly
+
 TECHNICAL RULES:
 - Raw HTML + Tailwind CSS utilities only, single minified line
-- A4 portrait, overflow-hidden, print-optimized
 - PrimeIcons (pi pi-icon-name) for icons
 - No custom CSS, no JS
 - All annotations in French

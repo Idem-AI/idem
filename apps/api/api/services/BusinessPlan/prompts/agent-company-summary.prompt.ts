@@ -21,9 +21,15 @@ MANDATORY CONTENT (adapt tone to the company):
 6. Core Values — 4-6 values that feel AUTHENTIC to this specific company
 7. Company Culture — what makes working here different
 
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- If content risks overflowing, REDUCE spacing (py-6→py-3, gap-6→gap-3), font sizes (text-lg→text-base), or shorten text blocks
+- Do NOT use min-h-screen — use h-[297mm] exactly
+
 TECHNICAL RULES:
 - Raw HTML + Tailwind CSS utilities only, single minified line
-- A4 portrait, print-optimized
 - PrimeIcons (pi pi-icon-name) for icons — already loaded
 - Use brand's ACTUAL colors via bg-[#hex], text-[#hex]
 - Use brand's actual fonts via style="font-family: '[FontName]'"
