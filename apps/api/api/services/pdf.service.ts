@@ -807,85 +807,84 @@ export class PdfService {
             }, system-ui, sans-serif;
           }
 
-          /* Styles pour éviter la coupure des éléments */
+          /* A4 page sizing */
+          @page {
+            size: 210mm 297mm;
+            margin: 0;
+          }
+
+          /* Each section = one full page, force page break before each (except first) */
           .section {
-            page-break-inside: avoid;
-            break-inside: avoid;
             display: block;
-            overflow: visible;
+            width: 210mm;
+            min-height: 297mm;
+            max-height: 297mm;
+            overflow: hidden;
+            position: relative;
           }
 
-          .section > * {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-
-          .data-content {
-            page-break-inside: avoid;
-            break-inside: avoid;
-            orphans: 3;
-            widows: 3;
-          }
-
-          /* Forcer les sauts de page avant certains éléments si nécessaire */
           .section:not(:first-child) {
-            page-break-before: auto;
-            break-before: auto;
+            page-break-before: always;
+            break-before: page;
           }
 
-          /* Éviter les sauts de page après les titres */
+          /* Override overflow-hidden that AI may generate inside sections */
+          .data-content {
+            width: 100%;
+            height: 100%;
+          }
+
+          /* Within a section, avoid breaking cards/blocks across the page boundary */
+          .data-content article,
+          .data-content .card,
+          .data-content [class*="rounded"] {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          /* Avoid page break right after headings */
           h1, h2, h3, h4, h5, h6 {
             page-break-after: avoid;
             break-after: avoid;
+          }
+
+          /* Orphans / widows for text blocks */
+          p, li, td {
             orphans: 3;
             widows: 3;
           }
 
-          /* Styles spécifiques pour l'impression */
+          /* Print-specific overrides */
           @media print {
             .section {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
+              width: 210mm !important;
+              min-height: 297mm !important;
+              max-height: 297mm !important;
+              overflow: hidden !important;
             }
 
-            .data-content {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
+            .section:not(:first-child) {
+              page-break-before: always !important;
+              break-before: page !important;
             }
-
-            /* Éviter les lignes orphelines et veuves */
-            p, div {
-              orphans: 3;
-              widows: 3;
-            }
-          }
-
-          /* Support pour les navigateurs plus anciens */
-          @page {
-            orphans: 3;
-            widows: 3;
-          }
-
-          /* Supprimer les marges uniquement sur la première page */
-          @page :first {
-            margin: 0;
           }
         </style>
       </head>
       <body class="bg-white">
     `;
 
-    // Ajouter chaque section
+    // Ajouter chaque section — each section is a full A4 page
     sections.forEach((section, index) => {
-      const sectionData =
+      let sectionData =
         typeof section.data === 'string' ? section.data : JSON.stringify(section.data, null, 2);
 
-      // Première section (page de couverture) sans marges, autres sections avec marges
-      const marginClass = index === 0 ? '' : 'mb-8';
+      // Strip overflow-hidden from the AI-generated outermost container
+      // to prevent content clipping at the PDF level (the .section wrapper handles overflow)
+      sectionData = sectionData.replace(/overflow-hidden/g, 'overflow-visible');
 
       htmlContent += `
-        <div class="section ${marginClass} break-inside-avoid">
-            <div class="data-content break-inside-avoid">${sectionData}</div>
+        <div class="section">
+            <div class="data-content">${sectionData}</div>
         </div>
       `;
     });

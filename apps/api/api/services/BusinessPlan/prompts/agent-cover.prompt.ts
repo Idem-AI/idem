@@ -10,9 +10,11 @@ CONCEPT INVENTION PROCESS:
 3. Choose a LAYOUT ARCHETYPE: split-screen, editorial grid, full-bleed typography, diagonal slice, circular composition, typographic sculpture, negative-space art — NOT always centered text on gradient
 4. Design around the brand's ACTUAL colors using bg-[#hex]
 
-FULL-PAGE SPECS:
-- MANDATORY: min-h-screen w-full, edge-to-edge, no visible margins
-- A4 portrait (210mm × 297mm), print-optimized
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- Do NOT use min-h-screen — use h-[297mm] exactly
 - Use the brand's real colors via Tailwind arbitrary values bg-[#hex], text-[#hex]
 
 TECHNICAL RULES:
