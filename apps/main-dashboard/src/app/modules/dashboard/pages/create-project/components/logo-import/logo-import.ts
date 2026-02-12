@@ -1,8 +1,8 @@
 import { Component, inject, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { TranslateModule } from '@ngx-translate/core';
 import { LogoImportService, LogoUploadProgress } from '../../../../services/logo-import.service';
+import { Loader } from '../../../../../../shared/components/loader/loader';
 
 /**
  * Component for importing an existing logo file.
@@ -12,15 +12,13 @@ import { LogoImportService, LogoUploadProgress } from '../../../../services/logo
 @Component({
   selector: 'app-logo-import',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, Loader],
   templateUrl: './logo-import.html',
   styleUrl: './logo-import.css',
 })
 export class LogoImportComponent {
   // Services
   private readonly logoImportService = inject(LogoImportService);
-  private readonly sanitizer = inject(DomSanitizer);
-
   // Outputs
   readonly svgImported = output<string>();
   readonly colorsExtracted = output<string[]>();
@@ -39,12 +37,6 @@ export class LogoImportComponent {
   protected readonly extractedColors = signal<string[]>([]);
 
   // Computed
-  protected readonly safeSvgHtml = computed<SafeHtml | null>(() => {
-    const svg = this.importedSvg();
-    if (!svg) return null;
-    return this.sanitizer.bypassSecurityTrustHtml(svg);
-  });
-
   protected readonly hasResult = computed(() => !!this.importedSvg());
   protected readonly canUpload = computed(() => !!this.selectedFile() && !this.isUploading());
 

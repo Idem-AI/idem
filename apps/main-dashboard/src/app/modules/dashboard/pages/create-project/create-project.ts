@@ -16,6 +16,7 @@ import { LogoSelectionComponent } from './components/logo-selection/logo-selecti
 import { LogoVariationsComponent } from './components/logo-variations/logo-variations';
 import { ProjectSummaryComponent } from './components/project-summary/project-summary';
 import { LogoChoiceComponent } from './components/logo-choice/logo-choice';
+import { Loader } from '../../../../shared/components/loader/loader';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
@@ -41,6 +42,7 @@ interface Step {
     LogoVariationsComponent,
     ProjectSummaryComponent,
     TranslateModule,
+    Loader,
   ],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
