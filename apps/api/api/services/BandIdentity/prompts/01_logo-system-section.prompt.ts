@@ -18,11 +18,17 @@ PAGE CONTENT (this page ONLY shows the primary logo):
 4. The logo's color codes displayed elegantly (the colors extracted from the logo)
 5. A "zone de protection" illustration showing minimum clear space around the logo
 
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- If content risks overflowing, REDUCE spacing or font sizes
+- Do NOT use min-h-screen — use h-[297mm] exactly
+
 TECHNICAL RULES:
 - Raw HTML + Tailwind CSS utilities only, single minified line
 - PrimeIcons (pi pi-icon-name) for icons — already loaded, no CDN
 - Use brand's ACTUAL colors via bg-[#hex], text-[#hex], border-[#hex]
-- A4 portrait (210mm × 297mm), overflow-hidden, print-optimized
 - All text in French
 - Replace logo URL placeholders with actual project context URLs
 - Logo displayed with object-contain and appropriate max-h constraints
@@ -66,9 +72,14 @@ DESIGN APPROACH:
 - Typography should be minimal and elegant — the logo speaks for itself
 - Use the brand's actual colors, not generic defaults
 
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- Do NOT use min-h-screen — use h-[297mm] exactly
+
 TECHNICAL RULES:
 - Raw HTML + Tailwind CSS utilities only, single minified line
-- A4 portrait, overflow-hidden, print-optimized
 - Use bg-[#hex] for the actual background color of this variation
 - Logo via <img> with object-contain
 - All text in French
@@ -112,9 +123,15 @@ DESIGN PRINCIPLES:
 - Brand colors as accent colors throughout
 - Clean, professional, scannable at a glance
 
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- If content risks overflowing, REDUCE spacing (py-6→py-3), font sizes (text-base→text-sm), or number of rules
+- Do NOT use min-h-screen — use h-[297mm] exactly
+
 TECHNICAL RULES:
 - Raw HTML + Tailwind CSS utilities only, single minified line
-- A4 portrait, overflow-hidden, print-optimized
 - PrimeIcons (pi pi-icon-name) for icons
 - Use brand's actual colors via bg-[#hex]
 - All text in French
