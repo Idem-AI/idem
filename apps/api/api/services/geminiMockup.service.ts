@@ -1,18 +1,20 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Content, Part } from '@google/genai';
 import logger from '../config/logger';
 import { StorageService } from './storage.service';
 
 export interface MockupGenerationRequest {
-  templateId: string;
-  logoUrl: string;
+  logoImageBase64: string | null;
+  logoMimeType: string;
   brandColors: {
     primary: string;
     secondary: string;
     accent: string;
   };
-  mockupType: 'business_card' | 'laptop_screen' | 'mobile_app' | 'packaging' | 'signage' | 'merchandise';
   industry: string;
   brandName: string;
+  projectDescription: string;
+  sceneDescription: string;
+  mockupTitle: string;
 }
 
 export interface MockupGenerationResult {
@@ -23,130 +25,19 @@ export interface MockupGenerationResult {
   description: string;
 }
 
-export interface IndustryMockupConfig {
-  mockup1: {
-    templateId: string;
-    mockupType: string;
-    title: string;
-    description: string;
-  };
-  mockup2: {
-    templateId: string;
-    mockupType: string;
-    title: string;
-    description: string;
-  };
+export interface IndustryMockupScene {
+  scene: string;
+  title: string;
+  description: string;
 }
 
 export class GeminiMockupService {
   private readonly geminiAI: GoogleGenAI;
   private readonly storageService: StorageService;
 
-  // Configuration des mockups par industrie
-  private readonly industryMockups: Record<string, IndustryMockupConfig> = {
-    'tech': {
-      mockup1: {
-        templateId: 'laptop_screen_modern',
-        mockupType: 'laptop_screen',
-        title: 'Interface Application',
-        description: 'Présentation de l\'interface utilisateur sur écran d\'ordinateur portable moderne'
-      },
-      mockup2: {
-        templateId: 'mobile_app_interface',
-        mockupType: 'mobile_app',
-        title: 'Application Mobile',
-        description: 'Design de l\'application mobile avec interface utilisateur optimisée'
-      }
-    },
-    'healthcare': {
-      mockup1: {
-        templateId: 'medical_packaging',
-        mockupType: 'packaging',
-        title: 'Packaging Médical',
-        description: 'Emballage médical professionnel avec branding sécurisé et confiant'
-      },
-      mockup2: {
-        templateId: 'clinic_signage',
-        mockupType: 'signage',
-        title: 'Signalétique Clinique',
-        description: 'Signalétique professionnelle pour environnement médical'
-      }
-    },
-    'finance': {
-      mockup1: {
-        templateId: 'corporate_letterhead',
-        mockupType: 'packaging',
-        title: 'Papier à En-tête',
-        description: 'Papier à en-tête corporatif avec design professionnel et élégant'
-      },
-      mockup2: {
-        templateId: 'office_signage_professional',
-        mockupType: 'signage',
-        title: 'Signalétique Bureau',
-        description: 'Signalétique de bureau professionnelle pour environnement financier'
-      }
-    },
-    'creative': {
-      mockup1: {
-        templateId: 'portfolio_presentation',
-        mockupType: 'packaging',
-        title: 'Présentation Portfolio',
-        description: 'Présentation créative de portfolio avec design artistique'
-      },
-      mockup2: {
-        templateId: 'studio_signage_creative',
-        mockupType: 'signage',
-        title: 'Signalétique Studio',
-        description: 'Signalétique créative pour studio artistique ou agence'
-      }
-    },
-    'food': {
-      mockup1: {
-        templateId: 'menu_design_elegant',
-        mockupType: 'packaging',
-        title: 'Design Menu',
-        description: 'Menu élégant avec présentation gastronomique professionnelle'
-      },
-      mockup2: {
-        templateId: 'restaurant_signage',
-        mockupType: 'signage',
-        title: 'Signalétique Restaurant',
-        description: 'Signalétique restaurant avec ambiance chaleureuse et appétissante'
-      }
-    },
-    'retail': {
-      mockup1: {
-        templateId: 'product_packaging',
-        mockupType: 'packaging',
-        title: 'Packaging Produit',
-        description: 'Emballage produit attractif avec design commercial optimisé'
-      },
-      mockup2: {
-        templateId: 'shopping_bag_premium',
-        mockupType: 'merchandise',
-        title: 'Sac Shopping Premium',
-        description: 'Sac shopping haut de gamme avec branding élégant'
-      }
-    },
-    'default': {
-      mockup1: {
-        templateId: 'laptop_screen_modern',
-        mockupType: 'laptop_screen',
-        title: 'Présentation Écran',
-        description: 'Présentation professionnelle sur écran d\'ordinateur'
-      },
-      mockup2: {
-        templateId: 'product_packaging',
-        mockupType: 'packaging',
-        title: 'Packaging Générique',
-        description: 'Emballage professionnel avec branding cohérent'
-      }
-    }
-  };
-
   constructor() {
     this.geminiAI = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY || ''
+      apiKey: process.env.GEMINI_API_KEY || '',
     });
     this.storageService = new StorageService();
 
@@ -156,13 +47,348 @@ export class GeminiMockupService {
   }
 
   /**
+   * Télécharge une image depuis une URL et la convertit en base64
+   */
+  private async downloadImageAsBase64(
+    imageUrl: string
+  ): Promise<{ base64: string; mimeType: string } | null> {
+    try {
+      logger.info('Downloading logo image for mockup generation', {
+        imageUrl: imageUrl.substring(0, 100),
+      });
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        logger.error('Failed to download logo image', { status: response.status });
+        return null;
+      }
+      const contentType = response.headers.get('content-type') || 'image/png';
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const mimeType = contentType.split(';')[0].trim();
+      logger.info('Logo image downloaded successfully', { size: buffer.length, mimeType });
+      return { base64: buffer.toString('base64'), mimeType };
+    } catch (error: any) {
+      logger.error('Error downloading logo image', { error: error.message });
+      return null;
+    }
+  }
+
+  /**
+   * Convertit un SVG string en base64
+   */
+  private svgToBase64(svgContent: string): { base64: string; mimeType: string } {
+    return {
+      base64: Buffer.from(svgContent, 'utf-8').toString('base64'),
+      mimeType: 'image/svg+xml',
+    };
+  }
+
+  /**
+   * Génère des scènes de mockup contextuelles basées sur la description du projet
+   */
+  getContextualMockupScenes(
+    industry: string,
+    projectDescription: string,
+    brandName: string
+  ): IndustryMockupScene[] {
+    const lowerDesc = projectDescription.toLowerCase();
+    const lowerIndustry = industry.toLowerCase();
+    const scenes: IndustryMockupScene[] = [];
+
+    // Livraison / Logistique
+    if (
+      lowerDesc.includes('livraison') ||
+      lowerDesc.includes('delivery') ||
+      lowerDesc.includes('logisti') ||
+      lowerDesc.includes('transport') ||
+      lowerDesc.includes('colis') ||
+      lowerDesc.includes('shipping')
+    ) {
+      scenes.push(
+        {
+          scene: `A professional delivery van driving through a modern city street, with the "${brandName}" logo prominently displayed on the side of the vehicle. The van is clean and branded with the company colors. Photorealistic, professional photography, daylight.`,
+          title: 'Véhicule de Livraison',
+          description: `Camion de livraison ${brandName} avec le logo intégré, en contexte urbain professionnel`,
+        },
+        {
+          scene: `A branded cardboard shipping box with the "${brandName}" logo printed on it, sitting on a doorstep with a delivery person's hand placing it. Professional product photography, warm lighting. The box looks premium and well-designed.`,
+          title: 'Packaging de Livraison',
+          description: `Colis de livraison ${brandName} avec branding professionnel`,
+        }
+      );
+    }
+    // Restaurant / Alimentation
+    else if (
+      lowerDesc.includes('restaurant') ||
+      lowerDesc.includes('food') ||
+      lowerDesc.includes('cuisine') ||
+      lowerDesc.includes('chef') ||
+      lowerDesc.includes('menu') ||
+      lowerIndustry.includes('food')
+    ) {
+      scenes.push(
+        {
+          scene: `An elegant restaurant interior with the "${brandName}" logo displayed on the wall behind the reception area. Beautiful ambient lighting, modern interior design, tables set with fine dining arrangements. Photorealistic.`,
+          title: 'Intérieur Restaurant',
+          description: `Intérieur du restaurant ${brandName} avec signalétique de marque élégante`,
+        },
+        {
+          scene: `A beautifully designed restaurant menu on a wooden table, with the "${brandName}" logo at the top. The menu has elegant typography and the brand colors are subtly integrated. A plate of gourmet food is partially visible. Professional food photography.`,
+          title: 'Menu & Gastronomie',
+          description: `Menu élégant ${brandName} avec présentation gastronomique`,
+        }
+      );
+    }
+    // Santé / Médical
+    else if (
+      lowerDesc.includes('santé') ||
+      lowerDesc.includes('health') ||
+      lowerDesc.includes('médic') ||
+      lowerDesc.includes('medic') ||
+      lowerDesc.includes('clinic') ||
+      lowerDesc.includes('pharma') ||
+      lowerIndustry.includes('health')
+    ) {
+      scenes.push(
+        {
+          scene: `A modern medical clinic building exterior with the "${brandName}" logo on the facade signage. Clean, professional architecture with glass and white surfaces. Green plants around. Photorealistic, bright daylight.`,
+          title: 'Façade Clinique',
+          description: `Façade de la clinique ${brandName} avec signalétique professionnelle`,
+        },
+        {
+          scene: `Professional medical packaging (medicine box or health product) with the "${brandName}" logo prominently displayed. Clean white and brand-colored design, pharmaceutical-grade appearance. Studio photography on white background.`,
+          title: 'Packaging Médical',
+          description: `Packaging médical ${brandName} avec design professionnel et fiable`,
+        }
+      );
+    }
+    // E-commerce / Boutique
+    else if (
+      lowerDesc.includes('e-commerce') ||
+      lowerDesc.includes('boutique') ||
+      lowerDesc.includes('shop') ||
+      lowerDesc.includes('magasin') ||
+      lowerDesc.includes('vente') ||
+      lowerIndustry.includes('retail')
+    ) {
+      scenes.push(
+        {
+          scene: `A premium branded shopping bag with the "${brandName}" logo, placed on a marble surface next to a stylish storefront. The bag is high-quality paper with elegant handles. Professional retail photography.`,
+          title: 'Sac Shopping Premium',
+          description: `Sac shopping ${brandName} avec branding haut de gamme`,
+        },
+        {
+          scene: `A modern storefront with a large illuminated sign displaying the "${brandName}" logo. Glass windows showing products inside. Evening lighting with warm glow. Urban setting. Photorealistic.`,
+          title: 'Vitrine Boutique',
+          description: `Vitrine de la boutique ${brandName} avec enseigne lumineuse`,
+        }
+      );
+    }
+    // Tech / Application / SaaS
+    else if (
+      lowerDesc.includes('app') ||
+      lowerDesc.includes('saas') ||
+      lowerDesc.includes('platform') ||
+      lowerDesc.includes('software') ||
+      lowerDesc.includes('tech') ||
+      lowerIndustry.includes('tech')
+    ) {
+      scenes.push(
+        {
+          scene: `A modern MacBook Pro on a clean desk displaying a professional web application interface for "${brandName}". The logo is visible in the top-left header. The UI uses the brand colors with a clean, modern design. Soft office lighting. Photorealistic.`,
+          title: 'Interface Web',
+          description: `Interface web ${brandName} sur ordinateur portable, design moderne et professionnel`,
+        },
+        {
+          scene: `A latest-generation smartphone held in hand, displaying the "${brandName}" mobile app splash screen with the logo centered. Modern UI design with brand colors. Blurred office background. Professional product photography.`,
+          title: 'Application Mobile',
+          description: `Application mobile ${brandName} avec écran d'accueil brandé`,
+        }
+      );
+    }
+    // Finance / Banque
+    else if (
+      lowerDesc.includes('financ') ||
+      lowerDesc.includes('banque') ||
+      lowerDesc.includes('bank') ||
+      lowerDesc.includes('invest') ||
+      lowerDesc.includes('assurance') ||
+      lowerIndustry.includes('finance')
+    ) {
+      scenes.push(
+        {
+          scene: `An elegant corporate office reception area with the "${brandName}" logo displayed as a large backlit sign on the wall behind the reception desk. Premium materials (marble, wood, glass). Professional corporate photography.`,
+          title: 'Réception Corporate',
+          description: `Réception du bureau ${brandName} avec signalétique premium`,
+        },
+        {
+          scene: `A premium business card and corporate letterhead set for "${brandName}" on a dark marble desk. The logo is embossed on the card. Gold or silver foil details. Professional studio photography with dramatic lighting.`,
+          title: 'Papeterie Corporate',
+          description: `Papeterie d'entreprise ${brandName} avec finitions premium`,
+        }
+      );
+    }
+    // Éducation
+    else if (
+      lowerDesc.includes('éducation') ||
+      lowerDesc.includes('education') ||
+      lowerDesc.includes('formation') ||
+      lowerDesc.includes('école') ||
+      lowerDesc.includes('school') ||
+      lowerDesc.includes('learn') ||
+      lowerIndustry.includes('education')
+    ) {
+      scenes.push(
+        {
+          scene: `A modern school or training center building with the "${brandName}" logo on the entrance. Students walking in. Bright, welcoming architecture. Photorealistic, daylight.`,
+          title: 'Centre de Formation',
+          description: `Centre de formation ${brandName} avec branding visible`,
+        },
+        {
+          scene: `A tablet displaying an e-learning platform interface for "${brandName}" with the logo in the header. The screen shows course content with brand colors. Books and a notebook nearby. Professional photography.`,
+          title: 'Plateforme E-learning',
+          description: `Plateforme d'apprentissage ${brandName} sur tablette`,
+        }
+      );
+    }
+    // Immobilier
+    else if (
+      lowerDesc.includes('immobili') ||
+      lowerDesc.includes('real estate') ||
+      lowerDesc.includes('property') ||
+      lowerDesc.includes('logement') ||
+      lowerDesc.includes('maison')
+    ) {
+      scenes.push(
+        {
+          scene: `A "For Sale" sign in front of a beautiful modern house, with the "${brandName}" real estate logo prominently displayed on the sign. Professional real estate photography, blue sky, green lawn.`,
+          title: 'Panneau Immobilier',
+          description: `Panneau immobilier ${brandName} devant une propriété`,
+        },
+        {
+          scene: `A modern real estate office with the "${brandName}" logo on the glass door and wall. Inside, a professional agent at a desk with property listings visible. Clean, trustworthy atmosphere. Photorealistic.`,
+          title: 'Agence Immobilière',
+          description: `Agence immobilière ${brandName} avec branding professionnel`,
+        }
+      );
+    }
+    // Sport / Fitness
+    else if (
+      lowerDesc.includes('sport') ||
+      lowerDesc.includes('fitness') ||
+      lowerDesc.includes('gym') ||
+      lowerDesc.includes('entraîn') ||
+      lowerDesc.includes('train') ||
+      lowerIndustry.includes('sport')
+    ) {
+      scenes.push(
+        {
+          scene: `A modern gym/fitness center entrance with the "${brandName}" logo as a large illuminated sign above the door. Energetic atmosphere, glass facade showing equipment inside. Evening lighting. Photorealistic.`,
+          title: 'Centre Fitness',
+          description: `Centre fitness ${brandName} avec enseigne lumineuse`,
+        },
+        {
+          scene: `Branded sportswear (t-shirt and water bottle) with the "${brandName}" logo, placed on a gym bench. The t-shirt is high-quality athletic wear in brand colors. Professional product photography.`,
+          title: 'Équipement Sportif',
+          description: `Équipement sportif brandé ${brandName}`,
+        }
+      );
+    }
+    // Voyage / Tourisme
+    else if (
+      lowerDesc.includes('voyage') ||
+      lowerDesc.includes('travel') ||
+      lowerDesc.includes('tourism') ||
+      lowerDesc.includes('hôtel') ||
+      lowerDesc.includes('hotel') ||
+      lowerIndustry.includes('travel')
+    ) {
+      scenes.push(
+        {
+          scene: `A luxury hotel entrance with the "${brandName}" logo on an elegant sign. Beautiful architecture, doorman, elegant entrance. Golden hour lighting. Photorealistic.`,
+          title: 'Entrée Hôtel',
+          description: `Entrée de l'hôtel ${brandName} avec signalétique élégante`,
+        },
+        {
+          scene: `A branded travel luggage tag and passport holder with the "${brandName}" logo, placed on a world map with a camera and sunglasses. Travel lifestyle photography, warm tones.`,
+          title: 'Accessoires Voyage',
+          description: `Accessoires de voyage brandés ${brandName}`,
+        }
+      );
+    }
+    // Beauté / Cosmétique
+    else if (
+      lowerDesc.includes('beauté') ||
+      lowerDesc.includes('beauty') ||
+      lowerDesc.includes('cosmét') ||
+      lowerDesc.includes('cosmet') ||
+      lowerDesc.includes('skin') ||
+      lowerDesc.includes('salon')
+    ) {
+      scenes.push(
+        {
+          scene: `Luxury cosmetic product packaging (cream jar and box) with the "${brandName}" logo elegantly printed. Minimalist design with brand colors. Marble surface, soft lighting, flower petals. Professional beauty product photography.`,
+          title: 'Packaging Cosmétique',
+          description: `Packaging cosmétique luxueux ${brandName}`,
+        },
+        {
+          scene: `A modern beauty salon interior with the "${brandName}" logo on the wall in elegant lettering. Mirrors, styling chairs, soft ambient lighting. Clean and luxurious atmosphere. Photorealistic.`,
+          title: 'Salon de Beauté',
+          description: `Intérieur du salon ${brandName} avec branding élégant`,
+        }
+      );
+    }
+    // Construction / BTP
+    else if (
+      lowerDesc.includes('construct') ||
+      lowerDesc.includes('bâtiment') ||
+      lowerDesc.includes('building') ||
+      lowerDesc.includes('btp') ||
+      lowerDesc.includes('architect')
+    ) {
+      scenes.push(
+        {
+          scene: `A construction site with a large banner displaying the "${brandName}" logo on the scaffolding. Workers with branded hard hats. Professional construction photography, blue sky.`,
+          title: 'Chantier de Construction',
+          description: `Chantier ${brandName} avec branding visible sur site`,
+        },
+        {
+          scene: `A branded hard hat and safety vest with the "${brandName}" logo, placed on architectural blueprints on a desk. Professional photography with construction tools nearby.`,
+          title: 'Équipement de Chantier',
+          description: `Équipement de sécurité brandé ${brandName}`,
+        }
+      );
+    }
+
+    // Fallback: scènes génériques mais professionnelles
+    if (scenes.length === 0) {
+      scenes.push(
+        {
+          scene: `A modern office building lobby with the "${brandName}" logo displayed as a large, elegant backlit sign on the main wall. Premium materials, professional corporate atmosphere. Photorealistic photography with soft lighting.`,
+          title: 'Signalétique Corporate',
+          description: `Signalétique ${brandName} dans un environnement corporate premium`,
+        },
+        {
+          scene: `A premium business card and branded stationery set (envelope, letterhead, pen) for "${brandName}" arranged on a dark wooden desk. The logo is prominently displayed on each item. Professional studio photography with dramatic lighting.`,
+          title: 'Papeterie de Marque',
+          description: `Set de papeterie professionnelle ${brandName}`,
+        }
+      );
+    }
+
+    return scenes;
+  }
+
+  /**
    * Génère les mockups pour un projet (seulement 2 mockups)
    */
   async generateProjectMockups(
     logoUrl: string,
+    logoSvgContent: string | null,
     brandColors: { primary: string; secondary: string; accent: string },
     industry: string,
     brandName: string,
+    projectDescription: string,
     userId: string,
     projectId: string
   ): Promise<{
@@ -172,76 +398,118 @@ export class GeminiMockupService {
     const startTime = Date.now();
 
     try {
-      logger.info('🎨 Starting mockup generation for project', {
+      logger.info('Starting mockup generation for project', {
         projectId,
         userId,
         industry,
         brandName,
-        logoUrl,
+        hasLogoUrl: !!logoUrl,
+        hasLogoSvg: !!logoSvgContent,
         brandColors,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
-      // Configuration des mockups selon l'industrie
-      const industryConfig = this.industryMockups[industry.toLowerCase()] || this.industryMockups['default'];
+      // Télécharger le logo comme image base64 pour l'envoyer à Gemini
+      let logoImageBase64: string | null = null;
+      let logoMimeType = 'image/png';
 
-      logger.info('📋 Industry configuration selected', {
-        industry: industry.toLowerCase(),
-        mockup1Type: industryConfig.mockup1.mockupType,
-        mockup2Type: industryConfig.mockup2.mockupType,
-        projectId
+      // Priorité 1: SVG content direct (plus fiable)
+      if (logoSvgContent && logoSvgContent.includes('<svg')) {
+        const svgData = this.svgToBase64(logoSvgContent);
+        logoImageBase64 = svgData.base64;
+        logoMimeType = svgData.mimeType;
+        logger.info('Using SVG content directly for logo', { projectId });
+      }
+      // Priorité 2: Télécharger depuis l'URL
+      else if (logoUrl) {
+        const downloaded = await this.downloadImageAsBase64(logoUrl);
+        if (downloaded) {
+          logoImageBase64 = downloaded.base64;
+          logoMimeType = downloaded.mimeType;
+          logger.info('Logo downloaded from URL for mockup generation', { projectId });
+        }
+      }
+
+      if (!logoImageBase64) {
+        logger.warn(
+          'No logo image available for mockup generation, proceeding with text-only prompt',
+          { projectId }
+        );
+      }
+
+      // Générer des scènes contextuelles basées sur le projet
+      const scenes = this.getContextualMockupScenes(industry, projectDescription, brandName);
+
+      logger.info('Contextual mockup scenes generated', {
+        industry,
+        scenesCount: scenes.length,
+        scene1Title: scenes[0]?.title,
+        scene2Title: scenes[1]?.title,
+        projectId,
       });
 
       // Génération des 2 mockups en parallèle
       const [mockup1, mockup2] = await Promise.all([
-        this.generateMockup({
-          templateId: industryConfig.mockup1.templateId,
-          logoUrl,
-          brandColors,
-          mockupType: industryConfig.mockup1.mockupType as any,
-          industry,
-          brandName
-        }, userId, projectId, 'mockup-1'),
-
-        this.generateMockup({
-          templateId: industryConfig.mockup2.templateId,
-          logoUrl,
-          brandColors,
-          mockupType: industryConfig.mockup2.mockupType as any,
-          industry,
-          brandName
-        }, userId, projectId, 'mockup-2')
+        this.generateMockup(
+          {
+            logoImageBase64,
+            logoMimeType,
+            brandColors,
+            industry,
+            brandName,
+            projectDescription,
+            sceneDescription: scenes[0].scene,
+            mockupTitle: scenes[0].title,
+          },
+          userId,
+          projectId,
+          'mockup-1'
+        ),
+        this.generateMockup(
+          {
+            logoImageBase64,
+            logoMimeType,
+            brandColors,
+            industry,
+            brandName,
+            projectDescription,
+            sceneDescription: scenes[1].scene,
+            mockupTitle: scenes[1].title,
+          },
+          userId,
+          projectId,
+          'mockup-2'
+        ),
       ]);
 
       const duration = Date.now() - startTime;
 
-      logger.info('✅ Project mockups generation completed successfully', {
+      logger.info('Project mockups generation completed successfully', {
         projectId,
         userId,
         industry,
         mockup1Url: mockup1.mockupUrl,
         mockup2Url: mockup2.mockupUrl,
         duration: `${duration}ms`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       return {
         mockup1: {
           ...mockup1,
-          title: industryConfig.mockup1.title,
-          description: industryConfig.mockup1.description
+          title: scenes[0].title,
+          description: scenes[0].description,
         },
         mockup2: {
           ...mockup2,
-          title: industryConfig.mockup2.title,
-          description: industryConfig.mockup2.description
-        }
+          title: scenes[1].title,
+          description: scenes[1].description,
+        },
       };
-
     } catch (error: any) {
       const duration = Date.now() - startTime;
 
-      logger.error('❌ Error generating project mockups', {
+      logger.error('Error generating project mockups', {
         error: error.message,
         stack: error.stack,
         projectId,
@@ -249,7 +517,7 @@ export class GeminiMockupService {
         industry,
         brandName,
         duration: `${duration}ms`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       throw new Error(`Failed to generate mockups: ${error.message}`);
@@ -257,7 +525,7 @@ export class GeminiMockupService {
   }
 
   /**
-   * Génère un mockup individuel avec Gemini  Image
+   * Génère un mockup individuel avec Gemini Image en envoyant le logo comme image
    */
   private async generateMockup(
     request: MockupGenerationRequest,
@@ -268,69 +536,75 @@ export class GeminiMockupService {
     const mockupStartTime = Date.now();
 
     try {
-      logger.info('🖼️ Starting individual mockup generation', {
+      logger.info('Starting individual mockup generation', {
         mockupName,
-        templateId: request.templateId,
-        mockupType: request.mockupType,
         industry: request.industry,
         brandName: request.brandName,
-        logoUrl: request.logoUrl,
+        hasLogoImage: !!request.logoImageBase64,
+        mockupTitle: request.mockupTitle,
         projectId,
         userId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Si l'API key n'est pas configurée, retourner un mockup placeholder
       if (!process.env.GEMINI_API_KEY) {
-        logger.warn('⚠️ Gemini API not configured, returning placeholder mockup', {
+        logger.warn('Gemini API not configured, returning placeholder mockup', {
           mockupName,
-          projectId
+          projectId,
         });
         return this.generatePlaceholderMockup(request, mockupName);
       }
 
-      // Créer le prompt pour Gemini basé sur le type de mockup et l'industrie
-      const prompt = this.createMockupPrompt(request);
+      // Construire le contenu multimodal (texte + image du logo)
+      const contents = this.buildMultimodalContent(request);
 
-      logger.info('📝 Mockup prompt created', {
+      logger.info('Multimodal content built for Gemini', {
         mockupName,
-        promptLength: prompt.length,
-        mockupType: request.mockupType,
-        projectId
+        hasImagePart: !!request.logoImageBase64,
+        projectId,
       });
 
       // Générer l'image avec Gemini
-      logger.info('🤖 Calling Gemini Image API', {
+      logger.info('Calling Gemini Image API', {
         mockupName,
-        model: 'gemini-3-pro-image-preview',
-        projectId
+        model: 'gemini-2.0-flash-exp',
+        projectId,
       });
 
       const response = await this.geminiAI.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: prompt,
+        model: 'gemini-2.0-flash-exp',
+        contents: contents,
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
       });
 
-      logger.info('📡 Gemini API response received', {
+      logger.info('Gemini API response received', {
         mockupName,
         hasCandidates: !!(response.candidates && response.candidates.length > 0),
         candidatesCount: response.candidates?.length || 0,
-        projectId
+        projectId,
       });
 
       // Extraire l'image générée
       let imageBuffer: Buffer | null = null;
 
-      if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts) {
+      if (
+        response.candidates &&
+        response.candidates[0] &&
+        response.candidates[0].content &&
+        response.candidates[0].content.parts
+      ) {
         for (const part of response.candidates[0].content.parts) {
           if (part.inlineData && part.inlineData.data) {
             const imageData = part.inlineData.data;
             imageBuffer = Buffer.from(imageData, 'base64');
 
-            logger.info('🎯 Image data extracted from Gemini response', {
+            logger.info('Image data extracted from Gemini response', {
               mockupName,
               imageSize: imageBuffer.length,
-              projectId
+              projectId,
             });
             break;
           }
@@ -345,12 +619,12 @@ export class GeminiMockupService {
       const fileName = `${mockupName}-${Date.now()}.png`;
       const folderPath = `projects/${projectId}/Mockups`;
 
-      logger.info('☁️ Uploading mockup to Firebase Storage', {
+      logger.info('Uploading mockup to Firebase Storage', {
         mockupName,
         fileName,
         folderPath,
         imageSize: imageBuffer.length,
-        projectId
+        projectId,
       });
 
       const uploadResult = await this.storageService.uploadFile(
@@ -362,46 +636,42 @@ export class GeminiMockupService {
 
       const mockupDuration = Date.now() - mockupStartTime;
 
-      logger.info('✅ Mockup generated and stored successfully', {
+      logger.info('Mockup generated and stored successfully', {
         mockupName,
-        templateId: request.templateId,
-        mockupType: request.mockupType,
+        mockupTitle: request.mockupTitle,
         downloadURL: uploadResult.downloadURL,
         fileName,
         duration: `${mockupDuration}ms`,
         projectId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       return {
         mockupUrl: uploadResult.downloadURL,
-        templateId: request.templateId,
-        mockupType: request.mockupType,
-        title: '',
-        description: ''
+        templateId: mockupName,
+        mockupType: request.industry,
+        title: request.mockupTitle,
+        description: '',
       };
-
     } catch (error: any) {
       const mockupDuration = Date.now() - mockupStartTime;
 
-      logger.error('❌ Error generating individual mockup', {
+      logger.error('Error generating individual mockup', {
         error: error.message,
         stack: error.stack,
         mockupName,
-        templateId: request.templateId,
-        mockupType: request.mockupType,
         brandName: request.brandName,
         industry: request.industry,
         duration: `${mockupDuration}ms`,
         projectId,
         userId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // En cas d'erreur, retourner un placeholder
-      logger.info('🔄 Fallback to placeholder mockup', {
+      logger.info('Fallback to placeholder mockup', {
         mockupName,
-        projectId
+        projectId,
       });
 
       return this.generatePlaceholderMockup(request, mockupName);
@@ -409,54 +679,56 @@ export class GeminiMockupService {
   }
 
   /**
-   * Crée un prompt spécifique pour générer un mockup avec Gemini incluant le logo
+   * Construit le contenu multimodal (texte + image du logo) pour Gemini
    */
-  private createMockupPrompt(request: MockupGenerationRequest): string {
-    const { mockupType, brandName, brandColors, industry, logoUrl } = request;
+  private buildMultimodalContent(request: MockupGenerationRequest): Content[] {
+    const { brandName, brandColors, industry, sceneDescription, logoImageBase64, logoMimeType } =
+      request;
 
-    // Prompt de base optimisé pour l'intégration du logo
-    const basePrompt = `Créez une image de mockup professionnelle et photoréaliste pour la marque "${brandName}" dans l'industrie ${industry}. Le mockup DOIT inclure le logo de la marque de manière proéminente et intégrée professionnellement dans le design.`;
+    const logoInstruction = logoImageBase64
+      ? 'I am providing the EXACT logo image of this brand. You MUST reproduce this EXACT logo faithfully in the mockup. Do NOT invent a different logo. Copy the provided logo as precisely as possible.'
+      : `The brand name "${brandName}" must be clearly visible and prominently displayed.`;
 
-    const colorInfo = `Utilisez ces couleurs exactes de la marque: primaire ${brandColors.primary}, secondaire ${brandColors.secondary}, accent ${brandColors.accent}. Le logo doit être clairement visible et bien intégré avec ces couleurs.`;
+    const textPrompt = `You are a professional mockup designer. Generate a HIGH QUALITY, PHOTOREALISTIC mockup image.
 
-    const logoIntegration = `CRITIQUE: Le logo de la marque doit être affiché de manière proéminente et intégré professionnellement dans le mockup. Le logo doit être clairement lisible, correctement dimensionné, et positionné selon les standards de design professionnel pour l'industrie ${industry}. Assurez-vous que le logo apparaît naturellement dans le contexte du mockup.`;
+BRAND: "${brandName}"
+INDUSTRY: ${industry}
+BRAND COLORS: Primary ${brandColors.primary}, Secondary ${brandColors.secondary}, Accent ${brandColors.accent}
 
-    let specificPrompt = '';
+SCENE TO CREATE:
+${sceneDescription}
 
-    switch (mockupType) {
-      case 'business_card':
-        specificPrompt = `Créez un mockup de carte de visite élégante avec le logo "${brandName}" affiché de manière proéminente sur le devant. La carte doit avoir un design professionnel adapté à l'industrie ${industry}, avec une typographie propre et les couleurs de la marque intégrées avec goût. Le logo doit être le point focal du design de la carte. Montrez la carte sur un bureau moderne avec un éclairage doux et professionnel. La carte doit paraître premium et appropriée à l'industrie.`;
-        break;
+CRITICAL REQUIREMENTS:
+- ${logoInstruction}
+- The mockup must be PHOTOREALISTIC - it should look like a real photograph, not a digital illustration.
+- Use the brand colors (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) throughout the scene.
+- The logo/brand must be the FOCAL POINT of the image.
+- Professional lighting, realistic shadows, and high-quality textures.
+- The scene must feel authentic and specific to this type of business.
 
-      case 'laptop_screen':
-        specificPrompt = `Montrez un écran d'ordinateur portable moderne affichant une interface professionnelle ou un site web pour "${brandName}" avec le logo mis en avant dans l'en-tête ou la zone principale. L'écran doit montrer un design UI propre et moderne approprié à l'industrie ${industry}. Le logo doit être clairement visible et bien intégré dans le design de l'interface. Incluez les couleurs de la marque dans toute l'interface. L'ordinateur portable doit être sur un bureau propre avec un éclairage professionnel.`;
-        break;
+Generate ONLY the image, no text response.`;
 
-      case 'mobile_app':
-        specificPrompt = `Montrez un smartphone affichant une interface d'application mobile pour "${brandName}" avec le logo affiché de manière proéminente dans l'en-tête de l'app ou l'écran de démarrage. L'app doit avoir un design moderne et convivial approprié à l'industrie ${industry}. Le logo doit être clairement visible et les couleurs de la marque doivent être utilisées dans toute l'interface. Montrez le téléphone dans un environnement professionnel avec un bon éclairage.`;
-        break;
+    const parts: Part[] = [];
 
-      case 'packaging':
-        specificPrompt = `Montrez un packaging de produit professionnel pour "${brandName}" avec le logo mis en avant sur le panneau avant. Le packaging doit être élégant et moderne, adapté à l'industrie ${industry}. Le logo doit être l'élément visuel principal, clairement lisible et bien positionné. Incorporez les couleurs de la marque efficacement dans tout le design du packaging. Montrez le packaging dans un environnement propre et bien éclairé qui met l'accent sur la qualité premium.`;
-        break;
-
-      case 'signage':
-        specificPrompt = `Montrez une signalétique professionnelle pour "${brandName}" avec le logo comme élément central. Le panneau doit être moderne et élégant, approprié à l'industrie ${industry}. Le logo doit être clairement visible, correctement dimensionné, et le point focal principal de la signalétique. Utilisez les couleurs de la marque efficacement dans le design du panneau. Montrez-le dans un environnement d'affaires réaliste avec un éclairage professionnel.`;
-        break;
-
-      case 'merchandise':
-        specificPrompt = `Montrez du merchandising premium (comme un sac shopping, t-shirt, ou article de marque) pour "${brandName}" avec le logo affiché de manière proéminente. L'article doit paraître de haute qualité et professionnel, adapté à l'industrie ${industry}. Le logo doit être clairement visible et bien intégré dans le design du merchandising. Incorporez les couleurs de la marque avec goût. Montrez-le dans un environnement élégant et professionnel.`;
-        break;
-
-      default:
-        specificPrompt = `Montrez un article de marque professionnel pour "${brandName}" dans l'industrie ${industry} avec le logo mis en avant. Le logo doit être clairement visible et les couleurs de la marque doivent être incorporées de manière élégante et moderne.`;
+    // Ajouter l'image du logo si disponible
+    if (logoImageBase64) {
+      parts.push({
+        inlineData: {
+          mimeType: logoMimeType,
+          data: logoImageBase64,
+        },
+      });
     }
 
-    const qualityRequirements = `L'image finale doit être de haute qualité, photoréaliste, et adaptée à une présentation de marque professionnelle. Assurez-vous d'un excellent éclairage, d'une composition soignée, et d'une attention aux détails. Le logo doit être net, clair, et intégré professionnellement dans le design global. Le mockup doit donner l'impression que la marque est établie et crédible.`;
+    // Ajouter le texte du prompt
+    parts.push({ text: textPrompt });
 
-    const contextualPlacement = `Le logo doit être placé de manière contextuelle et naturelle selon le type de mockup: sur l'écran pour les interfaces, sur la surface visible pour les packaging, intégré harmonieusement dans les cartes de visite, etc. Évitez les placements artificiels ou forcés du logo.`;
-
-    return `${basePrompt} ${colorInfo} ${logoIntegration} ${specificPrompt} ${qualityRequirements} ${contextualPlacement}`;
+    return [
+      {
+        role: 'user',
+        parts: parts,
+      },
+    ];
   }
 
   /**
@@ -466,44 +738,29 @@ export class GeminiMockupService {
     request: MockupGenerationRequest,
     mockupName: string
   ): MockupGenerationResult {
-    logger.info('🎭 Generating placeholder mockup', {
+    logger.info('Generating placeholder mockup', {
       mockupName,
-      mockupType: request.mockupType,
       brandName: request.brandName,
       industry: request.industry,
-      templateId: request.templateId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
-    // URL d'image placeholder basée sur le type de mockup avec les couleurs de la marque
     const primaryColor = request.brandColors.primary.replace('#', '');
     const secondaryColor = request.brandColors.secondary.replace('#', '');
+    const placeholderUrl = `https://via.placeholder.com/800x600/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' - ' + request.mockupTitle)}`;
 
-    const placeholderUrls = {
-      'business_card': `https://via.placeholder.com/350x200/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Business Card')}`,
-      'laptop_screen': `https://via.placeholder.com/800x600/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Interface')}`,
-      'mobile_app': `https://via.placeholder.com/300x600/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' App')}`,
-      'packaging': `https://via.placeholder.com/400x400/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Package')}`,
-      'signage': `https://via.placeholder.com/600x400/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Sign')}`,
-      'merchandise': `https://via.placeholder.com/400x400/${primaryColor}/${secondaryColor}?text=${encodeURIComponent(request.brandName + ' Merch')}`
-    };
-
-    const placeholderUrl = placeholderUrls[request.mockupType] || placeholderUrls['packaging'];
-
-    logger.info('✅ Placeholder mockup generated', {
+    logger.info('Placeholder mockup generated', {
       mockupName,
-      mockupType: request.mockupType,
       placeholderUrl,
-      brandColors: request.brandColors,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return {
       mockupUrl: placeholderUrl,
-      templateId: request.templateId,
-      mockupType: request.mockupType,
-      title: '',
-      description: ''
+      templateId: mockupName,
+      mockupType: request.industry,
+      title: request.mockupTitle,
+      description: '',
     };
   }
 
@@ -512,22 +769,43 @@ export class GeminiMockupService {
    */
   async generateSingleMockup(
     logoUrl: string,
+    logoSvgContent: string | null,
     brandColors: { primary: string; secondary: string; accent: string },
     industry: string,
     brandName: string,
-    mockupType: string,
+    projectDescription: string,
+    sceneDescription: string,
+    mockupTitle: string,
     userId: string,
     projectId: string,
     mockupIndex: number
   ): Promise<MockupGenerationResult | null> {
     try {
+      // Préparer le logo en base64
+      let logoImageBase64: string | null = null;
+      let logoMimeType = 'image/png';
+
+      if (logoSvgContent && logoSvgContent.includes('<svg')) {
+        const svgData = this.svgToBase64(logoSvgContent);
+        logoImageBase64 = svgData.base64;
+        logoMimeType = svgData.mimeType;
+      } else if (logoUrl) {
+        const downloaded = await this.downloadImageAsBase64(logoUrl);
+        if (downloaded) {
+          logoImageBase64 = downloaded.base64;
+          logoMimeType = downloaded.mimeType;
+        }
+      }
+
       const request: MockupGenerationRequest = {
-        templateId: `${mockupType}_${mockupIndex}`,
-        logoUrl,
+        logoImageBase64,
+        logoMimeType,
         brandColors,
-        mockupType: mockupType as any,
         industry,
-        brandName
+        brandName,
+        projectDescription,
+        sceneDescription,
+        mockupTitle,
       };
 
       return await this.generateMockup(request, userId, projectId, `mockup-${mockupIndex}`);

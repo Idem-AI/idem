@@ -2,112 +2,51 @@
 export const MOCKUPS_COUNT = 2; // Modifiez cette valeur pour générer plus de mockups
 
 export const MOCKUPS_SECTION_PROMPT = `
-Vous êtes un expert en design de mockups et en visualisation de marque. Créez une section de mockups PROFESSIONNELLE qui présente l'identité de marque dans des applications réelles avec le LOGO DU PROJET intégré. Chaque mockup doit être unique, spécifique à l'industrie, et conçu de manière professionnelle.
+Vous êtes un directeur artistique spécialisé dans la mise en situation de marque. Créez une PLEINE PAGE de mockups physiques montrant le logo et l'identité de marque dans des applications tangibles du monde réel — spécifiques à L'INDUSTRIE de ce projet.
 
-🎯 MISSION MOCKUP PROFESSIONNEL:
-Générez une section complète de mockups avec des images de mockup photoréalistes. Vous DEVEZ intégrer le logo réel du projet dans chaque mockup pour montrer des applications de marque réalistes. Générez exactement ${MOCKUPS_COUNT} mockups.
+RÈGLE CRÉATIVE CRITIQUE:
+Ne produisez PAS toujours les mêmes mockups génériques (carte de visite + écran laptop). Étudiez l'industrie, le nom de marque, et la personnalité du projet, puis choisissez des applications physiques qui ont du SENS pour CE type d'entreprise. Un restaurant a besoin d'un menu et d'une enseigne, pas d'un écran de laptop.
 
-🎨 SYSTÈME DE VARIATION MOCKUP (Choisir selon l'industrie):
+SÉLECTION DE MOCKUPS PAR INDUSTRIE (choisir ce qui correspond):
+- Tech/SaaS: écran laptop avec interface, badge employé, stickers, packaging tech
+- Restaurant/Food: menu, enseigne de façade, packaging take-away, tablier, carte de fidélité
+- Mode/Beauté: étiquette vêtement, sac shopping, packaging produit, vitrine
+- Santé: blouse médicale brodée, signalétique clinique, carte de rendez-vous, packaging pharma
+- Finance: papier à en-tête, carte de visite premium, rapport annuel, plaque de porte
+- Éducation: cahier, badge étudiant, signalétique campus, certificat
+- Immobilier: panneau "À vendre", brochure propriété, carte de visite, enseigne agence
+- Créatif/Agence: portfolio imprimé, carte de visite créative, merchandising (tote bag, mug)
+- Commerce: sac shopping, packaging produit, enseigne magasin, étiquette prix
 
-**TECH/IA:**
-- Écran d'ordinateur portable avec interface de marque
-- Application mobile avec éléments de marque
-- Carte de visite avec design tech
-- Merchandising de marque (t-shirt, mug)
+CONTENU DE LA PAGE:
+1. Titre de section: "Applications de Marque" — stylé avec la personnalité de la marque
+2. Exactement ${MOCKUPS_COUNT} mockups, chacun pertinent pour l'industrie du projet
+3. Chaque mockup doit:
+   - Montrer le logo du projet intégré de manière réaliste (via <img> avec l'URL du logo)
+   - Utiliser les couleurs RÉELLES de la marque (bg-[#hex])
+   - Avoir un titre descriptif et une courte légende expliquant l'application (en français)
+   - Être construit en HTML/Tailwind comme une représentation visuelle réaliste de l'objet physique
+4. Petite section en bas: "Principes d'Application" — 3-4 règles courtes pour maintenir la cohérence
 
-**SANTÉ/BIEN-ÊTRE:**
-- Packaging médical professionnel
-- Signalétique de clinique
-- Carte de visite propre et fiable
-- Produits de bien-être marqués
+RÈGLES DE DESIGN:
+- Créez des représentations visuelles réalistes des objets physiques en HTML/Tailwind (ombres, perspectives, textures)
+- Le logo doit être visible et correctement dimensionné dans chaque mockup
+- Utilisez les couleurs RÉELLES de la marque, pas des couleurs génériques
+- Chaque mockup doit raconter une histoire sur comment la marque vit dans le monde réel
+- Présentation élégante avec espacement généreux
 
-**FINANCE/JURIDIQUE:**
-- Carte de visite professionnelle
-- Papier à en-tête corporatif
-- Signalétique de bureau
-- Documents et rapports marqués
-
-**CRÉATIF/AGENCE:**
-- Présentation de portfolio
-- Carte de visite créative
-- Merchandising de marque
-- Signalétique de studio
-
-**ALIMENTATION/RESTAURANT:**
-- Design de menu
-- Packaging alimentaire
-- Signalétique de restaurant
-- Carte de visite appétissante
-
-**COMMERCE/E-COMMERCE:**
-- Packaging de produit
-- Design de sac shopping
-- Signalétique de magasin
-- Carte de visite
-
-🔧 INTÉGRATION LOGO PROFESSIONNEL:
-Générez ${MOCKUPS_COUNT} images de mockup photoréalistes avec le LOGO RÉEL DU PROJET intégré de manière proéminente:
-
-**CRITIQUES: EXIGENCES D'INTÉGRATION LOGO:**
-- Le logo du projet sera fourni comme image dans le contexte
-- Vous DEVEZ utiliser ce logo exact dans vos mockups
-- Le logo doit être placé et dimensionné de manière réaliste pour chaque application
-- Maintenez les couleurs et proportions originales du logo
-- Montrez le logo tel qu'il apparaîtrait dans des contextes professionnels réels
-
-**Instructions de Génération de Mockup:**
-1. **Mockup Spécifique à l'Industrie 1** (Application primaire - Choisir selon le type de projet)
-   - Tech: Écran d'ordinateur portable affichant une interface professionnelle avec le logo du projet
-   - Santé: Packaging médical avec branding professionnel et le logo du projet
-   - Finance: Papier à en-tête corporatif avec design élégant et le logo du projet
-   - Créatif: Présentation de portfolio avec flair artistique et le logo du projet
-   - Alimentation: Design de menu avec présentation gastronomique et le logo du projet
-   - Commerce: Packaging de produit avec attrait commercial et le logo du projet
-
-2. **Mockup Spécifique à l'Industrie 2** (Application secondaire - Choisir selon le type de projet)
-   - Tech: Interface d'application mobile avec UI moderne et le logo du projet
-   - Santé: Signalétique de clinique avec design fiable et le logo du projet
-   - Finance: Signalétique de bureau avec apparence professionnelle et le logo du projet
-   - Créatif: Signalétique de studio avec éléments créatifs et le logo du projet
-   - Alimentation: Signalétique de restaurant avec ambiance appétissante et le logo du projet
-   - Commerce: Sac shopping avec branding premium et le logo du projet
-
-🎭 RÈGLES D'EXÉCUTION CRÉATIVE:
-1. **AUTHENTICITÉ INDUSTRIELLE**: Chaque mockup doit refléter les standards visuels de l'industrie
-2. **COHÉRENCE DE MARQUE**: Tous les mockups doivent utiliser les couleurs exactes du projet
-3. **QUALITÉ PROFESSIONNELLE**: Mockups photoréalistes et haute résolution uniquement
-4. **PERTINENCE CONTEXTUELLE**: Les mockups doivent montrer des scénarios d'usage réalistes
-5. **HIÉRARCHIE VISUELLE**: Le logo et les éléments de marque doivent être mis en avant
-
-🌟 STRUCTURE DE PRÉSENTATION MOCKUP:
-Créez une section complète de mockups avec:
-- En-tête de section avec titre "Mockups de Marque" et description
-- Disposition en grille avec ${MOCKUPS_COUNT} cartes de mockup (applications spécifiques à l'industrie avec intégration du logo réel)
-- Chaque carte inclut: indicateur de point coloré, titre, image de mockup avec logo du projet intégré, description expliquant l'application du logo
-- Section directives avec 4 principes clés: Intégration Logo, Cohérence Marque, Qualité Visuelle, Standards Industrie
-- Utilisez les classes Tailwind CSS pour un style moderne et professionnel
-- Incluez PrimeIcons pour les éléments visuels (pi pi-palette, pi pi-eye, pi pi-cog, pi pi-check-circle)
-
-📋 INTÉGRATION DE CONTENU DYNAMIQUE:
-- Utilisez le nom de marque réel du projet, les couleurs, et le contexte industriel
-- Générez des titres et descriptions appropriés à l'industrie
-- Créez des scénarios de mockup réalistes et professionnels
-- Assurez-vous que toutes les images sont de haute qualité et contextuellement pertinentes
-
-🎯 EXIGENCES DE QUALITÉ:
-- Tous les mockups doivent être photoréalistes et professionnels
-- Les éléments de marque doivent être clairement visibles et correctement dimensionnés
-- Les couleurs doivent correspondre à la palette exacte du projet
-- La typographie doit être lisible et correctement hiérarchisée
-- Les mockups doivent s'adapter aux contraintes de mise en page A4 portrait
-- Chaque mockup doit raconter une histoire sur l'application de la marque
+RÈGLES TECHNIQUES:
+- HTML brut + Tailwind CSS uniquement, sortie minifiée sur une seule ligne
+- A4 portrait, overflow-hidden, optimisé pour l'impression
+- PrimeIcons (pi pi-icon-name) pour les icônes
+- Pas de CSS custom, pas de JS
+- Tout le texte en français
+- Conformité WCAG AA pour le contraste
 
 IMPORTANT:
-- Pas de balises HTML ou de préfixes dans la sortie
-- Générez des sélections de mockup appropriées à l'industrie
-- Assurez-vous que les points d'intégration de l'API sont clairement marqués
-- Créez quelque chose qui rend la marque tangible et réelle
+- Ne PAS ajouter de balise "html" ou de préfixe dans la sortie
+- Ne PAS toujours faire carte de visite + laptop — adapter à l'industrie
+- Utiliser les couleurs HEX réelles de la marque
 
-SORTIE:
-Générez UNIQUEMENT la chaîne HTML minifiée qui crée une section de mockups complète et spécifique à l'industrie.
+CONTEXTE DU PROJET:
 `;
