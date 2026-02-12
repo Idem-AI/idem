@@ -323,11 +323,7 @@ REQUIREMENTS:
       const historyDiffString = getHistoryDiff(historyMessages, filesPath, nowFiles);
 
       ChatLogger.info('MAX_PROMPT', 'Building max system prompt for large content');
-      const maxPrompt = buildMaxSystemPrompt(
-        filesPath,
-        nowFiles,
-        historyDiffString
-      );
+      const maxPrompt = buildMaxSystemPrompt(filesPath, nowFiles, historyDiffString);
       const userRequest =
         'My question is: ' +
         messages[messages.length - 1].content +
