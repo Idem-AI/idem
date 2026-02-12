@@ -12,7 +12,11 @@ import { LOGO_VARIATION_MONOCHROME_PROMPT } from './prompts/singleGenerations/lo
 import { LOGO_EDIT_PROMPT } from './prompts/singleGenerations/logo-edit.prompt';
 
 import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.prompt';
-import { LOGO_SYSTEM_SECTION_PROMPT } from './prompts/01_logo-system-section.prompt';
+import {
+  LOGO_SYSTEM_SECTION_PROMPT,
+  LOGO_VARIATION_PAGE_PROMPT,
+  LOGO_BEST_PRACTICES_PAGE_PROMPT,
+} from './prompts/01_logo-system-section.prompt';
 import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
 import { MOCKUPS_SECTION_PROMPT, MOCKUPS_COUNT } from './prompts/06_mockups-section.prompt';
@@ -174,51 +178,116 @@ export class BrandingService extends GenericService {
     // Détecter l'industrie
     let industry = 'Technology';
     if (
+      lowerDesc.includes('livraison') ||
+      lowerDesc.includes('delivery') ||
+      lowerDesc.includes('logisti') ||
+      lowerDesc.includes('transport') ||
+      lowerDesc.includes('colis') ||
+      lowerDesc.includes('shipping') ||
+      lowerDesc.includes('coursier')
+    ) {
+      industry = 'Delivery & Logistics';
+    } else if (
       lowerDesc.includes('food') ||
       lowerDesc.includes('restaurant') ||
-      lowerDesc.includes('cuisine')
+      lowerDesc.includes('cuisine') ||
+      lowerDesc.includes('chef') ||
+      lowerDesc.includes('menu') ||
+      lowerDesc.includes('traiteur')
     ) {
       industry = 'Food & Beverage';
     } else if (
       lowerDesc.includes('fashion') ||
       lowerDesc.includes('clothing') ||
-      lowerDesc.includes('apparel')
+      lowerDesc.includes('apparel') ||
+      lowerDesc.includes('mode') ||
+      lowerDesc.includes('vêtement')
     ) {
       industry = 'Fashion';
     } else if (
       lowerDesc.includes('health') ||
       lowerDesc.includes('medical') ||
-      lowerDesc.includes('wellness')
+      lowerDesc.includes('wellness') ||
+      lowerDesc.includes('santé') ||
+      lowerDesc.includes('médic') ||
+      lowerDesc.includes('clinic') ||
+      lowerDesc.includes('pharma')
     ) {
       industry = 'Healthcare';
     } else if (
       lowerDesc.includes('finance') ||
       lowerDesc.includes('bank') ||
-      lowerDesc.includes('investment')
+      lowerDesc.includes('investment') ||
+      lowerDesc.includes('banque') ||
+      lowerDesc.includes('assurance') ||
+      lowerDesc.includes('comptab')
     ) {
       industry = 'Finance';
     } else if (
       lowerDesc.includes('education') ||
       lowerDesc.includes('learning') ||
-      lowerDesc.includes('school')
+      lowerDesc.includes('school') ||
+      lowerDesc.includes('éducation') ||
+      lowerDesc.includes('formation') ||
+      lowerDesc.includes('école')
     ) {
       industry = 'Education';
     } else if (
       lowerDesc.includes('sport') ||
       lowerDesc.includes('fitness') ||
-      lowerDesc.includes('gym')
+      lowerDesc.includes('gym') ||
+      lowerDesc.includes('entraîn')
     ) {
       industry = 'Sports & Fitness';
     } else if (
       lowerDesc.includes('travel') ||
       lowerDesc.includes('tourism') ||
-      lowerDesc.includes('hotel')
+      lowerDesc.includes('hotel') ||
+      lowerDesc.includes('voyage') ||
+      lowerDesc.includes('hôtel') ||
+      lowerDesc.includes('tourisme')
     ) {
       industry = 'Travel & Hospitality';
     } else if (
+      lowerDesc.includes('immobili') ||
+      lowerDesc.includes('real estate') ||
+      lowerDesc.includes('property') ||
+      lowerDesc.includes('logement') ||
+      lowerDesc.includes('maison')
+    ) {
+      industry = 'Real Estate';
+    } else if (
+      lowerDesc.includes('beauté') ||
+      lowerDesc.includes('beauty') ||
+      lowerDesc.includes('cosmét') ||
+      lowerDesc.includes('cosmet') ||
+      lowerDesc.includes('salon') ||
+      lowerDesc.includes('coiffure')
+    ) {
+      industry = 'Beauty & Cosmetics';
+    } else if (
+      lowerDesc.includes('construct') ||
+      lowerDesc.includes('bâtiment') ||
+      lowerDesc.includes('btp') ||
+      lowerDesc.includes('architect') ||
+      lowerDesc.includes('building')
+    ) {
+      industry = 'Construction';
+    } else if (
+      lowerDesc.includes('e-commerce') ||
+      lowerDesc.includes('boutique') ||
+      lowerDesc.includes('shop') ||
+      lowerDesc.includes('magasin') ||
+      lowerDesc.includes('retail') ||
+      lowerDesc.includes('vente')
+    ) {
+      industry = 'Retail & E-commerce';
+    } else if (
       lowerDesc.includes('eco') ||
       lowerDesc.includes('green') ||
-      lowerDesc.includes('sustainable')
+      lowerDesc.includes('sustainable') ||
+      lowerDesc.includes('durable') ||
+      lowerDesc.includes('écolog')
     ) {
       industry = 'Sustainability';
     }
@@ -433,7 +502,36 @@ export class BrandingService extends GenericService {
         },
         {
           promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
-          stepName: 'Logo System',
+          stepName: 'Logo Principal',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
+            projectDescription,
+          stepName: 'Logo Variation Fond Clair',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
+            projectDescription,
+          stepName: 'Logo Variation Fond Sombre',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
+            projectDescription,
+          stepName: 'Logo Variation Monochrome',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
+          stepName: 'Logo Bonnes Pratiques',
           hasDependencies: false,
         },
         {
@@ -1504,11 +1602,14 @@ export class BrandingService extends GenericService {
         sections: branding.sections,
         sectionDisplayOrder: [
           'Brand Header',
-          'Logo System',
+          'Logo Principal',
+          'Logo Variation Fond Clair',
+          'Logo Variation Fond Sombre',
+          'Logo Variation Monochrome',
+          'Logo Bonnes Pratiques',
           'Color Palette',
           'Typography',
-          'Usage Guidelines',
-          // "Visual Examples",
+          'Brand Mockups',
           'Brand Footer',
         ],
         footerText: 'Generated by Idem',
@@ -2032,15 +2133,17 @@ ${LOGO_EDIT_PROMPT}`;
       }
 
       // Préparer les données pour la génération de mockups
-      const logoUrl = branding.logo.svg; // Utiliser le SVG principal du logo
+      const logoSvg = branding.logo.svg;
       const brandColors = {
         primary: branding.colors.colors.primary || '#000000',
         secondary: branding.colors.colors.secondary || '#666666',
         accent: branding.colors.colors.accent || '#999999',
       };
 
-      // Utiliser une industrie par défaut ou extraire depuis la description
-      const industry = 'default'; // TODO: Implémenter l'extraction d'industrie si nécessaire
+      // Extraire l'industrie réelle depuis la description du projet
+      const projectDescription = this.extractProjectDescription(project);
+      const projectContext = this.extractProjectContext(projectDescription);
+      const industry = projectContext.industry;
       const brandName = project.name;
 
       logger.info('📋 Mockup generation parameters prepared', {
@@ -2048,16 +2151,23 @@ ${LOGO_EDIT_PROMPT}`;
         brandName,
         industry,
         brandColors,
-        hasLogoUrl: !!logoUrl,
+        hasLogoSvg: !!logoSvg,
         timestamp: new Date().toISOString(),
       });
 
-      // Générer les mockups avec le service Gemini
+      // Upload temporaire du logo pour URL + passer le SVG directement
+      const logoUrl = logoSvg
+        ? await this.uploadLogoSvgTemporarily(logoSvg, projectId, 'mockup')
+        : '';
+
+      // Générer les mockups avec le service Gemini (logo envoyé comme image)
       const mockups = await geminiMockupService.generateProjectMockups(
         logoUrl,
+        logoSvg || null,
         brandColors,
         industry,
         brandName,
+        projectDescription,
         userId,
         projectId
       );
@@ -2131,7 +2241,7 @@ ${LOGO_EDIT_PROMPT}`;
         return [];
       }
 
-      // Upload temporaire du logo SVG pour le rendre accessible
+      // Upload temporaire du logo SVG pour URL fallback
       const logoUrl = await this.uploadLogoSvgTemporarily(logoSvg, project.id!, 'main');
 
       // Préparer les couleurs de la marque
@@ -2141,16 +2251,37 @@ ${LOGO_EDIT_PROMPT}`;
         accent: branding?.colors?.colors?.accent || '#0066cc',
       };
 
-      // Types de mockups selon l'industrie
-      const mockupTypes = this.getMockupTypesForIndustry(project.type);
+      // Extraire le contexte du projet pour des mockups contextuels
+      const projectDescription = this.extractProjectDescription(project);
+      const projectContext = this.extractProjectContext(projectDescription);
+      const industry = projectContext.industry;
+
+      // Générer des scènes contextuelles basées sur le projet
+      const scenes = geminiMockupService.getContextualMockupScenes(
+        industry,
+        projectDescription,
+        project.name
+      );
+
+      // Lancer MOCKUPS_COUNT requêtes en parallèle
       const mockupPromises: Promise<{ url: string; title: string; description: string } | null>[] =
         [];
 
-      // Lancer MOCKUPS_COUNT requêtes en parallèle
-      for (let i = 0; i < MOCKUPS_COUNT; i++) {
-        const mockupType = mockupTypes[i % mockupTypes.length];
+      for (let i = 0; i < Math.min(MOCKUPS_COUNT, scenes.length); i++) {
+        const scene = scenes[i];
         mockupPromises.push(
-          this.generateSingleMockup(project, i + 1, mockupType, logoUrl, brandColors)
+          this.generateSingleMockup(
+            project,
+            i + 1,
+            logoUrl,
+            logoSvg,
+            brandColors,
+            industry,
+            projectDescription,
+            scene.scene,
+            scene.title,
+            scene.description
+          )
         );
       }
 
@@ -2168,23 +2299,30 @@ ${LOGO_EDIT_PROMPT}`;
   }
 
   /**
-   * Génère un seul mockup avec le logo intégré
+   * Génère un seul mockup avec le logo intégré comme image
    */
   private async generateSingleMockup(
     project: ProjectModel,
     mockupIndex: number,
-    mockupType: string,
     logoUrl: string,
-    brandColors: { primary: string; secondary: string; accent: string }
+    logoSvg: string,
+    brandColors: { primary: string; secondary: string; accent: string },
+    industry: string,
+    projectDescription: string,
+    sceneDescription: string,
+    sceneTitle: string,
+    sceneDescriptionText: string
   ): Promise<{ url: string; title: string; description: string } | null> {
     try {
-      // Utiliser le service Gemini existant pour générer le mockup
       const mockupResult = await geminiMockupService.generateSingleMockup(
         logoUrl,
+        logoSvg,
         brandColors,
-        project.type,
+        industry,
         project.name,
-        mockupType,
+        projectDescription,
+        sceneDescription,
+        sceneTitle,
         project.userId,
         project.id!,
         mockupIndex
@@ -2197,16 +2335,14 @@ ${LOGO_EDIT_PROMPT}`;
 
       logger.info(`Mockup ${mockupIndex} generated successfully`, {
         projectId: project.id,
-        mockupType,
+        title: sceneTitle,
         url: mockupResult.mockupUrl,
       });
 
       return {
         url: mockupResult.mockupUrl,
-        title: mockupResult.title || `${mockupType} Mockup`,
-        description:
-          mockupResult.description ||
-          `Professional ${mockupType.toLowerCase()} showcasing the ${project.name} brand logo`,
+        title: mockupResult.title || sceneTitle,
+        description: mockupResult.description || sceneDescriptionText,
       };
     } catch (error) {
       logger.error(`Error generating mockup ${mockupIndex} for project ${project.id}:`, error);
@@ -2251,24 +2387,6 @@ ${LOGO_EDIT_PROMPT}`;
       // Fallback sur une URL placeholder
       return 'https://via.placeholder.com/200x100/000000/FFFFFF?text=LOGO';
     }
-  }
-
-  /**
-   * Retourne les types de mockups appropriés selon l'industrie
-   */
-  private getMockupTypesForIndustry(projectType: string): string[] {
-    const industryMockups: { [key: string]: string[] } = {
-      web: ['laptop_screen', 'mobile_app', 'business_card', 'merchandise'],
-      mobile: ['mobile_app', 'business_card', 'merchandise', 'laptop_screen'],
-      healthcare: ['packaging', 'signage', 'business_card', 'merchandise'],
-      finance: ['business_card', 'signage', 'laptop_screen', 'packaging'],
-      food: ['packaging', 'signage', 'business_card', 'merchandise'],
-      retail: ['packaging', 'signage', 'business_card', 'merchandise'],
-      delivery: ['signage', 'packaging', 'business_card', 'mobile_app'],
-      consulting: ['business_card', 'laptop_screen', 'signage', 'packaging'],
-    };
-
-    return industryMockups[projectType] || industryMockups['web']; // Fallback sur web
   }
 
   /**
