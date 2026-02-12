@@ -39,7 +39,6 @@ import useMCPTools from '@/hooks/useMCPTools';
 import { ProjectTutorial } from '../../Onboarding/ProjectTutorial';
 import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
-import { MultiChatPromptService } from './services/multiChatPromptService';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -181,7 +180,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
     value: ModelTypes.Gemini3Flash,
-    label: 'Gemini 2.5 Flash',
+    label: 'Gemini 3.5 Flash',
     useImage: true,
     from: 'default',
     quota: 2,
@@ -794,23 +793,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         );
       }
 
-      // Generate complete prompt with all project details using multiChatPromptService
-      const promptService = new MultiChatPromptService();
-      const completePrompt = promptService.generatePrompt(projectData);
-
-      console.log('📝 Generated complete prompt with project details:');
-      console.log('  - Prompt length:', completePrompt.length, 'characters');
-      console.log('  - Includes description:', projectData.description ? 'Yes' : 'No');
-      console.log(
-        '  - Includes branding:',
-        projectData.analysisResultModel?.branding ? 'Yes' : 'No'
-      );
-
-      // Send complete prompt to chat - all project info is now in the message content
+      // Send a short display message - the server will rebuild the full prompt from projectData in the body
       append({
         id: uuidv4(),
         role: 'user',
-        content: completePrompt,
+        content: `Starting generation of "${projectData.name}"`,
       });
 
       setShowStartButton(false);
@@ -1455,26 +1442,29 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         <ProjectTutorial projectData={projectData} onClose={() => setShowTutorial(false)} />
       )}
 
-      <ChatInput
-        input={input}
-        setMessages={setMessages}
-        append={append}
-        messages={messages}
-        stopRuning={stop}
-        setInput={setInput}
-        isLoading={isLoading}
-        isUploading={isUploading}
-        uploadedImages={uploadedImages}
-        baseModal={baseModal}
-        handleInputChange={handleInputChange}
-        handleKeySubmit={handleKeySubmit}
-        handleSubmitWithFiles={handleSubmitWithFiles}
-        handleFileSelect={handleFileSelect}
-        removeImage={removeImage}
-        addImages={addImages}
-        setIsUploading={setIsUploading}
-        setBaseModal={setBaseModal}
-      />
+      {/* Hide ChatInput when chat is empty and projectData exists (show only project description + start button) */}
+      {!(projectData && filterMessages.length === 0) && (
+        <ChatInput
+          input={input}
+          setMessages={setMessages}
+          append={append}
+          messages={messages}
+          stopRuning={stop}
+          setInput={setInput}
+          isLoading={isLoading}
+          isUploading={isUploading}
+          uploadedImages={uploadedImages}
+          baseModal={baseModal}
+          handleInputChange={handleInputChange}
+          handleKeySubmit={handleKeySubmit}
+          handleSubmitWithFiles={handleSubmitWithFiles}
+          handleFileSelect={handleFileSelect}
+          removeImage={removeImage}
+          addImages={addImages}
+          setIsUploading={setIsUploading}
+          setBaseModal={setBaseModal}
+        />
+      )}
     </div>
   );
 };
