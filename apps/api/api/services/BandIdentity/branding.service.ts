@@ -495,65 +495,65 @@ export class BrandingService extends GenericService {
     try {
       // Define branding steps
       const steps: IPromptStep[] = [
-        {
-          promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
-          stepName: 'Brand Header',
-          hasDependencies: false,
-        },
-        {
-          promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
-          stepName: 'Logo Principal',
-          hasDependencies: false,
-        },
-        {
-          promptConstant:
-            LOGO_VARIATION_PAGE_PROMPT +
-            '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
-            projectDescription,
-          stepName: 'Logo Variation Fond Clair',
-          hasDependencies: false,
-        },
-        {
-          promptConstant:
-            LOGO_VARIATION_PAGE_PROMPT +
-            "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
-            projectDescription,
-          stepName: 'Logo Variation Fond Sombre',
-          hasDependencies: false,
-        },
-        {
-          promptConstant:
-            LOGO_VARIATION_PAGE_PROMPT +
-            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
-            projectDescription,
-          stepName: 'Logo Variation Monochrome',
-          hasDependencies: false,
-        },
-        {
-          promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
-          stepName: 'Logo Bonnes Pratiques',
-          hasDependencies: false,
-        },
-        {
-          promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
-          stepName: 'Color Palette',
-          hasDependencies: false,
-        },
-        {
-          promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
-          stepName: 'Typography',
-          hasDependencies: false,
-        },
+        // {
+        //   promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
+        //   stepName: 'Brand Header',
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
+        //   stepName: 'Logo Principal',
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant:
+        //     LOGO_VARIATION_PAGE_PROMPT +
+        //     '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
+        //     projectDescription,
+        //   stepName: 'Logo Variation Fond Clair',
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant:
+        //     LOGO_VARIATION_PAGE_PROMPT +
+        //     "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
+        //     projectDescription,
+        //   stepName: 'Logo Variation Fond Sombre',
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant:
+        //     LOGO_VARIATION_PAGE_PROMPT +
+        //     '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
+        //     projectDescription,
+        //   stepName: 'Logo Variation Monochrome',
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
+        //   stepName: 'Logo Bonnes Pratiques',
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
+        //   stepName: 'Color Palette',
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
+        //   stepName: 'Typography',
+        //   hasDependencies: false,
+        // },
         {
           promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
           stepName: 'Brand Mockups',
           hasDependencies: false,
         },
-        {
-          promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
-          stepName: 'Brand Footer',
-          hasDependencies: false,
-        },
+        // {
+        //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
+        //   stepName: 'Brand Footer',
+        //   hasDependencies: false,
+        // },
       ];
 
       // Initialize empty sections array to collect results as they come in
@@ -573,60 +573,77 @@ export class BrandingService extends GenericService {
               return;
             }
 
-            // Traitement spécial pour les mockups - génération en parallèle
+            // Préparer la section finale (avec génération d'images pour les mockups)
+            let finalSection: SectionModel;
+
             if (result.name === 'Brand Mockups') {
-              logger.info('Processing Brand Mockups with parallel generation');
+              logger.info(
+                '[MOCKUP] Processing Brand Mockups step: will generate real images via Gemini',
+                {
+                  projectId,
+                  userId,
+                }
+              );
 
               try {
-                // Générer les mockups en parallèle
+                // Générer les images mockups photoréalistes en parallèle
                 const mockupResults = await this.generateMockupsInParallel(project);
 
                 if (mockupResults.length > 0) {
-                  // Construire le HTML des mockups avec les vraies images
-                  const mockupsHtml = this.buildMockupsHtml(mockupResults, project);
+                  // Construire un HTML fiable avec les vraies URLs des images
+                  const mockupsHtml = this.buildMockupsHtmlWithRealImages(mockupResults, project);
 
-                  // Créer la section avec les mockups réels
-                  const mockupsSection: SectionModel = {
+                  logger.info(`[MOCKUP] HTML built with ${mockupResults.length} real image URLs`, {
+                    projectId,
+                    mockupCount: mockupResults.length,
+                    imageUrls: mockupResults.map((m) => m.url),
+                    htmlLength: mockupsHtml.length,
+                  });
+
+                  finalSection = {
                     name: result.name,
                     type: result.type,
                     data: mockupsHtml,
-                    summary: `Generated ${mockupResults.length} professional mockups with integrated brand logo`,
+                    summary: `Generated ${mockupResults.length} professional photorealistic mockups with integrated brand logo`,
                   };
-
-                  sections.push(mockupsSection);
-                  logger.info(`Successfully generated ${mockupResults.length} mockups in parallel`);
                 } else {
-                  // Fallback sur le résultat original si la génération échoue
-                  logger.warn('Parallel mockup generation failed, using fallback');
-                  const section: SectionModel = {
+                  logger.warn(
+                    '[MOCKUP] No mockup images generated, using AI-generated HTML as fallback',
+                    {
+                      projectId,
+                    }
+                  );
+                  finalSection = {
                     name: result.name,
                     type: result.type,
                     data: result.data,
                     summary: result.summary,
                   };
-                  sections.push(section);
                 }
-              } catch (error) {
-                logger.error('Error in parallel mockup generation:', error);
-                // Fallback sur le résultat original
-                const section: SectionModel = {
+              } catch (error: any) {
+                logger.error('[MOCKUP] Error in mockup image generation', {
+                  error: error.message,
+                  stack: error.stack,
+                  projectId,
+                });
+                finalSection = {
                   name: result.name,
                   type: result.type,
                   data: result.data,
                   summary: result.summary,
                 };
-                sections.push(section);
               }
             } else {
               // Traitement normal pour les autres sections
-              const section: SectionModel = {
+              finalSection = {
                 name: result.name,
                 type: result.type,
                 data: result.data,
                 summary: result.summary,
               };
-              sections.push(section);
             }
+
+            sections.push(finalSection);
 
             // Prepare the updated project data
             const updatedProjectData = {
@@ -667,8 +684,14 @@ export class BrandingService extends GenericService {
               });
               logger.info(`Branding cached after step: ${result.name} - projectId: ${projectId}`);
 
-              // Only send to frontend after successful database update
-              await streamCallback(result);
+              // Envoyer le résultat FINAL (avec URLs injectées) au frontend
+              const finalResult: ISectionResult = {
+                name: finalSection.name,
+                type: finalSection.type,
+                data: finalSection.data,
+                summary: finalSection.summary || '',
+              };
+              await streamCallback(finalResult);
             } else {
               logger.error(
                 `Failed to update project after step: ${result.name} - projectId: ${projectId}`
@@ -2231,18 +2254,37 @@ ${LOGO_EDIT_PROMPT}`;
   private async generateMockupsInParallel(
     project: ProjectModel
   ): Promise<Array<{ url: string; title: string; description: string }>> {
+    const startTime = Date.now();
+    logger.info('[MOCKUP] Starting parallel mockup generation', {
+      projectId: project.id,
+      projectName: project.name,
+    });
+
     try {
       const branding = project.analysisResultModel?.branding;
 
       // Vérifier si le logo est disponible
       const logoSvg = branding?.logo?.svg || branding?.generatedLogos?.[0]?.svg;
       if (!logoSvg) {
-        logger.warn(`No logo available for mockup generation for project ${project.id}`);
+        logger.warn('[MOCKUP] No logo SVG available for mockup generation', {
+          projectId: project.id,
+          hasLogo: !!branding?.logo,
+          hasGeneratedLogos: !!branding?.generatedLogos?.length,
+        });
         return [];
       }
 
+      logger.info('[MOCKUP] Logo SVG found', {
+        projectId: project.id,
+        svgLength: logoSvg.length,
+      });
+
       // Upload temporaire du logo SVG pour URL fallback
       const logoUrl = await this.uploadLogoSvgTemporarily(logoSvg, project.id!, 'main');
+      logger.info('[MOCKUP] Logo SVG uploaded temporarily', {
+        projectId: project.id,
+        logoUrl,
+      });
 
       // Préparer les couleurs de la marque
       const brandColors = {
@@ -2256,6 +2298,13 @@ ${LOGO_EDIT_PROMPT}`;
       const projectContext = this.extractProjectContext(projectDescription);
       const industry = projectContext.industry;
 
+      logger.info('[MOCKUP] Project context extracted', {
+        projectId: project.id,
+        industry,
+        brandColors,
+        descriptionLength: projectDescription.length,
+      });
+
       // Générer des scènes contextuelles basées sur le projet
       const scenes = geminiMockupService.getContextualMockupScenes(
         industry,
@@ -2263,12 +2312,22 @@ ${LOGO_EDIT_PROMPT}`;
         project.name
       );
 
+      logger.info('[MOCKUP] Contextual scenes generated', {
+        projectId: project.id,
+        scenesCount: scenes.length,
+        scenes: scenes.map((s) => s.title),
+      });
+
       // Lancer MOCKUPS_COUNT requêtes en parallèle
       const mockupPromises: Promise<{ url: string; title: string; description: string } | null>[] =
         [];
 
       for (let i = 0; i < Math.min(MOCKUPS_COUNT, scenes.length); i++) {
         const scene = scenes[i];
+        logger.info(`[MOCKUP] Launching mockup ${i + 1} generation`, {
+          projectId: project.id,
+          sceneTitle: scene.title,
+        });
         mockupPromises.push(
           this.generateSingleMockup(
             project,
@@ -2289,11 +2348,29 @@ ${LOGO_EDIT_PROMPT}`;
       const results = await Promise.all(mockupPromises);
 
       // Filtrer les résultats null
-      return results.filter(
+      const validResults = results.filter(
         (result): result is { url: string; title: string; description: string } => result !== null
       );
-    } catch (error) {
-      logger.error('Error generating mockups in parallel:', error);
+
+      const duration = Date.now() - startTime;
+      logger.info('[MOCKUP] Parallel mockup generation completed', {
+        projectId: project.id,
+        totalRequested: Math.min(MOCKUPS_COUNT, scenes.length),
+        successCount: validResults.length,
+        failedCount: results.length - validResults.length,
+        duration: `${duration}ms`,
+        mockupUrls: validResults.map((r) => r.url),
+      });
+
+      return validResults;
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      logger.error('[MOCKUP] Error generating mockups in parallel', {
+        error: error.message,
+        stack: error.stack,
+        projectId: project.id,
+        duration: `${duration}ms`,
+      });
       return [];
     }
   }
@@ -2313,6 +2390,15 @@ ${LOGO_EDIT_PROMPT}`;
     sceneTitle: string,
     sceneDescriptionText: string
   ): Promise<{ url: string; title: string; description: string } | null> {
+    const startTime = Date.now();
+    logger.info(`[MOCKUP][${mockupIndex}] Starting single mockup generation`, {
+      projectId: project.id,
+      mockupIndex,
+      sceneTitle,
+      industry,
+      brandName: project.name,
+    });
+
     try {
       const mockupResult = await geminiMockupService.generateSingleMockup(
         logoUrl,
@@ -2328,15 +2414,22 @@ ${LOGO_EDIT_PROMPT}`;
         mockupIndex
       );
 
+      const duration = Date.now() - startTime;
+
       if (!mockupResult) {
-        logger.error(`Failed to generate mockup ${mockupIndex} for project ${project.id}`);
+        logger.error(`[MOCKUP][${mockupIndex}] Failed - no result returned`, {
+          projectId: project.id,
+          sceneTitle,
+          duration: `${duration}ms`,
+        });
         return null;
       }
 
-      logger.info(`Mockup ${mockupIndex} generated successfully`, {
+      logger.info(`[MOCKUP][${mockupIndex}] SUCCESS - Image uploaded to bucket`, {
         projectId: project.id,
-        title: sceneTitle,
-        url: mockupResult.mockupUrl,
+        sceneTitle,
+        imageUrl: mockupResult.mockupUrl,
+        duration: `${duration}ms`,
       });
 
       return {
@@ -2344,8 +2437,15 @@ ${LOGO_EDIT_PROMPT}`;
         title: mockupResult.title || sceneTitle,
         description: mockupResult.description || sceneDescriptionText,
       };
-    } catch (error) {
-      logger.error(`Error generating mockup ${mockupIndex} for project ${project.id}:`, error);
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      logger.error(`[MOCKUP][${mockupIndex}] ERROR generating mockup`, {
+        error: error.message,
+        stack: error.stack,
+        projectId: project.id,
+        sceneTitle,
+        duration: `${duration}ms`,
+      });
       return null;
     }
   }
@@ -2600,6 +2700,62 @@ ${LOGO_EDIT_PROMPT}`;
   /**
    * Infers a style hint from logo colors for typography prompt context
    */
+  /**
+   * Construit le HTML A4 des mockups avec les vraies images générées par Gemini
+   */
+  private buildMockupsHtmlWithRealImages(
+    mockupResults: Array<{ url: string; title: string; description: string }>,
+    project: ProjectModel
+  ): string {
+    const branding = project.analysisResultModel?.branding;
+    const primaryColor = branding?.colors?.colors?.primary || '#1a1a2e';
+    const secondaryColor = branding?.colors?.colors?.secondary || '#16213e';
+    const accentColor = branding?.colors?.colors?.accent || '#0f3460';
+    const brandName = project.name || 'Brand';
+
+    const mockupCards = mockupResults
+      .map(
+        (mockup) => `
+        <div style="flex:1;min-width:0;">
+          <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid #e5e7eb;">
+            <div style="width:100%;height:auto;overflow:hidden;">
+              <img src="${mockup.url}" alt="${mockup.title}" style="width:100%;height:auto;display:block;object-fit:cover;" />
+            </div>
+            <div style="padding:16px 20px;">
+              <h3 style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:${primaryColor};">${mockup.title}</h3>
+              <p style="margin:0;font-size:11px;color:#6b7280;line-height:1.5;">${mockup.description}</p>
+            </div>
+          </div>
+        </div>`
+      )
+      .join('');
+
+    return `<div style="width:210mm;height:297mm;overflow:hidden;position:relative;background:linear-gradient(135deg,#fafafa 0%,#f0f0f0 100%);padding:12mm;box-sizing:border-box;font-family:'Inter','Helvetica Neue',Arial,sans-serif;display:flex;flex-direction:column;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="display:inline-block;padding:6px 16px;background:${primaryColor};color:white;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Applications de Marque</div>
+        <h2 style="margin:0 0 8px 0;font-size:26px;font-weight:800;color:${primaryColor};">Mockups ${brandName}</h2>
+        <p style="margin:0;font-size:12px;color:#6b7280;max-width:500px;margin:0 auto;line-height:1.6;">Visualisation de l'identité de marque ${brandName} dans des applications concrètes du monde réel.</p>
+      </div>
+      <div style="display:flex;gap:20px;flex:1;align-items:flex-start;">
+        ${mockupCards}
+      </div>
+      <div style="margin-top:auto;padding-top:20px;border-top:1px solid #e5e7eb;">
+        <h4 style="margin:0 0 10px 0;font-size:12px;font-weight:700;color:${primaryColor};">Principes d'Application</h4>
+        <div style="display:flex;gap:16px;">
+          <div style="flex:1;font-size:10px;color:#6b7280;line-height:1.5;">
+            <span style="font-weight:600;color:${primaryColor};">Cohérence</span> — Maintenir les couleurs et proportions du logo sur tous les supports.
+          </div>
+          <div style="flex:1;font-size:10px;color:#6b7280;line-height:1.5;">
+            <span style="font-weight:600;color:${primaryColor};">Lisibilité</span> — Le logo doit rester lisible quelle que soit la taille d'application.
+          </div>
+          <div style="flex:1;font-size:10px;color:#6b7280;line-height:1.5;">
+            <span style="font-weight:600;color:${primaryColor};">Espace</span> — Respecter une zone de protection autour du logo.
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   private inferStyleFromColors(colors: string[]): string {
     if (colors.length === 0) return 'modern and professional';
 
@@ -2616,53 +2772,5 @@ ${LOGO_EDIT_PROMPT}`;
     if (r > 150 && g < 100 && b > 150) return 'luxurious and innovative';
     if (r < 80 && g < 80 && b < 80) return 'minimalist and elegant';
     return 'modern and versatile';
-  }
-
-  /**
-   * Construit le HTML des mockups avec les vraies images générées
-   */
-  private buildMockupsHtml(
-    mockupResults: Array<{ url: string; title: string; description: string }>,
-    project: ProjectModel
-  ): string {
-    const mockupCards = mockupResults
-      .map(
-        (mockup, index) => `
-      <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-purple-500"></div>
-          <h3 class="text-lg font-semibold text-white">${mockup.title}</h3>
-        </div>
-        <div class="mb-4 rounded-lg overflow-hidden bg-gray-900/50">
-          <img src="${mockup.url}" alt="${mockup.title}" class="w-full h-48 object-cover rounded-lg" />
-        </div>
-        <p class="text-gray-300 text-sm leading-relaxed">${mockup.description}</p>
-      </div>
-    `
-      )
-      .join('');
-
-    return `
-      <div class="space-y-8">
-        <!-- Header Section -->
-        <div class="text-center space-y-4">
-          <div class="flex items-center justify-center gap-3 mb-4">
-            <i class="pi pi-palette text-2xl text-blue-400"></i>
-            <h2 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Brand Mockups
-            </h2>
-          </div>
-          <p class="text-gray-300 text-lg max-w-3xl mx-auto leading-relaxed">
-            Professional mockups showcasing your ${project.name} brand logo in real-world applications.
-            Each mockup demonstrates how your brand identity translates across different touchpoints and contexts.
-          </p>
-        </div>
-
-        <!-- Mockups Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          ${mockupCards}
-        </div>
-      </div>
-    `;
   }
 }
