@@ -30,6 +30,7 @@
 
 
 
+
               }}" }}
             </p>
 
@@ -131,7 +132,9 @@
             <div class="milestones-checklist">
               <div
                 class="milestone-item"
-                [class.completed]="currentProject.analysisResultModel!.branding.sections.length > 0"
+                [class.completed]="
+                  (currentProject.analysisResultModel?.branding?.sections?.length ?? 0) > 0
+                "
                 [routerLink]="['/project/branding']"
                 style="cursor: pointer"
               >
@@ -243,7 +246,9 @@
               <!-- Step 1: Brand -->
               <div
                 class="step-card-modern"
-                [class.completed]="currentProject.analysisResultModel!.branding.sections.length > 0"
+                [class.completed]="
+                  (currentProject.analysisResultModel?.branding?.sections?.length ?? 0) > 0
+                "
                 [routerLink]="['/project/branding']"
                 style="--offset: 0"
               >
@@ -268,7 +273,7 @@
                   <p class="step-description-modern">
                     {{ 'dashboard.dashboard.steps.brand.description' | translate }}
                   </p>
-                  @if (currentProject.analysisResultModel!.branding.sections.length > 0) {
+                  @if ((currentProject.analysisResultModel?.branding?.sections?.length ?? 0) > 0) {
                     <div class="step-badge completed-badge">
                       <i class="pi pi-check"></i>
                       <span>{{ 'common.completed' | translate }}</span>
