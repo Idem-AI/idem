@@ -495,55 +495,55 @@ export class BrandingService extends GenericService {
     try {
       // Define branding steps
       const steps: IPromptStep[] = [
-        // {
-        //   promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Brand Header',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Logo Principal',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant:
-        //     LOGO_VARIATION_PAGE_PROMPT +
-        //     '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
-        //     projectDescription,
-        //   stepName: 'Logo Variation Fond Clair',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant:
-        //     LOGO_VARIATION_PAGE_PROMPT +
-        //     "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
-        //     projectDescription,
-        //   stepName: 'Logo Variation Fond Sombre',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant:
-        //     LOGO_VARIATION_PAGE_PROMPT +
-        //     '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
-        //     projectDescription,
-        //   stepName: 'Logo Variation Monochrome',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
-        //   stepName: 'Logo Bonnes Pratiques',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Color Palette',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Typography',
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
+          stepName: 'Brand Header',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
+          stepName: 'Logo Principal',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
+            projectDescription,
+          stepName: 'Logo Variation Fond Clair',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
+            projectDescription,
+          stepName: 'Logo Variation Fond Sombre',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
+            projectDescription,
+          stepName: 'Logo Variation Monochrome',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
+          stepName: 'Logo Bonnes Pratiques',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
+          stepName: 'Color Palette',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
+          stepName: 'Typography',
+          hasDependencies: false,
+        },
         {
           promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
           stepName: 'Brand Mockups',
@@ -701,7 +701,7 @@ export class BrandingService extends GenericService {
           },
           {
             provider: LLMProvider.GEMINI,
-            modelName: 'gemini-3-pro-preview',
+            modelName: 'gemini-3-flash-preview',
             userId,
           }, // promptConfig
           'branding', // promptType
@@ -2711,45 +2711,79 @@ ${LOGO_EDIT_PROMPT}`;
     const primaryColor = branding?.colors?.colors?.primary || '#1a1a2e';
     const secondaryColor = branding?.colors?.colors?.secondary || '#16213e';
     const accentColor = branding?.colors?.colors?.accent || '#0f3460';
+    const bgColor = branding?.colors?.colors?.background || '#ffffff';
     const brandName = project.name || 'Brand';
 
-    const mockupCards = mockupResults
-      .map(
-        (mockup) => `
-        <div style="flex:1;min-width:0;">
-          <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid #e5e7eb;">
-            <div style="width:100%;height:auto;overflow:hidden;">
-              <img src="${mockup.url}" alt="${mockup.title}" style="width:100%;height:auto;display:block;object-fit:cover;" />
-            </div>
-            <div style="padding:16px 20px;">
-              <h3 style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:${primaryColor};">${mockup.title}</h3>
-              <p style="margin:0;font-size:11px;color:#6b7280;line-height:1.5;">${mockup.description}</p>
-            </div>
-          </div>
-        </div>`
-      )
-      .join('');
+    // Générer une couleur semi-transparente pour les overlays
+    const hexToRgba = (hex: string, alpha: number) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    };
 
-    return `<div style="width:210mm;height:297mm;overflow:hidden;position:relative;background:linear-gradient(135deg,#fafafa 0%,#f0f0f0 100%);padding:12mm;box-sizing:border-box;font-family:'Inter','Helvetica Neue',Arial,sans-serif;display:flex;flex-direction:column;">
-      <div style="text-align:center;margin-bottom:24px;">
-        <div style="display:inline-block;padding:6px 16px;background:${primaryColor};color:white;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Applications de Marque</div>
-        <h2 style="margin:0 0 8px 0;font-size:26px;font-weight:800;color:${primaryColor};">Mockups ${brandName}</h2>
-        <p style="margin:0;font-size:12px;color:#6b7280;max-width:500px;margin:0 auto;line-height:1.6;">Visualisation de l'identité de marque ${brandName} dans des applications concrètes du monde réel.</p>
-      </div>
-      <div style="display:flex;gap:20px;flex:1;align-items:flex-start;">
-        ${mockupCards}
-      </div>
-      <div style="margin-top:auto;padding-top:20px;border-top:1px solid #e5e7eb;">
-        <h4 style="margin:0 0 10px 0;font-size:12px;font-weight:700;color:${primaryColor};">Principes d'Application</h4>
-        <div style="display:flex;gap:16px;">
-          <div style="flex:1;font-size:10px;color:#6b7280;line-height:1.5;">
-            <span style="font-weight:600;color:${primaryColor};">Cohérence</span> — Maintenir les couleurs et proportions du logo sur tous les supports.
+    const primaryRgba = hexToRgba(primaryColor, 0.08);
+    const accentRgba = hexToRgba(accentColor, 0.12);
+
+    // Layout artistique : première image en hero large, deuxième en accent décalé
+    const mockup1 = mockupResults[0];
+    const mockup2 = mockupResults.length > 1 ? mockupResults[1] : null;
+
+    const heroSection = mockup1
+      ? `<div style="position:relative;flex:1;display:flex;gap:0;overflow:hidden;border-radius:16px;box-shadow:0 20px 60px ${hexToRgba(primaryColor, 0.15)},0 4px 20px rgba(0,0,0,0.06);">
+          <div style="flex:1.2;position:relative;overflow:hidden;background:#0a0a0a;">
+            <img src="${mockup1.url}" alt="${mockup1.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+            <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 24px;background:linear-gradient(transparent,rgba(0,0,0,0.7));">
+              <div style="font-size:13px;font-weight:700;color:white;margin-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${mockup1.title}</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.8);line-height:1.4;">${mockup1.description}</div>
+            </div>
           </div>
-          <div style="flex:1;font-size:10px;color:#6b7280;line-height:1.5;">
-            <span style="font-weight:600;color:${primaryColor};">Lisibilité</span> — Le logo doit rester lisible quelle que soit la taille d'application.
+          ${
+            mockup2
+              ? `<div style="flex:0.8;position:relative;overflow:hidden;background:#0a0a0a;border-left:3px solid ${primaryColor};">
+              <img src="${mockup2.url}" alt="${mockup2.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+              <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 24px;background:linear-gradient(transparent,rgba(0,0,0,0.7));">
+                <div style="font-size:13px;font-weight:700;color:white;margin-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${mockup2.title}</div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.8);line-height:1.4;">${mockup2.description}</div>
+              </div>
+            </div>`
+              : ''
+          }
+        </div>`
+      : '';
+
+    return `<div style="width:210mm;height:297mm;overflow:hidden;position:relative;background:${bgColor};padding:0;box-sizing:border-box;font-family:'Inter','Helvetica Neue',Arial,sans-serif;display:flex;flex-direction:column;">
+      <div style="position:absolute;top:0;right:0;width:40%;height:180px;background:linear-gradient(135deg,${hexToRgba(primaryColor, 0.06)},${hexToRgba(accentColor, 0.03)});border-bottom-left-radius:100px;"></div>
+      <div style="position:absolute;bottom:0;left:0;width:30%;height:120px;background:linear-gradient(45deg,${hexToRgba(accentColor, 0.04)},transparent);border-top-right-radius:80px;"></div>
+      <div style="position:relative;z-index:1;padding:10mm 12mm 8mm 12mm;display:flex;flex-direction:column;height:100%;">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <div style="display:inline-block;padding:4px 12px;background:${primaryColor};color:white;border-radius:4px;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Brand Applications</div>
+            <h2 style="margin:0;font-size:28px;font-weight:900;color:${primaryColor};letter-spacing:-0.5px;line-height:1.1;">${brandName}</h2>
+            <p style="margin:6px 0 0 0;font-size:11px;color:#9ca3af;font-weight:400;">Mise en situation de l'identité visuelle</p>
           </div>
-          <div style="flex:1;font-size:10px;color:#6b7280;line-height:1.5;">
-            <span style="font-weight:600;color:${primaryColor};">Espace</span> — Respecter une zone de protection autour du logo.
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="width:24px;height:24px;border-radius:50%;background:${primaryColor};"></div>
+            <div style="width:24px;height:24px;border-radius:50%;background:${secondaryColor};"></div>
+            <div style="width:24px;height:24px;border-radius:50%;background:${accentColor};"></div>
+          </div>
+        </div>
+        <div style="width:60px;height:3px;background:linear-gradient(90deg,${primaryColor},${accentColor});border-radius:2px;margin-bottom:20px;"></div>
+        ${heroSection}
+        <div style="margin-top:auto;padding-top:16px;">
+          <div style="display:flex;gap:20px;align-items:flex-start;">
+            <div style="flex:1;padding:12px 16px;background:${primaryRgba};border-radius:8px;border-left:3px solid ${primaryColor};">
+              <div style="font-size:10px;font-weight:700;color:${primaryColor};margin-bottom:3px;">Cohérence</div>
+              <div style="font-size:9px;color:#6b7280;line-height:1.5;">Maintenir les couleurs et proportions du logo sur tous les supports physiques et numériques.</div>
+            </div>
+            <div style="flex:1;padding:12px 16px;background:${accentRgba};border-radius:8px;border-left:3px solid ${accentColor};">
+              <div style="font-size:10px;font-weight:700;color:${accentColor};margin-bottom:3px;">Lisibilité</div>
+              <div style="font-size:9px;color:#6b7280;line-height:1.5;">Le logo doit rester lisible et impactant quelle que soit la taille d'application.</div>
+            </div>
+            <div style="flex:1;padding:12px 16px;background:${hexToRgba(secondaryColor, 0.08)};border-radius:8px;border-left:3px solid ${secondaryColor};">
+              <div style="font-size:10px;font-weight:700;color:${secondaryColor};margin-bottom:3px;">Zone de protection</div>
+              <div style="font-size:9px;color:#6b7280;line-height:1.5;">Respecter un espace minimum autour du logo pour garantir sa visibilité.</div>
+            </div>
           </div>
         </div>
       </div>

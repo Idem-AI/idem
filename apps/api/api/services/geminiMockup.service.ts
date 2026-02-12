@@ -1,4 +1,5 @@
 import { GoogleGenAI, Content, Part } from '@google/genai';
+import sharp from 'sharp';
 import logger from '../config/logger';
 import { StorageService } from './storage.service';
 
@@ -74,13 +75,34 @@ export class GeminiMockupService {
   }
 
   /**
-   * Convertit un SVG string en base64
+   * Convertit un SVG string en PNG base64 via sharp pour que Gemini puisse le voir comme une image raster
    */
-  private svgToBase64(svgContent: string): { base64: string; mimeType: string } {
-    return {
-      base64: Buffer.from(svgContent, 'utf-8').toString('base64'),
-      mimeType: 'image/svg+xml',
-    };
+  private async svgToPngBase64(
+    svgContent: string
+  ): Promise<{ base64: string; mimeType: string } | null> {
+    try {
+      const svgBuffer = Buffer.from(svgContent, 'utf-8');
+      const pngBuffer = await sharp(svgBuffer)
+        .resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+        .png()
+        .toBuffer();
+
+      logger.info('[MOCKUP] SVG converted to PNG via sharp', {
+        svgSize: svgBuffer.length,
+        pngSize: pngBuffer.length,
+        pngSizeKB: `${Math.round(pngBuffer.length / 1024)}KB`,
+      });
+
+      return {
+        base64: pngBuffer.toString('base64'),
+        mimeType: 'image/png',
+      };
+    } catch (error: any) {
+      logger.error('[MOCKUP] Failed to convert SVG to PNG with sharp', {
+        error: error.message,
+      });
+      return null;
+    }
   }
 
   /**
@@ -413,15 +435,21 @@ export class GeminiMockupService {
       let logoImageBase64: string | null = null;
       let logoMimeType = 'image/png';
 
-      // Priorité 1: SVG content direct (plus fiable)
+      // Priorité 1: SVG content → convertir en PNG via sharp
       if (logoSvgContent && logoSvgContent.includes('<svg')) {
-        const svgData = this.svgToBase64(logoSvgContent);
-        logoImageBase64 = svgData.base64;
-        logoMimeType = svgData.mimeType;
-        logger.info('Using SVG content directly for logo', { projectId });
+        const pngData = await this.svgToPngBase64(logoSvgContent);
+        if (pngData) {
+          logoImageBase64 = pngData.base64;
+          logoMimeType = pngData.mimeType;
+          logger.info('[MOCKUP] Logo SVG converted to PNG for Gemini', { projectId });
+        } else {
+          logger.warn('[MOCKUP] SVG to PNG conversion failed, will try URL fallback', {
+            projectId,
+          });
+        }
       }
       // Priorité 2: Télécharger depuis l'URL
-      else if (logoUrl) {
+      if (!logoImageBase64 && logoUrl) {
         const downloaded = await this.downloadImageAsBase64(logoUrl);
         if (downloaded) {
           logoImageBase64 = downloaded.base64;
@@ -720,25 +748,36 @@ export class GeminiMockupService {
       request;
 
     const logoInstruction = logoImageBase64
-      ? 'I am providing the EXACT logo image of this brand. You MUST reproduce this EXACT logo faithfully in the mockup. Do NOT invent a different logo. Copy the provided logo as precisely as possible.'
-      : `The brand name "${brandName}" must be clearly visible and prominently displayed.`;
+      ? `LOGO IMAGE PROVIDED: I have attached the EXACT logo of this brand as a PNG image. You MUST:
+  1. Look carefully at the attached logo image — study its shape, colors, typography, and design.
+  2. REPRODUCE THIS EXACT LOGO in the mockup scene. Do NOT create a different logo or text.
+  3. The logo must appear EXACTLY as provided — same shapes, same colors, same proportions.
+  4. Place the logo prominently and naturally within the scene.
+  5. If the logo contains text, reproduce that EXACT text — do NOT change or translate it.`
+      : `No logo image was provided. Display the brand name "${brandName}" in a clean, professional typographic style using the brand colors.`;
 
-    const textPrompt = `You are a professional mockup designer. Generate a HIGH QUALITY, PHOTOREALISTIC mockup image.
+    const textPrompt = `You are an elite commercial photographer and brand designer. Create a STUNNING, PHOTOREALISTIC mockup photograph.
 
-BRAND: "${brandName}"
-INDUSTRY: ${industry}
-BRAND COLORS: Primary ${brandColors.primary}, Secondary ${brandColors.secondary}, Accent ${brandColors.accent}
+THE BRAND:
+- Name: "${brandName}"
+- Industry: ${industry}
+- Colors: Primary ${brandColors.primary}, Secondary ${brandColors.secondary}, Accent ${brandColors.accent}
 
-SCENE TO CREATE:
+${logoInstruction}
+
+SCENE TO PHOTOGRAPH:
 ${sceneDescription}
 
-CRITICAL REQUIREMENTS:
-- ${logoInstruction}
-- The mockup must be PHOTOREALISTIC - it should look like a real photograph, not a digital illustration.
-- Use the brand colors (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) throughout the scene.
-- The logo/brand must be the FOCAL POINT of the image.
-- Professional lighting, realistic shadows, and high-quality textures.
-- The scene must feel authentic and specific to this type of business.
+PHOTOGRAPHY REQUIREMENTS:
+- This must look like a REAL PHOTOGRAPH taken by a professional photographer — NOT a digital illustration or 3D render.
+- Professional studio or on-location lighting with natural shadows and reflections.
+- Shallow depth of field where appropriate for artistic effect.
+- Rich textures: paper grain, fabric weave, metal sheen, glass reflections.
+- The brand colors (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) should be visible in the scene through the product/environment.
+- The logo/brand identity must be the HERO of the image — clearly visible and beautifully integrated.
+- Cinematic composition with the rule of thirds.
+
+STYLE: High-end commercial photography, like a brand portfolio shot for Behance or Dribbble.
 
 Generate ONLY the image, no text response.`;
 
@@ -820,10 +859,13 @@ Generate ONLY the image, no text response.`;
       let logoMimeType = 'image/png';
 
       if (logoSvgContent && logoSvgContent.includes('<svg')) {
-        const svgData = this.svgToBase64(logoSvgContent);
-        logoImageBase64 = svgData.base64;
-        logoMimeType = svgData.mimeType;
-      } else if (logoUrl) {
+        const pngData = await this.svgToPngBase64(logoSvgContent);
+        if (pngData) {
+          logoImageBase64 = pngData.base64;
+          logoMimeType = pngData.mimeType;
+        }
+      }
+      if (!logoImageBase64 && logoUrl) {
         const downloaded = await this.downloadImageAsBase64(logoUrl);
         if (downloaded) {
           logoImageBase64 = downloaded.base64;
