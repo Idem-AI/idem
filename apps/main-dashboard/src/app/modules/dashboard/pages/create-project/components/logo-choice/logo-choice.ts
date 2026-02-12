@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { LogoImportComponent } from '../logo-import/logo-import';
+import { Loader } from '../../../../../../shared/components/loader/loader';
 import { ProjectModel } from '../../../../models/project.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 
@@ -15,7 +16,7 @@ import { BrandingService } from '../../../../services/ai-agents/branding.service
 @Component({
   selector: 'app-logo-choice',
   standalone: true,
-  imports: [CommonModule, TranslateModule, LogoImportComponent],
+  imports: [CommonModule, TranslateModule, LogoImportComponent, Loader],
   templateUrl: './logo-choice.html',
   styleUrl: './logo-choice.css',
 })
