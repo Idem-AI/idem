@@ -192,49 +192,24 @@ export async function handleBuilderMode(
       // 2. Détails du projet à la FIN (meilleure mémorisation)
       const systemInstructions = systemPrompt;
 
-      // Créer un ID dynamique basé sur le projet
-      const projectId = projectData.name.toLowerCase().replace(/\s+/g, '-') + '-app';
-
-      // Renommer le projet dans le titre pour éviter la confusion avec Material UI (MUI)
-      const projectDisplayName =
-        projectData.name === 'MUI' ? 'MUI-African-Artisans-Marketplace' : projectData.name;
-      const artifactTitle = `${projectDisplayName} - Full Implementation`;
-
       const userRequest = `PROJECT CONTEXT AND REQUIREMENTS:
 ${projectPrompt}
 
 === YOUR TASK ===
-Build a complete landing page for: ${projectDisplayName}
+Build a complete web application for: ${projectData.name}
 
 Project Description: ${projectData.description}
 
 REQUIREMENTS:
 1. Use the EXACT branding specified above (colors, fonts, logo URLs)
-2. Create a modern, professional landing page with:
-   - Hero section with compelling headline and CTA
-   - Features section highlighting key benefits
-   - About/Story section
-   - Contact section
+2. Create a modern, professional application with all sections relevant to the project
 3. This is NOT a generic React template - customize everything for this specific project
 4. Use the provided color scheme, typography, and logo
+5. Follow the OUTPUT FORMAT specified in the system prompt exactly
 
-⚠️ TARGET AUDIENCE - SUB-SAHARAN AFRICA (ABSOLUTELY CRITICAL):
-- ALL images of people MUST feature Black African people. NEVER use generic Western/European/Asian stock photos.
-- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
-- Testimonials/user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
-- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
-- Currency references: use XAF/FCFA, NGN, KES, GHS, XOF or USD
-- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
-- Social proof and success stories MUST feature African entrepreneurs and businesses
-- Placeholder company names should be African-sounding or Africa-based
+⚠️ REMINDER: Follow the TARGET AUDIENCE - SUB-SAHARAN AFRICA directives from the system prompt. All images, names, cities, currencies, and content MUST reflect Sub-Saharan Africa.
 
-⚠️ CRITICAL FINAL INSTRUCTIONS:
-- Project name "${projectData.name}" refers to THIS specific project, NOT any UI library
-- Start your response IMMEDIATELY with the <boltArtifact> tag containing the complete implementation
-
-<boltArtifact id="${projectId}" title="${artifactTitle}">
-...your complete implementation here...
-</boltArtifact>`;
+CRITICAL INSTRUCTION: Start your response IMMEDIATELY with the boltArtifact tag. Do NOT add any explanation before the artifact.`;
 
       const finalContent = systemInstructions + '\n\n' + userRequest;
 
