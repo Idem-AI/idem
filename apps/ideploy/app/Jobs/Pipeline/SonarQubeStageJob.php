@@ -167,6 +167,13 @@ BASH;
                     $exitCode = (int) $exitMatch[1];
                     if ($exitCode !== 0) {
                         $this->log('warning', "  ⚠️  Scanner exited with code: {$exitCode}");
+                        
+                        // Exit code 3 = Upload failed, but analysis may have completed
+                        if ($exitCode === 3) {
+                            $this->log('warning', '  ⚠️  Report upload may have failed, checking if analysis exists...');
+                        } else {
+                            throw new \Exception("SonarQube scanner failed with exit code: {$exitCode}");
+                        }
                     } else {
                         $this->log('success', '  ✅ Scanner completed successfully');
                     }
@@ -178,6 +185,45 @@ BASH;
             
             // Extract task ID from output
             $taskId = $this->extractTaskId($output);
+            
+            // If no task ID but exit code 3, try to find the analysis directly
+            if (!$taskId && isset($exitCode) && $exitCode === 3) {
+                $this->log('info', '  Trying to fetch analysis directly without task ID...');
+                
+                // Wait a bit for SonarQube to process
+                sleep(10);
+                
+                // Try to fetch results directly
+                $this->log('info', '📈 Fetching analysis results...');
+                $sonarApi = new SonarQubeApiService($sonarUrl, $sonarToken);
+                
+                $analysisResult = $sonarApi->getProjectAnalysis($projectKey);
+                if ($analysisResult['success']) {
+                    $this->log('success', '  ✅ Found analysis results!');
+                    $results = $analysisResult['results'];
+                    
+                    // Update scan result
+                    $scanResult->update([
+                        'status' => 'success',
+                        'quality_gate_status' => $results['quality_gate_status'] ?? 'UNKNOWN',
+                        'bugs' => (int) ($results['bugs'] ?? 0),
+                        'vulnerabilities' => (int) ($results['vulnerabilities'] ?? 0),
+                        'code_smells' => (int) ($results['code_smells'] ?? 0),
+                        'security_hotspots' => (int) ($results['security_hotspots'] ?? 0),
+                        'coverage' => (float) ($results['coverage'] ?? 0),
+                        'duplications' => (float) ($results['duplicated_lines_density'] ?? 0),
+                        'sonar_dashboard_url' => "{$sonarUrl}/dashboard?id={$projectKey}",
+                        'raw_data' => ['measures' => $results],
+                        'summary' => $this->generateSummaryFromResults($results, []),
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'quality_gate_passed' => ($results['quality_gate_status'] ?? 'ERROR') !== 'ERROR',
+                        'scan_result_id' => $scanResult->id,
+                    ];
+                }
+            }
             
             if ($taskId) {
                 $this->log('info', "⏳ Analysis Task ID: {$taskId}");
@@ -419,7 +465,7 @@ BASH;
         return null;
     }
     
-    private function waitForAnalysis(string $taskId, string $sonarUrl, string $sonarToken, int $maxWaitSeconds = 300): void
+    private function waitForAnalysis(string $taskId, string $sonarUrl, string $sonarToken, int $maxWaitSeconds = 600): void
     {
         $startTime = time();
         
