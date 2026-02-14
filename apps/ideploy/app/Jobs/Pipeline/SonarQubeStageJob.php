@@ -267,25 +267,67 @@ BASH;
         
         $this->log('info', '  📥 Installing SonarQube Scanner...');
         
-        // Install in one comprehensive command with error handling
-        // Using version 6.2.1 which includes Java 17
+        // Step 1: Check prerequisites
+        $this->log('info', '  Checking prerequisites...');
+        $prereqCheck = instant_remote_process([
+            'echo "wget: $(which wget 2>/dev/null || echo NOT_FOUND)"',
+            'echo "unzip: $(which unzip 2>/dev/null || echo NOT_FOUND)"',
+        ], $server, false);
+        
+        if ($prereqCheck) {
+            $this->log('info', '  ' . str_replace("\n", "\n  ", trim($prereqCheck)));
+        }
+        
+        // Step 2: Install prerequisites if needed
+        if ($prereqCheck && (str_contains($prereqCheck, 'wget: NOT_FOUND') || str_contains($prereqCheck, 'unzip: NOT_FOUND'))) {
+            $this->log('info', '  Installing prerequisites...');
+            instant_remote_process([
+                'apt-get update -qq 2>&1 | tail -1',
+                'apt-get install -y wget unzip 2>&1 | tail -1',
+            ], $server, false);
+        }
+        
+        // Step 3: Download and install sonar-scanner with verbose output
         $installScript = <<<'BASH'
 set -e
+echo "Step 1: Cleaning old files..."
 cd /tmp
 rm -rf sonar-scanner* 2>/dev/null || true
-wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip || exit 1
-unzip -q sonar-scanner-cli-6.2.1.4610-linux-x64.zip || exit 2
+
+echo "Step 2: Downloading sonar-scanner..."
+wget --progress=dot:mega https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip 2>&1 | tail -3
+
+echo "Step 3: Extracting..."
+unzip -q sonar-scanner-cli-6.2.1.4610-linux-x64.zip
+
+echo "Step 4: Moving to /opt..."
 rm -rf /opt/sonar-scanner 2>/dev/null || true
-mv sonar-scanner-6.2.1.4610-linux-x64 /opt/sonar-scanner || exit 3
-ln -sf /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner || exit 4
+mv sonar-scanner-6.2.1.4610-linux-x64 /opt/sonar-scanner
+
+echo "Step 5: Creating symlink..."
+ln -sf /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
+
+echo "Step 6: Cleaning up..."
 rm -f sonar-scanner-cli-6.2.1.4610-linux-x64.zip
-which sonar-scanner || exit 5
+
+echo "Step 7: Verifying installation..."
+which sonar-scanner
+
 echo "INSTALLATION_SUCCESS"
 BASH;
         
         $result = instant_remote_process([
             "bash -c " . escapeshellarg($installScript)
         ], $server, false);
+        
+        // Log the full output for debugging
+        if ($result) {
+            foreach (explode("\n", $result) as $line) {
+                if (!empty(trim($line))) {
+                    $this->log('info', '  ' . trim($line));
+                }
+            }
+        }
         
         if ($result && str_contains($result, 'INSTALLATION_SUCCESS')) {
             $this->log('success', '  ✅ SonarQube Scanner installed successfully');
@@ -297,7 +339,8 @@ BASH;
             }
         } else {
             $error = $result ?: 'No output from installation script';
-            $this->log('error', '  ❌ Installation failed: ' . $error);
+            $this->log('error', '  ❌ Installation failed');
+            $this->log('error', '  Output: ' . $error);
             throw new \Exception('Failed to install SonarQube Scanner: ' . $error);
         }
     }
