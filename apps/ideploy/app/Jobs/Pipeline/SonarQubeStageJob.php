@@ -186,23 +186,25 @@ BASH;
             // Extract task ID from output
             $taskId = $this->extractTaskId($output);
             
-            // If no task ID but exit code 3, try to find the analysis directly
-            if (!$taskId && isset($exitCode) && $exitCode === 3) {
-                $this->log('info', '  Trying to fetch analysis directly without task ID...');
+            // If exit code 3, the upload failed - don't try to wait
+            if (isset($exitCode) && $exitCode === 3) {
+                $this->log('warning', '⚠️  Report upload failed (exit code 3)');
+                $this->log('info', '  Possible causes:');
+                $this->log('info', '  - Network timeout during upload');
+                $this->log('info', '  - SonarQube server overloaded');
+                $this->log('info', '  - Report too large (' . (filesize($workspacePath . '/.scannerwork/scanner-report') ?? 'unknown') . ' bytes)');
                 
-                // Wait a bit for SonarQube to process
-                sleep(10);
+                // Try to fetch existing analysis (maybe from previous run)
+                $this->log('info', '  Checking for existing analysis...');
+                sleep(5);
                 
-                // Try to fetch results directly
-                $this->log('info', '📈 Fetching analysis results...');
                 $sonarApi = new SonarQubeApiService($sonarUrl, $sonarToken);
-                
                 $analysisResult = $sonarApi->getProjectAnalysis($projectKey);
-                if ($analysisResult['success']) {
-                    $this->log('success', '  ✅ Found analysis results!');
+                
+                if ($analysisResult['success'] && !empty($analysisResult['results'])) {
+                    $this->log('warning', '  ⚠️  Using previous analysis results');
                     $results = $analysisResult['results'];
                     
-                    // Update scan result
                     $scanResult->update([
                         'status' => 'success',
                         'quality_gate_status' => $results['quality_gate_status'] ?? 'UNKNOWN',
@@ -214,15 +216,31 @@ BASH;
                         'duplications' => (float) ($results['duplicated_lines_density'] ?? 0),
                         'sonar_dashboard_url' => "{$sonarUrl}/dashboard?id={$projectKey}",
                         'raw_data' => ['measures' => $results],
-                        'summary' => $this->generateSummaryFromResults($results, []),
+                        'summary' => 'Upload failed, using previous analysis: ' . $this->generateSummaryFromResults($results, []),
                     ]);
                     
                     return [
                         'success' => true,
                         'quality_gate_passed' => ($results['quality_gate_status'] ?? 'ERROR') !== 'ERROR',
                         'scan_result_id' => $scanResult->id,
+                        'warning' => 'Upload failed, used previous analysis',
                     ];
+                } else {
+                    // No previous analysis, mark as failed
+                    $this->log('error', '  ❌ No previous analysis found, marking as failed');
+                    $scanResult->update([
+                        'status' => 'failed',
+                        'summary' => 'Upload failed and no previous analysis available',
+                    ]);
+                    
+                    throw new \Exception('SonarQube upload failed (exit code 3) and no previous analysis available');
                 }
+            }
+            
+            // Validate task ID format (should be alphanumeric, not a UUID)
+            if ($taskId && !$this->isValidTaskId($taskId)) {
+                $this->log('warning', "⚠️  Invalid task ID format: {$taskId} (looks like pipeline UUID)");
+                $taskId = null;
             }
             
             if ($taskId) {
@@ -463,6 +481,22 @@ BASH;
         }
         
         return null;
+    }
+    
+    private function isValidTaskId(string $taskId): bool
+    {
+        // Task IDs are typically short alphanumeric strings like "AY1234567890"
+        // NOT UUIDs like "9a0ff24b-3870-4dfe-989c-8b6ed3561cce"
+        if (preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i', $taskId)) {
+            return false; // It's a UUID, not a task ID
+        }
+        
+        // Valid task IDs are typically 10-20 characters
+        if (strlen($taskId) < 10 || strlen($taskId) > 30) {
+            return false;
+        }
+        
+        return true;
     }
     
     private function waitForAnalysis(string $taskId, string $sonarUrl, string $sonarToken, int $maxWaitSeconds = 600): void
