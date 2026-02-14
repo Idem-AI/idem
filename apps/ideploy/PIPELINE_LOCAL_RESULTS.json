@@ -1,0 +1,34 @@
+{
+    "test_type": "local_complete_e2e",
+    "test_location": "idem-ideploy-dev container",
+    "timestamp": "2026-02-13T21:04:33+00:00",
+    "repository": "https:\/\/github.com\/laravel\/laravel",
+    "branch": "10.x",
+    "detected_language": "PHP",
+    "framework": "Laravel ^10.10",
+    "workspace_path": "\/tmp\/pipeline-test-db006f05-991d-4be0-9c0d-a138d7d0bac9",
+    "sonarqube": {
+        "project_key": "laravel-local-test-1771016670",
+        "project_name": "Laravel 10.x - Local Pipeline Test",
+        "dashboard_url": "http:\/\/sonarqube:9000\/dashboard?id=laravel-local-test-1771016670",
+        "quality_gate": "NONE",
+        "metrics": {
+            "bugs": 0,
+            "vulnerabilities": 0,
+            "code_smells": 0,
+            "lines_of_code": 0,
+            "coverage": 0,
+            "duplications": 0
+        },
+        "full_results": {
+            "quality_gate_status": "NONE",
+            "quality_gate_conditions": []
+        },
+        "issues_summary": {
+            "total": 0,
+            "bugs": 0,
+            "vulnerabilities": 0,
+            "code_smells": 0
+        }
+    }
+}

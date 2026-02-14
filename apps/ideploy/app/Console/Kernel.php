@@ -65,8 +65,12 @@ class Kernel extends ConsoleKernel
 
             $this->scheduleInstance->command('uploads:clear')->everyTwoMinutes();
             
+            // Pipeline Jobs
+            $this->scheduleInstance->command('pipeline:cleanup-stuck')->hourly()->onOneServer();
+            
             // CrowdSec Security Jobs
-            $this->scheduleInstance->job(new SyncCrowdSecAlertsJob)->everyFiveMinutes()->onOneServer();
+            // TEMPORARILY DISABLED - SyncCrowdSecAlertsJob failing, not critical for IP blocking
+            // $this->scheduleInstance->job(new SyncCrowdSecAlertsJob)->everyFiveMinutes()->onOneServer();
             $this->scheduleInstance->job(new CleanOldTrafficLogsJob)->daily()->onOneServer();
             
             // Poll traffic logger
@@ -98,8 +102,12 @@ class Kernel extends ConsoleKernel
             $this->scheduleInstance->command('cleanup:database --yes')->daily();
             $this->scheduleInstance->command('uploads:clear')->everyTwoMinutes();
             
+            // Pipeline Jobs
+            $this->scheduleInstance->command('pipeline:cleanup-stuck')->hourly()->onOneServer();
+            
             // CrowdSec Security Jobs
-            $this->scheduleInstance->job(new SyncCrowdSecAlertsJob)->everyFiveMinutes()->onOneServer();
+            // TEMPORARILY DISABLED - SyncCrowdSecAlertsJob failing, not critical for IP blocking
+            // $this->scheduleInstance->job(new SyncCrowdSecAlertsJob)->everyFiveMinutes()->onOneServer();
             $this->scheduleInstance->job(new CleanOldTrafficLogsJob)->daily()->onOneServer();
             
             // Poll traffic logger

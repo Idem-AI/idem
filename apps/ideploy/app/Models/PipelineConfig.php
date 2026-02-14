@@ -11,6 +11,9 @@ class PipelineConfig extends Model
     protected $fillable = [
         'application_id',
         'enabled',
+        'auto_trigger_on_push',
+        'auto_trigger_on_pr',
+        'watch_paths',
         'stages',
         'trigger_mode',
         'trigger_branches',
@@ -19,8 +22,11 @@ class PipelineConfig extends Model
 
     protected $casts = [
         'enabled' => 'boolean',
+        'auto_trigger_on_push' => 'boolean',
+        'auto_trigger_on_pr' => 'boolean',
         'stages' => 'array',
         'trigger_branches' => 'array',
+        'watch_paths' => 'array',
         'environment_vars' => 'array',
     ];
 

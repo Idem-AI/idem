@@ -18,6 +18,7 @@ class PipelineExecution extends Model
         'commit_sha',
         'commit_message',
         'branch',
+        'source_path',
         'status',
         'stages_status',
         'started_at',
