@@ -68,16 +68,12 @@ export class App implements OnInit {
     // Masquer le splash screen après le chargement initial
     this.hideInitialSplashScreen();
 
-    this.router.events
-      .pipe(
-        filter((event) => event instanceof NavigationEnd),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(() => {
-        setTimeout(() => {
-          window.scrollTo({ top: 0, behavior: 'auto' });
-        }, 0);
-      });
+    // Auto-scroll to top on navigation
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }, 0);
+    });
   }
 
   private forceDarkMode(): void {
@@ -134,7 +130,7 @@ export class App implements OnInit {
     // Start observing
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['class']
+      attributeFilter: ['class'],
     });
 
     // Also monitor system theme changes and override them
