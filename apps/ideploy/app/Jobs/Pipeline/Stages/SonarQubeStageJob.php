@@ -4,6 +4,7 @@ namespace App\Jobs\Pipeline\Stages;
 
 use App\Models\Application;
 use App\Models\PipelineExecution;
+use App\Models\PipelineToolConfig;
 use App\Services\Pipeline\Tools\SonarQubeService;
 use Illuminate\Support\Facades\Process;
 
@@ -19,7 +20,13 @@ class SonarQubeStageJob
         $this->execution = $execution;
         $this->application = $application;
         $this->stage = $stage;
-        $this->sonar = new SonarQubeService();
+        
+        // Load SonarQube config from database
+        $config = PipelineToolConfig::where('tool_name', 'sonarqube')->first();
+        $url = $config?->config['url'] ?? null;
+        $token = $config?->config['token'] ?? null;
+        
+        $this->sonar = new SonarQubeService($url, $token);
     }
 
     public function handle(): array
