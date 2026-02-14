@@ -136,8 +136,22 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
     window.open('http://localhost:5174/', '_blank');
   };
 
-  // Firebase Storage images are now pre-fetched and embedded as data URLs
-  // directly in the source code before mounting into WebContainer (see filesystem.ts)
+  useEffect(() => {
+    if (iframeLoaded && iframeRef.current?.contentWindow) {
+      try {
+        const injectScript = `
+
+        `;
+
+        const iframeWindow = iframeRef.current.contentWindow;
+        const script = iframeWindow.document.createElement('script');
+        script.textContent = injectScript;
+        iframeWindow.document.head.appendChild(script);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }, [iframeLoaded]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
