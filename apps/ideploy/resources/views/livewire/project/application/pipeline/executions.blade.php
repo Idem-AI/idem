@@ -17,6 +17,10 @@
                class="px-4 py-3 text-sm font-medium text-white border-b-2 border-blue-500 -mb-px">
                 Executions
             </a>
+            <a href="{{ route('project.application.pipeline.settings', $parameters) }}"
+               class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
+                Settings
+            </a>
         </nav>
     </div>
 
@@ -27,7 +31,7 @@
 
     @if($selectedExecution)
     <div class="bg-[#0f1724] border border-gray-800 rounded-lg mb-6">
-        <\!-- Header -->
+        <!-- Header -->
         <div class="flex justify-between px-6 py-4 border-b border-gray-800">
             <div>
                 <h2 class="text-xl font-bold text-white">Pipeline #{{ $selectedExecution->id }}</h2>
@@ -36,21 +40,26 @@
             <button wire:click="closeDetail" class="text-gray-400 hover:text-white">✕</button>
         </div>
 
-        <\!-- Horizontal Pipeline -->
+        <!-- Horizontal Pipeline -->
         <div class="p-8 overflow-x-auto">
             <div class="flex items-center gap-4 min-w-max">
                 @foreach(($selectedExecution->stages_status ?? []) as $stageId => $stage)
+                @php
+                    // Normaliser: si $stage est une string, la convertir en array
+                    $stageStatus = is_array($stage) ? ($stage['status'] ?? 'pending') : $stage;
+                    $stageName = is_array($stage) ? ($stage['name'] ?? $stageId) : $stageId;
+                @endphp
                 <div class="flex items-center gap-4">
                     <div class="text-center">
-                        <div class="mb-2 text-xs text-gray-400">{{ $stage['name'] ?? $stageId }}</div>
+                        <div class="mb-2 text-xs text-gray-400">{{ $stageName }}</div>
                         <div class="bg-white border-2 rounded-lg px-6 py-3 min-w-[140px]
-                            {{ $stage['status'] === 'success' ? 'border-green-500' : '' }}
-                            {{ $stage['status'] === 'failed' ? 'border-red-500' : '' }}
-                            {{ $stage['status'] === 'running' ? 'border-blue-500' : '' }}">
+                            {{ $stageStatus === 'success' ? 'border-green-500' : '' }}
+                            {{ $stageStatus === 'failed' ? 'border-red-500' : '' }}
+                            {{ $stageStatus === 'running' ? 'border-blue-500' : '' }}">
                             <div class="flex items-center gap-2">
-                                @if($stage['status'] === 'success')
+                                @if($stageStatus === 'success')
                                 <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">✓</div>
-                                @elseif($stage['status'] === 'running')
+                                @elseif($stageStatus === 'running')
                                 <div class="w-8 h-8 bg-blue-500 rounded-full animate-spin">⟳</div>
                                 @else
                                 <div class="w-8 h-8 border-2 border-gray-400 rounded-full"></div>
@@ -82,7 +91,7 @@
     </div>
     @endif
 
-    <\!-- List -->
+    <!-- List -->
     <div class="bg-[#0f1724] border border-gray-800 rounded-lg">
         <div class="px-6 py-4 border-b border-gray-800">
             <h3 class="text-white">Recent Executions</h3>

@@ -67,4 +67,13 @@ return [
         'base_url' => env('ZITADEL_BASE_URL'),
     ],
 
+    'sonarqube' => [
+        'url' => env('SONARQUBE_URL', 'http://sonarqube:9000'),
+        'admin_token' => env('SONARQUBE_ADMIN_TOKEN'),
+    ],
+
+    'trivy' => [
+        'url' => env('TRIVY_URL', 'http://trivy:8080'),
+    ],
+
 ];

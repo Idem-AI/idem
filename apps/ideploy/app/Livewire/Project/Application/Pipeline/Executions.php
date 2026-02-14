@@ -64,6 +64,23 @@ class Executions extends Component
     {
         $this->selectedExecution = PipelineExecution::with('logs')
             ->find($this->selectedExecutionId);
+        
+        // Normaliser stages_status pour garantir le format array
+        if ($this->selectedExecution && $this->selectedExecution->stages_status) {
+            $normalized = [];
+            foreach ($this->selectedExecution->stages_status as $stageId => $stage) {
+                // Si $stage est une string, la convertir en array
+                if (is_string($stage)) {
+                    $normalized[$stageId] = [
+                        'status' => $stage,
+                        'name' => $stageId,
+                    ];
+                } else {
+                    $normalized[$stageId] = $stage;
+                }
+            }
+            $this->selectedExecution->stages_status = $normalized;
+        }
     }
 
     public function getExecutionsProperty()

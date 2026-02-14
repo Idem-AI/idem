@@ -4,8 +4,8 @@ namespace App\Livewire\Project\Application\Pipeline;
 
 use App\Models\Application;
 use App\Models\PipelineExecution;
-use App\Models\PipelineJob;
-use App\Jobs\PipelineExecutionJob;
+use App\Models\PipelineLog;
+use App\Models\PipelineScanResult;
 use Livewire\Component;
 
 class ExecutionDetail extends Component
@@ -39,7 +39,6 @@ class ExecutionDetail extends Component
             'application_uuid' => $this->application->uuid,
         ];
 
-        // Load execution with fake data for demo
         $this->execution_uuid = request()->route('execution_uuid');
         $this->loadExecution();
         
@@ -48,109 +47,83 @@ class ExecutionDetail extends Component
     }
     
     /**
-     * Load execution with fake data for demo
+     * Load execution from database
      */
     public function loadExecution()
     {
-        // Fake data pour la démo - basé sur l'ID
-        $executions = [
-            2314 => [
-                'id' => 2314,
-                'status' => 'success',
-                'branch' => 'main',
-                'commit_message' => "Merge branch 'staging' into 'main'",
-                'commit_sha' => '1a30f31c',
-                'trigger_user' => 'Romuald DJETEJE',
-                'started_at' => now()->subMinutes(5),
-                'finished_at' => now()->subMinutes(2),
-                'duration_seconds' => 163,
-                'stages' => [
-                    'sonarqube' => ['status' => 'success', 'duration' => 92],
-                    'trivy' => ['status' => 'success', 'duration' => 45],
-                    'deploy' => ['status' => 'success', 'duration' => 26],
-                ],
-                'sonarqube_results' => [
-                    'bugs' => 0,
-                    'vulnerabilities' => 2,
-                    'code_smells' => 15,
-                    'coverage' => 87,
-                ],
-                'trivy_results' => [
-                    'critical' => 0,
-                    'high' => 1,
-                    'medium' => 5,
-                    'low' => 12,
-                ],
-                'logs' => [
-                    'sonarqube' => "[INFO] Starting SonarQube analysis...\n[INFO] Analyzing 247 files\n[INFO] Quality gate: PASSED\n[SUCCESS] Analysis completed successfully",
-                    'trivy' => "[INFO] Starting Trivy security scan...\n[WARN] Found 1 HIGH severity vulnerability\n[INFO] Scan completed\n[INFO] Generating report...",
-                    'deploy' => "[INFO] Starting deployment...\n[INFO] Building Docker image\n[INFO] Pushing to registry\n[SUCCESS] Deployment completed",
-                ],
-            ],
-            2313 => [
-                'id' => 2313,
-                'status' => 'failed',
-                'branch' => 'develop',
-                'commit_message' => 'Fix authentication bug',
-                'commit_sha' => '9b2c4d1e',
-                'trigger_user' => 'Webhook',
-                'started_at' => now()->subHours(2),
-                'finished_at' => now()->subHours(2)->addMinutes(1),
-                'duration_seconds' => 72,
-                'stages' => [
-                    'sonarqube' => ['status' => 'success', 'duration' => 48],
-                    'trivy' => ['status' => 'failed', 'duration' => 24],
-                    'deploy' => ['status' => 'pending', 'duration' => null],
-                ],
-                'sonarqube_results' => [
-                    'bugs' => 3,
-                    'vulnerabilities' => 1,
-                    'code_smells' => 8,
-                    'coverage' => 72,
-                ],
-                'trivy_results' => [
-                    'critical' => 2,
-                    'high' => 5,
-                    'medium' => 8,
-                    'low' => 15,
-                ],
-                'logs' => [
-                    'sonarqube' => "[INFO] Starting SonarQube analysis...\n[WARN] Found 3 bugs\n[INFO] Quality gate: PASSED",
-                    'trivy' => "[INFO] Starting Trivy security scan...\n[ERROR] Found 2 CRITICAL vulnerabilities\n[ERROR] Security gate: FAILED\n[ERROR] Pipeline stopped",
-                    'deploy' => "[INFO] Skipped due to previous stage failure",
-                ],
-            ],
-            2312 => [
-                'id' => 2312,
-                'status' => 'running',
-                'branch' => 'feature/new-ui',
-                'commit_message' => 'Update pipeline UI with GitLab style',
-                'commit_sha' => '7f8e9a2b',
-                'trigger_user' => 'Romuald DJETEJE',
-                'started_at' => now()->subMinutes(1),
-                'finished_at' => null,
-                'duration_seconds' => 45,
-                'stages' => [
-                    'sonarqube' => ['status' => 'success', 'duration' => 38],
-                    'trivy' => ['status' => 'running', 'duration' => null],
-                    'deploy' => ['status' => 'pending', 'duration' => null],
-                ],
-                'sonarqube_results' => [
-                    'bugs' => 0,
-                    'vulnerabilities' => 0,
-                    'code_smells' => 5,
-                    'coverage' => 92,
-                ],
-                'trivy_results' => null,
-                'logs' => [
-                    'sonarqube' => "[INFO] Starting SonarQube analysis...\n[INFO] Analyzing 312 files\n[INFO] Quality gate: PASSED\n[SUCCESS] Analysis completed",
-                    'trivy' => "[INFO] Starting Trivy security scan...\n[INFO] Scanning dependencies...\n[INFO] Progress: 67%",
-                    'deploy' => "[INFO] Waiting for previous stages...",
-                ],
-            ],
-        ];
+        // Charger l'exécution réelle depuis la DB
+        // Vérifier si c'est un ID numérique ou un UUID
+        if (is_numeric($this->execution_uuid)) {
+            // Si c'est un nombre, chercher par ID
+            $execution = PipelineExecution::where('id', $this->execution_uuid)
+                ->with(['logs', 'scanResults'])
+                ->first();
+        } else {
+            // Si c'est un UUID, chercher par UUID
+            $execution = PipelineExecution::where('uuid', $this->execution_uuid)
+                ->with(['logs', 'scanResults'])
+                ->first();
+        }
         
-        $this->execution = (object)($executions[$this->execution_uuid] ?? $executions[2314]);
+        if (!$execution) {
+            $this->dispatch('error', 'Pipeline execution not found');
+            return redirect()->route('project.application.pipeline', $this->parameters);
+        }
+        
+        // Récupérer les scan results
+        $scanResults = $execution->scanResults;
+        $sonarResult = $scanResults->where('tool', 'sonarqube')->first();
+        $trivyResult = $scanResults->where('tool', 'trivy')->first();
+        
+        // Formater les données pour la vue
+        $this->execution = (object)[
+            'id' => $execution->id,
+            'uuid' => $execution->uuid,
+            'status' => $execution->status,
+            'branch' => $execution->branch ?? 'main',
+            'commit_message' => $execution->commit_message ?? 'No commit message',
+            'commit_sha' => $execution->commit_sha ? substr($execution->commit_sha, 0, 8) : null,
+            'trigger_user' => $execution->trigger_user ?? $execution->trigger_type,
+            'started_at' => $execution->started_at,
+            'finished_at' => $execution->finished_at,
+            'duration_seconds' => $execution->duration_seconds,
+            'stages' => $execution->stages_status ?? [],
+            'sonarqube_results' => $sonarResult ? [
+                'bugs' => $sonarResult->bugs ?? 0,
+                'vulnerabilities' => $sonarResult->vulnerabilities ?? 0,
+                'code_smells' => $sonarResult->code_smells ?? 0,
+                'coverage' => $sonarResult->coverage ?? 0,
+            ] : null,
+            'trivy_results' => $trivyResult && $trivyResult->raw_data ? [
+                'critical' => $trivyResult->raw_data['critical'] ?? 0,
+                'high' => $trivyResult->raw_data['high'] ?? 0,
+                'medium' => $trivyResult->raw_data['medium'] ?? 0,
+                'low' => $trivyResult->raw_data['low'] ?? 0,
+            ] : null,
+            'logs' => $this->formatLogs($execution->logs),
+        ];
+    }
+    
+    /**
+     * Format logs by stage
+     */
+    private function formatLogs($logs)
+    {
+        $formatted = [];
+        
+        foreach ($logs as $log) {
+            $stageId = $log->stage_id ?? 'general';
+            
+            if (!isset($formatted[$stageId])) {
+                $formatted[$stageId] = '';
+            }
+            
+            $timestamp = $log->logged_at ? $log->logged_at->format('H:i:s') : '';
+            $level = strtoupper($log->level);
+            $formatted[$stageId] .= "[{$timestamp}] [{$level}] {$log->message}\n";
+        }
+        
+        return $formatted;
     }
 
     public function selectStage($stageName)
@@ -160,12 +133,79 @@ class ExecutionDetail extends Component
 
     public function cancelExecution()
     {
-        $this->dispatch('success', 'Pipeline execution cancelled (demo mode)');
+        try {
+            // Vérifier si c'est un ID numérique ou un UUID
+            if (is_numeric($this->execution_uuid)) {
+                $execution = PipelineExecution::where('id', $this->execution_uuid)->first();
+            } else {
+                $execution = PipelineExecution::where('uuid', $this->execution_uuid)->first();
+            }
+            
+            if (!$execution) {
+                $this->dispatch('error', 'Execution not found');
+                return;
+            }
+            
+            if ($execution->status !== 'running') {
+                $this->dispatch('error', 'Can only cancel running executions');
+                return;
+            }
+            
+            $execution->update([
+                'status' => 'cancelled',
+                'finished_at' => now(),
+            ]);
+            
+            $this->loadExecution();
+            $this->dispatch('success', 'Pipeline execution cancelled');
+        } catch (\Exception $e) {
+            \Log::error("Failed to cancel execution: " . $e->getMessage());
+            $this->dispatch('error', 'Failed to cancel execution');
+        }
     }
 
     public function rerunExecution()
     {
-        $this->dispatch('success', 'Pipeline restarted successfully (demo mode)');
+        try {
+            // Vérifier si c'est un ID numérique ou un UUID
+            if (is_numeric($this->execution_uuid)) {
+                $execution = PipelineExecution::where('id', $this->execution_uuid)->first();
+            } else {
+                $execution = PipelineExecution::where('uuid', $this->execution_uuid)->first();
+            }
+            
+            if (!$execution) {
+                $this->dispatch('error', 'Execution not found');
+                return;
+            }
+            
+            // Create new execution with same parameters
+            $newExecution = PipelineExecution::create([
+                'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'pipeline_config_id' => $execution->pipeline_config_id,
+                'application_id' => $execution->application_id,
+                'trigger_type' => 'manual',
+                'trigger_user' => auth()->user()->name ?? 'System',
+                'branch' => $execution->branch,
+                'commit_sha' => null,
+                'commit_message' => 'Re-run of pipeline #' . $execution->id,
+                'status' => 'pending',
+                'started_at' => now(),
+                'stages_status' => [],
+            ]);
+            
+            // Dispatch pipeline orchestrator
+            dispatch(new \App\Jobs\Pipeline\PipelineOrchestratorJob($newExecution));
+            
+            $this->dispatch('success', 'Pipeline restarted successfully');
+            
+            // Redirect to new execution
+            return redirect()->route('project.application.pipeline.execution.detail', array_merge($this->parameters, ['execution_uuid' => $newExecution->uuid]));
+            
+        } catch (\Exception $e) {
+            \Log::error("Failed to rerun execution: " . $e->getMessage());
+            $this->dispatch('error', 'Failed to restart pipeline');
+        }
     }
 
     public function render()

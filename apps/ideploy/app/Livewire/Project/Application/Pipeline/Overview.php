@@ -5,7 +5,7 @@ namespace App\Livewire\Project\Application\Pipeline;
 use App\Models\Application;
 use App\Models\PipelineConfig;
 use App\Models\PipelineExecution;
-use App\Jobs\Pipeline\PipelineExecutionJob;
+use App\Jobs\Pipeline\PipelineOrchestratorJob;
 use App\Services\Pipeline\PipelineToolsService;
 use Livewire\Component;
 
@@ -63,90 +63,63 @@ class Overview extends Component
     }
     
     /**
-     * Load pipeline executions with fake data for demo
+     * Load pipeline executions from database
      */
     public function loadExecutions()
     {
-        // Fake data pour la démo
-        $this->executions = collect([
-            (object)[
-                'id' => 2314,
-                'status' => 'success',
-                'branch' => 'main',
-                'commit_message' => "Merge branch 'staging' into 'main'",
-                'commit_sha' => '1a30f31c',
-                'triggered_by' => 'Romuald DJETEJE',
-                'created_at' => now()->subMinutes(5),
-                'duration' => '2:43',
-                'stages' => [
-                    'sonarqube' => 'success',
-                    'trivy' => 'success',
-                    'deploy' => 'success',
-                ],
-            ],
-            (object)[
-                'id' => 2313,
-                'status' => 'failed',
-                'branch' => 'develop',
-                'commit_message' => 'Fix authentication bug',
-                'commit_sha' => '9b2c4d1e',
-                'triggered_by' => 'Webhook',
-                'created_at' => now()->subHours(2),
-                'duration' => '1:12',
-                'stages' => [
-                    'sonarqube' => 'success',
-                    'trivy' => 'failed',
-                    'deploy' => 'pending',
-                ],
-            ],
-            (object)[
-                'id' => 2312,
-                'status' => 'running',
-                'branch' => 'feature/new-ui',
-                'commit_message' => 'Update pipeline UI with GitLab style',
-                'commit_sha' => '7f8e9a2b',
-                'triggered_by' => 'Romuald DJETEJE',
-                'created_at' => now()->subMinutes(1),
-                'duration' => '0:45',
-                'stages' => [
-                    'sonarqube' => 'success',
-                    'trivy' => 'running',
-                    'deploy' => 'pending',
-                ],
-            ],
-            (object)[
-                'id' => 2311,
-                'status' => 'success',
-                'branch' => 'main',
-                'commit_message' => 'Add firewall security rules',
-                'commit_sha' => '3c5d7e9f',
-                'triggered_by' => 'Webhook',
-                'created_at' => now()->subHours(5),
-                'duration' => '3:21',
-                'stages' => [
-                    'sonarqube' => 'success',
-                    'trivy' => 'success',
-                    'deploy' => 'success',
-                ],
-            ],
-            (object)[
-                'id' => 2310,
-                'status' => 'pending',
-                'branch' => 'hotfix/urgent-fix',
-                'commit_message' => 'Critical security patch',
-                'commit_sha' => '2a4b6c8d',
-                'triggered_by' => 'Romuald DJETEJE',
-                'created_at' => now()->subSeconds(30),
-                'duration' => null,
-                'stages' => [
-                    'sonarqube' => 'pending',
-                    'trivy' => 'pending',
-                    'deploy' => 'pending',
-                ],
-            ],
-        ]);
+        if (!$this->pipelineConfig) {
+            $this->executions = collect([]);
+            $this->totalExecutions = 0;
+            return;
+        }
+
+        // Load real executions from database
+        $query = PipelineExecution::where('pipeline_config_id', $this->pipelineConfig->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10);
+
+        // Apply status filter
+        if (!empty($this->statusFilter)) {
+            $query->where('status', $this->statusFilter);
+        }
+
+        // Apply search
+        if (!empty($this->search)) {
+            $query->where(function($q) {
+                $q->where('branch', 'like', '%' . $this->search . '%')
+                  ->orWhere('commit_message', 'like', '%' . $this->search . '%')
+                  ->orWhere('commit_sha', 'like', '%' . $this->search . '%')
+                  ->orWhere('trigger_user', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        $this->executions = $query->get()->map(function($execution) {
+            // Calculate duration
+            $duration = null;
+            if ($execution->started_at) {
+                $endTime = $execution->finished_at ?? now();
+                $diff = $execution->started_at->diffInSeconds($endTime);
+                $minutes = floor($diff / 60);
+                $seconds = $diff % 60;
+                $duration = sprintf('%d:%02d', $minutes, $seconds);
+            }
+
+            return (object)[
+                'id' => $execution->id,
+                'uuid' => $execution->uuid ?? $execution->id,
+                'status' => $execution->status,
+                'branch' => $execution->branch,
+                'commit_message' => $execution->commit_message ?? 'No commit message',
+                'commit_sha' => $execution->commit_sha ? substr($execution->commit_sha, 0, 8) : 'N/A',
+                'triggered_by' => $execution->trigger_user ?? $execution->trigger_type,
+                'created_at' => $execution->created_at,
+                'duration' => $duration,
+                'stages' => $execution->stages_status ?? [],
+                'stages_status' => $execution->stages_status ?? [], // Add for blade compatibility
+            ];
+        });
         
-        $this->totalExecutions = $this->executions->count();
+        $this->totalExecutions = PipelineExecution::where('pipeline_config_id', $this->pipelineConfig->id)->count();
     }
     
     public function loadAvailableTools()
@@ -400,19 +373,31 @@ class Overview extends Component
         }
 
         try {
+            // Get application's git branch (default to git_branch or 'main')
+            $branch = $this->application->git_branch ?? 'main';
+            
             // Create pipeline execution
             $execution = PipelineExecution::create([
                 'pipeline_config_id' => $this->pipelineConfig->id,
                 'application_id' => $this->application->id,
                 'trigger_type' => 'manual',
-                'trigger_user' => auth()->user()->name ?? 'unknown',
-                'branch' => 'manual',
+                'trigger_user' => auth()->user()->name ?? 'System',
+                'branch' => $branch,
+                'commit_sha' => null, // Will be filled by GitCloneStageJob
+                'commit_message' => 'Manual pipeline execution',
                 'status' => 'pending',
                 'started_at' => now(),
+                'stages_status' => [
+                    'git_clone' => 'pending',
+                    'language_detection' => 'pending',
+                    'sonarqube' => 'pending',
+                    'trivy' => 'pending',
+                    'deployment' => 'pending',
+                ],
             ]);
 
-            // Dispatch pipeline job
-            dispatch(new PipelineExecutionJob($execution));
+            // Dispatch pipeline orchestrator job (runs all stages)
+            dispatch(new PipelineOrchestratorJob($execution));
 
             $this->dispatch('success', 'Pipeline started successfully');
             
