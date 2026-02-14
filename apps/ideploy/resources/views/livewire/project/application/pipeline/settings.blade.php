@@ -159,33 +159,40 @@
                 </div>
                 
                 @if($sonarqubeEnabled ?? true)
+                    <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                        <div class="flex gap-3">
+                            <svg class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="text-sm text-blue-200">
+                                <p class="font-medium mb-1">Default Configuration</p>
+                                <p class="text-blue-300/80">If URL and Token are not provided, the pipeline will use default values: <code class="text-blue-300">https://sonar.idem.africa</code></p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">SonarQube Server</label>
-                        <select wire:model="sonarqubeServerId" class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
-                            <option value="">Select SonarQube Server</option>
-                            <option value="1">SonarCloud (sonarcloud.io)</option>
-                            <option value="2">Company SonarQube (sonar.company.com)</option>
-                            <option value="3">Local SonarQube (localhost:9000)</option>
-                        </select>
-                        <a href="#" class="inline-block text-sm text-blue-400 hover:text-blue-300 mt-2 transition">
-                            + Add new SonarQube server
-                        </a>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">SonarQube URL</label>
+                        <input type="url" wire:model="sonarqubeUrl" 
+                               placeholder="https://sonar.idem.africa (default)" 
+                               class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
+                        <p class="text-xs text-gray-500 mt-2">Leave empty to use default: https://sonar.idem.africa</p>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Quality Gate</label>
-                        <select wire:model="qualityGate" class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
-                            <option value="default">Default Quality Gate</option>
-                            <option value="strict">Strict Quality Gate</option>
-                            <option value="relaxed">Relaxed Quality Gate</option>
-                        </select>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Authentication Token</label>
+                        <input type="password" wire:model="sonarqubeToken" 
+                               placeholder="squ_••••••••••••••••••••" 
+                               class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition font-mono">
+                        <p class="text-xs text-gray-500 mt-2">Generate token in SonarQube: My Account → Security → Generate Tokens</p>
                     </div>
                     
                     <div>
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" wire:model="failOnQualityGate" checked class="rounded">
-                            <span class="text-sm">Fail build if Quality Gate fails</span>
-                        </label>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Organization (Optional)</label>
+                        <input type="text" wire:model="sonarqubeOrganization" 
+                               placeholder="my-organization" 
+                               class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
+                        <p class="text-xs text-gray-500 mt-2">Required for SonarCloud, optional for self-hosted SonarQube</p>
                     </div>
                 @endif
             </div>
