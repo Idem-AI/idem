@@ -239,6 +239,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pipeline', PipelineOverview::class)->name('project.application.pipeline');
         Route::get('/pipeline/executions', PipelineExecutions::class)->name('project.application.pipeline.executions');
         Route::get('/pipeline/execution/{execution_uuid}', ExecutionDetail::class)->name('project.application.pipeline.execution.detail');
+        Route::get('/pipeline/settings', \App\Livewire\Project\Application\Pipeline\Settings::class)->name('project.application.pipeline.settings');
 
         Route::get('/deployment', DeploymentIndex::class)->name('project.application.deployment.index');
         Route::get('/deployment/{deployment_uuid}', DeploymentShow::class)->name('project.application.deployment.show');
