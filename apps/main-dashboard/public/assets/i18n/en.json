@@ -710,6 +710,11 @@
     },
     "dashboard": {
       "loading": "Loading your dashboard...",
+      "viewAllProjects": "View All Projects",
+      "openFeature": "Open Feature",
+      "progressOverview": "Progress Overview",
+      "projectInformation": "Project Information",
+      "pending": "Pending",
       "hero": {
         "activeProject": "Active Project",
         "defaultDescription": "Transform your ideas into reality with our comprehensive project management tools",
@@ -773,6 +778,11 @@
         "title": "No Active Project",
         "description": "Select a project to get started with your journey",
         "goToProjects": "Go to Projects"
+      },
+      "errors": {
+        "noProjectSelected": "No project selected",
+        "projectNotFound": "Project not found: {{projectId}}",
+        "failedToLoad": "Failed to load project data"
       },
       "quotaWarning": {
         "title": "Quota Warning",
