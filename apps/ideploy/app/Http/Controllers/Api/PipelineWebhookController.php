@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\Pipeline\PipelineExecutionJob;
+use App\Jobs\Pipeline\PipelineOrchestratorJob;
 use App\Models\Application;
 use App\Models\PipelineConfig;
 use App\Models\PipelineExecution;
@@ -68,17 +68,24 @@ class PipelineWebhookController extends Controller
             $execution = PipelineExecution::create([
                 'pipeline_config_id' => $pipelineConfig->id,
                 'application_id' => $application->id,
-                'trigger_type' => 'push',
-                'trigger_user' => $data['author'] ?? 'unknown',
+                'trigger_type' => 'webhook',
+                'trigger_user' => $data['author'] ?? 'Webhook',
                 'commit_sha' => $data['commit_sha'] ?? null,
-                'commit_message' => $data['commit_message'] ?? null,
+                'commit_message' => $data['commit_message'] ?? 'Webhook trigger',
                 'branch' => $data['branch'],
                 'status' => 'pending',
                 'started_at' => now(),
+                'stages_status' => [
+                    'git_clone' => 'pending',
+                    'language_detection' => 'pending',
+                    'sonarqube' => 'pending',
+                    'trivy' => 'pending',
+                    'deployment' => 'pending',
+                ],
             ]);
 
-            // Dispatch pipeline job
-            dispatch(new PipelineExecutionJob($execution));
+            // Dispatch pipeline orchestrator job
+            dispatch(new PipelineOrchestratorJob($execution));
 
             Log::info("Pipeline triggered via webhook", [
                 'application_id' => $application->id,
