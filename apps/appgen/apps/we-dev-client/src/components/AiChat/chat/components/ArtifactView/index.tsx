@@ -1,29 +1,43 @@
-import { openFile } from "../../../../WeIde/emit";
-import React, { useMemo, useState, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { useFileStore } from "../../../../WeIde/stores/fileStore";
-import classNames from "classnames";
+import { openFile } from '../../../../WeIde/emit';
+import React, { useMemo, useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useFileStore } from '../../../../WeIde/stores/fileStore';
+import classNames from 'classnames';
 
-import useTerminalStore from "@/stores/terminalSlice";
+import useTerminalStore from '@/stores/terminalSlice';
 
-import {
-  CodeBlock,
-  isThinkContent,
-  processStreamParts,
-  processThinkContent,
-} from "../MessageItem";
-import { parseFileFromContext } from "../../../utils/index";
-import { Message } from "ai";
+import { CodeBlock, isThinkContent, processStreamParts, processThinkContent } from '../MessageItem';
+import { parseFileFromContext } from '../../../utils/index';
+import { Message } from 'ai';
 
 interface Task {
-  status: "done" | "parsing";
+  status: 'done' | 'parsing';
   text: string;
   filePath?: string;
 }
 
+// Extract file content from streaming boltArtifact content (for real-time editor updates)
+const extractStreamingFileContent = (filePath: string, content: string): string | null => {
+  const escapedPath = filePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const openTagRegex = new RegExp(`<boltAction[^>]*filePath="${escapedPath}"[^>]*>`);
+  const openMatch = content.match(openTagRegex);
+  if (!openMatch) return null;
+
+  const startIndex = content.indexOf(openMatch[0]) + openMatch[0].length;
+  const closeTag = '</boltAction>';
+  const closeIndex = content.indexOf(closeTag, startIndex);
+
+  if (closeIndex !== -1) {
+    return content.substring(startIndex, closeIndex).trim();
+  } else {
+    // Still streaming - return partial content
+    return content.substring(startIndex).trim();
+  }
+};
+
 // 添加新的类型定义
-type CommandStatus = "idle" | "running" | "completed";
+type CommandStatus = 'idle' | 'running' | 'completed';
 
 interface ArtifactViewProps {
   isUser: boolean;
@@ -42,39 +56,30 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
   const { setFiles, updateContent } = useFileStore();
   const [isExpanded, setIsExpanded] = useState(true);
   const [fileStates, setFileStates] = useState<
-    Map<string, { status: Task["status"]; order: number }>
+    Map<string, { status: Task['status']; order: number }>
   >(new Map());
   // 添加命令状态管理
-  const [commandStatus, setCommandStatus] = useState<
-    Record<string, CommandStatus>
-  >({});
+  const [commandStatus, setCommandStatus] = useState<Record<string, CommandStatus>>({});
 
-  const {getTerminal} = useTerminalStore();
+  const { getTerminal } = useTerminalStore();
 
   // 处理 pre/post artifact 内容，应用 think 标签处理
   const preArtifactContent = useMemo(() => {
-    const artifactIndex = content.indexOf("<boltArtifact");
-    const preContent =
-      artifactIndex > 0 ? content.substring(0, artifactIndex) : "";
+    const artifactIndex = content.indexOf('<boltArtifact');
+    const preContent = artifactIndex > 0 ? content.substring(0, artifactIndex) : '';
     return message.reasoning ? processStreamParts(message.parts) : preContent;
   }, [content]);
   const postArtifactContent = useMemo(() => {
-    const artifactEndIndex = content.lastIndexOf("</boltArtifact>");
+    const artifactEndIndex = content.lastIndexOf('</boltArtifact>');
     const postContent =
-      artifactEndIndex !== -1
-        ? content.substring(artifactEndIndex + "</boltArtifact>".length)
-        : "";
-    return isThinkContent(postContent)
-      ? processThinkContent(postContent)
-      : postContent;
+      artifactEndIndex !== -1 ? content.substring(artifactEndIndex + '</boltArtifact>'.length) : '';
+    return isThinkContent(postContent) ? processThinkContent(postContent) : postContent;
   }, [content]);
 
   // 提取文件路径
   const filePaths = useMemo(() => {
     const matches = Array.from(
-      content.matchAll(
-        /<boltAction[^>]*type="file"[^>]*filePath="([^"]*)"[^>]*>/g
-      )
+      content.matchAll(/<boltAction[^>]*type="file"[^>]*filePath="([^"]*)"[^>]*>/g)
     );
     return matches.map((match) => match[1]);
   }, [content]);
@@ -82,9 +87,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
   // 使用 useEffect 处理文件打开
   useEffect(() => {
     const matches = Array.from(
-      content.matchAll(
-        /<boltAction[^>]*type="file"[^>]*filePath="([^"]*)"[^>]*>/g
-      )
+      content.matchAll(/<boltAction[^>]*type="file"[^>]*filePath="([^"]*)"[^>]*>/g)
     );
     if (matches.length > 0 && !isComplete) {
       openFile(matches[matches.length - 1][1]);
@@ -97,12 +100,12 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
     filePaths.forEach((path, index) => {
       if (index === filePaths.length - 1) {
         newFileStates.set(path, {
-          status: "parsing",
+          status: 'parsing',
           order: index,
         });
       } else {
         newFileStates.set(path, {
-          status: "done",
+          status: 'done',
           order: index,
         });
       }
@@ -118,7 +121,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
         filePaths.forEach((path) => {
           const fileState = newStates.get(path);
           if (fileState) {
-            newStates.set(path, { ...fileState, status: "done" });
+            newStates.set(path, { ...fileState, status: 'done' });
           }
         });
         return newStates;
@@ -126,50 +129,59 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
     }
   }, [isComplete, filePaths]);
 
+  // Update file content in the Editor in real-time during streaming
+  useEffect(() => {
+    if (isComplete) return; // onFinish handles the final update
+    filePaths.forEach((fp) => {
+      const fileContent = extractStreamingFileContent(fp, content);
+      if (fileContent) {
+        updateContent(fp, fileContent, false, true);
+      }
+    });
+  }, [content, filePaths, isComplete]);
+
   // 构建任务列表
   const tasks = useMemo(() => {
     return filePaths.map((filePath) => ({
       text: filePath,
-      status: fileStates.get(filePath)?.status || "parsing",
+      status: fileStates.get(filePath)?.status || 'parsing',
     }));
   }, [filePaths, fileStates]);
 
   const npmCommands = useMemo(() => {
     const commands = [];
     // 使用正则表达式匹配 shell 命令
-    const shellCommandRegex =
-      /<boltAction\s+type="shell"\s*>([\s\S]*?)<\/boltAction>/g;
+    const shellCommandRegex = /<boltAction\s+type="shell"\s*>([\s\S]*?)<\/boltAction>/g;
     // start情况下
-    const startCommandRegex =
-      /<boltAction\s+type="start"\s*>([\s\S]*?)<\/boltAction>/g;
+    const startCommandRegex = /<boltAction\s+type="start"\s*>([\s\S]*?)<\/boltAction>/g;
     const matches = Array.from(content.matchAll(shellCommandRegex));
     const matchesByStart = Array.from(content.matchAll(startCommandRegex));
-    
+
     matches.forEach((match) => {
       const command = match[1].trim();
-      if (command.startsWith("npm install")) {
+      if (command.startsWith('npm install')) {
         commands.push({
-          type: "install",
+          type: 'install',
           command: command,
         });
       } else {
         commands.push({
-          type: "other",
-          command: command.replace(/\n/g, ""),
+          type: 'other',
+          command: command.replace(/\n/g, ''),
         });
       }
     });
     matchesByStart.forEach((match) => {
       const command = match[1].trim();
-      if (command.startsWith("npm run")) {
+      if (command.startsWith('npm run')) {
         commands.push({
-          type: "dev",
+          type: 'dev',
           command: command,
         });
       } else {
         commands.push({
-          type: "other",
-          command: command.replace(/\n/g, ""),
+          type: 'other',
+          command: command.replace(/\n/g, ''),
         });
       }
     });
@@ -195,26 +207,26 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
             remarkPlugins={[remarkGfm]}
             components={{
               code({ node, className, children, ...props }) {
-                const match = /language-(\w+)(?::(.+))?/.exec(className || "");
+                const match = /language-(\w+)(?::(.+))?/.exec(className || '');
                 const isInline = !match;
 
-                    if (isInline) {
-                      return (
-                        <code
-                          className="font-mono text-sm px-1.5 py-0.5 rounded bg-gray-50 dark:bg-[#282828] text-gray-800 dark:text-gray-300"
-                          {...props}
-                        >
-                          {children}
-                        </code>
-                      );
-                    }
+                if (isInline) {
+                  return (
+                    <code
+                      className="font-mono text-sm px-1.5 py-0.5 rounded bg-gray-50 dark:bg-[#282828] text-gray-800 dark:text-gray-300"
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  );
+                }
 
-                    const language = match?.[1] || "";
-                    const filePath = match?.[2];
-                    // 确保 children 是字符串类型
-                    const content = Array.isArray(children) 
-                      ? children.join('') 
-                      : String(children).replace(/\n$/, "");
+                const language = match?.[1] || '';
+                const filePath = match?.[2];
+                // 确保 children 是字符串类型
+                const content = Array.isArray(children)
+                  ? children.join('')
+                  : String(children).replace(/\n$/, '');
 
                 return (
                   <CodeBlock language={language} filePath={filePath}>
@@ -230,23 +242,13 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                 return <p className="mb-2 last:mb-0">{children}</p>;
               },
               ul({ children }) {
-                return (
-                  <ul className="pl-4 mb-2 space-y-1 list-disc">{children}</ul>
-                );
+                return <ul className="pl-4 mb-2 space-y-1 list-disc">{children}</ul>;
               },
               ol({ children }) {
-                return (
-                  <ol className="pl-4 mb-2 space-y-1 list-decimal">
-                    {children}
-                  </ol>
-                );
+                return <ol className="pl-4 mb-2 space-y-1 list-decimal">{children}</ol>;
               },
               li({ children }) {
-                return (
-                  <li className="text-gray-700 dark:text-gray-300">
-                    {children}
-                  </li>
-                );
+                return <li className="text-gray-700 dark:text-gray-300">{children}</li>;
               },
               a({ children, href }) {
                 return (
@@ -266,7 +268,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                   <blockquote className="relative py-2 pl-4 my-2 text-sm text-gray-600 border-l-4 border-purple-200 rounded dark:border-purple-800 dark:text-gray-400 bg-purple-50 dark:bg-purple-900/10 group">
                     <div
                       className={`overflow-hidden transition-all duration-200 ${
-                        isCollapsed ? "h-4" : "max-h-none"
+                        isCollapsed ? 'h-4' : 'max-h-none'
                       }`}
                     >
                       {children}
@@ -288,17 +290,9 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                         strokeWidth="2"
                       >
                         {isCollapsed ? (
-                          <path
-                            d="M12 5v14M5 12h14"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
+                          <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
                         ) : (
-                          <path
-                            d="M5 12h14"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
+                          <path d="M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
                         )}
                       </svg>
                     </button>
@@ -321,11 +315,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                 );
               },
               thead({ children }) {
-                return (
-                  <thead className="bg-purple-50 dark:bg-purple-900/20">
-                    {children}
-                  </thead>
-                );
+                return <thead className="bg-purple-50 dark:bg-purple-900/20">{children}</thead>;
               },
               tbody({ children }) {
                 return (
@@ -335,11 +325,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                 );
               },
               tr({ children }) {
-                return (
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    {children}
-                  </tr>
-                );
+                return <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50">{children}</tr>;
               },
               th({ children }) {
                 return (
@@ -369,13 +355,11 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-2">
-            <h3 className="text-gray-700 dark:text-gray-200 font-medium text-sm">
-              {title}
-            </h3>
+            <h3 className="text-gray-700 dark:text-gray-200 font-medium text-sm">{title}</h3>
           </div>
           <div className="flex items-center gap-2">
             {/* 只在所有任务都完成时显示 Restore 按钮 */}
-            {tasks.every((task) => task.status === "done") && !isUser && (
+            {tasks.every((task) => task.status === 'done') && !isUser && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -400,7 +384,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
 
         <div
           className={`transition-all duration-200 ease-in-out overflow-hidden ${
-            isExpanded ? " opacity-100" : "max-h-0 opacity-0"
+            isExpanded ? ' opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
           <div className="py-1 space-y-0.5">
@@ -410,12 +394,10 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                 className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#28292b] group/item transition-colors"
               >
                 <div className="flex-shrink-0">
-                  {task.status === "done" && (
-                    <span className="text-green-500 dark:text-green-400 text-sm">
-                      ✓
-                    </span>
+                  {task.status === 'done' && (
+                    <span className="text-green-500 dark:text-green-400 text-sm">✓</span>
                   )}
-                  {task.status === "parsing" && (
+                  {task.status === 'parsing' && (
                     <div className="w-4 h-4">
                       <div className="w-4 h-4 border-2 border-blue-500 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
                     </div>
@@ -427,14 +409,14 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                       openFile(task.text);
                     }}
                     className={`text-sm ${
-                      task.status === "done"
-                        ? "text-gray-700 dark:text-gray-300"
-                        : "text-gray-500 dark:text-gray-400"
+                      task.status === 'done'
+                        ? 'text-gray-700 dark:text-gray-300'
+                        : 'text-gray-500 dark:text-gray-400'
                     } hover:underline cursor-pointer truncate`}
                   >
                     {task.text}
                   </span>
-                  {(!isUser || title === "the current file") && (
+                  {(!isUser || title === 'the current file') && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -467,162 +449,148 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
               <div
                 key={cmd.type}
                 className={classNames(
-                  "bg-gray-50 dark:bg-[#232426] px-3 py-2 font-mono text-sm flex items-center gap-1.5 justify-between group/npm",
+                  'bg-gray-50 dark:bg-[#232426] px-3 py-2 font-mono text-sm flex items-center gap-1.5 justify-between group/npm',
                   index !== npmCommands.length - 1 &&
-                    "border-b border-gray-200 dark:border-gray-700/50"
+                    'border-b border-gray-200 dark:border-gray-700/50'
                 )}
               >
                 <div className="flex items-center justify-between w-full">
-                  {cmd.type === "install" ? (
+                  {cmd.type === 'install' ? (
                     <div
                       className="cursor-pointer"
                       onClick={async () => {
                         if (
-                          commandStatus[cmd.command] === "running" ||
-                          commandStatus[cmd.command] === "completed"
+                          commandStatus[cmd.command] === 'running' ||
+                          commandStatus[cmd.command] === 'completed'
                         ) {
                           return;
                         }
                         try {
                           setCommandStatus((prev) => ({
                             ...prev,
-                            [cmd.command]: "running",
+                            [cmd.command]: 'running',
                           }));
-                          await getTerminal(0).executeCommand("npm install");
+                          await getTerminal(0).executeCommand('npm install');
                           setCommandStatus((prev) => ({
                             ...prev,
-                            [cmd.command]: "completed",
+                            [cmd.command]: 'completed',
                           }));
                         } catch (error) {
                           setCommandStatus((prev) => ({
                             ...prev,
-                            [cmd.command]: "idle",
+                            [cmd.command]: 'idle',
                           }));
                         }
                       }}
                     >
                       <div className="flex w-full gap-1.5">
                         <>
-                          <span className="text-green-600 dark:text-[#7ee787]">
-                            npm
-                          </span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            install
-                          </span>
+                          <span className="text-green-600 dark:text-[#7ee787]">npm</span>
+                          <span className="text-gray-600 dark:text-gray-400">install</span>
                         </>
                         <button
                           className={classNames(
-                            "text-xs px-1.5 py-0.5 rounded transition-all flex items-center gap-1 flex-shrink-0 ml-24",
+                            'text-xs px-1.5 py-0.5 rounded transition-all flex items-center gap-1 flex-shrink-0 ml-24',
                             {
-                              "invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-[#333] dark:hover:bg-[#444] text-gray-700 dark:text-gray-300":
+                              'invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-[#333] dark:hover:bg-[#444] text-gray-700 dark:text-gray-300':
                                 !commandStatus[cmd.command],
-                              "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed":
-                                commandStatus[cmd.command] === "completed",
-                              "bg-blue-100 dark:bg-blue-600 text-blue-700 dark:text-white cursor-wait":
-                                commandStatus[cmd.command] === "running",
+                              'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed':
+                                commandStatus[cmd.command] === 'completed',
+                              'bg-blue-100 dark:bg-blue-600 text-blue-700 dark:text-white cursor-wait':
+                                commandStatus[cmd.command] === 'running',
                             }
                           )}
                           disabled={
-                            commandStatus[cmd.command] === "running" ||
-                            commandStatus[cmd.command] === "completed"
+                            commandStatus[cmd.command] === 'running' ||
+                            commandStatus[cmd.command] === 'completed'
                           }
                         >
-                          {commandStatus[cmd.command] === "running" ? (
+                          {commandStatus[cmd.command] === 'running' ? (
                             <div className="flex items-center gap-1">
                               <div className="w-3 h-3 border-2 border-blue-500 dark:border-white border-t-transparent rounded-full animate-spin" />
                               <span>Installing...</span>
                             </div>
-                          ) : commandStatus[cmd.command] === "completed" ? (
+                          ) : commandStatus[cmd.command] === 'completed' ? (
                             <div className="flex items-center gap-1">
-                              <span className="text-green-500 dark:text-green-400">
-                                ✓
-                              </span>
+                              <span className="text-green-500 dark:text-green-400">✓</span>
                               <span>Installed</span>
                             </div>
                           ) : (
-                            "install"
+                            'install'
                           )}
                         </button>
                       </div>
                     </div>
-                  ) : cmd.type === "dev" ? (
+                  ) : cmd.type === 'dev' ? (
                     <div
                       className="cursor-pointer"
                       onClick={async () => {
                         if (
-                          commandStatus[cmd.command] === "running" ||
-                          commandStatus[cmd.command] === "completed"
+                          commandStatus[cmd.command] === 'running' ||
+                          commandStatus[cmd.command] === 'completed'
                         ) {
                           return;
                         }
                         try {
                           setCommandStatus((prev) => ({
                             ...prev,
-                            [cmd.command]: "running",
+                            [cmd.command]: 'running',
                           }));
-                          await getTerminal(0).executeCommand("npm run dev");
+                          await getTerminal(0).executeCommand('npm run dev');
                           setCommandStatus((prev) => ({
                             ...prev,
-                            [cmd.command]: "completed",
+                            [cmd.command]: 'completed',
                           }));
                         } catch (error) {
                           setCommandStatus((prev) => ({
                             ...prev,
-                            [cmd.command]: "idle",
+                            [cmd.command]: 'idle',
                           }));
                         }
                       }}
                     >
                       <div className="flex w-full gap-1.5">
                         <>
-                          <span className="text-green-600 dark:text-[#7ee787]">
-                            npm
-                          </span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            run
-                          </span>
+                          <span className="text-green-600 dark:text-[#7ee787]">npm</span>
+                          <span className="text-gray-600 dark:text-gray-400">run</span>
                           <span className="text-[#79c0ff]">dev</span>
                         </>
                         <button
                           className={classNames(
-                            "text-xs px-1.5 py-0.5 rounded transition-all flex items-center gap-1 flex-shrink-0 ml-24",
+                            'text-xs px-1.5 py-0.5 rounded transition-all flex items-center gap-1 flex-shrink-0 ml-24',
                             {
-                              "invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-[#333] dark:hover:bg-[#444] text-gray-700 dark:text-gray-300":
+                              'invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-[#333] dark:hover:bg-[#444] text-gray-700 dark:text-gray-300':
                                 !commandStatus[cmd.command],
-                              "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed":
-                                commandStatus[cmd.command] === "completed",
-                              "bg-blue-100 dark:bg-blue-600 text-blue-700 dark:text-white cursor-wait":
-                                commandStatus[cmd.command] === "running",
+                              'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed':
+                                commandStatus[cmd.command] === 'completed',
+                              'bg-blue-100 dark:bg-blue-600 text-blue-700 dark:text-white cursor-wait':
+                                commandStatus[cmd.command] === 'running',
                             }
                           )}
                           disabled={
-                            commandStatus[cmd.command] === "running" ||
-                            commandStatus[cmd.command] === "completed"
+                            commandStatus[cmd.command] === 'running' ||
+                            commandStatus[cmd.command] === 'completed'
                           }
                         >
-                          {commandStatus[cmd.command] === "running" ? (
+                          {commandStatus[cmd.command] === 'running' ? (
                             <div className="flex items-center gap-1">
                               <div className="w-3 h-3 border-2 border-blue-500 dark:border-white border-t-transparent rounded-full animate-spin" />
                               <span>Starting...</span>
                             </div>
-                          ) : commandStatus[cmd.command] === "completed" ? (
+                          ) : commandStatus[cmd.command] === 'completed' ? (
                             <div className="flex items-center gap-1">
-                              <span className="text-green-500 dark:text-green-400">
-                                ✓
-                              </span>
+                              <span className="text-green-500 dark:text-green-400">✓</span>
                               <span>Started</span>
                             </div>
                           ) : (
-                            "start"
+                            'start'
                           )}
                         </button>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <span className="text-green-600 dark:text-[#7ee787]">
-                        {cmd.command}
-                      </span>
+                      <span className="text-green-600 dark:text-[#7ee787]">{cmd.command}</span>
                     </>
                   )}
                 </div>

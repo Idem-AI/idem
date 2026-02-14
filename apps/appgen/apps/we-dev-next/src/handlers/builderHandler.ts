@@ -218,11 +218,18 @@ REQUIREMENTS:
 3. This is NOT a generic React template - customize everything for this specific project
 4. Use the provided color scheme, typography, and logo
 
+⚠️ TARGET AUDIENCE - SUB-SAHARAN AFRICA (ABSOLUTELY CRITICAL):
+- ALL images of people MUST feature Black African people. NEVER use generic Western/European/Asian stock photos.
+- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
+- Testimonials/user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
+- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
+- Currency references: use XAF/FCFA, NGN, KES, GHS, XOF or USD
+- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
+- Social proof and success stories MUST feature African entrepreneurs and businesses
+- Placeholder company names should be African-sounding or Africa-based
+
 ⚠️ CRITICAL FINAL INSTRUCTIONS:
 - Project name "${projectData.name}" refers to THIS specific project, NOT any UI library
-- This is a cultural marketplace for African artisans, NOT a dashboard or admin panel
-- Primary color is #A37939 (earthy gold), NOT Material UI blue
-- Use Poppins font, NOT Roboto
 - Start your response IMMEDIATELY with the <boltArtifact> tag containing the complete implementation
 
 <boltArtifact id="${projectId}" title="${artifactTitle}">
@@ -323,11 +330,7 @@ REQUIREMENTS:
       const historyDiffString = getHistoryDiff(historyMessages, filesPath, nowFiles);
 
       ChatLogger.info('MAX_PROMPT', 'Building max system prompt for large content');
-      const maxPrompt = buildMaxSystemPrompt(
-        filesPath,
-        nowFiles,
-        historyDiffString
-      );
+      const maxPrompt = buildMaxSystemPrompt(filesPath, nowFiles, historyDiffString);
       const userRequest =
         'My question is: ' +
         messages[messages.length - 1].content +

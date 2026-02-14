@@ -14,7 +14,6 @@ import { ProjectService } from '../../services/project.service';
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { LogoModel } from '../../models/logo.model';
 import { ProjectModel } from '../../models/project.model';
-import { BrandingDisplayComponent } from './components/branding-display/branding-display';
 import { PdfViewerModule } from 'ng2-pdf-viewer';
 import { Dialog } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -24,15 +23,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 @Component({
   selector: 'app-show-branding',
   standalone: true,
-  imports: [
-    CommonModule,
-    BrandingDisplayComponent,
-    Loader,
-    PdfViewerModule,
-    Dialog,
-    ButtonModule,
-    TranslateModule,
-  ],
+  imports: [CommonModule, Loader, PdfViewerModule, Dialog, ButtonModule, TranslateModule],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,7 +45,6 @@ export class ShowBrandingComponent implements OnInit {
   protected readonly projectIdFromCookie = signal<string | null>(null);
   protected readonly currentProject = signal<ProjectModel | null>(null);
   protected readonly existingBranding = signal<BrandIdentityModel | null>(null);
-  protected readonly showBrandingGuide = signal<boolean>(false);
 
   // Dialog state for logo download
   protected visible = false;
@@ -252,19 +242,11 @@ export class ShowBrandingComponent implements OnInit {
   }
 
   /**
-   * Show the branding guide (PDF)
+   * Navigate to branding display page
    */
   protected viewBrandingGuide(): void {
-    console.log('Showing branding guide');
-    this.showBrandingGuide.set(true);
-  }
-
-  /**
-   * Hide the branding guide and return to branding overview
-   */
-  protected hideBrandingGuide(): void {
-    console.log('Hiding branding guide');
-    this.showBrandingGuide.set(false);
+    console.log('Navigating to branding display page');
+    this.router.navigate(['/project/branding/display']);
   }
 
   /**

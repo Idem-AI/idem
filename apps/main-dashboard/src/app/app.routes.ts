@@ -88,11 +88,20 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/branding/display',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-branding/components/branding-display/branding-display').then(
+        (m) => m.BrandingDisplayComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
     path: 'project/branding/generate',
     loadComponent: () =>
-      import(
-        './modules/dashboard/pages/show-branding/branding-generation/branding-generation-page'
-      ).then((m) => m.BrandingGenerationPage),
+      import('./modules/dashboard/pages/show-branding/branding-generation/branding-generation-page').then(
+        (m) => m.BrandingGenerationPage,
+      ),
     canActivate: [authGuard],
     data: { layout: 'dashboard' },
   },
@@ -108,9 +117,9 @@ export const routes: Routes = [
   {
     path: 'project/business-plan/generate',
     loadComponent: () =>
-      import(
-        './modules/dashboard/pages/show-business-plan/business-plan-generation/business-plan-generation-page'
-      ).then((m) => m.BusinessPlanGenerationPage),
+      import('./modules/dashboard/pages/show-business-plan/business-plan-generation/business-plan-generation-page').then(
+        (m) => m.BusinessPlanGenerationPage,
+      ),
     canActivate: [authGuard],
     data: { layout: 'dashboard' },
   },
@@ -126,9 +135,9 @@ export const routes: Routes = [
   {
     path: 'project/diagrams/generate',
     loadComponent: () =>
-      import(
-        './modules/dashboard/pages/show-diagrams/diagram-generation/diagram-generation-page'
-      ).then((m) => m.DiagramGenerationPage),
+      import('./modules/dashboard/pages/show-diagrams/diagram-generation/diagram-generation-page').then(
+        (m) => m.DiagramGenerationPage,
+      ),
     canActivate: [authGuard],
     data: { layout: 'dashboard' },
   },

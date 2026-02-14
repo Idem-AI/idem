@@ -1,56 +1,83 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  input,
-  output,
-  signal,
-  OnInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { BrandIdentityModel } from '../../../../models/brand-identity.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
+import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { TokenService } from '../../../../../../shared/services/token.service';
 import { PdfViewer } from '../../../../../../shared/components/pdf-viewer/pdf-viewer';
+import { Loader } from '../../../../../../shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-branding-display',
   standalone: true,
-  imports: [PdfViewer, TranslateModule],
+  imports: [PdfViewer, Loader, TranslateModule],
   templateUrl: './branding-display.html',
   styleUrl: './branding-display.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BrandingDisplayComponent implements OnInit {
-  readonly branding = input.required<BrandIdentityModel | null>();
-  readonly generateRequested = output<void>();
-
   private readonly brandingService = inject(BrandingService);
+  private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
   private readonly tokenService = inject(TokenService);
+  private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
 
+  protected readonly isLoading = signal<boolean>(true);
+  protected readonly branding = signal<BrandIdentityModel | null>(null);
   protected readonly pdfSrc = signal<string | null>(null);
   protected readonly isDownloadingPdf = signal<boolean>(false);
   protected readonly pdfError = signal<string | null>(null);
 
   async ngOnInit(): Promise<void> {
-    if (this.branding()?.pdfBlob) {
-      // Use the PDF blob that was already loaded in the parent component
-      this.loadPdfFromBlob(this.branding()!.pdfBlob!);
-    } else if (this.branding()?.sections) {
-      try {
-        // Wait for auth to be ready before making API calls
-        await this.tokenService.waitForAuthReady();
-
-        // Fallback: load PDF from backend if no blob provided
-        await this.loadPdfFromBackend();
-      } catch (error: any) {
-        console.error('Authentication error in ngOnInit:', error);
-        this.pdfError.set(this.translate.instant('dashboard.brandingDisplay.errors.authFailed'));
-      }
+    const projectId = this.cookieService.get('projectId');
+    if (!projectId) {
+      this.isLoading.set(false);
+      return;
     }
+
+    // Load project data to get branding
+    this.projectService.getProjectById(projectId).subscribe({
+      next: async (project) => {
+        const brandingData = project?.analysisResultModel?.branding;
+        if (brandingData) {
+          this.branding.set(brandingData);
+        }
+
+        // Load PDF
+        this.brandingService.downloadBrandingPdf(projectId).subscribe({
+          next: (pdfBlob: Blob) => {
+            if (pdfBlob && pdfBlob.size > 0) {
+              this.loadPdfFromBlob(pdfBlob);
+              if (brandingData) {
+                this.branding.set({ ...brandingData, pdfBlob });
+              }
+            }
+            this.isLoading.set(false);
+          },
+          error: async () => {
+            // No PDF available, try loading from backend with auth
+            if (brandingData?.sections) {
+              try {
+                await this.tokenService.waitForAuthReady();
+                await this.loadPdfFromBackend();
+              } catch (error: any) {
+                console.error('Authentication error:', error);
+                this.pdfError.set(
+                  this.translate.instant('dashboard.brandingDisplay.errors.authFailed'),
+                );
+              }
+            }
+            this.isLoading.set(false);
+          },
+        });
+      },
+      error: () => {
+        this.isLoading.set(false);
+      },
+    });
   }
 
   /**
@@ -97,12 +124,12 @@ export class BrandingDisplayComponent implements OnInit {
       console.log('Requesting PDF from backend for project:', projectId);
 
       // Download PDF blob from backend with timeout
-      const pdfBlob = await Promise.race([
+      const pdfBlob = (await Promise.race([
         this.brandingService.downloadBrandingPdf(projectId).toPromise(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('PDF generation timeout (30s)')), 30000)
-        )
-      ]) as Blob;
+          setTimeout(() => reject(new Error('PDF generation timeout (30s)')), 30000),
+        ),
+      ])) as Blob;
 
       if (pdfBlob && pdfBlob.size > 0) {
         // Verify it's actually a PDF
@@ -170,6 +197,10 @@ export class BrandingDisplayComponent implements OnInit {
   }
 
   protected handleGenerateRequest(): void {
-    this.generateRequested.emit();
+    this.router.navigate(['/project/branding/generate']);
+  }
+
+  protected goBack(): void {
+    this.router.navigate(['/project/branding']);
   }
 }
