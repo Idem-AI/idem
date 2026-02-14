@@ -36,17 +36,19 @@ class TrivyStageJob implements ShouldQueue
                 throw new \Exception('Source code path not available');
             }
             
-            // Get Trivy configuration from pipeline config
-            $pipelineConfig = $this->execution->pipelineConfig;
-            $trivyStageConfig = $pipelineConfig->stages['trivy'] ?? null;
+            // Get global Trivy configuration
+            $trivyConfig = PipelineToolConfig::where('tool_name', 'trivy')
+                ->whereNull('application_id')
+                ->first();
             
-            if (!$trivyStageConfig || !($trivyStageConfig['enabled'] ?? false)) {
-                $this->log('info', '⏭️  Trivy is not enabled, skipping...');
+            if (!$trivyConfig || !$trivyConfig->enabled) {
+                $this->log('info', '⏭️  Trivy is not configured globally, skipping...');
                 return ['success' => true, 'skipped' => true];
             }
             
-            $scanTypes = $trivyStageConfig['config']['scan_types'] ?? ['vuln', 'secret'];
-            $failOnCritical = $trivyStageConfig['config']['fail_on_critical'] ?? false;
+            $scanTypes = $trivyConfig->config['scan_types'] ?? ['vuln', 'secret'];
+            $failOnCritical = $trivyConfig->config['fail_on_critical'] ?? false;
+            $severity = $trivyConfig->config['severity'] ?? ['CRITICAL', 'HIGH', 'MEDIUM'];
             
             // Create scan result record
             $scanResult = PipelineScanResult::create([
@@ -61,9 +63,11 @@ class TrivyStageJob implements ShouldQueue
             
             // Run Trivy scan
             $this->log('info', '🔍 Scanning for vulnerabilities and secrets...');
+            $this->log('info', '  Scan types: ' . implode(', ', $scanTypes));
+            $this->log('info', '  Severity levels: ' . implode(', ', $severity));
             
             $outputPath = "/tmp/trivy-{$this->execution->uuid}.json";
-            $scanCommand = $this->buildScanCommand($workspacePath, $outputPath);
+            $scanCommand = $this->buildScanCommand($workspacePath, $outputPath, $scanTypes, $severity);
             
             $output = instant_remote_process($scanCommand, $server, false);
             
@@ -207,11 +211,14 @@ class TrivyStageJob implements ShouldQueue
         }
     }
     
-    private function buildScanCommand(string $workspacePath, string $outputPath): array
+    private function buildScanCommand(string $workspacePath, string $outputPath, array $scanTypes, array $severity): array
     {
+        $scannersStr = implode(',', $scanTypes);
+        $severityStr = implode(',', $severity);
+        
         return [
             "cd {$workspacePath}",
-            "trivy fs --format json --output {$outputPath} --scanners vuln,secret,config --severity CRITICAL,HIGH,MEDIUM,LOW . 2>&1 || true",
+            "trivy fs --format json --output {$outputPath} --scanners {$scannersStr} --severity {$severityStr} . 2>&1 || true",
         ];
     }
     
