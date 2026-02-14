@@ -815,6 +815,21 @@ class Application extends BaseModel
         return $this->hasOne(\App\Models\FirewallConfig::class);
     }
 
+    public function pipelineConfig()
+    {
+        return $this->hasOne(PipelineConfig::class);
+    }
+
+    public function pipelineToolConfigs(): HasMany
+    {
+        return $this->hasMany(PipelineToolConfig::class);
+    }
+
+    public function pipelineExecutions(): HasMany
+    {
+        return $this->hasMany(PipelineExecution::class)->orderBy('created_at', 'desc');
+    }
+
     public function private_key()
     {
         return $this->belongsTo(PrivateKey::class);
