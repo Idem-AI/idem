@@ -2,6 +2,7 @@ import { GoogleGenAI, Content, Part } from '@google/genai';
 import logger from '../config/logger';
 import { StorageService } from './storage.service';
 import sharp from 'sharp';
+import { MOCKUP_GENERATION_PROMPT } from './BandIdentity/prompts/mockup-generation.prompt';
 export interface MockupGenerationRequest {
   logoImageBase64: string | null;
   logoMimeType: string;
@@ -347,57 +348,15 @@ export class GeminiMockupService {
       mockupIndex,
     } = request;
 
-    const logoInstruction = logoImageBase64
-      ? `LOGO IMAGE PROVIDED: I have attached the EXACT logo of this brand as a PNG image. You MUST:
-  1. Look carefully at the attached logo image — study its shape, colors, typography, and design.
-  2. REPRODUCE THIS EXACT LOGO in the mockup scene. Do NOT create a different logo or text.
-  3. The logo must appear EXACTLY as provided — same shapes, same colors, same proportions.
-  4. Place the logo prominently and naturally within the scene.
-  5. If the logo contains text, reproduce that EXACT text — do NOT change or translate it.`
-      : `No logo image was provided. Display the brand name "${brandName}" in a clean, professional typographic style using the brand colors.`;
-
-    const textPrompt = `You are an elite commercial photographer and brand designer. Create a STUNNING, PHOTOREALISTIC mockup photograph.
-
-THE BRAND:
-- Name: "${brandName}"
-- Industry: ${industry}
-- Colors: Primary ${brandColors.primary}, Secondary ${brandColors.secondary}, Accent ${brandColors.accent}
-- Project description: ${projectDescription}
-
-${logoInstruction}
-
-YOUR TASK:
-Based on the brand's industry and project description, choose the MOST RELEVANT and IMPACTFUL real-world scene to showcase this brand's logo.
-This is mockup #${mockupIndex} — ${mockupIndex === 1 ? 'choose the PRIMARY brand application (the most iconic for this industry)' : 'choose a DIFFERENT, COMPLEMENTARY brand application (secondary but still impactful)'}.
-
-Examples of what to choose depending on industry:
-- Delivery/Logistics: branded van, shipping box, uniform
-- Restaurant/Food: menu card, storefront sign, takeaway packaging
-- Tech/SaaS: laptop screen with UI, mobile app, conference badge
-- Health/Medical: clinic facade, medical packaging, staff badge
-- E-commerce/Retail: shopping bag, storefront, product packaging
-- Finance: corporate reception, premium business card, office signage
-- Education: school entrance, tablet with e-learning platform
-- Real Estate: property sign, agency office
-- Beauty: cosmetic packaging, salon interior
-- Construction: site banner, branded hard hat
-- Sport/Fitness: gym entrance, branded sportswear
-- Travel: hotel entrance, branded luggage tag
-
-Do NOT always default to business card + laptop. Pick something SPECIFIC to this brand's industry.
-
-PHOTOGRAPHY REQUIREMENTS:
-- This must look like a REAL PHOTOGRAPH taken by a professional photographer — NOT a digital illustration or 3D render.
-- Professional studio or on-location lighting with natural shadows and reflections.
-- Shallow depth of field where appropriate for artistic effect.
-- Rich textures: paper grain, fabric weave, metal sheen, glass reflections.
-- The brand colors (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) should be visible in the scene.
-- The logo/brand identity must be the HERO of the image — clearly visible and beautifully integrated.
-- Cinematic composition with the rule of thirds.
-
-STYLE: High-end commercial photography, like a brand portfolio shot for Behance or Dribbble.
-
-Generate ONLY the image, no text response.`;
+    // Utiliser le prompt professionnel depuis le fichier dédié
+    const textPrompt = MOCKUP_GENERATION_PROMPT.buildPrompt({
+      brandName,
+      industry,
+      brandColors,
+      projectDescription,
+      mockupIndex,
+      hasLogo: !!logoImageBase64,
+    });
 
     const parts: Part[] = [];
 
