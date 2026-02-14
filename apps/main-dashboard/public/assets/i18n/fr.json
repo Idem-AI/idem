@@ -773,6 +773,20 @@
         "title": "Aucun projet actif",
         "description": "Sélectionnez un projet pour commencer votre parcours",
         "goToProjects": "Aller aux projets"
+      },
+      "quotaWarning": {
+        "title": "Avertissement de quota",
+        "daily": "Quotidien",
+        "weekly": "Hebdomadaire",
+        "messages": {
+          "approaching": "Vous approchez de votre limite de quota",
+          "daily": "Vous approchez de votre limite de quota quotidien",
+          "weekly": "Vous approchez de votre limite de quota hebdomadaire",
+          "dailyAndWeekly": "Vous approchez de vos limites de quota quotidien et hebdomadaire"
+        },
+        "buttons": {
+          "viewDetails": "Voir les détails"
+        }
       }
     },
     "aiAssistant": {
