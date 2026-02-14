@@ -263,16 +263,16 @@ class PipelineOrchestratorJob implements ShouldQueue
         }
         
         // Dispatch deployment job
-        $deploymentUuid = queue_application_deployment(
+        $deploymentResult = queue_application_deployment(
             application: $application,
             deployment_uuid: $this->execution->uuid,
             force_rebuild: true,
-            commit: $this->execution->commit_sha,
+            commit: $this->execution->commit_sha ?? 'HEAD',
             git_type: 'commit'
         );
         
-        if ($deploymentUuid) {
-            $this->log('success', "✅ Deployment queued: {$deploymentUuid}");
+        if ($deploymentResult && isset($deploymentResult['deployment_uuid'])) {
+            $this->log('success', "✅ Deployment {$deploymentResult['status']}: {$deploymentResult['deployment_uuid']}");
             $this->log('info', '📊 Monitor deployment progress in the Deployments tab');
         } else {
             throw new \Exception('Failed to queue deployment');
