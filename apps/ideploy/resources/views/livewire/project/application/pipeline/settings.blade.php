@@ -6,7 +6,7 @@
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
 
-<div class="min-h-screen bg-[#0a0a0a] text-white">
+    <div class="min-h-screen bg-[#0a0a0a] text-white">
     {{-- Header --}}
     <div class="border-b border-gray-800 bg-[#0f0f0f] px-6 py-4 mb-6">
         <div class="flex items-center justify-between">
@@ -72,6 +72,72 @@
                     </label>
                     <p class="text-xs text-gray-500 mt-1 ml-6">Cancel running builds when new commits are pushed</p>
                 </div>
+            </div>
+        </div>
+
+        {{-- Auto-Trigger Settings --}}
+        <div class="bg-[#0f0f0f] border border-gray-800 rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Auto-Trigger (Webhooks)
+            </h3>
+            
+            <div class="space-y-4">
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                    <div class="flex gap-3">
+                        <svg class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="text-sm text-blue-200">
+                            <p class="font-medium mb-1">Automatic Pipeline Execution</p>
+                            <p class="text-blue-300/80">When enabled, the pipeline will automatically run when code is pushed or pull/merge requests are created.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 mb-2">
+                        <input type="checkbox" wire:model="autoTriggerOnPush" class="rounded">
+                        <span class="text-sm font-medium">Auto-trigger on Push</span>
+                    </label>
+                    <p class="text-xs text-gray-500 ml-6">Automatically run pipeline when code is pushed to the repository</p>
+                </div>
+                
+                <div>
+                    <label class="flex items-center gap-2 mb-2">
+                        <input type="checkbox" wire:model="autoTriggerOnPr" class="rounded">
+                        <span class="text-sm font-medium">Auto-trigger on Pull/Merge Requests</span>
+                    </label>
+                    <p class="text-xs text-gray-500 ml-6">Automatically run pipeline for pull requests (GitHub) or merge requests (GitLab)</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Watch Paths (Optional)</label>
+                    <textarea 
+                        wire:model="watchPaths" 
+                        rows="5" 
+                        placeholder="src/**&#10;tests/**&#10;*.php&#10;package.json"
+                        class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition font-mono text-sm"
+                    ></textarea>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Only trigger pipeline if these files/paths are modified. One pattern per line. Leave empty to trigger on any change.
+                        <br>
+                        <span class="text-gray-600">Examples: <code class="text-gray-400">src/**</code>, <code class="text-gray-400">*.php</code>, <code class="text-gray-400">package.json</code></span>
+                    </p>
+                </div>
+
+                @if($autoTriggerOnPush || $autoTriggerOnPr)
+                    <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mt-4">
+                        <div class="flex items-center gap-2 text-sm text-green-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Auto-trigger is enabled. Pipeline will run automatically via webhooks.</span>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -331,5 +397,5 @@
             </button>
         </div>
     </div>
-</div>
+    </div>
 </div>

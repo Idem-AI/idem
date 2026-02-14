@@ -16,6 +16,11 @@ class Settings extends Component
     public string $pipelineName = 'Main Pipeline';
     public string $triggerBranches = 'main, develop';
     public bool $autoCancel = true;
+    
+    // Auto-Trigger Settings
+    public bool $autoTriggerOnPush = false;
+    public bool $autoTriggerOnPr = false;
+    public string $watchPaths = '';
 
     // SonarQube
     public bool $sonarqubeEnabled = true;
@@ -71,14 +76,50 @@ class Settings extends Component
         ];
 
         // Load existing config if exists
-        // TODO: Load from database
-        // $this->pipelineConfig = PipelineConfig::where('application_id', $this->application->id)->first();
+        $this->pipelineConfig = PipelineConfig::where('application_id', $this->application->id)->first();
+        
+        if ($this->pipelineConfig) {
+            $this->autoTriggerOnPush = $this->pipelineConfig->auto_trigger_on_push ?? false;
+            $this->autoTriggerOnPr = $this->pipelineConfig->auto_trigger_on_pr ?? false;
+            $this->watchPaths = is_array($this->pipelineConfig->watch_paths) 
+                ? implode("\n", $this->pipelineConfig->watch_paths) 
+                : '';
+        }
     }
 
     public function saveSettings()
     {
-        // TODO: Validate and save to database
-        $this->dispatch('notify', 'Settings saved successfully');
+        // Validate
+        $this->validate([
+            'autoTriggerOnPush' => 'boolean',
+            'autoTriggerOnPr' => 'boolean',
+            'watchPaths' => 'nullable|string',
+        ]);
+        
+        // Parse watch paths (one per line)
+        $watchPathsArray = array_filter(
+            array_map('trim', explode("\n", $this->watchPaths))
+        );
+        
+        // Create or update pipeline config
+        if (!$this->pipelineConfig) {
+            $this->pipelineConfig = PipelineConfig::create([
+                'application_id' => $this->application->id,
+                'enabled' => true,
+                'auto_trigger_on_push' => $this->autoTriggerOnPush,
+                'auto_trigger_on_pr' => $this->autoTriggerOnPr,
+                'watch_paths' => $watchPathsArray,
+                'stages' => [],
+            ]);
+        } else {
+            $this->pipelineConfig->update([
+                'auto_trigger_on_push' => $this->autoTriggerOnPush,
+                'auto_trigger_on_pr' => $this->autoTriggerOnPr,
+                'watch_paths' => $watchPathsArray,
+            ]);
+        }
+        
+        $this->dispatch('success', 'Auto-trigger settings saved successfully!');
     }
 
     public function resetSettings()
