@@ -237,12 +237,6 @@ BASH;
                 }
             }
             
-            // Validate task ID format (should be alphanumeric, not a UUID)
-            if ($taskId && !$this->isValidTaskId($taskId)) {
-                $this->log('warning', "⚠️  Invalid task ID format: {$taskId} (looks like pipeline UUID)");
-                $taskId = null;
-            }
-            
             if ($taskId) {
                 $this->log('info', "⏳ Analysis Task ID: {$taskId}");
                 $scanResult->update(['sonar_task_id' => $taskId]);
@@ -474,29 +468,20 @@ BASH;
         $this->log('warning', '⚠️  Could not extract task ID from scanner output');
         $this->log('info', '  Searching for task ID in output...');
         
-        // Try to find any line with task-like ID
+        // Try to find UUID in context of SonarQube API URLs (avoid pipeline UUID)
+        if (preg_match('/(?:api\/ce\/task|ceTaskId|task.*?id).*?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i', $output, $matches)) {
+            $this->log('info', '  Found task ID in API context: ' . $matches[1]);
+            return $matches[1];
+        }
+        
+        // Last resort: find any UUID (but log warning)
         if (preg_match('/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/', $output, $matches)) {
-            $this->log('info', '  Found potential task ID (UUID format): ' . $matches[1]);
+            $this->log('warning', '  ⚠️  Found UUID but context unclear: ' . $matches[1]);
+            $this->log('warning', '  This might be the pipeline UUID instead of task ID');
             return $matches[1];
         }
         
         return null;
-    }
-    
-    private function isValidTaskId(string $taskId): bool
-    {
-        // Task IDs are typically short alphanumeric strings like "AY1234567890"
-        // NOT UUIDs like "9a0ff24b-3870-4dfe-989c-8b6ed3561cce"
-        if (preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i', $taskId)) {
-            return false; // It's a UUID, not a task ID
-        }
-        
-        // Valid task IDs are typically 10-20 characters
-        if (strlen($taskId) < 10 || strlen($taskId) > 30) {
-            return false;
-        }
-        
-        return true;
     }
     
     private function waitForAnalysis(string $taskId, string $sonarUrl, string $sonarToken, int $maxWaitSeconds = 600): void
