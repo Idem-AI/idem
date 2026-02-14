@@ -271,12 +271,56 @@ class PipelineOrchestratorJob implements ShouldQueue
             git_type: 'commit'
         );
         
-        if ($deploymentResult && isset($deploymentResult['deployment_uuid'])) {
-            $this->log('success', "✅ Deployment {$deploymentResult['status']}: {$deploymentResult['deployment_uuid']}");
-            $this->log('info', '📊 Monitor deployment progress in the Deployments tab');
-        } else {
+        if (!$deploymentResult || !isset($deploymentResult['deployment_uuid'])) {
             throw new \Exception('Failed to queue deployment');
         }
+        
+        $this->log('success', "✅ Deployment {$deploymentResult['status']}: {$deploymentResult['deployment_uuid']}");
+        $this->log('info', '⏳ Waiting for deployment to complete...');
+        
+        // Wait for deployment to complete
+        $this->waitForDeployment($deploymentResult['deployment_uuid']);
+    }
+    
+    private function waitForDeployment(string $deploymentUuid, int $maxWaitSeconds = 1800): void
+    {
+        $startTime = time();
+        $lastStatus = null;
+        
+        while (time() - $startTime < $maxWaitSeconds) {
+            $deployment = \App\Models\ApplicationDeploymentQueue::where('deployment_uuid', $deploymentUuid)->first();
+            
+            if (!$deployment) {
+                throw new \Exception('Deployment not found');
+            }
+            
+            $currentStatus = $deployment->status->value;
+            
+            // Log status changes
+            if ($currentStatus !== $lastStatus) {
+                $this->log('info', "📊 Deployment status: {$currentStatus}");
+                $lastStatus = $currentStatus;
+            }
+            
+            // Check if deployment is finished
+            if ($currentStatus === 'finished') {
+                $this->log('success', '✅ Deployment completed successfully');
+                return;
+            }
+            
+            if ($currentStatus === 'failed') {
+                throw new \Exception('Deployment failed');
+            }
+            
+            if ($currentStatus === 'cancelled') {
+                throw new \Exception('Deployment was cancelled');
+            }
+            
+            // Wait before next check
+            sleep(5);
+        }
+        
+        throw new \Exception('Deployment timeout after ' . ($maxWaitSeconds / 60) . ' minutes');
     }
     
     private function cleanup(): void
