@@ -710,6 +710,11 @@
     },
     "dashboard": {
       "loading": "Chargement de votre tableau de bord...",
+      "viewAllProjects": "Voir tous les projets",
+      "openFeature": "Ouvrir la fonctionnalité",
+      "progressOverview": "Aperçu de la progression",
+      "projectInformation": "Informations du projet",
+      "pending": "En attente",
       "hero": {
         "activeProject": "Projet actif",
         "defaultDescription": "Transformez vos idées en réalité avec nos outils complets de gestion de projet",
@@ -773,6 +778,11 @@
         "title": "Aucun projet actif",
         "description": "Sélectionnez un projet pour commencer votre parcours",
         "goToProjects": "Aller aux projets"
+      },
+      "errors": {
+        "noProjectSelected": "Aucun projet sélectionné",
+        "projectNotFound": "Projet introuvable : {{projectId}}",
+        "failedToLoad": "Échec du chargement des données du projet"
       },
       "quotaWarning": {
         "title": "Avertissement de quota",
