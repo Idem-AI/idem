@@ -14,6 +14,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 
 class SonarQubeStageJob implements ShouldQueue
 {
@@ -49,7 +50,7 @@ class SonarQubeStageJob implements ShouldQueue
                 return ['success' => true, 'skipped' => true];
             }
             
-            $sonarUrl = $sonarConfig->config['url'] ?? config('services.sonarqube.url', 'http://sonarqube:9000');
+            $sonarUrl = $sonarConfig->config['url'] ?? config('services.sonarqube.url', 'https://sonar.idem.africa');
             $sonarToken = $sonarConfig->config['token'] ?? config('services.sonarqube.token');
             $projectKey = "ideploy-{$application->uuid}";
             $projectName = $application->name;
@@ -104,10 +105,34 @@ BASH;
             $this->log('info', '  Project: ' . $projectKey);
             $this->log('info', '  URL: ' . $sonarUrl);
             
-            // Execute scan
-            $output = instant_remote_process([
-                "bash -c " . escapeshellarg($scanScript)
-            ], $server, false);
+            // Execute scan with longer timeout (10 minutes)
+            // Run in background and wait for completion
+            $scanCommand = "bash -c " . escapeshellarg($scanScript);
+            
+            $this->log('info', '  ⏳ Scan may take several minutes...');
+            
+            $output = \App\Helpers\SshRetryHandler::retry(
+                function () use ($server, $scanCommand) {
+                    $sshCommand = \App\Helpers\SshMultiplexingHelper::generateSshCommand($server, $scanCommand);
+                    // Timeout de 10 minutes pour le scan
+                    $process = Process::timeout(600)->run($sshCommand);
+                    
+                    $output = trim($process->output());
+                    $exitCode = $process->exitCode();
+                    
+                    if ($exitCode !== 0 && !str_contains($output, 'SCAN_EXIT_CODE')) {
+                        throw new \Exception('Scan command failed with exit code: ' . $exitCode);
+                    }
+                    
+                    return $output === 'null' ? null : $output;
+                },
+                [
+                    'server' => $server->ip,
+                    'command_preview' => 'sonar-scanner',
+                    'function' => 'SonarQubeStageJob::scan',
+                ],
+                false
+            );
             
             // Log scanner output
             if ($output) {
