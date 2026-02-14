@@ -6,6 +6,9 @@ import * as fs from 'fs-extra';
 
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { LOGO_GENERATION_PROMPT } from './prompts/singleGenerations/00_logo-generation-section.prompt';
+import { LOGO_GENERATION_ICON_TYPE_PROMPT } from './prompts/singleGenerations/00_logo-generation-icon-type.prompt';
+import { LOGO_GENERATION_NAME_TYPE_PROMPT } from './prompts/singleGenerations/00_logo-generation-name-type.prompt';
+import { LOGO_GENERATION_INITIAL_TYPE_PROMPT } from './prompts/singleGenerations/00_logo-generation-initial-type.prompt';
 import { LOGO_VARIATION_LIGHT_PROMPT } from './prompts/singleGenerations/logo-variation-light.prompt';
 import { LOGO_VARIATION_DARK_PROMPT } from './prompts/singleGenerations/logo-variation-dark.prompt';
 import { LOGO_VARIATION_MONOCHROME_PROMPT } from './prompts/singleGenerations/logo-variation-monochrome.prompt';
@@ -343,6 +346,26 @@ export class BrandingService extends GenericService {
   }
 
   /**
+   * Sélectionne le prompt approprié en fonction du type de logo choisi par l'utilisateur
+   */
+  private selectLogoPromptByType(logoType?: 'icon' | 'name' | 'initial'): string {
+    switch (logoType) {
+      case 'icon':
+        logger.info('Using ICON-BASED logo prompt');
+        return LOGO_GENERATION_ICON_TYPE_PROMPT;
+      case 'name':
+        logger.info('Using NAME-BASED logo prompt');
+        return LOGO_GENERATION_NAME_TYPE_PROMPT;
+      case 'initial':
+        logger.info('Using INITIAL-BASED logo prompt');
+        return LOGO_GENERATION_INITIAL_TYPE_PROMPT;
+      default:
+        logger.info('Using default NAME-BASED logo prompt (no type specified)');
+        return LOGO_GENERATION_NAME_TYPE_PROMPT;
+    }
+  }
+
+  /**
    * Construction du prompt optimisé pour la génération de logos avec préférences utilisateur
    */
   private buildOptimizedLogoPrompt(
@@ -436,7 +459,10 @@ export class BrandingService extends GenericService {
       preferenceContext += `\n**IMPORTANT:** Let the project's industry, values, and target audience guide your creative decisions. The logo should tell the brand's story visually.\n`;
     }
 
-    return `${contextPrompt}${preferenceContext}\n\n${LOGO_GENERATION_PROMPT}`;
+    // Sélectionner le prompt approprié en fonction du type de logo
+    const selectedPrompt = this.selectLogoPromptByType(preferences?.type);
+
+    return `${contextPrompt}${preferenceContext}\n\n${selectedPrompt}`;
   }
 
   async generateBrandingWithStreaming(
@@ -1364,7 +1390,7 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: 'Monochrome Variation',
-        maxOutputTokens: 1000,
+        maxOutputTokens: 1500,
         modelParser: (content) => {
           try {
             const parsed = JSON.parse(content);
@@ -2286,45 +2312,6 @@ ${LOGO_EDIT_PROMPT}`;
       });
 
       return null;
-    }
-  }
-
-  /**
-   * Upload temporairement le SVG du logo pour le rendre accessible via URL
-   */
-  private async uploadLogoSvgTemporarily(
-    logoSvg: string,
-    projectId: string,
-    suffix: string
-  ): Promise<string> {
-    try {
-      // Convertir le SVG en Buffer
-      const svgBuffer = Buffer.from(logoSvg, 'utf-8');
-
-      // Nom de fichier temporaire
-      const fileName = `temp_logo_${suffix}_${Date.now()}.svg`;
-      const folderPath = `projects/${projectId}/temp_logos`;
-
-      // Upload vers le storage
-      const uploadResult = await this.storageService.uploadFile(
-        svgBuffer,
-        fileName,
-        folderPath,
-        'image/svg+xml'
-      );
-
-      logger.info(`Logo SVG uploaded temporarily for mockup generation`, {
-        projectId,
-        suffix,
-        fileName,
-        url: uploadResult.downloadURL,
-      });
-
-      return uploadResult.downloadURL;
-    } catch (error) {
-      logger.error('Error uploading logo SVG temporarily:', error);
-      // Fallback sur une URL placeholder
-      return 'https://via.placeholder.com/200x100/000000/FFFFFF?text=LOGO';
     }
   }
 
