@@ -49,11 +49,8 @@ class FirewallTraffic extends Component
     
     public function loadLogs()
     {
-        if (!$this->config) {
-            return collect();
-        }
-        
-        $query = $this->config->trafficLogs();
+        // Charger les logs directement depuis l'application
+        $query = FirewallTrafficLog::where('application_id', $this->application->id);
         
         // Filter by decision
         if ($this->filterDecision !== 'all') {
