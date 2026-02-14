@@ -4,6 +4,7 @@ namespace App\Livewire\Project\Application\Pipeline;
 
 use App\Models\Application;
 use App\Models\PipelineConfig;
+use App\Models\PipelineToolConfig;
 use Livewire\Component;
 
 class Settings extends Component
@@ -23,16 +24,16 @@ class Settings extends Component
     public string $watchPaths = '';
 
     // SonarQube
-    public bool $sonarqubeEnabled = true;
-    public ?int $sonarqubeServerId = null;
-    public string $qualityGate = 'default';
-    public bool $failOnQualityGate = true;
+    public bool $sonarqubeEnabled = false;
+    public string $sonarqubeUrl = '';
+    public string $sonarqubeToken = '';
+    public string $sonarqubeOrganization = '';
 
     // Trivy
-    public bool $trivyEnabled = true;
+    public bool $trivyEnabled = false;
     public array $trivyScanTypes = ['vuln', 'secret', 'config'];
-    public array $trivySeverity = ['CRITICAL', 'HIGH'];
-    public bool $failOnCritical = true;
+    public array $trivySeverity = ['CRITICAL', 'HIGH', 'MEDIUM'];
+    public bool $failOnCritical = false;
 
     // Notifications
     public array $notificationsEnabled = [
@@ -85,6 +86,30 @@ class Settings extends Component
                 ? implode("\n", $this->pipelineConfig->watch_paths) 
                 : '';
         }
+        
+        // Load SonarQube config
+        $sonarConfig = PipelineToolConfig::where('tool_name', 'sonarqube')
+            ->whereNull('application_id')
+            ->first();
+        
+        if ($sonarConfig) {
+            $this->sonarqubeEnabled = $sonarConfig->enabled;
+            $this->sonarqubeUrl = $sonarConfig->config['url'] ?? '';
+            $this->sonarqubeToken = $sonarConfig->config['token'] ?? '';
+            $this->sonarqubeOrganization = $sonarConfig->config['organization'] ?? '';
+        }
+        
+        // Load Trivy config
+        $trivyConfig = PipelineToolConfig::where('tool_name', 'trivy')
+            ->whereNull('application_id')
+            ->first();
+        
+        if ($trivyConfig) {
+            $this->trivyEnabled = $trivyConfig->enabled;
+            $this->trivyScanTypes = $trivyConfig->config['scan_types'] ?? ['vuln', 'secret', 'config'];
+            $this->trivySeverity = $trivyConfig->config['severity'] ?? ['CRITICAL', 'HIGH', 'MEDIUM'];
+            $this->failOnCritical = $trivyConfig->config['fail_on_critical'] ?? false;
+        }
     }
 
     public function saveSettings()
@@ -94,6 +119,10 @@ class Settings extends Component
             'autoTriggerOnPush' => 'boolean',
             'autoTriggerOnPr' => 'boolean',
             'watchPaths' => 'nullable|string',
+            'sonarqubeEnabled' => 'boolean',
+            'sonarqubeUrl' => 'nullable|url',
+            'sonarqubeToken' => 'nullable|string',
+            'trivyEnabled' => 'boolean',
         ]);
         
         // Parse watch paths (one per line)
@@ -119,7 +148,41 @@ class Settings extends Component
             ]);
         }
         
-        $this->dispatch('success', 'Auto-trigger settings saved successfully!');
+        // Save SonarQube config
+        PipelineToolConfig::updateOrCreate(
+            [
+                'tool_name' => 'sonarqube',
+                'application_id' => null,
+            ],
+            [
+                'type' => 'scanner',
+                'enabled' => $this->sonarqubeEnabled,
+                'config' => [
+                    'url' => $this->sonarqubeUrl,
+                    'token' => $this->sonarqubeToken,
+                    'organization' => $this->sonarqubeOrganization,
+                ],
+            ]
+        );
+        
+        // Save Trivy config
+        PipelineToolConfig::updateOrCreate(
+            [
+                'tool_name' => 'trivy',
+                'application_id' => null,
+            ],
+            [
+                'type' => 'scanner',
+                'enabled' => $this->trivyEnabled,
+                'config' => [
+                    'scan_types' => $this->trivyScanTypes,
+                    'severity' => $this->trivySeverity,
+                    'fail_on_critical' => $this->failOnCritical,
+                ],
+            ]
+        );
+        
+        $this->dispatch('success', 'Pipeline settings saved successfully!');
     }
 
     public function resetSettings()
