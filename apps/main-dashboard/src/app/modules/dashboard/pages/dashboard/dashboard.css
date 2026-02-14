@@ -41,5 +41,5 @@
 }
 
 .animate-shimmer {
-  animation: shimmer 3s linear infinite;
+  animation: shimmer 10s linear infinite;
 }
