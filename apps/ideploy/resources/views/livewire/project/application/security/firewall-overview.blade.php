@@ -205,14 +205,14 @@
                             const canvas = document.getElementById('trafficChart');
                             if (!canvas) return;
                             
-                            // Get real hourly data
+                            // Get real hourly data (with allowed and denied)
                             const hourlyData = JSON.parse(canvas.dataset.hourly || '{}');
                             
                             const labels = [];
                             const allowedData = [];
                             const deniedData = [];
                             
-                            // Parse hourly data
+                            // Parse hourly data (with allowed and denied)
                             for (let key in hourlyData) {
                                 labels.push(key);
                                 allowedData.push(hourlyData[key].allowed || 0);
