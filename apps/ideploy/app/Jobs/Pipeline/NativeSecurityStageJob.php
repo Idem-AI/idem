@@ -81,9 +81,9 @@ class NativeSecurityStageJob
                 'name' => 'Psalm Security',
                 'enabled_key' => 'psalm_security_enabled',
                 'command' => 'psalm',
-                'install_check' => 'psalm --version',
-                'install_command' => 'composer global require vimeo/psalm',
-                'scan_command' => 'psalm --output-format=json --report=psalm-report.json || true',
+                'install_check' => 'export PATH="$PATH:$HOME/.composer/vendor/bin:$HOME/.config/composer/vendor/bin" && psalm --version',
+                'install_command' => 'composer global require vimeo/psalm --quiet 2>&1',
+                'scan_command' => 'export PATH="$PATH:$HOME/.composer/vendor/bin:$HOME/.config/composer/vendor/bin" && psalm --output-format=json --report=psalm-report.json || true',
             ],
             'Ruby' => [
                 'name' => 'Brakeman',
@@ -97,9 +97,9 @@ class NativeSecurityStageJob
                 'name' => 'Gosec',
                 'enabled_key' => 'gosec_enabled',
                 'command' => 'gosec',
-                'install_check' => 'gosec -version',
-                'install_command' => 'go install github.com/securego/gosec/v2/cmd/gosec@latest',
-                'scan_command' => 'gosec -fmt json -out gosec-report.json ./... || true',
+                'install_check' => 'export PATH="$PATH:$HOME/go/bin:$(go env GOPATH)/bin" && gosec -version',
+                'install_command' => 'go install github.com/securego/gosec/v2/cmd/gosec@latest 2>&1',
+                'scan_command' => 'export PATH="$PATH:$HOME/go/bin:$(go env GOPATH)/bin" && gosec -fmt json -out gosec-report.json ./... || true',
             ],
         ];
 
