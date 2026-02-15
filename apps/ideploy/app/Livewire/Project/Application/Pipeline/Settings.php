@@ -35,6 +35,15 @@ class Settings extends Component
     public array $trivySeverity = ['CRITICAL', 'HIGH', 'MEDIUM'];
     public bool $failOnCritical = false;
 
+    // Native Security Tools
+    public array $securityTools = [
+        'bandit_enabled' => false,
+        'eslint_security_enabled' => false,
+        'psalm_security_enabled' => false,
+        'brakeman_enabled' => false,
+        'gosec_enabled' => false,
+    ];
+
     // Notifications
     public array $notificationsEnabled = [
         'slack' => false,
@@ -110,10 +119,18 @@ class Settings extends Component
             $this->trivySeverity = $trivyConfig->config['severity'] ?? ['CRITICAL', 'HIGH', 'MEDIUM'];
             $this->failOnCritical = $trivyConfig->config['fail_on_critical'] ?? false;
         }
+        
+        // Load Native Security Tools from pipeline config
+        if ($this->pipelineConfig && isset($this->pipelineConfig->config['security_tools'])) {
+            $this->securityTools = array_merge($this->securityTools, $this->pipelineConfig->config['security_tools']);
+        }
     }
 
     public function saveSettings()
     {
+        // Debug: Log security tools before save
+        \Log::info('Saving security tools', ['securityTools' => $this->securityTools]);
+        
         // Validate
         $this->validate([
             'autoTriggerOnPush' => 'boolean',
@@ -139,12 +156,22 @@ class Settings extends Component
                 'auto_trigger_on_pr' => $this->autoTriggerOnPr,
                 'watch_paths' => $watchPathsArray,
                 'stages' => [],
+                'config' => [
+                    'security_tools' => $this->securityTools,
+                    'block_on_security_issues' => $this->failOnCritical,
+                ],
             ]);
         } else {
+            // Merge existing config with security tools
+            $existingConfig = $this->pipelineConfig->config ?? [];
+            $existingConfig['security_tools'] = $this->securityTools;
+            $existingConfig['block_on_security_issues'] = $this->failOnCritical;
+            
             $this->pipelineConfig->update([
                 'auto_trigger_on_push' => $this->autoTriggerOnPush,
                 'auto_trigger_on_pr' => $this->autoTriggerOnPr,
                 'watch_paths' => $watchPathsArray,
+                'config' => $existingConfig,
             ]);
         }
         
@@ -181,6 +208,10 @@ class Settings extends Component
                 ],
             ]
         );
+        
+        // Reload config to verify save
+        $this->pipelineConfig->refresh();
+        \Log::info('After save - config in DB', ['config' => $this->pipelineConfig->config]);
         
         $this->dispatch('success', 'Pipeline settings saved successfully!');
     }
