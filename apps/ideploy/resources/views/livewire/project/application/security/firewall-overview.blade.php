@@ -13,10 +13,6 @@
                class="px-4 py-3 text-sm font-medium text-white border-b-2 border-blue-500 -mb-px">
                 Overview
             </a>
-            <a href="{{ route('project.application.security.traffic', $parameters) }}"
-               class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
-                Events
-            </a>
             <a href="{{ route('project.application.security.rules', $parameters) }}"
                class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
                 Rules
@@ -306,46 +302,61 @@
             @endif
         </div>
         
-        {{-- Bottom Grid: Alerts & Rules --}}
+        {{-- Bottom Grid: Events & Rules --}}
         <div class="grid grid-cols-2 gap-6">
             
-            {{-- Alerts Section --}}
+            {{-- Recent Events --}}
             <div class="bg-[#0a0a0a] border border-gray-800 rounded-lg p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-semibold text-white">Security Alerts</h3>
-                    <button wire:click="syncAlerts" class="px-3 py-1.5 bg-[#151b2e] border border-gray-700 rounded-lg text-xs text-gray-400 hover:text-white hover:border-gray-600 transition-colors flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                        Sync Alerts
-                    </button>
+                    <h3 class="text-sm font-semibold text-white">Recent Events</h3>
                 </div>
                 
-                @if(count($activeAlerts) === 0)
-                    <div class="text-center py-12">
-                        <div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <p class="text-sm font-medium text-white mb-1">No threats detected</p>
-                        <p class="text-xs text-gray-500 mb-2">Your application is secure ✅</p>
-                        <p class="text-xs text-gray-600">Alerts auto-sync every 5 minutes from CrowdSec</p>
+                @if(count($recentEvents) === 0)
+                    <div class="text-center py-8">
+                        <p class="text-gray-500 text-sm">No events available</p>
+                        <p class="text-gray-600 text-xs mt-1">Events will appear here when traffic is detected</p>
                     </div>
                 @else
                     <div class="space-y-3">
-                        @foreach($activeAlerts as $alert)
-                            <div class="flex items-start gap-3 p-3 bg-[#151b2e] border border-gray-800 rounded-lg">
-                                <div class="flex-1">
-                                    <p class="text-sm text-white font-medium">{{ $alert['type'] }}</p>
-                                    <p class="text-xs text-gray-500 mt-1">{{ $alert['message'] }}</p>
+                        @foreach($recentEvents as $event)
+                            <div class="flex items-center justify-between p-4 bg-[#151b2e] rounded-lg border border-gray-800">
+                                <div class="flex items-center gap-4">
+                                    @if($event['action'] === 'denied')
+                                        <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                            </svg>
+                                        </div>
+                                    @elseif($event['action'] === 'challenged')
+                                        <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                            </svg>
+                                        </div>
+                                    @else
+                                        <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </div>
+                                    @endif
+                                    
+                                    <div>
+                                        <p class="text-sm font-medium text-white">{{ $event['ip'] }}</p>
+                                        <p class="text-xs text-gray-500">{{ $event['reason'] }}</p>
+                                    </div>
                                 </div>
-                                <span class="px-2 py-1 rounded text-xs font-medium
-                                    @if($alert['severity'] === 'critical') bg-red-900/30 text-red-400
-                                    @elseif($alert['severity'] === 'high') bg-orange-900/30 text-orange-400
-                                    @else bg-yellow-900/30 text-yellow-400 @endif">
-                                    {{ ucfirst($alert['severity']) }}
-                                </span>
+                                
+                                <div class="text-right">
+                                    <span class="px-2 py-1 rounded text-xs font-medium
+                                        {{ $event['action'] === 'denied' ? 'bg-red-500/20 text-red-400' : '' }}
+                                        {{ $event['action'] === 'challenged' ? 'bg-yellow-500/20 text-yellow-400' : '' }}
+                                        {{ $event['action'] === 'allowed' ? 'bg-green-500/20 text-green-400' : '' }}
+                                    ">
+                                        {{ ucfirst($event['action']) }}
+                                    </span>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $event['timestamp']->diffForHumans() }}</p>
+                                </div>
                             </div>
                         @endforeach
                     </div>
