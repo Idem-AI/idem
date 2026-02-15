@@ -209,7 +209,7 @@ class PipelineOrchestratorJob implements ShouldQueue
             
             throw $e;
         } finally {
-            // Cleanup workspace
+            // Cleanup workspace (remove cloned repository)
             $this->cleanup();
         }
     }
