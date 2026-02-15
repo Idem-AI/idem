@@ -40,10 +40,14 @@ class ExecutionDetail extends Component
         ];
 
         $this->execution_uuid = request()->route('execution_uuid');
-        $this->loadExecution();
         
-        // Select first stage by default
-        $this->selectedStage = 'git_clone';
+        // Select first stage by default BEFORE loading execution
+        // This way it won't be overwritten
+        if (!$this->selectedStage) {
+            $this->selectedStage = 'git_clone';
+        }
+        
+        $this->loadExecution();
     }
     
     /**
