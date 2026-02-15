@@ -122,6 +122,14 @@ class Overview extends Component
         $this->totalExecutions = PipelineExecution::where('pipeline_config_id', $this->pipelineConfig->id)->count();
     }
     
+    /**
+     * Refresh executions (called by wire:poll)
+     */
+    public function refreshExecutions()
+    {
+        $this->loadExecutions();
+    }
+    
     public function loadAvailableTools()
     {
         $toolsService = app(PipelineToolsService::class);
@@ -376,6 +384,33 @@ class Overview extends Component
             // Get application's git branch (default to git_branch or 'main')
             $branch = $this->application->git_branch ?? 'main';
             
+            // Build stages_status dynamically
+            $stagesStatus = [
+                'git_clone' => ['status' => 'pending'],
+                'language_detection' => ['status' => 'pending'],
+                'sonarqube' => ['status' => 'pending'],
+                'trivy' => ['status' => 'pending'],
+            ];
+            
+            // Check if any native security tool is enabled
+            $securityTools = $this->pipelineConfig->config['security_tools'] ?? [];
+            $hasEnabledTool = false;
+            
+            foreach ($securityTools as $key => $value) {
+                if (str_ends_with($key, '_enabled') && $value) {
+                    $hasEnabledTool = true;
+                    break;
+                }
+            }
+            
+            // Add native_security stage if any tool is enabled
+            if ($hasEnabledTool) {
+                $stagesStatus['native_security'] = ['status' => 'pending'];
+            }
+            
+            // Add deploy stage last
+            $stagesStatus['deploy'] = ['status' => 'pending'];
+            
             // Create pipeline execution
             $execution = PipelineExecution::create([
                 'pipeline_config_id' => $this->pipelineConfig->id,
@@ -387,13 +422,7 @@ class Overview extends Component
                 'commit_message' => 'Manual pipeline execution',
                 'status' => 'pending',
                 'started_at' => now(),
-                'stages_status' => [
-                    'git_clone' => 'pending',
-                    'language_detection' => 'pending',
-                    'sonarqube' => 'pending',
-                    'trivy' => 'pending',
-                    'deployment' => 'pending',
-                ],
+                'stages_status' => $stagesStatus,
             ]);
 
             // Dispatch pipeline orchestrator job (runs all stages)

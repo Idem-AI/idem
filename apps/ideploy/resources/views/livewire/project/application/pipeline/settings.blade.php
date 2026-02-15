@@ -394,6 +394,192 @@
             </div>
         </div>
 
+        {{-- Advanced Settings --}}
+        <div class="bg-[#0f0f0f] border border-gray-800 rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                </svg>
+                Advanced Settings
+            </h3>
+            
+            <div class="space-y-6">
+                {{-- SonarQube Quality Gate --}}
+                <div class="bg-[#151b2e] border border-gray-700 rounded-lg p-4">
+                    <h4 class="text-md font-semibold text-white mb-3 flex items-center gap-2">
+                        📊 SonarQube Quality Gate
+                    </h4>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" wire:model="sonarSettings.fail_on_critical_vulnerabilities" checked class="rounded">
+                                <span class="text-sm">Fail pipeline on CRITICAL/BLOCKER vulnerabilities</span>
+                            </label>
+                            <p class="text-xs text-gray-500 mt-1 ml-6">Automatically fail the pipeline if SonarQube detects critical security issues</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Max Bugs</label>
+                                <input type="number" wire:model="sonarSettings.max_bugs" placeholder="No limit" 
+                                       class="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Max Vulnerabilities</label>
+                                <input type="number" wire:model="sonarSettings.max_vulnerabilities" placeholder="No limit" 
+                                       class="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Min Coverage (%)</label>
+                                <input type="number" wire:model="sonarSettings.min_coverage" placeholder="No limit" min="0" max="100" 
+                                       class="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Native Security Tools --}}
+                <div class="bg-[#151b2e] border border-gray-700 rounded-lg overflow-hidden">
+                    <div class="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-b border-gray-700 px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center border border-purple-500/30">
+                                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-white">Native Security Scanners</h4>
+                                <p class="text-xs text-gray-400 mt-0.5">Language-specific security analysis tools</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {{-- Python: Bandit --}}
+                            <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" wire:model.live="securityTools.bandit_enabled" 
+                                           class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-semibold text-white">Bandit</span>
+                                            <span class="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded border border-yellow-500/30">Python</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">Security linter designed to find common security issues in Python code</p>
+                                        <div class="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            <span>Auto-install if missing</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            {{-- JavaScript: ESLint Security --}}
+                            <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" wire:model.live="securityTools.eslint_security_enabled" 
+                                           class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-semibold text-white">ESLint Security</span>
+                                            <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30">JavaScript</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">Security-focused linting rules for JavaScript and TypeScript projects</p>
+                                        <div class="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            <span>Auto-install if missing</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            {{-- PHP: Psalm Security --}}
+                            <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" wire:model.live="securityTools.psalm_security_enabled" 
+                                           class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-semibold text-white">Psalm</span>
+                                            <span class="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30">PHP</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">Static analysis tool with advanced security checks for PHP applications</p>
+                                        <div class="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            <span>Auto-install if missing</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            {{-- Ruby: Brakeman --}}
+                            <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" wire:model.live="securityTools.brakeman_enabled" 
+                                           class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-semibold text-white">Brakeman</span>
+                                            <span class="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded border border-red-500/30">Ruby</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">Security vulnerability scanner specifically designed for Ruby on Rails</p>
+                                        <div class="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            <span>Auto-install if missing</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            {{-- Go: Gosec --}}
+                            <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" wire:model.live="securityTools.gosec_enabled" 
+                                           class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-semibold text-white">Gosec</span>
+                                            <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded border border-cyan-500/30">Go</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">Inspects Go source code for security problems and common vulnerabilities</p>
+                                        <div class="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            <span>Auto-install if missing</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        {{-- Info Banner --}}
+                        <div class="mt-6 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-sm text-blue-300 font-medium">Automatic Tool Management</p>
+                                    <p class="text-xs text-blue-400/80 mt-1">Security tools will be automatically installed during the first pipeline run if not already present on your server. The scanner matching your project's detected language will be executed.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Save Button --}}
         <div class="flex items-center justify-end gap-3 pb-8">
             <button wire:click="resetSettings" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition">

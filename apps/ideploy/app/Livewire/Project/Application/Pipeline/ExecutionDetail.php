@@ -43,7 +43,15 @@ class ExecutionDetail extends Component
         $this->loadExecution();
         
         // Select first stage by default
-        $this->selectedStage = 'sonarqube';
+        $this->selectedStage = 'git_clone';
+    }
+    
+    /**
+     * Refresh execution data (called by wire:poll)
+     */
+    public function refreshExecution()
+    {
+        $this->loadExecution();
     }
     
     /**
@@ -87,7 +95,7 @@ class ExecutionDetail extends Component
             'started_at' => $execution->started_at,
             'finished_at' => $execution->finished_at,
             'duration_seconds' => $execution->duration_seconds,
-            'stages' => $execution->stages_status ?? [],
+            'stages_status' => $execution->stages_status ?? [],
             'sonarqube_results' => $sonarResult ? [
                 'bugs' => $sonarResult->bugs ?? 0,
                 'vulnerabilities' => $sonarResult->vulnerabilities ?? 0,
@@ -187,11 +195,17 @@ class ExecutionDetail extends Component
                 'trigger_type' => 'manual',
                 'trigger_user' => auth()->user()->name ?? 'System',
                 'branch' => $execution->branch,
-                'commit_sha' => null,
+                'commit_sha' => $execution->commit_sha,
                 'commit_message' => 'Re-run of pipeline #' . $execution->id,
                 'status' => 'pending',
-                'started_at' => now(),
-                'stages_status' => [],
+                'started_at' => null,  // Sera mis à jour par le job
+                'stages_status' => [
+                    'git_clone' => ['status' => 'pending'],
+                    'language_detection' => ['status' => 'pending'],
+                    'sonarqube' => ['status' => 'pending'],
+                    'trivy' => ['status' => 'pending'],
+                    'deploy' => ['status' => 'pending'],
+                ],
             ]);
             
             // Dispatch pipeline orchestrator
