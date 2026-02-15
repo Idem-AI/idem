@@ -105,7 +105,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
           this.generationState.set(state);
 
           // Check if generation is completed
-          if (state.completed && state.steps.length > 0) {
+          if (state.completed && !state.isGenerating) {
             this.handleGenerationComplete(state);
           }
         },
@@ -164,7 +164,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       console.log('Post-processing complete, redirecting to branding display');
       this.isPostProcessing.set(false);
-      this.router.navigate(['/project/branding']);
+      this.router.navigate(['/project/branding/display']);
     }, 4000);
   }
 }

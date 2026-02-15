@@ -151,6 +151,33 @@ CODE QUALITY STANDARDS:
 - Accessibility (ARIA labels, semantic HTML)
 - Performance optimization (lazy loading, code splitting)
 
+TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL):
+This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
+
+1. **Images of people**: ALWAYS use images featuring Black African people. Never use generic Western/European/Asian stock photos.
+   - Use Unsplash collections with search terms like "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur", "african technology"
+   - Example URLs: https://images.unsplash.com/photo-1531123897727-8f129e1688ce (African woman), https://images.unsplash.com/photo-1560250097-0b93528c311a (Black professional)
+   - For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
+   - For team photos: show diverse African teams in modern work environments
+
+2. **UI and Cultural Context**:
+   - Use warm, vibrant color palettes that resonate with African aesthetics when no brand colors are specified
+   - Testimonials and user names should use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
+   - Locations should reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
+   - Currency references should use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD when appropriate
+   - Phone number formats should use African country codes (+237, +234, +254, +233, +225)
+
+3. **Content and Messaging**:
+   - Use inclusive language that resonates with African audiences
+   - Reference African market challenges and opportunities
+   - Social proof should mention African companies, organizations, or communities
+   - Success stories should feature African entrepreneurs and businesses
+
+4. **Placeholder/Demo Data**:
+   - Company names: use African-sounding or Africa-based company names
+   - User profiles: African names with African city locations
+   - Statistics: reference African market data when relevant
+
 `;
 }
 

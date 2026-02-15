@@ -1,19 +1,13 @@
 @if (isLoading()) {
   <!-- Loading State -->
-  <div
-    class="h-screen w-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800"
-  >
+  <div class="h-screen w-full flex items-center justify-center">
     <div class="text-center space-y-6 max-w-md mx-auto px-6">
-      <div class="flex justify-center">
-        <div
-          class="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent"
-        ></div>
-      </div>
+      <app-loader></app-loader>
       <div class="space-y-2">
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+        <h3 class="text-xl font-semibold text-white">
           {{ 'dashboard.createProject.loading.title' | translate }}
         </h3>
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-gray-400">
           {{ 'dashboard.createProject.loading.subtitle' | translate }}
         </p>
       </div>
@@ -44,6 +38,15 @@
         ></app-project-details>
       }
       @if (isStepActive(2)) {
+        <app-logo-choice
+          [project]="project()"
+          (nextStep)="goToNextStep()"
+          (previousStep)="goToPreviousStep()"
+          (projectUpdate)="onProjectUpdate($event)"
+          (logoChoiceMade)="onLogoChoiceMade($event)"
+        ></app-logo-choice>
+      }
+      @if (isStepActive(3)) {
         <app-color-selection
           [project]="project()"
           (nextStep)="goToNextStep()"
@@ -51,14 +54,14 @@
           (projectUpdate)="onProjectUpdate($event)"
         ></app-color-selection>
       }
-      @if (isStepActive(3)) {
+      @if (isStepActive(4)) {
         <app-typography-selection
           [project]="project()"
           (projectUpdate)="onProjectUpdate($event)"
           (typographySelectionChanged)="onTypographySelectionChanged($event)"
         ></app-typography-selection>
       }
-      @if (isStepActive(4)) {
+      @if (isStepActive(5)) {
         <app-logo-selection
           [projectId]="project().id"
           [project]="project()"
@@ -72,7 +75,7 @@
           (nextStep)="goToNextStep()"
         ></app-logo-selection>
       }
-      @if (isStepActive(5)) {
+      @if (isStepActive(6)) {
         <app-logo-variations
           [selectedLogo]="project().analysisResultModel.branding.logo"
           [project]="project()"
@@ -80,7 +83,7 @@
           (nextStep)="goToNextStep()"
         ></app-logo-variations>
       }
-      @if (isStepActive(6)) {
+      @if (isStepActive(7)) {
         <app-project-summary
           [project]="project()"
           [selectedLogo]="project().analysisResultModel.branding.logo.id || ''"

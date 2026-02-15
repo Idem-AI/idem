@@ -1,65 +1,52 @@
 export const COLOR_PALETTE_SECTION_PROMPT = `
-You are a senior brand identity expert and color theorist. Design a modern, premium "Color Palette" section using ONLY Tailwind CSS utilities in semantic, production-ready HTML.
+You are a world-class color strategist and editorial designer. Create a FULL-PAGE color palette presentation that feels like a premium design magazine spread — unique to THIS brand's personality and industry.
 
-OBJECTIVE:
-Produce a visually sophisticated, minimal yet informative color system presentation that fits STRICTLY within ONE SINGLE A4 portrait page (210mm × 297mm), ready for PDF export in brand guidelines.
+CRITICAL CREATIVE RULE:
+Do NOT produce the same card-grid layout every time. Study the brand's colors, industry, and personality, then invent a presentation concept that makes these specific colors feel alive and meaningful. The layout should reflect the brand's energy.
 
-STRICT OUTPUT RULES:
-1) Output ONLY raw HTML with Tailwind CSS classes (no Markdown fences, no comments, no <style>, no JS).
-2) Must use Tailwind utilities only (including arbitrary values like bg-[#hex] for context colors).
-3) For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN.
-4) All HTML must be minified into ONE SINGLE LINE with no breaks or extraneous whitespace.
-5) The entire section MUST fit within [width:210mm] [height:297mm] with internal safe margins (≥ [padding:12mm]) and MUST NOT overflow vertically.
-6) If risk of overflow exists, typography and spacing must scale down responsively (text-base → text-sm, py-8 → py-6, etc.), always preserving clarity.
-7) All text in English. Use concise, professional, brand-guidelines tone.
-8) Replace placeholders ([PRIMARY_HEX], etc.) with actual project context values.
-9) Ensure WCAG AA compliance for all color cards and text overlays.
+CONCEPT INVENTION (choose or invent based on the brand):
+- Paint studio: colors presented as large paint swatches or brushstrokes, with hex codes as elegant labels
+- Pantone-inspired: each color as a tall vertical strip with detailed specs below, like a professional color fan
+- Landscape: colors arranged as horizontal bands creating an abstract landscape or horizon
+- Material samples: colors shown as textured material cards (fabric, paper, metal feel via shadows/gradients)
+- Color story: colors presented in a narrative flow showing how they relate and complement each other
+- Architectural: colors as building blocks stacked or arranged in a structural composition
 
-SECTION CONTENT (MANDATORY):
-- Title: "Color Palette"
-- Introductory subtitle (max 2 sentences) about consistency, accessibility, and emotional resonance.
-- Grid of SIX color cards, arranged compactly but with visual balance:
-   1. Primary Brand Color
-   2. Secondary Brand Color
-   3. Accent Color
-   4. Background Light
-   5. Background Dark
-   6. Text Primary
-- Each card includes:
-   • Large color preview swatch with gradient overlay  
-   • Color name + short subtitle  
-   • Exact HEX code (monospace, with copy indicator style)  
-   • 1–2 sentence psychology/usage description  
-   • "Primary Usage" list (max 3 concise bullets with tiny icons/dots)  
-   • Accessibility info: contrast ratio displayed (AA/AAA badge)  
-- Final block: “Color Guidelines” → compact 2-column tips (Accessibility + Implementation).
+PAGE CONTENT (MANDATORY):
+1. Section title: "Palette de Couleurs" — styled to match brand personality
+2. The brand's colors displayed prominently with ACTUAL hex values via bg-[#hex]:
+   - Primary, Secondary, Accent, Background, Text
+3. Each color must show:
+   - Large visual swatch (the color itself, prominent)
+   - Color name and role (e.g., "Primaire", "Secondaire", "Accent")
+   - HEX code in monospace
+   - Brief usage note (1 sentence, in French)
+4. A small color harmony section showing how the colors work together (e.g., a mini composition using all colors)
 
 DESIGN PRINCIPLES:
-- Layout: clean card grid with consistent heights; responsive but A4-first; no element should push onto a second page.
-- Aesthetic: subtle gradients, soft shadows, rounded 2xl corners, crisp spacing. Harmonize neutrals (gray/slate/white) with brand accents (blue/indigo/purple/amber as context).
-- Typography: use Tailwind scale responsibly; hierarchy must remain legible in print. Strong h2 title, bold h3 card headings, small but clear body copy.
-- Spacing: use Tailwind spacing (gap-6/8, px-6/8, py-6/8). Tighten progressively if needed to fit A4.
-- Accessibility: verify AA contrast; all HEX values visible on both screen and print.
-- Swatches: use object-contain, consistent h-32 (or scaled down if overflow risk). Keep gradient overlay subtle (from-white/20 to transparent).
-- Hover states/micro-interactions: keep subtle (hover:shadow-xl, hover:border-gray-200) for digital view, but ensure print version remains legible.
-- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
+- Use the brand's ACTUAL colors via bg-[#hex], text-[#hex] — never default to generic blue/purple
+- The color swatches must be LARGE and visually dominant — this is about showing color, not reading text
+- Typography should be minimal and serve the colors, not compete with them
+- Create visual rhythm and balance — not just a uniform grid
+- All text in French
 
-A4 FIT CONSTRAINTS (NON-NEGOTIABLE):
-- Outer wrapper: [width:210mm] [height:297mm] with overflow-hidden to guarantee one-page.
-- Internal margins: at least 12mm; balance negative space for clean print.
-- Grid distribution: 2 columns × 3 rows OR 3 columns × 2 rows, depending on spacing efficiency.
-- Final "Color Guidelines" block must remain compact: max 6 bullets total.
+A4 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+- Internal safe padding: p-[12mm] (content must not touch edges)
+- ALL content must fit within this 210×297mm box — nothing may overflow
+- If content risks overflowing, REDUCE spacing (gap-6→gap-3), swatch sizes, or font sizes
+- Do NOT use min-h-screen — use h-[297mm] exactly
 
-QUALITY CHECKLIST (MUST PASS):
-- Single HTML line, no line breaks, no comments.
-- Section fits A4 portrait without overflow.
-- Six complete color cards + one guidelines block.
-- Accurate {{project colors}} applied via bg-[#hex].
-- Visual balance: modern, minimalist, premium brand-system look.
-- Accessible contrast; AA/AAA tags present.
-- Print-friendly: no overly faint translucency, all text sharp.
+TECHNICAL RULES:
+- Raw HTML + Tailwind CSS utilities only, single minified line
+- PrimeIcons (pi pi-icon-name) for icons if needed
+- WCAG AA contrast for text overlaid on colors
+- No custom CSS, no JS
 
 IMPORTANT:
-- not add any "html" tag or prefix on output
-PROJECT DESCRIPTION:
+- Do NOT add any "html" tag or prefix on output
+- Do NOT use generic blue/indigo/purple — use the brand's ACTUAL hex colors
+- Each brand's color page should look distinctly different based on its unique palette
+
+PROJECT CONTEXT:
 `;
