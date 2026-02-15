@@ -34,6 +34,10 @@ class Overview extends Component
     public $search = '';
     public $statusFilter = '';
     
+    // Delete modal
+    public $showDeleteModal = false;
+    public $executionToDelete = null;
+    
     // Executions list
     public $executions = [];
     public $totalExecutions = 0;
@@ -128,6 +132,60 @@ class Overview extends Component
     public function refreshExecutions()
     {
         $this->loadExecutions();
+    }
+    
+    /**
+     * Show delete confirmation modal
+     */
+    public function confirmDelete($executionUuid)
+    {
+        $execution = PipelineExecution::where('uuid', $executionUuid)
+            ->where('pipeline_config_id', $this->pipelineConfig->id)
+            ->first();
+        
+        if (!$execution) {
+            $this->dispatch('error', 'Pipeline execution not found');
+            return;
+        }
+        
+        // Only allow deletion of completed executions
+        if (in_array($execution->status, ['running', 'pending'])) {
+            $this->dispatch('error', 'Cannot delete a running or pending pipeline');
+            return;
+        }
+        
+        $this->executionToDelete = $execution;
+        $this->showDeleteModal = true;
+    }
+    
+    /**
+     * Delete a pipeline execution
+     */
+    public function deleteExecution()
+    {
+        try {
+            if (!$this->executionToDelete) {
+                $this->dispatch('error', 'No execution selected');
+                return;
+            }
+            
+            $this->executionToDelete->delete();
+            $this->showDeleteModal = false;
+            $this->executionToDelete = null;
+            $this->loadExecutions();
+            $this->dispatch('success', 'Pipeline execution deleted successfully');
+        } catch (\Exception $e) {
+            $this->dispatch('error', 'Failed to delete pipeline execution');
+        }
+    }
+    
+    /**
+     * Cancel delete
+     */
+    public function cancelDelete()
+    {
+        $this->showDeleteModal = false;
+        $this->executionToDelete = null;
     }
     
     public function loadAvailableTools()

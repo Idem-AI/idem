@@ -6,7 +6,7 @@
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
 
-    <div class="space-y-6" wire:poll.3s>
+    <div class="space-y-6" wire:poll.3s="refreshExecution">
         {{-- Header avec status --}}
         <div class="bg-[#0a0a0a] border border-gray-800 rounded-xl overflow-hidden">
             <div class="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4 border-b border-gray-700">
