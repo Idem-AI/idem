@@ -81,6 +81,39 @@ export class BrandingService {
   }
 
   /**
+   * Generate colors and typography based on an imported logo's extracted colors.
+   * Primary colors come from the logo; AI proposes complementary secondary/accent/background/text.
+   */
+  generateColorsAndTypographyFromLogo(
+    project: ProjectModel,
+    logoSvg: string,
+    logoColors: string[],
+  ): Observable<{
+    colors: ColorModel[];
+    typography: TypographyModel[];
+    project: ProjectModel;
+  }> {
+    console.log('Generating colors and typography from imported logo...');
+    return this.http
+      .post<{
+        colors: ColorModel[];
+        typography: TypographyModel[];
+        project: ProjectModel;
+      }>(`${this.apiUrl}/generate/colors-typography-from-logo`, {
+        project,
+        logoSvg,
+        logoColors,
+      })
+      .pipe(
+        tap((response) => console.log('generateColorsAndTypographyFromLogo response:', response)),
+        catchError((error) => {
+          console.error('Error in generateColorsAndTypographyFromLogo:', error);
+          throw error;
+        }),
+      );
+  }
+
+  /**
    * Generate logos with user preferences (type and custom description)
    */
   generateLogosWithPreferences(

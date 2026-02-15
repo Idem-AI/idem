@@ -5,6 +5,7 @@ import {
   updateBrandingController,
   deleteBrandingController,
   generateColorsAndTypographyController,
+  generateColorsAndTypographyFromLogoController,
   generateLogoConceptsController,
   generateLogoVariationsController,
   generateBrandingStreamingController,
@@ -139,6 +140,14 @@ brandingRoutes.post(
   authenticate,
   checkQuota,
   generateColorsAndTypographyController
+);
+
+// Generate colors and typography from imported logo colors
+brandingRoutes.post(
+  `/${resourceName}/generate/colors-typography-from-logo`,
+  authenticate,
+  checkQuota,
+  generateColorsAndTypographyFromLogoController
 );
 
 // Étape 1: Generate logo concepts only (new 3-step approach)

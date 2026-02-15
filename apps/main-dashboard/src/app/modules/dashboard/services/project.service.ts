@@ -104,7 +104,7 @@ export class ProjectService {
    * @returns Observable of the updated project
    */
   updateProject(projectId: string, updatedData: Partial<ProjectModel>): Observable<ProjectModel> {
-    return this.http.put<ProjectModel>(`${this.apiUrl}/update/${projectId}`, updatedData).pipe(
+    return this.http.put<ProjectModel>(`${this.apiUrl}/${projectId}`, updatedData).pipe(
       tap((response) => console.log(`updateProject response for ${projectId}:`, response)),
       catchError((error) => {
         console.error(`Error in updateProject for ${projectId}:`, error);

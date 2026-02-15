@@ -635,6 +635,7 @@
       "steps": {
         "description": "Project Description",
         "details": "Project Details",
+        "logoChoice": "Logo",
         "colors": "Color Selection",
         "typography": "Typography Selection",
         "logo": "Logo Selection",
@@ -647,6 +648,41 @@
       },
       "errors": {
         "noActiveProject": "No active project found. Please select a project first."
+      }
+    },
+    "logoChoice": {
+      "title": "Do you already have a logo?",
+      "subtitle": "You can import your existing logo or let our AI create one for you",
+      "import": {
+        "title": "I already have a logo",
+        "description": "Upload your existing logo file. We'll optimize it and convert it to a clean vector format."
+      },
+      "ai": {
+        "title": "Create with AI",
+        "description": "Let our AI generate unique logo concepts based on your project's identity.",
+        "badge": "AI Powered"
+      },
+      "backToChoice": "Back to options",
+      "continueWithLogo": "Continue with this logo",
+      "extractedColors": "Colors detected in your logo",
+      "colorsUsedAsPrimary": "These colors will be used as primary colors. Our AI will propose complementary palettes.",
+      "generatingBranding": "Generating your brand identity...",
+      "generatingBrandingSubtitle": "Our AI is creating color palettes and typography sets based on your logo."
+    },
+    "logoImport": {
+      "dropzone": {
+        "title": "Drag & drop your logo here",
+        "subtitle": "or click to browse files",
+        "maxSize": "Maximum file size: 10MB"
+      },
+      "upload": {
+        "button": "Upload & Vectorize",
+        "uploading": "Uploading...",
+        "processing": "Processing and vectorizing your logo..."
+      },
+      "result": {
+        "title": "Vectorized Logo",
+        "changeFile": "Choose another file"
       }
     },
     "createTeam": {
@@ -674,6 +710,11 @@
     },
     "dashboard": {
       "loading": "Loading your dashboard...",
+      "viewAllProjects": "View All Projects",
+      "openFeature": "Open Feature",
+      "progressOverview": "Progress Overview",
+      "projectInformation": "Project Information",
+      "pending": "Pending",
       "hero": {
         "activeProject": "Active Project",
         "defaultDescription": "Transform your ideas into reality with our comprehensive project management tools",
@@ -737,6 +778,25 @@
         "title": "No Active Project",
         "description": "Select a project to get started with your journey",
         "goToProjects": "Go to Projects"
+      },
+      "errors": {
+        "noProjectSelected": "No project selected",
+        "projectNotFound": "Project not found: {{projectId}}",
+        "failedToLoad": "Failed to load project data"
+      },
+      "quotaWarning": {
+        "title": "Quota Warning",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "messages": {
+          "approaching": "You are approaching your quota limit",
+          "daily": "You are approaching your daily quota limit",
+          "weekly": "You are approaching your weekly quota limit",
+          "dailyAndWeekly": "You are approaching both your daily and weekly quota limits"
+        },
+        "buttons": {
+          "viewDetails": "View Details"
+        }
       }
     },
     "aiAssistant": {

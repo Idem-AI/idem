@@ -635,6 +635,7 @@
       "steps": {
         "description": "Description du projet",
         "details": "Détails du projet",
+        "logoChoice": "Logo",
         "colors": "Sélection des couleurs",
         "typography": "Sélection de la typographie",
         "logo": "Sélection du logo",
@@ -647,6 +648,41 @@
       },
       "errors": {
         "noActiveProject": "Aucun projet actif trouvé. Veuillez d'abord sélectionner un projet."
+      }
+    },
+    "logoChoice": {
+      "title": "Avez-vous déjà un logo ?",
+      "subtitle": "Vous pouvez importer votre logo existant ou laisser notre IA en créer un pour vous",
+      "import": {
+        "title": "J'ai déjà un logo",
+        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre."
+      },
+      "ai": {
+        "title": "Créer avec l'IA",
+        "description": "Laissez notre IA générer des concepts de logo uniques basés sur l'identité de votre projet.",
+        "badge": "Propulsé par l'IA"
+      },
+      "backToChoice": "Retour aux options",
+      "continueWithLogo": "Continuer avec ce logo",
+      "extractedColors": "Couleurs détectées dans votre logo",
+      "colorsUsedAsPrimary": "Ces couleurs seront utilisées comme couleurs primaires. Notre IA proposera des palettes complémentaires.",
+      "generatingBranding": "Génération de votre identité visuelle...",
+      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo."
+    },
+    "logoImport": {
+      "dropzone": {
+        "title": "Glissez-déposez votre logo ici",
+        "subtitle": "ou cliquez pour parcourir les fichiers",
+        "maxSize": "Taille maximale : 10 Mo"
+      },
+      "upload": {
+        "button": "Importer et vectoriser",
+        "uploading": "Envoi en cours...",
+        "processing": "Traitement et vectorisation de votre logo..."
+      },
+      "result": {
+        "title": "Logo vectorisé",
+        "changeFile": "Choisir un autre fichier"
       }
     },
     "createTeam": {
@@ -674,6 +710,11 @@
     },
     "dashboard": {
       "loading": "Chargement de votre tableau de bord...",
+      "viewAllProjects": "Voir tous les projets",
+      "openFeature": "Ouvrir la fonctionnalité",
+      "progressOverview": "Aperçu de la progression",
+      "projectInformation": "Informations du projet",
+      "pending": "En attente",
       "hero": {
         "activeProject": "Projet actif",
         "defaultDescription": "Transformez vos idées en réalité avec nos outils complets de gestion de projet",
@@ -737,6 +778,25 @@
         "title": "Aucun projet actif",
         "description": "Sélectionnez un projet pour commencer votre parcours",
         "goToProjects": "Aller aux projets"
+      },
+      "errors": {
+        "noProjectSelected": "Aucun projet sélectionné",
+        "projectNotFound": "Projet introuvable : {{projectId}}",
+        "failedToLoad": "Échec du chargement des données du projet"
+      },
+      "quotaWarning": {
+        "title": "Avertissement de quota",
+        "daily": "Quotidien",
+        "weekly": "Hebdomadaire",
+        "messages": {
+          "approaching": "Vous approchez de votre limite de quota",
+          "daily": "Vous approchez de votre limite de quota quotidien",
+          "weekly": "Vous approchez de votre limite de quota hebdomadaire",
+          "dailyAndWeekly": "Vous approchez de vos limites de quota quotidien et hebdomadaire"
+        },
+        "buttons": {
+          "viewDetails": "Voir les détails"
+        }
       }
     },
     "aiAssistant": {
