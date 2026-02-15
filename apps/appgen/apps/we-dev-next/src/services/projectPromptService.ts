@@ -110,6 +110,27 @@ ${techStack}
 - Use the provided brand assets and colors
 - No application functionality needed
 
+## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
+This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
+
+### Images of People
+- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
+- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
+- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
+- For hero/team photos: show diverse African teams in modern work environments
+
+### UI and Cultural Context
+- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
+- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
+- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
+- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
+
+### Content and Messaging
+- Use inclusive language that resonates with African audiences
+- Social proof should mention African companies, organizations, or communities
+- Success stories should feature African entrepreneurs and businesses
+- Placeholder company names should be African-sounding or Africa-based
+
 Generate the complete landing page code with all necessary files.`;
   }
 
@@ -180,7 +201,9 @@ Generate the complete landing page code with all necessary files.`;
 - Optimize performance and security
 - Include authentication and user management
 - Landing page will be managed separately
-- Use the provided brand assets and design system`;
+- Use the provided brand assets and design system
+
+${this.getAfricanAudienceDirectives()}`;
         break;
       case 'integrated':
         title = 'Application Generation with Integrated Landing Page';
@@ -204,7 +227,9 @@ Generate the complete landing page code with all necessary files.`;
 - Optimize for SEO on the landing page
 - Maintain design consistency between landing and app
 - Use the provided brand assets throughout
-- Implement all features based on use case diagrams`;
+- Implement all features based on use case diagrams
+
+${this.getAfricanAudienceDirectives()}`;
         break;
       case 'none':
         title = 'Web Application Generation';
@@ -220,7 +245,9 @@ Generate the complete landing page code with all necessary files.`;
 - Ensure excellent UX/UI with brand consistency
 - Optimize performance and security
 - Include complete user management
-- Use the provided brand assets and design system`;
+- Use the provided brand assets and design system
+
+${this.getAfricanAudienceDirectives()}`;
         break;
     }
 
@@ -437,5 +464,28 @@ Generate the complete application code with all necessary files.`;
     });
 
     return diagramsInfo;
+  }
+
+  private getAfricanAudienceDirectives(): string {
+    return `## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
+This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
+
+### Images of People
+- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
+- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
+- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
+- For hero/team photos: show diverse African teams in modern work environments
+
+### UI and Cultural Context
+- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
+- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
+- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
+- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
+
+### Content and Messaging
+- Use inclusive language that resonates with African audiences
+- Social proof should mention African companies, organizations, or communities
+- Success stories should feature African entrepreneurs and businesses
+- Placeholder company names should be African-sounding or Africa-based`;
   }
 }

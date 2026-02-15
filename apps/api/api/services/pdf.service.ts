@@ -807,101 +807,133 @@ export class PdfService {
             }, system-ui, sans-serif;
           }
 
-          /* Styles pour éviter la coupure des éléments */
+          /* A4 page sizing */
+          @page {
+            size: 210mm 297mm;
+            margin: 0;
+          }
+
+          /* Each section = one full page, force page break before each (except first) */
           .section {
-            page-break-inside: avoid;
-            break-inside: avoid;
             display: block;
-            overflow: visible;
+            width: 210mm;
+            min-height: 297mm;
+            max-height: 297mm;
+            overflow: hidden;
+            position: relative;
           }
 
-          .section > * {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-
-          .data-content {
-            page-break-inside: avoid;
-            break-inside: avoid;
-            orphans: 3;
-            widows: 3;
-          }
-
-          /* Forcer les sauts de page avant certains éléments si nécessaire */
           .section:not(:first-child) {
-            page-break-before: auto;
-            break-before: auto;
+            page-break-before: always;
+            break-before: page;
           }
 
-          /* Éviter les sauts de page après les titres */
+          /* Override overflow-hidden that AI may generate inside sections */
+          .data-content {
+            width: 100%;
+            height: 100%;
+          }
+
+          /* Within a section, avoid breaking cards/blocks across the page boundary */
+          .data-content article,
+          .data-content .card,
+          .data-content [class*="rounded"] {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          /* Avoid page break right after headings */
           h1, h2, h3, h4, h5, h6 {
             page-break-after: avoid;
             break-after: avoid;
+          }
+
+          /* Orphans / widows for text blocks */
+          p, li, td {
             orphans: 3;
             widows: 3;
           }
 
-          /* Styles spécifiques pour l'impression */
+          /* Print-specific overrides */
           @media print {
             .section {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
+              width: 210mm !important;
+              min-height: 297mm !important;
+              max-height: 297mm !important;
+              overflow: hidden !important;
             }
 
-            .data-content {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
+            .section:not(:first-child) {
+              page-break-before: always !important;
+              break-before: page !important;
             }
-
-            /* Éviter les lignes orphelines et veuves */
-            p, div {
-              orphans: 3;
-              widows: 3;
-            }
-          }
-
-          /* Support pour les navigateurs plus anciens */
-          @page {
-            orphans: 3;
-            widows: 3;
-          }
-
-          /* Supprimer les marges uniquement sur la première page */
-          @page :first {
-            margin: 0;
           }
         </style>
       </head>
       <body class="bg-white">
     `;
 
-    // Ajouter chaque section
+    // Ajouter chaque section — each section is a full A4 page
     sections.forEach((section, index) => {
-      const sectionData =
+      let sectionData =
         typeof section.data === 'string' ? section.data : JSON.stringify(section.data, null, 2);
 
-      // Première section (page de couverture) sans marges, autres sections avec marges
-      const marginClass = index === 0 ? '' : 'mb-8';
+      // Strip overflow-hidden from the AI-generated outermost container
+      // to prevent content clipping at the PDF level (the .section wrapper handles overflow)
+      sectionData = sectionData.replace(/overflow-hidden/g, 'overflow-visible');
 
       htmlContent += `
-        <div class="section ${marginClass} break-inside-avoid">
-            <div class="data-content break-inside-avoid">${sectionData}</div>
+        <div class="section">
+            <div class="data-content">${sectionData}</div>
         </div>
       `;
     });
 
+    // Footer page - Full A4 page with centered content
     htmlContent += `
-          <footer class="flex items-center justify-between px-4 py-2 mt-4 bg-gray-100 border border-gray-200 rounded-lg">
-            <p class="text-sm text-gray-700">${footerText}</p>
-            <div class="flex gap-x-4">
-              <p class="text-sm text-gray-700">Project: <span class="font-medium">${projectName}</span></p>
-              <p class="text-sm text-gray-700">|</p>
-              <p class="text-sm text-gray-700"> generated on <span class="font-medium">${new Date().toLocaleDateString(
-                'fr-FR',
-                { year: 'numeric', month: 'long', day: 'numeric' }
-              )}</span></p>
+          <div class="section">
+            <div class="flex flex-col items-center justify-center h-full px-8">
+              <!-- Main content centered vertically and horizontally -->
+              <div class="text-center space-y-8 max-w-2xl">
+                
+                <!-- Project info -->
+                <div class="space-y-3">
+                  <h2 class="text-3xl font-bold text-gray-900">${projectName}</h2>
+                  <p class="text-lg text-gray-600">${footerText}</p>
+                </div>
+
+                <!-- Divider -->
+                <div class="w-24 h-px bg-gray-300 mx-auto"></div>
+
+                <!-- Generation info -->
+                <div class="space-y-2">
+                  <p class="text-sm text-gray-500">Document generated on</p>
+                  <p class="text-base font-medium text-gray-700">${new Date().toLocaleDateString(
+                    'en-US',
+                    { year: 'numeric', month: 'long', day: 'numeric' }
+                  )}</p>
+                </div>
+
+                <!-- Divider -->
+                <div class="w-24 h-px bg-gray-300 mx-auto"></div>
+
+                <!-- Powered by Idem -->
+                <div class="space-y-4 pt-4">
+                  <p class="text-sm text-gray-500">Powered by</p>
+                  <div class="space-y-2">
+                    <p class="text-2xl font-bold text-gray-900">IDEM</p>
+                    <a href="https://idem.africa" class="inline-block text-base text-blue-600 hover:text-blue-700 font-medium">
+                      idem.africa
+                    </a>
+                  </div>
+                  <p class="text-xs text-gray-400 max-w-md mx-auto pt-2">
+                    AI-powered platform for building and deploying modern applications in Africa
+                  </p>
+                </div>
+
+              </div>
             </div>
-          </footer>
+          </div>
       </body>
       </html>
     `;

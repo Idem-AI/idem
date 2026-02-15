@@ -71,7 +71,7 @@ export class BrandingGenerationPage implements OnInit {
     console.log('Branding generation completed, redirecting to display:', branding);
 
     // Redirect to the branding display page
-    this.router.navigate(['/project/branding']);
+    this.router.navigate(['/project/branding/display']);
   }
 
   /**

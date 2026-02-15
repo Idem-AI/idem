@@ -11,6 +11,7 @@ import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule } from '@ngx-translate/core';
+import { switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-project-summary',
@@ -148,18 +149,30 @@ export class ProjectSummaryComponent {
         marketingAccepted: this.marketingConsentAccepted(),
       };
 
-      this.projectService.finalizeProjectCreation(this.project().id!, acceptanceData).subscribe({
-        next: (response) => {
-          this.clearProjectCookies();
+      // First, persist the user's branding selections to the backend
+      const brandingUpdate: Partial<ProjectModel> = {
+        analysisResultModel: this.project().analysisResultModel,
+      };
 
-          this.isSubmitting.set(false);
-          this.finalizeProject.emit();
-        },
-        error: (error) => {
-          console.error('Error finalizing project:', error);
-          this.isSubmitting.set(false);
-        },
-      });
+      this.projectService
+        .updateProject(this.project().id!, brandingUpdate)
+        .pipe(
+          switchMap(() =>
+            this.projectService.finalizeProjectCreation(this.project().id!, acceptanceData),
+          ),
+        )
+        .subscribe({
+          next: (response) => {
+            this.clearProjectCookies();
+
+            this.isSubmitting.set(false);
+            this.finalizeProject.emit();
+          },
+          error: (error) => {
+            console.error('Error finalizing project:', error);
+            this.isSubmitting.set(false);
+          },
+        });
     }
   }
 

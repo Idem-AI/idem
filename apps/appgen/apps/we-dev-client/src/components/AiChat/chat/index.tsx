@@ -181,7 +181,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
     value: ModelTypes.Gemini3Flash,
-    label: 'Gemini 2.5 Flash',
+    label: 'Gemini 3.5 Flash',
     useImage: true,
     from: 'default',
     quota: 2,
@@ -794,19 +794,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         );
       }
 
-      // Generate complete prompt with all project details using multiChatPromptService
+      // Generate the full prompt from projectData and send it as the first message
+      // This message is hidden from the UI but sent to the backend
       const promptService = new MultiChatPromptService();
       const completePrompt = promptService.generatePrompt(projectData);
-
-      console.log('📝 Generated complete prompt with project details:');
-      console.log('  - Prompt length:', completePrompt.length, 'characters');
-      console.log('  - Includes description:', projectData.description ? 'Yes' : 'No');
-      console.log(
-        '  - Includes branding:',
-        projectData.analysisResultModel?.branding ? 'Yes' : 'No'
-      );
-
-      // Send complete prompt to chat - all project info is now in the message content
       append({
         id: uuidv4(),
         role: 'user',
@@ -933,7 +924,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   // add upload status tracking
   const [isUploading, setIsUploading] = useState(false);
-  const filterMessages = messages.filter((e) => e.role !== 'system');
+  const firstUserMessageId =
+    projectData && hasGeneration ? messages.find((m) => m.role === 'user')?.id : null;
+  const filterMessages = messages.filter((e) => {
+    if (e.role === 'system') return false;
+    // Hide the first user message (generation trigger) from UI
+    if (firstUserMessageId && e.id === firstUserMessageId) return false;
+    return true;
+  });
   // modify upload handler
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length || isUploading) return;
@@ -1455,26 +1453,29 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         <ProjectTutorial projectData={projectData} onClose={() => setShowTutorial(false)} />
       )}
 
-      <ChatInput
-        input={input}
-        setMessages={setMessages}
-        append={append}
-        messages={messages}
-        stopRuning={stop}
-        setInput={setInput}
-        isLoading={isLoading}
-        isUploading={isUploading}
-        uploadedImages={uploadedImages}
-        baseModal={baseModal}
-        handleInputChange={handleInputChange}
-        handleKeySubmit={handleKeySubmit}
-        handleSubmitWithFiles={handleSubmitWithFiles}
-        handleFileSelect={handleFileSelect}
-        removeImage={removeImage}
-        addImages={addImages}
-        setIsUploading={setIsUploading}
-        setBaseModal={setBaseModal}
-      />
+      {/* Hide ChatInput when chat is empty and projectData exists (show only project description + start button) */}
+      {!(projectData && filterMessages.length === 0) && (
+        <ChatInput
+          input={input}
+          setMessages={setMessages}
+          append={append}
+          messages={messages}
+          stopRuning={stop}
+          setInput={setInput}
+          isLoading={isLoading}
+          isUploading={isUploading}
+          uploadedImages={uploadedImages}
+          baseModal={baseModal}
+          handleInputChange={handleInputChange}
+          handleKeySubmit={handleKeySubmit}
+          handleSubmitWithFiles={handleSubmitWithFiles}
+          handleFileSelect={handleFileSelect}
+          removeImage={removeImage}
+          addImages={addImages}
+          setIsUploading={setIsUploading}
+          setBaseModal={setBaseModal}
+        />
+      )}
     </div>
   );
 };

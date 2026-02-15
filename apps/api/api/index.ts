@@ -59,6 +59,7 @@ import projectTeamRoutes from './routes/project-team.routes';
 import migrationRoutes from './routes/migration.routes';
 import { teamsRoutes } from './routes/teams.routes';
 import contactRoutes from './routes/contactRoutes';
+import logoImportRoutes from './routes/logo-import.routes';
 
 const app: Express = express();
 
@@ -141,6 +142,9 @@ app.use('/migration', migrationRoutes);
 
 // Contact routes
 app.use('/api/contact', contactRoutes);
+
+// Logo import routes
+app.use('/api/logo', logoImportRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
