@@ -284,17 +284,23 @@ class PipelineOrchestratorJob implements ShouldQueue
     
     private function waitForDeployment(string $deploymentUuid, int $maxWaitSeconds = 1800): void
     {
+        // Attendre un peu pour que le déploiement démarre
+        sleep(2);
+        
         $startTime = time();
         $lastStatus = null;
         
         while (time() - $startTime < $maxWaitSeconds) {
+            // Refresh depuis la DB
             $deployment = \App\Models\ApplicationDeploymentQueue::where('deployment_uuid', $deploymentUuid)->first();
             
             if (!$deployment) {
+                $this->log('error', "Deployment not found: {$deploymentUuid}");
                 throw new \Exception('Deployment not found');
             }
             
-            $currentStatus = $deployment->status->value;
+            // Status est une string, pas un enum
+            $currentStatus = $deployment->status;
             
             // Log status changes
             if ($currentStatus !== $lastStatus) {
@@ -302,17 +308,19 @@ class PipelineOrchestratorJob implements ShouldQueue
                 $lastStatus = $currentStatus;
             }
             
-            // Check if deployment is finished
-            if ($currentStatus === 'finished') {
+            // Check if deployment is finished (comparer avec les valeurs enum)
+            if ($currentStatus === \App\Enums\ApplicationDeploymentStatus::FINISHED->value) {
                 $this->log('success', '✅ Deployment completed successfully');
                 return;
             }
             
-            if ($currentStatus === 'failed') {
+            if ($currentStatus === \App\Enums\ApplicationDeploymentStatus::FAILED->value) {
+                $this->log('error', '❌ Deployment failed - check deployment logs');
                 throw new \Exception('Deployment failed');
             }
             
-            if ($currentStatus === 'cancelled') {
+            if ($currentStatus === \App\Enums\ApplicationDeploymentStatus::CANCELLED_BY_USER->value) {
+                $this->log('error', '🚫 Deployment was cancelled by user');
                 throw new \Exception('Deployment was cancelled');
             }
             
@@ -320,6 +328,7 @@ class PipelineOrchestratorJob implements ShouldQueue
             sleep(5);
         }
         
+        $this->log('error', "⏱️ Deployment timeout after {$maxWaitSeconds}s - Last status: {$lastStatus}");
         throw new \Exception('Deployment timeout after ' . ($maxWaitSeconds / 60) . ' minutes');
     }
     
