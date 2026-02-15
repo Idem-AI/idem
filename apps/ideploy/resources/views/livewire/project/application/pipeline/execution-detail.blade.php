@@ -113,18 +113,50 @@
 
         {{-- Stages Horizontaux (Style GitLab) --}}
         <div class="bg-white/5 border border-gray-800 rounded-lg p-6">
-            <div class="flex items-center gap-4">
-                @foreach(['sonarqube', 'trivy', 'deploy'] as $index => $stageName)
+            <div class="flex items-center gap-4 overflow-x-auto">
+                @php
+                    // Définir tous les stages dans l'ordre
+                    $allStages = [
+                        'git_clone' => ['label' => 'Git Clone', 'emoji' => '📥'],
+                        'language_detection' => ['label' => 'Language Detection', 'emoji' => '🔍'],
+                        'sonarqube' => ['label' => 'SonarQube', 'emoji' => '📊'],
+                        'trivy' => ['label' => 'Trivy', 'emoji' => '🔒'],
+                    ];
+                    
+                    $stagesStatus = $execution->stages_status ?? [];
+                    
+                    // Ajouter native_security si présent dans stages_status
+                    if (isset($stagesStatus['native_security'])) {
+                        $allStages['native_security'] = ['label' => 'Native Security', 'emoji' => '🛡️'];
+                    }
+                    
+                    // Ajouter deploy en dernier
+                    $allStages['deploy'] = ['label' => 'Deploy', 'emoji' => '🚀'];
+                @endphp
+                
+                @foreach($allStages as $stageId => $stageConfig)
                     @php
-                        $stageData = $execution->stages[$stageName] ?? ['status' => 'pending', 'duration' => null];
-                        $stageStatus = $stageData['status'] ?? 'pending';
-                        $stageDuration = $stageData['duration'] ?? null;
+                        $stageData = $stagesStatus[$stageId] ?? ['status' => 'pending'];
+                        $stageStatus = is_array($stageData) ? ($stageData['status'] ?? 'pending') : $stageData;
+                        $stageDuration = null;
+                        
+                        // Calculer la durée si timestamps disponibles
+                        if (is_array($stageData) && !empty($stageData['started_at']) && !empty($stageData['finished_at'])) {
+                            try {
+                                $start = new \DateTime($stageData['started_at']);
+                                $end = new \DateTime($stageData['finished_at']);
+                                $stageDuration = $end->getTimestamp() - $start->getTimestamp();
+                            } catch (\Exception $e) {
+                                $stageDuration = null;
+                            }
+                        }
                     @endphp
                     
                     {{-- Stage Card --}}
                     <button 
-                        wire:click="selectStage('{{ $stageName }}')"
-                        class="flex-1 bg-gray-900/50 border {{ $selectedStage === $stageName ? 'border-blue-500' : 'border-gray-800' }} rounded-lg p-4 hover:bg-gray-900 transition-all">
+                        wire:key="stage-{{ $stageId }}-{{ $stageStatus }}"
+                        wire:click="selectStage('{{ $stageId }}')"
+                        class="flex-1 min-w-[180px] bg-gray-900/50 border-2 {{ $selectedStage === $stageId ? 'border-blue-500' : ($stageStatus === 'running' ? 'border-blue-400 animate-pulse' : ($stageStatus === 'success' ? 'border-green-500/50' : ($stageStatus === 'failed' ? 'border-red-500/50' : 'border-gray-800'))) }} rounded-lg p-4 hover:bg-gray-900 transition-all">
                         <div class="flex items-center gap-3">
                             {{-- Status Icon --}}
                             <div class="flex-shrink-0">
@@ -147,6 +179,12 @@
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                         </svg>
                                     </div>
+                                @elseif($stageStatus === 'skipped')
+                                    <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                                        </svg>
+                                    </div>
                                 @else
                                     <div class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
                                         <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -158,16 +196,26 @@
                             
                             {{-- Stage Info --}}
                             <div class="flex-1 text-left">
-                                <div class="text-sm font-semibold text-white">{{ ucfirst($stageName) }}</div>
-                                @if($stageDuration)
-                                    <div class="text-xs text-gray-400">{{ gmdate('i:s', $stageDuration) }}</div>
-                                @else
-                                    <div class="text-xs text-gray-500">—</div>
-                                @endif
+                                <div class="text-sm font-semibold {{ $stageStatus === 'running' ? 'text-blue-400' : ($stageStatus === 'success' ? 'text-green-400' : ($stageStatus === 'failed' ? 'text-red-400' : 'text-white')) }}">{{ $stageConfig['label'] }}</div>
+                                <div class="text-xs {{ $stageStatus === 'running' ? 'text-blue-300' : 'text-gray-400' }} mt-1">
+                                    @if($stageStatus === 'running')
+                                        Running...
+                                    @elseif($stageStatus === 'success' && $stageDuration)
+                                        ✓ {{ gmdate('i:s', $stageDuration) }}
+                                    @elseif($stageStatus === 'failed')
+                                        ✗ Failed
+                                    @elseif($stageStatus === 'skipped')
+                                        Skipped
+                                    @elseif($stageStatus === 'pending')
+                                        Pending
+                                    @else
+                                        —
+                                    @endif
+                                </div>
                             </div>
                             
                             {{-- Chevron --}}
-                            @if($selectedStage === $stageName)
+                            @if($selectedStage === $stageId)
                                 <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                 </svg>
@@ -176,7 +224,7 @@
                     </button>
                     
                     {{-- Arrow between stages --}}
-                    @if($index < 2)
+                    @if(!$loop->last)
                         <svg class="w-6 h-6 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                         </svg>
