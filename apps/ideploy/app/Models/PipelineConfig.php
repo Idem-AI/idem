@@ -18,6 +18,7 @@ class PipelineConfig extends Model
         'trigger_mode',
         'trigger_branches',
         'environment_vars',
+        'config',
     ];
 
     protected $casts = [
@@ -28,6 +29,7 @@ class PipelineConfig extends Model
         'trigger_branches' => 'array',
         'watch_paths' => 'array',
         'environment_vars' => 'array',
+        'config' => 'array',
     ];
 
     public function application(): BelongsTo

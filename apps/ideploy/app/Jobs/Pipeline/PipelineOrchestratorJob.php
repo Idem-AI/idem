@@ -144,27 +144,70 @@ class PipelineOrchestratorJob implements ShouldQueue
             }
             
             // ========================================
-            // STAGE 5: Deployment
+            // STAGE 4.5: Native Security Tools (Optional)
             // ========================================
-            // Refresh execution to check current status
-            $this->execution->refresh();
+            $config = $this->execution->pipelineConfig;
+            $securityTools = $config ? ($config->config['security_tools'] ?? []) : [];
+            $hasEnabledTool = false;
             
-            // Only deploy if pipeline is still running
-            if ($this->execution->status !== 'running') {
-                $this->log('warning', '⚠️  Pipeline status is not running, skipping deployment');
-                $this->log('info', "   Current status: {$this->execution->status}");
-                $this->updateStageStatus('deploy', 'skipped');
-                return;
+            foreach ($securityTools as $key => $value) {
+                if (str_ends_with($key, '_enabled') && $value) {
+                    $hasEnabledTool = true;
+                    break;
+                }
             }
             
+            if ($hasEnabledTool) {
+                $this->updateStageStatus('native_security', 'running');
+                $this->log('info', '');
+                $this->log('info', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                $this->log('info', '🛡️  STAGE 4.5: Native Security Tools');
+                $this->log('info', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                
+                $nativeSecurityJob = new NativeSecurityStageJob($this->execution, $detectedLanguage, $workspacePath);
+                $nativeSecurityResult = $nativeSecurityJob->handle();
+                
+                if ($nativeSecurityResult['skipped'] ?? false) {
+                    $this->updateStageStatus('native_security', 'skipped');
+                } elseif (!$nativeSecurityResult['success']) {
+                    $this->updateStageStatus('native_security', 'failed', $nativeSecurityResult['error'] ?? 'Unknown error');
+                    // Continue even if native security fails (non-blocking)
+                    $this->log('warning', '⚠️  Native security scan failed but pipeline continues...');
+                } else {
+                    $this->updateStageStatus('native_security', 'success');
+                    
+                    // Check if critical issues found
+                    $issues = $nativeSecurityResult['data']['issues'] ?? [];
+                    if (($issues['critical'] ?? 0) > 0 || ($issues['high'] ?? 0) > 0) {
+                        $this->log('warning', '⚠️  Native security scan found critical/high issues!');
+                        
+                        // Check if deployment should be blocked
+                        if ($config && ($config->config['block_on_security_issues'] ?? false)) {
+                            $this->log('error', '🚫 Deployment blocked due to security issues');
+                            throw new \Exception('Deployment blocked: Critical security issues found by native tools');
+                        }
+                    }
+                }
+            } else {
+                $this->log('info', 'ℹ️  No native security tools enabled, skipping...');
+            }
+            
+            // ========================================
+            // STAGE 5: Deployment
+            // ========================================
             $this->updateStageStatus('deploy', 'running');
             $this->log('info', '');
             $this->log('info', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             $this->log('info', '🚀 STAGE 5: Deployment');
             $this->log('info', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             
-            $this->deployApplication();
-            $this->updateStageStatus('deploy', 'success');
+            try {
+                $this->deployApplication();
+                $this->updateStageStatus('deploy', 'success');
+            } catch (\Exception $deployException) {
+                $this->updateStageStatus('deploy', 'failed', $deployException->getMessage());
+                throw $deployException;
+            }
             
             // ========================================
             // Pipeline Success
@@ -289,6 +332,7 @@ class PipelineOrchestratorJob implements ShouldQueue
         
         $startTime = time();
         $lastStatus = null;
+        $lastLogCount = 0;
         
         while (time() - $startTime < $maxWaitSeconds) {
             // Refresh depuis la DB
@@ -308,6 +352,28 @@ class PipelineOrchestratorJob implements ShouldQueue
                 $lastStatus = $currentStatus;
             }
             
+            // Stream deployment logs en temps réel
+            if ($deployment->logs) {
+                $deploymentLogs = json_decode($deployment->logs, true);
+                if (is_array($deploymentLogs) && count($deploymentLogs) > $lastLogCount) {
+                    // Afficher seulement les nouveaux logs
+                    $newLogs = array_slice($deploymentLogs, $lastLogCount);
+                    foreach ($newLogs as $logEntry) {
+                        $type = $logEntry['type'] ?? 'info';
+                        $message = $logEntry['message'] ?? $logEntry['output'] ?? '';
+                        
+                        // Skip empty messages
+                        if (empty(trim($message))) {
+                            continue;
+                        }
+                        
+                        // Format deployment logs avec indentation
+                        $this->log($type, "  │ " . $message);
+                    }
+                    $lastLogCount = count($deploymentLogs);
+                }
+            }
+            
             // Check if deployment is finished (comparer avec les valeurs enum)
             if ($currentStatus === \App\Enums\ApplicationDeploymentStatus::FINISHED->value) {
                 $this->log('success', '✅ Deployment completed successfully');
@@ -325,7 +391,7 @@ class PipelineOrchestratorJob implements ShouldQueue
             }
             
             // Wait before next check
-            sleep(5);
+            sleep(3);
         }
         
         $this->log('error', "⏱️ Deployment timeout after {$maxWaitSeconds}s - Last status: {$lastStatus}");

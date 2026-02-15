@@ -6,7 +6,7 @@
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
 
-<div class="space-y-6" wire:poll.3s="loadExecutions">
+<div class="space-y-6" wire:poll.3s="refreshExecutions">
     {{-- Tabs Navigation --}}
     <div class="border-b border-gray-800">
         <div class="flex gap-1">

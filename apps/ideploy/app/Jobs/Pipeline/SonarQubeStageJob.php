@@ -301,7 +301,10 @@ BASH;
                 $this->log('info', "");
                 $this->log('info', "🔗 Dashboard: {$sonarUrl}/dashboard?id={$projectKey}");
                 
-                if ($metrics['qualityGateStatus'] === 'ERROR') {
+                // Quality Gate Dynamique : Vérifier les vulnérabilités critiques
+                $qualityGatePassed = $this->evaluateQualityGate($metrics, $issues);
+                
+                if (!$qualityGatePassed) {
                     $this->log('warning', '⚠️  Quality Gate FAILED!');
                 } else {
                     $this->log('success', '✅ Quality Gate PASSED!');
@@ -309,7 +312,7 @@ BASH;
                 
                 return [
                     'success' => true,
-                    'quality_gate_passed' => $metrics['qualityGateStatus'] !== 'ERROR',
+                    'quality_gate_passed' => $qualityGatePassed,
                     'scan_result_id' => $scanResult->id,
                 ];
             } else {
@@ -641,6 +644,63 @@ BASH;
             // Continue anyway - not critical
             return true;
         }
+    }
+    
+    /**
+     * Évaluer dynamiquement le Quality Gate
+     * Vérifie les seuils configurables + vulnérabilités critiques
+     */
+    private function evaluateQualityGate(array $metrics, array $issues): bool
+    {
+        // 1. Vérifier le Quality Gate SonarQube
+        if ($metrics['qualityGateStatus'] === 'ERROR') {
+            $this->log('warning', '  ⚠️  SonarQube Quality Gate failed');
+            return false;
+        }
+        
+        // 2. Récupérer les seuils depuis la config du pipeline
+        $config = $this->execution->application->pipelineConfig;
+        $sonarSettings = $config->sonar_settings ?? [];
+        
+        // Seuils par défaut
+        $failOnCriticalVulns = $sonarSettings['fail_on_critical_vulnerabilities'] ?? true;
+        $maxBugs = $sonarSettings['max_bugs'] ?? null;
+        $maxVulnerabilities = $sonarSettings['max_vulnerabilities'] ?? null;
+        $minCoverage = $sonarSettings['min_coverage'] ?? null;
+        
+        // 3. Vérifier les vulnérabilités critiques dans les issues
+        if ($failOnCriticalVulns) {
+            $criticalCount = 0;
+            foreach ($issues as $issue) {
+                if (($issue['severity'] ?? '') === 'CRITICAL' || 
+                    ($issue['severity'] ?? '') === 'BLOCKER') {
+                    $criticalCount++;
+                }
+            }
+            
+            if ($criticalCount > 0) {
+                $this->log('error', "  ❌ Found {$criticalCount} CRITICAL/BLOCKER issues");
+                return false;
+            }
+        }
+        
+        // 4. Vérifier les seuils personnalisés
+        if ($maxBugs !== null && $metrics['bugs'] > $maxBugs) {
+            $this->log('warning', "  ⚠️  Too many bugs: {$metrics['bugs']} > {$maxBugs}");
+            return false;
+        }
+        
+        if ($maxVulnerabilities !== null && $metrics['vulnerabilities'] > $maxVulnerabilities) {
+            $this->log('warning', "  ⚠️  Too many vulnerabilities: {$metrics['vulnerabilities']} > {$maxVulnerabilities}");
+            return false;
+        }
+        
+        if ($minCoverage !== null && $metrics['coverage'] < $minCoverage) {
+            $this->log('warning', "  ⚠️  Coverage too low: {$metrics['coverage']}% < {$minCoverage}%");
+            return false;
+        }
+        
+        return true;
     }
     
     private function log(string $level, string $message): void
