@@ -15,15 +15,14 @@
                     </h1>
                     <p class="text-sm text-light opacity-70 mt-1.5">Configure your application's core settings and deployment options</p>
                 </div>
-                <x-forms.button canGate="update" :canResource="$application" type="submit" 
-                    class="px-6 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium transition-all hover:shadow-glow">
-                    <span class="flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                @can('update', $application)
+                    <button type="submit" class="inner-button">
+                        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
                         Save Changes
-                    </span>
-                </x-forms.button>
+                    </button>
+                @endcan
             </div>
         </div>
 
@@ -305,9 +304,9 @@
                                 helper="You can add custom Nginx configuration here." 
                                 x-bind:disabled="!canUpdate" />
                             @can('update', $application)
-                                <x-forms.button wire:click="generateNginxConfiguration" class="mt-3">
+                                <button wire:click="generateNginxConfiguration" class="inner-button mt-3">
                                     Generate Default Nginx Configuration
-                                </x-forms.button>
+                                </button>
                             @endcan
                         </div>
                     @endif
@@ -344,9 +343,9 @@
                                     helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- https://app.example.com<br>- https://api.example.com:3000"
                                     x-bind:disabled="!canUpdate" />
                                 @can('update', $application)
-                                    <x-forms.button wire:click="getWildcardDomain" class="whitespace-nowrap">
+                                    <button wire:click="getWildcardDomain" class="inner-button whitespace-nowrap">
                                         Generate Domain
-                                    </x-forms.button>
+                                    </button>
                                 @endcan
                             @endif
                         </div>
@@ -685,10 +684,10 @@
                             </div>
                         </div>
                         @can('update', $application)
-                            <x-forms.button wire:target='initLoadingCompose'
+                            <button wire:target='initLoadingCompose' class="inner-button"
                                 x-on:click="$wire.dispatch('loadCompose', false)">
                                 Reload Compose File
-                            </x-forms.button>
+                            </button>
                         @endcan
                     </div>
 

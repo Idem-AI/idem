@@ -14,7 +14,9 @@
                         isHighlightedButton>
                     </x-modal-confirmation>
                 @else
-                    <x-forms.button canGate="update" :canResource="$resource" wire:click="toggleHealthcheck">Disable Healthcheck</x-forms.button>
+                    @can('update', $resource)
+                        <button wire:click="toggleHealthcheck" class="inner-button bg-gradient-to-br from-red-600 to-red-500">Disable Healthcheck</button>
+                    @endcan
                 @endif
             </div>
         </div>
@@ -82,7 +84,9 @@
         </div>
 
         <div class="pt-2">
-            <x-forms.button canGate="update" :canResource="$resource" type="submit">Save</x-forms.button>
+            @can('update', $resource)
+                <button type="submit" class="inner-button">Save</button>
+            @endcan
         </div>
             </div>
         </div>

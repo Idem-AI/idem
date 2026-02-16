@@ -52,7 +52,9 @@
 
         {{-- Save Button --}}
         <div>
-            <x-forms.button canGate="update" :canResource="$resource" type='submit'>Save</x-forms.button>
+            @can('update', $resource)
+                <button type='submit' class="inner-button">Save</button>
+            @endcan
         </div>
     </form>
 </div>
