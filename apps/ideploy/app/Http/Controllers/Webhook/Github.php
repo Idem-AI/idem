@@ -127,10 +127,10 @@ class Github extends Controller
                         continue;
                     }
                     if ($x_github_event === 'push') {
-                        // Check if pipeline is enabled with auto-trigger
+                        // Check if pipeline is enabled - if yes, ALWAYS use pipeline instead of direct deployment
                         $pipelineConfig = $application->pipelineConfig;
                         
-                        if ($pipelineConfig && $pipelineConfig->enabled && $pipelineConfig->auto_trigger_on_push) {
+                        if ($pipelineConfig && $pipelineConfig->enabled) {
                             // Check watch paths for pipeline
                             $is_watch_path_triggered = true;
                             if ($pipelineConfig->watch_paths) {
@@ -138,7 +138,7 @@ class Github extends Controller
                             }
                             
                             if ($is_watch_path_triggered) {
-                                // Trigger PIPELINE
+                                // Trigger PIPELINE (pipeline will handle deployment at the end)
                                 $execution = PipelineExecution::create([
                                     'uuid' => Str::uuid(),
                                     'pipeline_config_id' => $pipelineConfig->id,
@@ -156,7 +156,7 @@ class Github extends Controller
                                 $return_payloads->push([
                                     'application' => $application->name,
                                     'status' => 'success',
-                                    'message' => 'Pipeline queued.',
+                                    'message' => 'Pipeline queued (webhook triggered).',
                                     'application_uuid' => $application->uuid,
                                     'application_name' => $application->name,
                                     'execution_uuid' => $execution->uuid,
@@ -170,7 +170,7 @@ class Github extends Controller
                                 ]);
                             }
                         }
-                        // Fallback to direct deployment if no pipeline
+                        // Fallback to direct deployment only if pipeline is disabled
                         elseif ($application->isDeployable()) {
                             $is_watch_path_triggered = $application->isWatchPathsTriggered($changed_files);
                             if ($is_watch_path_triggered || is_null($application->watch_paths)) {
@@ -222,11 +222,11 @@ class Github extends Controller
                     }
                     if ($x_github_event === 'pull_request') {
                         if ($action === 'opened' || $action === 'synchronize' || $action === 'reopened') {
-                            // Check if pipeline is enabled with auto-trigger on PR
+                            // Check if pipeline is enabled - if yes, ALWAYS use pipeline instead of direct preview deployment
                             $pipelineConfig = $application->pipelineConfig;
                             
-                            if ($pipelineConfig && $pipelineConfig->enabled && $pipelineConfig->auto_trigger_on_pr) {
-                                // Trigger PIPELINE for Pull Request
+                            if ($pipelineConfig && $pipelineConfig->enabled) {
+                                // Trigger PIPELINE for Pull Request (pipeline will handle preview deployment at the end)
                                 $execution = PipelineExecution::create([
                                     'uuid' => Str::uuid(),
                                     'pipeline_config_id' => $pipelineConfig->id,
@@ -245,11 +245,11 @@ class Github extends Controller
                                 $return_payloads->push([
                                     'application' => $application->name,
                                     'status' => 'success',
-                                    'message' => 'Pipeline queued for Pull Request.',
+                                    'message' => 'Pipeline queued for Pull Request (webhook triggered).',
                                     'execution_uuid' => $execution->uuid,
                                 ]);
                             }
-                            // Fallback to preview deployment if no pipeline
+                            // Fallback to preview deployment only if pipeline is disabled
                             elseif ($application->isPRDeployable()) {
                                 // Check if PR deployments from public contributors are restricted
                                 if (! $application->settings->is_pr_deployments_public_enabled) {
@@ -456,7 +456,51 @@ class Github extends Controller
                         continue;
                     }
                     if ($x_github_event === 'push') {
-                        if ($application->isDeployable()) {
+                        // Check if pipeline is enabled - if yes, ALWAYS use pipeline instead of direct deployment
+                        $pipelineConfig = $application->pipelineConfig;
+                        
+                        if ($pipelineConfig && $pipelineConfig->enabled) {
+                            // Check watch paths for pipeline
+                            $is_watch_path_triggered = true;
+                            if ($pipelineConfig->watch_paths) {
+                                $is_watch_path_triggered = $this->isWatchPathsTriggered($changed_files, $pipelineConfig->watch_paths);
+                            }
+                            
+                            if ($is_watch_path_triggered) {
+                                // Trigger PIPELINE (pipeline will handle deployment at the end)
+                                $execution = PipelineExecution::create([
+                                    'uuid' => Str::uuid(),
+                                    'pipeline_config_id' => $pipelineConfig->id,
+                                    'application_id' => $application->id,
+                                    'trigger_type' => 'webhook',
+                                    'trigger_user' => 'github-app-webhook',
+                                    'branch' => $branch,
+                                    'commit_sha' => data_get($payload, 'after', 'HEAD'),
+                                    'status' => 'pending',
+                                    'stages_status' => $this->getInitialStagesStatus($pipelineConfig),
+                                ]);
+                                
+                                PipelineOrchestratorJob::dispatch($execution);
+                                
+                                $return_payloads->push([
+                                    'application' => $application->name,
+                                    'status' => 'success',
+                                    'message' => 'Pipeline queued (webhook triggered).',
+                                    'application_uuid' => $application->uuid,
+                                    'application_name' => $application->name,
+                                    'execution_uuid' => $execution->uuid,
+                                ]);
+                            } else {
+                                $return_payloads->push([
+                                    'application' => $application->name,
+                                    'status' => 'skipped',
+                                    'message' => 'Changed files do not match pipeline watch paths.',
+                                    'application_uuid' => $application->uuid,
+                                ]);
+                            }
+                        }
+                        // Fallback to direct deployment only if pipeline is disabled
+                        elseif ($application->isDeployable()) {
                             $is_watch_path_triggered = $application->isWatchPathsTriggered($changed_files);
                             if ($is_watch_path_triggered || is_null($application->watch_paths)) {
                                 $deployment_uuid = new Cuid2;
@@ -498,7 +542,35 @@ class Github extends Controller
                     }
                     if ($x_github_event === 'pull_request') {
                         if ($action === 'opened' || $action === 'synchronize' || $action === 'reopened') {
-                            if ($application->isPRDeployable()) {
+                            // Check if pipeline is enabled - if yes, ALWAYS use pipeline instead of direct preview deployment
+                            $pipelineConfig = $application->pipelineConfig;
+                            
+                            if ($pipelineConfig && $pipelineConfig->enabled) {
+                                // Trigger PIPELINE for Pull Request (pipeline will handle preview deployment at the end)
+                                $execution = PipelineExecution::create([
+                                    'uuid' => Str::uuid(),
+                                    'pipeline_config_id' => $pipelineConfig->id,
+                                    'application_id' => $application->id,
+                                    'trigger_type' => 'pull_request',
+                                    'trigger_user' => 'github-app-webhook',
+                                    'branch' => $branch,
+                                    'commit_sha' => data_get($payload, 'pull_request.head.sha', 'HEAD'),
+                                    'pull_request_id' => $pull_request_id,
+                                    'status' => 'pending',
+                                    'stages_status' => $this->getInitialStagesStatus($pipelineConfig),
+                                ]);
+                                
+                                PipelineOrchestratorJob::dispatch($execution);
+                                
+                                $return_payloads->push([
+                                    'application' => $application->name,
+                                    'status' => 'success',
+                                    'message' => 'Pipeline queued for Pull Request (webhook triggered).',
+                                    'execution_uuid' => $execution->uuid,
+                                ]);
+                            }
+                            // Fallback to preview deployment only if pipeline is disabled
+                            elseif ($application->isPRDeployable()) {
                                 // Check if PR deployments from public contributors are restricted
                                 if (! $application->settings->is_pr_deployments_public_enabled) {
                                     $trustedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR', 'CONTRIBUTOR'];

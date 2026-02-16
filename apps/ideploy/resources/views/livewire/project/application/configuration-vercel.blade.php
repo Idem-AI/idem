@@ -278,7 +278,7 @@
             @elseif ($currentRoute === 'project.application.healthcheck' && $application->build_pack !== 'dockercompose')
                 <livewire:project.application.health-check :application="$application" />
             @elseif ($currentRoute === 'project.application.rollback')
-                <livewire:project.shared.rollback :resource="$application" />
+                <livewire:project.application.rollback :application="$application" />
             @elseif ($currentRoute === 'project.application.resource-limits')
                 <livewire:project.shared.resource-limits :resource="$application" />
             @elseif ($currentRoute === 'project.application.resource-operations')

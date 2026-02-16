@@ -6,7 +6,7 @@
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
 
-<div class="space-y-6" wire:poll.3s="loadExecutions">
+<div class="space-y-6" wire:poll.3s="refreshExecutions">
     {{-- Tabs Navigation --}}
     <div class="border-b border-gray-800">
         <div class="flex gap-1">
@@ -192,14 +192,27 @@
 
                     {{-- Actions --}}
                     <td class="px-6 py-4 whitespace-nowrap text-right">
-                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="flex items-center justify-end gap-2">
+                            {{-- View Details Button --}}
                             <a href="{{ route('project.application.pipeline.execution.detail', array_merge($parameters, ['execution_uuid' => $execution->uuid])) }}" 
-                               class="p-1.5 hover:bg-gray-800 rounded transition-colors" title="View details">
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               class="p-2 hover:bg-blue-500/10 rounded-lg transition-all group/btn border border-transparent hover:border-blue-500/30" 
+                               title="View details">
+                                <svg class="w-4 h-4 text-gray-400 group-hover/btn:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
                             </a>
+                            
+                            {{-- Delete Button (only for completed executions) --}}
+                            @if(!in_array($execution->status, ['running', 'pending']))
+                            <button wire:click="confirmDelete('{{ $execution->uuid }}')" 
+                                    class="p-2 hover:bg-red-500/10 rounded-lg transition-all group/btn border border-transparent hover:border-red-500/30" 
+                                    title="Delete execution">
+                                <svg class="w-4 h-4 text-gray-400 group-hover/btn:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -221,6 +234,97 @@
             </tbody>
         </table>
     </div>
+
+    {{-- Professional Delete Confirmation Modal --}}
+    @if($showDeleteModal && $executionToDelete)
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showDeleteModal') }" x-show="show" x-cloak>
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+             x-show="show"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             wire:click="cancelDelete">
+        </div>
+
+        {{-- Modal Content --}}
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div class="relative bg-[#0f1724] border border-red-500/30 rounded-xl shadow-2xl max-w-md w-full"
+                 x-show="show"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95">
+                
+                {{-- Header with Icon --}}
+                <div class="flex items-start gap-4 p-6 pb-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center border-2 border-red-500/40">
+                            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-white mb-2">Delete Pipeline Execution</h3>
+                        <p class="text-sm text-gray-400">This action cannot be undone. This will permanently delete the pipeline execution and all its logs.</p>
+                    </div>
+                </div>
+
+                {{-- Execution Details --}}
+                <div class="px-6 pb-4">
+                    <div class="bg-[#151b2e] border border-gray-700 rounded-lg p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-400">Status</span>
+                            <span class="text-sm font-medium {{ $executionToDelete->status === 'success' ? 'text-green-400' : 'text-red-400' }}">
+                                {{ ucfirst($executionToDelete->status) }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-400">Branch</span>
+                            <span class="text-sm font-medium text-white">{{ $executionToDelete->branch ?? 'N/A' }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-400">Triggered by</span>
+                            <span class="text-sm font-medium text-white">{{ $executionToDelete->trigger_user ?? 'Unknown' }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-400">Created</span>
+                            <span class="text-sm font-medium text-white">{{ $executionToDelete->created_at->diffForHumans() }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Warning Message --}}
+                <div class="px-6 pb-4">
+                    <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-sm text-red-300">All execution logs, stage details, and related data will be permanently removed from the system.</p>
+                    </div>
+                </div>
+
+                {{-- Actions --}}
+                <div class="flex items-center gap-3 px-6 py-4 bg-[#0a0f1a] border-t border-gray-800 rounded-b-xl">
+                    <button wire:click="cancelDelete" 
+                            class="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200 border border-gray-600 hover:border-gray-500">
+                        Cancel
+                    </button>
+                    <button wire:click="deleteExecution" 
+                            class="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200 border border-red-500 hover:border-red-400 shadow-lg shadow-red-500/20 hover:shadow-red-500/40">
+                        Delete Execution
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
 </div>
 </div>

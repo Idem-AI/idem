@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Webhook;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\Pipeline\PipelineOrchestratorJob;
 use App\Models\Application;
 use App\Models\ApplicationPreview;
+use App\Models\PipelineExecution;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -112,7 +114,51 @@ class Gitea extends Controller
                     continue;
                 }
                 if ($x_gitea_event === 'push') {
-                    if ($application->isDeployable()) {
+                    // Check if pipeline is enabled - if yes, ALWAYS use pipeline instead of direct deployment
+                    $pipelineConfig = $application->pipelineConfig;
+                    
+                    if ($pipelineConfig && $pipelineConfig->enabled) {
+                        // Check watch paths for pipeline
+                        $is_watch_path_triggered = true;
+                        if ($pipelineConfig->watch_paths) {
+                            $is_watch_path_triggered = $this->isWatchPathsTriggered($changed_files, $pipelineConfig->watch_paths);
+                        }
+                        
+                        if ($is_watch_path_triggered) {
+                            // Trigger PIPELINE (pipeline will handle deployment at the end)
+                            $execution = PipelineExecution::create([
+                                'uuid' => Str::uuid(),
+                                'pipeline_config_id' => $pipelineConfig->id,
+                                'application_id' => $application->id,
+                                'trigger_type' => 'webhook',
+                                'trigger_user' => 'gitea-webhook',
+                                'branch' => $branch,
+                                'commit_sha' => data_get($payload, 'after', 'HEAD'),
+                                'status' => 'pending',
+                                'stages_status' => $this->getInitialStagesStatus($pipelineConfig),
+                            ]);
+                            
+                            PipelineOrchestratorJob::dispatch($execution);
+                            
+                            $return_payloads->push([
+                                'application' => $application->name,
+                                'status' => 'success',
+                                'message' => 'Pipeline queued (webhook triggered).',
+                                'application_uuid' => $application->uuid,
+                                'application_name' => $application->name,
+                                'execution_uuid' => $execution->uuid,
+                            ]);
+                        } else {
+                            $return_payloads->push([
+                                'application' => $application->name,
+                                'status' => 'skipped',
+                                'message' => 'Changed files do not match pipeline watch paths.',
+                                'application_uuid' => $application->uuid,
+                            ]);
+                        }
+                    }
+                    // Fallback to direct deployment only if pipeline is disabled
+                    elseif ($application->isDeployable()) {
                         $is_watch_path_triggered = $application->isWatchPathsTriggered($changed_files);
                         if ($is_watch_path_triggered || is_null($application->watch_paths)) {
                             $deployment_uuid = new Cuid2;
@@ -161,7 +207,35 @@ class Gitea extends Controller
                 }
                 if ($x_gitea_event === 'pull_request') {
                     if ($action === 'opened' || $action === 'synchronized' || $action === 'reopened') {
-                        if ($application->isPRDeployable()) {
+                        // Check if pipeline is enabled - if yes, ALWAYS use pipeline instead of direct preview deployment
+                        $pipelineConfig = $application->pipelineConfig;
+                        
+                        if ($pipelineConfig && $pipelineConfig->enabled) {
+                            // Trigger PIPELINE for Pull Request (pipeline will handle preview deployment at the end)
+                            $execution = PipelineExecution::create([
+                                'uuid' => Str::uuid(),
+                                'pipeline_config_id' => $pipelineConfig->id,
+                                'application_id' => $application->id,
+                                'trigger_type' => 'pull_request',
+                                'trigger_user' => 'gitea-webhook',
+                                'branch' => $branch,
+                                'commit_sha' => data_get($payload, 'pull_request.head.sha', 'HEAD'),
+                                'pull_request_id' => $pull_request_id,
+                                'status' => 'pending',
+                                'stages_status' => $this->getInitialStagesStatus($pipelineConfig),
+                            ]);
+                            
+                            PipelineOrchestratorJob::dispatch($execution);
+                            
+                            $return_payloads->push([
+                                'application' => $application->name,
+                                'status' => 'success',
+                                'message' => 'Pipeline queued for Pull Request (webhook triggered).',
+                                'execution_uuid' => $execution->uuid,
+                            ]);
+                        }
+                        // Fallback to preview deployment only if pipeline is disabled
+                        elseif ($application->isPRDeployable()) {
                             $deployment_uuid = new Cuid2;
                             $found = ApplicationPreview::where('application_id', $application->id)->where('pull_request_id', $pull_request_id)->first();
                             if (! $found) {
@@ -240,5 +314,44 @@ class Gitea extends Controller
         } catch (Exception $e) {
             return handleError($e);
         }
+    }
+
+    /**
+     * Get initial stages status for pipeline execution
+     */
+    private function getInitialStagesStatus($pipelineConfig): array
+    {
+        $stages = $pipelineConfig->stages ?? [];
+        $stagesStatus = [];
+
+        foreach ($stages as $stageName => $stageConfig) {
+            if ($stageConfig['enabled'] ?? false) {
+                $stagesStatus[$stageName] = 'pending';
+            }
+        }
+
+        return $stagesStatus;
+    }
+
+    /**
+     * Check if changed files match watch paths
+     */
+    private function isWatchPathsTriggered($changed_files, $watch_paths): bool
+    {
+        if (empty($watch_paths)) {
+            return true;
+        }
+
+        foreach ($changed_files as $file) {
+            foreach ($watch_paths as $pattern) {
+                // Simple glob pattern matching
+                $pattern = str_replace(['*', '?'], ['.*', '.'], $pattern);
+                if (preg_match("#^{$pattern}$#", $file)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
