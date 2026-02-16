@@ -18,14 +18,6 @@
                 href="{{ route('project.application.security.overview', $parameters) }}">
                 Security
             </a>
-            <a class="nav-link {{ request()->routeIs('project.application.analytics') ? 'nav-link-active' : '' }}"
-                href="{{ route('project.application.analytics', $parameters) }}">
-                Analytics
-            </a>
-            <a class="nav-link {{ request()->routeIs('project.application.insights') ? 'nav-link-active' : '' }}"
-                href="{{ route('project.application.insights', $parameters) }}">
-                Insights
-            </a>
             <a class="nav-link {{ request()->routeIs('project.application.pipeline') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.pipeline', $parameters) }}">
                 Pipeline
@@ -101,18 +93,20 @@
                             ]" :confirmWithText="false" :confirmWithPassword="false"
                             step1ButtonText="Continue" step2ButtonText="Confirm">
                             <x-slot:button-title>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-error" viewBox="0 0 24 24"
-                                    stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                    <path
-                                        d="M6 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
-                                    </path>
-                                    <path
-                                        d="M14 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
-                                    </path>
-                                </svg>
-                                Stop
+                                <button class="inner-button bg-gradient-to-br from-red-600 to-red-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline-block mr-1" viewBox="0 0 24 24"
+                                        stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path
+                                            d="M6 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
+                                        </path>
+                                        <path
+                                            d="M14 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
+                                        </path>
+                                    </svg>
+                                    Stop
+                                </button>
                             </x-slot:button-title>
                         </x-modal-confirmation>
                     @else

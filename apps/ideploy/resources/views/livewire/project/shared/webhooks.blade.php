@@ -48,9 +48,10 @@
                         </div>
                     </div>
                     <a target="_blank" class="inline-flex hover:no-underline" href="{{ $resource?->gitWebhook }}">
-                        <x-forms.button>Webhook Configuration on GitHub
+                        <button class="inner-button">
+                            Webhook Configuration on GitHub
                             <x-external-link />
-                        </x-forms.button>
+                        </button>
                     </a>
 
                     {{-- GitLab --}}
@@ -121,7 +122,7 @@
 
                     @can('update', $resource)
                         <div class="pt-2">
-                            <x-forms.button type="submit">Save</x-forms.button>
+                            <button type="submit" class="inner-button">Save</button>
                         </div>
                     @endcan
                     </form>
