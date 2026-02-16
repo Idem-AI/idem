@@ -6,16 +6,23 @@
     }
 }">
     <form wire:submit='submit' class="max-w-6xl pb-32">
-        {{-- Header Sticky --}}
-        <div class="sticky top-0 z-10 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 -mx-4 px-4 py-4 mb-8">
+        {{-- Header Sticky Idem Style --}}
+        <div class="sticky top-0 z-20 glass-card -mx-4 px-6 py-5 mb-8 border-b border-glass">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-xl font-semibold text-white">General Configuration</h2>
-                    <p class="text-sm text-gray-400 mt-1">Manage your application's core settings</p>
+                    <h1 class="text-2xl font-bold text-light">
+                        <span class="i-underline">General Configuration</span>
+                    </h1>
+                    <p class="text-sm text-light opacity-70 mt-1.5">Configure your application's core settings and deployment options</p>
                 </div>
                 <x-forms.button canGate="update" :canResource="$application" type="submit" 
-                    class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                    Save Changes
+                    class="px-6 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium transition-all hover:shadow-glow">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Changes
+                    </span>
                 </x-forms.button>
             </div>
         </div>
@@ -229,18 +236,22 @@
             @endif
 
             {{-- Section: Basic Information --}}
-            <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+            <div class="glass-card p-6 hover:border-accent/30 transition-colors">
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Basic Information
-                    </h3>
-                    <p class="text-sm text-gray-400 mt-1">Application name and description</p>
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
+                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-light">Basic Information</h3>
+                            <p class="text-xs text-light opacity-60">Application name and description</p>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
                     <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
                     <x-forms.input x-bind:disabled="shouldDisable()" id="description" label="Description" />
                 </div>
@@ -248,15 +259,19 @@
 
             {{-- Section: Build Configuration --}}
             @if (!$application->dockerfile && $application->build_pack !== 'dockerimage')
-                <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <div class="glass-card p-6 hover:border-primary/30 transition-colors">
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                            </svg>
-                            Build Pack
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">Choose how to build your application</p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-light">Build Pack</h3>
+                                <p class="text-xs text-light opacity-60">Choose how to build your application</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -309,15 +324,19 @@
 
             {{-- Section: Domains & Routing --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <div class="glass-card p-6 hover:border-success/30 transition-colors">
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-                            </svg>
-                            Domains & Routing
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">Configure your application's public URLs</p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-success/10">
+                                <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-light">Domains & Routing</h3>
+                                <p class="text-xs text-light opacity-60">Configure your application's public URLs</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="space-y-4">
@@ -385,28 +404,40 @@
 
             {{-- Section: Docker Registry --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <div class="glass-card p-6 hover:border-accent/30 transition-colors">
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                            Docker Registry
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">
-                            @if ($application->build_pack !== 'dockerimage' && !$application->destination->server->isSwarm())
-                                Push the built image to a docker registry. <a class='underline text-blue-400' href='https://coolify.io/docs/knowledge-base/docker/registry' target='_blank'>Learn more</a>
-                            @else
-                                Configure your Docker image source
-                            @endif
-                        </p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
+                                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-light">Docker Registry</h3>
+                                <p class="text-xs text-light opacity-60">
+                                    @if ($application->build_pack !== 'dockerimage' && !$application->destination->server->isSwarm())
+                                        Push the built image to a docker registry. <a class='underline text-accent hover:text-accent/80' href='https://coolify.io/docs/knowledge-base/docker/registry' target='_blank'>Learn more</a>
+                                    @else
+                                        Configure your Docker image source
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     @if ($application->destination->server->isSwarm() && $application->build_pack !== 'dockerimage')
-                        <div class="mb-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                            <p class="text-sm text-yellow-300">
-                                ⚠️ Docker Swarm requires the image to be available in a registry. <a class="underline font-medium" href="https://coolify.io/docs/knowledge-base/docker/registry" target="_blank">Learn more</a>
-                            </p>
+                        <div class="mb-4 glass-card p-4 border-l-4 border-warning">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 text-warning flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-warning font-medium">Docker Swarm Requirement</p>
+                                    <p class="text-xs text-warning opacity-80 mt-1">
+                                        Docker Swarm requires the image to be available in a registry. <a class="underline font-semibold hover:text-warning/80" href="https://coolify.io/docs/knowledge-base/docker/registry" target="_blank">Learn more</a>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     @endif
 
@@ -447,15 +478,19 @@
             @endif
 
             {{-- Section: Build Configuration --}}
-            <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+            <div class="glass-card p-6 hover:border-warning/30 transition-colors">
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                        </svg>
-                        Build
-                    </h3>
-                    <p class="text-sm text-gray-400 mt-1">Configure build commands and directories</p>
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/10">
+                            <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-light">Build</h3>
+                            <p class="text-xs text-light opacity-60">Configure build commands and directories</p>
+                        </div>
+                    </div>
                 </div>
 
                 @if ($application->build_pack === 'dockerimage')
@@ -478,9 +513,11 @@
                                     id="start_command" label="Start Command"
                                     x-bind:disabled="!canUpdate" />
                             </div>
-                            <div class="text-xs text-gray-400 mb-6">
-                                Nixpacks will detect the required configuration automatically.
-                                <a class="underline text-blue-400" href="https://coolify.io/docs/applications/">Framework Specific Docs</a>
+                            <div class="glass-card p-3 mb-6">
+                                <p class="text-xs text-light opacity-70">
+                                    💡 Nixpacks will detect the required configuration automatically.
+                                    <a class="underline text-accent hover:text-accent/80 font-medium" href="https://coolify.io/docs/applications/">Framework Specific Docs</a>
+                                </p>
                             </div>
                         @elseif ($application->build_pack === 'buildpacks')
                             <div class="space-y-4 mb-6">
@@ -517,9 +554,11 @@
                                         x-bind:disabled="!canUpdate" />
                                 </div>
                             </div>
-                            <div class="text-xs text-gray-400 mb-6">
-                                Cloud Native Buildpacks will auto-detect your application type.
-                                <a class="underline text-blue-400" href="https://buildpacks.io/" target="_blank">Buildpacks Documentation</a>
+                            <div class="glass-card p-3 mb-6">
+                                <p class="text-xs text-light opacity-70">
+                                    💡 Cloud Native Buildpacks will auto-detect your application type.
+                                    <a class="underline text-accent hover:text-accent/80 font-medium" href="https://buildpacks.io/" target="_blank">Buildpacks Documentation</a>
+                                </p>
                             </div>
                         @endif
                     @endif
@@ -548,8 +587,13 @@
                                     x-bind:disabled="shouldDisable()" />
                             </div>
 
-                            <div class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm text-yellow-300 mb-4">
-                                ⚠️ The following commands are for advanced use cases. Only modify if you know what you're doing.
+                            <div class="glass-card p-4 border-l-4 border-warning mb-4">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-warning flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <p class="text-sm text-warning">The following commands are for advanced use cases. Only modify if you know what you're doing.</p>
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -635,16 +679,18 @@
 
             {{-- Section: Docker Compose Details --}}
             @if ($application->build_pack === 'dockercompose')
-                <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <div class="glass-card p-6 hover:border-accent/30 transition-colors">
                     <div class="mb-6 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
+                                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                Docker Compose
-                            </h3>
-                            <p class="text-sm text-gray-400 mt-1">View and manage your compose configuration</p>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-light">Docker Compose</h3>
+                                <p class="text-xs text-light opacity-60">View and manage your compose configuration</p>
+                            </div>
                         </div>
                         @can('update', $application)
                             <x-forms.button wire:target='initLoadingCompose'
@@ -684,15 +730,19 @@
 
             {{-- Section: Dockerfile --}}
             @if ($application->dockerfile)
-                <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <div class="glass-card p-6 hover:border-accent/30 transition-colors">
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Dockerfile
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">Edit your Dockerfile configuration</p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
+                                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-light">Dockerfile</h3>
+                                <p class="text-xs text-light opacity-60">Edit your Dockerfile configuration</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <x-forms.textarea label="Dockerfile" id="dockerfile" monacoEditorLanguage="dockerfile"
@@ -702,15 +752,19 @@
 
             {{-- Section: Network --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <div class="glass-card p-6 hover:border-primary/30 transition-colors">
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-                            </svg>
-                            Network
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">Configure ports and network aliases</p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-light">Network</h3>
+                                <p class="text-xs text-light opacity-60">Configure ports and network aliases</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -744,15 +798,19 @@
                 </div>
 
                 {{-- Section: HTTP Basic Auth --}}
-                <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <div class="glass-card p-6 hover:border-warning/30 transition-colors">
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                            </svg>
-                            HTTP Basic Authentication
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">Add password protection to your application</p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/10">
+                                <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-light">HTTP Basic Authentication</h3>
+                                <p class="text-xs text-light opacity-60">Add password protection to your application</p>
+                            </div>
+                        </div>
                     </div>
 
                     <x-forms.checkbox helper="This will add the proper proxy labels to the container." instantSave
@@ -770,15 +828,19 @@
                 </div>
 
                 {{-- Section: Container Labels --}}
-                <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <div class="glass-card p-6 hover:border-accent/30 transition-colors">
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                            </svg>
-                            Container Labels
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">Manage Docker container labels for proxy configuration</p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
+                                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-light">Container Labels</h3>
+                                <p class="text-xs text-light opacity-60">Manage Docker container labels for proxy configuration</p>
+                            </div>
+                        </div>
                     </div>
 
                     @if ($application->settings->is_container_label_readonly_enabled)
