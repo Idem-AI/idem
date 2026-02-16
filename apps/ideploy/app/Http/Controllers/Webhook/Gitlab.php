@@ -140,10 +140,10 @@ class Gitlab extends Controller
                     continue;
                 }
                 if ($x_gitlab_event === 'push') {
-                    // Check if pipeline is enabled with auto-trigger
+                    // Check if pipeline is enabled - if yes, ALWAYS use pipeline instead of direct deployment
                     $pipelineConfig = $application->pipelineConfig;
                     
-                    if ($pipelineConfig && $pipelineConfig->enabled && $pipelineConfig->auto_trigger_on_push) {
+                    if ($pipelineConfig && $pipelineConfig->enabled) {
                         // Check watch paths for pipeline
                         $is_watch_path_triggered = true;
                         if ($pipelineConfig->watch_paths) {
@@ -151,7 +151,7 @@ class Gitlab extends Controller
                         }
                         
                         if ($is_watch_path_triggered) {
-                            // Trigger PIPELINE
+                            // Trigger PIPELINE (pipeline will handle deployment at the end)
                             $execution = PipelineExecution::create([
                                 'uuid' => Str::uuid(),
                                 'pipeline_config_id' => $pipelineConfig->id,
@@ -169,7 +169,7 @@ class Gitlab extends Controller
                             $return_payloads->push([
                                 'application' => $application->name,
                                 'status' => 'success',
-                                'message' => 'Pipeline queued.',
+                                'message' => 'Pipeline queued (webhook triggered).',
                                 'application_uuid' => $application->uuid,
                                 'application_name' => $application->name,
                                 'execution_uuid' => $execution->uuid,
@@ -183,7 +183,7 @@ class Gitlab extends Controller
                             ]);
                         }
                     }
-                    // Fallback to direct deployment if no pipeline
+                    // Fallback to direct deployment only if pipeline is disabled
                     elseif ($application->isDeployable()) {
                         $is_watch_path_triggered = $application->isWatchPathsTriggered($changed_files);
                         if ($is_watch_path_triggered || is_null($application->watch_paths)) {
@@ -234,11 +234,11 @@ class Gitlab extends Controller
                 }
                 if ($x_gitlab_event === 'merge_request') {
                     if ($action === 'open' || $action === 'opened' || $action === 'synchronize' || $action === 'reopened' || $action === 'reopen' || $action === 'update') {
-                        // Check if pipeline is enabled with auto-trigger on MR
+                        // Check if pipeline is enabled - if yes, ALWAYS use pipeline instead of direct preview deployment
                         $pipelineConfig = $application->pipelineConfig;
                         
-                        if ($pipelineConfig && $pipelineConfig->enabled && $pipelineConfig->auto_trigger_on_pr) {
-                            // Trigger PIPELINE for Merge Request
+                        if ($pipelineConfig && $pipelineConfig->enabled) {
+                            // Trigger PIPELINE for Merge Request (pipeline will handle preview deployment at the end)
                             $execution = PipelineExecution::create([
                                 'uuid' => Str::uuid(),
                                 'pipeline_config_id' => $pipelineConfig->id,
@@ -257,11 +257,11 @@ class Gitlab extends Controller
                             $return_payloads->push([
                                 'application' => $application->name,
                                 'status' => 'success',
-                                'message' => 'Pipeline queued for Merge Request.',
+                                'message' => 'Pipeline queued for Merge Request (webhook triggered).',
                                 'execution_uuid' => $execution->uuid,
                             ]);
                         }
-                        // Fallback to preview deployment if no pipeline
+                        // Fallback to preview deployment only if pipeline is disabled
                         elseif ($application->isPRDeployable()) {
                             $deployment_uuid = new Cuid2;
                             $found = ApplicationPreview::where('application_id', $application->id)->where('pull_request_id', $pull_request_id)->first();
