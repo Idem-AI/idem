@@ -38,7 +38,6 @@ export class VideoTrailer implements OnDestroy {
 
     effect(() => {
       const section = this.sectionRef();
-      console.log('[VideoTrailer] sectionRef changed:', section);
       if (section) {
         this.setupIntersectionObserver();
       }
@@ -46,34 +45,22 @@ export class VideoTrailer implements OnDestroy {
   }
 
   private setupIntersectionObserver(): void {
-    console.log('[VideoTrailer] setupIntersectionObserver called');
     if (!isPlatformBrowser(this.platformId)) {
-      console.log('[VideoTrailer] Not in browser, skipping');
       return;
     }
     if (this.observer) {
-      console.log('[VideoTrailer] Observer already exists, skipping');
       return;
     }
 
     const section = this.sectionRef()?.nativeElement;
     if (!section) {
-      console.log('[VideoTrailer] Section not found');
       return;
     }
 
-    console.log('[VideoTrailer] Creating IntersectionObserver');
     this.observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          console.log('[VideoTrailer] Intersection detected:', {
-            isIntersecting: entry.isIntersecting,
-            intersectionRatio: entry.intersectionRatio,
-            showVideo: this.showVideo(),
-            autoplayTriggered: this.autoplayTriggered,
-          });
           if (entry.isIntersecting && !this.autoplayTriggered) {
-            console.log('[VideoTrailer] Playing video automatically');
             this.autoplayTriggered = true;
             this.playVideo();
           }
@@ -85,7 +72,6 @@ export class VideoTrailer implements OnDestroy {
     );
 
     this.observer.observe(section);
-    console.log('[VideoTrailer] Observer attached to section');
   }
 
   ngOnDestroy(): void {
