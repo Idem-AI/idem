@@ -1,20 +1,49 @@
 <div>
-    <div class="flex items-center gap-2">
-        <h2>Metrics</h2>
+    {{-- Header Idem Style --}}
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-light mb-2">
+            <span class="i-underline">Metrics</span>
+        </h2>
+        <p class="text-sm text-light opacity-70">Basic metrics for your application container.</p>
     </div>
-    <div class="pb-4">Basic metrics for your application container.</div>
-    <div>
+
+    <div class="flex flex-col gap-6">
         @if ($resource->getMorphClass() === 'App\Models\Application' && $resource->build_pack === 'dockercompose')
-            <div class="alert alert-warning">Metrics are not available for Docker Compose applications yet!</div>
+            <div class="glass-card p-4 bg-warning/10">
+                <div class="flex items-start gap-3 text-warning">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="text-sm">Metrics are not available for Docker Compose applications yet!</p>
+                </div>
+            </div>
         @elseif(!$resource->destination->server->isMetricsEnabled())
-            <div class="alert alert-warning">Metrics are only available for servers with Sentinel & Metrics enabled!</div>
-            <div>Go to <a class="underline dark:text-white" href="{{ route('server.show', $resource->destination->server->uuid) }}">Server settings</a> to enable it.</div>
+            <div class="glass-card p-4 bg-warning/10">
+                <div class="flex items-start gap-3 text-warning">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <div class="text-sm">
+                        <p class="mb-1">Metrics are only available for servers with Sentinel & Metrics enabled!</p>
+                        <p>Go to <a class="underline text-accent" href="{{ route('server.show', $resource->destination->server->uuid) }}">Server settings</a> to enable it.</p>
+                    </div>
+                </div>
+            </div>
         @else
             @if (!str($resource->status)->contains('running'))
-                <div class="alert alert-warning">Metrics are only available when the application container is running!</div>
+                <div class="glass-card p-4 bg-warning/10">
+                    <div class="flex items-start gap-3 text-warning">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <p class="text-sm">Metrics are only available when the application container is running!</p>
+                    </div>
+                </div>
             @else
-                <div>
-                <x-forms.select label="Interval" wire:change="setInterval" id="interval">
+                {{-- Metrics Configuration --}}
+                <div class="glass-card p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-accent mb-4">Configuration</h3>
+                    <x-forms.select label="Interval" wire:change="setInterval" id="interval">
                 <option value="5">5 minutes (live)</option>
                 <option value="10">10 minutes (live)</option>
                 <option value="30">30 minutes</option>
@@ -22,11 +51,15 @@
                 <option value="720">12 hours</option>
                 <option value="10080">1 week</option>
                 <option value="43200">30 days</option>
-            </x-forms.select>
-            <div @if ($poll) wire:poll.5000ms='pollData' @endif x-init="$wire.loadData()"
-                class="pt-5">
-                <h4>CPU Usage</h4>
-                <div wire:ignore id="{!! $chartId !!}-cpu"></div>
+                    </x-forms.select>
+                </div>
+
+                {{-- Charts Section --}}
+                <div @if ($poll) wire:poll.5000ms='pollData' @endif x-init="$wire.loadData()">
+                    {{-- CPU Chart --}}
+                    <div class="glass-card p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-accent mb-4">CPU Usage</h3>
+                        <div wire:ignore id="{!! $chartId !!}-cpu"></div>
 
                 <script>
                     checkTheme();
@@ -150,9 +183,12 @@
                          });
                      });
                 </script>
+                    </div>
 
-                <h4>Memory Usage</h4>
-                <div wire:ignore id="{!! $chartId !!}-memory"></div>
+                    {{-- Memory Chart --}}
+                    <div class="glass-card p-6">
+                        <h3 class="text-lg font-semibold text-accent mb-4">Memory Usage</h3>
+                        <div wire:ignore id="{!! $chartId !!}-memory"></div>
 
                 <script>
                     checkTheme();
@@ -284,9 +320,9 @@
                          });
                      });
                 </script>
-            </div>
-            </div>
+                    </div>
+                </div>
+            @endif
         @endif
-    @endif
     </div>
 </div>
