@@ -237,19 +237,15 @@
 
             {{-- Section: Basic Information --}}
             <div class="glass-card p-6 hover:border-accent/30 transition-colors">
-                <div class="mb-6">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
-                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-semibold text-light">Basic Information</h3>
-                            <p class="text-xs text-light opacity-60">Application name and description</p>
-                        </div>
-                    </div>
-                </div>
+                <x-section-header 
+                    title="Basic Information"
+                    description="Application name and description">
+                    <x-slot:icon>
+                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </x-slot:icon>
+                </x-section-header>
                 
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
                     <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
@@ -259,20 +255,16 @@
 
             {{-- Section: Build Configuration --}}
             @if (!$application->dockerfile && $application->build_pack !== 'dockerimage')
-                <div class="glass-card p-6 hover:border-primary/30 transition-colors">
-                    <div class="mb-6">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-light">Build Pack</h3>
-                                <p class="text-xs text-light opacity-60">Choose how to build your application</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="glass-card p-6 hover:border-accent/30 transition-colors">
+                    <x-section-header 
+                        title="Build Pack"
+                        description="Choose how to build your application">
+                        <x-slot:icon>
+                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                        </x-slot:icon>
+                    </x-section-header>
 
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         <x-forms.select x-bind:disabled="shouldDisable()" wire:model.live="build_pack" label="Build Pack" required>
