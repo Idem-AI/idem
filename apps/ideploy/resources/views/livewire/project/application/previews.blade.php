@@ -1,26 +1,45 @@
 <div>
-    <livewire:project.application.preview.form :application="$application" />
+    {{-- Header Idem Style --}}
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-light mb-2">
+            <span class="i-underline">Preview Deployments</span>
+        </h2>
+        <p class="text-sm text-light opacity-70">Automatic deployments for pull requests.</p>
+    </div>
+
+    {{-- Configuration Form --}}
+    <div class="mb-6">
+        <livewire:project.application.preview.form :application="$application" />
+    </div>
+
     @if (count($application->additional_servers) > 0)
-        <div class="pb-4">Previews will be deployed on <span
-                class="dark:text-warning">{{ $application->destination->server->name }}</span>.</div>
+        <div class="glass-card p-4 bg-info/10 mb-6">
+            <div class="flex items-start gap-3 text-info">
+                <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <p class="text-sm">Previews will be deployed on <span class="font-semibold">{{ $application->destination->server->name }}</span>.</p>
+            </div>
+        </div>
     @endif
-    <div>
-        @if ($application->is_github_based())
-            <div class="flex items-center gap-2">
+
+    {{-- Pull Requests Section --}}
+    @if ($application->is_github_based())
+        <div class="glass-card p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-accent">Pull Requests on Git</h3>
                 @can('update', $application)
-                    <h3>Pull Requests on Git</h3>
-                    <x-forms.button wire:click="load_prs">Load Pull Requests
-                    </x-forms.button>
+                    <x-forms.button wire:click="load_prs">Load Pull Requests</x-forms.button>
                 @endcan
             </div>
-        @endif
-        @isset($rate_limit_remaining)
-            <div class="pt-1 pb-4">Requests remaining till rate limited by Git: {{ $rate_limit_remaining }}</div>
-        @endisset
-        <div wire:loading.remove wire:target='load_prs'>
-            @if ($pull_requests->count() > 0)
-                <div class="overflow-x-auto table-md">
-                    <table>
+            
+            @isset($rate_limit_remaining)
+                <div class="text-sm text-light opacity-60 mb-4">Requests remaining till rate limited by Git: {{ $rate_limit_remaining }}</div>
+            @endisset
+            <div wire:loading.remove wire:target='load_prs'>
+                @if ($pull_requests->count() > 0)
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
                         <thead>
                             <tr>
                                 <th>PR Number</th>
@@ -28,10 +47,10 @@
                                 <th>Git</th>
                                 <th>Actions</th>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($pull_requests as $pull_request)
-                                <tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($pull_requests as $pull_request)
+                                    <tr class="border-t border-glass hover:bg-glass/20 transition-colors">
                                     <th>{{ data_get($pull_request, 'number') }}</th>
                                     <td>{{ data_get($pull_request, 'title') }}</td>
                                     <td>
@@ -63,18 +82,25 @@
                                 </tr>
                             @endforeach
                         </tbody>
-                    </table>
-                </div>
-            @endif
+                        </table>
+                    </div>
+                @endif
+            </div>
         </div>
-    </div>
+    @endif
+
+    {{-- Active Deployments Section --}}
     @if ($application->previews->count() > 0)
-        <h3 class="py-4">Deployments</h3>
-        <div class="flex flex-wrap w-full gap-4">
-            @foreach (data_get($application, 'previews') as $previewName => $preview)
-                <div class="flex flex-col w-full p-4 border dark:border-coolgray-200"
-                    wire:key="preview-container-{{ $preview->pull_request_id }}">
-                    <div class="flex gap-2">PR #{{ data_get($preview, 'pull_request_id') }} |
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-accent mb-4">Active Deployments</h3>
+            <div class="grid grid-cols-1 gap-4">
+                @foreach (data_get($application, 'previews') as $previewName => $preview)
+                    <div class="glass-card p-6"
+                        wire:key="preview-container-{{ $preview->pull_request_id }}">
+                        {{-- Preview Header --}}
+                        <div class="flex flex-wrap items-center gap-2 mb-4 text-light">
+                            <span class="font-semibold text-accent">PR #{{ data_get($preview, 'pull_request_id') }}</span>
+                            <span class="text-light opacity-40">•</span>
                         @if (str(data_get($preview, 'status'))->startsWith('running'))
                             <x-status.running :status="data_get($preview, 'status')" />
                         @elseif(str(data_get($preview, 'status'))->startsWith('restarting'))
@@ -86,25 +112,23 @@
                             | <a target="_blank" href="{{ data_get($preview, 'fqdn') }}">Open Preview
                                 <x-external-link />
                             </a>
-                        @endif
-                        |
-                        <a target="_blank" href="{{ data_get($preview, 'pull_request_html_url') }}">Open
-                            PR on Git
-                            <x-external-link />
-                        </a>
-                        @if (count($parameters) > 0)
-                            |
-                            <a
-                                href="{{ route('project.application.deployment.index', [...$parameters, 'pull_request_id' => data_get($preview, 'pull_request_id')]) }}">
-                                Deployment Logs
+                            @endif
+                            <span class="text-light opacity-40">•</span>
+                            <a target="_blank" href="{{ data_get($preview, 'pull_request_html_url') }}" class="text-accent hover:underline">
+                                Open PR on Git
+                                <x-external-link />
                             </a>
-                            |
-                            <a
-                                href="{{ route('project.application.logs', [...$parameters, 'pull_request_id' => data_get($preview, 'pull_request_id')]) }}">
-                                Application Logs
-                            </a>
-                        @endif
-                    </div>
+                            @if (count($parameters) > 0)
+                                <span class="text-light opacity-40">•</span>
+                                <a href="{{ route('project.application.deployment.index', [...$parameters, 'pull_request_id' => data_get($preview, 'pull_request_id')]) }}" class="text-accent hover:underline">
+                                    Deployment Logs
+                                </a>
+                                <span class="text-light opacity-40">•</span>
+                                <a href="{{ route('project.application.logs', [...$parameters, 'pull_request_id' => data_get($preview, 'pull_request_id')]) }}" class="text-accent hover:underline">
+                                    Application Logs
+                                </a>
+                            @endif
+                        </div>
 
                     @if ($application->build_pack === 'dockercompose')
                         <div class="flex flex-col gap-4 pt-4">
