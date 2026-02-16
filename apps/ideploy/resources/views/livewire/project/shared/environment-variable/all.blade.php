@@ -10,7 +10,7 @@
                     <x-modal-input buttonTitle="+ Add" title="New Environment Variable" :closeOutside="false">
                         <livewire:project.shared.environment-variable.add />
                     </x-modal-input>
-                    <x-forms.button wire:click='switch'>{{ $view === 'normal' ? 'Developer view' : 'Normal view' }}</x-forms.button>
+                    <button wire:click='switch' class="inner-button">{{ $view === 'normal' ? 'Developer view' : 'Normal view' }}</button>
                 </div>
             @endcan
         </div>
