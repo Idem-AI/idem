@@ -34,6 +34,10 @@ class Overview extends Component
     public $search = '';
     public $statusFilter = '';
     
+    // Delete modal
+    public $showDeleteModal = false;
+    public $executionToDelete = null;
+    
     // Executions list
     public $executions = [];
     public $totalExecutions = 0;
@@ -120,6 +124,68 @@ class Overview extends Component
         });
         
         $this->totalExecutions = PipelineExecution::where('pipeline_config_id', $this->pipelineConfig->id)->count();
+    }
+    
+    /**
+     * Refresh executions (called by wire:poll)
+     */
+    public function refreshExecutions()
+    {
+        $this->loadExecutions();
+    }
+    
+    /**
+     * Show delete confirmation modal
+     */
+    public function confirmDelete($executionUuid)
+    {
+        $execution = PipelineExecution::where('uuid', $executionUuid)
+            ->where('pipeline_config_id', $this->pipelineConfig->id)
+            ->first();
+        
+        if (!$execution) {
+            $this->dispatch('error', 'Pipeline execution not found');
+            return;
+        }
+        
+        // Only allow deletion of completed executions
+        if (in_array($execution->status, ['running', 'pending'])) {
+            $this->dispatch('error', 'Cannot delete a running or pending pipeline');
+            return;
+        }
+        
+        $this->executionToDelete = $execution;
+        $this->showDeleteModal = true;
+    }
+    
+    /**
+     * Delete a pipeline execution
+     */
+    public function deleteExecution()
+    {
+        try {
+            if (!$this->executionToDelete) {
+                $this->dispatch('error', 'No execution selected');
+                return;
+            }
+            
+            $this->executionToDelete->delete();
+            $this->showDeleteModal = false;
+            $this->executionToDelete = null;
+            $this->loadExecutions();
+            $this->dispatch('success', 'Pipeline execution deleted successfully');
+        } catch (\Exception $e) {
+            $this->dispatch('error', 'Failed to delete pipeline execution');
+        }
+    }
+    
+    /**
+     * Cancel delete
+     */
+    public function cancelDelete()
+    {
+        $this->showDeleteModal = false;
+        $this->executionToDelete = null;
     }
     
     public function loadAvailableTools()
@@ -376,6 +442,33 @@ class Overview extends Component
             // Get application's git branch (default to git_branch or 'main')
             $branch = $this->application->git_branch ?? 'main';
             
+            // Build stages_status dynamically
+            $stagesStatus = [
+                'git_clone' => ['status' => 'pending'],
+                'language_detection' => ['status' => 'pending'],
+                'sonarqube' => ['status' => 'pending'],
+                'trivy' => ['status' => 'pending'],
+            ];
+            
+            // Check if any native security tool is enabled
+            $securityTools = $this->pipelineConfig->config['security_tools'] ?? [];
+            $hasEnabledTool = false;
+            
+            foreach ($securityTools as $key => $value) {
+                if (str_ends_with($key, '_enabled') && $value) {
+                    $hasEnabledTool = true;
+                    break;
+                }
+            }
+            
+            // Add native_security stage if any tool is enabled
+            if ($hasEnabledTool) {
+                $stagesStatus['native_security'] = ['status' => 'pending'];
+            }
+            
+            // Add deploy stage last
+            $stagesStatus['deploy'] = ['status' => 'pending'];
+            
             // Create pipeline execution
             $execution = PipelineExecution::create([
                 'pipeline_config_id' => $this->pipelineConfig->id,
@@ -387,13 +480,7 @@ class Overview extends Component
                 'commit_message' => 'Manual pipeline execution',
                 'status' => 'pending',
                 'started_at' => now(),
-                'stages_status' => [
-                    'git_clone' => 'pending',
-                    'language_detection' => 'pending',
-                    'sonarqube' => 'pending',
-                    'trivy' => 'pending',
-                    'deployment' => 'pending',
-                ],
+                'stages_status' => $stagesStatus,
             ]);
 
             // Dispatch pipeline orchestrator job (runs all stages)

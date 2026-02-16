@@ -5,20 +5,42 @@
 
         <div class="space-y-6">
             @php
-                $stagesStatus = $currentExecution->stages_status ?? [
-                    'lint' => ['status' => 'success', 'duration' => 15, 'logs_count' => 8],
-                    'test' => ['status' => 'success', 'duration' => 25, 'logs_count' => 12],
-                    'build' => ['status' => 'running', 'duration' => 10, 'logs_count' => 5],
-                    'deploy' => ['status' => 'pending', 'duration' => 0, 'logs_count' => 0],
+                // Récupérer les stages depuis l'exécution
+                $rawStagesStatus = $currentExecution->stages_status ?? [];
+                
+                // Définir l'ordre et les métadonnées des stages
+                $stagesConfig = [
+                    'git_clone' => ['emoji' => '📥', 'label' => 'Git Clone'],
+                    'language_detection' => ['emoji' => '🔍', 'label' => 'Language Detection'],
+                    'sonarqube' => ['emoji' => '📊', 'label' => 'SonarQube Analysis'],
+                    'trivy' => ['emoji' => '🔒', 'label' => 'Trivy Security Scan'],
+                    'deploy' => ['emoji' => '🚀', 'label' => 'Deployment'],
                 ];
-                $stageEmojis = [
-                    'lint' => '📝',
-                    'test' => '✅',
-                    'build' => '🔨',
-                    'security' => '🔒',
-                    'deploy' => '🚀',
-                    'performance' => '⚡',
-                ];
+                
+                // Formatter les stages avec durée calculée
+                $stagesStatus = [];
+                foreach ($stagesConfig as $stageId => $config) {
+                    $stageData = $rawStagesStatus[$stageId] ?? ['status' => 'pending'];
+                    
+                    // Calculer la durée si les timestamps existent
+                    $duration = 0;
+                    if (!empty($stageData['started_at']) && !empty($stageData['finished_at'])) {
+                        try {
+                            $start = new \DateTime($stageData['started_at']);
+                            $end = new \DateTime($stageData['finished_at']);
+                            $duration = $end->getTimestamp() - $start->getTimestamp();
+                        } catch (\Exception $e) {
+                            $duration = 0;
+                        }
+                    }
+                    
+                    $stagesStatus[$stageId] = array_merge($stageData, [
+                        'duration' => $duration,
+                        'emoji' => $config['emoji'],
+                        'label' => $config['label'],
+                    ]);
+                }
+                
                 $totalDuration = array_sum(array_column($stagesStatus, 'duration'));
             @endphp
 
@@ -27,9 +49,9 @@
                     <!-- Stage Header -->
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">{{ $stageEmojis[$stageName] ?? '⚙️' }}</span>
+                            <span class="text-2xl">{{ $stageInfo['emoji'] ?? '⚙️' }}</span>
                             <div>
-                                <h4 class="font-bold text-slate-900">{{ ucfirst($stageName) }}</h4>
+                                <h4 class="font-bold text-slate-900">{{ $stageInfo['label'] ?? ucfirst($stageName) }}</h4>
                                 <p class="text-xs text-slate-600">
                                     @switch($stageInfo['status'] ?? 'pending')
                                         @case('success')
@@ -54,9 +76,11 @@
                             <div class="text-lg font-bold text-slate-900">
                                 {{ $stageInfo['duration'] ?? 0 }}s
                             </div>
-                            <div class="text-xs text-slate-600">
-                                {{ $stageInfo['logs_count'] ?? 0 }} log lines
-                            </div>
+                            @if(!empty($stageInfo['error']))
+                                <div class="text-xs text-red-600 mt-1">
+                                    {{ Str::limit($stageInfo['error'], 30) }}
+                                </div>
+                            @endif
                         </div>
                     </div>
 

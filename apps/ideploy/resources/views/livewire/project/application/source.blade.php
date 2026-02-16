@@ -1,11 +1,21 @@
 <div>
-    <form wire:submit='submit' class="flex flex-col">
-        <div class="flex items-center gap-2">
-            <h2>Source</h2>
+    {{-- Header Idem Style --}}
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-2xl font-bold text-light">
+                <span class="i-underline">Git Source</span>
+            </h2>
             @can('update', $application)
-                <x-forms.button type="submit">Save</x-forms.button>
+                <x-forms.button form="sourceForm" type="submit">Save</x-forms.button>
             @endcan
-            <div class="flex items-center gap-4 px-2">
+        </div>
+        <p class="text-sm text-light opacity-70">Code source of your application.</p>
+    </div>
+
+    <form wire:submit='submit' id="sourceForm" class="flex flex-col gap-6">
+        {{-- Quick Links --}}
+        <div class="glass-card p-4">
+            <div class="flex flex-wrap items-center gap-4">
                 <a target="_blank" class="hover:no-underline flex items-center gap-1"
                     href="{{ $application?->gitBranchLocation }}">
                     Open Repository
@@ -25,34 +35,39 @@
                 </a>
             </div>
         </div>
-        <div class="pb-4">Code source of your application.</div>
 
-        <div class="flex flex-col gap-2">
-            @if (!$privateKeyId)
-                <div>Currently connected source: <span
-                        class="font-bold text-warning">{{ data_get($application, 'source.name', 'No source connected') }}</span>
-                </div>
-            @endif
-            <div class="flex gap-2">
+        {{-- Repository Configuration --}}
+        <div class="glass-card p-6">
+            <h3 class="text-lg font-semibold text-accent mb-4">Repository Configuration</h3>
+            <div class="flex flex-col gap-3">
+                @if (!$privateKeyId)
+                    <div class="text-sm text-light opacity-70 mb-2">
+                        Currently connected source: <span class="font-semibold text-warning">{{ data_get($application, 'source.name', 'No source connected') }}</span>
+                    </div>
+                @endif
+                <div class="flex gap-2">
                 <x-forms.input placeholder="coollabsio/coolify-example" id="gitRepository" label="Repository"
                     canGate="update" :canResource="$application" />
-                <x-forms.input placeholder="main" id="gitBranch" label="Branch" canGate="update" :canResource="$application" />
-            </div>
-            <div class="flex items-end gap-2">
+                    <x-forms.input placeholder="main" id="gitBranch" label="Branch" canGate="update" :canResource="$application" />
+                </div>
+                <div class="flex items-end gap-2">
                 <x-forms.input placeholder="HEAD" id="gitCommitSha" placeholder="HEAD" label="Commit SHA"
-                    canGate="update" :canResource="$application" />
+                        canGate="update" :canResource="$application" />
+                </div>
             </div>
         </div>
 
+        {{-- Deploy Key Section --}}
         @if ($privateKeyId)
-            <h3 class="pt-4">Deploy Key</h3>
-            <div class="py-2 pt-4">Currently attached Private Key: <span
-                    class="dark:text-warning">{{ $privateKeyName }}</span>
-            </div>
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold text-accent mb-4">Deploy Key</h3>
+                <div class="text-sm text-light opacity-70 mb-4">
+                    Currently attached Private Key: <span class="font-semibold text-warning">{{ $privateKeyName }}</span>
+                </div>
 
-            @can('update', $application)
-                <h4 class="py-2 ">Select another Private Key</h4>
-                <div class="flex flex-wrap gap-2">
+                @can('update', $application)
+                    <h4 class="text-sm font-medium text-light mb-2">Select another Private Key</h4>
+                    <div class="flex flex-wrap gap-2">
                     @foreach ($privateKeys as $key)
                         <x-forms.button wire:click="setPrivateKey('{{ $key->id }}')">{{ $key->name }}
                         </x-forms.button>
@@ -61,8 +76,8 @@
             @endcan
         @else
             @can('update', $application)
-                <div class="pt-4">
-                    <h3 class="pb-2">Change Git Source</h3>
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold text-accent mb-4">Change Git Source</h3>
                     <div class="grid grid-cols-1 gap-2">
                         @forelse ($sources as $source)
                             <div wire:key="{{ $source->name }}">
