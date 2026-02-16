@@ -20,13 +20,13 @@
         </div>
     @else
         @if ($disabled)
-            <x-forms.button isError disabled @class(['w-full' => $isFullWidth])>{{ $buttonTitle }}</x-forms.button>
+            <button class="inner-button" disabled @class(['w-full' => $isFullWidth])>{{ $buttonTitle }}</button>
         @elseif ($isErrorButton)
-            <x-forms.button isError @click="modalOpen=true" @class(['w-full' => $isFullWidth])>{{ $buttonTitle }}</x-forms.button>
+            <button class="inner-button bg-gradient-to-br from-red-600 to-red-500" @click="modalOpen=true" @class(['w-full' => $isFullWidth])>{{ $buttonTitle }}</button>
         @elseif ($isHighlightedButton)
-            <x-forms.button isHighlighted @click="modalOpen=true" @class(['w-full' => $isFullWidth])>{{ $buttonTitle }}</x-forms.button>
+            <button class="inner-button" @click="modalOpen=true" @class(['w-full' => $isFullWidth])>{{ $buttonTitle }}</button>
         @else
-            <x-forms.button @click="modalOpen=true" @class(['w-full' => $isFullWidth])>{{ $buttonTitle }}</x-forms.button>
+            <button class="inner-button" @click="modalOpen=true" @class(['w-full' => $isFullWidth])>{{ $buttonTitle }}</button>
         @endif
     @endif
     <template x-teleport="body">

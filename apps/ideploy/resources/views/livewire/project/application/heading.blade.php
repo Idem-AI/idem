@@ -1,38 +1,38 @@
 <nav wire:poll.10000ms="checkStatus" class="pb-6">
     <x-resources.breadcrumbs :resource="$application" :parameters="$parameters" :title="$lastDeploymentInfo" :lastDeploymentLink="$lastDeploymentLink" />
     <div class="navbar-main">
-        <nav class="flex shrink-0 gap-6 items-center whitespace-nowrap scrollbar min-h-10">
-            <a class="{{ request()->routeIs('project.application.configuration') ? 'dark:text-white' : '' }}"
+        <nav class="flex shrink-0 gap-3 items-center whitespace-nowrap scrollbar min-h-10">
+            <a class="nav-link {{ request()->routeIs('project.application.configuration') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.configuration', $parameters) }}">
                 Configuration
             </a>
-            <a class="{{ request()->routeIs('project.application.deployment.index') ? 'dark:text-white' : '' }}"
+            <a class="nav-link {{ request()->routeIs('project.application.deployment.index') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.deployment.index', $parameters) }}">
                 Deployments
             </a>
-            <a class="{{ request()->routeIs('project.application.logs') ? 'dark:text-white' : '' }}"
+            <a class="nav-link {{ request()->routeIs('project.application.logs') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.logs', $parameters) }}">
                 Logs
             </a>
-            <a class="{{ request()->routeIs('project.application.security.*') ? 'dark:text-white' : '' }}"
+            <a class="nav-link {{ request()->routeIs('project.application.security.*') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.security.overview', $parameters) }}">
                 Security
             </a>
-            <a class="{{ request()->routeIs('project.application.analytics') ? 'dark:text-white' : '' }}"
+            <a class="nav-link {{ request()->routeIs('project.application.analytics') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.analytics', $parameters) }}">
                 Analytics
             </a>
-            <a class="{{ request()->routeIs('project.application.insights') ? 'dark:text-white' : '' }}"
+            <a class="nav-link {{ request()->routeIs('project.application.insights') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.insights', $parameters) }}">
                 Insights
             </a>
-            <a class="{{ request()->routeIs('project.application.pipeline') ? 'dark:text-white' : '' }}"
+            <a class="nav-link {{ request()->routeIs('project.application.pipeline') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.pipeline', $parameters) }}">
                 Pipeline
             </a>
             @if (!$application->destination->server->isSwarm())
                 @can('canAccessTerminal')
-                    <a class="{{ request()->routeIs('project.application.command') ? 'dark:text-white' : '' }}"
+                    <a class="nav-link {{ request()->routeIs('project.application.command') ? 'nav-link-active' : '' }}"
                         href="{{ route('project.application.command', $parameters) }}">
                         Terminal
                     </a>
@@ -52,8 +52,8 @@
                 <div class="flex flex-wrap gap-2">
                     @if (!str($application->status)->startsWith('exited'))
                         @if (!$application->destination->server->isSwarm())
-                            <x-forms.button title="With rolling update if possible" wire:click='deploy'>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-orange-400"
+                            <button class="inner-button" title="With rolling update if possible" wire:click='deploy'>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline-block mr-1"
                                     viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
                                     stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -63,12 +63,12 @@
                                     <path d="M7.05 11.038v-3.988"></path>
                                 </svg>
                                 Redeploy
-                            </x-forms.button>
+                            </button>
                         @endif
                         @if ($application->build_pack !== 'dockercompose')
                             @if ($application->destination->server->isSwarm())
-                                <x-forms.button title="Redeploy Swarm Service (rolling update)" wire:click='deploy'>
-                                    <svg class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
+                                <button class="inner-button" title="Redeploy Swarm Service (rolling update)" wire:click='deploy'>
+                                    <svg class="w-5 h-5 inline-block mr-1" viewBox="0 0 24 24"
                                         xmlns="http://www.w3.org/2000/svg">
                                         <g fill="none" stroke="currentColor" stroke-linecap="round"
                                             stroke-linejoin="round" stroke-width="2">
@@ -78,10 +78,10 @@
                                         </g>
                                     </svg>
                                     Update Service
-                                </x-forms.button>
+                                </button>
                             @else
-                                <x-forms.button title="Restart without rebuilding" wire:click='restart'>
-                                    <svg class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
+                                <button class="inner-button" title="Restart without rebuilding" wire:click='restart'>
+                                    <svg class="w-5 h-5 inline-block mr-1" viewBox="0 0 24 24"
                                         xmlns="http://www.w3.org/2000/svg">
                                         <g fill="none" stroke="currentColor" stroke-linecap="round"
                                             stroke-linejoin="round" stroke-width="2">
@@ -91,7 +91,7 @@
                                         </g>
                                     </svg>
                                     Restart
-                                </x-forms.button>
+                                </button>
                             @endif
                         @endif
                         <x-modal-confirmation title="Confirm Application Stopping?" buttonTitle="Stop"
@@ -116,15 +116,15 @@
                             </x-slot:button-title>
                         </x-modal-confirmation>
                     @else
-                        <x-forms.button wire:click='deploy'>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-warning"
+                        <button class="inner-button" wire:click='deploy'>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline-block mr-1"
                                 viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
                                 stroke-linecap="round" stroke-linejoin="round">
                                 <path stroke="none" d="M0 0h24v24H0z" fill="none" />
                                 <path d="M7 4v16l13 -8z" />
                             </svg>
                             Deploy
-                        </x-forms.button>
+                        </button>
                     @endif
                 </div>
             @endif
