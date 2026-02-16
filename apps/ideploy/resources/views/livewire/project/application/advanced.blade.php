@@ -1,11 +1,17 @@
 <div>
-    <div class="flex flex-col md:w-96">
-        <div class="flex items-center gap-2">
-            <h2>Advanced</h2>
-        </div>
-        <div>Advanced configuration for your application.</div>
-        <div class="flex flex-col gap-1 pt-4">
-            <h3>General</h3>
+    {{-- Header Idem Style --}}
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-light mb-2">
+            <span class="i-underline">Advanced Configuration</span>
+        </h2>
+        <p class="text-sm text-light opacity-70">Advanced configuration for your application.</p>
+    </div>
+
+    <div class="flex flex-col gap-6">
+        {{-- Section General --}}
+        <div class="glass-card p-6">
+            <h3 class="text-lg font-semibold text-accent mb-4">General</h3>
+            <div class="flex flex-col gap-3">
             @if ($application->git_based())
                 <x-forms.checkbox helper="Automatically deploy new commits based on Git webhooks." instantSave
                     id="isAutoDeployEnabled" label="Auto Deploy" canGate="update" :canResource="$application" />
@@ -43,13 +49,25 @@
                     helper="Readonly labels are disabled. You need to set the labels in the labels section." disabled
                     instantSave id="isStripprefixEnabled" label="Strip Prefixes" canGate="update" :canResource="$application" />
             @endif
-            @if ($application->build_pack === 'dockercompose')
-                <h3>Docker Compose</h3>
+            </div>
+        </div>
+
+        @if ($application->build_pack === 'dockercompose')
+            {{-- Section Docker Compose --}}
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold text-accent mb-4">Docker Compose</h3>
+                <div class="flex flex-col gap-3">
                 <x-forms.checkbox instantSave id="isRawComposeDeploymentEnabled" label="Raw Compose Deployment"
                     helper="WARNING: Advanced use cases only. Your docker compose file will be deployed as-is. Nothing is modified by Coolify. You need to configure the proxy parts. More info in the <a class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/compose#raw-docker-compose-deployment'>documentation.</a>"
                     canGate="update" :canResource="$application" />
-            @endif
-            <h3 class="pt-4">Container Names</h3>
+                </div>
+            </div>
+        @endif
+
+        {{-- Section Container Names --}}
+        <div class="glass-card p-6">
+            <h3 class="text-lg font-semibold text-accent mb-4">Container Names</h3>
+            <div class="flex flex-col gap-3">
             <x-forms.checkbox
                 helper="The deployed container will have the same name ({{ $application->uuid }}). <span class='font-bold dark:text-warning'>You will lose the rolling update feature!</span>"
                 instantSave id="isConsistentContainerNameEnabled" label="Consistent Container Names" canGate="update"
@@ -63,17 +81,35 @@
                     <x-forms.button canGate="update" :canResource="$application" type="submit">Save</x-forms.button>
                 </form>
             @endif
-            @if ($application->build_pack === 'dockercompose')
-                <h3 class="pt-4">Network</h3>
+            </div>
+        </div>
+
+        @if ($application->build_pack === 'dockercompose')
+            {{-- Section Network --}}
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold text-accent mb-4">Network</h3>
+                <div class="flex flex-col gap-3">
                 <x-forms.checkbox instantSave id="isConnectToDockerNetworkEnabled" label="Connect To Predefined Network"
                     helper="By default, you do not reach the Coolify defined networks.<br>Starting a docker compose based resource will have an internal network. <br>If you connect to a Coolify defined network, you maybe need to use different internal DNS names to connect to a resource.<br><br>For more information, check <a class='underline dark:text-white' target='_blank' href='https://coolify.io/docs/knowledge-base/docker/compose#connect-to-predefined-networks'>this</a>."
                     canGate="update" :canResource="$application" />
-            @endif
-            <h3 class="pt-4">Logs</h3>
+                </div>
+            </div>
+        @endif
+
+        {{-- Section Logs --}}
+        <div class="glass-card p-6">
+            <h3 class="text-lg font-semibold text-accent mb-4">Logs</h3>
+            <div class="flex flex-col gap-3">
             <x-forms.checkbox helper="Drain logs to your configured log drain endpoint in your Server settings."
                 instantSave id="isLogDrainEnabled" label="Drain Logs" canGate="update" :canResource="$application" />
-            @if ($application->git_based())
-                <h3>Git</h3>
+            </div>
+        </div>
+
+        @if ($application->git_based())
+            {{-- Section Git --}}
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold text-accent mb-4">Git</h3>
+                <div class="flex flex-col gap-3">
                 <x-forms.checkbox instantSave id="isGitSubmodulesEnabled" label="Submodules"
                     helper="Allow Git Submodules during build process." canGate="update" :canResource="$application" />
                 <x-forms.checkbox instantSave id="isGitLfsEnabled" label="LFS"
@@ -81,41 +117,45 @@
                 <x-forms.checkbox instantSave id="isGitShallowCloneEnabled" label="Shallow Clone"
                     helper="Use shallow cloning (--depth=1) to speed up deployments by only fetching the latest commit history. This reduces clone time and resource usage, especially for large repositories."
                     canGate="update" :canResource="$application" />
-            @endif
-        </div>
-
-    </div>
-    <form wire:submit="submit" class="flex flex-col gap-2">
-        @if ($application->build_pack !== 'dockercompose')
-            <div class="flex gap-2 items-end pt-4">
-                <h3>GPU</h3>
-                @if ($isGpuEnabled)
-                    <x-forms.button canGate="update" :canResource="$application" type="submit">Save</x-forms.button>
-                @endif
+                </div>
             </div>
         @endif
+
+        {{-- Section GPU --}}
         @if ($application->build_pack !== 'dockercompose')
-            <div class="md:w-96 pb-4">
+            <div class="glass-card p-6">
+                <form wire:submit="submit" class="flex flex-col gap-4">
+                    <div class="flex gap-2 items-center justify-between">
+                        <h3 class="text-lg font-semibold text-accent">GPU Configuration</h3>
+                        @if ($isGpuEnabled)
+                            <x-forms.button canGate="update" :canResource="$application" type="submit">Save</x-forms.button>
+                        @endif
+                    </div>
+
+                    <div class="flex flex-col gap-3">
                 <x-forms.checkbox
                     helper="Enable GPU usage for this application. More info <a href='https://docs.docker.com/compose/gpu-support/' class='underline dark:text-white' target='_blank'>here</a>."
-                    instantSave id="isGpuEnabled" label="Enable GPU" canGate="update" :canResource="$application" />
-            </div>
-        @endif
-        @if ($isGpuEnabled)
-            <div class="flex flex-col w-full gap-2 ">
-                <div class="flex gap-2 items-end">
+                        instantSave id="isGpuEnabled" label="Enable GPU" canGate="update" :canResource="$application" />
+
+                        @if ($isGpuEnabled)
+                            <div class="pt-2 border-t border-glass">
+                                <div class="flex gap-2 items-end">
                     <x-forms.input label="GPU Driver" id="gpuDriver" canGate="update" :canResource="$application">
                     </x-forms.input>
                     <x-forms.input label="GPU Count" placeholder="empty means use all GPUs" id="gpuCount"
                         canGate="update" :canResource="$application">
                     </x-forms.input>
-                </div>
-                <x-forms.input label="GPU Device Ids" placeholder="0,2"
+                                </div>
+                                <x-forms.input label="GPU Device Ids" placeholder="0,2"
                     helper="Comma separated list of device ids. More info <a href='https://docs.docker.com/compose/gpu-support/#access-specific-devices' class='underline dark:text-white' target='_blank'>here</a>."
-                    id="gpuDeviceIds" canGate="update" :canResource="$application"> </x-forms.input>
-                <x-forms.textarea rows="10" label="GPU Options" id="gpuOptions" canGate="update"
-                    :canResource="$application"> </x-forms.textarea>
+                                    id="gpuDeviceIds" canGate="update" :canResource="$application"> </x-forms.input>
+                                <x-forms.textarea rows="10" label="GPU Options" id="gpuOptions" canGate="update"
+                                    :canResource="$application"> </x-forms.textarea>
+                            </div>
+                        @endif
+                    </div>
+                </form>
             </div>
         @endif
-    </form>
+    </div>
 </div>
