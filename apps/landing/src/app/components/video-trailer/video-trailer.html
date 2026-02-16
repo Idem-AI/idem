@@ -1,5 +1,5 @@
 <!-- Video Trailer Section -->
-<section class="relative py-24 overflow-hidden">
+<section #videoSection class="relative py-24 overflow-hidden">
   <!-- Subtle Background -->
   <div class="absolute inset-0 bg-linear-to-b from-bg-dark/50 to-bg-dark"></div>
 
@@ -16,36 +16,55 @@
 
     <!-- Clean Video Container -->
     <div class="relative max-w-6xl mx-auto">
-      <div class="rounded-2xl overflow-hidden shadow-2xl bg-white/5 backdrop-blur-sm border border-white/10">
+      <div
+        class="rounded-2xl overflow-hidden shadow-2xl bg-white/5 backdrop-blur-sm border border-white/10"
+      >
         <div class="relative aspect-video bg-black">
           @if (showVideo()) {
-          <iframe
-            class="absolute inset-0 w-full h-full"
-            [src]="youtubeUrl"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-          ></iframe>
+            <iframe
+              class="absolute inset-0 w-full h-full"
+              [src]="youtubeUrl"
+              frameborder="0"
+              allow="
+                accelerometer;
+                autoplay;
+                clipboard-write;
+                encrypted-media;
+                gyroscope;
+                picture-in-picture;
+              "
+              allowfullscreen
+            ></iframe>
           } @else {
-          <!-- Clean Poster with Play Button -->
-          <div class="absolute inset-0 cursor-pointer group" (click)="playVideo()">
-            <img
-              [src]="videoPoster"
-              i18n-alt="@@video-trailer.alt.poster"
-              alt="Video poster"
-              class="w-full h-full object-cover"
-            />
-            <div class="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300"></div>
+            <!-- Clean Poster with Play Button -->
+            <div class="absolute inset-0 cursor-pointer group" (click)="playVideo()">
+              <img
+                [src]="videoPoster"
+                i18n-alt="@@video-trailer.alt.poster"
+                alt="Video poster"
+                class="w-full h-full object-cover"
+              />
+              <div
+                class="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300"
+              ></div>
 
-            <!-- Centered Play Button -->
-            <div class="absolute inset-0 flex items-center justify-center">
-              <div class="w-20 h-20 lg:w-24 lg:h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:bg-white/20 group-hover:scale-105 transition-all duration-300 border border-white/20">
-                <svg class="w-8 h-8 lg:w-10 lg:h-10 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                </svg>
+              <!-- Centered Play Button -->
+              <div class="absolute inset-0 flex items-center justify-center">
+                <div
+                  class="w-20 h-20 lg:w-24 lg:h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:bg-white/20 group-hover:scale-105 transition-all duration-300 border border-white/20"
+                >
+                  <svg
+                    class="w-8 h-8 lg:w-10 lg:h-10 text-white ml-1"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
-          </div>
           }
         </div>
       </div>
