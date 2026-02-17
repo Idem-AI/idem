@@ -3,6 +3,20 @@
     canUpdate: @js(auth()->user()->can('update', $application)),
     shouldDisable() {
         return this.initLoadingCompose || !this.canUpdate;
+    },
+    // Accordion state - only essential sections open by default
+    sections: {
+        basic: true,
+        build: false,
+        domains: false,
+        registry: false,
+        network: false,
+        labels: false,
+        deployment: false,
+        advanced: false
+    },
+    toggleSection(section) {
+        this.sections[section] = !this.sections[section];
     }
 }">
     <form wire:submit='submit' class="max-w-6xl pb-32">
@@ -235,20 +249,29 @@
             @endif
 
             {{-- Section: Basic Information --}}
-            <div class="glass-card p-6 hover:border-accent/30 transition-colors">
-                <x-section-header 
-                    title="Basic Information"
-                    description="Application name and description">
-                    <x-slot:icon>
-                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </x-slot:icon>
-                </x-section-header>
+            <div class="glass-card overflow-hidden hover:border-accent/30 transition-colors">
+                <button type="button" @click="toggleSection('basic')" class="w-full p-6 flex items-center justify-between hover:bg-white/5 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
+                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="text-left">
+                            <h3 class="text-lg font-semibold text-light">Basic Information</h3>
+                            <p class="text-xs text-light opacity-60">Application name and description</p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-light transition-transform" :class="sections.basic ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
                 
-                <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
-                    <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
-                    <x-forms.input x-bind:disabled="shouldDisable()" id="description" label="Description" />
+                <div x-show="sections.basic" x-collapse class="px-6 pb-6">
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                        <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
+                        <x-forms.input x-bind:disabled="shouldDisable()" id="description" label="Description" />
+                    </div>
                 </div>
             </div>
 
