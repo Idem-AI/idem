@@ -555,3 +555,485 @@ select.input {
 .container {
   background: rgba(15, 20, 27, 0.7);
 }
+
+/* ============================================
+ * IDEM CONFIGURATION PAGES - Modern Styles
+ * Inspired by Idem Landing Design
+ * ============================================ */
+
+/* Section Card - Style from screenshots */
+.section-card {
+  background: linear-gradient(135deg, rgba(15, 20, 27, 0.6), rgba(20, 25, 35, 0.4));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.section-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.section-card:hover {
+  border-color: rgba(20, 71, 230, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(20, 71, 230, 0.1);
+}
+
+.section-card:hover::before {
+  opacity: 1;
+}
+
+/* Category Badge - Like "Diagnostic" in screenshots */
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, rgba(20, 71, 230, 0.2), rgba(20, 71, 230, 0.1));
+  border: 1px solid rgba(20, 71, 230, 0.3);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-accent);
+}
+
+/* Info Badge - Small colored indicators */
+.info-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-accent);
+  transition: all 0.2s ease;
+}
+
+.info-badge:hover {
+  background: rgba(34, 211, 238, 0.15);
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+/* Icon Container - Gradient circles like in screenshots */
+.icon-container {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(20, 71, 230, 0.2), rgba(34, 211, 238, 0.1));
+  border: 1px solid rgba(20, 71, 230, 0.3);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.icon-container:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(20, 71, 230, 0.4);
+}
+
+/* Underline Effect - Like "Why IDEM for Africa?" */
+.i-underline {
+  text-decoration-line: underline;
+  text-underline-offset: 8px;
+  text-decoration-thickness: 3px;
+  text-decoration-color: var(--color-primary);
+}
+
+/* Feature List - Checkmarks with gradient */
+.feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feature-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  color: rgba(245, 245, 245, 0.9);
+  font-size: 0.875rem;
+}
+
+.feature-list li::before {
+  content: '✓';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+/* Stat Card - Numbers with glow */
+.stat-card {
+  background: linear-gradient(135deg, rgba(20, 71, 230, 0.1), rgba(34, 211, 238, 0.05));
+  border: 1px solid rgba(20, 71, 230, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  border-color: rgba(20, 71, 230, 0.4);
+  box-shadow: 0 0 30px rgba(20, 71, 230, 0.2);
+  transform: translateY(-4px);
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: rgba(245, 245, 245, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.5rem;
+}
+
+/* Accent Border - Left border highlight */
+.accent-border-left {
+  border-left: 4px solid var(--color-primary);
+  padding-left: 1rem;
+}
+
+/* ============================================
+ * HELPERS & TOOLTIPS - Blue Theme
+ * ============================================ */
+
+/* Change all helper icons from yellow to blue */
+.helper,
+[class*="helper"],
+svg.text-warning,
+.text-warning svg {
+  color: var(--color-accent) !important;
+}
+
+/* Improve helper tooltips */
+.tooltip-content {
+  background: linear-gradient(135deg, rgba(15, 20, 27, 0.98), rgba(20, 25, 35, 0.98));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  max-width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 211, 238, 0.1);
+}
+
+/* ============================================
+ * FORM BUTTONS - Modern Style
+ * ============================================ */
+
+/* Update button - Primary blue */
+button[type="submit"].inner-button,
+.form-actions .inner-button:first-child {
+  background: linear-gradient(135deg, var(--color-primary), #0d3db8);
+  color: white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+button[type="submit"].inner-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(20, 71, 230, 0.4);
+}
+
+/* Lock button - Secondary gray */
+.lock-button,
+button[wire\:click*="lock"] {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  color: var(--color-light);
+  padding: 0.625rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.lock-button:hover,
+button[wire\:click*="lock"]:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Delete button - Danger red - Modern & Professional */
+.delete-button,
+button.delete-button,
+[class*="delete-button"] {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+}
+
+.delete-button:hover,
+button.delete-button:hover {
+  background: linear-gradient(135deg, #b91c1c, #991b1b);
+  border-color: rgba(220, 38, 38, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+}
+
+.delete-button:active,
+button.delete-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+/* Form container improvements */
+form.flex.flex-col.items-center {
+  background: linear-gradient(135deg, rgba(15, 20, 27, 0.6), rgba(20, 25, 35, 0.4));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+form.flex.flex-col.items-center:hover {
+  border-color: rgba(20, 71, 230, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+ * MODAL IMPROVEMENTS
+ * ============================================ */
+
+/* Modal backdrop */
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+/* Modal container */
+.modal-container {
+  background: linear-gradient(135deg, rgba(15, 20, 27, 0.98), rgba(20, 25, 35, 0.95));
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(20, 71, 230, 0.1);
+}
+
+/* Modal header */
+.modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.5rem;
+}
+
+/* Modal close button */
+.modal-close {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+/* ============================================
+ * INPUT IMPROVEMENTS
+ * ============================================ */
+
+/* Modern input style */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+textarea,
+select {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--color-light);
+  transition: all 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(20, 71, 230, 0.1);
+  outline: none;
+}
+
+/* Checkbox improvements */
+input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+input[type="checkbox"]:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+input[type="checkbox"]:hover {
+  border-color: var(--color-primary);
+}
+
+/* Hover Glow Effect */
+.hover-glow {
+  transition: all 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(20, 71, 230, 0.3);
+}
+
+/* Loading Spinner - Modern */
+.spinner-modern {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tooltip - Modern style */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 20, 27, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+}
+
+/* Divider with gradient */
+.divider-gradient {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  margin: 2rem 0;
+}
+
+/* Code Block - Modern monospace */
+.code-block {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: var(--color-accent);
+  overflow-x: auto;
+}
+
+/* Alert Box - Info/Warning/Error */
+.alert-box {
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border-left: 4px solid;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.alert-box.info {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.alert-box.warning {
+  background: rgba(255, 167, 11, 0.1);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.alert-box.error {
+  background: rgba(211, 64, 83, 0.1);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.alert-box.success {
+  background: rgba(33, 150, 83, 0.1);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
