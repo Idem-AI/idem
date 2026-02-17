@@ -1,55 +1,85 @@
-<div class="min-h-screen bg-[#0a0e1a] text-white p-6">
+<div class="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1419] to-[#0a0e1a] text-white p-6">
     <x-slot:title>
         {{ data_get_str($project, 'name')->limit(10) }} > Resources | Coolify
     </x-slot>
-    <div class="flex flex-col">
-        <div class="flex items-center gap-2 mb-4">
-            <h1 class="text-2xl font-light text-gray-100">Resources</h1>
-            @if ($environment->isEmpty())
-                @can('createAnyResource')
-                    <a class="button"
-                        href="{{ route('project.clone-me', ['project_uuid' => data_get($project, 'uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}">
-                        Clone
-                    </a>
-                @endcan
-            @else
-                @can('createAnyResource')
-                    <a href="{{ route('project.resource.create', ['project_uuid' => data_get($parameters, 'project_uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}"
-                        class="button">+
-                        New</a>
-                @endcan
-                @can('createAnyResource')
-                    <a class="button"
-                        href="{{ route('project.clone-me', ['project_uuid' => data_get($project, 'uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}">
-                        Clone
-                    </a>
-                @endcan
-            @endif
-            @can('delete', $environment)
-                <livewire:project.delete-environment :disabled="!$environment->isEmpty()" :environment_id="$environment->id" />
-            @endcan
-        </div>
+    
+    {{-- Header Époustouflant --}}
+    <div class="mb-8">
+        {{-- Breadcrumb Moderne --}}
         <nav class="flex pt-2 pb-6">
-            <ol class="flex items-center">
+            <ol class="flex items-center gap-1">
                 <li class="inline-flex items-center">
-                    <a class="text-xs truncate lg:text-sm"
+                    <a class="text-sm font-medium text-light/70 hover:text-accent transition-colors px-2 py-1 rounded hover:bg-white/5"
                         href="{{ route('project.show', ['project_uuid' => data_get($parameters, 'project_uuid')]) }}">
-                        {{ $project->name }}</a>
+                        {{ $project->name }}
+                    </a>
+                    <svg class="w-4 h-4 mx-1 text-light/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
                 </li>
-                <li>
-                    <div class="flex items-center">
-                        <svg aria-hidden="true" class="w-4 h-4 mx-1 font-bold dark:text-warning" fill="currentColor"
-                            viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd"
-                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                clip-rule="evenodd"></path>
-                        </svg>
-
-                        <livewire:project.resource.environment-select :environments="$project->environments" />
-                    </div>
+                <li class="inline-flex items-center">
+                    <livewire:project.resource.environment-select :environments="$project->environments" />
                 </li>
             </ol>
         </nav>
+
+        {{-- Header Principal avec Gradient --}}
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/10 via-primary/5 to-transparent border border-accent/20 p-8 mb-6">
+            {{-- Background Pattern --}}
+            <div class="absolute inset-0 opacity-5">
+                <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 32px 32px;"></div>
+            </div>
+            
+            <div class="relative flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="icon-container w-16 h-16">
+                        <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold text-light mb-2">
+                            <span class="i-underline">Resources</span>
+                        </h1>
+                        <p class="text-light/70 text-lg">Manage your applications, databases and services</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    @if ($environment->isEmpty())
+                        @can('createAnyResource')
+                            <a class="outer-button px-6 py-3"
+                                href="{{ route('project.clone-me', ['project_uuid' => data_get($project, 'uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}">
+                                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Clone
+                            </a>
+                        @endcan
+                    @else
+                        @can('createAnyResource')
+                            <a href="{{ route('project.resource.create', ['project_uuid' => data_get($parameters, 'project_uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}"
+                                class="inner-button px-6 py-3">
+                                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                New Resource
+                            </a>
+                            <a class="outer-button px-6 py-3"
+                                href="{{ route('project.clone-me', ['project_uuid' => data_get($project, 'uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}">
+                                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Clone
+                            </a>
+                        @endcan
+                    @endif
+                    @can('delete', $environment)
+                        <livewire:project.delete-environment :disabled="!$environment->isEmpty()" :environment_id="$environment->id" />
+                    @endcan
+                </div>
+            </div>
+        </div>
     </div>
     @if ($environment->isEmpty())
         @can('createAnyResource')
@@ -67,7 +97,29 @@
         @endcan
     @else
         <div x-data="searchComponent()">
-            <x-forms.input placeholder="Search for name, fqdn..." x-model="search" id="null" />
+            {{-- Barre de Recherche Moderne --}}
+            <div class="relative mb-8">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                        <svg class="w-5 h-5 text-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input 
+                        type="text" 
+                        x-model="search"
+                        placeholder="Search for name, domain, or description..." 
+                        class="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/10 rounded-xl text-light placeholder-light/40 focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 transition-all backdrop-blur-sm"
+                    />
+                    <div x-show="search.length > 0" class="absolute inset-y-0 right-0 flex items-center pr-4">
+                        <button @click="search = ''" class="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                            <svg class="w-4 h-4 text-light/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
             <template
                 x-if="filteredApplications.length === 0 && filteredDatabases.length === 0 && filteredServices.length === 0">
                 <div class="flex flex-col items-center justify-center p-8 text-center">
@@ -89,20 +141,20 @@
 
             <template x-if="filteredApplications.length > 0">
                 <div class="pt-6 pb-4 flex items-center gap-3">
-                    <div class="p-2 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-lg border border-blue-500/30">
-                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="icon-container">
+                        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-bold text-white">Applications</h2>
-                    <span class="px-2 py-1 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30" x-text="filteredApplications.length"></span>
+                    <h2 class="text-2xl font-bold text-white">Applications</h2>
+                    <span class="px-3 py-1 text-sm font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30" x-text="filteredApplications.length"></span>
                 </div>
             </template>
             <div x-show="filteredApplications.length > 0"
-                class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <template x-for="item in filteredApplications" :key="item.uuid">
-                    <a :href="item.hrefLink" class="group block">
-                        <div class="relative bg-black border border-gray-800 hover:border-gray-700 rounded-lg p-5 transition-all duration-200 hover:bg-[#0a0a0a]">
+                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
+                        <div class="relative glass-card p-6 hover:border-blue-500/40 overflow-hidden">
                             {{-- Header avec icône framework + actions --}}
                             <div class="flex items-start justify-between gap-4 mb-4">
                                 <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -188,20 +240,20 @@
             </div>
             <template x-if="filteredDatabases.length > 0">
                 <div class="pt-6 pb-4 flex items-center gap-3">
-                    <div class="p-2 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-lg border border-indigo-500/30">
-                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="icon-container">
+                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-bold text-white">Databases</h2>
-                    <span class="px-2 py-1 text-xs font-semibold bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30" x-text="filteredDatabases.length"></span>
+                    <h2 class="text-2xl font-bold text-white">Databases</h2>
+                    <span class="px-3 py-1 text-sm font-semibold bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30" x-text="filteredDatabases.length"></span>
                 </div>
             </template>
             <div x-show="filteredDatabases.length > 0"
-                class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <template x-for="item in filteredDatabases" :key="item.uuid">
-                    <a :href="item.hrefLink" class="group block">
-                        <div class="relative bg-black border border-gray-800 hover:border-gray-700 rounded-lg p-5 transition-all duration-200 hover:bg-[#0a0a0a]">
+                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
+                        <div class="relative glass-card p-6 hover:border-indigo-500/40 overflow-hidden">
                             {{-- Header avec icône database + actions --}}
                             <div class="flex items-start justify-between gap-4 mb-4">
                                 <div class="flex items-start gap-3 flex-1 min-w-0">
@@ -274,20 +326,20 @@
             </div>
             <template x-if="filteredServices.length > 0">
                 <div class="pt-6 pb-4 flex items-center gap-3">
-                    <div class="p-2 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 rounded-lg border border-emerald-500/30">
-                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="icon-container">
+                        <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-bold text-white">Services</h2>
-                    <span class="px-2 py-1 text-xs font-semibold bg-emerald-500/20 text-emerald-400 rounded-full border border-emerald-500/30" x-text="filteredServices.length"></span>
+                    <h2 class="text-2xl font-bold text-white">Services</h2>
+                    <span class="px-3 py-1 text-sm font-semibold bg-emerald-500/20 text-emerald-400 rounded-full border border-emerald-500/30" x-text="filteredServices.length"></span>
                 </div>
             </template>
             <div x-show="filteredServices.length > 0"
-                class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <template x-for="item in filteredServices" :key="item.uuid">
-                    <a :href="item.hrefLink" class="group block">
-                        <div class="relative bg-black border border-gray-800 hover:border-gray-700 rounded-lg p-5 transition-all duration-200 hover:bg-[#0a0a0a]">
+                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
+                        <div class="relative glass-card p-6 hover:border-emerald-500/40 overflow-hidden">
                             {{-- Header avec icône service + actions --}}
                             <div class="flex items-start justify-between gap-4 mb-4">
                                 <div class="flex items-start gap-3 flex-1 min-w-0">

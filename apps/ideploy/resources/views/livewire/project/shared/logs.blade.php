@@ -4,10 +4,21 @@
     </x-slot>
     <livewire:project.shared.configuration-checker :resource="$resource" />
     @if ($type === 'application')
-        <h1>Logs</h1>
         <livewire:project.application.heading :application="$resource" />
-        <div>
-            <h2>Logs</h2>
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="icon-container">
+                    <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-light">
+                        <span class="i-underline">Application Logs</span>
+                    </h2>
+                    <p class="text-sm text-light opacity-70 mt-1">Real-time container logs and output</p>
+                </div>
+            </div>
             @if (str($status)->contains('exited'))
                 <div class="pt-4">The resource is not running.</div>
             @else
@@ -16,8 +27,11 @@
                 </div>
                 <div x-init="$wire.loadAllContainers()" wire:loading.remove wire:target="loadAllContainers">
                     @forelse ($servers as $server)
-                        <div class="py-2">
-                            <h2>Server: {{ $server->name }}</h2>
+                        <div class="section-card mb-4">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="category-badge">Server</span>
+                                <h3 class="text-lg font-semibold text-light">{{ $server->name }}</h3>
+                            </div>
                             @if ($server->isFunctional())
                                 @if (isset($serverContainers[$server->id]) && count($serverContainers[$server->id]) > 0)
                                     @foreach ($serverContainers[$server->id] as $container)
@@ -39,10 +53,21 @@
             @endif
         </div>
     @elseif ($type === 'database')
-        <h1>Logs</h1>
         <livewire:project.database.heading :database="$resource" />
-        <div>
-            <h2>Logs</h2>
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="icon-container">
+                    <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-light">
+                        <span class="i-underline">Database Logs</span>
+                    </h2>
+                    <p class="text-sm text-light opacity-70 mt-1">Real-time database logs and output</p>
+                </div>
+            </div>
             @if (str($status)->contains('exited'))
                 <div class="pt-4">The resource is not running.</div>
             @else
@@ -65,8 +90,20 @@
         </div>
     @elseif ($type === 'service')
         <livewire:project.service.heading :service="$resource" :parameters="$parameters" :query="$query" title="Logs" />
-        <div>
-            <h2>Logs</h2>
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="icon-container">
+                    <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-light">
+                        <span class="i-underline">Service Logs</span>
+                    </h2>
+                    <p class="text-sm text-light opacity-70 mt-1">Real-time service logs and output</p>
+                </div>
+            </div>
             @if (str($status)->contains('exited'))
                 <div class="pt-4">The resource is not running.</div>
             @else

@@ -1,4 +1,4 @@
-<div class="p-4 my-4 border dark:border-coolgray-200 border-neutral-200">
+<div class="section-card my-4">
     <div x-init="$wire.getLogs" id="screen" x-data="{
         fullscreen: false,
         alwaysScroll: false,
@@ -33,17 +33,21 @@
             screen.scrollTop = 0;
         }
     }">
-        <div class="flex gap-2 items-center">
+        <div class="flex gap-3 items-center mb-4">
+            <span class="category-badge">Container</span>
             @if ($resource?->type() === 'application' || str($resource?->type())->startsWith('standalone'))
-                <h4>{{ $container }}</h4>
+                <h4 class="text-lg font-semibold text-light">{{ $container }}</h4>
             @else
-                <h4>{{ str($container)->beforeLast('-')->headline() }}</h4>
+                <h4 class="text-lg font-semibold text-light">{{ str($container)->beforeLast('-')->headline() }}</h4>
             @endif
             @if ($pull_request)
-                <div>({{ $pull_request }})</div>
+                <span class="info-badge">PR #{{ $pull_request }}</span>
             @endif
             @if ($streamLogs)
-                <x-loading wire:poll.2000ms='getLogs(true)' />
+                <div class="flex items-center gap-2 text-accent">
+                    <div class="spinner-modern"></div>
+                    <span class="text-sm">Streaming...</span>
+                </div>
             @endif
         </div>
         <form wire:submit='getLogs(true)' class="flex gap-2 items-end">
@@ -51,13 +55,18 @@
                 <x-forms.input label="Only Show Number of Lines" placeholder="100" type="number" required
                     id="numberOfLines" :readonly="$streamLogs"></x-forms.input>
             </div>
-            <x-forms.button type="submit">Refresh</x-forms.button>
+            <button type="submit" class="inner-button">
+                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+            </button>
             <x-forms.checkbox instantSave label="Stream Logs" id="streamLogs"></x-forms.checkbox>
             <x-forms.checkbox instantSave label="Include Timestamps" id="showTimeStamps"></x-forms.checkbox>
         </form>
         <div :class="fullscreen ? 'fullscreen' : 'relative w-full py-4 mx-auto'">
-            <div class="flex overflow-y-auto flex-col-reverse px-4 py-2 w-full bg-white dark:text-white dark:bg-coolgray-100 scrollbar dark:border-coolgray-300 border-neutral-200"
-                :class="fullscreen ? '' : 'max-h-96 border border-solid rounded-sm'">
+            <div class="flex overflow-y-auto flex-col-reverse px-4 py-3 w-full bg-black/40 text-light font-mono scrollbar border border-white/10 backdrop-blur-sm"
+                :class="fullscreen ? '' : 'max-h-96 rounded-lg'" style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(10, 15, 20, 0.5));">
                 <div :class="fullscreen ? 'fixed top-4 right-4' : 'absolute top-6 right-0'">
                     <div class="flex justify-end gap-4" :class="fullscreen ? 'fixed' : ''"
                         style="transform: translateX(-100%)">

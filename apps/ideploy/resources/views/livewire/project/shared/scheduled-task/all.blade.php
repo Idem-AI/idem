@@ -1,10 +1,20 @@
 <div>
     {{-- Header Idem Style --}}
-    <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-            <h2 class="text-2xl font-bold text-light">
-                <span class="i-underline">Scheduled Tasks</span>
-            </h2>
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+                <div class="icon-container">
+                    <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-light">
+                        <span class="i-underline">Scheduled Tasks</span>
+                    </h2>
+                    <p class="text-sm text-light opacity-70 mt-1">Automated tasks that run on a schedule</p>
+                </div>
+            </div>
             @can('update', $resource)
                 <x-modal-input buttonTitle="+ Add" title="New Scheduled Task" :closeOutside="false">
                     @if ($resource->type() == 'application')
@@ -15,14 +25,13 @@
                 </x-modal-input>
             @endcan
         </div>
-        <p class="text-sm text-light opacity-70">Automated tasks that run on a schedule.</p>
     </div>
 
     {{-- Tasks List --}}
     <div class="grid grid-cols-1 gap-4">
         @forelse($resource->scheduled_tasks as $task)
             @if ($resource->type() == 'application')
-                <a class="glass-card p-5 hover:glow-primary transition-all"
+                <a class="section-card hover-glow"
                     href="{{ route('project.application.scheduled-tasks', [...$parameters, 'task_uuid' => $task->uuid]) }}">
                     <div class="flex flex-col gap-2">
                         <div class="flex items-start justify-between">
@@ -59,7 +68,7 @@
                     </div>
                 </a>
             @elseif ($resource->type() == 'service')
-                <a class="glass-card p-5 hover:glow-primary transition-all"
+                <a class="section-card hover-glow"
                     href="{{ route('project.service.scheduled-tasks', [...$parameters, 'task_uuid' => $task->uuid]) }}">
                     <div class="flex flex-col gap-2">
                         <div class="flex items-start justify-between">
@@ -97,9 +106,13 @@
                 </a>
             @endif
         @empty
-            <div class="glass-card p-6">
-                <div class="text-center py-8 text-light opacity-60">
-                    <p>No scheduled tasks configured.</p>
+            <div class="section-card">
+                <div class="text-center py-12">
+                    <svg class="w-16 h-16 mx-auto mb-4 text-light opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-light opacity-60 text-lg">No scheduled tasks configured</p>
+                    <p class="text-light opacity-40 text-sm mt-2">Click "+ Add" to create your first task</p>
                 </div>
             </div>
         @endforelse
