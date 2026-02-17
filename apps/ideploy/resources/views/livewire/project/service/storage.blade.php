@@ -33,14 +33,17 @@
                             if ($event.detail === 'directory') directoryModalOpen = false;
                         ">
                             <div class="relative" @click.outside="dropdownOpen = false">
-                                <x-forms.button @click="dropdownOpen = !dropdownOpen">
-                                    + Add
+                                <button @click="dropdownOpen = !dropdownOpen" class="inner-button">
+                                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add Storage
                                     <svg class="w-4 h-4 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none"
                                         viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
                                     </svg>
-                                </x-forms.button>
+                                </button>
 
                                 <div x-show="dropdownOpen" @click.away="dropdownOpen=false"
                                     x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2"
@@ -149,9 +152,12 @@
                                                     <x-forms.input canGate="update" :canResource="$resource"
                                                         placeholder="/tmp/root" id="mount_path" label="Destination Path"
                                                         required helper="Directory inside the container." />
-                                                    <x-forms.button canGate="update" :canResource="$resource" type="submit">
-                                                        Add
-                                                    </x-forms.button>
+                                                    <button type="submit" class="inner-button w-full">
+                                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        Add Volume
+                                                    </button>
                                                 </div>
                                             </form>
                                         </div>
@@ -208,9 +214,12 @@
                                                         helper="File location inside the container" />
                                                     <x-forms.textarea canGate="update" :canResource="$resource" label="Content"
                                                         id="file_storage_content"></x-forms.textarea>
-                                                    <x-forms.button canGate="update" :canResource="$resource" type="submit">
-                                                        Add
-                                                    </x-forms.button>
+                                                    <button type="submit" class="inner-button w-full">
+                                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        Add File
+                                                    </button>
                                                 </div>
                                             </form>
                                         </div>
@@ -269,9 +278,12 @@
                                                         placeholder="/etc/nginx" id="file_storage_directory_destination"
                                                         label="Destination Directory" required
                                                         helper="Directory inside the container." />
-                                                    <x-forms.button canGate="update" :canResource="$resource" type="submit">
-                                                        Add
-                                                    </x-forms.button>
+                                                    <button type="submit" class="inner-button w-full">
+                                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        Add Directory
+                                                    </button>
                                                 </div>
                                             </form>
                                         </div>
