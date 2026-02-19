@@ -88,8 +88,7 @@
             </div>
         </div>
 
-        <div>
-            {{-- Section: Application URLs --}}
+        {{-- Section: Application URLs --}}
             @php
                 $hasUrls = (data_get($application, 'fqdn') || 
                            collect(json_decode($application->docker_compose_domains))->count() > 0 ||
@@ -677,6 +676,7 @@
                         </div>
                     @endif
                 </div>
+            </div>
             @endif
 
             {{-- Section: Domains & Routing --}}
@@ -771,8 +771,8 @@
                             @endif
                         </div>
                     </div>
-                    </div>
                 </div>
+            </div>
             @endif
 
             {{-- Section: Docker Registry --}}
@@ -858,6 +858,7 @@
                         @endif
                     </div>
                 </div>
+            </div>
             @endif
 
             {{-- Section: Build Commands --}}
@@ -1069,8 +1070,9 @@
                     @endif
                 @endif
             </div>
+        </div>
 
-            {{-- Section: Docker Compose Details --}}
+        {{-- Section: Docker Compose Details --}}
             @if ($application->build_pack === 'dockercompose')
                 <div class="glass-card p-6 hover:border-accent/30 transition-colors">
                     <div class="mb-6 flex items-center justify-between">
@@ -1199,8 +1201,10 @@
                         @endif
                     </div>
                 </div>
+            </div>
+            @endif
 
-                {{-- Section: HTTP Basic Auth --}}
+            {{-- Section: HTTP Basic Auth --}}
                 <div x-data="{ expanded: false }" id="section-http-auth" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-yellow-500/50 transition-all duration-300 mb-6">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
@@ -1238,9 +1242,9 @@
                                 required x-bind:disabled="!canUpdate" />
                         </div>
                     @endif
-                </div>
+            </div>
 
-                {{-- Section: Container Labels --}}
+            {{-- Section: Container Labels --}}
                 <div x-data="{ expanded: false }" id="section-labels" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 mb-6">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
@@ -1298,7 +1302,7 @@
                         </div>
                     @endcan
                 </div>
-            @endif
+            </div>
 
             {{-- Section: Pre/Post Deployment --}}
             <div x-data="{ expanded: false }" id="section-deployment-commands" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-red-500/50 transition-all duration-300 mb-6">
@@ -1352,43 +1356,7 @@
             </div>
 
             {{-- Section Deployment Configuration supprimée --}}
-        </div>
     </form>
-
-    {{-- Footer professionnel moderne --}}
-    <div class="mt-12 mb-8">
-        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700/50 p-6">
-            {{-- Glow effect --}}
-            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
-            
-            <div class="relative flex flex-col md:flex-row items-center justify-between gap-6">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-base font-bold text-white">{{ $application->name }}</p>
-                        <p class="text-sm text-gray-400">Application Configuration</p>
-                    </div>
-                </div>
-                
-                <div class="flex flex-wrap items-center gap-6">
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span class="text-sm text-gray-300">{{ $application->updated_at->diffForHumans() }}</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700">
-                        <div class="w-2 h-2 rounded-full {{ $application->status === 'running' ? 'bg-green-400 animate-pulse' : 'bg-gray-400' }}"></div>
-                        <span class="text-sm font-medium text-{{ $application->status === 'running' ? 'green' : 'gray' }}-400">{{ ucfirst($application->status) }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <x-domain-conflict-modal :conflicts="$domainConflicts" :showModal="$showDomainConflictModal" confirmAction="confirmDomainUsage" />
 
