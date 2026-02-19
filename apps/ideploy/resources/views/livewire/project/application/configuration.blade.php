@@ -20,8 +20,8 @@
             <nav class="sticky top-6 glass-card p-4">
                 {{-- Section: Configuration --}}
                 <div class="mb-5">
-                    <div class="text-xs uppercase tracking-widest text-accent font-bold mb-3 px-1">
-                        Configuration
+                    <div class="text-xs uppercase tracking-widest text-blue-400 font-bold mb-3 px-1">
+                        CONFIGURATION
                     </div>
                     
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
@@ -63,8 +63,8 @@
 
                 {{-- Section: Environment --}}
                 <div class="mb-5">
-                    <div class="text-xs uppercase tracking-widest text-accent font-bold mb-3 px-1">
-                        Environment
+                    <div class="text-xs uppercase tracking-widest text-cyan-400 font-bold mb-3 px-1">
+                        ENVIRONMENT
                     </div>
                     
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
@@ -105,8 +105,8 @@
 
                 {{-- Section: Deployment --}}
                 <div class="mb-5">
-                    <div class="text-xs uppercase tracking-widest text-accent font-bold mb-3 px-1">
-                        Deployment
+                    <div class="text-xs uppercase tracking-widest text-purple-400 font-bold mb-3 px-1">
+                        DEPLOYMENT
                     </div>
                     
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
@@ -186,8 +186,8 @@
 
                 {{-- Section: Monitoring --}}
                 <div class="mb-5">
-                    <div class="text-xs uppercase tracking-widest text-accent font-bold mb-3 px-1">
-                        Monitoring
+                    <div class="text-xs uppercase tracking-widest text-green-400 font-bold mb-3 px-1">
+                        MONITORING
                     </div>
                     
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
@@ -226,8 +226,8 @@
 
                 {{-- Section: Other --}}
                 <div>
-                    <div class="text-xs uppercase tracking-widest text-accent font-bold mb-3 px-1">
-                        Other
+                    <div class="text-xs uppercase tracking-widest text-gray-400 font-bold mb-3 px-1">
+                        OTHER
                     </div>
                     
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
@@ -255,7 +255,7 @@
             </nav>
         </div>
 
-        {{-- Main Content Glass --}}
+        {{-- Main Content --}}
         <div class="flex-1 min-w-0 glass-card p-8">
             @if ($currentRoute === 'project.application.configuration')
                 <livewire:project.application.general :application="$application" />

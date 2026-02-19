@@ -461,15 +461,23 @@ select.input {
 }
 
 .badge-success {
-  background-color: rgba(var(--color-success-rgb), 0.2);
-  color: var(--color-success);
-  border-color: rgba(var(--color-success-rgb), 0.3);
+  background-color: rgba(34, 197, 94, 0.1) !important;
+  color: rgb(74, 222, 128) !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  padding: 0.375rem 0.75rem !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
 }
 
 .badge-warning {
-  background-color: rgba(var(--color-warning-rgb), 0.2);
-  color: var(--color-warning);
-  border-color: rgba(var(--color-warning-rgb), 0.3);
+  background-color: rgba(234, 179, 8, 0.1) !important;
+  color: rgb(250, 204, 21) !important;
+  border-color: rgba(234, 179, 8, 0.3) !important;
+  padding: 0.375rem 0.75rem !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
 }
 
 .badge-danger {
@@ -739,6 +747,43 @@ select.input {
 svg.text-warning,
 .text-warning svg {
   color: var(--color-accent) !important;
+}
+
+/* Breadcrumb modern styles */
+nav ol li a {
+  transition: all 0.2s ease;
+}
+
+nav ol li a:hover {
+  transform: translateY(-1px);
+}
+
+/* Status badge in breadcrumb - force green for running */
+nav .badge-success,
+nav .text-success {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+  color: rgb(74, 222, 128) !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+}
+
+/* Ensure running status is green not yellow */
+.dark .text-success {
+  color: rgb(74, 222, 128) !important;
+}
+
+/* Force green color for all success text elements */
+.text-success,
+.dark .text-success,
+nav .text-success {
+  color: rgb(74, 222, 128) !important;
+}
+
+/* Override any warning color on success badges */
+.badge-success,
+.badge.badge-success {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+  color: rgb(74, 222, 128) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
 }
 
 /* Improve helper tooltips */
