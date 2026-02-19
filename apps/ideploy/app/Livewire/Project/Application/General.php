@@ -127,7 +127,9 @@ class General extends Component
 
     public $showDomainConflictModal = false;
 
-    public $forceSaveDomains = false;
+    public bool $forceSaveDomains = false;
+
+    public array $parameters = [];
 
     protected $listeners = [
         'resetDefaultLabels',
@@ -261,6 +263,12 @@ class General extends Component
 
     public function mount()
     {
+        $this->parameters = [
+            'project_uuid' => $this->application->project()->uuid,
+            'environment_uuid' => $this->application->environment->uuid,
+            'application_uuid' => $this->application->uuid,
+        ];
+        
         try {
             $this->parsedServices = $this->application->parse();
             if (is_null($this->parsedServices) || empty($this->parsedServices)) {
@@ -894,5 +902,60 @@ class General extends Component
                 }
             }
         }
+    }
+
+    public function render()
+    {
+        // Pipeline Card Data - Use ApplicationDeploymentQueue directly
+        $deploymentsQuery = \App\Models\ApplicationDeploymentQueue::where('application_id', $this->application->id)
+            ->orderBy('created_at', 'desc');
+        
+        $totalDeployments = $deploymentsQuery->count();
+        $isPipelineActive = $totalDeployments > 0;
+        
+        $successfulDeployments = \App\Models\ApplicationDeploymentQueue::where('application_id', $this->application->id)
+            ->where('status', 'finished')
+            ->count();
+        $successRate = $totalDeployments > 0 ? round(($successfulDeployments / $totalDeployments) * 100) : 0;
+        
+        // Calculate average time from created_at to updated_at for finished deployments
+        $completedDeployments = \App\Models\ApplicationDeploymentQueue::where('application_id', $this->application->id)
+            ->where('status', 'finished')
+            ->get();
+        
+        $averageTime = 0;
+        if ($completedDeployments->count() > 0) {
+            $totalMinutes = $completedDeployments->sum(function($deployment) {
+                return $deployment->created_at->diffInMinutes($deployment->updated_at);
+            });
+            $averageTime = round($totalMinutes / $completedDeployments->count());
+        }
+        
+        $lastDeployment = $deploymentsQuery->first();
+        $isDeploymentInProgress = \App\Models\ApplicationDeploymentQueue::where('application_id', $this->application->id)
+            ->whereIn('status', ['in_progress', 'queued'])
+            ->exists();
+
+        // Firewall/Security Card Data
+        $firewallConfig = optional($this->application)->firewall_config;
+        $isAppStopped = $this->application->status === 'exited';
+        $activeRules = $firewallConfig ? $firewallConfig->rules()->where('enabled', true)->count() : 0;
+        $blockedRequests = $firewallConfig ? $firewallConfig->traffic_logs()->where('decision', 'ban')->count() : 0;
+        $totalRequests = $firewallConfig ? $firewallConfig->traffic_logs()->count() : 0;
+        $uptime = 99.9; // Default uptime
+
+        return view('livewire.project.application.general', [
+            'isPipelineActive' => $isPipelineActive,
+            'totalDeployments' => $totalDeployments,
+            'successRate' => $successRate,
+            'averageTime' => $averageTime,
+            'lastDeployment' => $lastDeployment,
+            'isDeploymentInProgress' => $isDeploymentInProgress,
+            'isAppStopped' => $isAppStopped,
+            'activeRules' => $activeRules,
+            'blockedRequests' => $blockedRequests,
+            'totalRequests' => $totalRequests,
+            'uptime' => $uptime,
+        ]);
     }
 }
