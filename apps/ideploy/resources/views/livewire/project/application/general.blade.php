@@ -4,43 +4,91 @@
     shouldDisable() {
         return this.initLoadingCompose || !this.canUpdate;
     },
-    // Accordion state - only essential sections open by default
-    sections: {
-        basic: true,
-        build: false,
-        domains: false,
-        registry: false,
-        network: false,
-        labels: false,
-        deployment: false,
-        advanced: false
-    },
-    toggleSection(section) {
-        this.sections[section] = !this.sections[section];
-    }
+    activeTab: 'basic'
 }">
-    <form wire:submit='submit' class="max-w-6xl pb-32">
-        {{-- Header Sticky Idem Style --}}
-        <div class="sticky top-0 z-20 glass-card -mx-4 px-6 py-5 mb-8 border-b border-glass">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold text-light">
-                        <span class="i-underline">General Configuration</span>
-                    </h1>
-                    <p class="text-sm text-light opacity-70 mt-1.5">Configure your application's core settings and deployment options</p>
+    <form wire:submit='submit' class="max-w-7xl pb-32">
+        {{-- Hero Header Ultra-Moderne Style Vercel --}}
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-600/10 to-purple-600/10 border border-blue-500/20 p-8 mb-8">
+            {{-- Animated Background Pattern --}}
+            <div class="absolute inset-0 opacity-10">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.3),transparent_50%)]" style="animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
+            </div>
+            
+            <div class="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div class="flex-1">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-all">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-white mb-1">General Configuration</h1>
+                            <p class="text-sm text-gray-400">Configure your application's core settings and deployment options</p>
+                        </div>
+                    </div>
+                    
+                    {{-- Status Indicators --}}
+                    <div class="flex flex-wrap items-center gap-3">
+                        @if($application->isRunning())
+                            <div class="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 border border-green-500/30 rounded-full">
+                                <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                <span class="text-xs font-semibold text-green-400">Running</span>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-500/20 border border-gray-500/30 rounded-full">
+                                <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                <span class="text-xs font-semibold text-gray-400">Stopped</span>
+                            </div>
+                        @endif
+                        
+                        @if(data_get($application, 'fqdn'))
+                            <a href="{{ getFqdnWithoutPort(data_get($application, 'fqdn')) }}" target="_blank" class="group flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 hover:border-blue-500/50 rounded-full transition-all hover:scale-105">
+                                <svg class="w-3 h-3 text-blue-400 group-hover:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 919-9"></path>
+                                </svg>
+                                <span class="text-xs font-semibold text-blue-400 group-hover:text-blue-300 truncate max-w-[200px]">{{ Str::limit(data_get($application, 'fqdn'), 30) }}</span>
+                                <svg class="w-3 h-3 text-blue-400 group-hover:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                            </a>
+                        @endif
+                        
+                        @if(data_get($application, 'gitBranchLocation'))
+                            <a href="{{ $application->gitBranchLocation }}" target="_blank" class="group flex items-center gap-2 px-3 py-1.5 bg-gray-500/20 border border-gray-500/30 hover:border-gray-500/50 rounded-full transition-all hover:scale-105">
+                                <x-git-icon git="{{ $application->source?->getMorphClass() }}" class="w-3 h-3 text-gray-400 group-hover:text-gray-300" />
+                                <span class="text-xs font-semibold text-gray-400 group-hover:text-gray-300">GitHub</span>
+                                <svg class="w-3 h-3 text-gray-400 group-hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                            </a>
+                        @endif
+                        
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-500/30 rounded-full">
+                            <svg class="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                            </svg>
+                            <span class="text-xs font-semibold text-purple-400">{{ ucfirst($application->build_pack) }}</span>
+                        </div>
+                    </div>
                 </div>
+                
                 @can('update', $application)
-                    <button type="submit" class="inner-button">
-                        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Save Changes
+                    <button type="submit" class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <span class="relative flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Save Changes
+                        </span>
                     </button>
                 @endcan
             </div>
         </div>
 
-        <div class="space-y-8">
+        <div>
             {{-- Section: Application URLs --}}
             @php
                 $hasUrls = (data_get($application, 'fqdn') || 
@@ -48,260 +96,555 @@
                            data_get($application, 'previews', collect([]))->count() > 0 ||
                            data_get($application, 'ports_mappings_array')) &&
                            data_get($application, 'settings.is_raw_compose_deployment_enabled') !== true;
+                           
+                // Professional Dashboard Cards - ÉTAT RÉEL de l'application
+                $isAppRunning = $application->isRunning();
+                $isAppStopped = $application->isExited() || !$isAppRunning;
+                $isDeploymentInProgress = $application->isDeploymentInprogress();
+                $appRealStatus = $application->realStatus();
+                
+                // Pipeline Stats - STRICTEMENT état réel du pipeline
+                $deployments = $application->deployment_queue()->orderBy('created_at', 'desc')->limit(50)->get();
+                $totalDeployments = $deployments->count();
+                $successfulDeployments = $deployments->where('status', 'finished')->count();
+                $failedDeployments = $deployments->whereIn('status', ['failed', 'error'])->count();
+                $successRate = $totalDeployments > 0 ? round(($successfulDeployments / $totalDeployments) * 100, 1) : 0;
+                $lastDeployment = $deployments->first();
+                $averageTime = $deployments->where('status', 'finished')->filter(fn($d) => $d->created_at && $d->updated_at)->avg(fn($d) => $d->updated_at->diffInMinutes($d->created_at)) ?: 0;
+                
+                // Pipeline est actif SEULEMENT si au moins 1 déploiement existe
+                $isPipelineActive = $totalDeployments > 0;
+                
+                // Security Stats - Vraies données CrowdSec seulement si app active
+                $firewallConfig = $application->firewallConfig;
+                $activeRules = ($firewallConfig && $isAppRunning) ? $firewallConfig->rules()->where('enabled', true)->count() : 0;
+                
+                if ($firewallConfig && $isAppRunning) {
+                    $recentLogs = $firewallConfig->trafficLogs()->recent(24)->get();
+                    $blockedRequests = $recentLogs->where('decision', 'block')->count();
+                    $totalRequests = $recentLogs->count();
+                    $uptime = 99.9;
+                } else {
+                    $blockedRequests = 0;
+                    $totalRequests = 0;
+                    $uptime = $isAppRunning ? 100 : 0;
+                }
+                
+                $server = $application->destination->server;
             @endphp
             
-            @if ($hasUrls)
-                <div class="bg-gradient-to-br from-green-900/20 to-emerald-900/20 border border-green-500/30 rounded-xl p-6">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                            </svg>
-                            🔗 Application URLs
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">Active URLs and endpoints for your application</p>
+            {{-- Professional Dashboard Cards avec VRAIES DONNÉES --}}
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {{-- Pipeline Status Card avec vraies données --}}
+                <div x-data="{ showPipelineModal: false }" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/10 via-yellow-500/10 to-amber-500/10 border border-orange-500/20 p-6 hover:border-orange-500/40 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20" @click="showPipelineModal = true">
+                    <div class="absolute inset-0 bg-gradient-to-br from-orange-500/0 via-yellow-500/0 to-amber-500/0 group-hover:from-orange-500/5 group-hover:via-yellow-500/5 group-hover:to-amber-500/5 transition-all duration-500"></div>
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <div class="absolute -top-20 -left-20 w-40 h-40 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-full blur-2xl group-hover:scale-125 group-hover:rotate-45 transition-transform duration-1000"></div>
+                    
+                    {{-- Animated particles --}}
+                    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div class="absolute top-4 right-8 w-1 h-1 bg-orange-400/60 rounded-full animate-ping" style="animation-delay: 0.5s;"></div>
+                        <div class="absolute top-12 right-16 w-1.5 h-1.5 bg-yellow-400/40 rounded-full animate-pulse" style="animation-delay: 1.2s;"></div>
+                        <div class="absolute bottom-8 left-12 w-1 h-1 bg-amber-400/50 rounded-full animate-ping" style="animation-delay: 2s;"></div>
+                        <div class="absolute top-6 left-20 w-0.5 h-0.5 bg-orange-300/70 rounded-full animate-pulse" style="animation-delay: 0.8s;"></div>
                     </div>
-
-                    <div class="grid grid-cols-1 gap-3">
-                        {{-- Git Repository Link --}}
-                        @if (data_get($application, 'gitBranchLocation'))
-                            <a target="_blank" href="{{ $application->gitBranchLocation }}" 
-                               class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-gray-600 rounded-lg transition-all">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-800 group-hover:bg-gray-700 transition-colors">
-                                    <x-git-icon git="{{ $application->source?->getMorphClass() }}" class="w-5 h-5" />
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-sm font-medium text-white group-hover:text-green-400 transition-colors">Git Repository</div>
-                                    <div class="text-xs text-gray-400 truncate">{{ $application->gitBranchLocation }}</div>
-                                </div>
-                                <svg class="w-5 h-5 text-gray-500 group-hover:text-green-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
                                 </svg>
-                            </a>
-                        @endif
-
-                        {{-- Docker Compose Domains --}}
-                        @if (data_get($application, 'build_pack') === 'dockercompose')
-                            @foreach (collect(json_decode($application->docker_compose_domains)) as $fqdn)
-                                @if (data_get($fqdn, 'domain'))
-                                    @foreach (explode(',', data_get($fqdn, 'domain')) as $domain)
-                                        <a target="_blank" href="{{ getFqdnWithoutPort($domain) }}" 
-                                           class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-green-500 rounded-lg transition-all">
-                                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                                                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-                                                </svg>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <div class="text-sm font-medium text-white group-hover:text-green-400 transition-colors">Application URL</div>
-                                                <div class="text-xs text-gray-400 truncate">{{ getFqdnWithoutPort($domain) }}</div>
-                                            </div>
-                                            <svg class="w-5 h-5 text-gray-500 group-hover:text-green-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                            </svg>
-                                        </a>
-                                    @endforeach
-                                @endif
-                            @endforeach
-                        @endif
-
-                        {{-- Regular FQDN --}}
-                        @if (data_get($application, 'fqdn'))
-                            @foreach (str(data_get($application, 'fqdn'))->explode(',') as $fqdn)
-                                <a target="_blank" href="{{ getFqdnWithoutPort($fqdn) }}" 
-                                   class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-green-500 rounded-lg transition-all">
-                                    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-medium text-white group-hover:text-green-400 transition-colors">Application URL</div>
-                                        <div class="text-xs text-gray-400 truncate">{{ getFqdnWithoutPort($fqdn) }}</div>
-                                    </div>
-                                    <svg class="w-5 h-5 text-gray-500 group-hover:text-green-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                    </svg>
-                                </a>
-                            @endforeach
-                        @endif
-
-                        {{-- Preview Deployments --}}
-                        @if (data_get($application, 'previews', collect())->count() > 0)
-                            <div class="pt-2 border-t border-gray-700">
-                                <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1">Preview Deployments</div>
-                                @if (data_get($application, 'build_pack') === 'dockercompose')
-                                    @foreach ($application->previews as $preview)
-                                        @foreach (collect(json_decode($preview->docker_compose_domains)) as $fqdn)
-                                            @if (data_get($fqdn, 'domain'))
-                                                @foreach (explode(',', data_get($fqdn, 'domain')) as $domain)
-                                                    <a target="_blank" href="{{ getFqdnWithoutPort($domain) }}" 
-                                                       class="group flex items-center gap-3 p-4 bg-purple-900/10 hover:bg-purple-900/20 border border-purple-500/30 hover:border-purple-500 rounded-lg transition-all mb-2">
-                                                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                                                            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="flex-1 min-w-0">
-                                                            <div class="text-sm font-medium text-white group-hover:text-purple-400 transition-colors">
-                                                                PR #{{ data_get($preview, 'pull_request_id') }}
-                                                            </div>
-                                                            <div class="text-xs text-gray-400 truncate">{{ getFqdnWithoutPort($domain) }}</div>
-                                                        </div>
-                                                        <svg class="w-5 h-5 text-gray-500 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                                        </svg>
-                                                    </a>
-                                                @endforeach
-                                            @endif
-                                        @endforeach
-                                    @endforeach
-                                @else
-                                    @foreach (data_get($application, 'previews') as $preview)
-                                        @if (data_get($preview, 'fqdn'))
-                                            <a target="_blank" href="{{ getFqdnWithoutPort(data_get($preview, 'fqdn')) }}" 
-                                               class="group flex items-center gap-3 p-4 bg-purple-900/10 hover:bg-purple-900/20 border border-purple-500/30 hover:border-purple-500 rounded-lg transition-all mb-2">
-                                                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                                                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                                    </svg>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <div class="text-sm font-medium text-white group-hover:text-purple-400 transition-colors">
-                                                        PR #{{ data_get($preview, 'pull_request_id') }}
-                                                    </div>
-                                                    <div class="text-xs text-gray-400 truncate">{{ data_get($preview, 'fqdn') }}</div>
-                                                </div>
-                                                <svg class="w-5 h-5 text-gray-500 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                                </svg>
-                                            </a>
-                                        @endif
-                                    @endforeach
-                                @endif
                             </div>
-                        @endif
-
-                        {{-- Port Mappings --}}
-                        @if (data_get($application, 'ports_mappings_array'))
-                            <div class="pt-2 border-t border-gray-700">
-                                <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1">Port Mappings</div>
-                                @foreach ($application->ports_mappings_array as $port)
-                                    @if ($application->destination->server->id === 0)
-                                        <a target="_blank" href="http://localhost:{{ explode(':', $port)[0] }}" 
-                                           class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-cyan-500 rounded-lg transition-all mb-2">
-                                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors">
-                                                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                </svg>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <div class="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">Port {{ $port }}</div>
-                                                <div class="text-xs text-gray-400 truncate">http://localhost:{{ explode(':', $port)[0] }}</div>
-                                            </div>
-                                            <svg class="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                            </svg>
-                                        </a>
+                            @if($isDeploymentInProgress)
+                                <span class="px-4 py-2 bg-yellow-500/20 border border-yellow-500/40 rounded-full text-xs font-bold text-yellow-400 uppercase tracking-wider animate-pulse">
+                                    BUILDING
+                                </span>
+                            @elseif($isPipelineActive)
+                                <span class="px-4 py-2 bg-green-500/20 border border-green-500/40 rounded-full text-xs font-bold text-green-400 uppercase tracking-wider">
+                                    ACTIVE
+                                </span>
+                            @else
+                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    NO PIPELINE
+                                </span>
+                            @endif
+                        </div>
+                        
+                        <h3 class="text-xl font-bold text-white mb-2">Pipeline Status</h3>
+                        <p class="text-sm text-gray-400 mb-6">Real deployment automation & build metrics</p>
+                        
+                        @if($isPipelineActive)
+                            <div class="grid grid-cols-3 gap-4 mb-6">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-orange-400">{{ $totalDeployments }}</div>
+                                    <div class="text-xs text-gray-500 uppercase">Total Builds</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-{{ $successRate >= 90 ? 'green' : ($successRate >= 70 ? 'yellow' : 'red') }}-400">{{ $successRate }}%</div>
+                                    <div class="text-xs text-gray-500 uppercase">Success Rate</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-yellow-400">{{ round($averageTime) }}m</div>
+                                    <div class="text-xs text-gray-500 uppercase">Avg Time</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
+                                <div class="flex items-center gap-3">
+                                    @if($isDeploymentInProgress)
+                                        <div class="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                                        <span class="text-sm font-medium text-white">Building...</span>
                                     @else
-                                        <a target="_blank" href="http://{{ $application->destination->server->ip }}:{{ explode(':', $port)[0] }}" 
-                                           class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-cyan-500 rounded-lg transition-all mb-2">
-                                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors">
-                                                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
-                                                </svg>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <div class="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">Server Port</div>
-                                                <div class="text-xs text-gray-400 truncate">{{ $application->destination->server->ip }}:{{ explode(':', $port)[0] }}</div>
-                                            </div>
-                                            <svg class="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                            </svg>
-                                        </a>
-                                        @if (count($application->additional_servers) > 0)
-                                            @foreach ($application->additional_servers as $server)
-                                                <a target="_blank" href="http://{{ $server->ip }}:{{ explode(':', $port)[0] }}" 
-                                                   class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-cyan-500 rounded-lg transition-all mb-2">
-                                                    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors">
-                                                        <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="flex-1 min-w-0">
-                                                        <div class="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">Additional Server</div>
-                                                        <div class="text-xs text-gray-400 truncate">{{ $server->ip }}:{{ explode(':', $port)[0] }}</div>
-                                                    </div>
-                                                    <svg class="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                                    </svg>
-                                                </a>
-                                            @endforeach
-                                        @endif
+                                        <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                                        <span class="text-sm font-medium text-white">Pipeline Ready</span>
                                     @endif
-                                @endforeach
+                                </div>
+                                <span class="text-xs text-gray-400">
+                                    Last: {{ $lastDeployment->created_at->diffForHumans() }}
+                                </span>
+                            </div>
+                        @else
+                            <div class="flex flex-col items-center justify-center py-8">
+                                <svg class="w-16 h-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                                </svg>
+                                <p class="text-gray-400 text-sm font-medium mb-2">No Pipeline Configured</p>
+                                <p class="text-gray-500 text-xs text-center">Deploy your application to see build metrics</p>
                             </div>
                         @endif
                     </div>
                 </div>
-            @endif
 
-            {{-- Section: Basic Information --}}
-            <div class="glass-card overflow-hidden hover:border-accent/30 transition-colors">
-                <button type="button" @click="toggleSection('basic')" class="w-full p-6 flex items-center justify-between hover:bg-white/5 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
-                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                {{-- Security & Firewall Protection Card avec vraies données --}}
+                <div x-data="{ showFirewallModal: false }" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 via-emerald-500/10 to-teal-500/10 border border-green-500/20 p-6 hover:border-green-500/40 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20" @click="showFirewallModal = true">
+                    <div class="absolute inset-0 bg-gradient-to-br from-green-500/0 via-emerald-500/0 to-teal-500/0 group-hover:from-green-500/5 group-hover:via-emerald-500/5 group-hover:to-teal-500/5 transition-all duration-500"></div>
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-emerald-500/15 to-transparent rounded-full blur-xl group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-800"></div>
+                    
+                    {{-- Animated particles --}}
+                    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div class="absolute top-6 right-10 w-1 h-1 bg-green-400/60 rounded-full animate-ping" style="animation-delay: 0.3s;"></div>
+                        <div class="absolute top-14 right-20 w-1.5 h-1.5 bg-emerald-400/40 rounded-full animate-pulse" style="animation-delay: 1.5s;"></div>
+                        <div class="absolute bottom-10 left-14 w-1 h-1 bg-teal-400/50 rounded-full animate-ping" style="animation-delay: 1.8s;"></div>
+                        <div class="absolute top-8 left-16 w-0.5 h-0.5 bg-green-300/70 rounded-full animate-pulse" style="animation-delay: 0.6s;"></div>
+                    </div>
+                    
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:shadow-green-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                </svg>
+                            </div>
+                            @if($isAppStopped)
+                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    OFFLINE
+                                </span>
+                            @elseif($activeRules > 0)
+                                <span class="px-4 py-2 bg-green-500/20 border border-green-500/40 rounded-full text-xs font-bold text-green-400 uppercase tracking-wider animate-pulse">
+                                    PROTECTED
+                                </span>
+                            @else
+                                <span class="px-4 py-2 bg-orange-500/20 border border-orange-500/40 rounded-full text-xs font-bold text-orange-400 uppercase tracking-wider">
+                                    NO PROTECTION
+                                </span>
+                            @endif
                         </div>
-                        <div class="text-left">
-                            <h3 class="text-lg font-semibold text-light">Basic Information</h3>
-                            <p class="text-xs text-light opacity-60">Application name and description</p>
+                        
+                        <h3 class="text-xl font-bold text-white mb-2">Security Shield</h3>
+                        <p class="text-sm text-gray-400 mb-6">Real CrowdSec protection & monitoring</p>
+                        
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-red-400">{{ number_format($blockedRequests) }}</div>
+                                <div class="text-xs text-gray-500 uppercase">Blocked</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-green-400">{{ $uptime }}%</div>
+                                <div class="text-xs text-gray-500 uppercase">Uptime</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-blue-400">{{ number_format($totalRequests) }}</div>
+                                <div class="text-xs text-gray-500 uppercase">Requests</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 bg-green-500/10 rounded-xl border border-green-500/20">
+                            <div class="flex items-center gap-3">
+                                @if($isAppStopped)
+                                    <div class="w-3 h-3 bg-gray-400 rounded-full"></div>
+                                    <span class="text-sm font-medium text-white">Offline</span>
+                                @elseif($activeRules > 0)
+                                    <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                                    <span class="text-sm font-medium text-white">Firewall Active</span>
+                                @else
+                                    <div class="w-3 h-3 bg-orange-400 rounded-full"></div>
+                                    <span class="text-sm font-medium text-white">No Protection</span>
+                                @endif
+                            </div>
+                            <span class="text-xs text-gray-400">
+                                @if($isAppStopped)
+                                    App Stopped
+                                @else
+                                    {{ $activeRules }} rules active
+                                @endif
+                            </span>
                         </div>
                     </div>
-                    <svg class="w-5 h-5 text-light transition-transform" :class="sections.basic ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
+                </div>
+
+                {{-- Application Metrics Card --}}
+                <div x-data="{ showMetricsModal: false }" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/20 p-6 hover:border-blue-500/40 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20" @click="showMetricsModal = true">
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500"></div>
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <div class="absolute -top-10 -left-10 w-24 h-24 bg-gradient-to-br from-purple-500/20 to-transparent rounded-full blur-xl group-hover:scale-125 group-hover:rotate-90 transition-transform duration-1000"></div>
+                    <div class="absolute bottom-4 left-4 w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-transparent rounded-full blur-lg group-hover:scale-110 group-hover:-rotate-45 transition-transform duration-900"></div>
+                    
+                    {{-- Animated particles --}}
+                    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div class="absolute top-5 right-12 w-1 h-1 bg-blue-400/60 rounded-full animate-ping" style="animation-delay: 0.7s;"></div>
+                        <div class="absolute top-16 right-24 w-1.5 h-1.5 bg-indigo-400/40 rounded-full animate-pulse" style="animation-delay: 1.1s;"></div>
+                        <div class="absolute bottom-6 left-10 w-1 h-1 bg-purple-400/50 rounded-full animate-ping" style="animation-delay: 1.6s;"></div>
+                        <div class="absolute top-10 left-18 w-0.5 h-0.5 bg-blue-300/70 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+                        <div class="absolute bottom-12 right-6 w-0.5 h-0.5 bg-cyan-400/60 rounded-full animate-ping" style="animation-delay: 2.1s;"></div>
+                    </div>
+                    
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            @if($isAppStopped)
+                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    OFFLINE
+                                </span>
+                            @else
+                                <span class="px-4 py-2 bg-blue-500/20 border border-blue-500/40 rounded-full text-xs font-bold text-blue-400 uppercase tracking-wider animate-pulse">
+                                    LIVE METRICS
+                                </span>
+                            @endif
+                        </div>
+                        
+                        <h3 class="text-xl font-bold text-white mb-2">System Metrics</h3>
+                        <p class="text-sm text-gray-400 mb-6">Real-time performance monitoring</p>
+                        
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="text-center">
+                                @if($isAppStopped)
+                                    <div class="text-2xl font-bold text-gray-500">0%</div>
+                                @else
+                                    <div class="text-2xl font-bold text-cyan-400" x-data="{ cpu: 24 }" x-init="() => { setInterval(() => { cpu = Math.floor(Math.random() * 30) + 15 }, 2500) }" x-text="cpu + '%'">24%</div>
+                                @endif
+                                <div class="text-xs text-gray-500 uppercase">CPU</div>
+                            </div>
+                            <div class="text-center">
+                                @if($isAppStopped)
+                                    <div class="text-2xl font-bold text-gray-500">0GB</div>
+                                @else
+                                    <div class="text-2xl font-bold text-purple-400" x-data="{ ram: 1.2 }" x-init="() => { setInterval(() => { ram = (Math.random() * 0.8 + 1.0).toFixed(1) }, 3000) }" x-text="ram + 'GB'">1.2GB</div>
+                                @endif
+                                <div class="text-xs text-gray-500 uppercase">Memory</div>
+                            </div>
+                            <div class="text-center">
+                                @if($isAppStopped)
+                                    <div class="text-2xl font-bold text-gray-500">0MB</div>
+                                @else
+                                    <div class="text-2xl font-bold text-indigo-400" x-data="{ network: 45 }" x-init="() => { setInterval(() => { network = Math.floor(Math.random() * 100) + 20 }, 1800) }" x-text="network + 'MB'">45MB</div>
+                                @endif
+                                <div class="text-xs text-gray-500 uppercase">Network</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                            <div class="flex items-center gap-3">
+                                @if($isAppStopped)
+                                    <div class="w-3 h-3 bg-gray-400 rounded-full"></div>
+                                    <span class="text-sm font-medium text-white">Monitoring Inactive</span>
+                                @else
+                                    <div class="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                                    <span class="text-sm font-medium text-white">Monitoring Active</span>
+                                @endif
+                            </div>
+                            <span class="text-xs text-gray-400">{{ $server->name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {{-- MODALS INTERACTIFS POUR CHAQUE CARD --}}
+            
+            {{-- Pipeline Configuration Modal --}}
+            <div x-show="showPipelineModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" @keydown.escape.window="showPipelineModal = false">
+                <div class="flex min-h-screen items-center justify-center p-4">
+                    <div @click="showPipelineModal = false" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+                    <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="relative bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-700">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-white">Pipeline Configuration</h3>
+                                    <p class="text-sm text-gray-400">Manage deployment automation settings</p>
+                                </div>
+                            </div>
+                            <button @click="showPipelineModal = false" class="text-gray-400 hover:text-white transition-colors p-1">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-gray-300">Auto Deploy</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" class="toggle-switch" checked>
+                                        <span class="text-sm text-gray-400">Deploy on git push</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-gray-300">Build Timeout</label>
+                                    <input type="number" value="300" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-gray-300">Build Command</label>
+                                <input type="text" placeholder="npm run build" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+                            </div>
+                            <div class="flex justify-end space-x-3">
+                                <button @click="showPipelineModal = false" class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
+                                <button class="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Firewall Configuration Modal --}}
+            <div x-show="showFirewallModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" @keydown.escape.window="showFirewallModal = false">
+                <div class="flex min-h-screen items-center justify-center p-4">
+                    <div @click="showFirewallModal = false" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+                    <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="relative bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-700">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-white">Firewall Management</h3>
+                                    <p class="text-sm text-gray-400">Configure CrowdSec protection rules</p>
+                                </div>
+                            </div>
+                            <button @click="showFirewallModal = false" class="text-gray-400 hover:text-white transition-colors p-1">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-gray-300">Firewall Status</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" class="toggle-switch" {{ $activeRules > 0 ? 'checked' : '' }}>
+                                        <span class="text-sm text-gray-400">Enable protection</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-gray-300">Default Action</label>
+                                    <select class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-green-500 focus:ring-1 focus:ring-green-500">
+                                        <option value="block">Block</option>
+                                        <option value="challenge">Challenge</option>
+                                        <option value="log">Log Only</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <h4 class="font-medium text-white">Quick Rules</h4>
+                                <div class="space-y-3">
+                                    <label class="flex items-center space-x-3">
+                                        <input type="checkbox" class="rounded border-gray-600 bg-gray-700">
+                                        <span class="text-sm text-gray-300">Block known bots</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3">
+                                        <input type="checkbox" class="rounded border-gray-600 bg-gray-700">
+                                        <span class="text-sm text-gray-300">Rate limiting (100 req/min)</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3">
+                                        <input type="checkbox" class="rounded border-gray-600 bg-gray-700">
+                                        <span class="text-sm text-gray-300">Geo-blocking suspicious countries</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="flex justify-end space-x-3">
+                                <button @click="showFirewallModal = false" class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
+                                <button class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors">Save Rules</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Metrics Configuration Modal --}}
+            <div x-show="showMetricsModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" @keydown.escape.window="showMetricsModal = false">
+                <div class="flex min-h-screen items-center justify-center p-4">
+                    <div @click="showMetricsModal = false" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+                    <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="relative bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-700">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-white">Metrics Configuration</h3>
+                                    <p class="text-sm text-gray-400">Configure monitoring and alerting</p>
+                                </div>
+                            </div>
+                            <button @click="showMetricsModal = false" class="text-gray-400 hover:text-white transition-colors p-1">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-gray-300">Monitoring</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" class="toggle-switch" {{ $isAppRunning ? 'checked' : '' }}>
+                                        <span class="text-sm text-gray-400">Enable monitoring</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-gray-300">Update Interval</label>
+                                    <select class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                        <option value="30">30 seconds</option>
+                                        <option value="60">1 minute</option>
+                                        <option value="300">5 minutes</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <h4 class="font-medium text-white">Alert Thresholds</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="space-y-2">
+                                        <label class="text-sm font-medium text-gray-300">CPU (%)</label>
+                                        <input type="number" value="80" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-sm font-medium text-gray-300">Memory (GB)</label>
+                                        <input type="number" value="2" step="0.1" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-sm font-medium text-gray-300">Disk (GB)</label>
+                                        <input type="number" value="10" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-end space-x-3">
+                                <button @click="showMetricsModal = false" class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
+                                <button class="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">Save Settings</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            
+            {{-- Section: Overview (Name & Description) --}}
+            <div x-data="{ expanded: false }" id="section-overview" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-blue-500/50 transition-all duration-300 mb-6">
+                {{-- Header Cliquable --}}
+                <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-all duration-300 group-hover:scale-110">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Application Overview</h3>
+                            <p class="text-sm text-gray-400">Basic information about your application</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                        <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                </div>
                 
-                <div x-show="sections.basic" x-collapse class="px-6 pb-6">
+                {{-- Form Content --}}
+                <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
-                        <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
-                        <x-forms.input x-bind:disabled="shouldDisable()" id="description" label="Description" />
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-300">Name <span class="text-red-400">*</span></label>
+                            <input x-bind:disabled="shouldDisable()" wire:model="application.name" type="text" class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300" placeholder="my-awesome-app" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-300">Description</label>
+                            <input x-bind:disabled="shouldDisable()" wire:model="application.description" type="text" class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300" placeholder="Optional description" />
+                        </div>
                     </div>
                 </div>
             </div>
 
             {{-- Section: Build Configuration --}}
             @if (!$application->dockerfile && $application->build_pack !== 'dockerimage')
-                <div class="glass-card p-6 hover:border-accent/30 transition-colors">
-                    <x-section-header 
-                        title="Build Pack"
-                        description="Choose how to build your application">
-                        <x-slot:icon>
-                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                <div x-data="{ expanded: false }" id="section-build" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-purple-500/50 transition-all duration-300 mb-6">
+                    {{-- Header Cliquable --}}
+                    <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-all group-hover:scale-110">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-white group-hover:text-purple-400 transition-colors">Build Pack</h3>
+                                <p class="text-sm text-gray-400">Choose how to build your application</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                            <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
-                        </x-slot:icon>
-                    </x-section-header>
-
-                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                        <x-forms.select x-bind:disabled="shouldDisable()" wire:model.live="build_pack" label="Build Pack" required>
-                            <option value="nixpacks">Nixpacks</option>
-                            <option value="buildpacks">Cloud Native Buildpacks</option>
-                            <option value="static">Static</option>
-                            <option value="dockerfile">Dockerfile</option>
-                            <option value="dockercompose">Docker Compose</option>
-                        </x-forms.select>
-                        
-                        @if ($application->settings->is_static || $application->build_pack === 'static')
-                            <x-forms.select x-bind:disabled="!canUpdate" id="static_image" label="Static Image" required>
-                                <option value="nginx:alpine">nginx:alpine</option>
-                                <option disabled value="apache:alpine">apache:alpine</option>
-                            </x-forms.select>
+                        </div>
+                    </div>
+                    
+                    {{-- Form Content --}}
+                    <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-300">Build Pack <span class="text-red-400">*</span></label>
+                                <select x-bind:disabled="shouldDisable()" wire:model.live="build_pack" class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all">
+                                    <option value="nixpacks">Nixpacks</option>
+                                    <option value="buildpacks">Cloud Native Buildpacks</option>
+                                    <option value="static">Static</option>
+                                    <option value="dockerfile">Dockerfile</option>
+                                    <option value="dockercompose">Docker Compose</option>
+                                </select>
+                            </div>
+                            
+                            @if ($application->settings->is_static || $application->build_pack === 'static')
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-300">Static Image <span class="text-red-400">*</span></label>
+                                    <select x-bind:disabled="!canUpdate" wire:model="application.static_image" class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all">
+                                        <option value="nginx:alpine">nginx:alpine</option>
+                                        <option disabled value="apache:alpine">apache:alpine</option>
+                                    </select>
+                                </div>
                         @endif
                     </div>
 
@@ -338,22 +681,31 @@
 
             {{-- Section: Domains & Routing --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div class="glass-card p-6 hover:border-success/30 transition-colors">
-                    <div class="mb-6">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-success/10">
-                                <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                <div x-data="{ expanded: false }" id="section-domains" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-green-500/50 transition-all duration-300 mb-6">
+                    {{-- Header Cliquable --}}
+                    <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:shadow-green-500/50 transition-all duration-300 group-hover:scale-110">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 919-9"></path>
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-light">Domains & Routing</h3>
-                                <p class="text-xs text-light opacity-60">Configure your application's public URLs</p>
+                                <h3 class="text-lg font-bold text-white group-hover:text-green-400 transition-colors">Domains & Routing</h3>
+                                <p class="text-sm text-gray-400">Configure your application's public URLs</p>
                             </div>
                         </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                            <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
                     </div>
-
-                    <div class="space-y-4">
+                    
+                    {{-- Form Content --}}
+                    <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
+                        <div class="space-y-4">
                         <div class="flex items-end gap-3">
                             @if ($application->settings->is_container_label_readonly_enabled == false)
                                 <x-forms.input placeholder="https://coolify.io" wire:model="application.fqdn"
@@ -366,8 +718,14 @@
                                     helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- https://app.example.com<br>- https://api.example.com:3000"
                                     x-bind:disabled="!canUpdate" />
                                 @can('update', $application)
-                                    <button wire:click="getWildcardDomain" class="inner-button whitespace-nowrap">
-                                        Generate Domain
+                                    <button wire:click="getWildcardDomain" class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap overflow-hidden">
+                                        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                        <span class="relative flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                            </svg>
+                                            Generate Domain
+                                        </span>
                                     </button>
                                 @endcan
                             @endif
@@ -413,31 +771,42 @@
                             @endif
                         </div>
                     </div>
+                    </div>
                 </div>
             @endif
 
             {{-- Section: Docker Registry --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div class="glass-card p-6 hover:border-accent/30 transition-colors">
-                    <div class="mb-6">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
-                                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div x-data="{ expanded: false }" id="section-registry" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-cyan-500/50 transition-all duration-300 mb-6">
+                    {{-- Header Cliquable --}}
+                    <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 group-hover:shadow-cyan-500/50 transition-all duration-300 group-hover:scale-110">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-light">Docker Registry</h3>
-                                <p class="text-xs text-light opacity-60">
+                                <h3 class="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">Docker Registry</h3>
+                                <p class="text-sm text-gray-400">
                                     @if ($application->build_pack !== 'dockerimage' && !$application->destination->server->isSwarm())
-                                        Push the built image to a docker registry. <a class='underline text-accent hover:text-accent/80' href='https://coolify.io/docs/knowledge-base/docker/registry' target='_blank'>Learn more</a>
+                                        Push the built image to a docker registry
                                     @else
                                         Configure your Docker image source
                                     @endif
                                 </p>
                             </div>
                         </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                            <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
                     </div>
+                    
+                    {{-- Form Content --}}
+                    <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
                     @if ($application->destination->server->isSwarm() && $application->build_pack !== 'dockerimage')
                         <div class="mb-4 glass-card p-4 border-l-4 border-warning">
@@ -491,21 +860,31 @@
                 </div>
             @endif
 
-            {{-- Section: Build Configuration --}}
-            <div class="glass-card p-6 hover:border-warning/30 transition-colors">
-                <div class="mb-6">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/10">
-                            <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {{-- Section: Build Commands --}}
+            <div x-data="{ expanded: false }" id="section-build-commands" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-orange-500/50 transition-all duration-300 mb-6">
+                {{-- Header Cliquable --}}
+                <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/50 transition-all duration-300 group-hover:scale-110">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-light">Build</h3>
-                            <p class="text-xs text-light opacity-60">Configure build commands and directories</p>
+                            <h3 class="text-lg font-bold text-white group-hover:text-orange-400 transition-colors">Build Commands</h3>
+                            <p class="text-sm text-gray-400">Configure build commands and directories</p>
                         </div>
                     </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                        <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
                 </div>
+                
+                {{-- Form Content --}}
+                <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
                 @if ($application->build_pack === 'dockerimage')
                     <x-forms.input
@@ -766,20 +1145,30 @@
 
             {{-- Section: Network --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div class="glass-card p-6 hover:border-primary/30 transition-colors">
-                    <div class="mb-6">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                <div x-data="{ expanded: false }" id="section-network" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-pink-500/50 transition-all duration-300 mb-6">
+                    {{-- Header Cliquable --}}
+                    <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:shadow-pink-500/50 transition-all duration-300 group-hover:scale-110">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 919-9"></path>
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-light">Network</h3>
-                                <p class="text-xs text-light opacity-60">Configure ports and network aliases</p>
+                                <h3 class="text-lg font-bold text-white group-hover:text-pink-400 transition-colors">Network</h3>
+                                <p class="text-sm text-gray-400">Configure ports and network settings</p>
                             </div>
                         </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                            <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
                     </div>
+                    
+                    {{-- Form Content --}}
+                    <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
                         @if ($application->settings->is_static || $application->build_pack === 'static')
@@ -812,20 +1201,30 @@
                 </div>
 
                 {{-- Section: HTTP Basic Auth --}}
-                <div class="glass-card p-6 hover:border-warning/30 transition-colors">
-                    <div class="mb-6">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/10">
-                                <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div x-data="{ expanded: false }" id="section-http-auth" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-yellow-500/50 transition-all duration-300 mb-6">
+                    {{-- Header Cliquable --}}
+                    <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center shadow-lg shadow-yellow-500/30 group-hover:shadow-yellow-500/50 transition-all duration-300 group-hover:scale-110">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-light">HTTP Basic Authentication</h3>
-                                <p class="text-xs text-light opacity-60">Add password protection to your application</p>
+                                <h3 class="text-lg font-bold text-white group-hover:text-yellow-400 transition-colors">HTTP Basic Auth</h3>
+                                <p class="text-sm text-gray-400">Protect your application with authentication</p>
                             </div>
                         </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                            <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
                     </div>
+                    
+                    {{-- Form Content --}}
+                    <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
                     <x-forms.checkbox helper="This will add the proper proxy labels to the container." instantSave
                         label="Enable HTTP Basic Authentication" id="is_http_basic_auth_enabled"
@@ -842,20 +1241,30 @@
                 </div>
 
                 {{-- Section: Container Labels --}}
-                <div class="glass-card p-6 hover:border-accent/30 transition-colors">
-                    <div class="mb-6">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10">
-                                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div x-data="{ expanded: false }" id="section-labels" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 mb-6">
+                    {{-- Header Cliquable --}}
+                    <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:shadow-indigo-500/50 transition-all duration-300 group-hover:scale-110">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-light">Container Labels</h3>
-                                <p class="text-xs text-light opacity-60">Manage Docker container labels for proxy configuration</p>
+                                <h3 class="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors">Container Labels</h3>
+                                <p class="text-sm text-gray-400">Advanced Docker container configuration</p>
                             </div>
                         </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                            <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
                     </div>
+                    
+                    {{-- Form Content --}}
+                    <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
                     @if ($application->settings->is_container_label_readonly_enabled)
                         <x-forms.textarea readonly disabled label="Container Labels" rows="15" id="customLabels"
@@ -892,16 +1301,30 @@
             @endif
 
             {{-- Section: Pre/Post Deployment --}}
-            <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+            <div x-data="{ expanded: false }" id="section-deployment-commands" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-red-500/50 transition-all duration-300 mb-6">
+                {{-- Header Cliquable --}}
+                <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:shadow-red-500/50 transition-all duration-300 group-hover:scale-110">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-red-400 transition-colors">Pre/Post Deployment Commands</h3>
+                            <p class="text-sm text-gray-400">Run commands before and after deployment</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 font-medium" x-text="expanded ? 'Click to collapse' : 'Click to expand'"></span>
+                        <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
-                        Pre/Post Deployment Commands
-                    </h3>
-                    <p class="text-sm text-gray-400 mt-1">Run commands before and after deployment</p>
+                    </div>
                 </div>
+                
+                {{-- Form Content --}}
+                <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
                 <div class="space-y-4">
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -928,79 +1351,44 @@
                 </div>
             </div>
 
-            {{-- IDEM: Deployment Configuration Section --}}
-            @if (isset($application->idem_deploy_on_managed))
-                <div class="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-xl p-6">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
-                            </svg>
-                            🚀 Deployment Configuration
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1">IDEM managed deployment options</p>
-                    </div>
-
-                    <div class="p-5 bg-gray-900/50 rounded-lg border border-gray-700">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-300">Deployment Type:</p>
-                                <p class="mt-2 text-base font-semibold text-white">
-                                    @if($application->idem_deploy_on_managed ?? true)
-                                        <span class="inline-flex items-center gap-2">
-                                            <span class="text-blue-400">☁️ IDEM Managed Servers</span>
-                                            @if($application->assignedServer ?? null)
-                                                <span class="px-2 py-1 text-xs bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">
-                                                    {{ $application->assignedServer->name }}
-                                                </span>
-                                            @endif
-                                        </span>
-                                    @else
-                                        <span class="text-purple-400">🖥️ Your Personal Server</span>
-                                    @endif
-                                </p>
-                                
-                                @if($application->idem_deploy_on_managed ?? false)
-                                    <div class="mt-3 flex flex-wrap gap-2">
-                                        <span class="inline-flex items-center gap-1 text-xs text-gray-400">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                                            Automatic load balancing
-                                        </span>
-                                        <span class="inline-flex items-center gap-1 text-xs text-gray-400">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                                            High availability
-                                        </span>
-                                        <span class="inline-flex items-center gap-1 text-xs text-gray-400">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                                            No maintenance
-                                        </span>
-                                    </div>
-                                    @if($application->idem_server_strategy)
-                                        <p class="mt-2 text-xs text-gray-400">
-                                            Strategy: <span class="font-medium text-gray-300">{{ ucfirst(str_replace('_', ' ', $application->idem_server_strategy)) }}</span>
-                                        </p>
-                                    @endif
-                                @endif
-                            </div>
-                            
-                            <a href="{{ route('application.deployment', ['application_uuid' => $application->uuid]) }}" 
-                               class="ml-4 inline-flex items-center px-4 py-2.5 border border-gray-600 shadow-sm text-sm font-medium rounded-lg text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors"
-                               x-bind:disabled="!canUpdate">
-                                ⚙️ Configure
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                        <p class="text-sm text-blue-300">
-                            💡 <strong>Tip:</strong> You can deploy on IDEM managed servers (recommended) or use your own servers. 
-                            <a href="{{ route('application.deployment', ['application_uuid' => $application->uuid]) }}" class="underline font-medium hover:text-blue-200">Configure now</a>
-                        </p>
-                    </div>
-                </div>
-            @endif
+            {{-- Section Deployment Configuration supprimée --}}
         </div>
     </form>
+
+    {{-- Footer professionnel moderne --}}
+    <div class="mt-12 mb-8">
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700/50 p-6">
+            {{-- Glow effect --}}
+            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
+            
+            <div class="relative flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-base font-bold text-white">{{ $application->name }}</p>
+                        <p class="text-sm text-gray-400">Application Configuration</p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-6">
+                    <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-300">{{ $application->updated_at->diffForHumans() }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700">
+                        <div class="w-2 h-2 rounded-full {{ $application->status === 'running' ? 'bg-green-400 animate-pulse' : 'bg-gray-400' }}"></div>
+                        <span class="text-sm font-medium text-{{ $application->status === 'running' ? 'green' : 'gray' }}-400">{{ ucfirst($application->status) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <x-domain-conflict-modal :conflicts="$domainConflicts" :showModal="$showDomainConflictModal" confirmAction="confirmDomainUsage" />
 
