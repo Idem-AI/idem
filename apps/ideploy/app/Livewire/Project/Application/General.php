@@ -508,6 +508,18 @@ class General extends Component
         }
     }
 
+    public function updatedName($value)
+    {
+        // Sync name to model immediately when it changes
+        $this->application->name = $value;
+    }
+
+    public function updatedDescription($value)
+    {
+        // Sync description to model immediately when it changes
+        $this->application->description = $value;
+    }
+
     public function updatedBaseDirectory()
     {
         if ($this->build_pack === 'dockercompose') {
@@ -906,52 +918,70 @@ class General extends Component
 
     public function render()
     {
-        // Pipeline Card Data - Use ApplicationDeploymentQueue directly
-        $deploymentsQuery = \App\Models\ApplicationDeploymentQueue::where('application_id', $this->application->id)
-            ->orderBy('created_at', 'desc');
+        // Pipeline Card Data - ONLY use PipelineExecution data, NOT deployments
+        $pipelineConfig = $this->application->pipelineConfig;
         
-        $totalDeployments = $deploymentsQuery->count();
-        $isPipelineActive = $totalDeployments > 0;
+        // Count ONLY pipeline executions (not deployments!)
+        $totalExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)->count();
         
-        $successfulDeployments = \App\Models\ApplicationDeploymentQueue::where('application_id', $this->application->id)
-            ->where('status', 'finished')
-            ->count();
-        $successRate = $totalDeployments > 0 ? round(($successfulDeployments / $totalDeployments) * 100) : 0;
+        // Pipeline is active ONLY if config exists, is enabled AND has at least one execution
+        $isPipelineActive = $pipelineConfig && $pipelineConfig->enabled && $totalExecutions > 0;
         
-        // Calculate average time from created_at to updated_at for finished deployments
-        $completedDeployments = \App\Models\ApplicationDeploymentQueue::where('application_id', $this->application->id)
-            ->where('status', 'finished')
-            ->get();
-        
-        $averageTime = 0;
-        if ($completedDeployments->count() > 0) {
-            $totalMinutes = $completedDeployments->sum(function($deployment) {
-                return $deployment->created_at->diffInMinutes($deployment->updated_at);
-            });
-            $averageTime = round($totalMinutes / $completedDeployments->count());
+        if ($isPipelineActive) {
+            $successfulExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)
+                ->where('status', 'success')
+                ->count();
+            $successRate = $totalExecutions > 0 ? round(($successfulExecutions / $totalExecutions) * 100) : 0;
+            
+            // Calculate average time from started_at to finished_at for completed executions
+            $completedExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)
+                ->whereNotNull('finished_at')
+                ->get();
+            
+            $averageTime = 0;
+            if ($completedExecutions->count() > 0) {
+                $totalMinutes = $completedExecutions->sum(function($execution) {
+                    return $execution->started_at->diffInMinutes($execution->finished_at);
+                });
+                $averageTime = round($totalMinutes / $completedExecutions->count());
+            }
+            
+            $lastExecution = \App\Models\PipelineExecution::where('application_id', $this->application->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            $isExecutionInProgress = \App\Models\PipelineExecution::where('application_id', $this->application->id)
+                ->whereIn('status', ['pending', 'running'])
+                ->exists();
+        } else {
+            // If pipeline not active or no executions, show zeros
+            $successRate = 0;
+            $averageTime = 0;
+            $lastExecution = null;
+            $isExecutionInProgress = false;
         }
-        
-        $lastDeployment = $deploymentsQuery->first();
-        $isDeploymentInProgress = \App\Models\ApplicationDeploymentQueue::where('application_id', $this->application->id)
-            ->whereIn('status', ['in_progress', 'queued'])
-            ->exists();
 
+        // Application Status
+        $isAppRunning = $this->application->isRunning();
+        $isAppStopped = $this->application->isExited() || !$isAppRunning;
+        $appRealStatus = $this->application->realStatus();
+        
         // Firewall/Security Card Data
-        $firewallConfig = optional($this->application)->firewall_config;
-        $isAppStopped = $this->application->status === 'exited';
+        $firewallConfig = $this->application->firewallConfig;
         $activeRules = $firewallConfig ? $firewallConfig->rules()->where('enabled', true)->count() : 0;
-        $blockedRequests = $firewallConfig ? $firewallConfig->traffic_logs()->where('decision', 'ban')->count() : 0;
-        $totalRequests = $firewallConfig ? $firewallConfig->traffic_logs()->count() : 0;
-        $uptime = 99.9; // Default uptime
+        $blockedRequests = $firewallConfig ? $firewallConfig->trafficLogs()->where('decision', 'ban')->count() : 0;
+        $totalRequests = $firewallConfig ? $firewallConfig->trafficLogs()->count() : 0;
+        $uptime = $firewallConfig && $totalRequests > 0 ? round((($totalRequests - $blockedRequests) / $totalRequests) * 100, 1) : 99.9;
 
         return view('livewire.project.application.general', [
             'isPipelineActive' => $isPipelineActive,
-            'totalDeployments' => $totalDeployments,
+            'totalDeployments' => $totalExecutions,
             'successRate' => $successRate,
             'averageTime' => $averageTime,
-            'lastDeployment' => $lastDeployment,
-            'isDeploymentInProgress' => $isDeploymentInProgress,
+            'lastDeployment' => $lastExecution,
+            'isDeploymentInProgress' => $isExecutionInProgress,
+            'isAppRunning' => $isAppRunning,
             'isAppStopped' => $isAppStopped,
+            'appRealStatus' => $appRealStatus,
             'activeRules' => $activeRules,
             'blockedRequests' => $blockedRequests,
             'totalRequests' => $totalRequests,
