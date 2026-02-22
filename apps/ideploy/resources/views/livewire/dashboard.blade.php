@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-[#0a0e1a] text-white p-6">
+<div class="min-h-screen text-white" style="font-family: 'Jura', sans-serif;">
     <x-slot:title>
         Dashboard | iDeploy
     </x-slot>
@@ -8,30 +8,66 @@
     @endif
     
     @if (request()->query->get('success'))
-        <div class="mb-10 font-bold alert alert-success">
-            Your subscription has been activated! Welcome onboard! It could take a few seconds before your
-            subscription is activated.<br> Please be patient.
+        <div class="mx-6 mt-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/10 border border-green-500/30 rounded-xl text-green-300 font-medium">
+            ✅ Your subscription has been activated! Welcome onboard! It could take a few seconds before your subscription is activated. Please be patient.
         </div>
     @endif
 
+    {{-- Hero Header --}}
+    <div class="px-6 pt-12 pb-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border border-blue-500/30 rounded-2xl p-8 mb-8 shadow-2xl shadow-blue-500/10">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-5xl font-bold mb-3" style="background: linear-gradient(135deg, #ffffff 0%, #3ca4fa 50%, #22d3ee 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                            Welcome back! 🚀
+                        </h1>
+                        <p class="text-gray-300 text-lg font-medium">Manage your projects and deployments</p>
+                    </div>
+                    <div class="hidden md:flex items-center gap-4">
+                        <div class="bg-blue-500/10 border border-blue-500/30 px-6 py-3 rounded-xl">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                                <span class="text-blue-300 text-sm font-bold tracking-wide">{{ count($projects) }} {{ count($projects) === 1 ? 'PROJECT' : 'PROJECTS' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Projects Section --}}
-    <section class="mb-8">
-        <h2 class="text-2xl font-light mb-4 text-gray-100">Projects</h2>
+    <section class="px-6 pb-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-3xl font-bold text-white tracking-wide">PROJECTS</h2>
+                </div>
+            </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {{-- Create New Project Card --}}
             @can('createAnyResource')
             <x-modal-input buttonTitle="" title="New Project">
                 <x-slot:content>
-                    <div class="group cursor-pointer bg-[#151b2e] border-2 border-dashed border-gray-600 hover:border-blue-500 rounded-xl p-6 transition-all duration-300 hover:bg-[#1a2137] min-h-[240px] flex items-center justify-center">
-                        <div class="text-center">
-                            <div class="w-12 h-12 mx-auto mb-3 bg-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    <div class="group cursor-pointer bg-gradient-to-br from-gray-900/50 to-gray-800/30 border-2 border-dashed border-gray-700 hover:border-blue-500 rounded-2xl p-10 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-105 min-h-[300px] flex items-center justify-center relative overflow-hidden">
+                        {{-- Animated background glow --}}
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-600/0 via-purple-600/0 to-blue-600/0 group-hover:from-blue-600/10 group-hover:via-purple-600/10 group-hover:to-blue-600/10 transition-all duration-500"></div>
+                        
+                        <div class="text-center relative z-10">
+                            <div class="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-blue-600 to-blue-500 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg shadow-blue-500/30">
+                                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/>
                                 </svg>
                             </div>
-                            <h3 class="text-base font-semibold text-gray-200 mb-1">Create a new project</h3>
-                            <p class="text-xs text-gray-500">Start a new project</p>
+                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors tracking-wide">CREATE NEW PROJECT</h3>
+                            <p class="text-sm text-gray-400 font-medium">Start building something amazing</p>
                         </div>
                     </div>
                 </x-slot:content>
@@ -50,18 +86,50 @@
                     foreach ($project->environments ?? [] as $environment) {
                         // Applications
                         if (isset($environment->applications)) {
-                            $totalResources += $environment->applications->count();
-                            $activeResources += $environment->applications->where('status', 'running')->count();
-                            if ($environment->applications->count() > 0 && !in_array('Web Application', $resourceTypes)) {
+                            $apps = $environment->applications;
+                            $totalResources += $apps->count();
+                            // Vérifier différents formats de status
+                            $activeResources += $apps->filter(function($app) {
+                                try {
+                                    // Accès direct à l'attribut status
+                                    $status = $app->status;
+                                    if (is_string($status)) {
+                                        // Le status peut être "running:healthy" ou juste "running"
+                                        return str_starts_with($status, 'running');
+                                    }
+                                    // Si c'est un enum
+                                    if (is_object($status) && method_exists($status, '__toString')) {
+                                        return str_starts_with((string)$status, 'running');
+                                    }
+                                    return false;
+                                } catch (\Exception $e) {
+                                    return false;
+                                }
+                            })->count();
+                            if ($apps->count() > 0 && !in_array('Web Application', $resourceTypes)) {
                                 $resourceTypes[] = 'Web Application';
                             }
                         }
                         
                         // Services
                         if (isset($environment->services)) {
-                            $totalResources += $environment->services->count();
-                            $activeResources += $environment->services->filter(fn($s) => $s->status === 'running')->count();
-                            if ($environment->services->count() > 0 && !in_array('Service', $resourceTypes)) {
+                            $services = $environment->services;
+                            $totalResources += $services->count();
+                            $activeResources += $services->filter(function($s) {
+                                try {
+                                    $status = $s->status;
+                                    if (is_string($status)) {
+                                        return str_starts_with($status, 'running');
+                                    }
+                                    if (is_object($status) && method_exists($status, '__toString')) {
+                                        return str_starts_with((string)$status, 'running');
+                                    }
+                                    return false;
+                                } catch (\Exception $e) {
+                                    return false;
+                                }
+                            })->count();
+                            if ($services->count() > 0 && !in_array('Service', $resourceTypes)) {
                                 $resourceTypes[] = 'Service';
                             }
                         }
@@ -70,8 +138,22 @@
                         $dbTypes = ['postgresqls', 'mysqls', 'mariadbs', 'mongodbs', 'redis'];
                         foreach ($dbTypes as $dbType) {
                             if (isset($environment->$dbType) && $environment->$dbType->count() > 0) {
-                                $totalResources += $environment->$dbType->count();
-                                $activeResources += $environment->$dbType->where('status', 'running')->count();
+                                $dbs = $environment->$dbType;
+                                $totalResources += $dbs->count();
+                                $activeResources += $dbs->filter(function($db) {
+                                    try {
+                                        $status = $db->status;
+                                        if (is_string($status)) {
+                                            return str_starts_with($status, 'running');
+                                        }
+                                        if (is_object($status) && method_exists($status, '__toString')) {
+                                            return str_starts_with((string)$status, 'running');
+                                        }
+                                        return false;
+                                    } catch (\Exception $e) {
+                                        return false;
+                                    }
+                                })->count();
                                 if (!in_array('Database', $resourceTypes)) {
                                     $resourceTypes[] = 'Database';
                                 }
@@ -90,18 +172,23 @@
                 @endphp
                 
                 <a href="{{ $project->navigateTo() }}" class="group block">
-                    <div class="bg-[#151b2e] hover:bg-[#1a2137] border border-gray-700 hover:border-gray-600 rounded-xl overflow-hidden transition-all duration-300 min-h-[260px] flex flex-col">
+                    <div class="relative bg-gradient-to-br from-gray-900/90 to-gray-800/60 border-2 border-gray-700/50 hover:border-blue-500/60 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-[1.02] min-h-[320px] flex flex-col">
+                        {{-- Glow effect on hover --}}
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-blue-500/0 group-hover:from-blue-500/8 group-hover:via-purple-500/8 group-hover:to-blue-500/8 transition-all duration-500 pointer-events-none"></div>
+                        
+                        {{-- Content --}}
+                        <div class="relative z-10 flex flex-col h-full">
                         {{-- Header avec Logo et Titre --}}
-                        <div class="p-4 border-b border-gray-700/50">
-                            <div class="flex items-start gap-3">
-                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
-                                    <span class="text-lg font-bold text-white">{{ strtoupper(substr($project->name, 0, 1)) }}</span>
+                        <div class="p-6 border-b border-gray-700/50 bg-gradient-to-br from-gray-800/30 to-transparent">
+                            <div class="flex items-start gap-4">
+                                <div class="w-16 h-16 bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-xl shadow-blue-500/40 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 ring-2 ring-blue-500/20">
+                                    <span class="text-2xl font-bold text-white drop-shadow-lg">{{ strtoupper(substr($project->name, 0, 1)) }}</span>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="text-base font-semibold text-gray-100 group-hover:text-blue-400 transition-colors mb-1 truncate">
+                                    <h3 class="text-xl font-bold text-white group-hover:text-blue-400 transition-colors mb-2 truncate tracking-wide">
                                         {{ $project->name }}
                                     </h3>
-                                    <p class="text-xs text-gray-400 line-clamp-1">
+                                    <p class="text-sm text-gray-400 line-clamp-2 font-medium leading-relaxed">
                                         {{ $project->description ?: 'No description available' }}
                                     </p>
                                 </div>
@@ -109,34 +196,37 @@
                         </div>
                         
                         {{-- Resources Summary --}}
-                        <div class="p-3 bg-gray-900/30">
-                            <div class="grid grid-cols-3 gap-2">
+                        <div class="p-6 bg-gradient-to-br from-gray-900/60 to-gray-800/40">
+                            <div class="grid grid-cols-3 gap-3">
                                 {{-- Total --}}
-                                <div class="text-center">
-                                    <div class="text-lg font-bold text-blue-400">{{ $totalResources }}</div>
-                                    <div class="text-[10px] text-gray-500 uppercase tracking-wide">Total</div>
+                                <div class="text-center p-4 bg-gradient-to-br from-blue-500/15 to-blue-600/10 border-2 border-blue-500/30 rounded-xl hover:border-blue-400/50 transition-all duration-300 group/stat">
+                                    <div class="text-4xl font-bold text-blue-400 mb-1 group-hover/stat:scale-110 transition-transform">{{ $totalResources }}</div>
+                                    <div class="text-xs text-blue-300 font-bold tracking-widest uppercase">Total</div>
                                 </div>
                                 {{-- Active --}}
-                                <div class="text-center">
-                                    <div class="text-lg font-bold text-green-400">{{ $activeResources }}</div>
-                                    <div class="text-[10px] text-gray-500 uppercase tracking-wide">Active</div>
+                                <div class="text-center p-4 bg-gradient-to-br from-green-500/15 to-green-600/10 border-2 border-green-500/30 rounded-xl hover:border-green-400/50 transition-all duration-300 group/stat">
+                                    <div class="flex items-center justify-center gap-2 mb-1">
+                                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                        <div class="text-4xl font-bold text-green-400 group-hover/stat:scale-110 transition-transform">{{ $activeResources }}</div>
+                                    </div>
+                                    <div class="text-xs text-green-300 font-bold tracking-widest uppercase">Active</div>
                                 </div>
                                 {{-- Inactive --}}
-                                <div class="text-center">
-                                    <div class="text-lg font-bold text-gray-400">{{ $inactiveResources }}</div>
-                                    <div class="text-[10px] text-gray-500 uppercase tracking-wide">Inactive</div>
+                                <div class="text-center p-4 bg-gradient-to-br from-gray-500/15 to-gray-600/10 border-2 border-gray-500/30 rounded-xl hover:border-gray-400/50 transition-all duration-300 group/stat">
+                                    <div class="text-4xl font-bold text-gray-400 mb-1 group-hover/stat:scale-110 transition-transform">{{ $inactiveResources }}</div>
+                                    <div class="text-xs text-gray-300 font-bold tracking-widest uppercase">Inactive</div>
                                 </div>
                             </div>
                         </div>
                         
                         {{-- Tags Section --}}
-                        <div class="p-3 flex-grow">
-                            <div class="space-y-2">
+                        <div class="p-4 flex-grow">
+                            <div class="space-y-3">
                                 {{-- Resource Type Tags --}}
                                 @if(count($resourceTypes) > 0)
-                                <div class="flex items-center gap-1.5 flex-wrap">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     @foreach($resourceTypes as $type)
-                                        <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-medium bg-gray-700/50 text-gray-300 rounded border border-gray-600">
+                                        <span class="inline-flex items-center px-3 py-1 text-xs font-semibold bg-gradient-to-r from-gray-700 to-gray-600 text-gray-200 rounded-lg border border-gray-600 shadow-sm">
                                             {{ $type }}
                                         </span>
                                     @endforeach
@@ -144,15 +234,15 @@
                                 @endif
                                 
                                 {{-- Category Tags --}}
-                                <div class="flex items-center gap-1.5 flex-wrap">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     @foreach($categoryTags as $tag)
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded
-                                            @if($tag === 'Companies') bg-red-500/20 text-red-400 border border-red-500/30
-                                            @elseif($tag === 'Students') bg-purple-500/20 text-purple-400 border border-purple-500/30
-                                            @elseif($tag === 'Regional') bg-orange-500/20 text-orange-400 border border-orange-500/30
-                                            @else bg-orange-500/20 text-orange-400 border border-orange-500/30
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg shadow-sm
+                                            @if($tag === 'Companies') bg-gradient-to-r from-red-500/20 to-red-600/10 text-red-400 border border-red-500/40
+                                            @elseif($tag === 'Students') bg-gradient-to-r from-purple-500/20 to-purple-600/10 text-purple-400 border border-purple-500/40
+                                            @elseif($tag === 'Regional') bg-gradient-to-r from-orange-500/20 to-orange-600/10 text-orange-400 border border-orange-500/40
+                                            @else bg-gradient-to-r from-orange-500/20 to-orange-600/10 text-orange-400 border border-orange-500/40
                                             @endif">
-                                            <span class="w-1 h-1 rounded-full 
+                                            <span class="w-1.5 h-1.5 rounded-full 
                                                 @if($tag === 'Companies') bg-red-400
                                                 @elseif($tag === 'Students') bg-purple-400
                                                 @elseif($tag === 'Regional') bg-orange-400
@@ -168,11 +258,12 @@
                         {{-- Footer avec Date --}}
                         <div class="px-4 py-2 bg-gray-900/20 border-t border-gray-700/50">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] text-gray-500">Updated {{ $project->updated_at->format('M j, Y') }}</span>
-                                <svg class="w-3 h-3 text-gray-600 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <span class="text-xs text-gray-500">Updated {{ $project->updated_at->format('M j, Y') }}</span>
+                                <svg class="w-4 h-4 text-gray-600 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                 </svg>
                             </div>
+                        </div>
                         </div>
                     </div>
                 </a>
@@ -188,22 +279,39 @@
     </section>
 
     {{-- Servers Section --}}
-    <section>
-        <div class="flex items-center gap-2 mb-4">
-            <h2 class="text-2xl font-light text-gray-100">Servers</h2>
-            @if ($servers->count() > 0 && $privateKeys->count() > 0)
-                <x-modal-input buttonTitle="Add" title="New Server" :closeOutside="false">
-                    <x-slot:content>
-                        <button class="flex items-center justify-center size-8 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-                            <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                        </button>
-                    </x-slot:content>
-                    <livewire:server.create />
-                </x-modal-input>
-            @endif
-        </div>
+    <section class="px-6 pb-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-3xl font-bold text-white tracking-wide">SERVERS</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-purple-500/10 border border-purple-500/30 px-6 py-3 rounded-xl">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                            <span class="text-purple-300 text-sm font-bold tracking-wide">{{ count($servers) }} {{ count($servers) === 1 ? 'SERVER' : 'SERVERS' }}</span>
+                        </div>
+                    </div>
+                    @if ($servers->count() > 0 && $privateKeys->count() > 0)
+                        <x-modal-input buttonTitle="" title="New Server" :closeOutside="false">
+                            <x-slot:content>
+                                <button class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white rounded-lg text-sm font-bold transition-all duration-200 shadow-lg shadow-purple-500/30 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    ADD SERVER
+                                </button>
+                            </x-slot:content>
+                            <livewire:server.create />
+                        </x-modal-input>
+                    @endif
+                </div>
+            </div>
         
         @if ($servers->count() > 0)
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -225,11 +333,11 @@
                     
                     <a href="{{ route('server.show', ['server_uuid' => $server->uuid]) }}" class="group block">
                         <div @class([
-                            'rounded-xl p-4 transition-all duration-300 min-h-[200px] flex flex-col',
-                            'bg-[#151b2e] hover:bg-[#1a2137] border hover:border-gray-600' => true,
-                            'border-emerald-500/30' => $server->isFunctional() && !$hasIssues,
-                            'border-red-500/30' => $hasIssues,
-                            'border-gray-700' => !$server->isFunctional() && !$hasIssues,
+                            'rounded-2xl p-6 transition-all duration-300 min-h-[240px] flex flex-col hover:scale-[1.02]',
+                            'bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-2 hover:shadow-2xl' => true,
+                            'border-emerald-500/50 hover:border-emerald-400/60 hover:shadow-emerald-500/20' => $server->isFunctional() && !$hasIssues,
+                            'border-red-500/50 hover:border-red-400/60 hover:shadow-red-500/20' => $hasIssues,
+                            'border-gray-700/50 hover:border-gray-600/60 hover:shadow-gray-500/10' => !$server->isFunctional() && !$hasIssues,
                         ])>
                             <div class="flex items-start justify-between mb-3">
                                 <div class="flex-1">
@@ -249,38 +357,48 @@
                                 </div>
                             </div>
                             
-                            <div class="grid grid-cols-2 gap-2 mb-3">
-                                <div @class([
-                                    'rounded-md p-2 text-center',
-                                    'bg-blue-50 dark:bg-blue-950/20' => true,
-                                ])>
-                                    <div class="text-xl font-bold text-blue-400">{{ $totalResources }}</div>
-                                    <div class="text-[10px] text-gray-400 mt-0.5">Resources</div>
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="rounded-xl p-3 text-center bg-gradient-to-br from-blue-500/15 to-blue-600/10 border-2 border-blue-500/30">
+                                    <div class="text-3xl font-bold text-blue-400">{{ $totalResources }}</div>
+                                    <div class="text-xs text-blue-300 mt-1 font-bold tracking-wider uppercase">Resources</div>
                                 </div>
                                 <div @class([
-                                    'rounded-md p-2 text-center',
-                                    'bg-green-50 dark:bg-green-950/20' => $server->isFunctional() && !$hasIssues,
-                                    'bg-red-50 dark:bg-red-950/20' => $hasIssues || !$server->isFunctional(),
+                                    'rounded-xl p-3 text-center border-2',
+                                    'bg-gradient-to-br from-green-500/15 to-green-600/10 border-green-500/30' => $server->isFunctional() && !$hasIssues,
+                                    'bg-gradient-to-br from-red-500/15 to-red-600/10 border-red-500/30' => $hasIssues || !$server->isFunctional(),
                                 ])>
+                                    <div class="flex items-center justify-center gap-2">
+                                        @if($server->isFunctional() && !$hasIssues)
+                                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                        @endif
+                                        <div @class([
+                                            'text-3xl font-bold',
+                                            'text-green-400' => $server->isFunctional() && !$hasIssues,
+                                            'text-red-400' => $hasIssues || !$server->isFunctional(),
+                                        ])>{{ $activeResources }}</div>
+                                    </div>
                                     <div @class([
-                                        'text-xl font-bold',
-                                        'text-green-400' => $server->isFunctional() && !$hasIssues,
-                                        'text-red-400' => $hasIssues || !$server->isFunctional(),
-                                    ])>{{ $activeResources }}</div>
-                                    <div class="text-[10px] text-gray-400 mt-0.5">Active</div>
+                                        'text-xs mt-1 font-bold tracking-wider uppercase',
+                                        'text-green-300' => $server->isFunctional() && !$hasIssues,
+                                        'text-red-300' => $hasIssues || !$server->isFunctional(),
+                                    ])>Active</div>
                                 </div>
                             </div>
                             
-                            <div class="mt-auto pt-3 border-t border-gray-700">
-                                <div class="flex items-center justify-between text-[10px] text-gray-500">
-                                    <span class="truncate">{{ $server->ip }}</span>
-                                    <span class="inline-flex items-center gap-1 ml-2">
+                            <div class="mt-auto pt-4 border-t border-gray-700/50">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-gray-400 truncate font-mono">{{ $server->ip }}</span>
+                                    <span class="inline-flex items-center gap-1.5 ml-2">
                                         <span @class([
-                                            'w-1.5 h-1.5 rounded-full',
-                                            'bg-green-400' => $server->isFunctional(),
+                                            'w-2 h-2 rounded-full',
+                                            'bg-green-400 animate-pulse' => $server->isFunctional(),
                                             'bg-red-400' => !$server->isFunctional(),
                                         ])></span>
-                                        {{ $server->isFunctional() ? 'Online' : 'Offline' }}
+                                        <span @class([
+                                            'font-bold',
+                                            'text-green-400' => $server->isFunctional(),
+                                            'text-red-400' => !$server->isFunctional(),
+                                        ])>{{ $server->isFunctional() ? 'ONLINE' : 'OFFLINE' }}</span>
                                     </span>
                                 </div>
                             </div>
