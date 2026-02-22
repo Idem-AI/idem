@@ -98,19 +98,31 @@
                 <p class="text-sm text-gray-500 mt-1">Monitor and protect your application</p>
             </div>
             
-            <div class="flex gap-2">
-                <button wire:click="openBotManagement" class="px-3 py-1.5 bg-[#0a0a0a] border border-gray-800 rounded-md text-white text-sm hover:bg-gray-900 transition-colors flex items-center gap-2">
-                    🤖 Bot Management
+            <div class="flex gap-3">
+                <button wire:click="openBotManagement" class="group px-5 py-3 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-blue-600/20 hover:to-blue-500/10 border border-gray-700 hover:border-blue-500/50 rounded-xl text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 hover:scale-105">
+                    <div class="w-8 h-8 bg-blue-500/20 group-hover:bg-blue-500 rounded-lg flex items-center justify-center transition-colors">
+                        <svg class="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                        </svg>
+                    </div>
+                    <span>Bot Management</span>
                 </button>
-                <button wire:click="openRateLimit" class="px-3 py-1.5 bg-[#0a0a0a] border border-gray-800 rounded-md text-white text-sm hover:bg-gray-900 transition-colors flex items-center gap-2">
-                    🛡️ Protection Patterns
+                <button wire:click="openRateLimit" class="group px-5 py-3 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-purple-600/20 hover:to-purple-500/10 border border-gray-700 hover:border-purple-500/50 rounded-xl text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-purple-500/20 hover:scale-105">
+                    <div class="w-8 h-8 bg-purple-500/20 group-hover:bg-purple-500 rounded-lg flex items-center justify-center transition-colors">
+                        <svg class="w-4 h-4 text-purple-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <span>Protection Patterns</span>
                 </button>
-                <button wire:click="openGeoBlocking" class="px-3 py-1.5 bg-[#0a0a0a] border border-gray-800 rounded-md text-white text-sm hover:bg-gray-900 transition-colors flex items-center gap-2">
-                    🌍 Geo-Blocking
+                <button wire:click="openGeoBlocking" class="group px-5 py-3 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-green-600/20 hover:to-green-500/10 border border-gray-700 hover:border-green-500/50 rounded-xl text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-green-500/20 hover:scale-105">
+                    <div class="w-8 h-8 bg-green-500/20 group-hover:bg-green-500 rounded-lg flex items-center justify-center transition-colors">
+                        <svg class="w-4 h-4 text-green-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <span>Geo-Blocking</span>
                 </button>
-                <a href="{{ route('project.application.security.rules', $parameters) }}" class="px-3 py-1.5 bg-white hover:bg-gray-100 text-black rounded-md text-sm font-medium transition-colors">
-                    Add New...
-                </a>
             </div>
         </div>
         
@@ -397,25 +409,24 @@
         
     </div>
     
-    {{-- Bot Management Modal (unchanged) --}}
-    @if($showBotManagementModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showBotManagementModal') }" x-show="show" x-cloak>
-            {{-- Backdrop --}}
-            <div class="fixed inset-0 bg-black/80 transition-opacity" wire:click="closeBotManagement"></div>
+    {{-- Bot Management Modal --}}
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showBotManagementModal').live }" x-show="show" x-cloak>
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-black/90 backdrop-blur-sm transition-all duration-300" @click="show = false"></div>
             
             {{-- Modal Content --}}
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-4xl bg-[#0a0a0a] border border-gray-800 rounded-xl shadow-2xl transform transition-all">
+            <div class="flex min-h-full items-center justify-center p-4" @click.self="show = false">
+                <div class="relative w-full max-w-4xl bg-gradient-to-br from-gray-900 to-gray-800 border border-blue-500/30 rounded-2xl shadow-2xl shadow-blue-500/20 transform transition-all" @click.stop>
                     {{-- Header --}}
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent">
                         <div>
-                            <p class="text-xs text-gray-500 mb-1">Firewall Protection</p>
-                            <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                            <p class="text-xs text-blue-400 mb-1 font-semibold">Firewall Protection</p>
+                            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
                                 🤖 Bot Management Templates
                             </h2>
                         </div>
-                        <button wire:click="closeBotManagement" class="text-gray-400 hover:text-white transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button @click="show = false" class="group p-2 rounded-lg bg-gray-800/50 hover:bg-red-500/20 border border-gray-700 hover:border-red-500/50 transition-all duration-200">
+                            <svg class="w-5 h-5 text-gray-400 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
@@ -493,8 +504,13 @@
                                     
                                     {{-- Import Button --}}
                                     <button wire:click="importBotTemplate('{{ $key }}')" 
-                                            class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors">
-                                        Import Template
+                                            class="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg text-sm font-bold transition-all duration-200 shadow-lg shadow-blue-500/30">
+                                        <span class="flex items-center justify-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                            </svg>
+                                            Import Template
+                                        </span>
                                     </button>
                                 </div>
                             @endforeach
@@ -502,38 +518,44 @@
                     </div>
                     
                     {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-gray-800 bg-[#0f0f0f]">
+                    <div class="px-6 py-4 border-t border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent">
                         <div class="flex items-center justify-between">
-                            <p class="text-xs text-gray-500">{{ count($botTemplates) }} templates available</p>
-                            <button wire:click="closeBotManagement" class="px-4 py-2 bg-transparent border border-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
-                                Close
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <p class="text-sm text-gray-400"><span class="text-white font-bold">{{ count($botTemplates) }}</span> templates available</p>
+                            </div>
+                            <button @click="show = false" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl text-sm font-bold transition-all duration-200 shadow-lg shadow-blue-500/30">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Close
+                                </span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    @endif
+    </div>
     
     {{-- Rate Limiting Modal --}}
-    @if($showRateLimitModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showRateLimitModal') }" x-show="show" x-cloak>
-            {{-- Backdrop --}}
-            <div class="fixed inset-0 bg-black/80 transition-opacity" wire:click="closeRateLimit"></div>
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showRateLimitModal').live }" x-show="show" x-cloak>
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-black/90 backdrop-blur-sm transition-all duration-300" @click="show = false"></div>
             
             {{-- Modal Content --}}
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-4xl bg-[#0a0a0a] border border-gray-800 rounded-xl shadow-2xl transform transition-all">
+            <div class="flex min-h-full items-center justify-center p-4" @click.self="show = false">
+                <div class="relative w-full max-w-4xl bg-gradient-to-br from-gray-900 to-gray-800 border border-purple-500/30 rounded-2xl shadow-2xl shadow-purple-500/20 transform transition-all" @click.stop>
                     {{-- Header --}}
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-transparent">
                         <div>
-                            <p class="text-xs text-gray-500 mb-1">Firewall Protection</p>
-                            <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                            <p class="text-xs text-purple-400 mb-1 font-semibold">Firewall Protection</p>
+                            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
                                 🛡️ Protection Pattern Templates
                             </h2>
                         </div>
-                        <button wire:click="closeRateLimit" class="text-gray-400 hover:text-white transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button @click="show = false" class="group p-2 rounded-lg bg-gray-800/50 hover:bg-red-500/20 border border-gray-700 hover:border-red-500/50 transition-all duration-200">
+                            <svg class="w-5 h-5 text-gray-400 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
@@ -625,18 +647,25 @@
                     </div>
                     
                     {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-gray-800 bg-[#0f0f0f]">
+                    <div class="px-6 py-4 border-t border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-transparent">
                         <div class="flex items-center justify-between">
-                            <p class="text-xs text-gray-500">{{ count($rateLimitTemplates) }} templates available</p>
-                            <button wire:click="closeRateLimit" class="px-4 py-2 bg-transparent border border-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
-                                Close
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                                <p class="text-sm text-gray-400"><span class="text-white font-bold">{{ count($rateLimitTemplates) }}</span> templates available</p>
+                            </div>
+                            <button @click="show = false" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white rounded-xl text-sm font-bold transition-all duration-200 shadow-lg shadow-purple-500/30">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Close
+                                </span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    @endif
+    </div>
     
     {{-- Install Modal (si pas activé) --}}
     @if(!$crowdSecAvailable && $showInstallModal)
@@ -661,76 +690,86 @@
     @endif
 
     {{-- Geo-Blocking Modal --}}
-    @if($showGeoBlockingModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto">
-            {{-- Backdrop --}}
-            <div class="fixed inset-0 bg-black/80 transition-opacity" wire:click="closeGeoBlocking"></div>
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showGeoBlockingModal').live }" x-show="show" x-cloak style="font-family: 'Jura', sans-serif;">
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-black/95 backdrop-blur-md transition-all duration-300" @click="show = false"></div>
             
             {{-- Modal --}}
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-4xl bg-[#0a0a0a] border border-gray-800 rounded-xl shadow-2xl">
+            <div class="flex min-h-full items-center justify-center p-4" @click.self="show = false">
+                <div class="relative w-full max-w-5xl glass-card border-2 border-glass glow-accent" @click.stop>
                     {{-- Header --}}
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+                    <div class="flex items-center justify-between px-8 py-6 border-b border-glass bg-gradient-glow">
                         <div>
-                            <h2 class="text-xl font-semibold text-white flex items-center gap-2">
-                                🌍 Geo-Blocking
+                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 tracking-wide i-underline">
+                                🌍 GEO-BLOCKING
                             </h2>
-                            <p class="text-sm text-gray-400 mt-1">Block or allow traffic from specific countries</p>
+                            <p class="text-sm text-gray-300 mt-2 font-medium">Block or allow traffic from specific countries</p>
                         </div>
-                        <button wire:click="closeGeoBlocking" class="text-gray-400 hover:text-white transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        <button @click="show = false" class="group outer-button p-3 rounded-xl hover:bg-danger transition-all duration-200">
+                            <svg class="w-6 h-6 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
                     </div>
                     
                     {{-- Mode Selection --}}
-                    <div class="px-6 py-4 border-b border-gray-800 bg-[#0f0f0f]">
-                        <div class="flex gap-4">
-                            <button wire:click="$set('geoBlockingMode', 'blacklist')" class="flex-1 px-4 py-3 rounded-lg border transition-colors {{ $geoBlockingMode === 'blacklist' ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-[#151b2e] border-gray-800 text-gray-400 hover:border-gray-700' }}">
+                    <div class="px-8 py-6 border-b border-glass glass-dark">
+                        <div class="flex gap-6">
+                            <button wire:click="$set('geoBlockingMode', 'blacklist')" class="flex-1 glass-card p-6 border-2 transition-all duration-300 {{ $geoBlockingMode === 'blacklist' ? 'border-danger shadow-glass-hover' : 'border-glass hover:border-gray-600' }}" style="{{ $geoBlockingMode === 'blacklist' ? 'box-shadow: 0 0 20px color-mix(in oklch, var(--color-danger) 50%, transparent);' : '' }}">
                                 <div class="text-left">
-                                    <p class="text-sm font-semibold">Blacklist Mode</p>
-                                    <p class="text-xs mt-1">Block selected countries</p>
+                                    <p class="text-lg font-bold tracking-wide {{ $geoBlockingMode === 'blacklist' ? 'text-danger' : 'text-gray-400' }}">🚫 BLACKLIST MODE</p>
+                                    <p class="text-sm mt-2 font-medium {{ $geoBlockingMode === 'blacklist' ? 'text-gray-300' : 'text-gray-500' }}">Block selected countries</p>
                                 </div>
                             </button>
-                            <button wire:click="$set('geoBlockingMode', 'whitelist')" class="flex-1 px-4 py-3 rounded-lg border transition-colors {{ $geoBlockingMode === 'whitelist' ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-[#151b2e] border-gray-800 text-gray-400 hover:border-gray-700' }}">
+                            <button wire:click="$set('geoBlockingMode', 'whitelist')" class="flex-1 glass-card p-6 border-2 transition-all duration-300 {{ $geoBlockingMode === 'whitelist' ? 'border-success shadow-glass-hover' : 'border-glass hover:border-gray-600' }}" style="{{ $geoBlockingMode === 'whitelist' ? 'box-shadow: 0 0 20px color-mix(in oklch, var(--color-success) 50%, transparent);' : '' }}">
                                 <div class="text-left">
-                                    <p class="text-sm font-semibold">Whitelist Mode</p>
-                                    <p class="text-xs mt-1">Allow only selected countries</p>
+                                    <p class="text-lg font-bold tracking-wide {{ $geoBlockingMode === 'whitelist' ? 'text-success' : 'text-gray-400' }}">✅ WHITELIST MODE</p>
+                                    <p class="text-sm mt-2 font-medium {{ $geoBlockingMode === 'whitelist' ? 'text-gray-300' : 'text-gray-500' }}">Allow only selected countries</p>
                                 </div>
                             </button>
                         </div>
                         
                         {{-- Quick Actions --}}
-                        <div class="flex gap-2 mt-3">
-                            <button wire:click="applySuggestedCountries('whitelist')" class="px-3 py-1.5 bg-[#151b2e] border border-gray-700 rounded text-xs text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
-                                📍 EU + US + Major Countries
+                        <div class="flex gap-3 mt-5">
+                            <button wire:click="applySuggestedCountries('whitelist')" class="glass px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:border-primary border border-glass transition-all duration-300 tracking-wide" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+                                📍 EU + US + MAJOR COUNTRIES
                             </button>
-                            <button wire:click="applySuggestedCountries('blacklist')" class="px-3 py-1.5 bg-[#151b2e] border border-gray-700 rounded text-xs text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
-                                ⚠️ High-Risk Countries
+                            <button wire:click="applySuggestedCountries('blacklist')" class="glass px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:border-danger border border-glass transition-all duration-300 tracking-wide" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+                                ⚠️ HIGH-RISK COUNTRIES
                             </button>
                         </div>
                     </div>
                     
                     {{-- Countries Grid --}}
-                    <div class="px-6 py-4 max-h-[50vh] overflow-y-auto">
+                    <div class="px-6 py-4 max-h-[50vh] overflow-y-auto" x-data="{ localSelected: @entangle('selectedCountries').live }">
                         @foreach($availableCountries as $continent => $countries)
                             <div class="mb-6 last:mb-0">
-                                <h3 class="text-sm font-semibold text-gray-400 mb-3">{{ $continent }}</h3>
-                                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                                <h3 class="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wide">{{ $continent }}</h3>
+                                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                     @foreach($countries as $code => $data)
-                                        <button wire:click="toggleCountry('{{ $code }}')" class="px-3 py-2 rounded-lg border transition-colors text-left {{ in_array($code, $selectedCountries) ? 'bg-blue-900/20 border-blue-800' : 'bg-[#151b2e] border-gray-800 hover:border-gray-700' }}">
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-2xl">{{ $data['flag'] }}</span>
+                                        <button 
+                                            @click="
+                                                if (localSelected.includes('{{ $code }}')) {
+                                                    localSelected = localSelected.filter(c => c !== '{{ $code }}');
+                                                } else {
+                                                    localSelected.push('{{ $code }}');
+                                                }
+                                            "
+                                            :class="localSelected.includes('{{ $code }}') ? 'glass-card border-primary shadow-glass-hover scale-105 glow-primary' : 'glass border-glass hover:border-primary hover:shadow-glass'"
+                                            class="px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left cursor-pointer group">
+                                            <div class="flex items-center gap-4">
+                                                <span class="text-4xl group-hover:scale-125 transition-transform duration-300">{{ $data['flag'] }}</span>
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-xs font-medium text-white truncate">{{ $data['name'] }}</p>
-                                                    <p class="text-xs text-gray-500">{{ $code }}</p>
+                                                    <p class="text-base font-bold text-white truncate tracking-wide">{{ $data['name'] }}</p>
+                                                    <p class="text-xs text-gray-400 font-mono font-semibold">{{ $code }}</p>
                                                 </div>
-                                                @if(in_array($code, $selectedCountries))
-                                                    <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                @endif
+                                                <div x-show="localSelected.includes('{{ $code }}')" class="flex-shrink-0" x-transition>
+                                                    <div class="w-7 h-7 inner-button rounded-full flex items-center justify-center glow-primary">
+                                                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </button>
                                     @endforeach
@@ -740,25 +779,34 @@
                     </div>
                     
                     {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-gray-800 bg-[#0f0f0f]">
+                    <div class="px-8 py-6 border-t border-glass glass-dark">
                         <div class="flex items-center justify-between">
-                            <div class="text-sm">
-                                <span class="text-gray-400">Selected:</span>
-                                <span class="text-white font-semibold ml-2">{{ count($selectedCountries) }} countries</span>
+                            <div class="flex items-center gap-4">
+                                <div class="glass px-6 py-3 rounded-xl glow-secondary">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+                                        <span class="text-gray-300 text-sm font-medium">Selected:</span>
+                                        <span class="text-white font-bold text-2xl">{{ count($selectedCountries) }}</span>
+                                        <span class="text-gray-400 text-sm font-medium tracking-wide">{{ count($selectedCountries) === 1 ? 'COUNTRY' : 'COUNTRIES' }}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="flex gap-3">
-                                <button wire:click="closeGeoBlocking" class="px-4 py-2 bg-transparent border border-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
-                                    Cancel
+                            <div class="flex gap-4">
+                                <button @click="show = false" class="px-8 py-3 text-sm font-bold tracking-wide rounded-xl border border-glass bg-glass hover:bg-glass-dark text-white transition-all duration-300 hover:shadow-glass" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+                                    CANCEL
                                 </button>
-                                <button wire:click="createGeoBlockingRule" class="px-4 py-2 bg-white hover:bg-gray-100 text-black rounded-lg text-sm font-medium transition-colors" {{ count($selectedCountries) === 0 ? 'disabled' : '' }}>
-                                    Create Rule
+                                <button wire:click="createGeoBlockingRule" class="px-8 py-3 text-sm font-bold tracking-wide rounded-xl text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" style="background: linear-gradient(135deg, #1447e6, #3ca4fa); box-shadow: 0 4px 12px rgba(20, 71, 230, 0.3); border: none;" {{ count($selectedCountries) === 0 ? 'disabled' : '' }}>
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                        CREATE RULE
+                                    </span>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    @endif
     </div>
 </div>

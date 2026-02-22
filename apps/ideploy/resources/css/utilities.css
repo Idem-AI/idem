@@ -124,11 +124,15 @@
 }
 
 @utility menu-item {
-    @apply flex gap-3 items-center px-2 py-1 w-full text-sm sm:pr-0 dark:hover:bg-coolgray-100 dark:hover:text-white hover:bg-neutral-300 min-w-fit sm:min-w-64;
+    @apply flex gap-3 items-center px-4 py-3 w-full text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200 min-w-fit sm:min-w-64;
 }
 
 @utility menu-item-active {
-    @apply text-black rounded-none dark:bg-coolgray-200 dark:text-warning bg-neutral-200;
+    @apply text-white bg-gradient-to-r from-blue-600/20 to-purple-600/10 border-l-4 border-blue-500 rounded-lg;
+}
+
+@utility sidebar-icon {
+    @apply w-5 h-5 flex-shrink-0;
 }
 
 @utility heading-item-active {
