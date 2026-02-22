@@ -21,17 +21,16 @@
                     </div>
                 </div>
                 
-                @can('update', $database)
-                    <button type="submit" class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap">
-                        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <span class="relative flex items-center gap-2">
+                <div class="flex gap-3 items-center">
+                    @can('update', $database)
+                        <button type="submit" class="inner-button px-8 py-3 flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            Save Changes
-                        </span>
-                    </button>
-                @endcan
+                            <span>SAVE</span>
+                        </button>
+                    @endcan
+                </div>
             </div>
         </div>
 

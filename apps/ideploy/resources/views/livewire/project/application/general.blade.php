@@ -97,38 +97,8 @@
                            data_get($application, 'settings.is_raw_compose_deployment_enabled') !== true;
                            
                 // Professional Dashboard Cards - ÉTAT RÉEL de l'application
-                $isAppRunning = $application->isRunning();
-                $isAppStopped = $application->isExited() || !$isAppRunning;
-                $isDeploymentInProgress = $application->isDeploymentInprogress();
-                $appRealStatus = $application->realStatus();
-                
-                // Pipeline Stats - STRICTEMENT état réel du pipeline
-                $deployments = $application->deployment_queue()->orderBy('created_at', 'desc')->limit(50)->get();
-                $totalDeployments = $deployments->count();
-                $successfulDeployments = $deployments->where('status', 'finished')->count();
-                $failedDeployments = $deployments->whereIn('status', ['failed', 'error'])->count();
-                $successRate = $totalDeployments > 0 ? round(($successfulDeployments / $totalDeployments) * 100, 1) : 0;
-                $lastDeployment = $deployments->first();
-                $averageTime = $deployments->where('status', 'finished')->filter(fn($d) => $d->created_at && $d->updated_at)->avg(fn($d) => $d->updated_at->diffInMinutes($d->created_at)) ?: 0;
-                
-                // Pipeline est actif SEULEMENT si au moins 1 déploiement existe
-                $isPipelineActive = $totalDeployments > 0;
-                
-                // Security Stats - Vraies données CrowdSec seulement si app active
-                $firewallConfig = $application->firewallConfig;
-                $activeRules = ($firewallConfig && $isAppRunning) ? $firewallConfig->rules()->where('enabled', true)->count() : 0;
-                
-                if ($firewallConfig && $isAppRunning) {
-                    $recentLogs = $firewallConfig->trafficLogs()->recent(24)->get();
-                    $blockedRequests = $recentLogs->where('decision', 'block')->count();
-                    $totalRequests = $recentLogs->count();
-                    $uptime = 99.9;
-                } else {
-                    $blockedRequests = 0;
-                    $totalRequests = 0;
-                    $uptime = $isAppRunning ? 100 : 0;
-                }
-                
+                // TOUTES LES DONNÉES VIENNENT DU COMPOSANT LIVEWIRE, PAS DE CALCULS ICI !
+                // Les variables $isPipelineActive, $totalDeployments, etc. sont passées par le composant
                 $server = $application->destination->server;
             @endphp
             
@@ -165,7 +135,7 @@
                                 </span>
                             @else
                                 <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                    NO PIPELINE
+                                    DISABLED
                                 </span>
                             @endif
                         </div>
@@ -208,8 +178,8 @@
                                 <svg class="w-16 h-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
                                 </svg>
-                                <p class="text-gray-400 text-sm font-medium mb-2">No Pipeline Configured</p>
-                                <p class="text-gray-500 text-xs text-center">Deploy your application to see build metrics</p>
+                                <p class="text-gray-400 text-sm font-medium mb-2">Pipeline Disabled</p>
+                                <p class="text-gray-500 text-xs text-center">Enable pipeline to see build metrics</p>
                             </div>
                         @endif
                     </div>
@@ -588,11 +558,11 @@
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-gray-300">Name <span class="text-red-400">*</span></label>
-                            <input x-bind:disabled="shouldDisable()" wire:model="application.name" type="text" class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300" placeholder="my-awesome-app" />
+                            <input x-bind:disabled="shouldDisable()" wire:model.blur="name" type="text" class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300" placeholder="my-awesome-app" />
                         </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-gray-300">Description</label>
-                            <input x-bind:disabled="shouldDisable()" wire:model="application.description" type="text" class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300" placeholder="Optional description" />
+                            <input x-bind:disabled="shouldDisable()" wire:model.blur="description" type="text" class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300" placeholder="Optional description" />
                         </div>
                     </div>
                 </div>
@@ -1205,7 +1175,7 @@
             @endif
 
             {{-- Section: HTTP Basic Auth --}}
-                <div x-data="{ expanded: false }" id="section-http-auth" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-yellow-500/50 transition-all duration-300 mb-6">
+            <div x-data="{ expanded: false }" id="section-http-auth" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-yellow-500/50 transition-all duration-300 mb-6">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                         <div class="flex items-center gap-4">
@@ -1245,7 +1215,7 @@
             </div>
 
             {{-- Section: Container Labels --}}
-                <div x-data="{ expanded: false }" id="section-labels" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 mb-6">
+            <div x-data="{ expanded: false }" id="section-labels" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 mb-6">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                         <div class="flex items-center gap-4">
