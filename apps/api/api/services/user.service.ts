@@ -1,4 +1,3 @@
-import { admin } from '..';
 import logger from '../config/logger';
 import { QuotaData, UserModel } from '../models/userModel';
 import { IRepository } from '../repository/IRepository';
@@ -64,81 +63,33 @@ class UserService {
     }
   }
 
-  public async getUserProfile(sessionCookie: string): Promise<UserModel> {
-    logger.info('Attempting to get user profile from session cookie.');
-    if (!sessionCookie) {
-      logger.warn('getUserProfile failed: No session cookie provided.');
-      throw new Error('No session cookie provided.');
-    }
-
+  /**
+   * Get user by ID
+   */
+  public async getUserById(userId: string): Promise<UserModel | null> {
+    logger.info(`Getting user by ID: ${userId}`);
     try {
-      // Verify the session cookie
-      const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true);
-      const { uid } = decodedToken;
-
-      logger.info(`Session cookie verified for UID: ${uid}. Fetching user profile.`);
-
-      // Get user from Firebase Auth
-      const userRecord = await admin.auth().getUser(uid);
-
-      // Get user data from repository
-      let user: UserModel | null = await this.userRepository.findById(uid, 'users');
-
+      const user = await this.userRepository.findById(userId, 'users');
       if (!user) {
-        // User doesn't exist in repository, create a new user
-        logger.info(`User ${uid} not found in repository, creating new user record`);
-
-        user = await this.userRepository.create(
-          {
-            uid: uid,
-            email: userRecord.email || '',
-            displayName: userRecord.displayName || '',
-            photoURL: userRecord.photoURL || '',
-            subscription: 'free', // Default subscription
-            lastLogin: new Date(),
-            quota: {
-              dailyUsage: 0,
-              weeklyUsage: 0,
-              dailyLimit: this.quotaLimits.dailyLimit,
-              weeklyLimit: this.quotaLimits.weeklyLimit,
-              lastResetDaily: new Date().toISOString().split('T')[0],
-              lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
-            },
-            roles: ['user'],
-          },
-          'users',
-          uid
-        );
-      } else {
-        // Update existing user's lastLogin
-        logger.info(`Updating lastLogin for user ${uid}`);
-        if (!user.quota) {
-          user.quota = {
-            dailyUsage: this.quotaLimits.dailyLimit,
-            weeklyUsage: this.quotaLimits.weeklyLimit,
-            lastResetDaily: new Date().toISOString().split('T')[0],
-            lastResetWeekly: new Date().toISOString().split('T')[0],
-          };
-        }
-        user =
-          (await this.userRepository.update(
-            uid,
-            {
-              lastLogin: new Date(),
-              quota: user.quota, // Ensure quota is preserved
-            },
-            'users'
-          )) || user;
+        logger.warn(`User not found: ${userId}`);
+        return null;
       }
-
-      logger.info(`Successfully fetched profile for user: ${uid}`);
+      logger.info(`Successfully fetched user: ${userId}`);
       return user;
     } catch (error: any) {
-      logger.error(`Error in getUserProfile: ${error.message}`, {
+      logger.error(`Error getting user by ID: ${error.message}`, {
         stack: error.stack,
       });
-      throw new Error(error.message || 'Invalid or expired session.');
+      throw error;
     }
+  }
+
+  /**
+   * Get user profile (deprecated - use getUserById instead)
+   */
+  public async getUserProfile(sessionCookie: string): Promise<UserModel> {
+    logger.warn('getUserProfile is deprecated - this method should not be used with JWT auth');
+    throw new Error('getUserProfile is deprecated - use JWT verification instead');
   }
 
   /**

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { importLogoController, exportLogoPngController } from '../controllers/logo-import.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 const router = Router();
 

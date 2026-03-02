@@ -13,7 +13,7 @@ import {
   generateLogosZipController,
   editLogoController,
 } from '../controllers/branding.controller';
-import { authenticate } from '../services/auth.service'; // Updated import path
+import { authenticateUser as authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
 
 export const brandingRoutes = Router();

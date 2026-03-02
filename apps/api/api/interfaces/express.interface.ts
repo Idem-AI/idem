@@ -1,8 +1,15 @@
 import { Request } from 'express';
-import admin from 'firebase-admin';
+
+export interface DecodedToken {
+  uid: string;
+  email?: string;
+  roles?: string[];
+  iat?: number;
+  exp?: number;
+}
 
 export interface CustomRequest extends Request {
-  user?: admin.auth.DecodedIdToken;
+  user?: DecodedToken;
   policyWarning?: {
     requiresFinalization: boolean;
     finalizeEndpoint: string;

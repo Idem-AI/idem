@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { projectController } from '../controllers/project.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import multer from 'multer';
 

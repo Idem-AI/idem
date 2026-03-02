@@ -7,7 +7,7 @@ import {
   updateDiagramController,
   deleteDiagramController,
 } from '../controllers/diagram.controller';
-import { authenticate } from '../services/auth.service'; // Updated import path
+import { authenticateUser as authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 

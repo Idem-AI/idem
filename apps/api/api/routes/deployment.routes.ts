@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import {
   CreateDeploymentController,

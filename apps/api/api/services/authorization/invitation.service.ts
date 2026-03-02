@@ -4,20 +4,20 @@ import {
   AcceptInvitationDTO,
   InvitationEmailData,
 } from '@idem/shared-models';
-import { FirestoreRepository } from '../../repository/FirestoreRepository';
+import { RepositoryFactory } from '../../repository/RepositoryFactory';
+import { IRepository } from '../../repository/IRepository';
 import logger from '../../config/logger';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { teamService } from './team.service';
-import admin from 'firebase-admin';
 
 const INVITATIONS_COLLECTION = 'invitations';
 
 class InvitationService {
-  private repository: FirestoreRepository<InvitationModel>;
+  private repository: IRepository<InvitationModel>;
 
   constructor() {
-    this.repository = new FirestoreRepository<InvitationModel>();
+    this.repository = RepositoryFactory.getRepository<InvitationModel>();
   }
 
   /**
@@ -139,7 +139,8 @@ class InvitationService {
     const allInvitations = await this.repository.findAll(INVITATIONS_COLLECTION);
     return (
       allInvitations.find(
-        (inv) => inv.email === email && inv.status === 'pending' && inv.expiresAt > new Date()
+        (inv: InvitationModel) =>
+          inv.email === email && inv.status === 'pending' && inv.expiresAt > new Date()
       ) || null
     );
   }
@@ -149,7 +150,7 @@ class InvitationService {
    */
   async findInvitationByToken(token: string): Promise<InvitationModel | null> {
     const allInvitations = await this.repository.findAll(INVITATIONS_COLLECTION);
-    return allInvitations.find((inv) => inv.invitationToken === token) || null;
+    return allInvitations.find((inv: InvitationModel) => inv.invitationToken === token) || null;
   }
 
   /**
@@ -175,23 +176,15 @@ class InvitationService {
       throw new Error('Invalid temporary password');
     }
 
-    // Créer l'utilisateur dans Firebase Auth
-    let userRecord: admin.auth.UserRecord;
-    try {
-      userRecord = await admin.auth().createUser({
-        email: invitation.email,
-        password: data.newPassword,
-        displayName: invitation.displayName,
-        emailVerified: true,
-      });
-    } catch (error: any) {
-      logger.error(`Error creating user in Firebase Auth: ${error.message}`);
-      throw new Error('Failed to create user account');
-    }
+    // Note: User creation should be handled by Casdoor authentication flow
+    // The user should register through Casdoor with the invitation token
+    // This method now just validates the invitation and marks it as accepted
+
+    const userId = uuidv4(); // Temporary - will be replaced by actual Casdoor user ID
 
     // Si invitation à une équipe, activer le membre
     if (invitation.teamId) {
-      await teamService.activateMember(invitation.teamId, invitation.email, userRecord.uid);
+      await teamService.activateMember(invitation.teamId, invitation.email, userId);
     }
 
     // Marquer l'invitation comme acceptée
@@ -201,10 +194,10 @@ class InvitationService {
       INVITATIONS_COLLECTION
     );
 
-    logger.info(`Invitation accepted for user: ${userRecord.uid}`);
+    logger.info(`Invitation accepted for email: ${invitation.email}`);
 
     return {
-      userId: userRecord.uid,
+      userId,
       teamId: invitation.teamId,
     };
   }
@@ -262,7 +255,7 @@ class InvitationService {
 
     const allInvitations = await this.repository.findAll(INVITATIONS_COLLECTION);
     const expiredInvitations = allInvitations.filter(
-      (inv) => inv.status === 'pending' && inv.expiresAt < new Date()
+      (inv: InvitationModel) => inv.status === 'pending' && inv.expiresAt < new Date()
     );
 
     for (const invitation of expiredInvitations) {

@@ -3,7 +3,7 @@ import {
   saveDevelopmentConfigsController,
   getDevelopmentConfigsController,
 } from '../controllers/development.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 export const developmentRoutes = Router();
 

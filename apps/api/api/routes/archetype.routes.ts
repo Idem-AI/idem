@@ -9,7 +9,7 @@ import {
   getArchetypesByCategoryController,
   generateTerraformTfvarsController,
 } from '../controllers/archetype.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 const router = Router();
 

@@ -1,4 +1,5 @@
-import { FirestoreRepository } from '../../repository/FirestoreRepository';
+import { RepositoryFactory } from '../../repository/RepositoryFactory';
+import { IRepository } from '../../repository/IRepository';
 import logger from '../../config/logger';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -13,10 +14,10 @@ import {
 const TEAMS_COLLECTION = 'teams';
 
 class TeamService {
-  private repository: FirestoreRepository<TeamModel>;
+  private repository: IRepository<TeamModel>;
 
   constructor() {
-    this.repository = new FirestoreRepository<TeamModel>();
+    this.repository = RepositoryFactory.getRepository<TeamModel>();
   }
 
   /**
@@ -81,8 +82,9 @@ class TeamService {
   async getUserTeams(userId: string): Promise<TeamModel[]> {
     const allTeams = await this.repository.findAll(TEAMS_COLLECTION);
     return allTeams.filter(
-      (team) =>
-        team.ownerId === userId || team.members.some((m) => m.userId === userId && m.isActive)
+      (team: TeamModel) =>
+        team.ownerId === userId ||
+        team.members.some((m: TeamMember) => m.userId === userId && m.isActive)
     );
   }
 

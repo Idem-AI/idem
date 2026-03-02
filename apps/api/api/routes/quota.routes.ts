@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import quotaController from '../controllers/quota.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 const router = Router();
 
