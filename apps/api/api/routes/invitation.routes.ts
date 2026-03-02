@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 import * as invitationController from '../controllers/invitation.controller';
 
 const router = Router();

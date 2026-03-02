@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { CacheController } from '../controllers/cache.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 const router = Router();
 

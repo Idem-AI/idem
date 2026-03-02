@@ -7,7 +7,7 @@ import {
   getRefreshTokensController,
   verifySessionController,
 } from '../controllers/auth.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 export const authRoutes = Router();
 

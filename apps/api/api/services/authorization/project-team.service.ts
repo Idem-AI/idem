@@ -6,17 +6,18 @@ import {
   ROLE_PERMISSIONS,
   RolePermissions,
 } from '@idem/shared-models';
-import { FirestoreRepository } from '../../repository/FirestoreRepository';
+import { RepositoryFactory } from '../../repository/RepositoryFactory';
+import { IRepository } from '../../repository/IRepository';
 import logger from '../../config/logger';
 import { teamService } from './team.service';
 
 const PROJECT_TEAMS_COLLECTION = 'project_teams';
 
 class ProjectTeamService {
-  private repository: FirestoreRepository<ProjectTeamModel>;
+  private repository: IRepository<ProjectTeamModel>;
 
   constructor() {
-    this.repository = new FirestoreRepository<ProjectTeamModel>();
+    this.repository = RepositoryFactory.getRepository<ProjectTeamModel>();
   }
 
   /**

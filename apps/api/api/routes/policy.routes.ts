@@ -4,7 +4,7 @@ import {
   checkPolicyStatusController,
   getUserPolicyAcceptancesController,
 } from '../controllers/policy.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 const router = Router();
 

@@ -1,7 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
-import admin from 'firebase-admin';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
@@ -12,32 +11,6 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerOptions from './config/swagger.config';
 
 dotenv.config();
-
-const serviceAccountFromEnv = {
-  type: 'service_account',
-  project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-  token_uri: 'https://oauth2.googleapis.com/token',
-  auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
-};
-
-if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccountFromEnv as admin.ServiceAccount),
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  });
-  console.log('Firebase Admin SDK initialized successfully.');
-} else {
-  console.error(
-    'Firebase Admin SDK initialization failed: Missing credentials in environment variables.'
-  );
-}
 
 import { projectRoutes } from './routes/project.routes';
 import { brandingRoutes } from './routes/branding.routes';
@@ -52,11 +25,13 @@ import quotaRoutes from './routes/quota.routes';
 import cacheRoutes from './routes/cache.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
+import { mongoDBConnection } from './config/mongodb.config';
+import { casdoorService } from './config/casdoor.config';
+import { minioService } from './config/minio.config';
 import policyRoutes from './routes/policy.routes';
 import teamRoutes from './routes/team.routes';
 import invitationRoutes from './routes/invitation.routes';
 import projectTeamRoutes from './routes/project-team.routes';
-import migrationRoutes from './routes/migration.routes';
 import { teamsRoutes } from './routes/teams.routes';
 import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
@@ -138,7 +113,6 @@ app.use('/teams', teamRoutes);
 app.use('/api/teams', teamsRoutes); // New centralized teams API
 app.use('/invitations', invitationRoutes);
 app.use('/projects', projectTeamRoutes);
-app.use('/migration', migrationRoutes);
 
 // Contact routes
 app.use('/api/contact', contactRoutes);
@@ -169,26 +143,56 @@ app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
 
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
+  console.log(`Stack: MongoDB + Casdoor + MinIO`);
+
+  // Initialiser MongoDB
+  try {
+    await mongoDBConnection.connect();
+    console.log('✅ MongoDB connection established successfully');
+  } catch (error) {
+    console.error('❌ Failed to connect to MongoDB:', error);
+    console.error('Server will continue but database operations will fail');
+  }
+
+  // Initialiser Casdoor
+  try {
+    await casdoorService.initialize();
+    console.log('✅ Casdoor SDK initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize Casdoor:', error);
+    console.error('Authentication will not work properly');
+  }
+
+  // Initialiser MinIO
+  try {
+    await minioService.initialize();
+    console.log('✅ MinIO client initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize MinIO:', error);
+    console.error('File storage operations will fail');
+  }
 
   // Initialiser le PdfService au démarrage pour optimiser les performances
   try {
     await PdfService.initialize();
-    console.log('PdfService initialized successfully');
+    console.log('✅ PdfService initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize PdfService:', error);
+    console.error('❌ Failed to initialize PdfService:', error);
   }
 
   // Tester la connexion Redis au démarrage
   try {
     const redisConnected = await RedisConnection.testConnection();
     if (redisConnected) {
-      console.log('Redis connection established successfully');
+      console.log('✅ Redis connection established successfully');
     } else {
-      console.warn('Redis connection test failed - cache will be disabled');
+      console.warn('⚠️  Redis connection test failed - cache will be disabled');
     }
   } catch (error) {
-    console.error('Redis connection error:', error);
+    console.error('❌ Redis connection error:', error);
   }
+
+  console.log('\n🚀 All services initialized - API ready!\n');
 });
 
 // Gestion propre de l'arrêt de l'application
@@ -196,6 +200,7 @@ process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
   await PdfService.closeBrowser();
   await RedisConnection.disconnect();
+  await mongoDBConnection.disconnect();
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
@@ -206,12 +211,11 @@ process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully...');
   await PdfService.closeBrowser();
   await RedisConnection.disconnect();
+  await mongoDBConnection.disconnect();
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
   });
 });
-
-export { admin };
 
 export default app;

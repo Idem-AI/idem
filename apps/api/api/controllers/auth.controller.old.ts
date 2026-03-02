@@ -1,92 +1,78 @@
 import { Request, Response, CookieOptions } from 'express';
-import logger from '../config/logger';
+import admin from 'firebase-admin';
+import logger from '../config/logger'; // Assuming you have a Winston logger setup
 import { userService } from '../services/user.service';
 import { UserModel } from '../models/userModel';
 import { refreshTokenService } from '../services/refreshToken.service';
 import { CustomRequest } from '../interfaces/express.interface';
-import { casdoorService } from '../config/casdoor.config';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_EXPIRES_IN = '14d';
-
-/**
- * Contrôleur pour la connexion via Casdoor
- */
 export const sessionLoginController = async (req: Request, res: Response): Promise<void> => {
-  const { code, state } = req.body;
+  const token = req.body.token;
+  const user = req.body.user;
 
-  logger.info('Attempting Casdoor login', { hasCode: !!code, state });
+  logger.info(`Attempting session login for user associated with token`, {
+    user,
+    body: req.body,
+  });
 
-  if (!code) {
-    logger.warn('Login failed: No authorization code provided');
-    res.status(400).send({ success: false, message: 'Authorization code is required.' });
+  if (!token) {
+    logger.warn(`Session login failed: No ID token provided.`, {
+      hasUser: !!user,
+      userUid: user?.uid,
+    });
+    res.status(400).send({ success: false, message: 'ID token is required.' });
     return;
   }
 
+  if (!user) {
+    logger.warn('Session login failed: No user data provided.');
+    res.status(400).send({ success: false, message: 'User data is required.' });
+    return;
+  }
+  const userModel: UserModel = {
+    uid: user.uid,
+    email: user.email,
+    subscription: 'free',
+    createdAt: new Date(),
+    lastLogin: new Date(),
+    displayName: user.displayName,
+    photoURL: user.photoURL,
+    quota: {
+      dailyUsage: 0,
+      weeklyUsage: 0,
+      dailyLimit: 0,
+      weeklyLimit: 0,
+      lastResetDaily: new Date().toISOString().split('T')[0],
+      lastResetWeekly: new Date().toISOString().split('T')[0],
+    },
+    roles: ['user'],
+  };
+  const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 Days
+  const isProduction = process.env.NODE_ENV === 'production';
+
   try {
-    // Échanger le code contre un token Casdoor
-    const sdk = casdoorService.getSdk();
-    const token = await sdk.getOAuthToken(code);
-    const casdoorUser = await casdoorService.parseJwtToken(token.access_token);
-
-    logger.info('Casdoor user authenticated', { 
-      userId: casdoorUser.name,
-      email: casdoorUser.email 
-    });
-
-    // Créer ou mettre à jour l'utilisateur dans notre base
-    const userModel: UserModel = {
-      uid: casdoorUser.name,
-      email: casdoorUser.email,
-      subscription: 'free',
-      createdAt: new Date(),
-      lastLogin: new Date(),
-      displayName: casdoorUser.displayName || casdoorUser.name,
-      photoURL: casdoorUser.avatar,
-      quota: {
-        dailyUsage: 0,
-        weeklyUsage: 0,
-        dailyLimit: 10,
-        weeklyLimit: 50,
-        lastResetDaily: new Date().toISOString().split('T')[0],
-        lastResetWeekly: new Date().toISOString().split('T')[0],
-      },
-      roles: ['user'],
-    };
-
-    const createdUser = await userService.createUser(userModel);
-    if (!createdUser) {
-      logger.warn(`User ${userModel.uid} not created`);
-      res.status(400).send({ success: false, message: 'User not created.' });
-      return;
-    }
-
-    // Créer notre propre JWT session
-    const sessionToken = jwt.sign(
-      { 
-        uid: userModel.uid, 
-        email: userModel.email,
-        roles: userModel.roles 
-      },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
-
-    const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 jours
-    const isProduction = process.env.NODE_ENV === 'production';
+    const sessionCookie = await admin.auth().createSessionCookie(token, { expiresIn });
 
     const options: CookieOptions = {
       maxAge: expiresIn,
       httpOnly: true,
+      // In production we must use Secure + SameSite=None for cross-site cookies
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
       ...(isProduction && { domain: '.idem.africa' }),
     };
 
-    res.cookie('session', sessionToken, options);
-    logger.info(`Session created successfully for user ${userModel.uid}`);
+    res.cookie('session', sessionCookie, options);
+    logger.info(`Session cookie created successfully for user ${userModel.uid}.`);
+    const createdUser = await userService.createUser(userModel);
+    if (!createdUser) {
+      logger.warn(`User ${userModel.uid} not created.`);
+      res.status(400).send({
+        success: false,
+        message: 'User not created.',
+      });
+      return;
+    }
 
     // Générer un refresh token
     const deviceInfo = req.headers['user-agent'] || 'Unknown device';
@@ -98,6 +84,7 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       ipAddress
     );
 
+    // Configurer le cookie pour le refresh token
     const refreshTokenOptions: CookieOptions = {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 jours
       httpOnly: true,
@@ -110,56 +97,26 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
 
     res.status(200).send({
       success: true,
-      message: 'Session created successfully.',
-      user: createdUser,
+      message: 'Session cookie created successfully.',
       refreshToken: refreshTokenResult.refreshToken,
       refreshTokenExpiresAt: refreshTokenResult.expiresAt,
     });
   } catch (error: any) {
-    logger.error('Error during Casdoor login:', {
+    logger.error(`Error creating session cookie for user ${user.uid}:`, {
       errorMessage: error.message,
       errorStack: error.stack,
+      idTokenProvided: !!token,
     });
     res.status(401).send({
       success: false,
-      message: 'Authentication failed.',
+      message: 'UNAUTHORIZED REQUEST! Error creating session cookie.',
       error: error.message,
     });
   }
 };
 
 /**
- * Obtenir l'URL d'authentification Casdoor
- */
-export const getAuthUrlController = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const redirectUri = req.query.redirect_uri as string || process.env.CASDOOR_REDIRECT_URI || 'http://localhost:3000/callback';
-    const state = req.query.state as string || Math.random().toString(36).substring(7);
-
-    const authUrl = casdoorService.getAuthUrl(redirectUri, state);
-
-    logger.info('Generated Casdoor auth URL', { redirectUri, state });
-
-    res.status(200).send({
-      success: true,
-      authUrl,
-      state,
-    });
-  } catch (error: any) {
-    logger.error('Error generating auth URL:', {
-      errorMessage: error.message,
-      errorStack: error.stack,
-    });
-    res.status(500).send({
-      success: false,
-      message: 'Error generating authentication URL.',
-      error: error.message,
-    });
-  }
-};
-
-/**
- * Contrôleur pour rafraîchir un token d'accès
+ * Contrôleur pour rafraîchir un token d'accès en utilisant un refresh token
  */
 export const refreshTokenController = async (req: Request, res: Response): Promise<void> => {
   const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
@@ -179,6 +136,7 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
   }
 
   try {
+    // Valider le refresh token
     const validation = await refreshTokenService.validateRefreshToken(refreshToken);
 
     if (!validation.isValid || !validation.userId) {
@@ -190,7 +148,8 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
       return;
     }
 
-    const user = await userService.getUserById(validation.userId);
+    // Récupérer l'utilisateur
+    const user = await userService.getUserProfile(req.cookies.session || '');
     if (!user) {
       logger.warn(`User ${validation.userId} not found during token refresh`);
       res.status(404).send({
@@ -200,19 +159,12 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
       return;
     }
 
-    // Créer un nouveau JWT session
-    const sessionToken = jwt.sign(
-      { 
-        uid: user.uid, 
-        email: user.email,
-        roles: user.roles 
-      },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
-
-    const expiresIn = 14 * 24 * 60 * 60 * 1000;
+    // Créer un nouveau session cookie Firebase
+    const customToken = await admin.auth().createCustomToken(validation.userId);
+    const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 jours
     const isProduction = process.env.NODE_ENV === 'production';
+
+    const sessionCookie = await admin.auth().createSessionCookie(customToken, { expiresIn });
 
     const options: CookieOptions = {
       maxAge: expiresIn,
@@ -222,14 +174,14 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
       path: '/',
     };
 
-    res.cookie('session', sessionToken, options);
+    res.cookie('session', sessionCookie, options);
 
     logger.info(`Access token refreshed successfully for user: ${validation.userId}`);
 
     res.status(200).send({
       success: true,
       message: 'Access token refreshed successfully.',
-      sessionToken,
+      sessionCookie,
     });
   } catch (error: any) {
     logger.error('Error refreshing access token:', {
@@ -245,7 +197,7 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
 };
 
 /**
- * Contrôleur pour déconnecter un utilisateur
+ * Contrôleur pour déconnecter un utilisateur (révoque le refresh token)
  */
 export const logoutController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
@@ -266,10 +218,12 @@ export const logoutController = async (req: CustomRequest, res: Response): Promi
   }
 
   try {
+    // Révoquer le refresh token spécifique si fourni
     if (refreshToken) {
       await refreshTokenService.revokeRefreshToken(userId, refreshToken);
     }
 
+    // Supprimer les cookies
     res.clearCookie('session');
     res.clearCookie('refreshToken');
 
@@ -310,8 +264,10 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
   }
 
   try {
+    // Révoquer tous les refresh tokens
     await refreshTokenService.revokeAllRefreshTokens(userId);
 
+    // Supprimer les cookies de la session actuelle
     res.clearCookie('session');
     res.clearCookie('refreshToken');
 
@@ -335,42 +291,36 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
 };
 
 /**
- * Vérifier la session et retourner les données utilisateur
+ * Contrôleur pour obtenir les informations des refresh tokens d'un utilisateur
+ */
+/**
+ * Verify session cookie and return user data
+ * This endpoint is used by Laravel to verify Firebase sessions
  */
 export const verifySessionController = async (req: Request, res: Response): Promise<void> => {
-  const sessionToken = req.cookies.session || req.headers.authorization?.replace('Bearer ', '');
+  const sessionCookie = req.cookies.session || req.headers.authorization?.replace('Bearer ', '');
 
-  logger.info('Verifying session', {
-    hasSessionToken: !!sessionToken,
+  logger.info('Verifying session for external service', {
+    hasSessionCookie: !!sessionCookie,
     source: req.cookies.session ? 'cookie' : 'authorization header',
   });
 
-  if (!sessionToken) {
-    logger.warn('Session verification failed: No session token provided');
+  if (!sessionCookie) {
+    logger.warn('Session verification failed: No session cookie provided');
     res.status(401).json({
       success: false,
-      message: 'No session token provided',
+      message: 'No session cookie provided',
     });
     return;
   }
 
   try {
-    const decoded = jwt.verify(sessionToken, JWT_SECRET) as any;
-    const user = await userService.getUserById(decoded.uid);
+    const profile = await userService.getUserProfile(sessionCookie);
 
-    if (!user) {
-      logger.warn(`User ${decoded.uid} not found during session verification`);
-      res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-      return;
-    }
-
-    logger.info(`Session verified successfully for user: ${user.uid}`);
+    logger.info(`Session verified successfully for user: ${profile.uid}`);
     res.status(200).json({
       success: true,
-      user,
+      user: profile,
     });
   } catch (error: any) {
     logger.error('Session verification failed:', {
@@ -385,9 +335,6 @@ export const verifySessionController = async (req: Request, res: Response): Prom
   }
 };
 
-/**
- * Obtenir les informations des refresh tokens
- */
 export const getRefreshTokensController = async (
   req: CustomRequest,
   res: Response

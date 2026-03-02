@@ -7,7 +7,7 @@ import {
   generateBusinessPlanPdfController,
   setAdditionalInfoController,
 } from '../controllers/businessPlan.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import multer from 'multer';

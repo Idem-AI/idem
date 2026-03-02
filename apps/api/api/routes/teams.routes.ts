@@ -8,7 +8,7 @@ import {
   removeTeamMemberController,
   deleteTeamController,
 } from '../controllers/teams.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 export const teamsRoutes = Router();
 

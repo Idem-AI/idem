@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { GitHubController } from '../controllers/github.controller';
-import { authenticate } from '../services/auth.service';
+import { authenticateUser as authenticate } from '../services/auth.service';
 
 const router = Router();
 const githubController = new GitHubController();
