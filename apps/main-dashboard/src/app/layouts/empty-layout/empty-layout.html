@@ -46,7 +46,7 @@
             class="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-all duration-200"
           >
             <img
-              [src]="user()!.photoURL"
+              [src]="user()!.avatar || '/assets/default-avatar.png'"
               alt="Avatar"
               class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white/20"
             />

@@ -1,5 +1,4 @@
-import { Injectable, inject } from '@angular/core';
-import { Auth, User } from '@angular/fire/auth';
+import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 
 interface AuthSyncData {
@@ -12,38 +11,23 @@ interface AuthSyncData {
   providedIn: 'root',
 })
 export class AuthSyncService {
-  private readonly auth = inject(Auth);
-  private readonly router = inject(Router);
   private readonly STORAGE_KEY = 'idem_auth_sync';
   private readonly SYNC_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
+  constructor(private router: Router) {}
+
   /**
    * Check if user is authenticated via sync from landing page
+   * Note: With Casdoor migration, this service may no longer be needed
    */
   checkAuthSync(): void {
-    const currentUser = this.auth.currentUser;
-
-    // If already authenticated in dashboard, no need to check sync
-    if (currentUser) {
-      return;
-    }
-
     // Check if there's a recent auth sync from landing page
     const syncData = this.getAuthSyncData();
 
     if (syncData && this.isValidSync(syncData)) {
-      // User was recently authenticated in landing page
-      // Firebase auth should already be synced via shared auth domain
       console.log('Auth sync detected from landing page');
-
-      // Wait a bit for Firebase to sync, then check again
-      setTimeout(() => {
-        if (!this.auth.currentUser) {
-          console.warn('Auth sync found but Firebase user not available');
-          // Optionally redirect to login
-          // this.router.navigate(['/login']);
-        }
-      }, 1000);
+      // With Casdoor, authentication is handled via OAuth redirect
+      // This sync mechanism is deprecated
     }
   }
 

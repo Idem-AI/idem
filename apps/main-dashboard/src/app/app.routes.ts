@@ -16,6 +16,13 @@ export const routes: Routes = [
     data: { layout: 'empty' },
   },
 
+  {
+    path: 'auth/callback',
+    loadComponent: () =>
+      import('./modules/auth/pages/callback/callback').then((m) => m.CallbackComponent),
+    data: { layout: 'empty' },
+  },
+
   // ============================================
   // GLOBAL DASHBOARD ROUTES (layout: 'global')
   // ============================================

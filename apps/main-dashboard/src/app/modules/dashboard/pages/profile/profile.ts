@@ -52,18 +52,16 @@ export class ProfileComponent implements OnInit {
     this.authService.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (firebaseUser) => {
         if (firebaseUser) {
-          // Map Firebase user to our user info format
+          // Map Casdoor user to our user info format
           const userInfo = {
             name: firebaseUser.displayName || this.translate.instant('common.notSpecified'),
             email: firebaseUser.email || this.translate.instant('common.notSpecified'),
             accountType: this.translate.instant('dashboard.profile.accountTypes.free'), // Default to free, could be enhanced with backend call
-            createdAt: firebaseUser.metadata.creationTime
-              ? new Date(firebaseUser.metadata.creationTime)
-              : new Date(),
-            photoURL: firebaseUser.photoURL,
-            uid: firebaseUser.uid,
-            emailVerified: firebaseUser.emailVerified,
-            provider: firebaseUser.providerData[0]?.providerId || 'email',
+            createdAt: firebaseUser.createdTime ? new Date(firebaseUser.createdTime) : new Date(),
+            photoURL: firebaseUser.avatar || '/assets/default-avatar.png',
+            uid: firebaseUser.id,
+            emailVerified: true, // Casdoor users are verified via OAuth
+            provider: 'oauth', // Casdoor OAuth (Google/GitHub)
           };
           this.userInfo.set(userInfo);
         } else {
