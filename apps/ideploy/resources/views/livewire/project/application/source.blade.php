@@ -1,20 +1,38 @@
 <div>
     {{-- Header Idem Style --}}
-    <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-            <h2 class="text-2xl font-bold text-light">
-                <span class="i-underline">Git Source</span>
-            </h2>
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+                <div class="icon-container">
+                    <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-light">
+                        <span class="i-underline">Git Source</span>
+                    </h2>
+                    <p class="text-sm text-light opacity-70 mt-1">Manage your application's code repository</p>
+                </div>
+            </div>
             @can('update', $application)
-                <x-forms.button form="sourceForm" type="submit">Save</x-forms.button>
+                <button form="sourceForm" type="submit" class="inner-button">
+                    <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save
+                </button>
             @endcan
         </div>
-        <p class="text-sm text-light opacity-70">Code source of your application.</p>
     </div>
 
     <form wire:submit='submit' id="sourceForm" class="flex flex-col gap-6">
         {{-- Quick Links --}}
-        <div class="glass-card p-4">
+        <div class="section-card">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="category-badge">Quick Links</span>
+                <h3 class="text-lg font-semibold text-light">Repository Links</h3>
+            </div>
             <div class="flex flex-wrap items-center gap-4">
                 <a target="_blank" class="hover:no-underline flex items-center gap-1"
                     href="{{ $application?->gitBranchLocation }}">
@@ -37,8 +55,11 @@
         </div>
 
         {{-- Repository Configuration --}}
-        <div class="glass-card p-6">
-            <h3 class="text-lg font-semibold text-accent mb-4">Repository Configuration</h3>
+        <div class="section-card">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="category-badge">Configuration</span>
+                <h3 class="text-lg font-semibold text-light">Repository Configuration</h3>
+            </div>
             <div class="flex flex-col gap-3">
                 @if (!$privateKeyId)
                     <div class="text-sm text-light opacity-70 mb-2">
@@ -59,8 +80,11 @@
 
         {{-- Deploy Key Section --}}
         @if ($privateKeyId)
-            <div class="glass-card p-6">
-                <h3 class="text-lg font-semibold text-accent mb-4">Deploy Key</h3>
+            <div class="section-card">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="category-badge">Security</span>
+                    <h3 class="text-lg font-semibold text-light">Deploy Key</h3>
+                </div>
                 <div class="text-sm text-light opacity-70 mb-4">
                     Currently attached Private Key: <span class="font-semibold text-warning">{{ $privateKeyName }}</span>
                 </div>
@@ -69,15 +93,17 @@
                     <h4 class="text-sm font-medium text-light mb-2">Select another Private Key</h4>
                     <div class="flex flex-wrap gap-2">
                     @foreach ($privateKeys as $key)
-                        <x-forms.button wire:click="setPrivateKey('{{ $key->id }}')">{{ $key->name }}
-                        </x-forms.button>
+                        <button wire:click="setPrivateKey('{{ $key->id }}')" class="outer-button">{{ $key->name }}</button>
                     @endforeach
                 </div>
             @endcan
         @else
             @can('update', $application)
-                <div class="glass-card p-6">
-                    <h3 class="text-lg font-semibold text-accent mb-4">Change Git Source</h3>
+                <div class="section-card">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="category-badge">Source</span>
+                        <h3 class="text-lg font-semibold text-light">Change Git Source</h3>
+                    </div>
                     <div class="grid grid-cols-1 gap-2">
                         @forelse ($sources as $source)
                             <div wire:key="{{ $source->name }}">

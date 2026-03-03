@@ -1,10 +1,20 @@
 <div>
     {{-- Header Idem Style --}}
-    <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-            <h2 class="text-2xl font-bold text-light">
-                <span class="i-underline">Environment Variables</span>
-            </h2>
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+                <div class="icon-container">
+                    <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-light">
+                        <span class="i-underline">Environment Variables</span>
+                    </h2>
+                    <p class="text-sm text-light opacity-70 mt-1">Manage secrets and configuration for this resource</p>
+                </div>
+            </div>
             @can('manageEnvironment', $resource)
                 <div class="flex items-center gap-2">
                     <x-modal-input buttonTitle="+ Add" title="New Environment Variable" :closeOutside="false">
@@ -14,22 +24,16 @@
                 </div>
             @endcan
         </div>
-        <p class="text-sm text-light opacity-70">Environment variables (secrets) for this resource.</p>
     </div>
 
     <div class="flex flex-col gap-6">
         {{-- Settings Section --}}
         @if ($resourceClass === 'App\Models\Application')
-            <div class="glass-card p-6">
-                <x-section-header 
-                    title="Configuration"
-                    description="Environment variable settings">
-                    <x-slot:icon>
-                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        </svg>
-                    </x-slot:icon>
-                </x-section-header>
+            <div class="section-card">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="category-badge">Configuration</span>
+                    <h3 class="text-lg font-semibold text-light">Environment Variable Settings</h3>
+                </div>
                 <div class="flex flex-col gap-3">
                 @if (data_get($resource, 'build_pack') !== 'dockercompose')
                     <div class="w-64">

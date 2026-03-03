@@ -1,16 +1,29 @@
 <div>
     {{-- Header Idem Style --}}
-    <div class="mb-6">
-        <h2 class="text-2xl font-bold text-light mb-2">
-            <span class="i-underline">Advanced Configuration</span>
-        </h2>
-        <p class="text-sm text-light opacity-70">Advanced configuration for your application.</p>
+    <div class="mb-8">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="icon-container">
+                <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-light">
+                    <span class="i-underline">Advanced Configuration</span>
+                </h2>
+                <p class="text-sm text-light opacity-70 mt-1">Fine-tune your application's advanced settings and behaviors</p>
+            </div>
+        </div>
     </div>
 
     <div class="flex flex-col gap-6">
         {{-- Section General --}}
-        <div class="glass-card p-6">
-            <h3 class="text-lg font-semibold text-accent mb-4">General</h3>
+        <div class="section-card">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="category-badge">General</span>
+                <h3 class="text-lg font-semibold text-light">Deployment & Build Settings</h3>
+            </div>
             <div class="flex flex-col gap-3">
             @if ($application->git_based())
                 <x-forms.checkbox helper="Automatically deploy new commits based on Git webhooks." instantSave
@@ -54,8 +67,11 @@
 
         @if ($application->build_pack === 'dockercompose')
             {{-- Section Docker Compose --}}
-            <div class="glass-card p-6">
-                <h3 class="text-lg font-semibold text-accent mb-4">Docker Compose</h3>
+            <div class="section-card">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="category-badge">Docker</span>
+                    <h3 class="text-lg font-semibold text-light">Docker Compose Configuration</h3>
+                </div>
                 <div class="flex flex-col gap-3">
                 <x-forms.checkbox instantSave id="isRawComposeDeploymentEnabled" label="Raw Compose Deployment"
                     helper="WARNING: Advanced use cases only. Your docker compose file will be deployed as-is. Nothing is modified by Coolify. You need to configure the proxy parts. More info in the <a class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/compose#raw-docker-compose-deployment'>documentation.</a>"
@@ -65,8 +81,11 @@
         @endif
 
         {{-- Section Container Names --}}
-        <div class="glass-card p-6">
-            <h3 class="text-lg font-semibold text-accent mb-4">Container Names</h3>
+        <div class="section-card">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="category-badge">Container</span>
+                <h3 class="text-lg font-semibold text-light">Container Naming Strategy</h3>
+            </div>
             <div class="flex flex-col gap-3">
             <x-forms.checkbox
                 helper="The deployed container will have the same name ({{ $application->uuid }}). <span class='font-bold dark:text-warning'>You will lose the rolling update feature!</span>"
@@ -78,7 +97,9 @@
                         helper="You can add a custom name for your container.<br><br>The name will be converted to slug format when you save it. <span class='font-bold dark:text-warning'>You will lose the rolling update feature!</span>"
                         instantSave id="customInternalName" label="Custom Container Name" canGate="update"
                         :canResource="$application" />
-                    <x-forms.button canGate="update" :canResource="$application" type="submit">Save</x-forms.button>
+                    @can('update', $application)
+                        <button type="submit" class="inner-button">Save</button>
+                    @endcan
                 </form>
             @endif
             </div>
@@ -86,8 +107,11 @@
 
         @if ($application->build_pack === 'dockercompose')
             {{-- Section Network --}}
-            <div class="glass-card p-6">
-                <h3 class="text-lg font-semibold text-accent mb-4">Network</h3>
+            <div class="section-card">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="category-badge">Network</span>
+                    <h3 class="text-lg font-semibold text-light">Network Configuration</h3>
+                </div>
                 <div class="flex flex-col gap-3">
                 <x-forms.checkbox instantSave id="isConnectToDockerNetworkEnabled" label="Connect To Predefined Network"
                     helper="By default, you do not reach the Coolify defined networks.<br>Starting a docker compose based resource will have an internal network. <br>If you connect to a Coolify defined network, you maybe need to use different internal DNS names to connect to a resource.<br><br>For more information, check <a class='underline dark:text-white' target='_blank' href='https://coolify.io/docs/knowledge-base/docker/compose#connect-to-predefined-networks'>this</a>."
@@ -97,8 +121,11 @@
         @endif
 
         {{-- Section Logs --}}
-        <div class="glass-card p-6">
-            <h3 class="text-lg font-semibold text-accent mb-4">Logs</h3>
+        <div class="section-card">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="category-badge">Monitoring</span>
+                <h3 class="text-lg font-semibold text-light">Log Management</h3>
+            </div>
             <div class="flex flex-col gap-3">
             <x-forms.checkbox helper="Drain logs to your configured log drain endpoint in your Server settings."
                 instantSave id="isLogDrainEnabled" label="Drain Logs" canGate="update" :canResource="$application" />
@@ -107,8 +134,11 @@
 
         @if ($application->git_based())
             {{-- Section Git --}}
-            <div class="glass-card p-6">
-                <h3 class="text-lg font-semibold text-accent mb-4">Git</h3>
+            <div class="section-card">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="category-badge">Git</span>
+                    <h3 class="text-lg font-semibold text-light">Git Repository Options</h3>
+                </div>
                 <div class="flex flex-col gap-3">
                 <x-forms.checkbox instantSave id="isGitSubmodulesEnabled" label="Submodules"
                     helper="Allow Git Submodules during build process." canGate="update" :canResource="$application" />
@@ -123,12 +153,17 @@
 
         {{-- Section GPU --}}
         @if ($application->build_pack !== 'dockercompose')
-            <div class="glass-card p-6">
+            <div class="section-card">
                 <form wire:submit="submit" class="flex flex-col gap-4">
                     <div class="flex gap-2 items-center justify-between">
-                        <h3 class="text-lg font-semibold text-accent">GPU Configuration</h3>
+                        <div class="flex items-center gap-2">
+                            <span class="category-badge">GPU</span>
+                            <h3 class="text-lg font-semibold text-light">GPU Configuration</h3>
+                        </div>
                         @if ($isGpuEnabled)
-                            <x-forms.button canGate="update" :canResource="$application" type="submit">Save</x-forms.button>
+                            @can('update', $application)
+                                <button type="submit" class="inner-button">Save</button>
+                            @endcan
                         @endif
                     </div>
 

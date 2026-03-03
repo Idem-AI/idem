@@ -1,4 +1,4 @@
-<nav class="flex flex-col flex-1 px-2 bg-white border-r dark:border-coolgray-200 border-neutral-300 dark:bg-base"
+<nav class="flex flex-col flex-1 px-3 border-r border-gray-800/50" style="background: linear-gradient(180deg, #0a0a0f 0%, #0f0f14 100%);"
     x-data="{
         switchWidth() {
                 if (this.full === 'full') {
@@ -77,98 +77,94 @@
                 }
             }
     }">
-    <div class="flex lg:pt-6 pt-4 pb-4 pl-2">
-        <div class="flex flex-col w-full">
-            {{-- IDEM Logo --}}
-            <div class="flex items-center gap-3">
-                <img src="{{ asset('logo/logo.png') }}" alt="IDEM" class="h-10 w-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="text-2xl font-bold tracking-wide text-glow-primary" style="display:none; background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</div>
+    {{-- Header avec Logo IDEM + Badge Beta --}}
+    <div class="flex items-center justify-between px-4 py-6 border-b border-gray-800/50">
+        <div class="flex items-center gap-3">
+            {{-- Logo IDEM --}}
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-xl shadow-blue-500/30 ring-2 ring-blue-500/20">
+                <span class="text-2xl font-bold text-white drop-shadow-lg">I</span>
+            </div>
+            {{-- Texte IDEM --}}
+            <div class="flex items-center gap-2">
+                <span class="text-2xl font-bold tracking-tight" style="background: linear-gradient(135deg, #ffffff 0%, #3ca4fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</span>
+                {{-- Badge Beta --}}
+                <span class="px-2 py-0.5 text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-full">Beta</span>
             </div>
         </div>
-        <div>
-            <!-- Search button that triggers global search modal -->
-            <button @click="$dispatch('open-global-search')" type="button" title="Search (Press / or ⌘K)"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-100 dark:bg-coolgray-100 border border-neutral-300 dark:border-coolgray-200 rounded-md hover:bg-neutral-200 dark:hover:bg-coolgray-200 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-neutral-500 dark:text-neutral-400"
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <kbd
-                    class="px-1 py-0.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400 bg-neutral-200 dark:bg-coolgray-200 rounded">/</kbd>
-            </button>
-        </div>
-        <livewire:settings-dropdown />
+        {{-- Bouton hamburger mobile --}}
+        <button class="lg:hidden p-2 hover:bg-gray-800/50 rounded-lg transition-colors">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
     </div>
     <div class="px-2 pt-2 pb-7">
         <livewire:switch-team />
     </div>
     <ul role="list" class="flex flex-col flex-1 gap-y-7">
-        <li class="flex-1 overflow-x-hidden">
-            <ul role="list" class="flex flex-col h-full space-y-1.5">
-                {{-- IDEM SaaS: Admin Panel Link (only for admins) - Toujours visible pour les admins --}}
-                @if(auth()->user() && auth()->user()->idem_role === 'admin')
-                    <li>
-                        <a title="Admin Panel"
-                            class="{{ request()->is('idem/admin*') ? 'menu-item-active menu-item bg-red-500/20 border-l-4 border-red-500' : 'menu-item hover:bg-red-500/10 border-l-4 border-transparent hover:border-red-500/50' }}"
-                            href="{{ route('idem.admin.dashboard') }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                            </svg>
-                            <span class="flex-1 text-red-400 font-bold">Admin Panel</span>
-                            <span class="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">ADMIN</span>
-                        </a>
-                    </li>
-                @endif
-                
-                @if (isSubscribed() || !isCloud())
-                    <li>
-                        <a title="Dashboard" href="/"
-                            class="{{ request()->is('/') ? 'menu-item-active menu-item' : 'menu-item' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            Dashboard
-                        </a>
-                    </li>
-                    
-                    <li>
-                        <a title="Projects"
-                            class="{{ request()->is('project/*') || request()->is('projects') ? 'menu-item menu-item-active' : 'menu-item' }}"
-                            href="/projects">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24"
-                                stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                <path d="M12 4l-8 4l8 4l8 -4l-8 -4" />
-                                <path d="M4 12l8 4l8 -4" />
-                                <path d="M4 16l8 4l8 -4" />
-                            </svg>
-                            Projects
-                        </a>
-                    </li>
-                    <li>
-                        <a title="Servers"
-                            class="{{ request()->is('server/*') || request()->is('servers') ? 'menu-item menu-item-active' : 'menu-item' }}"
-                            href="/servers">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24"
-                                stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                <path
-                                    d="M3 4m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z" />
-                                <path d="M15 20h-9a3 3 0 0 1 -3 -3v-2a3 3 0 0 1 3 -3h12" />
-                                <path d="M7 8v.01" />
-                                <path d="M7 16v.01" />
-                                <path d="M20 15l-2 3h3l-2 3" />
-                            </svg>
-                            Servers
-                        </a>
-                    </li>
+        {{-- IDEM SaaS: Admin Panel Link (only for admins) - Toujours visible pour les admins --}}
+        @if(auth()->user() && auth()->user()->idem_role === 'admin')
+            <li>
+                <a title="Admin Panel"
+                    class="{{ request()->is('idem/admin*') ? 'menu-item-active menu-item bg-red-500/20 border-l-4 border-red-500' : 'menu-item hover:bg-red-500/10 border-l-4 border-transparent hover:border-red-500/50' }}"
+                    href="{{ route('idem.admin.dashboard') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                    <span class="flex-1 text-red-400 font-bold">Admin Panel</span>
+                    <span class="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">ADMIN</span>
+                </a>
+            </li>
+        @endif
+        
+        @if (isSubscribed() || !isCloud())
+            <li>
+                <a title="Dashboard" href="/"
+                    class="{{ request()->is('/') ? 'menu-item-active menu-item' : 'menu-item' }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Dashboard
+                </a>
+            </li>
+            
+            <li>
+                <a title="Projects"
+                    class="{{ request()->is('project/*') || request()->is('projects') ? 'menu-item menu-item-active' : 'menu-item' }}"
+                    href="/projects">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24"
+                        stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path d="M12 4l-8 4l8 4l8 -4l-8 -4" />
+                        <path d="M4 12l8 4l8 -4" />
+                        <path d="M4 16l8 4l8 -4" />
+                    </svg>
+                    Projects
+                </a>
+            </li>
+            <li>
+                <a title="Servers"
+                    class="{{ request()->is('server/*') || request()->is('servers') ? 'menu-item menu-item-active' : 'menu-item' }}"
+                    href="/servers">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24"
+                        stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path
+                            d="M3 4m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z" />
+                        <path d="M15 20h-9a3 3 0 0 1 -3 -3v-2a3 3 0 0 1 3 -3h12" />
+                        <path d="M7 8v.01" />
+                        <path d="M7 16v.01" />
+                        <path d="M20 15l-2 3h3l-2 3" />
+                    </svg>
+                    Servers
+                </a>
+            </li>
 
-                    <li>
+            <li>
                         <a title="Sources"
                             class="{{ request()->is('source*') ? 'menu-item-active menu-item' : 'menu-item' }}"
                             href="{{ route('source.all') }}">
@@ -435,7 +431,6 @@
                         </button>
                     </form>
                 </li>
-            </ul>
-        </li>
+        @endif
     </ul>
 </nav>

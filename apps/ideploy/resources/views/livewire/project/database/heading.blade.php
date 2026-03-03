@@ -7,19 +7,17 @@
         </x-slot:content>
     </x-slide-over>
     <div class="navbar-main">
-        <nav
-            class="flex overflow-x-scroll shrink-0 gap-6 items-center whitespace-nowrap sm:overflow-x-hidden scrollbar min-h-10">
-            <a class="{{ request()->routeIs('project.database.configuration') ? 'dark:text-white' : '' }}"
+        <nav class="flex shrink-0 gap-3 items-center whitespace-nowrap scrollbar min-h-10">
+            <a class="nav-link {{ request()->routeIs('project.database.configuration') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.database.configuration', $parameters) }}">
                 Configuration
             </a>
-
-            <a class="{{ request()->routeIs('project.database.logs') ? 'dark:text-white' : '' }}"
+            <a class="nav-link {{ request()->routeIs('project.database.logs') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.database.logs', $parameters) }}">
                 Logs
             </a>
             @can('canAccessTerminal')
-                <a class="{{ request()->routeIs('project.database.command') ? 'dark:text-white' : '' }}"
+                <a class="nav-link {{ request()->routeIs('project.database.command') ? 'nav-link-active' : '' }}"
                     href="{{ route('project.database.command', $parameters) }}">
                     Terminal
                 </a>
@@ -29,7 +27,7 @@
                     $database->getMorphClass() === 'App\Models\StandaloneMongodb' ||
                     $database->getMorphClass() === 'App\Models\StandaloneMysql' ||
                     $database->getMorphClass() === 'App\Models\StandaloneMariadb')
-                <a class="{{ request()->routeIs('project.database.backup.index') ? 'dark:text-white' : '' }}"
+                <a class="nav-link {{ request()->routeIs('project.database.backup.index') ? 'nav-link-active' : '' }}"
                     href="{{ route('project.database.backup.index', $parameters) }}">
                     Backups
                 </a>
@@ -78,14 +76,14 @@
                         </x-slot:button-title>
                     </x-modal-confirmation>
                 @else
-                    <button @click="$wire.dispatch('startEvent')" class="gap-2 button">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
+                    <button @click="$wire.dispatch('startEvent')" class="inner-button px-8 py-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24"
                             stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round"
                             stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
                             <path d="M7 4v16l13 -8z" />
                         </svg>
-                        Start
+                        <span>START</span>
                     </button>
                 @endif
                 @script
