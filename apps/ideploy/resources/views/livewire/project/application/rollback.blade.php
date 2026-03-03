@@ -1,15 +1,29 @@
 <div x-init="$wire.loadImages">
     {{-- Header Idem Style --}}
     <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-            <h2 class="text-2xl font-bold text-light">
-                <span class="i-underline">Rollback</span>
-            </h2>
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <div class="icon-container">
+                    <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-light">
+                        <span class="i-underline">Rollback</span>
+                    </h2>
+                    <p class="text-sm text-light opacity-70 mt-1">Rollback to a previously built image quickly</p>
+                </div>
+            </div>
             @can('view', $application)
-                <x-forms.button wire:click='loadImages(true)'>Reload Available Images</x-forms.button>
+                <button wire:click='loadImages(true)' class="outer-button">
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Reload Images
+                </button>
             @endcan
         </div>
-        <p class="text-sm text-light opacity-70">You can easily rollback to a previously built (local) image quickly.</p>
     </div>
 
     {{-- Loading State --}}
@@ -51,13 +65,19 @@
                         <div class="flex justify-end pt-2 border-t border-glass">
                             @can('deploy', $application)
                                 @if (data_get($image, 'is_current'))
-                                    <x-forms.button disabled tooltip="This image is currently running.">
-                                        Rollback
-                                    </x-forms.button>
+                                    <button disabled class="outer-button opacity-50 cursor-not-allowed" title="This image is currently running">
+                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        Current
+                                    </button>
                                 @else
-                                    <x-forms.button wire:click="rollbackImage('{{ data_get($image, 'tag') }}')">
+                                    <button wire:click="rollbackImage('{{ data_get($image, 'tag') }}')" class="inner-button">
+                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4z" />
+                                        </svg>
                                         Rollback
-                                    </x-forms.button>
+                                    </button>
                                 @endif
                             @endcan
                         </div>
