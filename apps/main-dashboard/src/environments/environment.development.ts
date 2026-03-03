@@ -5,14 +5,13 @@ export const environment = {
   analytics: {
     enabled: false,
   },
-  firebase: {
-    apiKey: 'AIzaSyCsUpHmK5-o4hp8_HldvlaLU2gLOUVeHgY',
-    authDomain: 'lexis-ia.firebaseapp.com',
-    projectId: 'lexis-ia',
-    storageBucket: 'lexis-ia.firebasestorage.app',
-    messagingSenderId: '78825247320',
-    appId: '1:78825247320:web:2a69ba8ceabad513f3f02d',
-    measurementId: 'G-1YQGTP97EJ',
+  casdoor: {
+    endpoint: 'http://localhost:8000',
+    clientId: 'f8863b0307010542890e', // À configurer après création de l'application Casdoor
+    clientSecret: '195448dec70f4a0f0572702ebb9e13ee2aa5b1bd',
+    organization: 'idem',
+    application: 'idem-dashboard',
+    redirectUri: 'http://localhost:4200/auth/callback',
   },
   services: {
     domain: 'https://idem.africa',

@@ -5,14 +5,13 @@ export const environment = {
   analytics: {
     enabled: true, // Analytics enabled in production only
   },
-  firebase: {
-    apiKey: 'AIzaSyCsUpHmK5-o4hp8_HldvlaLU2gLOUVeHgY',
-    authDomain: 'lexis-ia.firebaseapp.com',
-    projectId: 'lexis-ia',
-    storageBucket: 'lexis-ia.firebasestorage.app',
-    messagingSenderId: '78825247320',
-    appId: '1:78825247320:web:2a69ba8ceabad513f3f02d',
-    measurementId: 'G-1YQGTP97EJ',
+  casdoor: {
+    endpoint: 'https://auth.idem.africa',
+    clientId: 'your-client-id', // À configurer en production
+    clientSecret: 'your-client-secret',
+    organization: 'idem',
+    application: 'idem-dashboard',
+    redirectUri: 'https://console.idem.africa/auth/callback',
   },
   services: {
     domain: 'https://idem.africa',

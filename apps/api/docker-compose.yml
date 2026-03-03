@@ -3,35 +3,41 @@ version: '3.8'
 services:
   # Casdoor - Authentication & Authorization
   casdoor:
-    image: casbin/casdoor:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.casdoor
     container_name: idem-casdoor
     ports:
       - '8000:8000'
     environment:
-      - RUNNING_IN_DOCKER=true
+      RUNNING_IN_DOCKER: 'true'
     volumes:
-      - casdoor-conf:/conf
       - casdoor-data:/var/lib/casdoor
     depends_on:
-      - casdoor-db
+      casdoor-db:
+        condition: service_healthy
     networks:
       - idem-network
     restart: unless-stopped
 
   # PostgreSQL for Casdoor
   casdoor-db:
-    image: mysql:8.0
+    image: postgres:15-alpine
     container_name: idem-casdoor-db
     environment:
-      MYSQL_DATABASE: casdoor
-      MYSQL_USER: casdoor
-      MYSQL_PASSWORD: casdoor_password
-      MYSQL_ROOT_PASSWORD: root_password
+      POSTGRES_DB: casdoor
+      POSTGRES_USER: casdoor
+      POSTGRES_PASSWORD: casdoor_password
     volumes:
-      - casdoor-db-data:/var/lib/mysql
+      - casdoor-db-data:/var/lib/postgresql/data
     networks:
       - idem-network
     restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U casdoor']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # MinIO - Object Storage (S3-compatible)
   minio:
@@ -72,7 +78,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  casdoor-conf:
   casdoor-data:
   casdoor-db-data:
   minio-data:

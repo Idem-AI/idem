@@ -1,185 +1,108 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, forwardRef, signal } from '@angular/core';
-import { TokenService } from '../../../shared/services/token.service';
 import { CookieService } from '../../../shared/services/cookie.service';
-import {
-  Auth,
-  GithubAuthProvider,
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signOut,
-  user,
-  User,
-} from '@angular/fire/auth';
-import { from, Observable, firstValueFrom } from 'rxjs';
+import { CasdoorService, CasdoorUser } from '../../../shared/services/casdoor.service';
+import { from, Observable, BehaviorSubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private auth = inject(Auth);
-  user$: Observable<User | null>;
+  private casdoorService = inject(CasdoorService);
   private http = inject(HttpClient);
-  private tokenService = inject(forwardRef(() => TokenService));
   private cookieService = inject(CookieService);
   private apiUrl = `${environment.services.api.url}/auth`;
   private readonly CURRENT_USER_COOKIE = 'currentUser';
+
+  private currentUserSubject = new BehaviorSubject<CasdoorUser | null>(null);
+  user$ = this.currentUserSubject.asObservable();
 
   /** True while we're waiting for a redirect login result (mobile flow) */
   readonly redirectLoginInProgress = signal(false);
 
   /** Resolves when redirect result has been checked on app init */
-  readonly redirectResultReady: Promise<User | null>;
+  readonly redirectResultReady: Promise<CasdoorUser | null>;
 
   constructor() {
-    this.user$ = user(this.auth);
-    this.redirectResultReady = this.handleRedirectResult();
+    this.redirectResultReady = this.checkAuthStatus();
   }
 
   /**
-   * Detect mobile/tablet browsers where signInWithPopup is unreliable.
+   * Check authentication status on app init
    */
-  private isMobile(): boolean {
-    if (typeof navigator === 'undefined') return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    );
-  }
-
-  /**
-   * On page load, check if we're returning from a signInWithRedirect.
-   * If so, complete the login flow (postLogin + emit event via callback).
-   */
-  private async handleRedirectResult(): Promise<User | null> {
+  private async checkAuthStatus(): Promise<CasdoorUser | null> {
     try {
-      this.redirectLoginInProgress.set(true);
-      const result = await getRedirectResult(this.auth);
-      if (result?.user) {
-        console.log('Redirect login successful for:', result.user.email);
-        await this.postLogin(result.user);
-        return result.user;
+      if (this.casdoorService.isAuthenticated()) {
+        const user = await this.casdoorService.getUserProfile().toPromise();
+        this.currentUserSubject.next(user || null);
+        return user || null;
       }
       return null;
     } catch (error) {
-      console.error('Error handling redirect result:', error);
+      console.error('Error checking auth status:', error);
       return null;
-    } finally {
-      this.redirectLoginInProgress.set(false);
     }
   }
 
   login(email: string, password: string): Observable<void> {
-    const promise = signInWithEmailAndPassword(this.auth, email, password).then(async (cred) => {
-      await this.postLogin(cred.user);
-    });
-    return from(promise);
+    // Email/password login not supported with Casdoor OAuth
+    // Users must use Google or GitHub login
+    throw new Error('Email/password login not supported. Please use Google or GitHub.');
   }
 
-  async loginWithGithub() {
-    const provider = new GithubAuthProvider();
-    if (this.isMobile()) {
-      await signInWithRedirect(this.auth, provider);
-    } else {
-      const result = await signInWithPopup(this.auth, provider);
-      await this.postLogin(result.user);
-    }
+  loginWithGithub(): void {
+    const url = this.casdoorService.getGithubLoginUrl();
+    window.location.href = url;
   }
 
-  async loginWithGoogle() {
-    const provider = new GoogleAuthProvider();
-    if (this.isMobile()) {
-      // Mobile: use redirect flow (popup is unreliable on mobile browsers)
-      await signInWithRedirect(this.auth, provider);
-      // Page will reload — postLogin is handled in handleRedirectResult()
-    } else {
-      const result = await signInWithPopup(this.auth, provider);
-      await this.postLogin(result.user);
-    }
+  loginWithGoogle(): void {
+    const url = this.casdoorService.getGoogleLoginUrl();
+    window.location.href = url;
   }
 
-  private async postLogin(user: User) {
+  async postLogin(user: CasdoorUser): Promise<void> {
     if (!user) return;
-    const currentUser = this.auth.currentUser;
 
-    // Le TokenService va automatiquement sauvegarder le token dans les cookies
-    const token = currentUser ? await this.tokenService.refreshToken(currentUser) : null;
-
-    if (!token) {
-      console.error('Aucun token disponible');
-      return;
-    }
-
-    console.log('Token obtenu et sauvegardé automatiquement lors du login');
+    console.log('User logged in successfully:', user.email);
 
     // Sauvegarder l'utilisateur dans les cookies
     this.saveUserToCookies(user);
-
-    try {
-      await firstValueFrom(
-        this.http.post<void>(
-          `${this.apiUrl}/sessionLogin`,
-          { token, user },
-          {
-            withCredentials: true,
-            headers: { 'Content-Type': 'application/json' },
-          },
-        ),
-      );
-    } catch (error) {
-      console.error("Erreur lors de l'envoi du token au backend:", error);
-    }
-
-    try {
-      console.log('Utilisateur ajouté à Firestore avec succès');
-    } catch (error) {
-      console.error('Erreur lors de l’ajout de l’utilisateur à Firestore :', error);
-    }
+    this.currentUserSubject.next(user);
   }
 
   logout(): Observable<void> {
-    const promise = signOut(this.auth)
-      .then(() => {
-        // Effacer le token dans TokenService
-        this.tokenService.clearToken();
-        // Effacer l'utilisateur des cookies
+    return this.casdoorService.logout().pipe(
+      tap(() => {
         this.cookieService.remove(this.CURRENT_USER_COOKIE);
         sessionStorage.clear();
-        return this.http.post<void>(`${this.apiUrl}/logout`, {}).toPromise();
-      })
-      .catch((error) => {
-        console.error('Erreur lors de la déconnexion:', error);
-      });
-
-    return from(promise);
+        this.currentUserSubject.next(null);
+      }),
+    );
   }
 
-  getCurrentUser(): User | null {
-    // D'abord essayer de récupérer depuis Firebase Auth
-    const firebaseUser = this.auth.currentUser;
-    if (firebaseUser) {
-      return firebaseUser;
+  getCurrentUser(): CasdoorUser | null {
+    // Récupérer depuis Casdoor service
+    const casdoorUser = this.casdoorService.getCurrentUser();
+    if (casdoorUser) {
+      return casdoorUser;
     }
 
-    // Si pas d'utilisateur Firebase, récupérer depuis les cookies
+    // Sinon récupérer depuis les cookies
     return this.getUserFromCookies();
   }
 
   /**
    * Sauvegarde l'utilisateur dans les cookies
    */
-  private saveUserToCookies(user: User): void {
+  private saveUserToCookies(user: CasdoorUser): void {
     const userData = {
-      uid: user.uid,
+      id: user.id,
       email: user.email,
       displayName: user.displayName,
-      photoURL: user.photoURL,
-      emailVerified: user.emailVerified,
-      phoneNumber: user.phoneNumber,
-      providerId: user.providerId,
+      avatar: user.avatar,
+      name: user.name,
     };
 
     this.cookieService.set(this.CURRENT_USER_COOKIE, JSON.stringify(userData), 30);
@@ -188,7 +111,7 @@ export class AuthService {
   /**
    * Récupère l'utilisateur depuis les cookies
    */
-  private getUserFromCookies(): User | null {
+  private getUserFromCookies(): CasdoorUser | null {
     try {
       const userCookie = this.cookieService.get(this.CURRENT_USER_COOKIE);
       if (!userCookie) {
@@ -205,27 +128,14 @@ export class AuthService {
 
       const userData = JSON.parse(trimmedCookie);
 
-      // Créer un objet User-like depuis les données des cookies
       return {
-        uid: userData.uid,
+        id: userData.id,
+        owner: userData.owner || '',
+        name: userData.name,
         email: userData.email,
         displayName: userData.displayName,
-        photoURL: userData.photoURL,
-        emailVerified: userData.emailVerified,
-        phoneNumber: userData.phoneNumber,
-        providerId: userData.providerId,
-        // Propriétés requises par l'interface User mais non stockées
-        isAnonymous: false,
-        metadata: {} as any,
-        providerData: [],
-        refreshToken: '',
-        tenantId: null,
-        delete: async () => {},
-        getIdToken: async () => '',
-        getIdTokenResult: async () => ({}) as any,
-        reload: async () => {},
-        toJSON: () => ({}),
-      } as User;
+        avatar: userData.avatar,
+      } as CasdoorUser;
     } catch (error) {
       console.error("Erreur lors de la récupération de l'utilisateur depuis les cookies:", error);
       return null;
