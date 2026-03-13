@@ -1,0 +1,59 @@
+{
+  "nodejs": {
+    "detection": ["package.json"],
+    "frameworks": {
+      "nextjs": {
+        "keywords": ["next", "Next.js"], "port": 3000,
+        "install": "npm install", "build": "npm run build", "start": "npm start"
+      },
+      "express": {"keywords": ["express"], "port": 3000},
+      "nestjs": {"keywords": ["@nestjs/core"], "port": 3000},
+      "nuxtjs": {"keywords": ["nuxt"], "port": 3000}
+    }
+  },
+  "python": {
+    "detection": ["requirements.txt", "Pipfile", "pyproject.toml"],
+    "frameworks": {
+      "django": {
+        "keywords": ["Django", "django"], "port": 8000,
+        "start": "gunicorn config.wsgi:application --bind 0.0.0.0:8000",
+        "env_vars": ["DJANGO_SECRET_KEY", "DJANGO_DEBUG", "DJANGO_ALLOWED_HOSTS"],
+        "post_deploy": "python manage.py migrate",
+        "databases": ["postgresql", "mysql"]
+      },
+      "flask": {"keywords": ["Flask", "flask"], "port": 5000},
+      "fastapi": {
+        "keywords": ["fastapi"], "port": 8000,
+        "start": "uvicorn main:app --host 0.0.0.0 --port 8000"
+      }
+    }
+  },
+  "php": {
+    "detection": ["composer.json"],
+    "frameworks": {
+      "laravel": {
+        "keywords": ["laravel/framework"], "port": 8000,
+        "env_vars": ["APP_KEY", "APP_ENV", "APP_DEBUG"],
+        "post_deploy": "php artisan migrate --force",
+        "databases": ["mysql", "postgresql", "mariadb"]
+      },
+      "symfony": {"keywords": ["symfony/symfony"], "port": 8000}
+    }
+  },
+  "go": {"detection": ["go.mod"], "port": 8080},
+  "ruby": {
+    "detection": ["Gemfile"],
+    "frameworks": {
+      "rails": {
+        "keywords": ["rails"], "port": 3000,
+        "env_vars": ["SECRET_KEY_BASE", "RAILS_ENV"],
+        "post_deploy": "rails db:migrate",
+        "databases": ["postgresql", "mysql"]
+      }
+    }
+  },
+  "rust": {"detection": ["Cargo.toml"], "port": 8080},
+  "java": {"detection": ["pom.xml", "build.gradle"], "port": 8080},
+  "dotnet": {"detection": [".csproj", ".fsproj"], "port": 5000},
+  "static": {"detection": "no backend", "build_pack": "static", "image": "nginx:alpine"}
+}

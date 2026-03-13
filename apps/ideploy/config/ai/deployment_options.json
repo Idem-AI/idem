@@ -1,0 +1,36 @@
+{
+  "build_packs": {
+    "nixpacks": "Auto-detect (Node.js, Python, Go, PHP, Ruby, Rust, .NET)",
+    "dockerfile": "Use Dockerfile if exists",
+    "dockercompose": "Use docker-compose.yml if exists", 
+    "static": "Static HTML/CSS/JS only"
+  },
+  "databases": {
+    "postgresql": {"port": 5432, "detection": ["psycopg2", "pg", "postgresql"]},
+    "mysql": {"port": 3306, "detection": ["mysql", "mysql2"]},
+    "mariadb": {"port": 3306, "detection": ["mariadb"]},
+    "mongodb": {"port": 27017, "detection": ["mongoose", "pymongo", "mongodb"]},
+    "redis": {"port": 6379, "detection": ["redis", "ioredis", "redis-py"]},
+    "clickhouse": {"port": 9000},
+    "dragonfly": {"port": 6379},
+    "keydb": {"port": 6379}
+  },
+  "security": {
+    "firewall": {
+      "enabled": true,
+      "provider": "crowdsec"
+    },
+    "ssl": {
+      "enabled": true,
+      "provider": "letsencrypt"
+    }
+  },
+  "cicd": {
+    "pipeline_enabled": true,
+    "auto_deploy_on_push": true
+  },
+  "monitoring": {
+    "health_check_enabled": true,
+    "logs_retention_days": 30
+  }
+}

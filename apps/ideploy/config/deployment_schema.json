@@ -1,0 +1,48 @@
+{
+  "build_pack": {
+    "options": ["nixpacks", "dockerfile", "docker_compose", "static"],
+    "decision": {
+      "nixpacks": "Auto pour Node.js, Python, Go, PHP (défaut)",
+      "dockerfile": "Si Dockerfile existe",
+      "docker_compose": "Si docker-compose.yml existe",
+      "static": "Site HTML/CSS/JS uniquement"
+    }
+  },
+  "port": {
+    "defaults": {
+      "nodejs": 3000,
+      "python_django": 8000,
+      "python_flask": 5000,
+      "php_laravel": 8000,
+      "go": 8080,
+      "ruby_rails": 3000
+    }
+  },
+  "environment_variables": {
+    "required_by_framework": {
+      "django": ["DJANGO_SECRET_KEY", "DJANGO_DEBUG", "DJANGO_ALLOWED_HOSTS", "DATABASE_URL"],
+      "laravel": ["APP_KEY", "APP_ENV", "APP_DEBUG", "DB_CONNECTION", "DB_HOST"],
+      "nextjs": ["NODE_ENV"],
+      "rails": ["SECRET_KEY_BASE", "RAILS_ENV", "DATABASE_URL"]
+    }
+  },
+  "databases": {
+    "types": ["postgresql", "mysql", "mariadb", "mongodb", "redis"],
+    "detection": {
+      "postgresql": ["psycopg2", "pg", "postgres"],
+      "mysql": ["mysql", "mysql2", "mysqlclient"],
+      "mongodb": ["mongoose", "pymongo", "mongodb"],
+      "redis": ["redis", "redis-py", "ioredis"]
+    }
+  },
+  "healthcheck": {
+    "path": {
+      "defaults": {
+        "django": "/health/",
+        "laravel": "/health",
+        "nextjs": "/api/health",
+        "express": "/health"
+      }
+    }
+  }
+}
