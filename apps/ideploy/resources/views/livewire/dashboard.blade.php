@@ -13,41 +13,50 @@
         </div>
     @endif
 
-    {{-- Hero Header --}}
-    <div class="px-6 pt-12 pb-8">
+    {{-- Compact Header --}}
+    <div class="px-6 pt-6 pb-3">
         <div class="max-w-7xl mx-auto">
-            <div class="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border border-blue-500/30 rounded-2xl p-8 mb-8 shadow-2xl shadow-blue-500/10">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-5xl font-bold mb-3" style="background: linear-gradient(135deg, #ffffff 0%, #3ca4fa 50%, #22d3ee 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                            Welcome back! 🚀
-                        </h1>
-                        <p class="text-gray-300 text-lg font-medium">Manage your projects and deployments</p>
+            <h1 class="text-2xl font-bold text-white">Dashboard</h1>
+            <p class="text-sm text-gray-400">{{ count($projects) }} projects • {{ count($servers) }} servers</p>
+        </div>
+    </div>
+
+    {{-- AI Assistant Compact --}}
+    <section class="px-6 pb-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/40 rounded-xl p-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
                     </div>
-                    <div class="hidden md:flex items-center gap-4">
-                        <div class="bg-blue-500/10 border border-blue-500/30 px-6 py-3 rounded-xl">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                                <span class="text-blue-300 text-sm font-bold tracking-wide">{{ count($projects) }} {{ count($projects) === 1 ? 'PROJECT' : 'PROJECTS' }}</span>
-                            </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-lg font-bold text-white">AI Smart Deploy</h3>
+                            <span class="px-2 py-0.5 text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full font-bold">SOON</span>
                         </div>
+                        <p class="text-xs text-gray-300">Intelligent deployment with deep code analysis • 10+ languages • 25+ frameworks</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button disabled class="px-4 py-2 bg-gray-700/50 text-gray-500 rounded-lg text-sm font-bold cursor-not-allowed opacity-50">Coming Soon</button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     {{-- Projects Section --}}
-    <section class="px-6 pb-8">
+    <section class="px-6 pb-6">
         <div class="max-w-7xl mx-auto">
-            <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-center">
                         <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                         </svg>
                     </div>
-                    <h2 class="text-3xl font-bold text-white tracking-wide">PROJECTS</h2>
+                    <h2 class="text-2xl font-bold text-white">PROJECTS</h2>
                 </div>
             </div>
         
@@ -279,16 +288,16 @@
     </section>
 
     {{-- Servers Section --}}
-    <section class="px-6 pb-8">
+    <section class="px-6 pb-6">
         <div class="max-w-7xl mx-auto">
-            <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center justify-center">
                         <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
                         </svg>
                     </div>
-                    <h2 class="text-3xl font-bold text-white tracking-wide">SERVERS</h2>
+                    <h2 class="text-2xl font-bold text-white">SERVERS</h2>
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="bg-purple-500/10 border border-purple-500/30 px-6 py-3 rounded-xl">
