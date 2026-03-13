@@ -35,17 +35,32 @@
         <div class="w-full">
             @if ($currentRoute === 'project.service.configuration')
                 <livewire:project.service.stack-form :service="$service" />
-                <h3>Services</h3>
-                <div class="grid grid-cols-1 gap-2 pt-4 xl:grid-cols-1">
+                {{-- Section: Services --}}
+                <div x-data="{ expanded: true }" class="group rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-indigo-500/50 transition-all mb-6">
+                    <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Services</h3>
+                                <p class="text-sm text-gray-400">Manage your stack services and containers</p>
+                            </div>
+                        </div>
+                        <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                    <div x-show="expanded" x-collapse class="px-6 pb-6">
+                        <div class="space-y-3">
                     @foreach ($applications as $application)
                         <div @class([
-                            'border-l border-dashed border-red-500' => str(
-                                $application->status)->contains(['exited']),
-                            'border-l border-dashed border-success' => str(
-                                $application->status)->contains(['running']),
-                            'border-l border-dashed border-warning' => str(
-                                $application->status)->contains(['starting']),
-                            'flex gap-2 box-without-bg-without-border dark:bg-coolgray-100 bg-white dark:hover:text-neutral-300 group',
+                            'border-l-4 border-red-500' => str($application->status)->contains(['exited']),
+                            'border-l-4 border-green-500' => str($application->status)->contains(['running']),
+                            'border-l-4 border-yellow-500' => str($application->status)->contains(['starting']),
+                            'rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all p-4 border border-gray-700',
                         ])>
                             <div class="flex flex-row w-full">
                                 <div class="flex flex-col flex-1">
@@ -115,13 +130,10 @@
                     @endforeach
                     @foreach ($databases as $database)
                         <div @class([
-                            'border-l border-dashed border-red-500' => str($database->status)->contains(
-                                ['exited']),
-                            'border-l border-dashed border-success' => str($database->status)->contains(
-                                ['running']),
-                            'border-l border-dashed border-warning' => str($database->status)->contains(
-                                ['restarting']),
-                            'flex gap-2 box-without-bg-without-border dark:bg-coolgray-100 bg-white dark:hover:text-neutral-300 group',
+                            'border-l-4 border-red-500' => str($database->status)->contains(['exited']),
+                            'border-l-4 border-green-500' => str($database->status)->contains(['running']),
+                            'border-l-4 border-yellow-500' => str($database->status)->contains(['restarting']),
+                            'rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all p-4 border border-gray-700',
                         ])>
                             <div class="flex flex-row w-full">
                                 <div class="flex flex-col flex-1">
@@ -167,6 +179,8 @@
                             </div>
                         </div>
                     @endforeach
+                        </div>
+                    </div>
                 </div>
             @elseif ($currentRoute === 'project.service.environment-variables')
                 <livewire:project.shared.environment-variable.all :resource="$service" />
