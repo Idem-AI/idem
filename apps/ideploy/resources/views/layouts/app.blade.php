@@ -12,14 +12,14 @@
         <livewire:deployments-indicator />
         <div x-data="{
             open: false,
+            pageWidth: 'full',
             init() {
-                this.pageWidth = localStorage.getItem('pageWidth');
-                if (!this.pageWidth) {
-                    this.pageWidth = 'full';
+                this.pageWidth = localStorage.getItem('pageWidth') || 'full';
+                if (!localStorage.getItem('pageWidth')) {
                     localStorage.setItem('pageWidth', 'full');
                 }
             }
-        }" x-cloak class="mx-auto" :class="pageWidth === 'full' ? '' : 'max-w-7xl'">
+        }" class="mx-auto" :class="pageWidth === 'full' ? '' : 'max-w-7xl'">
             <div class="relative z-50 lg:hidden" :class="open ? 'block' : 'hidden'" role="dialog" aria-modal="true">
                 <div class="fixed inset-0 bg-black/80" x-on:click="open = false"></div>
                 <div class="fixed inset-y-0 right-0 h-full flex">
@@ -34,19 +34,32 @@
                             </button>
                         </div>
 
-                        <div class="flex flex-col pb-2 overflow-y-auto min-w-56 gap-y-5 scrollbar">
+                        <div class="flex flex-col pb-2 overflow-y-auto min-w-56 gap-y-5" style="scrollbar-width: none; -ms-overflow-style: none;">
                             <x-navbar-modern />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-56 lg:flex-col">
-                <div class="flex flex-col overflow-y-auto grow gap-y-5 scrollbar">
+            {{-- Top Navbar (au-dessus du sidebar) --}}
+            <div class="hidden lg:block lg:fixed lg:top-0 lg:left-0 lg:right-0 lg:z-50 lg:h-20">
+                <x-navbar-topbar />
+            </div>
+
+            {{-- Sidebar (commence sous le navbar, plus large) - SANS scrollbar visible --}}
+            <div class="hidden lg:fixed lg:top-20 lg:bottom-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
+                <div class="flex flex-col overflow-y-auto grow" style="scrollbar-width: none; -ms-overflow-style: none;">
+                    <style>
+                        /* Cacher scrollbar violet */
+                        .flex.flex-col.overflow-y-auto::-webkit-scrollbar {
+                            display: none;
+                        }
+                    </style>
                     <x-navbar-modern />
                 </div>
             </div>
 
+            {{-- Mobile Header --}}
             <div class="sticky top-0 z-40 flex items-center justify-between px-4 py-4 gap-x-6 sm:px-6 lg:hidden glass-dark border-b border-glass-border">
                 <div class="flex items-center gap-3 flex-shrink-0">
                     {{-- IDEM Logo Mobile --}}
@@ -63,10 +76,7 @@
                 </button>
             </div>
 
-            <main class="lg:pl-56">
-                {{-- Modern Top Navbar with Subscription Info & Credits --}}
-                <x-navbar-topbar />
-                
+            <main class="lg:pl-72 lg:pt-20">
                 <div class="p-4 sm:px-6 lg:px-8 lg:py-6">
                     {{ $slot }}
                 </div>

@@ -11,10 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('pipeline_executions', function (Blueprint $table) {
-            if (!Schema::hasColumn('pipeline_executions', 'source_path')) {
-                $table->string('source_path')->nullable()->after('branch');
-            }
+        Schema::table('servers', function (Blueprint $table) {
+            $table->boolean('managed_by_idem')->default(false);
         });
     }
 
@@ -23,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('pipeline_executions', function (Blueprint $table) {
-            $table->dropColumn('source_path');
+        Schema::table('servers', function (Blueprint $table) {
+            $table->dropColumn('managed_by_idem');
         });
     }
 };
