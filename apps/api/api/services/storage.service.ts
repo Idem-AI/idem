@@ -1,5 +1,6 @@
-import admin from 'firebase-admin';
+import minioConnection from '../config/minio.config';
 import logger from '../config/logger';
+import { Readable } from 'stream';
 
 export interface UploadResult {
   fileName: string;
@@ -21,17 +22,22 @@ export interface LogoVariationsUpload {
 }
 
 export class StorageService {
-  private storage: admin.storage.Storage;
-  private bucket: any;
+  private client = minioConnection.getClient();
+  private bucketName = minioConnection.getBucketName();
 
   constructor() {
-    this.storage = admin.storage();
-    this.bucket = this.storage.bucket();
-    logger.info('StorageService initialized');
+    logger.info('StorageService initialized with MinIO');
   }
 
   /**
-   * Upload a single file to Firebase Storage
+   * Initialize the storage service by ensuring bucket exists
+   */
+  async initialize(): Promise<void> {
+    await minioConnection.ensureBucketExists();
+  }
+
+  /**
+   * Upload a single file to MinIO Storage
    * @param fileContent - The file content as string or Buffer
    * @param fileName - Name of the file
    * @param folderPath - Path where to store the file (e.g., "users/userId/projects/projectId")
@@ -46,9 +52,8 @@ export class StorageService {
   ): Promise<UploadResult> {
     try {
       const filePath = `${folderPath}/${fileName}`;
-      const file = this.bucket.file(filePath);
 
-      logger.info(`Uploading file to Firebase Storage`, {
+      logger.info(`Uploading file to MinIO Storage`, {
         fileName,
         folderPath,
         filePath,
@@ -59,21 +64,17 @@ export class StorageService {
       const buffer =
         typeof fileContent === 'string' ? Buffer.from(fileContent, 'utf8') : fileContent;
 
+      // Create a readable stream from buffer
+      const stream = Readable.from(buffer);
+
       // Upload the file
-      await file.save(buffer, {
-        metadata: {
-          contentType,
-          metadata: {
-            uploadedAt: new Date().toISOString(),
-          },
-        },
+      await this.client.putObject(this.bucketName, filePath, stream, buffer.length, {
+        'Content-Type': contentType,
+        'x-amz-meta-uploaded-at': new Date().toISOString(),
       });
 
-      // Make the file publicly accessible
-      await file.makePublic();
-
       // Get the public URL
-      const downloadURL = `https://storage.googleapis.com/${this.bucket.name}/${filePath}`;
+      const downloadURL = minioConnection.getPublicUrl(filePath);
 
       logger.info(`File uploaded successfully`, {
         fileName,
@@ -87,7 +88,7 @@ export class StorageService {
         filePath,
       };
     } catch (error: any) {
-      logger.error(`Error uploading file to Firebase Storage`, {
+      logger.error(`Error uploading file to MinIO Storage`, {
         fileName,
         folderPath,
         error: error.message,
@@ -98,7 +99,7 @@ export class StorageService {
   }
 
   /**
-   * Upload logo variations to Firebase Storage
+   * Upload logo variations to MinIO Storage
    * @param variations - Object containing logo variations (SVG content)
    * @param userId - User ID for folder structure
    * @param projectId - Project ID for folder structure
@@ -234,19 +235,18 @@ export class StorageService {
   }
 
   /**
-   * Delete files from Firebase Storage
+   * Delete files from MinIO Storage
    * @param filePaths - Array of file paths to delete
    */
   async deleteFiles(filePaths: string[]): Promise<void> {
     try {
-      logger.info(`Deleting files from Firebase Storage`, {
+      logger.info(`Deleting files from MinIO Storage`, {
         filePaths,
         count: filePaths.length,
       });
 
       const deletePromises = filePaths.map(async (filePath) => {
-        const file = this.bucket.file(filePath);
-        await file.delete();
+        await this.client.removeObject(this.bucketName, filePath);
         logger.info(`File deleted successfully: ${filePath}`);
       });
 
@@ -256,7 +256,7 @@ export class StorageService {
         deletedCount: filePaths.length,
       });
     } catch (error: any) {
-      logger.error(`Error deleting files from Firebase Storage`, {
+      logger.error(`Error deleting files from MinIO Storage`, {
         filePaths,
         error: error.message,
         stack: error.stack,
@@ -336,7 +336,7 @@ export class StorageService {
   }
 
   /**
-   * Upload project code as ZIP file to Firebase Storage
+   * Upload project code as ZIP file to MinIO Storage
    * @param zipBuffer - The ZIP file content as Buffer
    * @param projectId - Project ID for folder structure
    * @param userId - User ID for folder structure (optional)
@@ -354,7 +354,7 @@ export class StorageService {
 
       const fileName = `project-code-${Date.now()}.zip`;
 
-      logger.info(`Uploading project code ZIP to Firebase Storage`, {
+      logger.info(`Uploading project code ZIP to MinIO Storage`, {
         projectId,
         userId,
         folderPath,
@@ -390,7 +390,7 @@ export class StorageService {
   }
 
   /**
-   * Download and extract project code ZIP from Firebase Storage
+   * Download and extract project code ZIP from MinIO Storage
    * @param projectId - Project ID for folder structure
    * @param userId - User ID for folder structure (optional)
    * @returns Extracted files as Record<string, string> or null if not found
@@ -404,15 +404,20 @@ export class StorageService {
         ? `users/${userId}/projects/${projectId}/code`
         : `projects/${projectId}/code`;
 
-      logger.info(`Downloading project code ZIP from Firebase Storage`, {
+      logger.info(`Downloading project code ZIP from MinIO Storage`, {
         projectId,
         userId,
         folderPath,
       });
 
       // List files in the folder to find the latest ZIP
-      const [files] = await this.bucket.getFiles({
-        prefix: folderPath,
+      const stream = this.client.listObjects(this.bucketName, folderPath, true);
+      const files: any[] = [];
+
+      await new Promise((resolve, reject) => {
+        stream.on('data', (obj) => files.push(obj));
+        stream.on('error', reject);
+        stream.on('end', resolve);
       });
 
       if (!files || files.length === 0) {
@@ -421,24 +426,31 @@ export class StorageService {
       }
 
       // Find the most recent ZIP file
-      const zipFiles = files.filter((file: any) => file.name.endsWith('.zip'));
+      const zipFiles = files.filter((file) => file.name.endsWith('.zip'));
       if (zipFiles.length === 0) {
         logger.info(`No ZIP files found for project ${projectId}`);
         return null;
       }
 
-      // Sort by creation time and get the latest
-      zipFiles.sort((a: any, b: any) => {
-        const aTime = a.metadata.timeCreated || '0';
-        const bTime = b.metadata.timeCreated || '0';
-        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      // Sort by last modified and get the latest
+      zipFiles.sort((a, b) => {
+        return new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime();
       });
 
       const latestZipFile = zipFiles[0];
       logger.info(`Found latest ZIP file: ${latestZipFile.name}`);
 
       // Download the ZIP file
-      const [zipBuffer] = await latestZipFile.download();
+      const chunks: Buffer[] = [];
+      const dataStream = await this.client.getObject(this.bucketName, latestZipFile.name);
+
+      await new Promise((resolve, reject) => {
+        dataStream.on('data', (chunk) => chunks.push(chunk));
+        dataStream.on('error', reject);
+        dataStream.on('end', resolve);
+      });
+
+      const zipBuffer = Buffer.concat(chunks);
 
       // Extract the ZIP file using JSZip
       const JSZip = require('jszip');

@@ -5,6 +5,8 @@ import admin from 'firebase-admin';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import mongoDBConnection from './config/mongodb.config';
+import { storageService } from './services/storage.service';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -13,6 +15,7 @@ import swaggerOptions from './config/swagger.config';
 
 dotenv.config();
 
+// Firebase Auth initialization (kept for authentication only - backward compatibility)
 const serviceAccountFromEnv = {
   type: 'service_account',
   project_id: process.env.FIREBASE_PROJECT_ID,
@@ -30,9 +33,9 @@ if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccountFromEnv as admin.ServiceAccount),
     projectId: process.env.FIREBASE_PROJECT_ID,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    // Note: storageBucket removed - using MinIO instead
   });
-  console.log('Firebase Admin SDK initialized successfully.');
+  console.log('Firebase Admin SDK initialized successfully (Auth only).');
 } else {
   console.error(
     'Firebase Admin SDK initialization failed: Missing credentials in environment variables.'
@@ -170,6 +173,23 @@ app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
 
+  // Initialize MongoDB connection
+  try {
+    await mongoDBConnection.connect();
+    console.log('MongoDB connection established successfully');
+  } catch (error) {
+    console.error('Failed to connect to MongoDB:', error);
+    process.exit(1);
+  }
+
+  // Initialize MinIO storage
+  try {
+    await storageService.initialize();
+    console.log('MinIO storage initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize MinIO storage:', error);
+  }
+
   // Initialiser le PdfService au démarrage pour optimiser les performances
   try {
     await PdfService.initialize();
@@ -196,6 +216,7 @@ process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
   await PdfService.closeBrowser();
   await RedisConnection.disconnect();
+  await mongoDBConnection.disconnect();
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
@@ -206,6 +227,7 @@ process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully...');
   await PdfService.closeBrowser();
   await RedisConnection.disconnect();
+  await mongoDBConnection.disconnect();
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
