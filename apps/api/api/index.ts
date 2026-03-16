@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import mongoDBConnection from './config/mongodb.config';
 import { storageService } from './services/storage.service';
+import { User } from './schemas/user.schema';
+import { Project } from './schemas/project.schema';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -177,6 +179,14 @@ const server = app.listen(port, async () => {
   try {
     await mongoDBConnection.connect();
     console.log('MongoDB connection established successfully');
+
+    // Initialize Mongoose models and create indexes
+    console.log('Initializing MongoDB indexes...');
+    await Promise.all([
+      User.init(), // Creates all indexes defined in UserSchema
+      Project.init(), // Creates all indexes defined in ProjectSchema
+    ]);
+    console.log('MongoDB indexes created successfully');
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error);
     process.exit(1);
