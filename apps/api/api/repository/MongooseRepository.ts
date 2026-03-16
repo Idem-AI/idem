@@ -19,8 +19,9 @@ export class MongooseRepository<
    * Collection path format: "users" or "users/{userId}/projects"
    */
   private getModel(collectionPath: string): Model<any> {
-    // Extract the main collection name (first segment)
-    const collectionName = collectionPath.split('/')[0];
+    // Extract the target collection name (last segment for nested paths)
+    const parts = collectionPath.split('/');
+    const collectionName = parts[parts.length - 1];
 
     // Try to get existing model or return a generic one
     try {
@@ -62,7 +63,9 @@ export class MongooseRepository<
     );
 
     try {
-      const collectionName = collectionPath.split('/')[0];
+      // Extract the target collection name (last segment for nested paths)
+      const parts = collectionPath.split('/');
+      const collectionName = parts[parts.length - 1];
       const nestedFilter = this.buildNestedFilter(collectionPath);
 
       const now = new Date();
@@ -142,7 +145,9 @@ export class MongooseRepository<
     logger.info(`MongooseRepository.findById called for ${collectionPath}, id: ${id}`);
 
     try {
-      const collectionName = collectionPath.split('/')[0];
+      // Extract the target collection name (last segment for nested paths)
+      const parts = collectionPath.split('/');
+      const collectionName = parts[parts.length - 1];
       const nestedFilter = this.buildNestedFilter(collectionPath);
 
       // Use native MongoDB collection to support string _id (Firebase UIDs)
@@ -225,7 +230,9 @@ export class MongooseRepository<
     logger.info(`MongooseRepository.update called for ${collectionPath}, id: ${id}`);
 
     try {
-      const collectionName = collectionPath.split('/')[0];
+      // Extract the target collection name (last segment for nested paths)
+      const parts = collectionPath.split('/');
+      const collectionName = parts[parts.length - 1];
       const nestedFilter = this.buildNestedFilter(collectionPath);
 
       // Use native MongoDB collection to support string _id (Firebase UIDs)
