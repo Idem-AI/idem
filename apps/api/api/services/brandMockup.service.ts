@@ -185,14 +185,17 @@ export class GeminiMockupService {
       });
 
       // Générer l'image avec Gemini
-      logger.info(`[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3-pro-image-preview)`, {
-        mockupName,
-        model: 'gemini-3-pro-image-preview',
-        projectId,
-      });
+      logger.info(
+        `[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3.1-pro-image-preview)`,
+        {
+          mockupName,
+          model: 'gemini-3.1-pro-image-preview',
+          projectId,
+        }
+      );
 
       const response = await this.geminiAI.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-3.1-pro-image-preview',
         contents: contents,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
