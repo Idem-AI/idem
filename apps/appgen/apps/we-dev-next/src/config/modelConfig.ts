@@ -25,8 +25,8 @@ const defaultModelConfigs: ModelConfig[] = [
     topP: 0.95,
   },
   {
-    modelName: 'gemini-3.1-flash-preview',
-    modelKey: 'gemini-3.1-flash-preview',
+    modelName: 'gemini-3.1-flash-lite-preview',
+    modelKey: 'gemini-3.1-flash-lite-preview',
     useImage: true,
     provider: 'gemini',
     description: 'Gemini 3 Flash model (faster)',
