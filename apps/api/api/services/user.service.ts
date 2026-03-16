@@ -44,6 +44,13 @@ class UserService {
     }
 
     try {
+      // Check if user already exists
+      const existingUser = await this.userRepository.findById(user.uid, 'users');
+      if (existingUser) {
+        logger.info(`User ${user.uid} already exists, returning existing user`);
+        return existingUser;
+      }
+
       user.quota = {
         dailyUsage: 0,
         weeklyUsage: 0,

@@ -1,7 +1,6 @@
 export enum SGBDType {
-  FIRESTORE = 'firestore',
-  // MONGODB = 'mongodb', // Example for future SGBD
-  // POSTGRESQL = 'postgresql', // Example for future SGBD
+  MONGODB = 'mongodb',
+  FIRESTORE = 'firestore', // Kept for backward compatibility during migration
 }
 
-export const activeSGBD: SGBDType = SGBDType.FIRESTORE;
+export const activeSGBD: SGBDType = SGBDType.MONGODB;
