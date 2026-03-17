@@ -18,10 +18,10 @@ PAGE CONTENT (this page ONLY shows the primary logo):
 4. The logo's color codes displayed elegantly (the colors extracted from the logo)
 5. A "zone de protection" illustration showing minimum clear space around the logo
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
 - Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
+- ALL content must fit within this 297×167mm box — nothing may overflow
 - If content risks overflowing, REDUCE spacing or font sizes
 - Do NOT use min-h-screen — use h-[297mm] exactly
 
@@ -72,10 +72,10 @@ DESIGN APPROACH:
 - Typography should be minimal and elegant — the logo speaks for itself
 - Use the brand's actual colors, not generic defaults
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
 - Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
+- ALL content must fit within this 297×167mm box — nothing may overflow
 - Do NOT use min-h-screen — use h-[297mm] exactly
 
 TECHNICAL RULES:
@@ -123,10 +123,10 @@ DESIGN PRINCIPLES:
 - Brand colors as accent colors throughout
 - Clean, professional, scannable at a glance
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
 - Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
+- ALL content must fit within this 297×167mm box — nothing may overflow
 - If content risks overflowing, REDUCE spacing (py-6→py-3), font sizes (text-base→text-sm), or number of rules
 - Do NOT use min-h-screen — use h-[297mm] exactly
 

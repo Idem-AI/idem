@@ -34,10 +34,10 @@ DESIGN PRINCIPLES:
 - Create contrast between the primary (display) and secondary (body) fonts
 - Generous whitespace to let the type breathe
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
 - Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
+- ALL content must fit within this 297×167mm box — nothing may overflow
 - If content risks overflowing, REDUCE spacing, font sample sizes, or number of scale entries
 - Do NOT use min-h-screen — use h-[297mm] exactly
 

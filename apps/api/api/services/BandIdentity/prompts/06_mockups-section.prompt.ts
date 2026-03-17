@@ -18,7 +18,7 @@ Cette page HTML/Tailwind est un **FALLBACK** utilisé uniquement si la générat
 🎯 VOTRE MISSION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Créez une **PLEINE PAGE A4** présentant les applications de la marque sur des **supports de communication professionnels** — spécifiques à l'industrie et au contexte du projet.
+Créez une **PLEINE PAGE PAYSAGE 16:9** présentant les applications de la marque sur des **supports de communication professionnels** — spécifiques à l'industrie et au contexte du projet.
 
 **RÈGLE CRÉATIVE CRITIQUE** :
 Analysez l'industrie, le nom de marque, la description du projet, et proposez des **supports de communication pertinents** qui ont du SENS pour CE type d'entreprise.
@@ -80,10 +80,10 @@ CONTENU DE LA PAGE:
 3. Chaque zone doit utiliser les couleurs RÉELLES de la marque (bg-[#hex])
 4. Section "Principes d'Application" en bas — 3 règles courtes adaptées à l'industrie
 
-CONTRAINTES A4 (NON-NÉGOCIABLE):
-- L'élément racine DOIT utiliser: w-[210mm] h-[297mm] overflow-hidden relative
+CONTRAINTES PAYSAGE 16:9 (NON-NÉGOCIABLE):
+- L'élément racine DOIT utiliser: w-[297mm] h-[167mm] overflow-hidden relative
 - Padding interne de sécurité: p-[12mm]
-- TOUT le contenu doit tenir dans cette boîte 210×297mm
+- TOUT le contenu doit tenir dans cette boîte 297×167mm
 - Ne PAS utiliser min-h-screen — utiliser h-[297mm] exactement
 
 RÈGLES TECHNIQUES:
