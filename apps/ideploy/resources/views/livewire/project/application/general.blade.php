@@ -683,11 +683,20 @@
                                     helper="Readonly labels are disabled. You can set the domains in the labels section."
                                     x-bind:disabled="!canUpdate" />
                             @else
-                                <x-forms.input placeholder="https://app.example.com" wire:model="application.fqdn"
+                                <x-forms.input placeholder="https://app.example.com" wire:model="fqdn"
                                     label="Domains"
-                                    helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- https://app.example.com<br>- https://api.example.com:3000"
+                                    helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- https://app.example.com<br>- https://api.example.com:3000<br><br><span class='text-success'>✓ SSL certificates are automatically generated for custom domains</span>"
                                     x-bind:disabled="!canUpdate" />
                                 @can('update', $application)
+                                    <button wire:click="saveDomain" class="group relative px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl font-semibold text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap overflow-hidden">
+                                        <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-green-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                        <span class="relative flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            Save
+                                        </span>
+                                    </button>
                                     <button wire:click="getWildcardDomain" class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap overflow-hidden">
                                         <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                         <span class="relative flex items-center gap-2">
