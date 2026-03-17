@@ -39,33 +39,36 @@ export const MOCKUP_HTML_GENERATION_PROMPT = {
       totalMockups: number;
     }
   ): string => {
-    const {
-      projectName,
-      projectDescription,
-      industry,
-      brandColors,
-      mockup,
-      mockupIndex,
-      totalMockups,
-    } = params;
-    return `Génère un HTML A4 (210mm×297mm) pour afficher le mockup "${mockup.title}" (${mockupIndex}/${totalMockups}).
+    const { projectName, industry, mockup, mockupIndex, totalMockups } = params;
+    return `Génère un HTML MINIMALISTE pour afficher le mockup "${mockup.title}".
 
 Projet: ${projectName}
 Industrie: ${industry}
-Couleurs: ${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}
 
 Mockup:
 - Titre: ${mockup.title}
 - Type: ${mockup.supportType}
-- Description: ${mockup.description}
 - URL: ${mockup.url}
 
-Crée une page avec:
-1. En-tête compact (15%): Badge "MOCKUP ${mockupIndex}/${totalMockups}", titre, palette couleurs
-2. Image HERO (75%): Le mockup en TRÈS GRAND avec overlay gradient au bas
-3. Footer léger (10%): 1-2 guidelines courtes
+DESIGN MINIMALISTE REQUIS:
+1. En-tête sobre (10%): Juste le titre du mockup en typographie élégante
+2. Image HERO (85%): Le mockup en TRÈS GRAND, centré, sans overlay
+3. Footer minimal (5%): Numéro de page "${mockupIndex}/${totalMockups}" discret
 
-Style adapté à ${industry}. Design unique, professionnel, premium.
+STYLE:
+- Fond blanc pur ou très légèrement grisé (#FAFAFA)
+- Pas de couleurs décoratives (déjà dans section couleurs)
+- Pas de badges, pas de palette affichée
+- Typographie simple et élégante (Inter, system-ui)
+- Espaces blancs généreux
+- Ombres très subtiles si nécessaire
+- Design épuré, professionnel, sobre
+
+IMPORTANT:
+- NE PAS spécifier de dimensions fixes (width:210mm, height:297mm)
+- Utiliser width:100% et height:100% pour s'adapter au conteneur
+- Le conteneur parent gère déjà les dimensions A4
+
 CSS inline uniquement. Pas d'explications.
 
 GÉNÈRE UNIQUEMENT LE HTML.`;
@@ -291,13 +294,18 @@ Le design doit être UNIQUE, PREMIUM et refléter parfaitement l'identité du pr
   /**
    * Prompt système pour Gemini
    */
-  systemPrompt: `Tu es un expert en design d'identité visuelle. Tu génères du HTML inline CSS premium pour mockups.
+  systemPrompt: `Tu es un expert en design minimaliste et épuré. Tu génères du HTML inline CSS sobre pour mockups.
 
-Règles:
-• Design unique adapté au projet
-• Mockup en HERO (70-80% de la page)
-• Professionnel et élégant
+Règles MINIMALISTES:
+• Design épuré, sobre, professionnel
+• Mockup en HERO (85% de la page)
+• Fond blanc pur ou très légèrement grisé (#FAFAFA)
+• Pas de couleurs décoratives (déjà dans section couleurs)
+• Pas de badges, pas de palette affichée
+• Typographie simple (Inter, system-ui)
+• Espaces blancs généreux
 • CSS inline uniquement
 • Pas d'explications, que du HTML
-• Format A4 (210mm×297mm)`,
+• IMPORTANT: Utiliser width:100% et height:100% (PAS de dimensions fixes en mm)
+• Le conteneur parent gère les dimensions A4`,
 };

@@ -889,49 +889,47 @@ export class PdfService {
       `;
     });
 
-    // Footer page - Full A4 page with centered content
+    // Footer page - Full A4 page with minimalist professional design
     htmlContent += `
           <div class="section">
-            <div class="flex flex-col items-center justify-center h-full px-8">
-              <!-- Main content centered vertically and horizontally -->
-              <div class="text-center space-y-8 max-w-2xl">
-                
-                <!-- Project info -->
-                <div class="space-y-3">
-                  <h2 class="text-3xl font-bold text-gray-900">${projectName}</h2>
-                  <p class="text-lg text-gray-600">${footerText}</p>
-                </div>
+            <div class="flex flex-col items-center justify-between h-full px-16 py-20">
 
-                <!-- Divider -->
-                <div class="w-24 h-px bg-gray-300 mx-auto"></div>
-
-                <!-- Generation info -->
+              <!-- Top section: Project info -->
+              <div class="w-full max-w-3xl">
                 <div class="space-y-2">
-                  <p class="text-sm text-gray-500">Document generated on</p>
-                  <p class="text-base font-medium text-gray-700">${new Date().toLocaleDateString(
-                    'en-US',
-                    { year: 'numeric', month: 'long', day: 'numeric' }
-                  )}</p>
+                  <h1 class="text-4xl font-bold text-gray-900 tracking-tight">${projectName}</h1>
+                  ${projectDescription ? `<p class="text-lg text-gray-600 leading-relaxed">${projectDescription}</p>` : ''}
                 </div>
-
-                <!-- Divider -->
-                <div class="w-24 h-px bg-gray-300 mx-auto"></div>
-
-                <!-- Powered by Idem -->
-                <div class="space-y-4 pt-4">
-                  <p class="text-sm text-gray-500">Powered by</p>
-                  <div class="space-y-2">
-                    <p class="text-2xl font-bold text-gray-900">IDEM</p>
-                    <a href="https://idem.africa" class="inline-block text-base text-blue-600 hover:text-blue-700 font-medium">
-                      idem.africa
-                    </a>
-                  </div>
-                  <p class="text-xs text-gray-400 max-w-md mx-auto pt-2">
-                    AI-powered platform for building and deploying modern applications in Africa
-                  </p>
-                </div>
-
               </div>
+
+              <!-- Center section: Idem logo -->
+              <div class="flex flex-col items-center space-y-6">
+                <img
+                  src="https://idem.africa/assets/icons/logo_white.webp"
+                  alt="Idem Logo"
+                  class="h-16 w-auto opacity-90"
+                  style="filter: brightness(0) saturate(100%);"
+                />
+                <div class="text-center space-y-1">
+                  <p class="text-sm font-medium text-gray-700">Powered by Idem</p>
+                  <a href="https://idem.africa" class="text-sm text-gray-500 hover:text-gray-700">
+                    idem.africa
+                  </a>
+                </div>
+              </div>
+
+              <!-- Bottom section: Generation date -->
+              <div class="w-full max-w-3xl border-t border-gray-200 pt-6">
+                <div class="flex items-center justify-between text-sm text-gray-500">
+                  <span>${footerText}</span>
+                  <span>Generated on ${new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}</span>
+                </div>
+              </div>
+
             </div>
           </div>
       </body>

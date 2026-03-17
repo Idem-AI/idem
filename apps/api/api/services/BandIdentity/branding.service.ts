@@ -24,6 +24,7 @@ import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
 import { MOCKUPS_SECTION_PROMPT, MOCKUPS_COUNT } from './prompts/06_mockups-section.prompt';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
+import { MOCKUP_CONFIG } from '../../config/mockup.config';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
 import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
@@ -571,17 +572,30 @@ export class BrandingService extends GenericService {
           stepName: 'Typography',
           hasDependencies: false,
         },
-        {
-          promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
-          stepName: 'Brand Mockups',
-          hasDependencies: false,
-        },
-        // {
-        //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Brand Footer',
-        //   hasDependencies: false,
-        // },
       ];
+
+      // Générer dynamiquement les steps mockups en fonction de MOCKUP_CONFIG.MOCKUP_COUNT
+      const mockupCount = MOCKUP_CONFIG.MOCKUP_COUNT;
+      for (let i = 1; i <= mockupCount; i++) {
+        steps.push({
+          promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
+          stepName: `Brand Mockup ${i}`,
+          hasDependencies: false,
+        });
+      }
+
+      logger.info(`[BRANDING] Generated ${mockupCount} mockup steps dynamically`, {
+        projectId,
+        mockupCount,
+        totalSteps: steps.length,
+      });
+
+      // Optionnel : footer
+      // steps.push({
+      //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
+      //   stepName: 'Brand Footer',
+      //   hasDependencies: false,
+      // });
 
       // Initialize empty sections array to collect results as they come in
       let sections: SectionModel[] = [];
@@ -603,19 +617,22 @@ export class BrandingService extends GenericService {
             // Préparer la section finale (avec génération d'images pour les mockups)
             let finalSection: SectionModel;
 
-            if (result.name === 'Brand Mockups') {
+            // Gérer chaque mockup individuellement
+            if (result.name.startsWith('Brand Mockup')) {
+              // Extraire le numéro du mockup (1, 2 ou 3)
+              const mockupNumber = parseInt(result.name.replace('Brand Mockup ', ''));
+              const mockupIndex = mockupNumber - 1; // Index 0-based
+
               const mockupPipelineStart = Date.now();
               logger.info('========================================');
-              logger.info('[MOCKUP] BRAND MOCKUPS STEP TRIGGERED');
+              logger.info(`[MOCKUP] BRAND MOCKUP ${mockupNumber} STEP TRIGGERED`);
               logger.info('========================================');
-              logger.info(
-                '[MOCKUP] Will now generate real images via Gemini and upload to bucket',
-                {
-                  projectId,
-                  userId,
-                  projectName: project.name,
-                }
-              );
+              logger.info(`[MOCKUP] Will now generate mockup ${mockupNumber}/3 via Gemini`, {
+                projectId,
+                userId,
+                projectName: project.name,
+                mockupNumber,
+              });
 
               try {
                 // Extraire les informations nécessaires du projet
@@ -641,104 +658,90 @@ export class BrandingService extends GenericService {
                 const projectContext = this.extractProjectContext(projectDescription);
                 const industry = projectContext.industry;
 
-                // Générer les mockups avec le service Gemini
-                // Le service analyse automatiquement le projet et génère le nombre configuré de mockups
-                const mockups = await geminiMockupService.generateProjectMockups(
-                  logoUrl,
-                  brandColors,
-                  industry,
-                  project.name,
-                  projectDescription,
-                  userId,
-                  projectId
-                );
+                // Générer TOUS les mockups une seule fois (pour avoir les 3 supports sélectionnés)
+                // On cache le résultat pour éviter de régénérer à chaque step
+                const cacheKey = `mockups_${projectId}`;
+                let allMockups = (global as any)[cacheKey];
 
-                // Convertir le résultat en format attendu pour le HTML
-                const mockupResults = mockups.map((mockup) => ({
+                if (!allMockups) {
+                  logger.info('[MOCKUP] Generating all 3 mockups (first time)', { projectId });
+                  allMockups = await geminiMockupService.generateProjectMockups(
+                    logoUrl,
+                    brandColors,
+                    industry,
+                    project.name,
+                    projectDescription,
+                    userId,
+                    projectId
+                  );
+                  (global as any)[cacheKey] = allMockups;
+                } else {
+                  logger.info(`[MOCKUP] Using cached mockups for mockup ${mockupNumber}`, {
+                    projectId,
+                  });
+                }
+
+                // Sélectionner uniquement le mockup correspondant à ce step
+                const mockup = allMockups[mockupIndex];
+                if (!mockup) {
+                  throw new Error(`Mockup ${mockupNumber} not found in generated mockups`);
+                }
+
+                const mockupResult = {
                   url: mockup.mockupUrl,
                   title: mockup.title || `${mockup.supportName}`,
                   description:
                     mockup.description || `${mockup.supportName} - Professional brand mockup`,
                   supportType: mockup.supportType,
                   priority: mockup.priority,
-                }));
+                };
 
                 const mockupPipelineDuration = Date.now() - mockupPipelineStart;
 
-                if (mockupResults.length > 0) {
-                  logger.info(
-                    `[MOCKUP] SUCCESS - ${mockupResults.length} mockup images generated and uploaded (dynamic selection)`,
-                    {
-                      projectId,
-                      duration: `${mockupPipelineDuration}ms`,
-                      supportTypes: mockupResults.map((m) => m.supportType),
-                    }
-                  );
+                logger.info(`[MOCKUP] SUCCESS - Mockup ${mockupNumber}/3 ready`, {
+                  projectId,
+                  duration: `${mockupPipelineDuration}ms`,
+                  supportType: mockupResult.supportType,
+                  title: mockupResult.title,
+                });
 
-                  // Log chaque URL de mockup pour debug facile
-                  mockupResults.forEach((m, i) => {
-                    logger.info(`[MOCKUP] Image ${i + 1}/${mockupResults.length}: "${m.title}"`, {
-                      bucketUrl: m.url,
-                      description: m.description,
-                    });
-                    console.log(`[MOCKUP] Bucket URL ${i + 1}: ${m.url}`);
-                  });
+                logger.info(`[MOCKUP] Mockup ${mockupNumber}: "${mockupResult.title}"`, {
+                  bucketUrl: mockupResult.url,
+                  description: mockupResult.description,
+                });
+                console.log(`[MOCKUP] Mockup ${mockupNumber} URL: ${mockupResult.url}`);
 
-                  // Générer le HTML avec l'IA - UNE PAGE PAR MOCKUP
-                  logger.info(
-                    '[MOCKUP] Generating professional HTML layouts with AI (one page per mockup)',
-                    {
-                      projectId,
-                      mockupCount: mockupResults.length,
-                      strategy: 'separate-pages',
-                    }
-                  );
+                // Générer le HTML pour CE mockup uniquement
+                logger.info(`[MOCKUP] Generating HTML for mockup ${mockupNumber}/3`, {
+                  projectId,
+                  mockupNumber,
+                  supportType: mockupResult.supportType,
+                });
 
-                  const mockupHtmlPages = await mockupHtmlGeneratorService.generateMockupHtml({
-                    projectName: project.name,
-                    projectDescription: projectDescription,
-                    industry: industry,
-                    brandColors: brandColors,
-                    mockups: mockupResults,
-                    logoUrl: logoUrl,
-                    projectId: projectId,
-                    userId: userId,
-                  });
+                const mockupHtmlPages = await mockupHtmlGeneratorService.generateMockupHtml({
+                  projectName: project.name,
+                  projectDescription: projectDescription,
+                  industry: industry,
+                  brandColors: brandColors,
+                  mockups: [mockupResult], // Un seul mockup
+                  logoUrl: logoUrl,
+                  projectId: projectId,
+                  userId: userId,
+                });
 
-                  logger.info('[MOCKUP] AI-generated HTML pages ready', {
-                    projectId,
-                    pageCount: mockupHtmlPages.length,
-                    totalHtmlLength: mockupHtmlPages.reduce((sum, html) => sum + html.length, 0),
-                  });
+                const mockupHtml = mockupHtmlPages[0]; // Une seule page
 
-                  // Concaténer toutes les pages HTML
-                  const combinedHtml = mockupHtmlPages.join('\n\n<!-- PAGE BREAK -->\n\n');
+                logger.info(`[MOCKUP] HTML generated for mockup ${mockupNumber}`, {
+                  projectId,
+                  htmlLength: mockupHtml.length,
+                });
 
-                  finalSection = {
-                    name: result.name,
-                    type: result.type,
-                    data: combinedHtml,
-                    summary: `Generated ${mockupResults.length} professional photorealistic mockups with ${mockupHtmlPages.length} AI-generated HTML pages (one page per mockup)`,
-                  };
-                } else {
-                  logger.warn(
-                    '[MOCKUP] WARNING - No mockup images generated, using AI-generated HTML as fallback',
-                    {
-                      projectId,
-                      duration: `${mockupPipelineDuration}ms`,
-                      fallbackHtmlLength: result.data?.length || 0,
-                    }
-                  );
-                  console.log(
-                    '[MOCKUP] FALLBACK: Using AI-generated HTML because no images were produced'
-                  );
-                  finalSection = {
-                    name: result.name,
-                    type: result.type,
-                    data: result.data,
-                    summary: result.summary,
-                  };
-                }
+                finalSection = {
+                  name: result.name,
+                  type: result.type,
+                  data: mockupHtml,
+                  summary: `Mockup ${mockupNumber}/3: ${mockupResult.title} (${mockupResult.supportType})`,
+                };
               } catch (error: any) {
                 const mockupPipelineDuration = Date.now() - mockupPipelineStart;
                 logger.error('[MOCKUP] CRITICAL ERROR in mockup image generation pipeline', {
