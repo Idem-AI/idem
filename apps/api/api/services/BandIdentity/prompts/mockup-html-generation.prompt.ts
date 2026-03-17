@@ -40,7 +40,7 @@ export const MOCKUP_HTML_GENERATION_PROMPT = {
     }
   ): string => {
     const { projectName, industry, mockup, mockupIndex, totalMockups } = params;
-    return `Génère un HTML MINIMALISTE pour afficher le mockup "${mockup.title}".
+    return `Génère un HTML MODERNE pour afficher le mockup "${mockup.title}" en FORMAT PAYSAGE 16:9.
 
 Projet: ${projectName}
 Industrie: ${industry}
@@ -50,27 +50,27 @@ Mockup:
 - Type: ${mockup.supportType}
 - URL: ${mockup.url}
 
-DESIGN MINIMALISTE REQUIS:
-1. En-tête sobre (2%): Titre du mockup très compact et discret
-2. Image HERO (96%): Le mockup en TRÈS TRÈS GRAND, occupant le MAXIMUM d'espace VERTICAL et horizontal, centré
-3. Footer minimal (2%): Numéro de page "${mockupIndex}/${totalMockups}" très discret
+DESIGN MODERNE REQUIS:
+1. Image HERO (100%): Le mockup couvre TOUTE la page (100% vertical ET horizontal) avec object-fit:cover
+2. En-tête overlay (top-left): Carte flottante semi-transparente avec titre et projet
+3. Footer overlay (bottom-right): Badge discret avec numéro "${mockupIndex}/${totalMockups}"
 
 STYLE:
-- Fond blanc pur ou très légèrement grisé (#FAFAFA)
-- Pas de couleurs décoratives (déjà dans section couleurs)
-- Pas de badges, pas de palette affichée
-- Typographie simple, compacte et élégante (Inter, system-ui)
-- Paddings verticaux ULTRA MINIMAUX (2-5mm maximum)
-- Paddings horizontaux minimaux (10mm)
-- Image doit occuper le MAXIMUM d'espace VERTICAL disponible
-- AUCUN espace vide inutile en hauteur
-- Ombres très subtiles si nécessaire
-- Design épuré, professionnel, sobre
+- Image en plein écran (width:100%, height:100%, object-fit:cover)
+- Position absolute pour l'image (top:0, left:0)
+- Overlays avec background semi-transparent (rgba(255,255,255,0.95))
+- Overlays avec border-radius et box-shadow subtile
+- Typographie compacte et élégante (Inter, system-ui)
+- Design moderne, professionnel, impactant
+- Format PAYSAGE 16:9 (297mm × 167mm)
 
 IMPORTANT:
-- NE PAS spécifier de dimensions fixes (width:210mm, height:297mm)
-- Utiliser width:100% et height:100% pour s'adapter au conteneur
-- Le conteneur parent gère déjà les dimensions A4
+- Image doit couvrir 100% de la page verticalement ET horizontalement
+- Utiliser object-fit:cover (PAS contain) pour remplir toute la page
+- Overlays en position absolute avec z-index:10
+- NE PAS spécifier de dimensions fixes en mm
+- Utiliser width:100% et height:100%
+- Le conteneur parent gère les dimensions
 
 CSS inline uniquement. Pas d'explications.
 
@@ -137,7 +137,7 @@ ${mockups
 ═══════════════════════════════════════════════════════════════════════════════
 
 **Format de page :**
-• Dimensions : 210mm × 297mm (A4)
+• Dimensions : 297mm × 167mm (A4)
 • Orientation : Portrait
 • Marges : 10-12mm
 • Background : Élégant, subtil, adapté à l'industrie
@@ -230,7 +230,7 @@ ${mockups
 • Créer un design UNIQUE adapté au projet (pas de template générique)
 • Assurer une hiérarchie visuelle claire
 • Rendre le design professionnel et premium
-• Optimiser pour l'impression PDF (210mm × 297mm)
+• Optimiser pour l'impression PDF (297mm × 167mm)
 
 ❌ **À ÉVITER ABSOLUMENT :**
 • NE PAS utiliser de classes CSS externes
@@ -297,21 +297,21 @@ Le design doit être UNIQUE, PREMIUM et refléter parfaitement l'identité du pr
   /**
    * Prompt système pour Gemini
    */
-  systemPrompt: `Tu es un expert en design minimaliste et épuré. Tu génères du HTML inline CSS sobre pour mockups.
+  systemPrompt: `Tu es un expert en design moderne et impactant. Tu génères du HTML inline CSS pour mockups en FORMAT PAYSAGE 16:9.
 
-Règles MINIMALISTES:
-• Design épuré, sobre, professionnel
-• Mockup en HERO (96% de la page) - MAXIMUM d'espace VERTICAL
-• Fond blanc pur ou très légèrement grisé (#FAFAFA)
-• Pas de couleurs décoratives (déjà dans section couleurs)
-• Pas de badges, pas de palette affichée
-• Typographie simple, compacte et élégante (Inter, system-ui)
-• Paddings verticaux ULTRA MINIMAUX (2-5mm maximum)
-• Paddings horizontaux minimaux (10mm)
-• Image doit occuper le MAXIMUM d'espace VERTICAL disponible
-• AUCUN espace vide inutile en hauteur
+Règles MODERNES:
+• Design moderne, professionnel, impactant
+• Format PAYSAGE 16:9 (297mm × 167mm)
+• Image HERO couvre 100% de la page (vertical ET horizontal)
+• Utiliser object-fit:cover pour remplir toute la page
+• Position absolute pour l'image (top:0, left:0, width:100%, height:100%)
+• Overlays flottants avec background semi-transparent
+• En-tête overlay en top-left avec carte blanche semi-transparente
+• Footer overlay en bottom-right avec badge discret
+• Border-radius et box-shadow subtiles sur les overlays
+• Typographie compacte et élégante (Inter, system-ui)
 • CSS inline uniquement
 • Pas d'explications, que du HTML
-• IMPORTANT: Utiliser width:100% et height:100% (PAS de dimensions fixes en mm)
-• Le conteneur parent gère les dimensions A4`,
+• IMPORTANT: Image doit couvrir 100% vertical ET horizontal avec object-fit:cover
+• Le conteneur parent gère les dimensions paysage`,
 };

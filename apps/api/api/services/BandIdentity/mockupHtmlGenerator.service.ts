@@ -214,26 +214,26 @@ export class MockupHtmlGeneratorService {
   }): string {
     const { projectName, mockup, mockupIndex } = params;
 
-    // Design minimaliste : image maximale, centrée
+    // Design minimaliste : image couvrant 100% vertical et horizontal
     const mockupCard = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
-      <img src="${mockup.url}" alt="${mockup.title}" style="max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;display:block;" />
+      <img src="${mockup.url}" alt="${mockup.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
     </div>`;
 
-    return `<div style="width:100%;height:100%;background:#FAFAFA;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;">
-  <!-- En-tête minimaliste (2%) -->
-  <div style="padding:5mm 10mm 2mm 10mm;">
-    <h1 style="margin:0;font-size:18px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;">${mockup.title}</h1>
-    <p style="margin:2px 0 0 0;font-size:10px;color:#666;font-weight:400;">${projectName}</p>
-  </div>
-
-  <!-- Image hero (96%) - Maximum d'espace vertical -->
-  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2mm 10mm;">
+    return `<div style="width:100%;height:100%;background:#FAFAFA;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;position:relative;">
+  <!-- Image hero (100%) - Couvre toute la page -->
+  <div style="width:100%;height:100%;position:absolute;top:0;left:0;">
     ${mockupCard}
   </div>
 
-  <!-- Footer minimal (2%) -->
-  <div style="padding:2mm 10mm 3mm 10mm;text-align:center;">
-    <p style="margin:0;font-size:9px;color:#999;font-weight:400;">${mockupIndex}/3</p>
+  <!-- En-tête overlay (top-left) -->
+  <div style="position:absolute;top:8mm;left:12mm;z-index:10;background:rgba(255,255,255,0.95);padding:6mm 10mm;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+    <h1 style="margin:0;font-size:16px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;">${mockup.title}</h1>
+    <p style="margin:2px 0 0 0;font-size:9px;color:#666;font-weight:400;">${projectName}</p>
+  </div>
+
+  <!-- Footer overlay (bottom-right) -->
+  <div style="position:absolute;bottom:8mm;right:12mm;z-index:10;background:rgba(255,255,255,0.95);padding:4mm 8mm;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+    <p style="margin:0;font-size:9px;color:#666;font-weight:500;">${mockupIndex}/3</p>
   </div>
 </div>`;
   }
