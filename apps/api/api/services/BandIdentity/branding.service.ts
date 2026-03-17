@@ -43,6 +43,7 @@ import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
 import { geminiMockupService } from '../brandMockup.service';
 import { StorageService } from '../storage.service';
+import { mockupHtmlGeneratorService } from './mockupHtmlGenerator.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
@@ -683,23 +684,33 @@ export class BrandingService extends GenericService {
                     console.log(`[MOCKUP] Bucket URL ${i + 1}: ${m.url}`);
                   });
 
-                  // Construire un HTML dynamique avec les vraies URLs des images
-                  const mockupsHtml = this.buildMockupsHtmlWithRealImages(mockupResults, project);
+                  // Générer le HTML avec l'IA pour un rendu professionnel et adapté au projet
+                  logger.info('[MOCKUP] Generating professional HTML layout with AI', {
+                    projectId,
+                    mockupCount: mockupResults.length,
+                  });
 
-                  logger.info(
-                    `[MOCKUP] Final HTML section built with ${mockupResults.length} real image URLs`,
-                    {
-                      projectId,
-                      htmlLength: mockupsHtml.length,
-                      totalDuration: `${mockupPipelineDuration}ms`,
-                    }
-                  );
+                  const mockupHtml = await mockupHtmlGeneratorService.generateMockupHtml({
+                    projectName: project.name,
+                    projectDescription: projectDescription,
+                    industry: industry,
+                    brandColors: brandColors,
+                    mockups: mockupResults,
+                    logoUrl: logoUrl,
+                    projectId: projectId,
+                    userId: userId,
+                  });
+
+                  logger.info('[MOCKUP] AI-generated HTML ready', {
+                    projectId,
+                    htmlLength: mockupHtml.length,
+                  });
 
                   finalSection = {
                     name: result.name,
                     type: result.type,
-                    data: mockupsHtml,
-                    summary: `Generated ${mockupResults.length} professional photorealistic mockups with integrated brand logo`,
+                    data: mockupHtml,
+                    summary: `Generated ${mockupResults.length} professional photorealistic mockups with AI-generated HTML layout`,
                   };
                 } else {
                   logger.warn(
