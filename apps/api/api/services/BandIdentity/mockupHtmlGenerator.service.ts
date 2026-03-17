@@ -220,20 +220,20 @@ export class MockupHtmlGeneratorService {
     </div>`;
 
     return `<div style="width:100%;height:100%;background:#FAFAFA;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;">
-  <!-- En-tête minimaliste (5%) -->
-  <div style="padding:8mm 10mm 4mm 10mm;">
-    <h1 style="margin:0;font-size:20px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;">${mockup.title}</h1>
-    <p style="margin:4px 0 0 0;font-size:11px;color:#666;font-weight:400;">${projectName}</p>
+  <!-- En-tête minimaliste (2%) -->
+  <div style="padding:5mm 10mm 2mm 10mm;">
+    <h1 style="margin:0;font-size:18px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;">${mockup.title}</h1>
+    <p style="margin:2px 0 0 0;font-size:10px;color:#666;font-weight:400;">${projectName}</p>
   </div>
 
-  <!-- Image hero (92%) - Maximum d'espace -->
-  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 10mm;">
+  <!-- Image hero (96%) - Maximum d'espace vertical -->
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2mm 10mm;">
     ${mockupCard}
   </div>
 
-  <!-- Footer minimal (3%) -->
-  <div style="padding:4mm 10mm 6mm 10mm;text-align:center;">
-    <p style="margin:0;font-size:10px;color:#999;font-weight:400;">${mockupIndex}/3</p>
+  <!-- Footer minimal (2%) -->
+  <div style="padding:2mm 10mm 3mm 10mm;text-align:center;">
+    <p style="margin:0;font-size:9px;color:#999;font-weight:400;">${mockupIndex}/3</p>
   </div>
 </div>`;
   }

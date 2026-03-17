@@ -51,17 +51,19 @@ Mockup:
 - URL: ${mockup.url}
 
 DESIGN MINIMALISTE REQUIS:
-1. En-tête sobre (5%): Titre du mockup compact et discret
-2. Image HERO (92%): Le mockup en TRÈS TRÈS GRAND, occupant le MAXIMUM d'espace, centré
-3. Footer minimal (3%): Numéro de page "${mockupIndex}/${totalMockups}" très discret
+1. En-tête sobre (2%): Titre du mockup très compact et discret
+2. Image HERO (96%): Le mockup en TRÈS TRÈS GRAND, occupant le MAXIMUM d'espace VERTICAL et horizontal, centré
+3. Footer minimal (2%): Numéro de page "${mockupIndex}/${totalMockups}" très discret
 
 STYLE:
 - Fond blanc pur ou très légèrement grisé (#FAFAFA)
 - Pas de couleurs décoratives (déjà dans section couleurs)
 - Pas de badges, pas de palette affichée
-- Typographie simple et élégante (Inter, system-ui)
-- Paddings MINIMAUX (8-10mm maximum)
-- Image doit occuper le MAXIMUM d'espace disponible
+- Typographie simple, compacte et élégante (Inter, system-ui)
+- Paddings verticaux ULTRA MINIMAUX (2-5mm maximum)
+- Paddings horizontaux minimaux (10mm)
+- Image doit occuper le MAXIMUM d'espace VERTICAL disponible
+- AUCUN espace vide inutile en hauteur
 - Ombres très subtiles si nécessaire
 - Design épuré, professionnel, sobre
 
@@ -299,13 +301,15 @@ Le design doit être UNIQUE, PREMIUM et refléter parfaitement l'identité du pr
 
 Règles MINIMALISTES:
 • Design épuré, sobre, professionnel
-• Mockup en HERO (92% de la page) - MAXIMUM d'espace
+• Mockup en HERO (96% de la page) - MAXIMUM d'espace VERTICAL
 • Fond blanc pur ou très légèrement grisé (#FAFAFA)
 • Pas de couleurs décoratives (déjà dans section couleurs)
 • Pas de badges, pas de palette affichée
-• Typographie simple et compacte (Inter, system-ui)
-• Paddings MINIMAUX (8-10mm maximum)
-• Image doit occuper le MAXIMUM d'espace disponible
+• Typographie simple, compacte et élégante (Inter, system-ui)
+• Paddings verticaux ULTRA MINIMAUX (2-5mm maximum)
+• Paddings horizontaux minimaux (10mm)
+• Image doit occuper le MAXIMUM d'espace VERTICAL disponible
+• AUCUN espace vide inutile en hauteur
 • CSS inline uniquement
 • Pas d'explications, que du HTML
 • IMPORTANT: Utiliser width:100% et height:100% (PAS de dimensions fixes en mm)
