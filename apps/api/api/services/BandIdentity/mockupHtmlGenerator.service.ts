@@ -212,59 +212,28 @@ export class MockupHtmlGeneratorService {
     };
     mockupIndex: number;
   }): string {
-    const { projectName, industry, brandColors, mockup, mockupIndex } = params;
-    const { primary, secondary, accent } = brandColors;
+    const { projectName, mockup, mockupIndex } = params;
 
-    // Fonction helper pour convertir hex en rgba
-    const hexToRgba = (hex: string, alpha: number): string => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r},${g},${b},${alpha})`;
-    };
-
-    // Construire la carte du mockup (pleine page)
-    const mockupCard = `<div style="width:100%;height:100%;position:relative;overflow:hidden;border-radius:16px;box-shadow:0 12px 48px ${hexToRgba(primary, 0.2)},0 4px 12px rgba(0,0,0,0.1);">
-      <img src="${mockup.url}" alt="${mockup.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
-      <div style="position:absolute;bottom:0;left:0;right:0;padding:24px 28px;background:linear-gradient(transparent,rgba(0,0,0,0.85));">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-          <div style="width:10px;height:10px;border-radius:50%;background:${primary};box-shadow:0 2px 8px ${hexToRgba(primary, 0.5)};"></div>
-          <div style="font-size:16px;font-weight:700;color:white;text-shadow:0 2px 6px rgba(0,0,0,0.7);">${mockup.title}</div>
-        </div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.95);line-height:1.6;padding-left:22px;">${mockup.description}</div>
-      </div>
+    // Design minimaliste : juste l'image, très grande, centrée
+    const mockupCard = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+      <img src="${mockup.url}" alt="${mockup.title}" style="max-width:95%;max-height:95%;object-fit:contain;display:block;box-shadow:0 2px 16px rgba(0,0,0,0.08);" />
     </div>`;
 
-    return `<div style="width:210mm;height:297mm;overflow:hidden;position:relative;background:linear-gradient(135deg,#0f1419 0%,#1a1f2e 100%);padding:0;box-sizing:border-box;font-family:'Inter','Helvetica Neue',Arial,sans-serif;display:flex;flex-direction:column;">
-  <div style="position:absolute;top:0;right:0;width:50%;height:250px;background:linear-gradient(135deg,${hexToRgba(primary, 0.08)},${hexToRgba(accent, 0.03)});border-bottom-left-radius:150px;"></div>
-  <div style="position:absolute;bottom:0;left:0;width:40%;height:120px;background:linear-gradient(45deg,${hexToRgba(accent, 0.05)},transparent);border-top-right-radius:100px;"></div>
-  <div style="position:relative;z-index:1;padding:12mm 14mm 10mm 14mm;display:flex;flex-direction:column;height:100%;gap:20px;">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-      <div>
-        <div style="display:inline-block;padding:4px 12px;background:${primary};color:white;border-radius:6px;font-size:8px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:10px;">MOCKUP ${mockupIndex}</div>
-        <h2 style="margin:0;font-size:28px;font-weight:900;color:white;letter-spacing:-0.5px;line-height:1.1;">${mockup.title}</h2>
-        <p style="margin:6px 0 0 0;font-size:11px;color:rgba(255,255,255,0.7);font-weight:400;">${projectName} • ${industry}</p>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <div style="width:24px;height:24px;border-radius:50%;background:${primary};box-shadow:0 2px 8px ${hexToRgba(primary, 0.4)};"></div>
-        <div style="width:24px;height:24px;border-radius:50%;background:${secondary};box-shadow:0 2px 8px ${hexToRgba(secondary, 0.4)};"></div>
-        <div style="width:24px;height:24px;border-radius:50%;background:${accent};box-shadow:0 2px 8px ${hexToRgba(accent, 0.4)};"></div>
-      </div>
-    </div>
-    <div style="width:60px;height:4px;background:linear-gradient(90deg,${primary},${accent});border-radius:2px;"></div>
-    <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
-      ${mockupCard}
-    </div>
-    <div style="display:flex;gap:14px;padding-top:10px;">
-      <div style="flex:1;padding:12px 16px;background:${hexToRgba(primary, 0.12)};border-radius:10px;border-left:3px solid ${primary};">
-        <div style="font-size:10px;font-weight:700;color:${primary};margin-bottom:4px;">Cohérence</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.8);line-height:1.5;">Le logo maintient son impact sur tous les supports.</div>
-      </div>
-      <div style="flex:1;padding:12px 16px;background:${hexToRgba(accent, 0.12)};border-radius:10px;border-left:3px solid ${accent};">
-        <div style="font-size:10px;font-weight:700;color:${accent};margin-bottom:4px;">Professionnalisme</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.8);line-height:1.5;">Applications adaptées au contexte professionnel.</div>
-      </div>
-    </div>
+    return `<div style="width:100%;height:100%;background:#FAFAFA;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;">
+  <!-- En-tête minimaliste (10%) -->
+  <div style="padding:20mm 20mm 10mm 20mm;">
+    <h1 style="margin:0;font-size:24px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;">${mockup.title}</h1>
+    <p style="margin:6px 0 0 0;font-size:13px;color:#666;font-weight:400;">${projectName}</p>
+  </div>
+
+  <!-- Image hero (85%) -->
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 20mm;">
+    ${mockupCard}
+  </div>
+
+  <!-- Footer minimal (5%) -->
+  <div style="padding:10mm 20mm 15mm 20mm;text-align:center;">
+    <p style="margin:0;font-size:11px;color:#999;font-weight:400;">${mockupIndex}/3</p>
   </div>
 </div>`;
   }
