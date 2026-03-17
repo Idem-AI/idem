@@ -6,9 +6,9 @@
 export const MOCKUP_CONFIG = {
   /**
    * Nombre de mockups à générer par projet
-   * Changez cette valeur pour générer plus ou moins de mockups
+   * Modifiez cette valeur pour générer plus ou moins de mockups
    */
-  MOCKUP_COUNT: 2,
+  MOCKUP_COUNT: 3,
 
   /**
    * Qualité et résolution des mockups

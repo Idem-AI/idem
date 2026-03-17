@@ -24,7 +24,55 @@ interface MockupHtmlGenerationParams {
 
 export const MOCKUP_HTML_GENERATION_PROMPT = {
   /**
-   * Construit le prompt pour générer le HTML d'affichage des mockups
+   * Construit le prompt pour générer le HTML d'une SEULE page de mockup
+   */
+  buildSingleMockupPrompt: (
+    params: MockupHtmlGenerationParams & {
+      mockup: {
+        url: string;
+        title: string;
+        description: string;
+        supportType: string;
+        priority: 'primary' | 'secondary';
+      };
+      mockupIndex: number;
+      totalMockups: number;
+    }
+  ): string => {
+    const {
+      projectName,
+      projectDescription,
+      industry,
+      brandColors,
+      mockup,
+      mockupIndex,
+      totalMockups,
+    } = params;
+    return `Génère un HTML A4 (210mm×297mm) pour afficher le mockup "${mockup.title}" (${mockupIndex}/${totalMockups}).
+
+Projet: ${projectName}
+Industrie: ${industry}
+Couleurs: ${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}
+
+Mockup:
+- Titre: ${mockup.title}
+- Type: ${mockup.supportType}
+- Description: ${mockup.description}
+- URL: ${mockup.url}
+
+Crée une page avec:
+1. En-tête compact (15%): Badge "MOCKUP ${mockupIndex}/${totalMockups}", titre, palette couleurs
+2. Image HERO (75%): Le mockup en TRÈS GRAND avec overlay gradient au bas
+3. Footer léger (10%): 1-2 guidelines courtes
+
+Style adapté à ${industry}. Design unique, professionnel, premium.
+CSS inline uniquement. Pas d'explications.
+
+GÉNÈRE UNIQUEMENT LE HTML.`;
+  },
+
+  /**
+   * Construit le prompt pour générer le HTML d'affichage des mockups (ANCIEN)
    */
   buildPrompt: (params: MockupHtmlGenerationParams): string => {
     const { projectName, projectDescription, industry, brandColors, mockups } = params;
@@ -199,7 +247,7 @@ Le HTML doit commencer par <div style="width:210mm;height:297mm;..."> et se term
 <div style="width:210mm;height:297mm;background:#f8f9fa;position:relative;font-family:'Inter',sans-serif;overflow:hidden;">
   <!-- Éléments décoratifs background -->
   <div style="position:absolute;..."></div>
-  
+
   <!-- Contenu principal -->
   <div style="position:relative;z-index:1;padding:12mm;height:100%;display:flex;flex-direction:column;">
     <!-- En-tête -->
@@ -208,7 +256,7 @@ Le HTML doit commencer par <div style="width:210mm;height:297mm;..."> et se term
       <h2 style="...">Applications de marque</h2>
       <p style="...">Mise en situation professionnelle</p>
     </div>
-    
+
     <!-- Mockups -->
     <div style="flex:1;display:flex;gap:16px;...">
       <div style="...">
@@ -220,7 +268,7 @@ Le HTML doit commencer par <div style="width:210mm;height:297mm;..."> et se term
       </div>
       <!-- Autres mockups... -->
     </div>
-    
+
     <!-- Footer optionnel -->
     <div style="...">
       <!-- Guidelines... -->
@@ -243,16 +291,13 @@ Le design doit être UNIQUE, PREMIUM et refléter parfaitement l'identité du pr
   /**
    * Prompt système pour Gemini
    */
-  systemPrompt: `Tu es un expert en design d'identité visuelle et en développement web spécialisé dans la création de chartes graphiques professionnelles.
+  systemPrompt: `Tu es un expert en design d'identité visuelle. Tu génères du HTML inline CSS premium pour mockups.
 
-Tu génères du HTML inline CSS de très haute qualité pour afficher des mockups de marque de manière élégante et professionnelle.
-
-Tes designs sont toujours :
-• Uniques et adaptés au projet
-• Professionnels et premium
-• Équilibrés et harmonieux
-• Optimisés pour l'impression PDF
-
-Tu ne génères JAMAIS de code générique ou de templates standards.
-Tu ne génères JAMAIS d'explications, uniquement du code HTML pur.`,
+Règles:
+• Design unique adapté au projet
+• Mockup en HERO (70-80% de la page)
+• Professionnel et élégant
+• CSS inline uniquement
+• Pas d'explications, que du HTML
+• Format A4 (210mm×297mm)`,
 };

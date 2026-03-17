@@ -20,6 +20,8 @@ export class MockupHtmlGeneratorService {
 
   /**
    * Génère le HTML d'affichage des mockups via Gemini AI
+   * NOUVEAU : Génère une page séparée pour chaque mockup
+   * Retourne un tableau de pages HTML (une par mockup)
    */
   async generateMockupHtml(params: {
     projectName: string;
@@ -40,68 +42,91 @@ export class MockupHtmlGeneratorService {
     logoUrl?: string;
     projectId?: string;
     userId?: string;
-  }): Promise<string> {
+  }): Promise<string[]> {
     const startTime = Date.now();
     const { projectId, userId, projectName, industry, mockups } = params;
 
     try {
-      logger.info('[MOCKUP-HTML] Starting AI-generated HTML generation', {
+      logger.info('[MOCKUP-HTML] Starting AI-generated HTML generation (one page per mockup)', {
         projectId,
         userId,
         projectName,
         industry,
         mockupCount: mockups.length,
         model: this.MODEL_NAME,
+        strategy: 'separate-pages',
       });
 
-      // Construire le prompt
-      const prompt = MOCKUP_HTML_GENERATION_PROMPT.buildPrompt(params);
+      // Générer une page HTML pour chaque mockup
+      const htmlPages: string[] = [];
 
-      logger.info('[MOCKUP-HTML] Calling Gemini AI to generate HTML', {
-        projectId,
-        promptLength: prompt.length,
-        model: this.MODEL_NAME,
-      });
+      for (let i = 0; i < mockups.length; i++) {
+        const mockup = mockups[i];
+        const mockupStartTime = Date.now();
 
-      // Appeler Gemini pour générer le HTML
-      const model = this.geminiAI.getGenerativeModel({
-        model: this.MODEL_NAME,
-        systemInstruction: MOCKUP_HTML_GENERATION_PROMPT.systemPrompt,
-      });
+        logger.info(
+          `[MOCKUP-HTML] Generating page ${i + 1}/${mockups.length} for mockup: ${mockup.title}`,
+          {
+            projectId,
+            mockupIndex: i + 1,
+            mockupTitle: mockup.title,
+          }
+        );
 
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      let generatedHtml = response.text();
-
-      logger.info('[MOCKUP-HTML] Gemini AI response received', {
-        projectId,
-        responseLength: generatedHtml.length,
-        duration: `${Date.now() - startTime}ms`,
-      });
-
-      // Nettoyer le HTML (enlever les markdown code blocks si présents)
-      generatedHtml = this.cleanGeneratedHtml(generatedHtml);
-
-      // Valider le HTML généré
-      const isValid = this.validateGeneratedHtml(generatedHtml, mockups);
-      if (!isValid) {
-        logger.warn('[MOCKUP-HTML] Generated HTML validation failed, using fallback', {
-          projectId,
-          htmlLength: generatedHtml.length,
+        // Construire le prompt pour ce mockup spécifique
+        const prompt = MOCKUP_HTML_GENERATION_PROMPT.buildSingleMockupPrompt({
+          ...params,
+          mockup,
+          mockupIndex: i + 1,
+          totalMockups: mockups.length,
         });
-        // En cas d'échec de validation, retourner un HTML de fallback simple
-        return this.generateFallbackHtml(params);
+
+        // Appeler Gemini pour générer le HTML de cette page
+        const model = this.geminiAI.getGenerativeModel({
+          model: this.MODEL_NAME,
+          systemInstruction: MOCKUP_HTML_GENERATION_PROMPT.systemPrompt,
+        });
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        let generatedHtml = response.text();
+
+        // Nettoyer le HTML
+        generatedHtml = this.cleanGeneratedHtml(generatedHtml);
+
+        // Valider le HTML généré
+        const isValid = this.validateSingleMockupHtml(generatedHtml, mockup);
+        if (!isValid) {
+          logger.warn(`[MOCKUP-HTML] Page ${i + 1} validation failed, using fallback`, {
+            projectId,
+            mockupIndex: i + 1,
+          });
+          // Utiliser le fallback pour cette page
+          generatedHtml = this.generateSingleMockupFallback({
+            ...params,
+            mockup,
+            mockupIndex: i + 1,
+          });
+        }
+
+        htmlPages.push(generatedHtml);
+
+        logger.info(`[MOCKUP-HTML] ✅ Page ${i + 1}/${mockups.length} generated`, {
+          projectId,
+          mockupIndex: i + 1,
+          htmlLength: generatedHtml.length,
+          duration: `${Date.now() - mockupStartTime}ms`,
+        });
       }
 
-      logger.info('[MOCKUP-HTML] ✅ HTML generated successfully by AI', {
+      logger.info('[MOCKUP-HTML] ✅ All HTML pages generated successfully', {
         projectId,
         userId,
-        htmlLength: generatedHtml.length,
-        duration: `${Date.now() - startTime}ms`,
-        mockupCount: mockups.length,
+        totalPages: htmlPages.length,
+        totalDuration: `${Date.now() - startTime}ms`,
       });
 
-      return generatedHtml;
+      return htmlPages;
     } catch (error: any) {
       const duration = Date.now() - startTime;
       logger.error('[MOCKUP-HTML] ❌ Error generating HTML with AI', {
@@ -112,9 +137,15 @@ export class MockupHtmlGeneratorService {
         duration: `${duration}ms`,
       });
 
-      // En cas d'erreur, retourner un HTML de fallback
-      logger.info('[MOCKUP-HTML] Using fallback HTML due to error', { projectId });
-      return this.generateFallbackHtml(params);
+      // En cas d'erreur, retourner des pages de fallback pour chaque mockup
+      logger.info('[MOCKUP-HTML] Using fallback HTML pages due to error', { projectId });
+      return mockups.map((mockup, index) =>
+        this.generateSingleMockupFallback({
+          ...params,
+          mockup,
+          mockupIndex: index + 1,
+        })
+      );
     }
   }
 
@@ -130,12 +161,9 @@ export class MockupHtmlGeneratorService {
   }
 
   /**
-   * Valide le HTML généré
+   * Valide le HTML généré pour un seul mockup
    */
-  private validateGeneratedHtml(
-    html: string,
-    mockups: Array<{ url: string; title: string }>
-  ): boolean {
+  private validateSingleMockupHtml(html: string, mockup: { url: string; title: string }): boolean {
     // Vérifications basiques
     if (!html || html.length < 100) {
       logger.warn('[MOCKUP-HTML] HTML too short', { length: html.length });
@@ -148,14 +176,13 @@ export class MockupHtmlGeneratorService {
       return false;
     }
 
-    // Vérifier que le HTML contient au moins une URL de mockup
-    const containsMockupUrl = mockups.some((mockup) => html.includes(mockup.url));
-    if (!containsMockupUrl) {
-      logger.warn('[MOCKUP-HTML] HTML missing mockup URLs');
+    // Vérifier que le HTML contient l'URL du mockup
+    if (!html.includes(mockup.url)) {
+      logger.warn('[MOCKUP-HTML] HTML missing mockup URL', { mockupUrl: mockup.url });
       return false;
     }
 
-    // Vérifier que le HTML est bien formé (commence et finit par des tags)
+    // Vérifier que le HTML est bien formé
     if (!html.trim().startsWith('<') || !html.trim().endsWith('>')) {
       logger.warn('[MOCKUP-HTML] HTML not properly formed');
       return false;
@@ -165,9 +192,9 @@ export class MockupHtmlGeneratorService {
   }
 
   /**
-   * Génère un HTML de fallback simple en cas d'erreur
+   * Génère un HTML de fallback pour un seul mockup
    */
-  private generateFallbackHtml(params: {
+  private generateSingleMockupFallback(params: {
     projectName: string;
     projectDescription: string;
     industry: string;
@@ -176,15 +203,16 @@ export class MockupHtmlGeneratorService {
       secondary: string;
       accent: string;
     };
-    mockups: Array<{
+    mockup: {
       url: string;
       title: string;
       description: string;
       supportType: string;
       priority: 'primary' | 'secondary';
-    }>;
+    };
+    mockupIndex: number;
   }): string {
-    const { projectName, industry, brandColors, mockups } = params;
+    const { projectName, industry, brandColors, mockup, mockupIndex } = params;
     const { primary, secondary, accent } = brandColors;
 
     // Fonction helper pour convertir hex en rgba
@@ -195,24 +223,17 @@ export class MockupHtmlGeneratorService {
       return `rgba(${r},${g},${b},${alpha})`;
     };
 
-    // Construire les cartes de mockup
-    const mockupCards = mockups
-      .map((mockup, index) => {
-        const isFirst = index === 0;
-        const height = mockups.length === 1 ? '100%' : isFirst ? '60%' : '38%';
-
-        return `<div style="width:100%;height:${height};position:relative;overflow:hidden;border-radius:12px;box-shadow:0 8px 32px ${hexToRgba(primary, 0.15)},0 2px 8px rgba(0,0,0,0.08);">
-        <img src="${mockup.url}" alt="${mockup.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:20px;background:linear-gradient(transparent,rgba(0,0,0,0.8));">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-            <div style="width:8px;height:8px;border-radius:50%;background:${isFirst ? primary : accent};"></div>
-            <div style="font-size:13px;font-weight:700;color:white;text-shadow:0 2px 4px rgba(0,0,0,0.6);">${mockup.title}</div>
-          </div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.9);line-height:1.5;padding-left:18px;">${mockup.description}</div>
+    // Construire la carte du mockup (pleine page)
+    const mockupCard = `<div style="width:100%;height:100%;position:relative;overflow:hidden;border-radius:16px;box-shadow:0 12px 48px ${hexToRgba(primary, 0.2)},0 4px 12px rgba(0,0,0,0.1);">
+      <img src="${mockup.url}" alt="${mockup.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:24px 28px;background:linear-gradient(transparent,rgba(0,0,0,0.85));">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:${primary};box-shadow:0 2px 8px ${hexToRgba(primary, 0.5)};"></div>
+          <div style="font-size:16px;font-weight:700;color:white;text-shadow:0 2px 6px rgba(0,0,0,0.7);">${mockup.title}</div>
         </div>
-      </div>`;
-      })
-      .join('\n');
+        <div style="font-size:12px;color:rgba(255,255,255,0.95);line-height:1.6;padding-left:22px;">${mockup.description}</div>
+      </div>
+    </div>`;
 
     return `<div style="width:210mm;height:297mm;overflow:hidden;position:relative;background:linear-gradient(135deg,#0f1419 0%,#1a1f2e 100%);padding:0;box-sizing:border-box;font-family:'Inter','Helvetica Neue',Arial,sans-serif;display:flex;flex-direction:column;">
   <div style="position:absolute;top:0;right:0;width:50%;height:250px;background:linear-gradient(135deg,${hexToRgba(primary, 0.08)},${hexToRgba(accent, 0.03)});border-bottom-left-radius:150px;"></div>
@@ -220,9 +241,9 @@ export class MockupHtmlGeneratorService {
   <div style="position:relative;z-index:1;padding:12mm 14mm 10mm 14mm;display:flex;flex-direction:column;height:100%;gap:20px;">
     <div style="display:flex;align-items:flex-end;justify-content:space-between;">
       <div>
-        <div style="display:inline-block;padding:4px 12px;background:${primary};color:white;border-radius:6px;font-size:8px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:10px;">BRAND MOCKUPS</div>
-        <h2 style="margin:0;font-size:28px;font-weight:900;color:white;letter-spacing:-0.5px;line-height:1.1;">${projectName}</h2>
-        <p style="margin:6px 0 0 0;font-size:11px;color:rgba(255,255,255,0.7);font-weight:400;">${industry} • Applications de marque</p>
+        <div style="display:inline-block;padding:4px 12px;background:${primary};color:white;border-radius:6px;font-size:8px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:10px;">MOCKUP ${mockupIndex}</div>
+        <h2 style="margin:0;font-size:28px;font-weight:900;color:white;letter-spacing:-0.5px;line-height:1.1;">${mockup.title}</h2>
+        <p style="margin:6px 0 0 0;font-size:11px;color:rgba(255,255,255,0.7);font-weight:400;">${projectName} • ${industry}</p>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
         <div style="width:24px;height:24px;border-radius:50%;background:${primary};box-shadow:0 2px 8px ${hexToRgba(primary, 0.4)};"></div>
@@ -231,8 +252,8 @@ export class MockupHtmlGeneratorService {
       </div>
     </div>
     <div style="width:60px;height:4px;background:linear-gradient(90deg,${primary},${accent});border-radius:2px;"></div>
-    <div style="flex:1;display:flex;flex-direction:column;gap:14px;min-height:0;">
-      ${mockupCards}
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+      ${mockupCard}
     </div>
     <div style="display:flex;gap:14px;padding-top:10px;">
       <div style="flex:1;padding:12px 16px;background:${hexToRgba(primary, 0.12)};border-radius:10px;border-left:3px solid ${primary};">
