@@ -684,13 +684,17 @@ export class BrandingService extends GenericService {
                     console.log(`[MOCKUP] Bucket URL ${i + 1}: ${m.url}`);
                   });
 
-                  // Générer le HTML avec l'IA pour un rendu professionnel et adapté au projet
-                  logger.info('[MOCKUP] Generating professional HTML layout with AI', {
-                    projectId,
-                    mockupCount: mockupResults.length,
-                  });
+                  // Générer le HTML avec l'IA - UNE PAGE PAR MOCKUP
+                  logger.info(
+                    '[MOCKUP] Generating professional HTML layouts with AI (one page per mockup)',
+                    {
+                      projectId,
+                      mockupCount: mockupResults.length,
+                      strategy: 'separate-pages',
+                    }
+                  );
 
-                  const mockupHtml = await mockupHtmlGeneratorService.generateMockupHtml({
+                  const mockupHtmlPages = await mockupHtmlGeneratorService.generateMockupHtml({
                     projectName: project.name,
                     projectDescription: projectDescription,
                     industry: industry,
@@ -701,16 +705,20 @@ export class BrandingService extends GenericService {
                     userId: userId,
                   });
 
-                  logger.info('[MOCKUP] AI-generated HTML ready', {
+                  logger.info('[MOCKUP] AI-generated HTML pages ready', {
                     projectId,
-                    htmlLength: mockupHtml.length,
+                    pageCount: mockupHtmlPages.length,
+                    totalHtmlLength: mockupHtmlPages.reduce((sum, html) => sum + html.length, 0),
                   });
+
+                  // Concaténer toutes les pages HTML
+                  const combinedHtml = mockupHtmlPages.join('\n\n<!-- PAGE BREAK -->\n\n');
 
                   finalSection = {
                     name: result.name,
                     type: result.type,
-                    data: mockupHtml,
-                    summary: `Generated ${mockupResults.length} professional photorealistic mockups with AI-generated HTML layout`,
+                    data: combinedHtml,
+                    summary: `Generated ${mockupResults.length} professional photorealistic mockups with ${mockupHtmlPages.length} AI-generated HTML pages (one page per mockup)`,
                   };
                 } else {
                   logger.warn(

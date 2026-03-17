@@ -275,6 +275,8 @@ export class MockupAnalyzerService {
 
   /**
    * Sélectionne les supports en fonction du contexte
+   * NOUVELLE STRATÉGIE : Éviter les choix génériques (business_cards, digital_interfaces)
+   * et favoriser les supports spécifiques à l'industrie
    */
   private selectSupports(
     industryCategories: {
@@ -292,13 +294,17 @@ export class MockupAnalyzerService {
   ): SelectedMockupSupport[] {
     const selectedSupports: SelectedMockupSupport[] = [];
 
-    // Stratégie de sélection :
-    // - Premier mockup : toujours un support primaire (le plus iconique)
-    // - Mockups suivants : alterner entre primaire et secondaire
-    // - Éviter les doublons
-    // - Prioriser les supports qui correspondent au contexte du projet
+    // Stratégie de sélection AMÉLIORÉE :
+    // - Prioriser les supports SPÉCIFIQUES à l'industrie
+    // - PÉNALISER les supports génériques (business_cards, digital_interfaces)
+    // - Favoriser la DIVERSITÉ des types de supports
+    // - Éviter absolument les doublons
+    // - Adapter au contexte du projet
 
     const usedSupports = new Set<string>();
+
+    // Liste des supports génériques à éviter sauf si vraiment pertinents
+    const genericSupports = ['business_cards', 'digital_interfaces', 'stationery'];
 
     // Combiner et scorer tous les supports disponibles
     const allSupports = [
@@ -311,38 +317,66 @@ export class MockupAnalyzerService {
       .map((support) => {
         let score = support.priority === 'primary' ? 10 : 5;
 
+        // PÉNALITÉ FORTE pour les supports génériques
+        if (genericSupports.includes(support.type)) {
+          score -= 8; // Forte pénalité pour éviter ces supports
+        }
+
+        // BONUS FORT pour les supports spécifiques à l'industrie
+        if (support.priority === 'primary' && !genericSupports.includes(support.type)) {
+          score += 7; // Favoriser les supports iconiques de l'industrie
+        }
+
         // Bonus si le support correspond aux emphases du projet
         if (projectContext.emphasis.includes('digital') && support.type.includes('digital')) {
           score += 5;
         }
         if (projectContext.emphasis.includes('physical') && !support.type.includes('digital')) {
-          score += 3;
+          score += 4;
         }
         if (projectContext.emphasis.includes('delivery') && support.type.includes('vehicle')) {
-          score += 5;
+          score += 8;
         }
         if (projectContext.emphasis.includes('events') && support.type.includes('event')) {
-          score += 5;
+          score += 6;
         }
 
-        // Bonus pour certains mots-clés
-        if (
-          projectContext.keywords.includes('premium') &&
-          support.type.includes('business_cards')
-        ) {
-          score += 3;
+        // Bonus pour supports spécifiques par industrie
+        if (support.type.includes('food') || support.type.includes('menu')) {
+          score += 5; // Favoriser les supports food pour Food & Beverage
         }
+        if (support.type.includes('vehicle') || support.type.includes('delivery')) {
+          score += 5; // Favoriser véhicules pour Delivery & Logistics
+        }
+        if (support.type.includes('medical') || support.type.includes('healthcare')) {
+          score += 5; // Favoriser supports médicaux pour Healthcare
+        }
+        if (support.type.includes('packaging')) {
+          score += 4; // Favoriser packaging pour Retail
+        }
+
+        // Bonus pour certains mots-clés (mais pas pour business_cards)
         if (projectContext.keywords.includes('eco') && support.type.includes('eco')) {
-          score += 5;
+          score += 6;
+        }
+        if (projectContext.keywords.includes('premium') && support.type.includes('packaging')) {
+          score += 4;
         }
 
         return { ...support, score };
       })
       .sort((a, b) => b.score - a.score);
 
-    // Sélectionner les N meilleurs supports
-    for (let i = 0; i < mockupCount && i < scoredSupports.length; i++) {
-      const support = scoredSupports[i];
+    // Sélectionner les N meilleurs supports avec diversité maximale
+    let candidateIndex = 0;
+    while (selectedSupports.length < mockupCount && candidateIndex < scoredSupports.length) {
+      const support = scoredSupports[candidateIndex];
+      candidateIndex++;
+
+      // Éviter les doublons
+      if (usedSupports.has(support.type)) {
+        continue;
+      }
 
       // Vérifier que le type de support existe dans la config
       if (!(support.type in PHYSICAL_SUPPORT_TYPES)) {
@@ -362,12 +396,22 @@ export class MockupAnalyzerService {
         examples: supportDetails.examples,
         context: supportDetails.context,
         priority: support.priority,
-        mockupIndex: i + 1,
+        mockupIndex: selectedSupports.length + 1,
         industryContext: industryCategories.context,
       });
 
       usedSupports.add(support.type);
     }
+
+    logger.info('Final mockup supports selected with diversity', {
+      industry,
+      selectedCount: selectedSupports.length,
+      supports: selectedSupports.map((s) => ({
+        type: s.supportType,
+        priority: s.priority,
+        name: s.supportName,
+      })),
+    });
 
     return selectedSupports;
   }
