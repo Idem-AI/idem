@@ -1,7 +1,8 @@
+import { SelectedMockupSupport } from '../mockupAnalyzer.service';
+
 /**
- * Prompt professionnel pour la génération de mockups photoréalistes avec Gemini
- * Ce prompt guide l'IA pour créer des mockups de haute qualité montrant le logo
- * sur des supports de communication réels et pertinents pour l'industrie
+ * Système de prompts dynamiques pour la génération de mockups photoréalistes
+ * Les prompts s'adaptent automatiquement au projet, à l'industrie et au support sélectionné
  */
 
 export const MOCKUP_GENERATION_PROMPT = {
@@ -9,34 +10,47 @@ export const MOCKUP_GENERATION_PROMPT = {
    * Instructions pour le logo - s'assurer que le logo fourni est reproduit exactement
    */
   logoInstructions: (brandName: string) => ({
-    withLogo: `IMAGE DU LOGO FOURNIE : J'ai attaché le logo EXACT de cette marque. Vous DEVEZ :
+    withLogo: `🎯 IMAGE DU LOGO FOURNIE : J'ai attaché le logo EXACT de cette marque.
 
-1. **Examiner attentivement** l'image du logo fournie — étudiez sa forme, ses couleurs, sa typographie et son design
-2. **REPRODUIRE CE LOGO EXACTEMENT** dans la scène de mockup — NE PAS créer un logo différent
-3. Le logo doit apparaître **EXACTEMENT comme fourni** — mêmes formes, mêmes couleurs, mêmes proportions
-4. Placer le logo de manière **proéminente et naturelle** sur le support de communication
-5. Si le logo contient du texte, reproduire ce texte **EXACTEMENT** — NE PAS le modifier ou le traduire
-6. Le logo doit être **parfaitement lisible** et **professionnel** dans son intégration`,
+**RÈGLES CRITIQUES POUR LE LOGO :**
+1. **Examiner attentivement** l'image du logo fournie — étudiez CHAQUE détail
+2. **REPRODUIRE CE LOGO EXACTEMENT** dans la scène — NE PAS créer un logo différent
+3. **Respecter TOUTES les caractéristiques** : formes, couleurs, typographie, proportions
+4. **Placer le logo de manière proéminente** sur le support de communication
+5. **Si le logo contient du texte** : reproduire EXACTEMENT — NE PAS modifier ou traduire
+6. **Le logo doit être parfaitement lisible** et professionnel dans son intégration
+7. **Taille appropriée** : ni trop petit (invisible), ni trop grand (écrasant)`,
 
-    withoutLogo: `Aucune image de logo fournie. Afficher le nom de marque "${brandName}" dans un style typographique propre et professionnel en utilisant les couleurs de la marque.`,
+    withoutLogo: `⚠️ Aucune image de logo fournie.
+Afficher le nom de marque "${brandName}" dans un style typographique propre et professionnel en utilisant les couleurs de la marque.`,
   }),
 
   /**
-   * Prompt principal pour la génération de mockup
+   * Construit un prompt dynamique basé sur le support sélectionné par l'analyseur
    */
-  buildPrompt: (params: {
+  buildDynamicPrompt: (params: {
     brandName: string;
-    industry: string;
     brandColors: { primary: string; secondary: string; accent: string };
     projectDescription: string;
-    mockupIndex: number;
     hasLogo: boolean;
+    selectedSupport: SelectedMockupSupport;
   }) => {
-    const { brandName, industry, brandColors, projectDescription, mockupIndex, hasLogo } = params;
+    const { brandName, brandColors, projectDescription, hasLogo, selectedSupport } = params;
 
     const logoInstruction = hasLogo
       ? MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withLogo
       : MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withoutLogo;
+
+    // Construire les exemples de supports
+    const supportExamples = selectedSupport.examples
+      .map((ex, idx) => `   ${idx + 1}. ${ex}`)
+      .join('\n');
+
+    // Déterminer le niveau de priorité
+    const priorityText =
+      selectedSupport.priority === 'primary'
+        ? '**SUPPORT PRINCIPAL** — Le plus iconique et impactant pour cette marque'
+        : '**SUPPORT COMPLÉMENTAIRE** — Secondaire mais toujours professionnel et pertinent';
 
     return `Vous êtes un photographe commercial d'élite et directeur artistique spécialisé dans la mise en scène de marques.
 
@@ -47,7 +61,7 @@ Créez une photographie de mockup PHOTORÉALISTE et PROFESSIONNELLE de haute qua
 ═══════════════════════════════════════════════════════════════════════════════
 
 • **Nom de la marque** : "${brandName}"
-• **Industrie** : ${industry}
+• **Contexte industrie** : ${selectedSupport.industryContext}
 • **Couleurs de marque** :
   - Primaire : ${brandColors.primary}
   - Secondaire : ${brandColors.secondary}
@@ -55,62 +69,36 @@ Créez une photographie de mockup PHOTORÉALISTE et PROFESSIONNELLE de haute qua
 • **Description du projet** : ${projectDescription}
 
 ═══════════════════════════════════════════════════════════════════════════════
-🎯 VOTRE MISSION
+🎯 VOTRE MISSION — MOCKUP #${selectedSupport.mockupIndex}
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${logoInstruction}
 
-**Mockup #${mockupIndex}** : ${
-      mockupIndex === 1
-        ? "Choisissez l'APPLICATION PRINCIPALE de la marque (le support le plus iconique et impactant pour cette industrie)"
-        : 'Choisissez une APPLICATION COMPLÉMENTAIRE différente (secondaire mais toujours professionnelle et pertinente)'
-    }
+**TYPE DE SUPPORT SÉLECTIONNÉ** : ${priorityText}
+
+📦 **${selectedSupport.supportName}**
+
+**Exemples spécifiques à créer** :
+${supportExamples}
+
+**Contexte de mise en scène** :
+${selectedSupport.context}
 
 ═══════════════════════════════════════════════════════════════════════════════
-💡 SUPPORTS DE COMMUNICATION À CONSIDÉRER
+💡 DIRECTIVES SPÉCIFIQUES POUR CE SUPPORT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Analysez l'industrie "${industry}" et la description du projet pour choisir le support le PLUS PERTINENT parmi :
+**Choisissez UN exemple spécifique** parmi la liste ci-dessus qui correspond le MIEUX :
+• Au contexte du projet (${selectedSupport.industryContext})
+• À la description : "${projectDescription.substring(0, 150)}..."
+• Aux couleurs de marque (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent})
 
-**Supports vestimentaires & textiles** :
-• T-shirt, polo, sweat-shirt avec logo brodé ou imprimé
-• Casquette, bonnet, bandana brandé
-• Tablier, blouse professionnelle
-• Sac tote bag en toile, sac à dos
-• Uniforme professionnel complet
-
-**Supports papeterie & bureau** :
-• Carte de visite premium (finition mate, vernis sélectif, dorure)
-• Papier à en-tête, enveloppe
-• Bloc-notes, carnet moleskine
-• Chemise à rabats, dossier de présentation
-• Badge nominatif, porte-badge
-
-**Supports packaging & produits** :
-• Boîte produit (carton, bois, métal)
-• Sachet, pochette cadeau
-• Étiquette produit, sticker
-• Emballage alimentaire (si restaurant/food)
-• Packaging cosmétique (si beauté/santé)
-
-**Supports signalétique & extérieur** :
-• Enseigne lumineuse de façade
-• Panneau directionnel, totem
-• Vitrine de magasin
-• Véhicule brandé (camionnette, voiture)
-• Banderole, kakémono
-
-**Supports digitaux & tech** :
-• Écran d'ordinateur portable avec interface web/app
-• Smartphone avec application mobile
-• Tablette avec présentation
-• Badge de conférence avec QR code
-
-**Supports événementiels** :
-• Stand d'exposition
-• Roll-up, kakémono
-• Goodies (gourde, stylo, clé USB)
-• Invitation, flyer événement
+**Créez une scène UNIQUE et MÉMORABLE** :
+• NE PAS créer un mockup générique ou cliché
+• Analyser le projet pour comprendre son essence
+• Créer une mise en scène qui RACONTE L'HISTOIRE de la marque
+• Le support doit être le HÉROS de la photographie
+• L'environnement doit renforcer l'identité de la marque
 
 ═══════════════════════════════════════════════════════════════════════════════
 📸 EXIGENCES PHOTOGRAPHIQUES PROFESSIONNELLES
@@ -146,7 +134,7 @@ Analysez l'industrie "${industry}" et la description du projet pour choisir le s
    • Harmonie chromatique avec l'environnement
 
 **6. CONTEXTE ET MISE EN SCÈNE**
-   • Environnement cohérent avec l'industrie "${industry}"
+   • Environnement cohérent avec le contexte "${selectedSupport.industryContext}"
    • Éléments de contexte pertinents (bureau, café, boutique, extérieur, etc.)
    • Pas de distraction visuelle — focus sur le support brandé
    • Ambiance professionnelle et premium
@@ -161,29 +149,36 @@ Analysez l'industrie "${industry}" et la description du projet pour choisir le s
 ⚠️ RÈGLES CRITIQUES À RESPECTER
 ═══════════════════════════════════════════════════════════════════════════════
 
-✅ **À FAIRE** :
-• Choisir UN support spécifique et pertinent pour l'industrie
-• Créer une photographie qui pourrait figurer dans un portfolio Behance/Dribbble
-• Reproduire le logo EXACTEMENT comme fourni
-• Créer une ambiance premium et professionnelle
-• Montrer le support dans un contexte réel et naturel
+✅ **À FAIRE ABSOLUMENT** :
+• Créer UNE scène photoréaliste centrée sur le support "${selectedSupport.supportName}"
+• Reproduire le logo EXACTEMENT comme fourni (si image fournie)
+• Créer une photographie digne d'un portfolio professionnel (Behance/Dribbble)
+• Intégrer subtilement les couleurs de marque dans l'environnement
+• Montrer le support dans un contexte RÉEL et NATUREL pour cette industrie
+• Créer une ambiance qui reflète les valeurs du projet
 
-❌ **À ÉVITER** :
-• NE PAS toujours choisir "carte de visite + laptop" par défaut
+❌ **À ÉVITER ABSOLUMENT** :
+• NE PAS créer un mockup générique ou cliché
+• NE PAS ignorer le type de support spécifié (${selectedSupport.supportName})
 • NE PAS créer un logo différent de celui fourni
-• NE PAS faire un rendu 3D artificiel
-• NE PAS surcharger la scène avec trop d'éléments
-• NE PAS utiliser des couleurs qui ne correspondent pas à la marque
+• NE PAS faire un rendu 3D artificiel — PHOTORÉALISME UNIQUEMENT
+• NE PAS surcharger la scène avec trop d'éléments distracteurs
+• NE PAS utiliser des couleurs qui contredisent la marque
 • NE PAS créer une mise en scène irréaliste ou fantaisiste
+• NE PAS créer le même mockup que les autres (chaque mockup doit être UNIQUE)
 
 ═══════════════════════════════════════════════════════════════════════════════
-🎨 STYLE FINAL
+🎨 STYLE FINAL ET LIVRABLE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Style : **Photographie commerciale haut de gamme**
-Inspiration : Portfolio de marque professionnel (Behance, Dribbble, Brand New)
-Qualité : Digne d'une agence de branding premium
+**Style photographique** : Photographie commerciale haut de gamme
+**Inspiration** : Portfolio de marque professionnel (Behance, Dribbble, Brand New)
+**Qualité** : Digne d'une agence de branding premium internationale
+**Support** : ${selectedSupport.supportName} — ${selectedSupport.priority === 'primary' ? 'APPLICATION PRINCIPALE' : 'APPLICATION COMPLÉMENTAIRE'}
+**Contexte industrie** : ${selectedSupport.industryContext}
 
-Générez UNIQUEMENT l'image, aucune réponse textuelle.`;
+**IMPORTANT** : Générez UNIQUEMENT l'image photoréaliste, aucune réponse textuelle.
+
+La photographie doit être si convaincante qu'elle pourrait être utilisée immédiatement dans une présentation client ou un portfolio d'agence.`;
   },
 };

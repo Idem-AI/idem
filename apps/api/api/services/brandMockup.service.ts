@@ -3,6 +3,12 @@ import logger from '../config/logger';
 import { StorageService } from './storage.service';
 import sharp from 'sharp';
 import { MOCKUP_GENERATION_PROMPT } from './BandIdentity/prompts/mockup-generation.prompt';
+import {
+  mockupAnalyzerService,
+  SelectedMockupSupport,
+} from './BandIdentity/mockupAnalyzer.service';
+import { MOCKUP_CONFIG } from '../config/mockup.config';
+
 export interface MockupGenerationRequest {
   logoImageBase64: string | null;
   logoMimeType: string;
@@ -11,18 +17,21 @@ export interface MockupGenerationRequest {
     secondary: string;
     accent: string;
   };
-  industry: string;
   brandName: string;
   projectDescription: string;
-  mockupIndex: number;
+  selectedSupport: SelectedMockupSupport;
 }
 
 export interface MockupGenerationResult {
   mockupUrl: string;
   templateId: string;
   mockupType: string;
+  supportType: string;
+  supportName: string;
   title: string;
   description: string;
+  mockupIndex: number;
+  priority: 'primary' | 'secondary';
 }
 
 export class GeminiMockupService {
@@ -40,7 +49,8 @@ export class GeminiMockupService {
     }
   }
   /**
-   * Génère les mockups pour un projet (seulement 2 mockups)
+   * Génère les mockups pour un projet (nombre configurable via MOCKUP_CONFIG)
+   * L'IA analyse le projet et choisit automatiquement les supports adaptés
    */
   async generateProjectMockups(
     logoUrl: string,
@@ -50,59 +60,73 @@ export class GeminiMockupService {
     projectDescription: string,
     userId: string,
     projectId: string
-  ): Promise<{
-    mockup1: MockupGenerationResult;
-    mockup2: MockupGenerationResult;
-  }> {
+  ): Promise<MockupGenerationResult[]> {
     const startTime = Date.now();
 
     try {
-      logger.info('Starting mockup generation for project', {
+      logger.info('Starting intelligent mockup generation for project', {
         projectId,
         userId,
         industry,
         brandName,
         hasLogoUrl: !!logoUrl,
         brandColors,
+        mockupCount: MOCKUP_CONFIG.MOCKUP_COUNT,
         timestamp: new Date().toISOString(),
       });
 
-      // Télécharger le logo comme image base64 pour l'envoyer à Gemini
+      // Étape 1: Analyser le projet pour déterminer les supports adaptés
+      logger.info('Analyzing project to select appropriate mockup supports', {
+        projectId,
+        industry,
+        mockupCount: MOCKUP_CONFIG.MOCKUP_COUNT,
+      });
+
+      const selectedSupports = await mockupAnalyzerService.analyzeMockupSupports(
+        industry,
+        projectDescription,
+        brandName,
+        MOCKUP_CONFIG.MOCKUP_COUNT
+      );
+
+      logger.info('Mockup supports selected by analyzer', {
+        projectId,
+        selectedSupports: selectedSupports.map((s) => ({
+          index: s.mockupIndex,
+          type: s.supportType,
+          name: s.supportName,
+          priority: s.priority,
+        })),
+      });
+
+      // Étape 2: Télécharger le logo comme image base64 pour l'envoyer à Gemini
       const convertedLogo = await this.urlToBase64(logoUrl);
       const logoImageBase64 = convertedLogo.base64;
       let logoMimeType = convertedLogo.mimeType;
 
-      // Génération des 2 mockups en parallèle — Gemini décide la scène
-      const [mockup1, mockup2] = await Promise.all([
+      // Étape 3: Génération de tous les mockups en parallèle avec les supports sélectionnés
+      logger.info(`Generating ${selectedSupports.length} mockups in parallel`, {
+        projectId,
+        mockupCount: selectedSupports.length,
+      });
+
+      const mockupPromises = selectedSupports.map((selectedSupport) =>
         this.generateMockup(
           {
             logoImageBase64,
             logoMimeType,
             brandColors,
-            industry,
             brandName,
             projectDescription,
-            mockupIndex: 1,
+            selectedSupport,
           },
           userId,
           projectId,
-          'mockup-1'
-        ),
-        this.generateMockup(
-          {
-            logoImageBase64,
-            logoMimeType,
-            brandColors,
-            industry,
-            brandName,
-            projectDescription,
-            mockupIndex: 2,
-          },
-          userId,
-          projectId,
-          'mockup-2'
-        ),
-      ]);
+          `mockup-${selectedSupport.mockupIndex}`
+        )
+      );
+
+      const mockups = await Promise.all(mockupPromises);
 
       const duration = Date.now() - startTime;
 
@@ -110,13 +134,14 @@ export class GeminiMockupService {
         projectId,
         userId,
         industry,
-        mockup1Url: mockup1.mockupUrl,
-        mockup2Url: mockup2.mockupUrl,
+        mockupCount: mockups.length,
+        mockupUrls: mockups.map((m) => m.mockupUrl),
+        supportTypes: mockups.map((m) => m.supportType),
         duration: `${duration}ms`,
         timestamp: new Date().toISOString(),
       });
 
-      return { mockup1, mockup2 };
+      return mockups;
     } catch (error: any) {
       const duration = Date.now() - startTime;
 
@@ -137,6 +162,7 @@ export class GeminiMockupService {
 
   /**
    * Génère un mockup individuel avec Gemini Image en envoyant le logo comme image
+   * Utilise le support sélectionné par l'analyseur pour créer un prompt dynamique
    */
   private async generateMockup(
     request: MockupGenerationRequest,
@@ -149,11 +175,13 @@ export class GeminiMockupService {
     try {
       logger.info(`[MOCKUP][${mockupName}] Starting individual mockup generation`, {
         mockupName,
-        industry: request.industry,
+        supportType: request.selectedSupport.supportType,
+        supportName: request.selectedSupport.supportName,
         brandName: request.brandName,
         hasLogoImage: !!request.logoImageBase64,
         logoBase64Length: request.logoImageBase64?.length || 0,
-        mockupIndex: request.mockupIndex,
+        mockupIndex: request.selectedSupport.mockupIndex,
+        priority: request.selectedSupport.priority,
         projectId,
         userId,
       });
@@ -172,7 +200,7 @@ export class GeminiMockupService {
       }
 
       console.log(
-        `[MOCKUP] ✅ GEMINI_API_KEY is configured, proceeding with real image generation for mockup ${request.mockupIndex}`
+        `[MOCKUP] ✅ GEMINI_API_KEY is configured, proceeding with real image generation for mockup ${request.selectedSupport.mockupIndex}`
       );
 
       // Construire le contenu multimodal (texte + image du logo)
@@ -186,16 +214,17 @@ export class GeminiMockupService {
 
       // Générer l'image avec Gemini
       logger.info(
-        `[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3.1-pro-image-preview)`,
+        `[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3.1-flash-image-preview)`,
         {
           mockupName,
-          model: 'gemini-3.1-pro-image-preview',
+          model: 'gemini-3.1-flash-image-preview',
+          mockupIndex: request.selectedSupport.mockupIndex,
           projectId,
         }
       );
 
       const response = await this.geminiAI.models.generateContent({
-        model: 'gemini-3.1-pro-image-preview',
+        model: 'gemini-3.1-flash-image-preview',
         contents: contents,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
@@ -267,7 +296,7 @@ export class GeminiMockupService {
       }
 
       console.log(
-        `[MOCKUP] ✅ Gemini image generated for mockup ${request.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to Firebase Storage bucket...`
+        `[MOCKUP] ✅ Gemini image generated for mockup ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to Firebase Storage bucket...`
       );
 
       // Déterminer l'extension du fichier selon le mime type
@@ -296,7 +325,7 @@ export class GeminiMockupService {
 
       logger.info(`[MOCKUP][${mockupName}] ✅ Upload SUCCESS - Mockup stored on bucket`, {
         mockupName,
-        mockupIndex: request.mockupIndex,
+        mockupIndex: request.selectedSupport.mockupIndex,
         bucketUrl: uploadResult.downloadURL,
         fileName: uploadResult.fileName,
         filePath: uploadResult.filePath,
@@ -304,15 +333,19 @@ export class GeminiMockupService {
         projectId,
       });
       console.log(
-        `[MOCKUP] ✅ Upload SUCCESS for mockup ${request.mockupIndex} → Bucket URL: ${uploadResult.downloadURL}`
+        `[MOCKUP] ✅ Upload SUCCESS for mockup ${request.selectedSupport.mockupIndex} → Bucket URL: ${uploadResult.downloadURL}`
       );
 
       return {
         mockupUrl: uploadResult.downloadURL,
         templateId: mockupName,
-        mockupType: request.industry,
-        title: '',
-        description: '',
+        mockupType: request.selectedSupport.supportType,
+        supportType: request.selectedSupport.supportType,
+        supportName: request.selectedSupport.supportName,
+        title: request.selectedSupport.supportName,
+        description: `${request.selectedSupport.supportName} - ${request.selectedSupport.context}`,
+        mockupIndex: request.selectedSupport.mockupIndex,
+        priority: request.selectedSupport.priority,
       };
     } catch (error: any) {
       const mockupDuration = Date.now() - mockupStartTime;
@@ -322,7 +355,7 @@ export class GeminiMockupService {
         stack: error.stack,
         mockupName,
         brandName: request.brandName,
-        industry: request.industry,
+        supportType: request.selectedSupport.supportType,
         duration: `${mockupDuration}ms`,
         projectId,
         userId,
@@ -330,7 +363,7 @@ export class GeminiMockupService {
 
       // Ne PAS retourner de placeholder - propager l'erreur pour que le service appelant sache que la génération a échoué
       console.error(
-        `[MOCKUP] ❌ Mockup ${request.mockupIndex} generation FAILED: ${error.message}`
+        `[MOCKUP] ❌ Mockup ${request.selectedSupport.mockupIndex} generation FAILED: ${error.message}`
       );
       throw error;
     }
@@ -338,27 +371,25 @@ export class GeminiMockupService {
 
   /**
    * Construit le contenu multimodal (texte + image du logo) pour Gemini
-   * Gemini décide lui-même la meilleure scène de mockup en fonction du contexte du projet
+   * Utilise le nouveau système de prompts dynamiques basé sur le support sélectionné
    */
   private buildMultimodalContent(request: MockupGenerationRequest): Content[] {
     const {
       brandName,
       brandColors,
-      industry,
       projectDescription,
       logoImageBase64,
       logoMimeType,
-      mockupIndex,
+      selectedSupport,
     } = request;
 
-    // Utiliser le prompt professionnel depuis le fichier dédié
-    const textPrompt = MOCKUP_GENERATION_PROMPT.buildPrompt({
+    // Utiliser le nouveau prompt dynamique qui s'adapte au support sélectionné
+    const textPrompt = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
       brandName,
-      industry,
       brandColors,
       projectDescription,
-      mockupIndex,
       hasLogo: !!logoImageBase64,
+      selectedSupport,
     });
 
     const parts: Part[] = [];
