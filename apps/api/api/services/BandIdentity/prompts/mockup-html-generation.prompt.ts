@@ -51,16 +51,17 @@ Mockup:
 - URL: ${mockup.url}
 
 DESIGN MINIMALISTE REQUIS:
-1. En-tête sobre (10%): Juste le titre du mockup en typographie élégante
-2. Image HERO (85%): Le mockup en TRÈS GRAND, centré, sans overlay
-3. Footer minimal (5%): Numéro de page "${mockupIndex}/${totalMockups}" discret
+1. En-tête sobre (5%): Titre du mockup compact et discret
+2. Image HERO (92%): Le mockup en TRÈS TRÈS GRAND, occupant le MAXIMUM d'espace, centré
+3. Footer minimal (3%): Numéro de page "${mockupIndex}/${totalMockups}" très discret
 
 STYLE:
 - Fond blanc pur ou très légèrement grisé (#FAFAFA)
 - Pas de couleurs décoratives (déjà dans section couleurs)
 - Pas de badges, pas de palette affichée
 - Typographie simple et élégante (Inter, system-ui)
-- Espaces blancs généreux
+- Paddings MINIMAUX (8-10mm maximum)
+- Image doit occuper le MAXIMUM d'espace disponible
 - Ombres très subtiles si nécessaire
 - Design épuré, professionnel, sobre
 
@@ -298,12 +299,13 @@ Le design doit être UNIQUE, PREMIUM et refléter parfaitement l'identité du pr
 
 Règles MINIMALISTES:
 • Design épuré, sobre, professionnel
-• Mockup en HERO (85% de la page)
+• Mockup en HERO (92% de la page) - MAXIMUM d'espace
 • Fond blanc pur ou très légèrement grisé (#FAFAFA)
 • Pas de couleurs décoratives (déjà dans section couleurs)
 • Pas de badges, pas de palette affichée
-• Typographie simple (Inter, system-ui)
-• Espaces blancs généreux
+• Typographie simple et compacte (Inter, system-ui)
+• Paddings MINIMAUX (8-10mm maximum)
+• Image doit occuper le MAXIMUM d'espace disponible
 • CSS inline uniquement
 • Pas d'explications, que du HTML
 • IMPORTANT: Utiliser width:100% et height:100% (PAS de dimensions fixes en mm)
