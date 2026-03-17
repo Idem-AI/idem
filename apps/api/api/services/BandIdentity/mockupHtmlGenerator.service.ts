@@ -214,26 +214,26 @@ export class MockupHtmlGeneratorService {
   }): string {
     const { projectName, mockup, mockupIndex } = params;
 
-    // Design minimaliste : juste l'image, très grande, centrée
+    // Design minimaliste : image maximale, centrée
     const mockupCard = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
-      <img src="${mockup.url}" alt="${mockup.title}" style="max-width:95%;max-height:95%;object-fit:contain;display:block;box-shadow:0 2px 16px rgba(0,0,0,0.08);" />
+      <img src="${mockup.url}" alt="${mockup.title}" style="max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;display:block;" />
     </div>`;
 
     return `<div style="width:100%;height:100%;background:#FAFAFA;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;">
-  <!-- En-tête minimaliste (10%) -->
-  <div style="padding:20mm 20mm 10mm 20mm;">
-    <h1 style="margin:0;font-size:24px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;">${mockup.title}</h1>
-    <p style="margin:6px 0 0 0;font-size:13px;color:#666;font-weight:400;">${projectName}</p>
+  <!-- En-tête minimaliste (5%) -->
+  <div style="padding:8mm 10mm 4mm 10mm;">
+    <h1 style="margin:0;font-size:20px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;">${mockup.title}</h1>
+    <p style="margin:4px 0 0 0;font-size:11px;color:#666;font-weight:400;">${projectName}</p>
   </div>
 
-  <!-- Image hero (85%) -->
-  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 20mm;">
+  <!-- Image hero (92%) - Maximum d'espace -->
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 10mm;">
     ${mockupCard}
   </div>
 
-  <!-- Footer minimal (5%) -->
-  <div style="padding:10mm 20mm 15mm 20mm;text-align:center;">
-    <p style="margin:0;font-size:11px;color:#999;font-weight:400;">${mockupIndex}/3</p>
+  <!-- Footer minimal (3%) -->
+  <div style="padding:4mm 10mm 6mm 10mm;text-align:center;">
+    <p style="margin:0;font-size:10px;color:#999;font-weight:400;">${mockupIndex}/3</p>
   </div>
 </div>`;
   }
