@@ -641,6 +641,7 @@ export class BrandingService extends GenericService {
                 const industry = projectContext.industry;
 
                 // Générer les mockups avec le service Gemini
+                // Le service analyse automatiquement le projet et génère le nombre configuré de mockups
                 const mockups = await geminiMockupService.generateProjectMockups(
                   logoUrl,
                   brandColors,
@@ -651,28 +652,25 @@ export class BrandingService extends GenericService {
                   projectId
                 );
 
-                // Convertir le résultat en format attendu
-                const mockupResults = [
-                  {
-                    url: mockups.mockup1.mockupUrl,
-                    title: mockups.mockup1.title || 'Brand Mockup 1',
-                    description: mockups.mockup1.description || 'Professional brand mockup',
-                  },
-                  {
-                    url: mockups.mockup2.mockupUrl,
-                    title: mockups.mockup2.title || 'Brand Mockup 2',
-                    description: mockups.mockup2.description || 'Professional brand mockup',
-                  },
-                ];
+                // Convertir le résultat en format attendu pour le HTML
+                const mockupResults = mockups.map((mockup) => ({
+                  url: mockup.mockupUrl,
+                  title: mockup.title || `${mockup.supportName}`,
+                  description:
+                    mockup.description || `${mockup.supportName} - Professional brand mockup`,
+                  supportType: mockup.supportType,
+                  priority: mockup.priority,
+                }));
 
                 const mockupPipelineDuration = Date.now() - mockupPipelineStart;
 
                 if (mockupResults.length > 0) {
                   logger.info(
-                    `[MOCKUP] SUCCESS - ${mockupResults.length} mockup images generated and uploaded`,
+                    `[MOCKUP] SUCCESS - ${mockupResults.length} mockup images generated and uploaded (dynamic selection)`,
                     {
                       projectId,
                       duration: `${mockupPipelineDuration}ms`,
+                      supportTypes: mockupResults.map((m) => m.supportType),
                     }
                   );
 
@@ -2195,11 +2193,10 @@ ${LOGO_EDIT_PROMPT}`;
 
   /**
    * Génère les mockups pour la charte graphique finale
+   * Le nombre de mockups est configurable via MOCKUP_CONFIG
+   * L'IA analyse le projet et choisit automatiquement les supports adaptés
    */
-  async generateProjectMockups(
-    userId: string,
-    projectId: string
-  ): Promise<{ mockup1: any; mockup2: any } | null> {
+  async generateProjectMockups(userId: string, projectId: string): Promise<any[] | null> {
     try {
       logger.info('🎨 Starting mockup generation for brand identity', {
         userId,
@@ -2252,6 +2249,7 @@ ${LOGO_EDIT_PROMPT}`;
       const logoUrl = project.analysisResultModel.branding.logo.svg;
 
       // Générer les mockups avec le service Gemini (logo envoyé comme image)
+      // Le service analyse automatiquement le projet et sélectionne les supports adaptés
       const mockups = await geminiMockupService.generateProjectMockups(
         logoUrl,
         brandColors,
@@ -2265,8 +2263,9 @@ ${LOGO_EDIT_PROMPT}`;
       logger.info('✅ Mockups generated successfully for brand identity', {
         projectId,
         userId,
-        mockup1Url: mockups.mockup1.mockupUrl,
-        mockup2Url: mockups.mockup2.mockupUrl,
+        mockupCount: mockups.length,
+        mockupUrls: mockups.map((m) => m.mockupUrl),
+        supportTypes: mockups.map((m) => m.supportType),
         timestamp: new Date().toISOString(),
       });
 
@@ -2277,11 +2276,16 @@ ${LOGO_EDIT_PROMPT}`;
           ...project.analysisResultModel,
           branding: {
             ...branding,
-            mockups: {
-              mockup1: mockups.mockup1,
-              mockup2: mockups.mockup2,
-              generatedAt: new Date().toISOString(),
-            },
+            mockups: mockups.map((mockup, index) => ({
+              mockupUrl: mockup.mockupUrl,
+              supportType: mockup.supportType,
+              supportName: mockup.supportName,
+              title: mockup.title,
+              description: mockup.description,
+              mockupIndex: mockup.mockupIndex,
+              priority: mockup.priority,
+            })),
+            generatedAt: new Date().toISOString(),
           },
         },
       };
