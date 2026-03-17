@@ -807,18 +807,18 @@ export class PdfService {
             }, system-ui, sans-serif;
           }
 
-          /* A4 page sizing */
+          /* Landscape slide format (16:9) */
           @page {
-            size: 210mm 297mm;
+            size: 297mm 167mm;
             margin: 0;
           }
 
           /* Each section = one full page, force page break before each (except first) */
           .section {
             display: block;
-            width: 210mm;
-            min-height: 297mm;
-            max-height: 297mm;
+            width: 297mm;
+            min-height: 167mm;
+            max-height: 167mm;
             overflow: hidden;
             position: relative;
           }
@@ -857,9 +857,9 @@ export class PdfService {
           /* Print-specific overrides */
           @media print {
             .section {
-              width: 210mm !important;
-              min-height: 297mm !important;
-              max-height: 297mm !important;
+              width: 297mm !important;
+              min-height: 167mm !important;
+              max-height: 167mm !important;
               overflow: hidden !important;
             }
 
@@ -873,7 +873,7 @@ export class PdfService {
       <body class="bg-white">
     `;
 
-    // Ajouter chaque section — each section is a full A4 page
+    // Ajouter chaque section — each section is a full landscape slide (16:9)
     sections.forEach((section, index) => {
       let sectionData =
         typeof section.data === 'string' ? section.data : JSON.stringify(section.data, null, 2);
