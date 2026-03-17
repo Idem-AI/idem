@@ -907,8 +907,7 @@ export class PdfService {
                 <img
                   src="https://idem.africa/assets/icons/logo_white.webp"
                   alt="Idem Logo"
-                  class="h-16 w-auto opacity-90"
-                  style="filter: brightness(0) saturate(100%);"
+                  class="h-16 w-auto"
                 />
                 <div class="text-center space-y-1">
                   <p class="text-sm font-medium text-gray-700">Powered by Idem</p>
