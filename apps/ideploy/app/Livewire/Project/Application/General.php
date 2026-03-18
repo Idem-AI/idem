@@ -136,6 +136,33 @@ class General extends Component
         'configurationChanged' => '$refresh',
         'confirmDomainUsage',
     ];
+    
+    /**
+     * Save domain explicitly when user clicks Save button
+     */
+    public function saveDomain()
+    {
+        try {
+            $this->authorize('update', $this->application);
+            
+            // Sync to model and save
+            $this->syncToModel();
+            $this->application->save();
+            $this->application->refresh();
+            
+            // Sync back to keep UI in sync
+            $this->syncFromModel();
+            
+            // Reset labels if needed
+            if ($this->is_container_label_readonly_enabled) {
+                $this->resetDefaultLabels(false);
+            }
+            
+            $this->dispatch('success', 'Domain saved successfully');
+        } catch (\Throwable $e) {
+            return handleError($e, $this);
+        }
+    }
 
     protected function rules(): array
     {

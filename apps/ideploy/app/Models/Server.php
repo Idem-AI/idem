@@ -154,6 +154,7 @@ class Server extends BaseModel
         'crowdsec_api_key' => 'encrypted',
         'crowdsec_bouncer_key' => 'encrypted',
         'traffic_logger_installed' => 'boolean',
+        'managed_by_idem' => 'boolean',
     ];
 
     protected $schemalessAttributes = [
@@ -178,6 +179,7 @@ class Server extends BaseModel
         'crowdsec_api_key',
         'crowdsec_bouncer_key',
         'traffic_logger_installed',
+        'managed_by_idem',
         // Géolocalisation
         'country',
         'country_code',
