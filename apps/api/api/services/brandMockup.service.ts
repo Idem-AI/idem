@@ -231,6 +231,7 @@ export class GeminiMockupService {
         contents: contents,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
+          candidateCount: 1, // Générer UNE SEULE image par appel
         },
       });
 
