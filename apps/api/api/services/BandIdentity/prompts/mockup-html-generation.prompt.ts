@@ -40,7 +40,7 @@ export const MOCKUP_HTML_GENERATION_PROMPT = {
     }
   ): string => {
     const { projectName, industry, mockup, mockupIndex, totalMockups } = params;
-    return `Génère un HTML MODERNE pour afficher le mockup "${mockup.title}" en FORMAT PAYSAGE 16:9.
+    return `Génère un HTML MODERNE pour afficher le mockup "${mockup.title}" en FORMAT PAYSAGE 16:9 PLEINE PAGE.
 
 Projet: ${projectName}
 Industrie: ${industry}
@@ -50,28 +50,26 @@ Mockup:
 - Type: ${mockup.supportType}
 - URL: ${mockup.url}
 
-DESIGN MODERNE REQUIS:
-1. En-tête sobre: Titre du mockup et nom du projet (padding: 8-12mm)
-2. Image HERO (90%): Le mockup en TRÈS GRAND, centré, occupant le maximum d'espace
-3. Footer minimal: Numéro de page "${mockupIndex}/${totalMockups}" discret
+DESIGN FULL-PAGE REQUIS:
+1. Image mockup couvre 100% de la page (width:100%, height:100%, object-fit:cover)
+2. Overlay gradient en bas avec titre et infos (position:absolute, bottom:0)
+3. Texte blanc sur fond sombre semi-transparent pour lisibilité
 
 STYLE:
-- Layout flex vertical (display:flex; flex-direction:column)
-- Image avec object-fit:contain (max-width:100%, max-height:100%)
-- Fond blanc pur ou très légèrement grisé (#FAFAFA)
-- Typographie compacte et élégante (Inter, system-ui)
-- Paddings minimaux (8-12mm)
-- Design moderne, professionnel, sobre
+- Conteneur: width:100%, height:100%, position:relative, overflow:hidden
+- Image: width:100%, height:100%, object-fit:cover (couvre TOUTE la page)
+- Overlay: position:absolute, bottom:0, background gradient noir transparent
+- Titre: blanc, gras, grande taille (24px), text-shadow pour contraste
+- Info projet et numéro: blanc, en bas dans l'overlay
 - Format PAYSAGE 16:9 (297mm × 167mm)
 
 IMPORTANT:
-- Image doit être VISIBLE et occuper le maximum d'espace
-- Utiliser object-fit:contain (PAS cover) pour que l'image soit entièrement visible
-- Layout flex avec flex:1 pour l'image
-- NE PAS utiliser position:absolute pour l'image
-- NE PAS spécifier de dimensions fixes en mm
-- Utiliser width:100% et height:100% pour le conteneur principal
-- Le conteneur parent gère les dimensions
+- L'image doit couvrir 100% de la hauteur ET 100% de la largeur
+- Utiliser object-fit:cover pour remplir toute la page
+- Overlay avec gradient noir transparent en bas uniquement
+- Texte blanc avec text-shadow pour lisibilité
+- Pas de padding sur le conteneur principal (margin:0, padding:0)
+- Numéro de page: "${mockupIndex}/${totalMockups}" dans l'overlay
 
 CSS inline uniquement. Pas d'explications.
 
@@ -298,22 +296,20 @@ Le design doit être UNIQUE, PREMIUM et refléter parfaitement l'identité du pr
   /**
    * Prompt système pour Gemini
    */
-  systemPrompt: `Tu es un expert en design moderne et sobre. Tu génères du HTML inline CSS pour mockups en FORMAT PAYSAGE 16:9.
+  systemPrompt: `Tu es un expert en design moderne et impactant. Tu génères du HTML inline CSS pour mockups en FORMAT PAYSAGE 16:9 PLEINE PAGE.
 
-Règles MODERNES:
-• Design moderne, professionnel, sobre
+Règles FULL-PAGE:
+• Design moderne, impactant, pleine page
 • Format PAYSAGE 16:9 (297mm × 167mm)
-• Layout flex vertical (display:flex; flex-direction:column)
-• Image HERO occupe le maximum d'espace (flex:1)
-• Utiliser object-fit:contain pour que l'image soit entièrement visible
-• NE PAS utiliser position:absolute pour l'image
-• En-tête sobre avec titre et nom du projet
-• Footer minimal avec numéro de page
-• Typographie compacte et élégante (Inter, system-ui)
-• Paddings minimaux (8-12mm)
-• Fond blanc pur ou très légèrement grisé (#FAFAFA)
+• Image mockup couvre 100% hauteur ET largeur (width:100%, height:100%, object-fit:cover)
+• Conteneur: position:relative, overflow:hidden, margin:0, padding:0
+• Overlay gradient noir transparent en bas uniquement (position:absolute, bottom:0)
+• Texte blanc avec text-shadow dans l'overlay pour lisibilité
+• Titre: gras, grande taille (24px), blanc
+• Info projet et numéro de page dans l'overlay
+• Typographie moderne (Inter, system-ui)
 • CSS inline uniquement
 • Pas d'explications, que du HTML
-• IMPORTANT: Image doit être VISIBLE avec object-fit:contain (PAS cover)
-• Le conteneur parent gère les dimensions paysage`,
+• IMPORTANT: Image doit COUVRIR toute la page avec object-fit:cover
+• Pas de padding sur le conteneur principal`,
 };
