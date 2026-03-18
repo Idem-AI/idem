@@ -46,15 +46,19 @@ Afficher le nom de marque "${brandName}" dans un style typographique propre et p
             orientation: 'PORTRAIT (VERTICAL)',
             dimensions: '210mm × 297mm',
             aspectRatio: '1:1.414 (A4 portrait)',
-            imageSize: 'Largeur: 1654px, Hauteur: 2339px',
-            description: 'Format document classique vertical',
+            imageSize: 'Largeur: 2480px, Hauteur: 3508px (HAUTE RÉSOLUTION)',
+            description: 'Format document classique vertical - IMAGE DOIT ÊTRE VERTICALE',
+            criticalInstructions:
+              "CRITIQUE: L'image DOIT être en orientation PORTRAIT (plus haute que large). Ratio 1:1.414 OBLIGATOIRE. Cadrage vertical serré pour remplir toute la hauteur.",
           }
         : {
             orientation: 'PAYSAGE (HORIZONTAL)',
             dimensions: '297mm × 167mm',
             aspectRatio: '16:9 (paysage)',
-            imageSize: 'Largeur: 2339px, Hauteur: 1315px',
-            description: 'Format présentation moderne horizontal',
+            imageSize: 'Largeur: 2480px, Hauteur: 1395px (HAUTE RÉSOLUTION)',
+            description: 'Format présentation moderne horizontal - IMAGE DOIT ÊTRE HORIZONTALE',
+            criticalInstructions:
+              "CRITIQUE: L'image DOIT être en orientation PAYSAGE (plus large que haute). Ratio 16:9 OBLIGATOIRE. Cadrage horizontal large pour remplir toute la largeur.",
           };
 
     const logoInstruction = hasLogo
@@ -171,10 +175,12 @@ ${selectedSupport.context}
    • **Ratio d'aspect** : ${formatSpecs.aspectRatio}
    • **Taille d'image recommandée** : ${formatSpecs.imageSize}
    • **Description** : ${formatSpecs.description}
+   • **INSTRUCTIONS CRITIQUES** : ${formatSpecs.criticalInstructions}
    • L'image DOIT couvrir 100% de la hauteur ET 100% de la largeur de la page
    • Le mockup doit être cadré pour remplir ENTIÈREMENT le format ${formatSpecs.orientation}
    • Pas d'espace vide sur les bords — l'image doit être FULL-PAGE
    • Composition adaptée à l'orientation ${formatSpecs.orientation}
+   • IMPORTANT: Générer l'image dans la bonne orientation dès le départ (pas de rotation nécessaire)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ⚠️ RÈGLES CRITIQUES À RESPECTER
