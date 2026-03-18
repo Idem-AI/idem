@@ -78,6 +78,7 @@ export class ShowBrandingComponent implements OnInit {
         branding.generatedTypography?.length > 0)
     );
   });
+
   ngOnInit(): void {
     const projectId = this.cookieService.get('projectId');
     this.projectIdFromCookie.set(projectId);
@@ -109,6 +110,7 @@ export class ShowBrandingComponent implements OnInit {
       },
     });
   }
+
   /**
    * Load existing branding data for the project
    * Load branding data from project and check for PDF
