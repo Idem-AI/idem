@@ -1,9 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg version="1.1" viewBox="0 0 2048 2048" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
-<path transform="translate(257,640)" d="m0 0h254l1 1v127h127l1 1v639h895l1 1v127h127l1 1v254l-5 1h-1018l-1-1v-127h-127l-1-1v-127h-127l-1-1v-127h-127l-1-1v-766z" fill="#8550FC"/>
-<path transform="translate(513,384)" d="m0 0h1022l1 1v127h127l1 1v254l-5 1h-1018l-1-1v-127h-127l-1-1v-254z" fill="#8550FC"/>
-<path transform="translate(1537,1536)" d="m0 0h126l1 1v254l-5 1h-1018l-1-1v-126l896-1v-29z" fill="#452E72"/>
-<path transform="translate(1537,512)" d="m0 0h126l1 1v254l-5 1h-1018l-1-1v-126l896-1v-29z" fill="#452E72"/>
-<path transform="translate(513,768)" d="m0 0h126l1 1v638l-7 1-108-1-12-1z" fill="#452E72"/>
-<path transform="translate(478,1408)" d="m0 0h32l1 1v127h-126l-1-1v-126z" fill="#452E72"/>
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background bleu IDEM -->
+  <rect width="200" height="200" rx="20" fill="#0046FF"/>
+  
+  <!-- Lettre I (barre verticale gauche) -->
+  <rect x="30" y="50" width="20" height="100" fill="white"/>
+  
+  <!-- Lettre D -->
+  <path d="M 80 50 L 80 150 L 120 150 C 140 150 155 135 155 115 L 155 85 C 155 65 140 50 120 50 Z M 100 70 L 120 70 C 128 70 135 77 135 85 L 135 115 C 135 123 128 130 120 130 L 100 130 Z" fill="white"/>
+  
+  <!-- Symbole > (chevron) -->
+  <path d="M 125 85 L 145 100 L 125 115" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>

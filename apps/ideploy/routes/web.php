@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OauthController;
+use App\Http\Controllers\OneClickController;
 use App\Http\Controllers\UploadController;
 use App\Livewire\Admin\Index as AdminIndex;
 use App\Livewire\Boarding\Index as BoardingIndex;
@@ -106,6 +107,9 @@ Route::middleware(['throttle:login'])->group(function () {
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
 
+// One-Click Deploy API (for AppGen integration)
+Route::post('/api/one-click-deploy', [OneClickController::class, 'deploy'])->middleware('auth:sanctum')->name('one-click.deploy');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['throttle:force-password-reset'])->group(function () {
         Route::get('/force-password-reset', ForcePasswordReset::class)->name('auth.force-password-reset');
@@ -113,6 +117,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/', Dashboard::class)->name('dashboard');
     Route::get('/onboarding', BoardingIndex::class)->name('onboarding');
+
+    // AI Assistant Routes
+    Route::prefix('ai')->group(function () {
+        Route::get('/deploy', \App\Livewire\AIAssistant\SmartDeploy::class)->name('ai.deploy');
+    });
 
     Route::get('/subscription', SubscriptionShow::class)->name('subscription.show');
     Route::get('/subscription/new', SubscriptionIndex::class)->name('subscription.index');
