@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pipeline_executions', function (Blueprint $table) {
-            $table->string('source_path')->nullable()->after('branch');
+            if (!Schema::hasColumn('pipeline_executions', 'source_path')) {
+                $table->string('source_path')->nullable()->after('branch');
+            }
         });
     }
 

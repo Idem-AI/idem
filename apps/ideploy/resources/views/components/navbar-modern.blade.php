@@ -79,29 +79,13 @@
             }
     }">
     
-    {{-- Header avec Logo --}}
-    <div class="px-4 py-5 border-b border-white/5 relative overflow-hidden">
-        {{-- Background Pattern --}}
-        <div class="absolute inset-0 opacity-5">
-            <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 24px 24px;"></div>
-        </div>
-        
-        {{-- IDEM Logo --}}
-        <div class="relative flex items-center gap-3 mb-4 group">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl flex items-center justify-center font-bold text-white text-base shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                ID
-            </div>
-            <span class="text-xl font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors">IDEM</span>
-        </div>
-        
-        {{-- Team Selector --}}
-        <div class="w-full">
-            <livewire:switch-team />
-        </div>
+    {{-- Header avec Team Selector uniquement --}}
+    <div class="px-4 py-5 border-b border-white/5">
+        <livewire:switch-team />
     </div>
 
     {{-- Navigation Menu --}}
-    <ul role="list" class="flex flex-col flex-1 px-3 py-4 gap-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+    <ul role="list" class="flex flex-col flex-1 px-3 py-4 gap-y-1 overflow-y-auto">
         {{-- Admin Panel - Toujours visible pour les admins --}}
         @auth
             @if(auth()->user()->idem_role === 'admin')
@@ -136,19 +120,34 @@
             {{-- Dashboard --}}
             <li>
                 <a href="/" 
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('/') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    {{-- Glow Effect --}}
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
-                    
+                   class="group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {{ request()->is('/') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-lg {{ request()->is('/') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                            <svg class="w-5 h-5 {{ request()->is('/') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                            </svg>
-                        </div>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
                         <span>Dashboard</span>
                     </div>
                 </a>
+            </li>
+
+            {{-- AI Smart Deploy - DISABLED --}}
+            <li>
+                <div class="opacity-50 cursor-not-allowed flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500">
+                    <div class="flex items-center gap-3 flex-1">
+                        <div class="w-9 h-9 rounded-lg bg-gray-700/30 border border-gray-700/50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                        </div>
+                        <div class="flex flex-col flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold">AI Smart Deploy</span>
+                                <span class="px-1.5 py-0.5 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded font-bold">SOON</span>
+                            </div>
+                            <span class="text-[10px] text-gray-600">Coming Soon</span>
+                        </div>
+                    </div>
+                </div>
             </li>
 
             {{-- Projects --}}

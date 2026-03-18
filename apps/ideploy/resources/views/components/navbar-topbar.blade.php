@@ -1,10 +1,16 @@
-{{-- Modern Top Navbar with Credits Display --}}
-<div class="sticky top-0 z-40 flex items-center justify-between px-6 py-3 bg-[#0a0e1a] border-b border-gray-800/50">
-    {{-- Left: Page Title or Breadcrumb --}}
+{{-- Top Navbar avec Toggle + Logo (style main app) --}}
+<div class="flex items-center justify-between px-6 py-4 bg-[#0a0e1a] border-b border-gray-800/50 h-20" x-data="{}">
+    {{-- Left: Toggle + Logo IDEPLOY --}}
     <div class="flex items-center gap-4">
-        <h1 class="text-xl font-semibold text-white">
-            {{ $title ?? 'Dashboard' }}
-        </h1>
+        {{-- Toggle button (hamburger) - FONCTIONNEL --}}
+        <button @click="$parent.open = !$parent.open" class="p-2 rounded-lg hover:bg-white/5 transition-colors">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+        
+        {{-- Logo seul --}}
+        <img src="/logo/ideploy_logo1.svg" alt="iDeploy" class="h-8 w-auto">
     </div>
 
     {{-- Right: Subscription Info, Credits and User Menu --}}
