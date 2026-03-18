@@ -214,26 +214,18 @@ export class MockupHtmlGeneratorService {
   }): string {
     const { projectName, mockup, mockupIndex } = params;
 
-    // Design minimaliste : image maximale avec object-fit:contain pour PDF
-    const mockupCard = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
-      <img src="${mockup.url}" alt="${mockup.title}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;" />
-    </div>`;
+    // Design full-page : image couvre 100% de la page en hauteur et largeur
+    return `<div style="width:100%;height:100%;margin:0;padding:0;box-sizing:border-box;position:relative;overflow:hidden;">
+  <!-- Image mockup en pleine page -->
+  <img src="${mockup.url}" alt="${mockup.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
 
-    return `<div style="width:100%;height:100%;background:#FAFAFA;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;position:relative;">
-  <!-- En-tête minimaliste -->
-  <div style="padding:8mm 12mm 4mm 12mm;">
-    <h1 style="margin:0;font-size:18px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;">${mockup.title}</h1>
-    <p style="margin:4px 0 0 0;font-size:11px;color:#666;font-weight:400;">${projectName}</p>
-  </div>
-
-  <!-- Image hero (occupe l'espace restant) -->
-  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:4mm 12mm;">
-    ${mockupCard}
-  </div>
-
-  <!-- Footer minimal -->
-  <div style="padding:4mm 12mm 8mm 12mm;text-align:center;">
-    <p style="margin:0;font-size:10px;color:#999;font-weight:400;">${mockupIndex}/3</p>
+  <!-- Overlay avec titre et info (en bas) -->
+  <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);padding:20mm 12mm 8mm 12mm;">
+    <h1 style="margin:0;font-size:24px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;text-shadow:0 2px 4px rgba(0,0,0,0.3);">${mockup.title}</h1>
+    <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;">
+      <p style="margin:0;font-size:14px;color:#ffffff;font-weight:500;opacity:0.9;">${projectName}</p>
+      <p style="margin:0;font-size:12px;color:#ffffff;font-weight:500;opacity:0.7;">${mockupIndex}/3</p>
+    </div>
   </div>
 </div>`;
   }

@@ -145,6 +145,7 @@
     "landscape": {
       "title": "Paysage 16:9",
       "description": "Format présentation moderne"
-    }
+    },
+    "startGeneration": "Lancer la génération"
   }
 }

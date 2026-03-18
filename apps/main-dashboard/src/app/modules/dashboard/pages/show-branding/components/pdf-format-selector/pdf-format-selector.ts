@@ -1,42 +1,50 @@
 import { Component, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
+import { ButtonModule } from 'primeng/button';
 
 export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
 
 @Component({
   selector: 'app-pdf-format-selector',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, ButtonModule],
   template: `
-    <div class="glass-card p-6 mb-6">
+    <div class="glass-card p-6 mb-6 cursor-pointer">
       <h3 class="text-lg font-semibold text-white mb-4">
         {{ 'dashboard.showBranding.formatSelector.title' | translate }}
       </h3>
       <p class="text-gray-400 text-sm mb-6">
         {{ 'dashboard.showBranding.formatSelector.description' | translate }}
       </p>
-      
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- A4 Portrait Option -->
         <button
           (click)="selectFormat('A4_PORTRAIT')"
           [ngClass]="{
-            'border-primary ring-2 ring-primary/30 bg-primary/10': selectedFormat() === 'A4_PORTRAIT',
-            'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20': selectedFormat() !== 'A4_PORTRAIT'
+            'border-primary ring-2 ring-primary/30 bg-primary/10':
+              selectedFormat() === 'A4_PORTRAIT',
+            'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20':
+              selectedFormat() !== 'A4_PORTRAIT',
           }"
-          class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group"
+          class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group cursor-pointer"
         >
           <!-- Icon -->
           <div class="flex items-center justify-center mb-4">
-            <svg class="w-16 h-20 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="6" y="3" width="12" height="18" rx="1" stroke-width="1.5"/>
-              <line x1="9" y1="7" x2="15" y2="7" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="9" y1="11" x2="15" y2="11" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="9" y1="15" x2="12" y2="15" stroke-width="1.5" stroke-linecap="round"/>
+            <svg
+              class="w-16 h-20 text-white/80"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <rect x="6" y="3" width="12" height="18" rx="1" stroke-width="1.5" />
+              <line x1="9" y1="7" x2="15" y2="7" stroke-width="1.5" stroke-linecap="round" />
+              <line x1="9" y1="11" x2="15" y2="11" stroke-width="1.5" stroke-linecap="round" />
+              <line x1="9" y1="15" x2="12" y2="15" stroke-width="1.5" stroke-linecap="round" />
             </svg>
           </div>
-          
+
           <!-- Title & Description -->
           <div class="text-center">
             <h4 class="text-white font-semibold mb-2">
@@ -47,12 +55,16 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
               {{ 'dashboard.showBranding.formatSelector.a4Portrait.description' | translate }}
             </p>
           </div>
-          
+
           <!-- Selected Indicator -->
           @if (selectedFormat() === 'A4_PORTRAIT') {
             <div class="absolute top-3 right-3">
               <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
               </svg>
             </div>
           }
@@ -62,20 +74,27 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
         <button
           (click)="selectFormat('SLIDE_16_9')"
           [ngClass]="{
-            'border-primary ring-2 ring-primary/30 bg-primary/10': selectedFormat() === 'SLIDE_16_9',
-            'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20': selectedFormat() !== 'SLIDE_16_9'
+            'border-primary ring-2 ring-primary/30 bg-primary/10':
+              selectedFormat() === 'SLIDE_16_9',
+            'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20':
+              selectedFormat() !== 'SLIDE_16_9',
           }"
-          class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group"
+          class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group cursor-pointer"
         >
           <!-- Icon -->
           <div class="flex items-center justify-center mb-4">
-            <svg class="w-20 h-16 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="6" width="18" height="12" rx="1" stroke-width="1.5"/>
-              <line x1="7" y1="10" x2="17" y2="10" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="7" y1="14" x2="14" y2="14" stroke-width="1.5" stroke-linecap="round"/>
+            <svg
+              class="w-20 h-16 text-white/80"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <rect x="3" y="6" width="18" height="12" rx="1" stroke-width="1.5" />
+              <line x1="7" y1="10" x2="17" y2="10" stroke-width="1.5" stroke-linecap="round" />
+              <line x1="7" y1="14" x2="14" y2="14" stroke-width="1.5" stroke-linecap="round" />
             </svg>
           </div>
-          
+
           <!-- Title & Description -->
           <div class="text-center">
             <h4 class="text-white font-semibold mb-2">
@@ -86,31 +105,55 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
               {{ 'dashboard.showBranding.formatSelector.landscape.description' | translate }}
             </p>
           </div>
-          
+
           <!-- Selected Indicator -->
           @if (selectedFormat() === 'SLIDE_16_9') {
             <div class="absolute top-3 right-3">
               <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
               </svg>
             </div>
           }
         </button>
       </div>
     </div>
+
+    <!-- Bouton de confirmation -->
+    <div class="mt-8 text-center">
+      <button
+        [disabled]="!selectedFormat()"
+        (click)="confirmSelection()"
+        class="px-8 py-3 inner-button hover:bg-primary/90 text-white font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <i class="pi pi-play mr-2"></i>
+        {{ 'dashboard.showBranding.formatSelector.startGeneration' | translate }}
+      </button>
+    </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class PdfFormatSelectorComponent {
-  protected readonly selectedFormat = signal<PdfFormat>('SLIDE_16_9');
+  protected readonly selectedFormat = signal<PdfFormat | null>(null);
   readonly formatSelected = output<PdfFormat>();
 
   protected selectFormat(format: PdfFormat): void {
     this.selectedFormat.set(format);
-    this.formatSelected.emit(format);
+  }
+
+  protected confirmSelection(): void {
+    const format = this.selectedFormat();
+    if (format) {
+      this.formatSelected.emit(format);
+    }
   }
 }
