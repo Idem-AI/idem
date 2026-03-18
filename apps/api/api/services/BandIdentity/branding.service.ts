@@ -713,28 +713,19 @@ export class BrandingService extends GenericService {
                 });
                 console.log(`[MOCKUP] Mockup ${mockupNumber} URL: ${mockupResult.url}`);
 
-                // Générer le HTML pour CE mockup uniquement
-                logger.info(`[MOCKUP] Generating HTML for mockup ${mockupNumber}/3`, {
+                // Générer un HTML simple pour CE mockup (image pleine page uniquement)
+                logger.info(`[MOCKUP] Generating simple HTML for mockup ${mockupNumber}/3`, {
                   projectId,
                   mockupNumber,
                   supportType: mockupResult.supportType,
                 });
 
-                const mockupHtmlPages = await mockupHtmlGeneratorService.generateMockupHtml({
-                  projectName: project.name,
-                  projectDescription: projectDescription,
-                  industry: industry,
-                  brandColors: brandColors,
-                  mockups: [mockupResult], // Un seul mockup
-                  logoUrl: logoUrl,
-                  projectId: projectId,
-                  userId: userId,
-                  typography: project.analysisResultModel?.branding?.typography,
-                });
+                // HTML simple : image pleine page sans description
+                const mockupHtml = `<div style="width:100%;height:100%;margin:0;padding:0;box-sizing:border-box;position:relative;overflow:hidden;">
+  <img src="${mockupResult.url}" alt="${mockupResult.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+</div>`;
 
-                const mockupHtml = mockupHtmlPages[0]; // Une seule page
-
-                logger.info(`[MOCKUP] HTML generated for mockup ${mockupNumber}`, {
+                logger.info(`[MOCKUP] Simple HTML generated for mockup ${mockupNumber}`, {
                   projectId,
                   htmlLength: mockupHtml.length,
                 });
