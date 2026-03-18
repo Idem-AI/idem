@@ -34,8 +34,28 @@ Afficher le nom de marque "${brandName}" dans un style typographique propre et p
     projectDescription: string;
     hasLogo: boolean;
     selectedSupport: SelectedMockupSupport;
+    pdfFormat?: string;
   }) => {
-    const { brandName, brandColors, projectDescription, hasLogo, selectedSupport } = params;
+    const { brandName, brandColors, projectDescription, hasLogo, selectedSupport, pdfFormat } =
+      params;
+
+    // Déterminer les dimensions et orientation selon le format PDF
+    const formatSpecs =
+      pdfFormat === 'A4_PORTRAIT'
+        ? {
+            orientation: 'PORTRAIT (VERTICAL)',
+            dimensions: '210mm × 297mm',
+            aspectRatio: '1:1.414 (A4 portrait)',
+            imageSize: 'Largeur: 1654px, Hauteur: 2339px',
+            description: 'Format document classique vertical',
+          }
+        : {
+            orientation: 'PAYSAGE (HORIZONTAL)',
+            dimensions: '297mm × 167mm',
+            aspectRatio: '16:9 (paysage)',
+            imageSize: 'Largeur: 2339px, Hauteur: 1315px',
+            description: 'Format présentation moderne horizontal',
+          };
 
     const logoInstruction = hasLogo
       ? MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withLogo
@@ -144,6 +164,17 @@ ${selectedSupport.context}
    • Netteté parfaite sur le logo et le support principal
    • Pas de déformation, pas d'aberration chromatique
    • Perspective réaliste et naturelle
+
+**8. FORMAT ET DIMENSIONS DE L'IMAGE** ⚠️ CRITIQUE
+   • **Orientation** : ${formatSpecs.orientation}
+   • **Dimensions de page** : ${formatSpecs.dimensions}
+   • **Ratio d'aspect** : ${formatSpecs.aspectRatio}
+   • **Taille d'image recommandée** : ${formatSpecs.imageSize}
+   • **Description** : ${formatSpecs.description}
+   • L'image DOIT couvrir 100% de la hauteur ET 100% de la largeur de la page
+   • Le mockup doit être cadré pour remplir ENTIÈREMENT le format ${formatSpecs.orientation}
+   • Pas d'espace vide sur les bords — l'image doit être FULL-PAGE
+   • Composition adaptée à l'orientation ${formatSpecs.orientation}
 
 ═══════════════════════════════════════════════════════════════════════════════
 ⚠️ RÈGLES CRITIQUES À RESPECTER

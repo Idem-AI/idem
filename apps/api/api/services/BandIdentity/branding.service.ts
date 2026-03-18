@@ -673,7 +673,8 @@ export class BrandingService extends GenericService {
                     project.name,
                     projectDescription,
                     userId,
-                    projectId
+                    projectId,
+                    pdfFormat
                   );
                   (global as any)[cacheKey] = allMockups;
                 } else {
@@ -2282,6 +2283,9 @@ ${LOGO_EDIT_PROMPT}`;
 
       const logoUrl = project.analysisResultModel.branding.logo.svg;
 
+      // Récupérer le format PDF depuis le projet (défaut: SLIDE_16_9)
+      const pdfFormat = project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9';
+
       // Générer les mockups avec le service Gemini (logo envoyé comme image)
       // Le service analyse automatiquement le projet et sélectionne les supports adaptés
       const mockups = await geminiMockupService.generateProjectMockups(
@@ -2291,7 +2295,8 @@ ${LOGO_EDIT_PROMPT}`;
         brandName,
         projectDescription,
         userId,
-        projectId
+        projectId,
+        pdfFormat
       );
 
       logger.info('✅ Mockups generated successfully for brand identity', {

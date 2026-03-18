@@ -20,6 +20,7 @@ export interface MockupGenerationRequest {
   brandName: string;
   projectDescription: string;
   selectedSupport: SelectedMockupSupport;
+  pdfFormat?: string;
 }
 
 export interface MockupGenerationResult {
@@ -59,7 +60,8 @@ export class GeminiMockupService {
     brandName: string,
     projectDescription: string,
     userId: string,
-    projectId: string
+    projectId: string,
+    pdfFormat?: string
   ): Promise<MockupGenerationResult[]> {
     const startTime = Date.now();
 
@@ -119,6 +121,7 @@ export class GeminiMockupService {
             brandName,
             projectDescription,
             selectedSupport,
+            pdfFormat,
           },
           userId,
           projectId,
@@ -390,6 +393,7 @@ export class GeminiMockupService {
       projectDescription,
       hasLogo: !!logoImageBase64,
       selectedSupport,
+      pdfFormat: request.pdfFormat,
     });
 
     const parts: Part[] = [];
