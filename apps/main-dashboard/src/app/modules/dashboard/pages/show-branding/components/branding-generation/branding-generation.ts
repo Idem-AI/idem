@@ -9,12 +9,16 @@ import {
   signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
+import {
+  PdfFormatSelectorComponent,
+  PdfFormat,
+} from '../../components/pdf-format-selector/pdf-format-selector';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { GenerationService } from '../../../../../../shared/services/generation.service';
 import { SSEGenerationState } from '../../../../../../shared/models/sse-step.model';
@@ -23,7 +27,7 @@ import { BrandIdentityModel } from '../../../../models/brand-identity.model';
 @Component({
   selector: 'app-branding-generation',
   standalone: true,
-  imports: [DatePipe, SkeletonModule, TranslateModule],
+  imports: [DatePipe, SkeletonModule, TranslateModule, PdfFormatSelectorComponent],
   templateUrl: './branding-generation.html',
   styleUrl: './branding-generation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +37,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
   private readonly generationService = inject(GenerationService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
   private readonly destroy$ = new Subject<void>();
 
@@ -41,6 +46,8 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
   // Signals for reactive state management
   protected readonly projectId = signal<string | null>(null);
+  protected readonly pdfFormat = signal<string>('SLIDE_16_9');
+  protected readonly isSelectingFormat = signal<boolean>(true);
   protected readonly isPostProcessing = signal<boolean>(false);
   protected readonly postProcessingMessage = signal<string>(
     this.translate.instant('dashboard.brandingGeneration.postProcessing'),
@@ -72,12 +79,23 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
-    this.generateBranding();
+    // Start with format selection screen
+    this.isSelectingFormat.set(true);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /**
+   * Handle format selection and start generation
+   */
+  protected onFormatSelected(format: PdfFormat): void {
+    this.pdfFormat.set(format);
+    console.log('PDF format selected:', format);
+    this.isSelectingFormat.set(false);
+    this.generateBranding();
   }
 
   /**
@@ -91,10 +109,13 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
     // Reset state for new generation
     this.resetGenerationState();
-    console.log('Starting branding generation with SSE...');
+    console.log('Starting branding generation with SSE and format:', this.pdfFormat());
 
-    // Create SSE connection for branding generation
-    const sseConnection = this.brandingService.createBrandIdentityModel(this.projectId()!);
+    // Create SSE connection for branding generation with format
+    const sseConnection = this.brandingService.createBrandIdentityModel(
+      this.projectId()!,
+      this.pdfFormat(),
+    );
 
     this.generationService
       .startGeneration('branding', sseConnection)

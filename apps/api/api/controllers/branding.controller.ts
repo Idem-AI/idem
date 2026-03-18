@@ -415,9 +415,11 @@ export const generateBrandingStreamingController = async (
   res: Response
 ): Promise<void> => {
   const { projectId } = req.params;
+  const { format } = req.query;
   const userId = req.user?.uid;
+  const pdfFormat = (format as string) || 'SLIDE_16_9';
   logger.info(
-    `generateBrandingStreamingController called - UserId: ${userId}, ProjectId: ${projectId}`
+    `generateBrandingStreamingController called - UserId: ${userId}, ProjectId: ${projectId}, Format: ${pdfFormat}`
   );
 
   try {
@@ -471,11 +473,12 @@ export const generateBrandingStreamingController = async (
       }
     };
 
-    // Appel au service avec le callback de streaming
+    // Appel au service avec le callback de streaming et le format PDF
     const updatedProject = await brandingService.generateBrandingWithStreaming(
       userId,
       projectId as string,
-      streamCallback // Passer le callback de streaming
+      streamCallback, // Passer le callback de streaming
+      pdfFormat // Passer le format PDF
     );
 
     if (!updatedProject) {
