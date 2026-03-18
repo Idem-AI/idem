@@ -729,6 +729,7 @@ export class BrandingService extends GenericService {
                   logoUrl: logoUrl,
                   projectId: projectId,
                   userId: userId,
+                  typography: project.analysisResultModel?.branding?.typography,
                 });
 
                 const mockupHtml = mockupHtmlPages[0]; // Une seule page

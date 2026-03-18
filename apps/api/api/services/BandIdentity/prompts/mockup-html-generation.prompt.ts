@@ -20,6 +20,10 @@ interface MockupHtmlGenerationParams {
     priority: 'primary' | 'secondary';
   }>;
   logoUrl?: string;
+  typography?: {
+    primaryFont?: string;
+    secondaryFont?: string;
+  };
 }
 
 export const MOCKUP_HTML_GENERATION_PROMPT = {
@@ -37,43 +41,111 @@ export const MOCKUP_HTML_GENERATION_PROMPT = {
       };
       mockupIndex: number;
       totalMockups: number;
+      typography?: {
+        primaryFont?: string;
+        secondaryFont?: string;
+      };
     }
   ): string => {
-    const { projectName, industry, mockup, mockupIndex, totalMockups } = params;
-    return `Génère un HTML MODERNE pour afficher le mockup "${mockup.title}" en FORMAT PAYSAGE 16:9 PLEINE PAGE.
+    const {
+      projectName,
+      projectDescription,
+      industry,
+      brandColors,
+      mockup,
+      mockupIndex,
+      totalMockups,
+      typography,
+    } = params;
+
+    const primaryFont = typography?.primaryFont || 'Inter';
+    const secondaryFont = typography?.secondaryFont || 'Inter';
+
+    return `Génère un HTML MODERNE et UNIQUE pour afficher le mockup "${mockup.title}" en FORMAT PAYSAGE 16:9 PLEINE PAGE.
+
+═══════════════════════════════════════════════════════════════════════════════
+📋 INFORMATIONS DU PROJET
+═══════════════════════════════════════════════════════════════════════════════
 
 Projet: ${projectName}
+Description: ${projectDescription}
 Industrie: ${industry}
+
+Couleurs de marque:
+- Primaire: ${brandColors.primary}
+- Secondaire: ${brandColors.secondary}
+- Accent: ${brandColors.accent}
+
+Typographie:
+- Police principale: ${primaryFont}
+- Police secondaire: ${secondaryFont}
 
 Mockup:
 - Titre: ${mockup.title}
 - Type: ${mockup.supportType}
+- Description: ${mockup.description}
 - URL: ${mockup.url}
+- Numéro: ${mockupIndex}/${totalMockups}
 
-DESIGN FULL-PAGE REQUIS:
-1. Image mockup couvre 100% de la page (width:100%, height:100%, object-fit:cover)
-2. Overlay gradient en bas avec titre et infos (position:absolute, bottom:0)
-3. Texte blanc sur fond sombre semi-transparent pour lisibilité
+═══════════════════════════════════════════════════════════════════════════════
+🎨 MISSION CRÉATIVE
+═══════════════════════════════════════════════════════════════════════════════
 
-STYLE:
-- Conteneur: width:100%, height:100%, position:relative, overflow:hidden
-- Image: width:100%, height:100%, object-fit:cover (couvre TOUTE la page)
-- Overlay: position:absolute, bottom:0, background gradient noir transparent
-- Titre: blanc, gras, grande taille (24px), text-shadow pour contraste
-- Info projet et numéro: blanc, en bas dans l'overlay
-- Format PAYSAGE 16:9 (297mm × 167mm)
+Crée une section de description UNIQUE et CRÉATIVE en bas du mockup qui:
 
-IMPORTANT:
-- L'image doit couvrir 100% de la hauteur ET 100% de la largeur
-- Utiliser object-fit:cover pour remplir toute la page
-- Overlay avec gradient noir transparent en bas uniquement
-- Texte blanc avec text-shadow pour lisibilité
-- Pas de padding sur le conteneur principal (margin:0, padding:0)
-- Numéro de page: "${mockupIndex}/${totalMockups}" dans l'overlay
+1. **RESPECTE LA CHARTE GRAPHIQUE**
+   - Utilise les couleurs de marque (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent})
+   - Utilise la typographie du projet (${primaryFont}, ${secondaryFont})
+   - Crée un dégradé ou fond avec les couleurs de marque (PAS de noir générique)
+   - Le design doit refléter l'identité visuelle du projet
 
-CSS inline uniquement. Pas d'explications.
+2. **CONTENU UNIQUE ET CONTEXTUEL**
+   - Génère une description courte et percutante (15-25 mots) qui:
+     * Explique le contexte d'utilisation de ce mockup spécifique
+     * Est adaptée à l'industrie "${industry}"
+     * Reflète la description du projet
+     * Est différente pour chaque mockup (pas de texte générique)
+   - Ajoute un sous-titre ou tag créatif lié au type de support (${mockup.supportType})
 
-GÉNÈRE UNIQUEMENT LE HTML.`;
+3. **DESIGN MODERNE ET PROFESSIONNEL**
+   - Overlay en bas avec dégradé utilisant les couleurs de marque
+   - Typographie hiérarchisée: titre principal + description + numéro
+   - Espacement généreux et élégant
+   - Effets visuels subtils (ombres, dégradés, transparences)
+   - Composition équilibrée et professionnelle
+
+═══════════════════════════════════════════════════════════════════════════════
+STRUCTURE TECHNIQUE
+═══════════════════════════════════════════════════════════════════════════════
+
+- Conteneur: width:100%, height:100%, position:relative, overflow:hidden, margin:0, padding:0
+- Image mockup: width:100%, height:100%, object-fit:cover (couvre TOUTE la page)
+- Section description: position:absolute, bottom:0, left:0, right:0
+- Dégradé: Utilise les couleurs de marque avec transparence (ex: linear-gradient avec ${brandColors.primary}, ${brandColors.secondary})
+- Typographie: font-family: '${primaryFont}', '${secondaryFont}'
+- Couleurs texte: Adaptées pour contraste optimal avec le fond
+- Format: PAYSAGE 16:9 (297mm × 167mm)
+
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ RÈGLES CRITIQUES
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ **À FAIRE ABSOLUMENT:**
+- Utiliser les couleurs de marque (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) dans le dégradé/fond
+- Utiliser les polices du projet (${primaryFont}, ${secondaryFont})
+- Générer une description UNIQUE et contextuelle pour ce mockup spécifique
+- Créer un design qui reflète l'identité visuelle du projet
+- Assurer un contraste suffisant pour la lisibilité
+- CSS inline uniquement
+
+❌ **À ÉVITER ABSOLUMENT:**
+- NE PAS utiliser de dégradé noir générique (rgba(0,0,0,...))
+- NE PAS utiliser de texte générique ("Application de marque", etc.)
+- NE PAS ignorer les couleurs de marque
+- NE PAS utiliser de polices par défaut (Arial, sans-serif) sans les polices du projet
+- NE PAS créer un design identique pour tous les mockups
+
+GÉNÈRE UNIQUEMENT LE HTML. Pas d'explications. Pas de markdown.`;
   },
 
   /**
@@ -296,20 +368,28 @@ Le design doit être UNIQUE, PREMIUM et refléter parfaitement l'identité du pr
   /**
    * Prompt système pour Gemini
    */
-  systemPrompt: `Tu es un expert en design moderne et impactant. Tu génères du HTML inline CSS pour mockups en FORMAT PAYSAGE 16:9 PLEINE PAGE.
+  systemPrompt: `Tu es un expert en design moderne et identité visuelle. Tu génères du HTML inline CSS pour mockups en FORMAT PAYSAGE 16:9 PLEINE PAGE avec respect de la charte graphique.
 
 Règles FULL-PAGE:
 • Design moderne, impactant, pleine page
 • Format PAYSAGE 16:9 (297mm × 167mm)
 • Image mockup couvre 100% hauteur ET largeur (width:100%, height:100%, object-fit:cover)
 • Conteneur: position:relative, overflow:hidden, margin:0, padding:0
-• Overlay gradient noir transparent en bas uniquement (position:absolute, bottom:0)
-• Texte blanc avec text-shadow dans l'overlay pour lisibilité
-• Titre: gras, grande taille (24px), blanc
-• Info projet et numéro de page dans l'overlay
-• Typographie moderne (Inter, system-ui)
+
+Règles CHARTE GRAPHIQUE:
+• Overlay avec dégradé utilisant les COULEURS DE MARQUE (pas de noir générique)
+• Utiliser la TYPOGRAPHIE du projet (polices spécifiées)
+• Texte avec couleurs adaptées pour contraste optimal
+• Description UNIQUE et contextuelle pour chaque mockup
+• Design qui reflète l'identité visuelle du projet
+
+Règles TECHNIQUES:
+• Section description: position:absolute, bottom:0
+• Dégradé avec couleurs de marque et transparence
+• Titre: gras, grande taille (24px), police principale
+• Description: courte, percutante, contextuelle
+• Info projet et numéro de page
 • CSS inline uniquement
 • Pas d'explications, que du HTML
-• IMPORTANT: Image doit COUVRIR toute la page avec object-fit:cover
-• Pas de padding sur le conteneur principal`,
+• IMPORTANT: Image doit COUVRIR toute la page avec object-fit:cover`,
 };
