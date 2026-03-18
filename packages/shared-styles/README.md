@@ -7,47 +7,44 @@ Shared design system and styles for all Idem applications using **Tailwind CSS 4
 - 🎨 **Unified Design System** - Consistent dark theme with glass morphism
 - 🌙 **Dark Mode Only** - Optimized for dark interfaces
 - ✨ **Glass Effects** - Pre-built glass morphism utilities
-- 🎭 **Glow Effects** - Beautiful glow shadows for emphasis
-- 🔘 **Button Styles** - Gradient and glass button components
-- 📝 **Form Elements** - Styled inputs with focus states
-- 🎬 **Animations** - Smooth transitions and keyframe animations
-- 🎯 **Tailwind 4** - Latest Tailwind CSS with `@theme` syntax
-- 🌈 **oklch Colors** - Wide color gamut using modern color space
-- ⚡ **CSS-first Configuration** - Theme defined in CSS, not JavaScript
 
-## Installation
+- � **50+ Composants** - Boutons, formulaires, cartes, modals, tabs, accordions, etc.
+- 🌊 **Glass Morphism** - Effet verre dépoli professionnel avec 6 variantes
+- 🎬 **20+ Animations** - Micro-interactions fluides et animations modernes
+- 🎯 **100+ Classes Utilitaires** - Couleurs, espacement, effets, responsive
+- � **Mode Sombre Uniquement** - Optimisé pour une expérience premium
+- ⚡ **Performance** - CSS optimisé avec Tailwind CSS 4
+- 📱 **Responsive** - Mobile-first avec breakpoints intelligents
+- ♿ **Accessible** - Composants conformes aux standards WCAG
+
+## 🚀 Installation
 
 ```bash
 npm install @idem/shared-styles
 ```
 
-## Usage
+## 📖 Utilisation Rapide
 
-### 1. Import the Styles
-
-In your main CSS file:
+### 1. Importer les styles
 
 ```css
+/* Dans votre fichier CSS principal */
 @import '@idem/shared-styles/styles.css';
 ```
 
-### 2. Extend Tailwind Config (Optional)
+⚠️ **Important** : N'utilisez JAMAIS `@tailwind base/components/utilities`. Le design system inclut déjà Tailwind CSS 4.
 
-**Note:** In Tailwind CSS 4, configuration is primarily done via `@theme` in CSS. You only need a `tailwind.config.js` if you want to add plugins or override content detection.
-
-If you need a config file, create `tailwind.config.js`:
-
-```js
-import sharedConfig from '@idem/shared-styles/tailwind.config';
+### 2. Utiliser les composants
 
 export default {
-  ...sharedConfig,
-  // Tailwind 4 auto-detects content, but you can override if needed
-  content: ['./src/**/*.{js,ts,jsx,tsx,svelte,vue}'],
-  // Add plugins if needed
-  plugins: [],
+...sharedConfig,
+// Tailwind 4 auto-detects content, but you can override if needed
+content: ['./src/**/*.{js,ts,jsx,tsx,svelte,vue}'],
+// Add plugins if needed
+plugins: [],
 };
-```
+
+````
 
 **Most theme customization should be done in your CSS file using `@theme`**, not in the config file.
 
@@ -67,7 +64,7 @@ export default {
 
 <!-- Darker glass -->
 <div class="glass-dark p-4 rounded-lg">Darker glass background</div>
-```
+````
 
 #### Buttons
 
