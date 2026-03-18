@@ -1493,7 +1493,8 @@
         "landscape": {
           "title": "Landscape 16:9",
           "description": "Modern presentation format"
-        }
+        },
+        "startGeneration": "Start Generation"
       }
     },
     "additionalInfoForm": {
