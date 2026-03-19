@@ -6,7 +6,7 @@ ARG MINIO_VERSION=RELEASE.2025-05-21T01-59-54Z
 # https://github.com/cloudflare/cloudflared/releases
 ARG CLOUDFLARED_VERSION=2025.7.0
 # https://www.postgresql.org/support/versioning/
-ARG POSTGRES_VERSION=15
+ARG POSTGRES_VERSION=16
 
 # =================================================================
 # Get MinIO client
