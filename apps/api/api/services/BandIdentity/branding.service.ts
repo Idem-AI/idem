@@ -524,55 +524,55 @@ export class BrandingService extends GenericService {
     try {
       // Define branding steps
       const steps: IPromptStep[] = [
-        // {
-        //   promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Brand Header',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Logo Principal',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant:
-        //     LOGO_VARIATION_PAGE_PROMPT +
-        //     '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
-        //     projectDescription,
-        //   stepName: 'Logo Variation Fond Clair',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant:
-        //     LOGO_VARIATION_PAGE_PROMPT +
-        //     "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
-        //     projectDescription,
-        //   stepName: 'Logo Variation Fond Sombre',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant:
-        //     LOGO_VARIATION_PAGE_PROMPT +
-        //     '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
-        //     projectDescription,
-        //   stepName: 'Logo Variation Monochrome',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
-        //   stepName: 'Logo Bonnes Pratiques',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Color Palette',
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Typography',
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
+          stepName: 'Brand Header',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
+          stepName: 'Logo Principal',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
+            projectDescription,
+          stepName: 'Logo Variation Fond Clair',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
+            projectDescription,
+          stepName: 'Logo Variation Fond Sombre',
+          hasDependencies: false,
+        },
+        {
+          promptConstant:
+            LOGO_VARIATION_PAGE_PROMPT +
+            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
+            projectDescription,
+          stepName: 'Logo Variation Monochrome',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
+          stepName: 'Logo Bonnes Pratiques',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
+          stepName: 'Color Palette',
+          hasDependencies: false,
+        },
+        {
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
+          stepName: 'Typography',
+          hasDependencies: false,
+        },
       ];
 
       // Générer dynamiquement les steps mockups en fonction de MOCKUP_CONFIG.MOCKUP_COUNT
