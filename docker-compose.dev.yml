@@ -1,0 +1,282 @@
+version: '3.8'
+
+networks:
+  idem-dev:
+    driver: bridge
+
+volumes:
+  # Coolify/ideploy volumes
+  dev_postgres_data:
+  dev_redis_data:
+  dev_coolify_data:
+  dev_backups_data:
+  dev_minio_data:
+  # Services node_modules volumes (pour éviter conflits avec host)
+  dev_node_modules_api:
+  dev_node_modules_dashboard:
+  dev_node_modules_landing:
+  dev_node_modules_appgen:
+  dev_node_modules_appgen_client:
+  dev_node_modules_chart:
+
+services:
+  # ==================== INFRASTRUCTURE ====================
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: "${DB_USERNAME:-coolify}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-password}"
+      POSTGRES_DB: "${DB_DATABASE:-coolify}"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    volumes:
+      - dev_postgres_data:/var/lib/postgresql/data
+    networks:
+      - idem-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-coolify}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: idem-redis-dev
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - dev_redis_data:/data
+    networks:
+      - idem-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: idem-mailpit-dev
+    restart: unless-stopped
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    networks:
+      - idem-dev
+
+  # ==================== IDEPLOY (Coolify) ====================
+  
+  ideploy:
+    image: coolify:dev
+    container_name: idem-ideploy-dev
+    pull_policy: never
+    build:
+      context: ./apps/ideploy
+      dockerfile: ./docker/development/Dockerfile
+      args:
+        - USER_ID=${USERID:-1000}
+        - GROUP_ID=${GROUPID:-1000}
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8080"
+    environment:
+      AUTORUN_ENABLED: "false"
+      PUSHER_HOST: "${PUSHER_HOST:-soketi}"
+      PUSHER_PORT: "${PUSHER_PORT:-6001}"
+      PUSHER_SCHEME: "${PUSHER_SCHEME:-http}"
+      PUSHER_APP_ID: "${PUSHER_APP_ID:-coolify}"
+      PUSHER_APP_KEY: "${PUSHER_APP_KEY:-coolify}"
+      PUSHER_APP_SECRET: "${PUSHER_APP_SECRET:-coolify}"
+      DB_HOST: postgres
+      DB_DATABASE: "${DB_DATABASE:-coolify}"
+      DB_USERNAME: "${DB_USERNAME:-coolify}"
+      DB_PASSWORD: "${DB_PASSWORD:-password}"
+      SONARQUBE_ADMIN_TOKEN: squ_dc0e5ea5635f3c4b1bdd46d37032485e2ade36f0
+      REDIS_HOST: redis
+      # AI Configuration
+      AI_PROVIDER: "${AI_PROVIDER:-gemini}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-AIzaSyBLz8JVQU2qnf1NoVWQouJ3xnNkXrAfJg4}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      CLAUDE_API_KEY: "${CLAUDE_API_KEY}"
+    volumes:
+      - ./apps/ideploy:/var/www/html:cached
+      - dev_backups_data:/var/www/html/storage/app/backups
+    networks:
+      - idem-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  
+  soketi:
+    image: coolify-realtime:dev
+    container_name: idem-soketi-dev
+    pull_policy: never
+    build:
+      context: ./apps/ideploy
+      dockerfile: ./docker/coolify-realtime/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_SOKETI_PORT:-6001}:6001"
+      - "6002:6002"
+    volumes:
+      - ./apps/ideploy/storage:/var/www/html/storage
+      - ./apps/ideploy/docker/coolify-realtime/terminal-server.js:/terminal/terminal-server.js
+    environment:
+      SOKETI_DEBUG: "false"
+      SOKETI_DEFAULT_APP_ID: "${PUSHER_APP_ID:-coolify}"
+      SOKETI_DEFAULT_APP_KEY: "${PUSHER_APP_KEY:-coolify}"
+      SOKETI_DEFAULT_APP_SECRET: "${PUSHER_APP_SECRET:-coolify}"
+    entrypoint: ["/bin/sh", "/soketi-entrypoint.sh"]
+    networks:
+      - idem-dev
+
+  vite-ideploy:
+    image: node:24-alpine
+    container_name: idem-vite-dev
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      VITE_HOST: "${VITE_HOST:-0.0.0.0}"
+      VITE_PORT: "${VITE_PORT:-5173}"
+    ports:
+      - "${VITE_PORT:-5173}:${VITE_PORT:-5173}"
+    volumes:
+      - ./apps/ideploy:/var/www/html:cached
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - idem-dev
+
+  # ==================== API SERVICE ====================
+  
+  api:
+    image: idem-api:dev
+    container_name: idem-api-dev
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    ports:
+      - "${API_PORT:-3010}:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      CORS_ALLOWED_ORIGINS: "http://localhost:4200,http://localhost:4201,http://localhost:3003,http://localhost:3004,http://localhost:8000"
+    volumes:
+      - ./apps/api:/app/apps/api:cached
+    networks:
+      - idem-dev
+
+  # ==================== MAIN DASHBOARD ====================
+  
+  main-dashboard:
+    image: idem-main-dashboard:dev
+    container_name: idem-dashboard-dev
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ./apps/main-dashboard/Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    ports:
+      - "4200:4200"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: "http://localhost:3000"
+      NEXT_PUBLIC_FIREBASE_API_KEY: "${FIREBASE_API_KEY}"
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "${FIREBASE_AUTH_DOMAIN}"
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "${FIREBASE_PROJECT_ID}"
+    volumes:
+      - ./apps/main-dashboard:/app/apps/main-dashboard:cached
+      - dev_node_modules_dashboard:/app/apps/main-dashboard/node_modules
+    networks:
+      - idem-dev
+    depends_on:
+      - api
+
+  # ==================== LANDING PAGE ====================
+  
+  landing:
+    image: idem-landing:dev
+    container_name: idem-landing-dev
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ./apps/landing/Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    ports:
+      - "4201:4201"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: "http://localhost:3000"
+    volumes:
+      - ./apps/landing:/app/apps/landing:cached
+      - dev_node_modules_landing:/app/apps/landing/node_modules
+    networks:
+      - idem-dev
+    depends_on:
+      - api
+
+  # ==================== APPGEN ====================
+  
+  appgen:
+    image: idem-appgen:dev
+    container_name: idem-appgen-dev
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ./apps/appgen/Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    ports:
+      - "${APPGEN_PORT:-3003}:3003"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: "http://localhost:3000"
+      NEXT_PUBLIC_FIREBASE_API_KEY: "${FIREBASE_API_KEY}"
+    volumes:
+      - ./apps/appgen:/app/apps/appgen:cached
+      - dev_node_modules_appgen:/app/apps/appgen/node_modules
+      - dev_node_modules_appgen_client:/app/apps/appgen/apps/we-dev-client/node_modules
+    networks:
+      - idem-dev
+    depends_on:
+      - api
+
+  # ==================== CHART ====================
+  
+  chart:
+    image: idem-chart:dev
+    container_name: idem-chart-dev
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ./apps/chart/Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    ports:
+      - "${CHART_PORT:-3004}:3004"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: "http://localhost:3000"
+    volumes:
+      - ./apps/chart:/app/apps/chart:cached
+      - dev_node_modules_chart:/app/apps/chart/node_modules
+    networks:
+      - idem-dev
+    depends_on:
+      - api
