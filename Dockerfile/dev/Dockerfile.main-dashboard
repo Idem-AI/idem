@@ -8,15 +8,20 @@ WORKDIR /app
 # Install dependencies
 RUN apk add --no-cache git
 
-# Copy package files
+# Copy workspace package.json
 COPY package.json package-lock.json tsconfig.base.json ./
 
-# Copy workspace package.json for workspace setup
-COPY ./apps/main-dashboard/package.json ./apps/main-dashboard/
+# Copy packages partagés
+COPY ./packages ./packages
 
-# Install dependencies
-WORKDIR /app/apps/main-dashboard
+# Copy all main-dashboard files (needed for postinstall script)
+COPY ./apps/main-dashboard ./apps/main-dashboard
+
+# Install all workspaces from root to establish symlinks
 RUN npm install --legacy-peer-deps
+
+# Set working directory to main-dashboard
+WORKDIR /app/apps/main-dashboard
 
 # Expose Angular dev server port
 EXPOSE 4200

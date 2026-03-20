@@ -8,12 +8,20 @@ RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-# Copy API package.json
-COPY ./apps/api/package.json ./apps/api/
+# Copy workspace package.json
+COPY package.json package-lock.json tsconfig.base.json ./
 
-# Install API dependencies
-WORKDIR /app/apps/api
+# Copy packages partagés
+COPY ./packages ./packages
+
+# Copy all API files
+COPY ./apps/api ./apps/api
+
+# Install all workspaces from root to establish symlinks
 RUN npm install --legacy-peer-deps
+
+# Set working directory to API
+WORKDIR /app/apps/api
 
 # Expose port
 EXPOSE 3000
