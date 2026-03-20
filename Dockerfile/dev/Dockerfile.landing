@@ -8,15 +8,20 @@ WORKDIR /app
 # Install dependencies
 RUN apk add --no-cache git
 
-# Copy package files
+# Copy workspace package.json
 COPY package.json package-lock.json tsconfig.base.json ./
 
-# Copy landing package.json
-COPY ./apps/landing/package.json ./apps/landing/
+# Copy packages partagés
+COPY ./packages ./packages
 
-# Install dependencies
-WORKDIR /app/apps/landing
+# Copy all landing files
+COPY ./apps/landing ./apps/landing
+
+# Install all workspaces from root to establish symlinks
 RUN npm install --legacy-peer-deps
+
+# Set working directory to landing
+WORKDIR /app/apps/landing
 
 # Expose Angular dev server port
 EXPOSE 4201
