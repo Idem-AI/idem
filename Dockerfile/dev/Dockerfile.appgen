@@ -1,0 +1,28 @@
+# Dockerfile.dev for AppGen (Turborepo monorepo)
+# Development version with hot-reload for both client and server
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.4
+
+# Copy package files
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Copy shared packages
+COPY ./packages/shared-styles ./packages/shared-styles
+
+# Copy appgen monorepo
+COPY ./apps/appgen ./apps/appgen
+
+# Install dependencies at appgen root
+WORKDIR /app/apps/appgen
+RUN pnpm install --no-frozen-lockfile
+
+# Expose ports for both client and server
+EXPOSE 3002 3003
+
+# Start both apps using Turborepo
+CMD ["pnpm", "run", "dev"]
