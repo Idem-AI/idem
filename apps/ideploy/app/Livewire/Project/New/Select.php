@@ -19,9 +19,9 @@ class Select extends Component
 
     public string $destination_uuid;
 
-    public Collection|null|Server $allServers;
+    public Collection|null|Server $allServers = null;
 
-    public Collection|null|Server $servers;
+    public Collection|null|Server $servers = null;
 
     public bool $onlyBuildServerAvailable = false;
 
@@ -307,7 +307,17 @@ class Select extends Component
             return;
         }
         
-        // IDEM: Afficher le choix de déploiement pour TOUS les types (apps, databases, services)
+        // IDEM: Si le projet a un serveur assigné lors de sa création, l'utiliser directement
+        $project = Project::whereUuid(data_get($this->parameters, 'project_uuid'))->first();
+        if ($project && $project->assigned_server_id) {
+            $assignedServer = Server::find($project->assigned_server_id);
+            if ($assignedServer) {
+                $this->setServer($assignedServer);
+                return;
+            }
+        }
+
+        // Afficher le choix de déploiement pour TOUS les types (apps, databases, services)
         $this->current_step = 'deployment-choice';
         return;
         
