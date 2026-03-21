@@ -127,13 +127,42 @@ class General extends Component
 
     public $showDomainConflictModal = false;
 
-    public $forceSaveDomains = false;
+    public bool $forceSaveDomains = false;
+
+    public array $parameters = [];
 
     protected $listeners = [
         'resetDefaultLabels',
         'configurationChanged' => '$refresh',
         'confirmDomainUsage',
     ];
+    
+    /**
+     * Save domain explicitly when user clicks Save button
+     */
+    public function saveDomain()
+    {
+        try {
+            $this->authorize('update', $this->application);
+            
+            // Sync to model and save
+            $this->syncToModel();
+            $this->application->save();
+            $this->application->refresh();
+            
+            // Sync back to keep UI in sync
+            $this->syncFromModel();
+            
+            // Reset labels if needed
+            if ($this->is_container_label_readonly_enabled) {
+                $this->resetDefaultLabels(false);
+            }
+            
+            $this->dispatch('success', 'Domain saved successfully');
+        } catch (\Throwable $e) {
+            return handleError($e, $this);
+        }
+    }
 
     protected function rules(): array
     {
@@ -261,6 +290,12 @@ class General extends Component
 
     public function mount()
     {
+        $this->parameters = [
+            'project_uuid' => $this->application->project()->uuid,
+            'environment_uuid' => $this->application->environment->uuid,
+            'application_uuid' => $this->application->uuid,
+        ];
+        
         try {
             $this->parsedServices = $this->application->parse();
             if (is_null($this->parsedServices) || empty($this->parsedServices)) {
@@ -498,6 +533,18 @@ class General extends Component
         } catch (\Throwable $e) {
             return handleError($e, $this);
         }
+    }
+
+    public function updatedName($value)
+    {
+        // Sync name to model immediately when it changes
+        $this->application->name = $value;
+    }
+
+    public function updatedDescription($value)
+    {
+        // Sync description to model immediately when it changes
+        $this->application->description = $value;
     }
 
     public function updatedBaseDirectory()
@@ -894,5 +941,78 @@ class General extends Component
                 }
             }
         }
+    }
+
+    public function render()
+    {
+        // Pipeline Card Data - ONLY use PipelineExecution data, NOT deployments
+        $pipelineConfig = $this->application->pipelineConfig;
+        
+        // Count ONLY pipeline executions (not deployments!)
+        $totalExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)->count();
+        
+        // Pipeline is active ONLY if config exists, is enabled AND has at least one execution
+        $isPipelineActive = $pipelineConfig && $pipelineConfig->enabled && $totalExecutions > 0;
+        
+        if ($isPipelineActive) {
+            $successfulExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)
+                ->where('status', 'success')
+                ->count();
+            $successRate = $totalExecutions > 0 ? round(($successfulExecutions / $totalExecutions) * 100) : 0;
+            
+            // Calculate average time from started_at to finished_at for completed executions
+            $completedExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)
+                ->whereNotNull('finished_at')
+                ->get();
+            
+            $averageTime = 0;
+            if ($completedExecutions->count() > 0) {
+                $totalMinutes = $completedExecutions->sum(function($execution) {
+                    return $execution->started_at->diffInMinutes($execution->finished_at);
+                });
+                $averageTime = round($totalMinutes / $completedExecutions->count());
+            }
+            
+            $lastExecution = \App\Models\PipelineExecution::where('application_id', $this->application->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            $isExecutionInProgress = \App\Models\PipelineExecution::where('application_id', $this->application->id)
+                ->whereIn('status', ['pending', 'running'])
+                ->exists();
+        } else {
+            // If pipeline not active or no executions, show zeros
+            $successRate = 0;
+            $averageTime = 0;
+            $lastExecution = null;
+            $isExecutionInProgress = false;
+        }
+
+        // Application Status
+        $isAppRunning = $this->application->isRunning();
+        $isAppStopped = $this->application->isExited() || !$isAppRunning;
+        $appRealStatus = $this->application->realStatus();
+        
+        // Firewall/Security Card Data
+        $firewallConfig = $this->application->firewallConfig;
+        $activeRules = $firewallConfig ? $firewallConfig->rules()->where('enabled', true)->count() : 0;
+        $blockedRequests = $firewallConfig ? $firewallConfig->trafficLogs()->where('decision', 'ban')->count() : 0;
+        $totalRequests = $firewallConfig ? $firewallConfig->trafficLogs()->count() : 0;
+        $uptime = $firewallConfig && $totalRequests > 0 ? round((($totalRequests - $blockedRequests) / $totalRequests) * 100, 1) : 99.9;
+
+        return view('livewire.project.application.general', [
+            'isPipelineActive' => $isPipelineActive,
+            'totalDeployments' => $totalExecutions,
+            'successRate' => $successRate,
+            'averageTime' => $averageTime,
+            'lastDeployment' => $lastExecution,
+            'isDeploymentInProgress' => $isExecutionInProgress,
+            'isAppRunning' => $isAppRunning,
+            'isAppStopped' => $isAppStopped,
+            'appRealStatus' => $appRealStatus,
+            'activeRules' => $activeRules,
+            'blockedRequests' => $blockedRequests,
+            'totalRequests' => $totalRequests,
+            'uptime' => $uptime,
+        ]);
     }
 }

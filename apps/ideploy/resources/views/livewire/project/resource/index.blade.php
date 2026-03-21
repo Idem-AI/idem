@@ -1,63 +1,115 @@
-<div class="min-h-screen bg-[#0a0e1a] text-white p-6">
+<div class="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1419] to-[#0a0e1a] text-white p-6">
     <x-slot:title>
         {{ data_get_str($project, 'name')->limit(10) }} > Resources | Coolify
     </x-slot>
-    <div class="flex flex-col">
-        <div class="flex items-center gap-2 mb-4">
-            <h1 class="text-2xl font-light text-gray-100">Resources</h1>
-            @if ($environment->isEmpty())
-                @can('createAnyResource')
-                    <a class="button"
-                        href="{{ route('project.clone-me', ['project_uuid' => data_get($project, 'uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}">
-                        Clone
-                    </a>
-                @endcan
-            @else
-                @can('createAnyResource')
-                    <a href="{{ route('project.resource.create', ['project_uuid' => data_get($parameters, 'project_uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}"
-                        class="button">+
-                        New</a>
-                @endcan
-                @can('createAnyResource')
-                    <a class="button"
-                        href="{{ route('project.clone-me', ['project_uuid' => data_get($project, 'uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}">
-                        Clone
-                    </a>
-                @endcan
-            @endif
-            @can('delete', $environment)
-                <livewire:project.delete-environment :disabled="!$environment->isEmpty()" :environment_id="$environment->id" />
-            @endcan
-        </div>
+    
+    {{-- Header Époustouflant --}}
+    <div class="mb-8">
+        {{-- Breadcrumb Moderne --}}
         <nav class="flex pt-2 pb-6">
-            <ol class="flex items-center">
+            <ol class="flex items-center gap-1">
                 <li class="inline-flex items-center">
-                    <a class="text-xs truncate lg:text-sm"
+                    <a class="text-sm font-medium text-light/70 hover:text-accent transition-colors px-2 py-1 rounded hover:bg-white/5"
                         href="{{ route('project.show', ['project_uuid' => data_get($parameters, 'project_uuid')]) }}">
-                        {{ $project->name }}</a>
+                        {{ $project->name }}
+                    </a>
+                    <svg class="w-4 h-4 mx-1 text-light/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
                 </li>
-                <li>
-                    <div class="flex items-center">
-                        <svg aria-hidden="true" class="w-4 h-4 mx-1 font-bold dark:text-warning" fill="currentColor"
-                            viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd"
-                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                clip-rule="evenodd"></path>
-                        </svg>
-
-                        <livewire:project.resource.environment-select :environments="$project->environments" />
-                    </div>
+                <li class="inline-flex items-center">
+                    <livewire:project.resource.environment-select :environments="$project->environments" />
                 </li>
             </ol>
         </nav>
+
+        {{-- Header Principal avec Gradient --}}
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/10 via-primary/5 to-transparent border border-accent/20 p-8 mb-6">
+            {{-- Background Pattern --}}
+            <div class="absolute inset-0 opacity-5">
+                <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 32px 32px;"></div>
+            </div>
+            
+            <div class="relative flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="icon-container w-16 h-16">
+                        <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold text-light mb-2">
+                            <span class="i-underline">Resources</span>
+                        </h1>
+                        <p class="text-light/70 text-lg">Manage your applications, databases and services</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    @if ($environment->isEmpty())
+                        @can('createAnyResource')
+                            <a class="outer-button px-6 py-3"
+                                href="{{ route('project.clone-me', ['project_uuid' => data_get($project, 'uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}">
+                                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Clone
+                            </a>
+                        @endcan
+                    @else
+                        @can('createAnyResource')
+                            <a href="{{ route('project.resource.create', ['project_uuid' => data_get($parameters, 'project_uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}"
+                                class="inner-button px-6 py-3">
+                                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                New Resource
+                            </a>
+                            <a class="outer-button px-6 py-3"
+                                href="{{ route('project.clone-me', ['project_uuid' => data_get($project, 'uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}">
+                                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Clone
+                            </a>
+                        @endcan
+                    @endif
+                    @can('delete', $environment)
+                        <livewire:project.delete-environment :disabled="!$environment->isEmpty()" :environment_id="$environment->id" />
+                    @endcan
+                </div>
+            </div>
+        </div>
     </div>
     @if ($environment->isEmpty())
         @can('createAnyResource')
-            <a href="{{ route('project.resource.create', ['project_uuid' => data_get($parameters, 'project_uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}"
-                class="items-center justify-center box">+ Add Resource</a>
+            <div class="flex flex-col items-center justify-center py-16 px-8 text-center">
+                <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/10 to-violet-600/5 border border-violet-500/15 flex items-center justify-center mb-6">
+                    <svg class="w-10 h-10 text-violet-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">Aucune ressource pour le moment</h3>
+                <p class="text-sm text-gray-400 mb-8 max-w-sm leading-relaxed">
+                    Déployez votre première application, base de données ou service dans cet environnement.
+                </p>
+                <a href="{{ route('project.resource.create', ['project_uuid' => data_get($parameters, 'project_uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}"
+                    class="inline-flex items-center gap-2.5 px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/20 transition-all hover:-translate-y-px active:translate-y-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+                    Ajouter une ressource
+                </a>
+                <a href="{{ route('project.clone-me', ['project_uuid' => data_get($parameters, 'project_uuid'), 'environment_uuid' => data_get($environment, 'uuid')]) }}"
+                    class="mt-3 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/>
+                    </svg>
+                    Ou cloner un projet existant
+                </a>
+            </div>
         @else
-            <div
-                class="flex flex-col items-center justify-center p-8 text-center border border-dashed border-neutral-300 dark:border-coolgray-300 rounded-lg">
+            <div class="flex flex-col items-center justify-center p-8 text-center border border-dashed border-neutral-300 dark:border-coolgray-300 rounded-lg">
                 <h3 class="mb-2 text-lg font-semibold text-neutral-600 dark:text-neutral-400">No Resources Found</h3>
                 <p class="text-sm text-neutral-600 dark:text-neutral-400">
                     This environment doesn't have any resources yet.<br>
@@ -67,7 +119,29 @@
         @endcan
     @else
         <div x-data="searchComponent()">
-            <x-forms.input placeholder="Search for name, fqdn..." x-model="search" id="null" />
+            {{-- Barre de Recherche Moderne --}}
+            <div class="relative mb-8">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                        <svg class="w-5 h-5 text-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input 
+                        type="text" 
+                        x-model="search"
+                        placeholder="Search for name, domain, or description..." 
+                        class="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/10 rounded-xl text-light placeholder-light/40 focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 transition-all backdrop-blur-sm"
+                    />
+                    <div x-show="search.length > 0" class="absolute inset-y-0 right-0 flex items-center pr-4">
+                        <button @click="search = ''" class="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                            <svg class="w-4 h-4 text-light/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
             <template
                 x-if="filteredApplications.length === 0 && filteredDatabases.length === 0 && filteredServices.length === 0">
                 <div class="flex flex-col items-center justify-center p-8 text-center">
@@ -89,128 +163,273 @@
 
             <template x-if="filteredApplications.length > 0">
                 <div class="pt-6 pb-4 flex items-center gap-3">
-                    <div class="p-2 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-lg border border-blue-500/30">
-                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="icon-container">
+                        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-bold text-white">Applications</h2>
-                    <span class="px-2 py-1 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30" x-text="filteredApplications.length"></span>
+                    <h2 class="text-2xl font-bold text-white">Applications</h2>
+                    <span class="px-3 py-1 text-sm font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30" x-text="filteredApplications.length"></span>
                 </div>
             </template>
             <div x-show="filteredApplications.length > 0"
-                class="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <template x-for="item in filteredApplications" :key="item.uuid">
-                    <div>
-                        <a class="group block" :href="item.hrefLink">
-                            <div class="relative bg-gradient-to-br from-[#151b2e] to-[#0f1419] hover:from-[#1a2137] hover:to-[#141920] border border-gray-700/50 hover:border-blue-500/50 rounded-xl overflow-hidden transition-all duration-300 min-h-[200px] flex flex-col shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-1 group">
-                                {{-- Header --}}
-                                <div class="p-4 border-b border-gray-700/50">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <h3 class="text-base font-semibold text-gray-100 group-hover:text-blue-400 transition-colors truncate" x-text="item.name"></h3>
-                                                {{-- Status Badge --}}
-                                                <template x-if="item.status.startsWith('running')">
-                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-green-500/20 text-green-400 border border-green-500/30">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                                                        Running
-                                                    </span>
-                                                </template>
-                                                <template x-if="item.status.startsWith('exited')">
-                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-red-500/20 text-red-400 border border-red-500/30">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
-                                                        Exited
-                                                    </span>
-                                                </template>
-                                                <template x-if="item.status.startsWith('starting')">
-                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"></span>
-                                                        Starting
-                                                    </span>
-                                                </template>
-                                                <template x-if="item.status.startsWith('restarting')">
-                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"></span>
-                                                        Restarting
-                                                    </span>
-                                                </template>
-                                                <template x-if="item.status.startsWith('degraded')">
-                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
-                                                        Degraded
-                                                    </span>
-                                                </template>
-                                            </div>
-                                            <p class="text-xs text-gray-400 line-clamp-1" x-text="item.description || 'No description'"></p>
-                                        </div>
+                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
+                        <div class="relative glass-card p-6 hover:border-blue-500/40 overflow-hidden">
+                            {{-- Header avec icône framework + actions --}}
+                            <div class="flex items-start justify-between gap-4 mb-4">
+                                <div class="flex items-start gap-3 flex-1 min-w-0">
+                                    {{-- Framework Icon --}}
+                                    <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-lg border border-blue-500/30 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                                        </svg>
+                                    </div>
+                                    
+                                    {{-- Titre + description --}}
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base font-semibold text-white group-hover:text-blue-400 transition-colors truncate mb-1" x-text="item.name"></h3>
+                                        <p class="text-sm text-gray-500 truncate" x-text="item.fqdn || 'No domain configured'"></p>
                                     </div>
                                 </div>
                                 
-                                {{-- Content --}}
-                                <div class="p-4 flex-grow">
-                                    <div class="space-y-2">
-                                        <div class="flex items-center gap-2">
-                                            <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
-                                            </svg>
-                                            <span class="text-xs text-gray-400 truncate" x-text="item.fqdn || 'No FQDN configured'"></span>
+                                {{-- Actions (status + menu) --}}
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    {{-- Status Badge --}}
+                                    <template x-if="item.status.startsWith('running')">
+                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                            <span class="text-xs text-green-500 font-medium">Running</span>
                                         </div>
-                                        <template x-if="item.server_status == false">
-                                            <div class="flex items-center gap-2 text-xs text-red-400">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                                </svg>
-                                                <span>Server has problems</span>
-                                            </div>
-                                        </template>
-                                    </div>
+                                    </template>
+                                    <template x-if="item.status.startsWith('exited')">
+                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                            <span class="text-xs text-red-500 font-medium">Exited</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="item.status.startsWith('starting')">
+                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                                            <span class="text-xs text-yellow-500 font-medium">Starting</span>
+                                        </div>
+                                    </template>
+                                    
+                                    {{-- Menu 3 dots --}}
+                                    <button class="p-1.5 hover:bg-gray-800 rounded-md transition-colors" @click.prevent>
+                                        <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 16 16">
+                                            <circle cx="8" cy="3" r="1.5"/>
+                                            <circle cx="8" cy="8" r="1.5"/>
+                                            <circle cx="8" cy="13" r="1.5"/>
+                                        </svg>
+                                    </button>
                                 </div>
-                                
-                                {{-- Footer with Tags --}}
-                                <div class="px-4 py-3 bg-gray-900/20 border-t border-gray-700/50">
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <template x-for="tag in item.tags">
-                                            <a :href="`/tags/${tag.name}`" class="inline-flex items-center px-2 py-0.5 text-[10px] font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded hover:bg-blue-500/30 transition-colors" x-text="tag.name">
-                                            </a>
-                                        </template>
-                                        <a :href="`${item.hrefLink}/tags`" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-gray-700/50 text-gray-400 border border-gray-600 rounded hover:bg-gray-700 transition-colors">
-                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                            </svg>
-                                            Add tag
-                                        </a>
+                            </div>
+                            
+                            {{-- Metadata (git + commit) --}}
+                            <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                    </svg>
+                                    <span class="truncate" x-text="item.git_repository || 'No repository'"></span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                                    </svg>
+                                    <span x-text="item.last_commit || 'Initial commit'"></span>
+                                </div>
+                            </div>
+                            
+                            {{-- Footer: Date + Branch --}}
+                            <div class="flex items-center justify-between text-xs text-gray-600">
+                                <div class="flex items-center gap-1">
+                                    <span x-text="item.updated_at || 'Just now'"></span>
+                                    <span>on</span>
+                                    <div class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                                        </svg>
+                                        <span class="font-medium" x-text="item.git_branch || 'main'"></span>
                                     </div>
                                 </div>
                             </div>
-                        </a>
-                    </div>
+                        </div>
+                    </a>
                 </template>
             </div>
             <template x-if="filteredDatabases.length > 0">
                 <div class="pt-6 pb-4 flex items-center gap-3">
-                    <div class="p-2 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-lg border border-indigo-500/30">
-                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="icon-container">
+                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-bold text-white">Databases</h2>
-                    <span class="px-2 py-1 text-xs font-semibold bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30" x-text="filteredDatabases.length"></span>
+                    <h2 class="text-2xl font-bold text-white">Databases</h2>
+                    <span class="px-3 py-1 text-sm font-semibold bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30" x-text="filteredDatabases.length"></span>
                 </div>
             </template>
             <div x-show="filteredDatabases.length > 0"
-                class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <template x-for="item in filteredDatabases" :key="item.uuid">
-                    <x-resource-card />
+                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
+                        <div class="relative glass-card p-6 hover:border-indigo-500/40 overflow-hidden">
+                            {{-- Header avec icône database + actions --}}
+                            <div class="flex items-start justify-between gap-4 mb-4">
+                                <div class="flex items-start gap-3 flex-1 min-w-0">
+                                    {{-- Database Icon --}}
+                                    <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-lg border border-indigo-500/30 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                                        </svg>
+                                    </div>
+                                    
+                                    {{-- Titre + type --}}
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base font-semibold text-white group-hover:text-indigo-400 transition-colors truncate mb-1" x-text="item.name"></h3>
+                                        <p class="text-sm text-gray-500 truncate" x-text="item.type || 'Database'"></p>
+                                    </div>
+                                </div>
+                                
+                                {{-- Actions (status + menu) --}}
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    {{-- Status Badge --}}
+                                    <template x-if="item.status && item.status.startsWith('running')">
+                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                            <span class="text-xs text-green-500 font-medium">Running</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="item.status && item.status.startsWith('exited')">
+                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                            <span class="text-xs text-red-500 font-medium">Exited</span>
+                                        </div>
+                                    </template>
+                                    
+                                    {{-- Menu 3 dots --}}
+                                    <button class="p-1.5 hover:bg-gray-800 rounded-md transition-colors" @click.prevent>
+                                        <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 16 16">
+                                            <circle cx="8" cy="3" r="1.5"/>
+                                            <circle cx="8" cy="8" r="1.5"/>
+                                            <circle cx="8" cy="13" r="1.5"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {{-- Metadata --}}
+                            <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                                <div class="flex items-center gap-1.5" x-show="item.fqdn">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                                    </svg>
+                                    <span class="truncate" x-text="item.fqdn"></span>
+                                </div>
+                                <template x-if="item.server_status == false">
+                                    <div class="flex items-center gap-1.5 text-red-500">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        <span>Server issue</span>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            {{-- Footer: Updated date --}}
+                            <div class="flex items-center justify-between text-xs text-gray-600">
+                                <span x-text="item.updated_at || 'Just now'"></span>
+                            </div>
+                        </div>
+                    </a>
                 </template>
             </div>
             <template x-if="filteredServices.length > 0">
-                <h2 class="pt-6 pb-4 text-xl font-light text-gray-100">Services</h2>
+                <div class="pt-6 pb-4 flex items-center gap-3">
+                    <div class="icon-container">
+                        <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Services</h2>
+                    <span class="px-3 py-1 text-sm font-semibold bg-emerald-500/20 text-emerald-400 rounded-full border border-emerald-500/30" x-text="filteredServices.length"></span>
+                </div>
             </template>
             <div x-show="filteredServices.length > 0"
-                class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <template x-for="item in filteredServices" :key="item.uuid">
-                    <x-resource-card />
+                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
+                        <div class="relative glass-card p-6 hover:border-emerald-500/40 overflow-hidden">
+                            {{-- Header avec icône service + actions --}}
+                            <div class="flex items-start justify-between gap-4 mb-4">
+                                <div class="flex items-start gap-3 flex-1 min-w-0">
+                                    {{-- Service Icon --}}
+                                    <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 rounded-lg border border-emerald-500/30 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                                        </svg>
+                                    </div>
+                                    
+                                    {{-- Titre + type --}}
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base font-semibold text-white group-hover:text-emerald-400 transition-colors truncate mb-1" x-text="item.name"></h3>
+                                        <p class="text-sm text-gray-500 truncate" x-text="item.type || 'Service'"></p>
+                                    </div>
+                                </div>
+                                
+                                {{-- Actions (status + menu) --}}
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    {{-- Status Badge --}}
+                                    <template x-if="item.status && item.status.startsWith('running')">
+                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                            <span class="text-xs text-green-500 font-medium">Running</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="item.status && item.status.startsWith('exited')">
+                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                            <span class="text-xs text-red-500 font-medium">Exited</span>
+                                        </div>
+                                    </template>
+                                    
+                                    {{-- Menu 3 dots --}}
+                                    <button class="p-1.5 hover:bg-gray-800 rounded-md transition-colors" @click.prevent>
+                                        <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 16 16">
+                                            <circle cx="8" cy="3" r="1.5"/>
+                                            <circle cx="8" cy="8" r="1.5"/>
+                                            <circle cx="8" cy="13" r="1.5"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {{-- Metadata --}}
+                            <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                                <div class="flex items-center gap-1.5" x-show="item.fqdn">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                                    </svg>
+                                    <span class="truncate" x-text="item.fqdn"></span>
+                                </div>
+                                <template x-if="item.server_status == false">
+                                    <div class="flex items-center gap-1.5 text-red-500">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        <span>Server issue</span>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            {{-- Footer: Updated date --}}
+                            <div class="flex items-center justify-between text-xs text-gray-600">
+                                <span x-text="item.updated_at || 'Just now'"></span>
+                            </div>
+                        </div>
+                    </a>
                 </template>
             </div>
         </div>

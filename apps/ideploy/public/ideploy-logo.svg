@@ -1,6 +1,13 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="32" height="32" rx="6" fill="#2563EB"/>
-<path d="M8 8H24V24H8V8Z" fill="white"/>
-<path d="M12 12H20V20H12V12Z" fill="#2563EB"/>
-<path d="M14 14H18V18H14V14Z" fill="white"/>
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background bleu IDEM -->
+  <rect width="200" height="200" rx="20" fill="#0046FF"/>
+  
+  <!-- Lettre I (barre verticale gauche) -->
+  <rect x="30" y="50" width="20" height="100" fill="white"/>
+  
+  <!-- Lettre D -->
+  <path d="M 80 50 L 80 150 L 120 150 C 140 150 155 135 155 115 L 155 85 C 155 65 140 50 120 50 Z M 100 70 L 120 70 C 128 70 135 77 135 85 L 135 115 C 135 123 128 130 120 130 L 100 130 Z" fill="white"/>
+  
+  <!-- Symbole > (chevron) -->
+  <path d="M 125 85 L 145 100 L 125 115" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>

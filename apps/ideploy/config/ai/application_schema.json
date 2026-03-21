@@ -1,0 +1,41 @@
+{
+  "required": ["name", "git_repository", "git_branch", "build_pack", "ports_exposes"],
+  "properties": {
+    "name": "string (auto from repo)",
+    "git_repository": "string (URL)",
+    "git_branch": "string (default: main)",
+    "build_pack": "enum: nixpacks|dockerfile|dockercompose|static",
+    "ports_exposes": "string (port number)",
+    "fqdn": "string|null (domains comma-separated)",
+    "install_command": "string|null",
+    "build_command": "string|null",
+    "start_command": "string|null",
+    "base_directory": "string (default: /)",
+    "publish_directory": "string|null (for static)",
+    "dockerfile_location": "string (default: ./Dockerfile)",
+    "docker_compose_location": "string (default: ./docker-compose.yml)",
+    "pre_deployment_command": "string|null",
+    "post_deployment_command": "string|null",
+    "health_check_enabled": "boolean (default: true)",
+    "health_check_path": "string (default: /health)",
+    "health_check_port": "string|null",
+    "health_check_method": "string (default: GET)",
+    "health_check_return_code": "integer (default: 200)",
+    "health_check_interval": "integer (default: 30)",
+    "health_check_timeout": "integer (default: 10)",
+    "health_check_retries": "integer (default: 3)",
+    "health_check_start_period": "integer (default: 60)",
+    "limits_memory": "string (ex: 512M, 1G)",
+    "limits_cpus": "string (ex: 0.5, 1.0)",
+    "custom_labels": "string|null (Docker labels)",
+    "redirect": "enum: www|non-www|both|null",
+    "watch_paths": "string|null (paths to watch for changes)"
+  },
+  "ai_decisions": {
+    "build_pack": "Use dockerfile if Dockerfile exists, dockercompose if docker-compose.yml exists, static if no backend, else nixpacks",
+    "port": "Detect from framework or code analysis",
+    "health_check_path": "Common: /health, /healthz, /api/health, /ping",
+    "post_deploy": "Run migrations for Django/Laravel/Rails",
+    "databases": "Create if detected in code"
+  }
+}

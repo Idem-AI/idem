@@ -13,10 +13,6 @@
                class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
                 Overview
             </a>
-            <a href="{{ route('project.application.security.traffic', $parameters) }}"
-               class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white">
-                Events
-            </a>
             <a href="{{ route('project.application.security.rules', $parameters) }}"
                class="px-4 py-3 text-sm font-medium text-white border-b-2 border-blue-500 -mb-px">
                 Rules
@@ -192,9 +188,9 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Protection Type</label>
                             <select wire:model="newRule.protection_mode" class="w-full px-3 py-2 bg-[#151b2e] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="ip_ban">🔒 Block IP Address - Recommended for security threats</option>
-                                <option value="path_only">🛡️ Block Request Only - Less restrictive</option>
-                                <option value="hybrid">⚡ Maximum Protection - Block IP + Request</option>
+                                <option value="ip_ban">Block IP Address - Recommended for security threats</option>
+                                <option value="path_only">Block Request Only - Less restrictive</option>
+                                <option value="hybrid">Maximum Protection - Block IP + Request</option>
                             </select>
                             <p class="text-xs text-gray-500 mt-1.5">
                                 <span class="font-medium">Block IP:</span> Completely blocks the visitor's IP address (30 days). 
@@ -246,8 +242,8 @@
                                             <option value="regex">Regex (Pattern)</option>
                                             <option value="in_range">In Range (CIDR)</option>
                                             <option value="not_in_range">Not In Range (CIDR)</option>
-                                            <option value="libinjection_sql" class="bg-red-900 text-red-200">🛡️ Auto-detect SQL Injection (ML)</option>
-                                            <option value="libinjection_xss" class="bg-red-900 text-red-200">🛡️ Auto-detect XSS Attack (ML)</option>
+                                            <option value="libinjection_sql" class="bg-red-900 text-red-200">Auto-detect SQL Injection (ML)</option>
+                                            <option value="libinjection_xss" class="bg-red-900 text-red-200">Auto-detect XSS Attack (ML)</option>
                                             <option value="gt">Greater Than (&gt;)</option>
                                             <option value="gte">Greater or Equal (&gt;=)</option>
                                             <option value="lt">Less Than (&lt;)</option>
@@ -259,7 +255,7 @@
                                     <div>
                                         @if(in_array($condition['operator'] ?? '', ['libinjection_sql', 'libinjection_xss']))
                                             <div class="px-3 py-2 bg-blue-900/20 border border-blue-700 rounded-lg">
-                                                <p class="text-xs text-blue-300 mb-1">🤖 Machine Learning Detection</p>
+                                                <p class="text-xs text-blue-300 mb-1 font-semibold">Machine Learning Detection</p>
                                                 <p class="text-xs text-gray-400">No value needed - automatic detection using libinjection</p>
                                             </div>
                                         @else
@@ -327,8 +323,8 @@
                             <div class="flex items-center gap-3 mb-4">
                                 <span class="text-sm text-gray-400">Then</span>
                                 <select wire:model="newRule.action" class="flex-1 px-3 py-2 bg-[#151b2e] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="block">🚫 Block Access</option>
-                                    <option value="log">📝 Log Only (Monitor)</option>
+                                    <option value="block">Block Access</option>
+                                    <option value="log">Log Only (Monitor)</option>
                                 </select>
                             </div>
                             <p class="text-xs text-gray-500">

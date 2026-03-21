@@ -225,16 +225,21 @@ class FirewallOverview extends Component
         $configService = app(FirewallConfigService::class);
         
         try {
-            if ($this->firewallEnabled) {
+            $wasEnabled = $this->firewallEnabled;
+            
+            if ($wasEnabled) {
                 // Disable firewall
                 $configService->disableFirewall($this->config);
+                $this->firewallEnabled = false;
                 $this->dispatch('success', 'Firewall disabled successfully');
             } else {
                 // Enable firewall
                 $configService->enableFirewall($this->application);
+                $this->firewallEnabled = true;
                 $this->dispatch('success', 'Firewall enabled successfully');
             }
             
+            // Reload data to get fresh state
             $this->loadData();
             
         } catch (\Exception $e) {
@@ -646,6 +651,12 @@ class FirewallOverview extends Component
     
     public function render()
     {
-        return view('livewire.project.application.security.firewall-overview');
+        return view('livewire.project.application.security.firewall-overview', [
+            'stats' => $this->stats,
+            'hourlyTrafficData' => $this->hourlyTrafficData,
+            'firewallEnabled' => $this->firewallEnabled,
+            'botProtectionEnabled' => $this->botProtectionEnabled,
+            'customRulesCount' => $this->customRulesCount,
+        ]);
     }
 }

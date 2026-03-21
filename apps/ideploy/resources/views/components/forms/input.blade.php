@@ -3,9 +3,10 @@
     'w-full' => !$isMultiline,
 ])>
     @if ($label)
-        <label class="flex gap-1 items-center mb-1 text-sm font-medium">{{ $label }}
+        <label class="flex gap-2 items-center mb-2 text-sm font-medium text-light">
+            <span>{{ $label }}</span>
             @if ($required)
-                <x-highlighted text="*" />
+                <span class="text-danger text-xs">*</span>
             @endif
             @if ($helper)
                 <x-helper :helper="$helper" />
@@ -27,7 +28,7 @@
             @endif
             <input autocomplete="{{ $autocomplete }}" value="{{ $value }}"
                 {{ $attributes->merge(['class' => $defaultClass]) }} @required($required)
-                @if ($modelBinding !== 'null') wire:model={{ $modelBinding }} wire:dirty.class="dark:border-l-warning border-l-coollabs border-l-4" @endif
+                @if ($modelBinding !== 'null') wire:model={{ $modelBinding }} wire:dirty.class="border-l-accent border-l-4" @endif
                 wire:loading.attr="disabled"
                 type="{{ $type }}" @readonly($readonly) @disabled($disabled) id="{{ $htmlId }}"
                 name="{{ $name }}" placeholder="{{ $attributes->get('placeholder') }}"
@@ -38,7 +39,7 @@
     @else
         <input autocomplete="{{ $autocomplete }}" @if ($value) value="{{ $value }}" @endif
             {{ $attributes->merge(['class' => $defaultClass]) }} @required($required) @readonly($readonly)
-            @if ($modelBinding !== 'null') wire:model={{ $modelBinding }} wire:dirty.class="dark:border-l-warning border-l-coollabs border-l-4" @endif
+            @if ($modelBinding !== 'null') wire:model={{ $modelBinding }} wire:dirty.class="border-l-accent border-l-4" @endif
             wire:loading.attr="disabled"
             type="{{ $type }}" @disabled($disabled) min="{{ $attributes->get('min') }}"
             max="{{ $attributes->get('max') }}" minlength="{{ $attributes->get('minlength') }}"
@@ -48,11 +49,19 @@
             @if ($autofocus) x-ref="autofocusInput" @endif>
     @endif
     @if (!$label && $helper)
-        <x-helper :helper="$helper" />
+        <div class="mt-1.5 text-xs text-light/60 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <x-helper :helper="$helper" />
+        </div>
     @endif
     @error($modelBinding)
-        <label class="label">
-            <span class="text-red-500 label-text-alt">{{ $message }}</span>
-        </label>
+        <div class="mt-1.5 text-xs text-danger flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ $message }}</span>
+        </div>
     @enderror
 </div>
