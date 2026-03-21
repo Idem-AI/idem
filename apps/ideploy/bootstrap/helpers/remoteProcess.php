@@ -37,7 +37,10 @@ function remote_process(
 
     if (Auth::check()) {
         $teams = Auth::user()->teams->pluck('id');
-        if (! $teams->contains($server->team_id) && ! $teams->contains(0)) {
+        // Skip team check for IDEM platform managed servers (team_id=0 or idem_managed=true)
+        // These servers are shared infrastructure accessible to all authenticated users
+        $isIdemManagedServer = $server->team_id === 0 || $server->idem_managed === true;
+        if (! $isIdemManagedServer && ! $teams->contains($server->team_id) && ! $teams->contains(0)) {
             throw new \Exception('User is not part of the team that owns this server');
         }
     }
