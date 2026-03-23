@@ -134,5 +134,18 @@
         "description": "Fichier éditable Photoshop"
       }
     }
+  },
+  "formatSelector": {
+    "title": "Choisir le format PDF",
+    "description": "Sélectionnez le format pour votre charte graphique PDF",
+    "a4Portrait": {
+      "title": "A4 Portrait",
+      "description": "Format document classique"
+    },
+    "landscape": {
+      "title": "Paysage 16:9",
+      "description": "Format présentation moderne"
+    },
+    "startGeneration": "Lancer la génération"
   }
 }

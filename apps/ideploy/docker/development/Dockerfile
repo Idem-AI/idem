@@ -6,7 +6,7 @@ ARG MINIO_VERSION=RELEASE.2025-05-21T01-59-54Z
 # https://github.com/cloudflare/cloudflared/releases
 ARG CLOUDFLARED_VERSION=2025.7.0
 # https://www.postgresql.org/support/versioning/
-ARG POSTGRES_VERSION=15
+ARG POSTGRES_VERSION=16
 
 # =================================================================
 # Get MinIO client
@@ -63,6 +63,10 @@ RUN mkdir -p /usr/local/bin && \
 # Configure PHP
 COPY docker/development/etc/php/conf.d/zzz-custom-php.ini /usr/local/etc/php/conf.d/zzz-custom-php.ini
 ENV PHP_OPCACHE_ENABLE=0
+
+# Install Composer dependencies (with dev dependencies for development)
+COPY composer.json composer.lock ./
+RUN composer install --no-interaction --no-plugins --no-scripts --prefer-dist
 
 # Configure Nginx and S6 overlay
 COPY docker/development/etc/nginx/conf.d/custom.conf /etc/nginx/conf.d/custom.conf

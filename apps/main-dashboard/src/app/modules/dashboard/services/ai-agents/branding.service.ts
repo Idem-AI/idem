@@ -34,16 +34,20 @@ export class BrandingService {
   /**
    * Create a new branding item using Server-Sent Events for real-time updates
    * @param projectId Project ID
+   * @param pdfFormat PDF format (A4_PORTRAIT or SLIDE_16_9)
    * @returns Observable with SSE events
    */
-  createBrandIdentityModel(projectId: string): Observable<SSEStepEvent> {
-    console.log('Starting branding generation with SSE...');
+  createBrandIdentityModel(
+    projectId: string,
+    pdfFormat: string = 'SLIDE_16_9',
+  ): Observable<SSEStepEvent> {
+    console.log('Starting branding generation with SSE and format:', pdfFormat);
 
     // Close any existing SSE connection
     this.closeSSEConnection();
 
     const config: SSEConnectionConfig = {
-      url: `${this.apiUrl}/generate/${projectId}`,
+      url: `${this.apiUrl}/generate/${projectId}?format=${pdfFormat}`,
       keepAlive: true,
       reconnectionDelay: 1000,
     };

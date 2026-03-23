@@ -24,6 +24,7 @@ import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
 import { MOCKUPS_SECTION_PROMPT, MOCKUPS_COUNT } from './prompts/06_mockups-section.prompt';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
+import { MOCKUP_CONFIG } from '../../config/mockup.config';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
 import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
@@ -35,7 +36,7 @@ import {
   TYPOGRAPHY_FROM_LOGO_PROMPT,
 } from './prompts/singleGenerations/colors-from-logo.prompt';
 import { generateLogoVariationsFromSvg } from '../logo-import.service';
-import { PdfService } from '../pdf.service';
+import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
 import crypto from 'crypto';
 import { projectService } from '../project.service';
@@ -43,6 +44,7 @@ import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
 import { geminiMockupService } from '../brandMockup.service';
 import { StorageService } from '../storage.service';
+import { mockupHtmlGeneratorService } from './mockupHtmlGenerator.service';
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
@@ -53,7 +55,7 @@ export class BrandingService extends GenericService {
   // Optimisée pour qualité maximale avec vitesse préservée
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview', // Gemini 3 comme demandé
+    modelName: 'gemini-3.1-flash-lite-preview', // Gemini 3 comme demandé
     llmOptions: {
       maxOutputTokens: 1000, // Augmenté pour plus de détails SVG complexes
       temperature: 0.2, // Réduit pour cohérence et qualité constante
@@ -65,7 +67,7 @@ export class BrandingService extends GenericService {
   // Configuration LLM pour la génération de couleurs
   private static readonly COLORS_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-2.0-flash',
+    modelName: 'gemini-3.1-flash-lite-preview',
     llmOptions: {
       maxOutputTokens: 3500,
       temperature: 0.1,
@@ -77,7 +79,7 @@ export class BrandingService extends GenericService {
   // Configuration LLM pour la génération de typographies
   private static readonly TYPOGRAPHY_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-2.0-flash',
+    modelName: 'gemini-3.1-flash-lite-preview',
     llmOptions: {
       maxOutputTokens: 5000,
       temperature: 0.7,
@@ -468,10 +470,11 @@ export class BrandingService extends GenericService {
   async generateBrandingWithStreaming(
     userId: string,
     projectId: string,
-    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
+    pdfFormat: string = 'SLIDE_16_9'
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}`
+      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}, pdfFormat: ${pdfFormat}`
     );
 
     // Get project
@@ -570,17 +573,30 @@ export class BrandingService extends GenericService {
           stepName: 'Typography',
           hasDependencies: false,
         },
-        {
-          promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
-          stepName: 'Brand Mockups',
-          hasDependencies: false,
-        },
-        // {
-        //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
-        //   stepName: 'Brand Footer',
-        //   hasDependencies: false,
-        // },
       ];
+
+      // Générer dynamiquement les steps mockups en fonction de MOCKUP_CONFIG.MOCKUP_COUNT
+      const mockupCount = MOCKUP_CONFIG.MOCKUP_COUNT;
+      for (let i = 1; i <= mockupCount; i++) {
+        steps.push({
+          promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
+          stepName: `Brand Mockup ${i}`,
+          hasDependencies: false,
+        });
+      }
+
+      logger.info(`[BRANDING] Generated ${mockupCount} mockup steps dynamically`, {
+        projectId,
+        mockupCount,
+        totalSteps: steps.length,
+      });
+
+      // Optionnel : footer
+      // steps.push({
+      //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
+      //   stepName: 'Brand Footer',
+      //   hasDependencies: false,
+      // });
 
       // Initialize empty sections array to collect results as they come in
       let sections: SectionModel[] = [];
@@ -602,19 +618,22 @@ export class BrandingService extends GenericService {
             // Préparer la section finale (avec génération d'images pour les mockups)
             let finalSection: SectionModel;
 
-            if (result.name === 'Brand Mockups') {
+            // Gérer chaque mockup individuellement
+            if (result.name.startsWith('Brand Mockup')) {
+              // Extraire le numéro du mockup (1, 2 ou 3)
+              const mockupNumber = parseInt(result.name.replace('Brand Mockup ', ''));
+              const mockupIndex = mockupNumber - 1; // Index 0-based
+
               const mockupPipelineStart = Date.now();
               logger.info('========================================');
-              logger.info('[MOCKUP] BRAND MOCKUPS STEP TRIGGERED');
+              logger.info(`[MOCKUP] BRAND MOCKUP ${mockupNumber} STEP TRIGGERED`);
               logger.info('========================================');
-              logger.info(
-                '[MOCKUP] Will now generate real images via Gemini and upload to bucket',
-                {
-                  projectId,
-                  userId,
-                  projectName: project.name,
-                }
-              );
+              logger.info(`[MOCKUP] Will now generate mockup ${mockupNumber}/3 via Gemini`, {
+                projectId,
+                userId,
+                projectName: project.name,
+                mockupNumber,
+              });
 
               try {
                 // Extraire les informations nécessaires du projet
@@ -640,88 +659,83 @@ export class BrandingService extends GenericService {
                 const projectContext = this.extractProjectContext(projectDescription);
                 const industry = projectContext.industry;
 
-                // Générer les mockups avec le service Gemini
-                const mockups = await geminiMockupService.generateProjectMockups(
-                  logoUrl,
-                  brandColors,
-                  industry,
-                  project.name,
-                  projectDescription,
-                  userId,
-                  projectId
-                );
+                // Générer TOUS les mockups une seule fois (pour avoir les 3 supports sélectionnés)
+                // On cache le résultat pour éviter de régénérer à chaque step
+                const cacheKey = `mockups_${projectId}`;
+                let allMockups = (global as any)[cacheKey];
 
-                // Convertir le résultat en format attendu
-                const mockupResults = [
-                  {
-                    url: mockups.mockup1.mockupUrl,
-                    title: mockups.mockup1.title || 'Brand Mockup 1',
-                    description: mockups.mockup1.description || 'Professional brand mockup',
-                  },
-                  {
-                    url: mockups.mockup2.mockupUrl,
-                    title: mockups.mockup2.title || 'Brand Mockup 2',
-                    description: mockups.mockup2.description || 'Professional brand mockup',
-                  },
-                ];
+                if (!allMockups) {
+                  logger.info('[MOCKUP] Generating all 3 mockups (first time)', { projectId });
+                  allMockups = await geminiMockupService.generateProjectMockups(
+                    logoUrl,
+                    brandColors,
+                    industry,
+                    project.name,
+                    projectDescription,
+                    userId,
+                    projectId,
+                    pdfFormat
+                  );
+                  (global as any)[cacheKey] = allMockups;
+                } else {
+                  logger.info(`[MOCKUP] Using cached mockups for mockup ${mockupNumber}`, {
+                    projectId,
+                  });
+                }
+
+                // Sélectionner uniquement le mockup correspondant à ce step
+                const mockup = allMockups[mockupIndex];
+                if (!mockup) {
+                  throw new Error(`Mockup ${mockupNumber} not found in generated mockups`);
+                }
+
+                const mockupResult = {
+                  url: mockup.mockupUrl,
+                  title: mockup.title || `${mockup.supportName}`,
+                  description:
+                    mockup.description || `${mockup.supportName} - Professional brand mockup`,
+                  supportType: mockup.supportType,
+                  priority: mockup.priority,
+                };
 
                 const mockupPipelineDuration = Date.now() - mockupPipelineStart;
 
-                if (mockupResults.length > 0) {
-                  logger.info(
-                    `[MOCKUP] SUCCESS - ${mockupResults.length} mockup images generated and uploaded`,
-                    {
-                      projectId,
-                      duration: `${mockupPipelineDuration}ms`,
-                    }
-                  );
+                logger.info(`[MOCKUP] SUCCESS - Mockup ${mockupNumber}/3 ready`, {
+                  projectId,
+                  duration: `${mockupPipelineDuration}ms`,
+                  supportType: mockupResult.supportType,
+                  title: mockupResult.title,
+                });
 
-                  // Log chaque URL de mockup pour debug facile
-                  mockupResults.forEach((m, i) => {
-                    logger.info(`[MOCKUP] Image ${i + 1}/${mockupResults.length}: "${m.title}"`, {
-                      bucketUrl: m.url,
-                      description: m.description,
-                    });
-                    console.log(`[MOCKUP] Bucket URL ${i + 1}: ${m.url}`);
-                  });
+                logger.info(`[MOCKUP] Mockup ${mockupNumber}: "${mockupResult.title}"`, {
+                  bucketUrl: mockupResult.url,
+                  description: mockupResult.description,
+                });
+                console.log(`[MOCKUP] Mockup ${mockupNumber} URL: ${mockupResult.url}`);
 
-                  // Construire un HTML dynamique avec les vraies URLs des images
-                  const mockupsHtml = this.buildMockupsHtmlWithRealImages(mockupResults, project);
+                // Générer un HTML simple pour CE mockup (image pleine page uniquement)
+                logger.info(`[MOCKUP] Generating simple HTML for mockup ${mockupNumber}/3`, {
+                  projectId,
+                  mockupNumber,
+                  supportType: mockupResult.supportType,
+                });
 
-                  logger.info(
-                    `[MOCKUP] Final HTML section built with ${mockupResults.length} real image URLs`,
-                    {
-                      projectId,
-                      htmlLength: mockupsHtml.length,
-                      totalDuration: `${mockupPipelineDuration}ms`,
-                    }
-                  );
+                // HTML simple : image pleine page sans description
+                const mockupHtml = `<div style="width:100%;height:100%;margin:0;padding:0;box-sizing:border-box;position:relative;overflow:hidden;">
+  <img src="${mockupResult.url}" alt="${mockupResult.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+</div>`;
 
-                  finalSection = {
-                    name: result.name,
-                    type: result.type,
-                    data: mockupsHtml,
-                    summary: `Generated ${mockupResults.length} professional photorealistic mockups with integrated brand logo`,
-                  };
-                } else {
-                  logger.warn(
-                    '[MOCKUP] WARNING - No mockup images generated, using AI-generated HTML as fallback',
-                    {
-                      projectId,
-                      duration: `${mockupPipelineDuration}ms`,
-                      fallbackHtmlLength: result.data?.length || 0,
-                    }
-                  );
-                  console.log(
-                    '[MOCKUP] FALLBACK: Using AI-generated HTML because no images were produced'
-                  );
-                  finalSection = {
-                    name: result.name,
-                    type: result.type,
-                    data: result.data,
-                    summary: result.summary,
-                  };
-                }
+                logger.info(`[MOCKUP] Simple HTML generated for mockup ${mockupNumber}`, {
+                  projectId,
+                  htmlLength: mockupHtml.length,
+                });
+
+                finalSection = {
+                  name: result.name,
+                  type: result.type,
+                  data: mockupHtml,
+                  summary: `Mockup ${mockupNumber}/3: ${mockupResult.title} (${mockupResult.supportType})`,
+                };
               } catch (error: any) {
                 const mockupPipelineDuration = Date.now() - mockupPipelineStart;
                 logger.error('[MOCKUP] CRITICAL ERROR in mockup image generation pipeline', {
@@ -764,6 +778,7 @@ export class BrandingService extends GenericService {
                   generatedColors: project.analysisResultModel.branding.generatedColors || [],
                   generatedTypography:
                     project.analysisResultModel.branding.generatedTypography || [],
+                  pdfFormat: pdfFormat, // Stocker le format PDF choisi
                   createdAt: new Date(),
                   updatedAt: new Date(),
                 },
@@ -806,7 +821,7 @@ export class BrandingService extends GenericService {
           },
           {
             provider: LLMProvider.GEMINI,
-            modelName: 'gemini-3-flash-preview',
+            modelName: 'gemini-3.1-flash-lite-preview',
             userId,
           }, // promptConfig
           'branding', // promptType
@@ -1688,7 +1703,16 @@ export class BrandingService extends GenericService {
 
       logger.info(`Branding PDF cache miss, generating new PDF for projectId: ${projectId}`);
 
-      // Utiliser le PdfService pour générer le PDF
+      // Déterminer le format de page à utiliser
+      const pageFormat = project.analysisResultModel?.branding?.pdfFormat
+        ? PAGE_FORMATS[project.analysisResultModel.branding.pdfFormat as keyof typeof PAGE_FORMATS]
+        : PAGE_FORMATS.SLIDE_16_9;
+
+      logger.info(
+        `Generating PDF with format: ${project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9'}`
+      );
+
+      // Utiliser le PdfService pour générer le PDF avec le format choisi
       const pdfPath = await this.pdfService.generatePdf({
         title: 'Branding',
         projectName: project.name || 'Projet Sans Nom',
@@ -1707,6 +1731,7 @@ export class BrandingService extends GenericService {
           'Brand Footer',
         ],
         footerText: 'Generated by Idem',
+        pageFormat, // Format choisi par l'utilisateur
       });
 
       // Cache the PDF path for future requests
@@ -2195,11 +2220,10 @@ ${LOGO_EDIT_PROMPT}`;
 
   /**
    * Génère les mockups pour la charte graphique finale
+   * Le nombre de mockups est configurable via MOCKUP_CONFIG
+   * L'IA analyse le projet et choisit automatiquement les supports adaptés
    */
-  async generateProjectMockups(
-    userId: string,
-    projectId: string
-  ): Promise<{ mockup1: any; mockup2: any } | null> {
+  async generateProjectMockups(userId: string, projectId: string): Promise<any[] | null> {
     try {
       logger.info('🎨 Starting mockup generation for brand identity', {
         userId,
@@ -2251,7 +2275,11 @@ ${LOGO_EDIT_PROMPT}`;
 
       const logoUrl = project.analysisResultModel.branding.logo.svg;
 
+      // Récupérer le format PDF depuis le projet (défaut: SLIDE_16_9)
+      const pdfFormat = project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9';
+
       // Générer les mockups avec le service Gemini (logo envoyé comme image)
+      // Le service analyse automatiquement le projet et sélectionne les supports adaptés
       const mockups = await geminiMockupService.generateProjectMockups(
         logoUrl,
         brandColors,
@@ -2259,14 +2287,16 @@ ${LOGO_EDIT_PROMPT}`;
         brandName,
         projectDescription,
         userId,
-        projectId
+        projectId,
+        pdfFormat
       );
 
       logger.info('✅ Mockups generated successfully for brand identity', {
         projectId,
         userId,
-        mockup1Url: mockups.mockup1.mockupUrl,
-        mockup2Url: mockups.mockup2.mockupUrl,
+        mockupCount: mockups.length,
+        mockupUrls: mockups.map((m) => m.mockupUrl),
+        supportTypes: mockups.map((m) => m.supportType),
         timestamp: new Date().toISOString(),
       });
 
@@ -2277,11 +2307,16 @@ ${LOGO_EDIT_PROMPT}`;
           ...project.analysisResultModel,
           branding: {
             ...branding,
-            mockups: {
-              mockup1: mockups.mockup1,
-              mockup2: mockups.mockup2,
-              generatedAt: new Date().toISOString(),
-            },
+            mockups: mockups.map((mockup, index) => ({
+              mockupUrl: mockup.mockupUrl,
+              supportType: mockup.supportType,
+              supportName: mockup.supportName,
+              title: mockup.title,
+              description: mockup.description,
+              mockupIndex: mockup.mockupIndex,
+              priority: mockup.priority,
+            })),
+            generatedAt: new Date().toISOString(),
           },
         },
       };
