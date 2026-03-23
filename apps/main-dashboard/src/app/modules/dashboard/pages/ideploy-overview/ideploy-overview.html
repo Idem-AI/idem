@@ -1,0 +1,293 @@
+<div class="ideploy-page">
+
+  <!-- ══ HERO ═══════════════════════════════════════════ -->
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-inner">
+
+      <div class="hero-icon-wrap">
+        <div class="hero-icon"><i class="pi pi-send"></i></div>
+      </div>
+
+      <h1 class="hero-title">Infrastructure <span class="ht-accent">iDeploy</span></h1>
+      <p class="hero-sub">Gérez et monitorez toutes vos ressources déployées en un seul endroit</p>
+
+      @if (!loading() && !error() && stats()) {
+        <div class="hero-pills">
+          <div class="hero-pill" (click)="openIDeploy('/project')">
+            <span class="hp-val">{{ stats()?.totalApplications ?? 0 }}</span>
+            <span class="hp-lbl">Applications</span>
+            @if ((stats()?.runningApplications ?? 0) > 0) {
+              <span class="hp-live">
+                <span class="hp-dot"></span>{{ stats()?.runningApplications }} actives
+              </span>
+            }
+          </div>
+          <div class="hero-pill">
+            <span class="hp-val">{{ stats()?.totalDatabases ?? 0 }}</span>
+            <span class="hp-lbl">Bases de données</span>
+          </div>
+          <div class="hero-pill">
+            <span class="hp-val">{{ stats()?.totalServices ?? 0 }}</span>
+            <span class="hp-lbl">Services</span>
+          </div>
+          <div class="hero-pill" (click)="openIDeploy('/server')">
+            <span class="hp-val">{{ stats()?.totalServers ?? 0 }}</span>
+            <span class="hp-lbl">Serveurs</span>
+          </div>
+          <div class="hero-pill">
+            <span class="hp-val">{{ stats()?.totalProjects ?? 0 }}</span>
+            <span class="hp-lbl">Projets</span>
+          </div>
+        </div>
+      }
+
+      <div class="hero-actions">
+        <button class="btn-primary" (click)="openIDeploy()">
+          <i class="pi pi-send"></i> Ouvrir iDeploy
+        </button>
+        <button class="btn-outline" (click)="load()">
+          <i class="pi pi-refresh" [class.spinning]="loading()"></i> Actualiser
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ Loading ═════════════════════════════════════════ -->
+  @if (loading()) {
+    <div class="sk-wrap">
+      <div class="sk-grid four">
+        @for (i of [1,2,3,4]; track i) { <div class="sk-card"></div> }
+      </div>
+      <div class="sk-list">
+        @for (i of [1,2,3,4,5]; track i) { <div class="sk-row"></div> }
+      </div>
+    </div>
+  }
+
+  <!-- ══ Error ════════════════════════════════════════════ -->
+  @if (!loading() && error()) {
+    <div class="err-banner">
+      <div class="err-ic"><i class="pi pi-exclamation-triangle"></i></div>
+      <div>
+        <strong>Connexion impossible</strong>
+        <p>{{ error() }}</p>
+      </div>
+      <button class="btn-outline" (click)="load()"><i class="pi pi-refresh"></i> Réessayer</button>
+    </div>
+  }
+
+  <!-- ══ DASHBOARD ════════════════════════════════════════ -->
+  @if (!loading() && !error() && summary()) {
+
+    <!-- Resource cards -->
+    <div class="rc-grid">
+
+      <div class="rc" (click)="openIDeploy('/project')">
+        <div class="rc-bg apps"></div>
+        <div class="rc-circ apps"><i class="pi pi-globe"></i></div>
+        <div class="rc-body">
+          <div class="rc-num">{{ stats()?.totalApplications ?? 0 }}</div>
+          <div class="rc-name">Applications</div>
+          <div class="rc-note">Déployées sur vos serveurs</div>
+        </div>
+        @if ((stats()?.runningApplications ?? 0) > 0) {
+          <span class="rc-badge green">
+            <span class="rb-dot"></span>{{ stats()?.runningApplications }} actives
+          </span>
+        }
+        <div class="rc-link">Voir les applications <i class="pi pi-arrow-right"></i></div>
+      </div>
+
+      <div class="rc" (click)="openIDeploy()">
+        <div class="rc-bg dbs"></div>
+        <div class="rc-circ dbs"><i class="pi pi-database"></i></div>
+        <div class="rc-body">
+          <div class="rc-num">{{ stats()?.totalDatabases ?? 0 }}</div>
+          <div class="rc-name">Bases de données</div>
+          <div class="rc-note">PostgreSQL, MySQL, Redis…</div>
+        </div>
+        <div class="rc-link">Voir les bases <i class="pi pi-arrow-right"></i></div>
+      </div>
+
+      <div class="rc" (click)="openIDeploy()">
+        <div class="rc-bg svcs"></div>
+        <div class="rc-circ svcs"><i class="pi pi-server"></i></div>
+        <div class="rc-body">
+          <div class="rc-num">{{ stats()?.totalServices ?? 0 }}</div>
+          <div class="rc-name">Services</div>
+          <div class="rc-note">Docker Compose, containers</div>
+        </div>
+        <div class="rc-link">Voir les services <i class="pi pi-arrow-right"></i></div>
+      </div>
+
+      <div class="rc" (click)="openIDeploy('/server')">
+        <div class="rc-bg srvs"></div>
+        <div class="rc-circ srvs"><i class="pi pi-desktop"></i></div>
+        <div class="rc-body">
+          <div class="rc-num">{{ stats()?.totalServers ?? 0 }}</div>
+          <div class="rc-name">Serveurs</div>
+          <div class="rc-note">Infrastructure, SSH, Traefik</div>
+        </div>
+        @if (servers().length > 0) {
+          <span class="rc-badge cyan">{{ servers().length }} connecté(s)</span>
+        }
+        <div class="rc-link">Voir les serveurs <i class="pi pi-arrow-right"></i></div>
+      </div>
+
+    </div>
+
+    <!-- Applications -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-head-l">
+          <div class="ph-icon apps"><i class="pi pi-globe"></i></div>
+          <div>
+            <h2 class="ph-title">Applications déployées</h2>
+            <p class="ph-sub">{{ (summary()?.applications ?? []).length }} applications · {{ stats()?.runningApplications ?? 0 }} actives</p>
+          </div>
+        </div>
+        <button class="btn-link" (click)="openIDeploy('/project')">
+          Gérer sur iDeploy <i class="pi pi-external-link"></i>
+        </button>
+      </div>
+
+      @if ((summary()?.applications ?? []).length === 0) {
+        <div class="empty">
+          <div class="empty-circ"><i class="pi pi-cloud-upload"></i></div>
+          <h3>Aucune application déployée</h3>
+          <p>Créez votre premier déploiement depuis la plateforme iDeploy</p>
+          <button class="btn-primary" (click)="openIDeploy('/project')">
+            <i class="pi pi-plus"></i> Créer un déploiement
+          </button>
+        </div>
+      } @else {
+        <div class="app-list">
+          <div class="al-head">
+            <span>Application</span>
+            <span>Statut</span>
+            <span>Accès direct</span>
+            <span>Mis à jour</span>
+          </div>
+
+          @for (app of summary()?.applications ?? []; track app.uuid) {
+            <div class="al-row {{ getStatusClass(app.status) }}">
+              <div class="al-app">
+                <div class="al-icon"><i class="pi {{ getBuildPackIcon(app.build_pack) }}"></i></div>
+                <div class="al-info">
+                  <span class="al-name">{{ app.name }}</span>
+                  @if (app.git_branch) {
+                    <span class="al-branch">
+                      <i class="pi pi-github"></i>{{ app.git_branch }}
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="al-status">
+                <span class="chip {{ getStatusClass(app.status) }}">
+                  <span class="chip-dot"></span>{{ getStatusLabel(app.status) }}
+                </span>
+              </div>
+
+              <div class="al-url">
+                @if (app.fqdn && getStatusClass(app.status) === 'status-running') {
+                  <a class="url-btn" [href]="app.fqdn" target="_blank" (click)="$event.stopPropagation()">
+                    <i class="pi pi-external-link"></i> {{ app.fqdn | slice:0:32 }}{{ app.fqdn.length > 32 ? '…' : '' }}
+                  </a>
+                } @else if (app.fqdn) {
+                  <span class="url-muted">{{ app.fqdn | slice:0:32 }}{{ app.fqdn.length > 32 ? '…' : '' }}</span>
+                } @else {
+                  <span class="url-none">Pas d'URL</span>
+                }
+              </div>
+
+              <div class="al-time">{{ formatDate(app.updated_at) }}</div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Bottom: DBs + Servers -->
+    <div class="bottom-grid">
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-l">
+            <div class="ph-icon dbs"><i class="pi pi-database"></i></div>
+            <div>
+              <h2 class="ph-title">Bases de données</h2>
+              <p class="ph-sub">{{ recentDatabases().length }} base(s) configurée(s)</p>
+            </div>
+          </div>
+          <button class="btn-link" (click)="openIDeploy()">Voir tout <i class="pi pi-arrow-right"></i></button>
+        </div>
+
+        @if (recentDatabases().length === 0) {
+          <div class="empty small"><i class="pi pi-database"></i><p>Aucune base de données</p></div>
+        } @else {
+          <div class="app-list">
+            @for (db of recentDatabases(); track db.uuid) {
+              <div class="al-row">
+                <div class="al-app">
+                  <div class="al-icon emoji">{{ getDatabaseEmoji(db.type) }}</div>
+                  <div class="al-info">
+                    <span class="al-name">{{ db.name }}</span>
+                    <span class="al-branch">{{ db.type | uppercase }}</span>
+                  </div>
+                </div>
+                <div class="al-status">
+                  <span class="chip {{ getStatusClass(db.status) }}">
+                    <span class="chip-dot"></span>{{ getStatusLabel(db.status) }}
+                  </span>
+                </div>
+                <div class="al-url"></div>
+                <div class="al-time">—</div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      @if (servers().length > 0) {
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-head-l">
+              <div class="ph-icon srvs"><i class="pi pi-desktop"></i></div>
+              <div>
+                <h2 class="ph-title">Serveurs</h2>
+                <p class="ph-sub">{{ servers().length }} serveur(s) configuré(s)</p>
+              </div>
+            </div>
+            <button class="btn-link" (click)="openIDeploy('/server')">Voir tout <i class="pi pi-arrow-right"></i></button>
+          </div>
+          <div class="app-list">
+            @for (srv of servers(); track srv.uuid) {
+              <div class="al-row">
+                <div class="al-app">
+                  <div class="srv-led" [class.ok]="srv.is_reachable"></div>
+                  <div class="al-info">
+                    <span class="al-name">{{ srv.name }}</span>
+                    <span class="al-branch" style="font-family:monospace">{{ srv.ip }}</span>
+                  </div>
+                </div>
+                <div class="al-status">
+                  <span class="chip" [class.status-running]="srv.is_reachable" [class.status-stopped]="!srv.is_reachable">
+                    <span class="chip-dot"></span>{{ srv.is_reachable ? 'Connecté' : 'Hors ligne' }}
+                  </span>
+                </div>
+                <div class="al-url"></div>
+                <div class="al-time">—</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+    </div>
+
+  }
+
+</div>

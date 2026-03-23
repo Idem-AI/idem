@@ -30,5 +30,9 @@ export const environment = {
     diagen: {
       url: 'http://chart.idem.africa',
     },
+    ideploy: {
+      url: 'https://ideploy.idem.africa',
+      apiToken: '',
+    },
   },
 };

@@ -24,6 +24,10 @@ const envFile = `export const environment = {
     diagen: {
       url: '${process.env.DIAGEN_URL}',
     },
+    ideploy: {
+      url: '${process.env.IDEPLOY_URL}',
+      apiToken: '${process.env.IDEPLOY_API_TOKEN}',
+    },
   },
 };`;
 
