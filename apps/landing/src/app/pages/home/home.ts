@@ -9,10 +9,7 @@ import { Hero } from '../../components/hero/hero';
 import { OpenSourceSovereigntyComponent } from '../../components/open-source-sovereignty/open-source-sovereignty';
 import { MultiAgentArchitectureComponent } from '../../components/multi-agent-architecture/multi-agent-architecture';
 import { Features } from '../../components/features/features';
-import { LogosShowcase } from '../../components/logos-showcase/logos-showcase';
-import { BrandCharter } from '../../components/brand-charter/brand-charter';
-import { BusinessPlan } from '../../components/business-plan/business-plan';
-import { Diagrams } from '../../components/diagrams/diagrams';
+
 import { DeploymentScreenshots } from '../../components/deployment-screenshots/deployment-screenshots';
 import { AfricanMarketComponent } from '../../components/african-market/african-market';
 import { Cta } from '../../components/cta/cta';
@@ -27,10 +24,6 @@ import { VideoTrailer } from "../../components/video-trailer/video-trailer";
     OpenSourceSovereigntyComponent,
     MultiAgentArchitectureComponent,
     Features,
-    LogosShowcase,
-    BrandCharter,
-    BusinessPlan,
-    Diagrams,
     DeploymentScreenshots,
     AfricanMarketComponent,
     Cta,

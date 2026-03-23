@@ -1,0 +1,30 @@
+# Dockerfile.dev for Landing Page
+# Development version with SSR and hot-reload
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache git
+
+# Copy workspace package.json
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Copy packages partagés
+COPY ./packages ./packages
+
+# Copy all landing files
+COPY ./apps/landing ./apps/landing
+
+# Install all workspaces from root to establish symlinks
+RUN npm install --legacy-peer-deps
+
+# Set working directory to landing
+WORKDIR /app/apps/landing
+
+# Expose Angular dev server port
+EXPOSE 4201
+
+# Start Angular dev server with host binding
+CMD ["npm", "run", "start", "--", "--host", "0.0.0.0"]

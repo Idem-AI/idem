@@ -44,6 +44,13 @@ class UserService {
     }
 
     try {
+      // Check if user already exists
+      const existingUser = await this.userRepository.findById(user.uid, 'users');
+      if (existingUser) {
+        logger.info(`User ${user.uid} already exists, returning existing user`);
+        return existingUser;
+      }
+
       user.quota = {
         dailyUsage: 0,
         weeklyUsage: 0,
@@ -147,6 +154,27 @@ class UserService {
   async checkQuota(userId: string): Promise<QuotaCheckResult> {
     try {
       logger.info(`Checking quota for user: ${userId}`);
+
+      // Get user to check if they are an admin
+      const user = await this.userRepository.findById(userId, 'users');
+
+      // Check if user is an admin (unlimited quota)
+      if (user && user.email) {
+        const adminEmails = (process.env.ADMIN_EMAILS || '')
+          .split(',')
+          .map((email) => email.trim().toLowerCase());
+        const isAdmin = adminEmails.includes(user.email.toLowerCase());
+
+        if (isAdmin) {
+          logger.info(`User ${userId} (${user.email}) is an admin - unlimited quota granted`);
+          return {
+            allowed: true,
+            remainingDaily: 999999,
+            remainingWeekly: 999999,
+            message: 'Admin - Unlimited quota',
+          };
+        }
+      }
 
       // Get or create user quota
       let quotaData = await this.getUserQuota(userId);

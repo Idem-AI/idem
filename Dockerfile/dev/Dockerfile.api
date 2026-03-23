@@ -1,0 +1,30 @@
+# Dockerfile.dev for API Service
+# Development version with hot-reload
+
+FROM node:20-alpine
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+WORKDIR /app
+
+# Copy workspace package.json
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Copy packages partagés
+COPY ./packages ./packages
+
+# Copy all API files
+COPY ./apps/api ./apps/api
+
+# Install all workspaces from root to establish symlinks
+RUN npm install --legacy-peer-deps
+
+# Set working directory to API
+WORKDIR /app/apps/api
+
+# Expose port
+EXPOSE 3000
+
+# Use nodemon for hot-reload in development
+CMD ["npm", "run", "dev"]

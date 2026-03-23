@@ -80,7 +80,7 @@ const API_BASE = process.env.REACT_APP_BASE_URL;
 console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
-  Gemini3Flash = 'gemini-3-flash-preview',
+  Gemini3Flash = 'gemini-3.1-flash-lite-preview',
   Claude37sonnet = 'claude-3-7-sonnet-20250219',
   Claude35sonnet = 'claude-3-5-sonnet-20240620',
   gpt4oMini = 'gpt-4o-mini',

@@ -15,8 +15,8 @@ interface ModelConfig {
 
 const defaultModelConfigs: ModelConfig[] = [
   {
-    modelName: 'gemini-3-pro-preview',
-    modelKey: 'gemini-3-pro-preview',
+    modelName: 'gemini-3.1-pro-preview',
+    modelKey: 'gemini-3.1-pro-preview',
     useImage: true,
     provider: 'gemini',
     description: 'Gemini 3 Pro model',
@@ -25,8 +25,8 @@ const defaultModelConfigs: ModelConfig[] = [
     topP: 0.95,
   },
   {
-    modelName: 'gemini-3-flash-preview',
-    modelKey: 'gemini-3-flash-preview',
+    modelName: 'gemini-3.1-flash-lite-preview',
+    modelKey: 'gemini-3.1-flash-lite-preview',
     useImage: true,
     provider: 'gemini',
     description: 'Gemini 3 Flash model (faster)',

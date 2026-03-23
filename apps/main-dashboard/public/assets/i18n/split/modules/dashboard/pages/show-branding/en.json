@@ -134,5 +134,18 @@
         "description": "Photoshop editable file"
       }
     }
+  },
+  "formatSelector": {
+    "title": "Choose PDF Format",
+    "description": "Select the format for your brand charter PDF",
+    "a4Portrait": {
+      "title": "A4 Portrait",
+      "description": "Classic document format"
+    },
+    "landscape": {
+      "title": "Landscape 16:9",
+      "description": "Modern presentation format"
+    },
+    "startGeneration": "Start Generation"
   }
 }

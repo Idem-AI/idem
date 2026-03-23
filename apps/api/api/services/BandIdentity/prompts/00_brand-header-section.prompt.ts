@@ -10,10 +10,10 @@ CONCEPT INVENTION PROCESS (follow this before writing any HTML):
 3. Choose a LAYOUT ARCHETYPE that fits the metaphor — NOT always centered text on gradient. Consider: split-screen, editorial grid, full-bleed typography, diagonal slice, circular composition, layered collage, typographic sculpture, negative-space art
 4. Design around the brand's ACTUAL colors using bg-[#hex] — never default to blue/purple/slate
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
 - Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
+- ALL content must fit within this 297×167mm box — nothing may overflow
 - If content risks overflowing, REDUCE spacing (py-8→py-4), font sizes (text-xl→text-lg), or number of elements
 - Do NOT use min-h-screen — use h-[297mm] exactly
 - Use the brand's real colors via Tailwind arbitrary values bg-[#hex], text-[#hex]
