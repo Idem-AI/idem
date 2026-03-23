@@ -28,10 +28,10 @@ DESIGN PRINCIPLES:
 - Use the brand's primary color as a strong accent element
 - Typography should be refined and minimal
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
+PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
+- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
 - Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
+- ALL content must fit within this 297×167mm box — nothing may overflow
 - Do NOT use min-h-screen — use h-[297mm] exactly
 
 TECHNICAL RULES:

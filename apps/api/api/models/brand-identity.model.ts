@@ -62,6 +62,7 @@ export interface BrandIdentityModel {
   typography: TypographyModel;
   generatedTypography: TypographyModel[];
   sections: SectionModel[];
+  pdfFormat?: string; // Format PDF choisi (A4_PORTRAIT ou SLIDE_16_9)
 }
 
 /**

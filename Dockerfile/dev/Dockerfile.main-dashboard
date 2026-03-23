@@ -1,0 +1,30 @@
+# Dockerfile.dev for Main Dashboard
+# Development version with hot-reload
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache git
+
+# Copy workspace package.json
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Copy packages partagés
+COPY ./packages ./packages
+
+# Copy all main-dashboard files (needed for postinstall script)
+COPY ./apps/main-dashboard ./apps/main-dashboard
+
+# Install all workspaces from root to establish symlinks
+RUN npm install --legacy-peer-deps
+
+# Set working directory to main-dashboard
+WORKDIR /app/apps/main-dashboard
+
+# Expose Angular dev server port
+EXPOSE 4200
+
+# Start Angular dev server with host binding
+CMD ["npm", "run", "start", "--", "--host", "0.0.0.0"]

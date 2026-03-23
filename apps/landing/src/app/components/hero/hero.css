@@ -1,50 +1,42 @@
-/* Essential animations only - use Tailwind for everything else */
-@keyframes float-slow {
+/* ============================================================================
+   HERO COMPONENT - Minimal & Clean
+   ============================================================================ */
+
+/* Smooth entrance animation */
+@keyframes hero-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-section {
+  animation: hero-fade-in 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Subtle background pulse */
+@keyframes background-pulse {
   0%,
   100% {
-    transform: translateY(0px) translateX(0px) scale(1);
     opacity: 0.3;
   }
-  25% {
-    transform: translateY(-15px) translateX(10px) scale(1.02);
-    opacity: 0.4;
-  }
   50% {
-    transform: translateY(-30px) translateX(-5px) scale(1.05);
-    opacity: 0.5;
-  }
-  75% {
-    transform: translateY(-10px) translateX(-15px) scale(1.02);
-    opacity: 0.4;
+    opacity: 0.2;
   }
 }
 
-.animate-float-slow {
-  animation: float-slow 12s ease-in-out infinite;
-}
-.animate-float-slow-delay {
-  animation: float-slow 12s ease-in-out infinite;
-  animation-delay: -6s;
-}
-
-@keyframes progress-fill {
-  0% {
-    width: 0%;
-  }
-  100% {
-    width: 75%;
-  }
-}
-
-.progress-bar {
-  animation: progress-fill 2s ease-out;
+.hero-section > div:first-child {
+  animation: background-pulse 8s ease-in-out infinite;
 }
 
 /* Accessibility - Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .animate-float-slow,
-  .animate-float-slow-delay,
-  .progress-bar {
+  .hero-section,
+  .hero-section > div:first-child {
     animation: none;
   }
 }

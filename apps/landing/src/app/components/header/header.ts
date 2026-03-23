@@ -77,18 +77,24 @@ export class Header implements OnInit {
   });
 
   // Navigation structure optimisée
-  protected readonly navItems = [
+  protected readonly navItems: Array<{
+    id: string;
+    label: string;
+    route?: string;
+    type: 'link' | 'dropdown';
+    badge?: string;
+    items?: Array<{ label: string; route: string }>;
+  }> = [
     {
       id: 'home',
       label: $localize`:@@header.nav.home:Home`,
       route: '/home',
-      type: 'link' as const,
+      type: 'link',
     },
-
     {
       id: 'product',
       label: $localize`:@@header.menu.product:Product`,
-      type: 'dropdown' as const,
+      type: 'dropdown',
       items: [
         { label: $localize`:@@header.menu.solutions:Solutions`, route: '/solutions' },
         { label: $localize`:@@header.menu.architecture:Architecture`, route: '/architecture' },
@@ -98,7 +104,7 @@ export class Header implements OnInit {
     {
       id: 'company',
       label: $localize`:@@header.menu.company:Company`,
-      type: 'dropdown' as const,
+      type: 'dropdown',
       items: [
         { label: $localize`:@@header.menu.vision:Vision`, route: '/african-market' },
         { label: $localize`:@@header.menu.openSource:Open Source`, route: '/open-source' },
@@ -109,21 +115,14 @@ export class Header implements OnInit {
       id: 'about',
       label: $localize`:@@header.nav.about:About`,
       route: '/about',
-      type: 'link' as const,
+      type: 'link',
     },
     {
       id: 'contact',
       label: $localize`:@@header.nav.contact:Contact`,
       route: '/contact',
-      type: 'link' as const,
+      type: 'link',
     },
-        {
-      id: 'challenge',
-      label: $localize`:@@header.nav.challenge:Challenge`,
-      route: '/challenge',
-      type: 'link' as const,
-      badge: $localize`:@@header.badge.new:New`,
-    }
   ];
 
   @ViewChild('menu') menuRef!: ElementRef;
