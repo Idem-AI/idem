@@ -32,7 +32,7 @@ export const environment = {
     },
     ideploy: {
       url: 'https://ideploy.idem.africa',
-      apiToken: '',
+      apiToken: '2|TnIL6qO9dO6tcK7mpMlEnnICgNKwTCcsH6Pm4rHKdc0ace86',
     },
   },
 };
