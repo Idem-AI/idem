@@ -38,6 +38,11 @@ export const authInterceptor: HttpInterceptorFn = (
     return next(req);
   }
 
+  // Skip if the request already carries its own Authorization header (e.g. iDeploy API)
+  if (req.headers.has('Authorization')) {
+    return next(req);
+  }
+
   // Wait for auth to be ready, then proceed with token logic
   return from(tokenService.waitForAuthReady()).pipe(
     switchMap(() => {

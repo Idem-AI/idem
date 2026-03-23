@@ -30,5 +30,9 @@ export const environment = {
     diagen: {
       url: 'http://localhost:3002',
     },
+    ideploy: {
+      url: 'http://localhost:8000',
+      apiToken: '4|G0hqQBCi1NJ16OYJjEy9HLP1vBlgR2EK6cx1Fa0v5bfb689e',
+    },
   },
 };
