@@ -59,6 +59,9 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      // Set domain for cookie sharing between subdomains (API, iDeploy, Main App)
+      // In dev: localhost (no domain needed for localhost ports)
+      // In prod: .idem.africa
       ...(isProduction && { domain: '.idem.africa' }),
     };
 
@@ -172,6 +175,10 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      // Set domain for cookie sharing between subdomains
+      // In dev: localhost (no domain needed for localhost ports)
+      // In prod: .idem.africa
+      ...(isProduction && { domain: '.idem.africa' }),
     };
 
     res.cookie('session', sessionCookie, options);

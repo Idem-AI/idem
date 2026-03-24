@@ -1,0 +1,28 @@
+# Dockerfile.dev for Chart Service
+# Development version with hot-reload
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.4
+
+# Copy package files
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Copy shared packages
+COPY ./packages/shared-styles ./packages/shared-styles
+
+# Copy chart application
+COPY ./apps/chart ./apps/chart
+
+# Install dependencies
+WORKDIR /app/apps/chart
+RUN pnpm install --no-frozen-lockfile
+
+# Expose Vite dev server port
+EXPOSE 3004
+
+# Start Vite dev server
+CMD ["pnpm", "run", "dev", "--", "--host", "0.0.0.0"]

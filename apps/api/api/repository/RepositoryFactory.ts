@@ -1,5 +1,6 @@
 import { IRepository } from './IRepository';
 import { FirestoreRepository } from './FirestoreRepository';
+import { MongooseRepository } from './MongooseRepository';
 import { activeSGBD, SGBDType } from './database.config';
 import logger from '../config/logger';
 
@@ -20,17 +21,12 @@ export class RepositoryFactory {
     logger.info(`RepositoryFactory.getRepository called, SGBD: ${activeSGBD}`);
 
     switch (activeSGBD) {
+      case SGBDType.MONGODB:
+        logger.info(`Creating MongooseRepository`);
+        return new MongooseRepository<T>();
       case SGBDType.FIRESTORE:
-        logger.info(`Creating FirestoreRepository`);
+        logger.info(`Creating FirestoreRepository (backward compatibility)`);
         return new FirestoreRepository<T>();
-      // case SGBDType.MONGODB:
-      //   // Assuming you would have a MongoDBRepository that implements IRepository
-      //   // import { MongoDBRepository } from './MongoDBRepository';
-      //   // return new MongoDBRepository<T>(collectionName, userSpecificCollection);
-      // case SGBDType.POSTGRESQL:
-      //   // Assuming you would have a PostgreSQLRepository that implements IRepository
-      //   // import { PostgreSQLRepository } from './PostgreSQLRepository';
-      //   // return new PostgreSQLRepository<T>(collectionName, userSpecificCollection, someDbConnection);
       default:
         logger.error(`Unsupported SGBD type: ${activeSGBD}`);
         throw new Error(`Unsupported SGBD type: ${activeSGBD}`);
