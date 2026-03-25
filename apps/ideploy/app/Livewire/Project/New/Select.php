@@ -19,9 +19,9 @@ class Select extends Component
 
     public string $destination_uuid;
 
-    public Collection|null|Server $allServers;
+    public Collection|null|Server $allServers = null;
 
-    public Collection|null|Server $servers;
+    public Collection|null|Server $servers = null;
 
     public bool $onlyBuildServerAvailable = false;
 
@@ -42,6 +42,8 @@ class Select extends Component
     public bool $loadingServices = true;
 
     public bool $loading = false;
+    
+    public array $preloadedResources = [];
 
     public $environments = [];
 
@@ -71,9 +73,40 @@ class Select extends Component
             $project = Project::whereUuid($projectUuid)->firstOrFail();
             $this->environments = $project->environments;
             $this->selectedEnvironment = $this->environments->where('uuid', data_get($this->parameters, 'environment_uuid'))->firstOrFail()->name;
+            // Pre-compute static resources so page renders immediately without async calls
+            $this->preloadedResources = $this->getStaticResources();
         } catch (\Exception $e) {
             return handleError($e, $this);
         }
+    }
+    
+    private function getStaticResources(): array
+    {
+        $gitBasedApplications = [
+            ['id' => 'public', 'name' => 'Public Repository', 'description' => 'Deploy any public repository from Git providers.', 'logo' => asset('svgs/git.svg')],
+            ['id' => 'private-gh-app', 'name' => 'Private Repository (GitHub App)', 'description' => 'Deploy public & private repositories through GitHub Apps.', 'logo' => asset('svgs/github.svg')],
+            ['id' => 'private-deploy-key', 'name' => 'Private Repository (Deploy Key)', 'description' => 'Deploy private repositories with a deploy key.', 'logo' => asset('svgs/git.svg')],
+        ];
+        $dockerBasedApplications = [
+            ['id' => 'dockerfile', 'name' => 'Dockerfile', 'description' => 'Deploy a simple Dockerfile, without Git.', 'logo' => asset('svgs/docker.svg')],
+            ['id' => 'docker-compose-empty', 'name' => 'Docker Compose', 'description' => 'Deploy complex applications with Docker Compose, without Git.', 'logo' => asset('svgs/docker.svg')],
+            ['id' => 'docker-image', 'name' => 'Docker Image', 'description' => 'Deploy an existing Docker Image from any Registry.', 'logo' => asset('svgs/docker.svg')],
+        ];
+        $databases = [
+            ['id' => 'postgresql', 'name' => 'PostgreSQL', 'description' => 'Object-relational database known for robustness and advanced features.', 'logo_icon' => 'postgresql', 'brand_color' => '#336791', 'brand_bg' => 'rgba(51,103,145,0.15)', 'brand_border' => 'rgba(51,103,145,0.4)'],
+            ['id' => 'mysql', 'name' => 'MySQL', 'description' => 'Open-source relational database management system.', 'logo_icon' => 'mysql', 'brand_color' => '#E48E00', 'brand_bg' => 'rgba(228,142,0,0.15)', 'brand_border' => 'rgba(228,142,0,0.4)'],
+            ['id' => 'mariadb', 'name' => 'MariaDB', 'description' => 'Community-developed fork of MySQL, free and open-source.', 'logo_icon' => 'mariadb', 'brand_color' => '#C0765A', 'brand_bg' => 'rgba(192,118,90,0.15)', 'brand_border' => 'rgba(192,118,90,0.4)'],
+            ['id' => 'redis', 'name' => 'Redis', 'description' => 'In-memory storage used as distributed key-value database and cache.', 'logo_icon' => 'redis', 'brand_color' => '#DC382D', 'brand_bg' => 'rgba(220,56,45,0.15)', 'brand_border' => 'rgba(220,56,45,0.4)'],
+            ['id' => 'keydb', 'name' => 'KeyDB', 'description' => 'High performance, low latency Redis drop-in replacement.', 'logo_icon' => 'keydb', 'brand_color' => '#F5C518', 'brand_bg' => 'rgba(245,197,24,0.15)', 'brand_border' => 'rgba(245,197,24,0.4)'],
+            ['id' => 'dragonfly', 'name' => 'Dragonfly', 'description' => 'Drop-in Redis replacement with 25x more throughput.', 'logo_icon' => 'dragonfly', 'brand_color' => '#FF6B35', 'brand_bg' => 'rgba(255,107,53,0.15)', 'brand_border' => 'rgba(255,107,53,0.4)'],
+            ['id' => 'mongodb', 'name' => 'MongoDB', 'description' => 'Cross-platform document-oriented database program.', 'logo_icon' => 'mongodb', 'brand_color' => '#13AA52', 'brand_bg' => 'rgba(19,170,82,0.15)', 'brand_border' => 'rgba(19,170,82,0.4)'],
+            ['id' => 'clickhouse', 'name' => 'ClickHouse', 'description' => 'Column-oriented database for real-time analytics.', 'logo_icon' => 'clickhouse', 'brand_color' => '#FAFF69', 'brand_bg' => 'rgba(250,255,105,0.10)', 'brand_border' => 'rgba(250,255,105,0.35)'],
+        ];
+        return [
+            'gitBasedApplications' => $gitBasedApplications,
+            'dockerBasedApplications' => $dockerBasedApplications,
+            'databases' => $databases,
+        ];
     }
 
     public function render()
@@ -107,6 +140,13 @@ class Select extends Component
                     : asset($default_logo),
             ] + (array) $service;
         })->all();
+
+        return ['services' => $services];
+    }
+
+    /** @deprecated Use getStaticResources() + loadServices() separately */
+    public function loadServicesLegacy()
+    {
         $gitBasedApplications = [
             [
                 'id' => 'public',
@@ -267,7 +307,17 @@ class Select extends Component
             return;
         }
         
-        // IDEM: Afficher le choix de déploiement pour TOUS les types (apps, databases, services)
+        // IDEM: Si le projet a un serveur assigné lors de sa création, l'utiliser directement
+        $project = Project::whereUuid(data_get($this->parameters, 'project_uuid'))->first();
+        if ($project && $project->assigned_server_id) {
+            $assignedServer = Server::find($project->assigned_server_id);
+            if ($assignedServer) {
+                $this->setServer($assignedServer);
+                return;
+            }
+        }
+
+        // Afficher le choix de déploiement pour TOUS les types (apps, databases, services)
         $this->current_step = 'deployment-choice';
         return;
         
