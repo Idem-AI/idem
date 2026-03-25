@@ -89,15 +89,17 @@ export class AuthService {
     }
   }
 
-  async loginWithGoogle() {
+  async loginWithGoogle(): Promise<User | null> {
     const provider = new GoogleAuthProvider();
     if (this.isMobile()) {
       // Mobile: use redirect flow (popup is unreliable on mobile browsers)
       await signInWithRedirect(this.auth, provider);
       // Page will reload — postLogin is handled in handleRedirectResult()
+      return null; // Redirect flow - page will reload
     } else {
       const result = await signInWithPopup(this.auth, provider);
       await this.postLogin(result.user);
+      return result.user; // Popup flow - return user immediately
     }
   }
 
