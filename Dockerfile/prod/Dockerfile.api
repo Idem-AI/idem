@@ -86,7 +86,7 @@ COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules
 
 # Also copy shared packages that might be needed
 COPY --from=builder --chown=apiuser:nodejs /app/packages ./packages
-
+COPY ./apps/api/ .
 # Create logs directory with correct permissions
 RUN mkdir -p /app/logs && chown -R apiuser:nodejs /app/logs
 
