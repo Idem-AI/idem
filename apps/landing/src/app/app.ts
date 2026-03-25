@@ -1,5 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, signal, PLATFORM_ID, Inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { SplashScreenComponent } from './components/splash-screen/splash-screen';
 import { filter } from 'rxjs/operators';
@@ -24,6 +24,8 @@ export class App implements OnInit {
   // Signal pour contrôler l'affichage du splash screen
   protected readonly isInitialLoading = signal(true);
 
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+
   ngOnInit(): void {
     // Force dark mode only - prevent light mode
     this.forceDarkMode();
@@ -32,13 +34,20 @@ export class App implements OnInit {
     this.hideInitialSplashScreen();
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'auto' });
-      }, 0);
+      if (isPlatformBrowser(this.platformId)) {
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'auto' });
+        }, 0);
+      }
     });
   }
 
   private forceDarkMode(): void {
+    // Only run in browser (not during SSR)
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     // Force dark class on html element
     document.documentElement.classList.add('dark');
     // Remove light class if it exists
@@ -48,6 +57,12 @@ export class App implements OnInit {
   }
 
   private hideInitialSplashScreen(): void {
+    // Only run in browser (not during SSR)
+    if (!isPlatformBrowser(this.platformId)) {
+      this.isInitialLoading.set(false);
+      return;
+    }
+
     const MIN_SPLASH_DURATION = 2000; // Durée minimale de 2 secondes
     const startTime = Date.now();
 
@@ -71,6 +86,8 @@ export class App implements OnInit {
   }
 
   protected resetPosition() {
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    if (isPlatformBrowser(this.platformId)) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
   }
 }
