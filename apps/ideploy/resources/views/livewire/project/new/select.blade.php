@@ -1,4 +1,4 @@
-<div x-data="searchResources()" x-init="$wire.loadServers; window.addEventListener('scroll', () => isSticky = window.pageYOffset > 100); loadResources()" class="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1419] to-[#0a0e1a] p-6">
+<div x-data="searchResources(@js($preloadedResources))" x-init="window.addEventListener('scroll', () => isSticky = window.pageYOffset > 100); loadServicesOnly()" class="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1419] to-[#0a0e1a] p-6">
     {{-- Header Époustouflant --}}
     <div class="mb-8">
         {{-- Header Principal avec Gradient --}}
@@ -23,20 +23,21 @@
                     </div>
                 </div>
                 
-                <div class="w-full lg:w-96">
+                <div class="w-full lg:w-64">
                     <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <svg class="w-5 h-5 text-light/40 group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none z-10">
+                            <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                             </svg>
                         </div>
-                        <x-forms.select wire:model.live="selectedEnvironment" class="pl-10 pr-10 bg-black/40 border-white/10 text-light focus:border-accent/50 focus:ring-2 focus:ring-accent/20 hover:border-accent/30 transition-all">
+                        <select wire:model.live="selectedEnvironment"
+                            class="w-full pl-9 pr-8 py-2.5 bg-violet-600/20 border border-violet-500/40 text-violet-100 rounded-xl text-sm font-semibold focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 hover:bg-violet-600/30 hover:border-violet-400/60 transition-all cursor-pointer appearance-none">
                             @foreach ($environments as $environment)
-                                <option value="{{ $environment->name }}">{{ $environment->name }}</option>
+                                <option value="{{ $environment->name }}" class="bg-[#1a1f2e] text-white">{{ $environment->name }}</option>
                             @endforeach
-                        </x-forms.select>
+                        </select>
                         <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <svg class="w-4 h-4 text-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
@@ -75,22 +76,9 @@
 
     @if ($current_step === 'type')
         <div>
-            {{-- Loading State --}}
-            <div x-show="loading" class="flex items-center justify-center py-20">
-                <div class="text-center">
-                    <div class="relative">
-                        <div class="inline-block animate-spin rounded-full h-16 w-16 border-4 border-accent/20 border-t-accent"></div>
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                        </div>
-                    </div>
-                    <p class="mt-6 text-base text-light/70">Loading resources...</p>
-                </div>
-            </div>
+            {{-- No full page loading state - static data renders immediately --}}
 
-            <div x-show="!loading" class="space-y-12">
+            <div class="space-y-12">
                 {{-- Git Based Applications --}}
                 <div x-show="filteredGitBasedApplications.length > 0">
                     <div class="mb-6 flex items-center gap-3">
@@ -196,23 +184,50 @@
                         <template x-for="database in filteredDatabases" :key="database.id">
                             <div x-on:click="setType(database.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                                class="group relative glass-card p-5 hover:border-indigo-500/40 hover:shadow-lg hover:shadow-indigo-500/10 overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
+                                :style="`border-color: ${database.brand_border}; --db-color: ${database.brand_color}`"
+                                class="group relative glass-card p-5 overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg">
                                 
-                                {{-- Glow Effect --}}
-                                <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/0 to-purple-600/0 group-hover:from-indigo-500/5 group-hover:to-purple-600/5 transition-all duration-300 rounded-xl"></div>
+                                {{-- Brand Glow Effect on hover --}}
+                                <div class="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                    :style="`background: radial-gradient(ellipse at center, ${database.brand_bg} 0%, transparent 70%)`"></div>
                                 
-                                {{-- Animated Background Pulse --}}
-                                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-600/5 animate-pulse"></div>
-                                </div>
-                                
-                                {{-- Logo Section --}}
+                                {{-- Logo Section with brand colors --}}
                                 <div class="relative flex items-center justify-center mb-4">
-                                    <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-600/10 border border-indigo-500/20 flex items-center justify-center overflow-hidden group-hover:border-indigo-500/40 group-hover:shadow-lg group-hover:shadow-indigo-500/20 transition-all duration-300">
-                                        <span x-show="database.logo" x-html="database.logo" class="text-4xl transition-transform group-hover:scale-110 group-hover:rotate-6"></span>
+                                    <div class="w-20 h-20 rounded-xl flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110"
+                                        :style="`background: ${database.brand_bg}; border: 1px solid ${database.brand_border}`">
+                                        {{-- DB Brand Icons --}}
+                                        <template x-if="database.logo_icon === 'postgresql'">
+                                            <svg viewBox="0 0 128 128" class="w-12 h-12" xmlns="http://www.w3.org/2000/svg"><path fill="#336791" d="M93.809 92.112c.785-6.533.55-7.492 5.416-6.433l1.235.109c3.742.17 8.637-.602 11.513-1.938 6.191-2.873 9.861-7.668 3.758-6.409-13.924 2.873-14.892-1.842-14.892-1.842 14.75-21.899 20.937-49.678 15.627-56.51C101.305 3.16 78.201 11.91 77.798 12.127l-.135.026c-2.751-.573-5.833-.913-9.291-.968-6.301-.104-11.082 1.652-14.714 4.402 0 0-44.726-18.41-42.636 23.17.442 8.851 12.69 66.98 27.31 49.417 5.334-6.415 10.489-11.837 10.489-11.837 2.559 1.701 5.622 2.567 8.834 2.255l.249-.212c-.078.796-.044 1.575.1 2.498-3.758 4.203-2.656 4.944-10.172 6.492-7.604 1.566-3.136 4.358-.221 5.089 3.538.884 11.712 2.139 17.252-5.604l-.219.882c1.478 1.179 1.375 8.484 1.583 13.703.209 5.219.558 10.086 1.622 12.955 1.064 2.867 2.317 10.261 12.201 8.14 8.253-1.773 14.574-4.319 15.147-28.001"/><path fill="#fff" d="M75.557 125.9c-8.672 0-14.375-3.39-17.83-6.632-2.612-2.464-3.641-5.631-4.262-7.527l-.267-.792c-1.244-3.363-1.667-8.2-1.916-14.428a245.35 245.35 0 01-.093-2.923c-.021-.747-.047-1.683-.084-2.665a18.777 18.777 0 01-4.964 1.569c-3.078.527-6.392.356-9.844-.508-2.435-.609-4.967-1.872-6.407-3.819-4.205 3.685-8.215 3.183-10.398 2.455-3.859-1.286-7.309-4.897-10.543-11.046-2.311-4.377-4.546-10.083-6.64-16.953-3.655-11.966-5.973-24.574-6.175-28.702-.648-12.956 2.837-22.222 10.357-27.554 11.871-8.387 29.851-3.456 36.41-1.219 4.404-2.655 9.589-3.949 15.444-3.856 3.144.051 6.138.328 8.927.823 2.9-.912 8.632-2.222 15.19-2.143 12.087.144 22.11 4.858 28.975 13.629 4.898 6.255 2.474 19.391.596 26.685-2.644 10.234-7.278 21.119-12.96 30.598 1.545.011 3.785-.175 6.967-.832 6.284-1.298 8.119 2.073 8.613 3.578 1.997 6.047-6.68 10.625-9.387 11.877-3.469 1.61-9.121 2.593-13.755 2.378l-.201-.013-1.218-.107-.12 1.014-.115.87-.092.697c-.127 1.087-.156 2.134-.185 3.263l-.022.778c-.095 3.849-.186 7.514-1.025 12.073-1.196 6.557-4.327 11.162-9.567 14.079-3.303 1.832-7.09 2.81-10.935 2.81zm-10.6-10.783c.974 2.601 2.419 5.056 5.271 7.749 4.378 4.135 11.453 5.589 18.344 4.044 8.266-1.775 14.548-7.254 15.082-28.001 0 0 .062-.716.097-1.04.074-.63.126-1.147.19-1.71l.252-2.145 2.098.207c3.62.357 8.985-.432 12.218-1.94 2.512-1.168 6.274-3.52 7.022-5.793.016-.05.032-.14-.017-.169-.267-.163-1.248.027-2.068.199-3.768.779-7.03 1.053-10.04.83-2.163-.163-4.06-.602-5.73-1.321l-.988-.435.527-.952c5.347-9.653 9.929-20.432 12.551-30.597 2.065-7.999 3.437-18.617.443-22.508-5.941-7.589-14.601-11.611-25.117-11.736-5.484-.065-11.271 1.274-14.081 2.139l-.411.127-.399-.077c-2.669-.537-5.83-.836-9.146-.889-5.37-.087-9.833 1.18-13.278 3.768l-.485.358-.562-.215c-5.937-2.266-24.255-8.164-34.527-.958-6.315 4.428-9.266 12.72-8.675 24.651.185 3.711 2.43 16.113 5.991 27.703 2.003 6.566 4.14 11.981 6.281 16.092 2.582 4.895 5.21 7.693 7.782 8.546 1.538.513 3.289.201 5.205-1.938l1.578-1.79 1.391 1.936c.892 1.242 2.452 2.107 4.436 2.612 2.905.726 6.018.841 8.743.318a13.945 13.945 0 004.67-1.897l1.578-1.049.468 1.781c.076.289.159.577.249.867zm36.282-5.612l.018-.091.018-.091z"/></svg>
+                                        </template>
+                                        <template x-if="database.logo_icon === 'mysql'">
+                                            <img src="https://www.mysql.com/common/logos/mysql-logo.svg" class="w-14 h-10 object-contain" alt="MySQL"
+                                                onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+                                            <svg style="display:none" viewBox="0 0 24 24" class="w-12 h-12" xmlns="http://www.w3.org/2000/svg"><path d="M12 3C7.06 3 3 5.24 3 8s4.06 5 9 5 9-2.24 9-5-4.06-5-9-5zm0 10c-4.94 0-9-1.79-9-4v3c0 2.21 4.06 4 9 4s9-1.79 9-4v-3c0 2.21-4.06 4-9 4zm0 5c-4.94 0-9-1.79-9-4v3c0 2.21 4.06 4 9 4s9-1.79 9-4v-3c0 2.21-4.06 4-9 4z" fill="#00758F"/></svg>
+                                        </template>
+                                        <template x-if="database.logo_icon === 'mariadb'">
+                                            <img src="https://mariadb.com/wp-content/uploads/2019/11/mariadb-logo_blue-transparent.png" class="w-14 h-10 object-contain" alt="MariaDB"
+                                                onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+                                            <svg style="display:none" viewBox="0 0 24 24" class="w-12 h-12" xmlns="http://www.w3.org/2000/svg"><path d="M22.844 2.012c-.615-.025-1.277.12-1.764.608l-.088.1c-.57.62-1.094 1.005-1.78 1.38-.7.38-1.592.685-2.88.93-5.113.975-7.405 5.273-9.534 9.398L7.054 14c-1.148-.584-2.174-.666-3.09-.514-.913.152-1.72.535-2.42.924l-.394.228.416.194c1.048.49 1.787 1.062 2.246 1.598a4.3 4.3 0 01.555.873c-.264.45-.527.9-.752 1.353-.505 1.033-.793 2.086-.387 3.18l.047.123.127.036c2.416.656 3.816-.13 5.296-.986 1.02-.586 2.084-1.196 3.467-1.537a11.85 11.85 0 013.656-.284c.886.052 1.83.185 2.775.394.478.106.852.254 1.16.438.308.184.547.405.703.662.306.51.322 1.13.098 1.925l-.107.388.39-.102c3.29-.855 5.798-3.338 5.8-10.768l.002-1.068c0-4.43-.023-6.44-1.018-8.246-.453-.822-1.025-1.29-1.64-1.314z" fill="#C0765A"/></svg>
+                                        </template>
+                                        <template x-if="database.logo_icon === 'redis'">
+                                            <svg viewBox="0 0 24 24" class="w-12 h-12" xmlns="http://www.w3.org/2000/svg"><path d="M10.97 3.704L8.347 5.01l2.625 1.305 2.623-1.305zm-3.5 1.74L5 6.75l2.62 1.305 2.624-1.305zm7 0l-2.47 1.305 2.47 1.305 2.625-1.305zm-10.5 1.74L1.5 8.49l2.62 1.304L6.74 8.49zm7 0l-2.47 1.304 2.47 1.305 2.625-1.305zm7 0l-2.47 1.304 2.47 1.305 2.624-1.305zm-13 2.653v2.61l2.62 1.305V9.933zm6.5 0v2.61l2.62 1.305V9.933zm6.5 0v2.61l2.62 1.305V9.933zM4.47 10.62L1.5 12.105l2.97 1.478v-2.963zm6.5 0l-2.97 1.485 2.97 1.478V10.62zm6.5 0l-2.97 1.485 2.97 1.478V10.62zM12 14.29l-10.5 5.2 10.5 3.21 10.5-3.21zm0 1.3l7.7 3.9-7.7 2.35-7.7-2.35z" fill="#DC382D"/></svg>
+                                        </template>
+                                        <template x-if="database.logo_icon === 'mongodb'">
+                                            <svg viewBox="0 0 24 24" class="w-12 h-12" xmlns="http://www.w3.org/2000/svg"><path d="M17.193 9.555c-1.264-5.58-4.252-7.414-4.573-8.115-.28-.394-.53-.954-.735-1.44-.036.495-.055.685-.523 1.184-.723.566-4.438 3.682-4.74 10.02-.282 5.912 4.27 9.435 4.888 9.884l.07.05A73.49 73.49 0 0111.91 24h.481c.114-1.032.284-2.056.51-3.07.417-.296.604-.463.85-.693a11.342 11.342 0 003.639-8.464c.01-.814-.103-1.662-.197-2.218zm-5.336 8.195s0-8.291.275-8.29c.213 0 .49 10.695.49 10.695-.381-.045-.765-1.76-.765-2.405z" fill="#13AA52"/></svg>
+                                        </template>
+                                        <template x-if="database.logo_icon === 'clickhouse'">
+                                            <svg viewBox="0 0 24 24" class="w-12 h-12" xmlns="http://www.w3.org/2000/svg"><path d="M21.333 10.667H20V13.333H21.333V10.667ZM18.667 10.667H17.333V13.333H18.667V10.667ZM16 10.667H14.667V13.333H16V10.667ZM13.333 10.667H12V13.333H13.333V10.667ZM10.667 8H9.333V16H10.667V8ZM8 10.667H6.667V13.333H8V10.667ZM5.333 10.667H4V13.333H5.333V10.667ZM2.667 10.667H1.333V13.333H2.667V10.667Z" fill="#FAFF69"/></svg>
+                                        </template>
+                                        <template x-if="database.logo_icon === 'keydb'">
+                                            <svg viewBox="0 0 24 24" class="w-12 h-12" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#F5C518" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        </template>
+                                        <template x-if="database.logo_icon === 'dragonfly'">
+                                            <svg viewBox="0 0 24 24" class="w-12 h-12" xmlns="http://www.w3.org/2000/svg"><path d="M12 2c-1.5 0-3 .5-4 1.5L3 8c-1 1-1.5 2.5-1.5 4s.5 3 1.5 4l5 4.5c1 1 2.5 1.5 4 1.5s3-.5 4-1.5l5-4.5c1-1 1.5-2.5 1.5-4s-.5-3-1.5-4L16 3.5C15 2.5 13.5 2 12 2z" stroke="#FF6B35" stroke-width="1.5" fill="rgba(255,107,53,0.15)" stroke-linecap="round"/><circle cx="12" cy="12" r="3" fill="#FF6B35"/></svg>
+                                        </template>
                                     </div>
                                     {{-- Badge Database --}}
-                                    <div class="absolute -top-1 -right-1 px-2 py-0.5 bg-indigo-500/20 border border-indigo-500/30 rounded-full text-[10px] font-semibold text-indigo-400 backdrop-blur-sm flex items-center gap-1">
+                                    <div class="absolute -top-1 -right-1 px-2 py-0.5 rounded-full text-[10px] font-semibold backdrop-blur-sm flex items-center gap-1"
+                                        :style="`background: ${database.brand_bg}; border: 1px solid ${database.brand_border}; color: ${database.brand_color}`">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
                                         DB
                                     </div>
@@ -220,7 +235,9 @@
 
                                 {{-- Header avec nom --}}
                                 <div class="relative text-center">
-                                    <h3 class="text-base font-semibold text-light group-hover:text-indigo-400 transition-colors truncate mb-2" x-text="database.name"></h3>
+                                    <h3 class="text-base font-semibold text-light transition-colors truncate mb-2"
+                                        :style="`color: inherit`"
+                                        x-text="database.name"></h3>
                                     <p class="text-sm text-light/60 line-clamp-2 min-h-[2.5rem]" x-text="database.description"></p>
                                 </div>
                             </div>
@@ -229,7 +246,7 @@
                 </div>
 
                 {{-- Services --}}
-                <div x-show="filteredServices.length > 0">
+                <div>
                     <div class="mb-6 flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <div class="icon-container">
@@ -237,21 +254,40 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
                                 </svg>
                             </div>
-                            <div>
-                                <h2 class="text-2xl font-bold text-light">Services</h2>
-                                <p class="text-sm text-light/60">One-click services available in iDeploy</p>
+                            <div class="flex items-center gap-3">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-light">Services</h2>
+                                    <p class="text-sm text-light/60">One-click services available in iDeploy</p>
+                                </div>
+                                <div x-show="loadingServices" class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                                    <div class="w-3 h-3 rounded-full border-2 border-emerald-500/30 border-t-emerald-400 animate-spin"></div>
+                                    <span class="text-xs text-emerald-400">Loading...</span>
+                                </div>
                             </div>
                         </div>
-                        <button x-on:click="loadResources" 
-                                class="outer-button px-4 py-2 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button x-on:click="loadServicesOnly" :disabled="loadingServices"
+                                class="outer-button px-4 py-2 flex items-center gap-2 disabled:opacity-50">
+                            <svg class="w-4 h-4" :class="loadingServices ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                             </svg>
                             Reload
                         </button>
                     </div>
+
+                    {{-- Skeleton loader while services load --}}
+                    <div x-show="loadingServices && services.length === 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                        <template x-for="i in 8" :key="i">
+                            <div class="glass-card p-5 animate-pulse">
+                                <div class="flex items-center justify-center mb-4">
+                                    <div class="w-20 h-20 rounded-xl bg-white/5"></div>
+                                </div>
+                                <div class="h-4 bg-white/5 rounded mb-2"></div>
+                                <div class="h-3 bg-white/5 rounded w-3/4 mx-auto"></div>
+                            </div>
+                        </template>
+                    </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                    <div x-show="filteredServices.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         <template x-for="service in filteredServices" :key="service.name">
                             <div x-on:click="setType('one-click-service-' + service.name)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
@@ -300,8 +336,8 @@
                     </div>
                 </div>
 
-                {{-- Empty State --}}
-                <div x-show="filteredGitBasedApplications.length === 0 && filteredDockerBasedApplications.length === 0 && filteredDatabases.length === 0 && filteredServices.length === 0 && loading === false"
+                {{-- Empty State (only when search has text and nothing matches) --}}
+                <div x-show="search.length > 0 && filteredGitBasedApplications.length === 0 && filteredDockerBasedApplications.length === 0 && filteredDatabases.length === 0 && filteredServices.length === 0 && !loadingServices"
                      class="py-20 text-center">
                     <div class="relative inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-accent/10 to-primary/5 border border-accent/20 mb-6">
                         <svg class="w-12 h-12 text-accent/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,37 +360,37 @@
                     return a.name.localeCompare(b.name)
                 }
 
-                function searchResources() {
+                function searchResources(preloaded) {
                     return {
                         search: '',
-                        loading: false,
+                        loadingServices: false,
                         isSticky: false,
                         selecting: false,
                         services: [],
-                        gitBasedApplications: [],
-                        dockerBasedApplications: [],
-                        databases: [],
+                        gitBasedApplications: preloaded?.gitBasedApplications ?? [],
+                        dockerBasedApplications: preloaded?.dockerBasedApplications ?? [],
+                        databases: preloaded?.databases ?? [],
                         setType(type) {
                             if (this.selecting) return;
                             this.selecting = true;
                             this.$wire.setType(type);
                         },
-                        async loadResources() {
-                            this.loading = true;
-                            const {
-                                services,
-                                gitBasedApplications,
-                                dockerBasedApplications,
-                                databases
-                            } = await this.$wire.loadServices();
-                            this.services = services;
-                            this.gitBasedApplications = gitBasedApplications;
-                            this.dockerBasedApplications = dockerBasedApplications;
-                            this.databases = databases;
-                            this.loading = false;
+                        async loadServicesOnly() {
+                            this.loadingServices = true;
+                            try {
+                                const result = await this.$wire.loadServices();
+                                if (result?.services) {
+                                    this.services = result.services;
+                                }
+                            } finally {
+                                this.loadingServices = false;
+                            }
                             this.$nextTick(() => {
-                                this.$refs.searchInput.focus();
+                                if (this.$refs.searchInput) this.$refs.searchInput.focus();
                             });
+                        },
+                        async loadResources() {
+                            await this.loadServicesOnly();
                         },
                         filterAndSort(items, isSort = true) {
                             const searchLower = this.search.trim().toLowerCase();

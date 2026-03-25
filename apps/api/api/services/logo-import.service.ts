@@ -1,8 +1,29 @@
 import sharp from 'sharp';
 import { optimize, Config as SvgoConfig } from 'svgo';
-import * as potrace from 'potrace';
-import { fromBuffer } from 'file-type';
+// potrace loaded lazily — API starts even if the package is absent
 import logger from '../config/logger';
+
+// file-type v16+ is ESM-only and incompatible with ts-node CJS.
+// Using inline magic bytes detection instead.
+function detectMimeFromMagicBytes(buffer: Buffer): string | null {
+  if (buffer.length < 4) return null;
+  // PNG: 89 50 4E 47
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47)
+    return 'image/png';
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff)
+    return 'image/jpeg';
+  // WebP: RIFF????WEBP
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+    buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+  ) return 'image/webp';
+  // GIF: GIF87a or GIF89a
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38)
+    return 'image/gif';
+  return null;
+}
 
 /**
  * Supported MIME types for logo import
@@ -61,12 +82,10 @@ export interface LogoImportResult {
  * Falls back to checking for SVG XML content if file-type returns undefined.
  */
 async function detectMimeType(buffer: Buffer): Promise<string | null> {
-  const result = await fromBuffer(buffer);
-  if (result) {
-    return result.mime;
-  }
+  const mime = detectMimeFromMagicBytes(buffer);
+  if (mime) return mime;
 
-  // file-type cannot detect SVG (it's text-based), so check manually
+  // SVG is text-based — no magic bytes, check content instead
   const head = buffer.slice(0, 512).toString('utf-8').trim();
   if (head.startsWith('<svg') || head.startsWith('<?xml') || head.includes('<svg')) {
     return 'image/svg+xml';
@@ -236,7 +255,14 @@ async function processRasterImage(buffer: Buffer): Promise<LogoImportResult> {
   const width = metadata.width || 300;
   const height = metadata.height || 300;
 
-  // Step 3: Vectorize with potrace — use dominant color instead of black
+  // Step 3: Vectorize with potrace — load lazily to avoid crash if not installed
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  let potrace: typeof import('potrace');
+  try {
+    potrace = require('potrace');
+  } catch {
+    throw new Error('potrace is not installed. Run `npm install potrace` in the api package and rebuild the Docker image.');
+  }
   const svgContent = await new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error('Potrace vectorization timed out after 30 seconds'));

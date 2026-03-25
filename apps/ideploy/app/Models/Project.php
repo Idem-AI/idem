@@ -6,6 +6,7 @@ use App\Traits\ClearsGlobalSearchCache;
 use App\Traits\HasSafeStringAttribute;
 use OpenApi\Attributes as OA;
 use Visus\Cuid2\Cuid2;
+use App\Models\Server;
 
 #[OA\Schema(
     description: 'Project model',
@@ -29,6 +30,17 @@ class Project extends BaseModel
     use HasSafeStringAttribute;
 
     protected $guarded = [];
+
+    protected $casts = [
+        'deployment_type' => 'string',
+        'deployment_region' => 'string',
+        'assigned_server_id' => 'integer',
+    ];
+
+    public function assignedServer()
+    {
+        return $this->belongsTo(Server::class, 'assigned_server_id');
+    }
 
     public static function ownedByCurrentTeam()
     {
