@@ -176,15 +176,6 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'project/ideploy',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/ideploy-overview/ideploy-overview').then(
-        (m) => m.IDeployOverview,
-      ),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
     path: 'project/deployments/create',
     loadComponent: () =>
       import('./modules/dashboard/pages/deployment/create-deployment/create-deployment').then(

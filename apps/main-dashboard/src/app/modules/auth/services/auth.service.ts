@@ -144,16 +144,26 @@ export class AuthService {
 
   logout(): Observable<void> {
     const promise = signOut(this.auth)
-      .then(() => {
+      .then(async () => {
         // Effacer le token dans TokenService
         this.tokenService.clearToken();
         // Effacer l'utilisateur des cookies
         this.cookieService.remove(this.CURRENT_USER_COOKIE);
         sessionStorage.clear();
-        return this.http.post<void>(`${this.apiUrl}/logout`, {}).toPromise();
+
+        // Try to notify backend, but don't block logout if it fails
+        try {
+          await firstValueFrom(this.http.post<void>(`${this.apiUrl}/logout`, {}));
+        } catch (error) {
+          console.warn('Backend logout failed, but local logout succeeded:', error);
+        }
       })
       .catch((error) => {
         console.error('Erreur lors de la déconnexion:', error);
+        // Clear local state even if Firebase signOut fails
+        this.tokenService.clearToken();
+        this.cookieService.remove(this.CURRENT_USER_COOKIE);
+        sessionStorage.clear();
       });
 
     return from(promise);
