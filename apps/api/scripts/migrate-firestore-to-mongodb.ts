@@ -290,62 +290,62 @@ class FirestoreToMongoDBMigration {
     logger.info('Storage migration skipped (commented out for faster execution)');
     return;
 
-    // logger.info('Starting Firebase Storage to MinIO migration...');
+    logger.info('Starting Firebase Storage to MinIO migration...');
 
-    // try {
-    //   // List all files in Firebase Storage
-    //   const [files] = await this.firebaseBucket.getFiles();
-    //   this.stats.files.total = files.length;
+    try {
+      // List all files in Firebase Storage
+      const [files] = await this.firebaseBucket.getFiles();
+      this.stats.files.total = files.length;
 
-    //   logger.info(`Found ${files.length} files in Firebase Storage`);
+      logger.info(`Found ${files.length} files in Firebase Storage`);
 
-    //   for (const file of files) {
-    //     try {
-    //       const filePath = file.name;
+      for (const file of files) {
+        try {
+          const filePath = file.name;
 
-    //       // Check if file already exists in MinIO
-    //       try {
-    //         await this.minioClient.statObject(this.minioBucket, filePath);
-    //         logger.info(`File ${filePath} already exists in MinIO, skipping`);
-    //         this.stats.files.skipped++;
-    //         continue;
-    //       } catch (error: any) {
-    //         // File doesn't exist in MinIO, proceed with migration
-    //       }
+          // Check if file already exists in MinIO
+          try {
+            await this.minioClient.statObject(this.minioBucket, filePath);
+            logger.info(`File ${filePath} already exists in MinIO, skipping`);
+            this.stats.files.skipped++;
+            continue;
+          } catch (error: any) {
+            // File doesn't exist in MinIO, proceed with migration
+          }
 
-    //       // Download file from Firebase Storage
-    //       logger.info(`Downloading file from Firebase Storage: ${filePath}`);
-    //       const [fileBuffer] = await file.download();
+          // Download file from Firebase Storage
+          logger.info(`Downloading file from Firebase Storage: ${filePath}`);
+          const [fileBuffer] = await file.download();
 
-    //       // Get file metadata
-    //       const [metadata] = await file.getMetadata();
-    //       const contentType = metadata.contentType || 'application/octet-stream';
+          // Get file metadata
+          const [metadata] = await file.getMetadata();
+          const contentType = metadata.contentType || 'application/octet-stream';
 
-    //       // Upload to MinIO
-    //       logger.info(`Uploading file to MinIO: ${filePath}`);
-    //       const stream = Readable.from(fileBuffer);
+          // Upload to MinIO
+          logger.info(`Uploading file to MinIO: ${filePath}`);
+          const stream = Readable.from(fileBuffer);
 
-    //       await this.minioClient.putObject(this.minioBucket, filePath, stream, fileBuffer.length, {
-    //         'Content-Type': contentType,
-    //         'x-amz-meta-migrated-from': 'firebase-storage',
-    //         'x-amz-meta-migrated-at': new Date().toISOString(),
-    //       });
+          await this.minioClient.putObject(this.minioBucket, filePath, stream, fileBuffer.length, {
+            'Content-Type': contentType,
+            'x-amz-meta-migrated-from': 'firebase-storage',
+            'x-amz-meta-migrated-at': new Date().toISOString(),
+          });
 
-    //       this.stats.files.migrated++;
-    //       logger.info(`Successfully migrated file: ${filePath} (${fileBuffer.length} bytes)`);
-    //     } catch (error: any) {
-    //       this.stats.files.errors++;
-    //       logger.error(`Error migrating file ${file.name}:`, error.message);
-    //     }
-    //   }
+          this.stats.files.migrated++;
+          logger.info(`Successfully migrated file: ${filePath} (${fileBuffer.length} bytes)`);
+        } catch (error: any) {
+          this.stats.files.errors++;
+          logger.error(`Error migrating file ${file.name}:`, error.message);
+        }
+      }
 
-    //   logger.info(
-    //     `Storage migration completed: ${this.stats.files.migrated}/${this.stats.files.total} migrated, ${this.stats.files.skipped} skipped, ${this.stats.files.errors} errors`
-    //   );
-    // } catch (error: any) {
-    //   logger.error('Error during storage migration:', error.message);
-    //   throw error;
-    // }
+      logger.info(
+        `Storage migration completed: ${this.stats.files.migrated}/${this.stats.files.total} migrated, ${this.stats.files.skipped} skipped, ${this.stats.files.errors} errors`
+      );
+    } catch (error: any) {
+      logger.error('Error during storage migration:', error.message);
+      throw error;
+    }
   }
 
   async disconnect() {
@@ -384,10 +384,10 @@ async function main() {
     await migration.connect();
 
     // Migrate users first (projects depend on users)
-    await migration.migrateUsers();
+    // await migration.migrateUsers();
 
-    // Then migrate projects
-    await migration.migrateProjects();
+    // // Then migrate projects
+    // await migration.migrateProjects();
 
     // Finally migrate storage files
     await migration.migrateStorageFiles();
