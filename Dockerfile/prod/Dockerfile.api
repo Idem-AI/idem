@@ -33,6 +33,7 @@ WORKDIR /app/apps/api
 
 # Install dependencies
 RUN npm install --legacy-peer-deps --force && npm cache clean --force
+RUN npm install @google/generative-ai
 
 # Install missing dependencies manually at root level
 WORKDIR /app
