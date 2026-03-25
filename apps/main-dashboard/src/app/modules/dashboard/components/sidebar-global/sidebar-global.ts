@@ -14,6 +14,7 @@ import { CommonModule } from '@angular/common';
 import { trigger, transition, style, animate, state } from '@angular/animations';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import { BetaBadgeComponent } from '../../../../shared/components/beta-badge/beta-badge';
 import { QuotaDisplayComponent } from '../../../../shared/components/quota-display/quota-display';
 import { QuotaService } from '../../../../shared/services/quota.service';
@@ -262,10 +263,16 @@ export class SidebarGlobal {
     this.router.navigateByUrl(url);
   }
 
-  logout() {
+  async logout() {
     this.isDropdownOpen.set(false);
-    this.auth.logout();
-    this.router.navigate(['/login']);
+    try {
+      await firstValueFrom(this.auth.logout());
+      this.router.navigate(['/login']);
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Navigate to login even if logout fails
+      this.router.navigate(['/login']);
+    }
   }
 
   /**

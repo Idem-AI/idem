@@ -33,11 +33,14 @@ export class LoginCardComponent implements OnInit {
   protected async loginWithGoogle(): Promise<void> {
     try {
       this.isLoading.set(true);
-      await this.authService.loginWithGoogle();
-      this.loginSuccess.emit();
+      const result = await this.authService.loginWithGoogle();
+      // Only emit loginSuccess if we got a result (popup flow)
+      // For redirect flow (mobile), the page will reload and ngOnInit will handle it
+      if (result) {
+        this.loginSuccess.emit();
+      }
     } catch (error) {
       console.error('Error logging in with Google:', error);
-    } finally {
       this.isLoading.set(false);
     }
   }
