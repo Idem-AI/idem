@@ -1,5 +1,5 @@
-{{-- Modern IDEM Navbar/Sidebar inspired by the design --}}
-<nav class="flex flex-col flex-1 bg-gradient-to-b from-[#0a0e1a] via-[#0d1117] to-[#0a0e1a] backdrop-blur-xl"
+{{-- Modern IDEM Navbar/Sidebar avec Glass Effect Design System --}}
+<nav class="flex flex-col flex-1 glass border-r border-white/10"
     x-data="{
         switchWidth() {
                 if (this.full === 'full') {
@@ -63,11 +63,11 @@
                                                     html {
                                                         font-size: 93.75%;
                                                     }
-                                
+
                                                     :root {
                                                         --vh: 1vh;
                                                     }
-                                
+
                                                     @media (min-width: 1024px) {
                                                         html {
                                                             font-size: 87.5%;
@@ -78,23 +78,23 @@
                 }
             }
     }">
-    
+
     {{-- Header avec Team Selector uniquement --}}
-    <div class="px-4 py-5 border-b border-white/5">
+    <div class="px-4 py-5 border-b border-white/10">
         <livewire:switch-team />
     </div>
 
     {{-- Navigation Menu --}}
-    <ul role="list" class="flex flex-col flex-1 px-3 py-4 gap-y-1 overflow-y-auto">
+    <ul role="list" class="flex flex-col flex-1 px-3 py-4 gap-y-1 overflow-y-auto custom-scrollbar">
         {{-- Admin Panel - Toujours visible pour les admins --}}
         @auth
             @if(auth()->user()->idem_role === 'admin')
                 <li>
-                    <a href="{{ route('idem.admin.dashboard') }}" 
+                    <a href="{{ route('idem.admin.dashboard') }}"
                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('idem/admin*') ? 'bg-gradient-to-r from-red-500/20 to-red-600/10 text-white shadow-lg shadow-red-500/20' : 'text-red-400 hover:text-white hover:bg-red-500/10' }}">
                         {{-- Glow Effect --}}
                         <div class="absolute inset-0 bg-gradient-to-r from-red-500/0 to-red-600/0 group-hover:from-red-500/10 group-hover:to-red-600/5 transition-all duration-300 rounded-xl"></div>
-                        
+
                         <div class="relative flex items-center gap-3 flex-1">
                             <div class="w-9 h-9 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center group-hover:bg-red-500/30 group-hover:border-red-500/50 group-hover:scale-110 transition-all duration-300">
                                 <svg class="w-5 h-5 text-red-400 group-hover:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
@@ -106,7 +106,7 @@
                         </div>
                     </a>
                 </li>
-                
+
                 {{-- Divider après Admin Panel --}}
                 <li class="my-3">
                     <div class="relative h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent">
@@ -115,11 +115,11 @@
                 </li>
             @endif
         @endauth
-        
+
         @if (isSubscribed() || !isCloud())
             {{-- Dashboard --}}
             <li>
-                <a href="/" 
+                <a href="/"
                    class="group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {{ request()->is('/') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,7 +152,7 @@
 
             {{-- Projects --}}
             <li>
-                <a href="/projects" 
+                <a href="/projects"
                    class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('project/*') || request()->is('projects') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                     <div class="relative flex items-center gap-3">
@@ -171,7 +171,7 @@
 
             {{-- Servers --}}
             <li>
-                <a href="/servers" 
+                <a href="/servers"
                    class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('server/*') || request()->is('servers') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                     <div class="relative flex items-center gap-3">
@@ -192,7 +192,7 @@
 
             {{-- Sources --}}
             <li>
-                <a href="{{ route('source.all') }}" 
+                <a href="{{ route('source.all') }}"
                    class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('source*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                     <div class="relative flex items-center gap-3">
@@ -208,7 +208,7 @@
 
             {{-- Destinations --}}
             <li>
-                <a href="{{ route('destination.index') }}" 
+                <a href="{{ route('destination.index') }}"
                    class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('destination*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                     <div class="relative flex items-center gap-3">
@@ -224,7 +224,7 @@
 
             {{-- S3 Storages --}}
             <li>
-                <a href="{{ route('storage.index') }}" 
+                <a href="{{ route('storage.index') }}"
                    class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('storages*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                     <div class="relative flex items-center gap-3">
@@ -246,7 +246,7 @@
             @auth
                 @if(auth()->user()->idem_role === 'admin')
                     <li>
-                        <a href="{{ route('settings.index') }}" 
+                        <a href="{{ route('settings.index') }}"
                            class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('settings*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                             <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                             <div class="relative flex items-center gap-3">
@@ -273,7 +273,7 @@
 
             {{-- Shared Variables --}}
             <li>
-                <a href="{{ route('shared-variables.index') }}" 
+                <a href="{{ route('shared-variables.index') }}"
                    class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('shared-variables*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                     <div class="relative flex items-center gap-3">
@@ -292,7 +292,7 @@
 
             {{-- Notifications --}}
             <li>
-                <a href="{{ route('notifications.email') }}" 
+                <a href="{{ route('notifications.email') }}"
                    class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('notifications*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                     <div class="relative flex items-center gap-3">
@@ -308,7 +308,7 @@
 
             {{-- Keys & Tokens --}}
             <li>
-                <a href="{{ route('security.private-key.index') }}" 
+                <a href="{{ route('security.private-key.index') }}"
                    class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('security*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
                     <div class="relative flex items-center gap-3">
@@ -332,10 +332,10 @@
         <div class="absolute inset-0 opacity-5">
             <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 24px 24px;"></div>
         </div>
-        
+
         <div class="relative flex items-center justify-between">
             <livewire:settings-dropdown />
-            
+
             {{-- Search Button --}}
             <button @click="$dispatch('open-global-search')" type="button" title="Search (Press / or ⌘K)"
                 class="group flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all duration-300 text-gray-400 hover:text-white text-sm border border-white/10 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10">

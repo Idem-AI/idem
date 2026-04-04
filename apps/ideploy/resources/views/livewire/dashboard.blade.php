@@ -2,13 +2,13 @@
     <x-slot:title>
         Dashboard | iDeploy
     </x-slot>
-    
+
     @if (session('error'))
         <span x-data x-init="$wire.emit('error', '{{ session('error') }}')" />
     @endif
-    
+
     @if (request()->query->get('success'))
-        <div class="mx-6 mt-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/10 border border-green-500/30 rounded-xl text-green-300 font-medium">
+        <div class="mx-6 mt-6 p-4 glass-card border border-green-500/30 rounded-xl text-green-300 font-medium">
             ✅ Your subscription has been activated! Welcome onboard! It could take a few seconds before your subscription is activated. Please be patient.
         </div>
     @endif
@@ -24,7 +24,7 @@
     {{-- AI Assistant Compact --}}
     <section class="px-6 pb-4">
         <div class="max-w-7xl mx-auto">
-            <div class="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/40 rounded-xl p-4">
+            <div class="glass-card border border-purple-500/40 rounded-xl p-4">
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
                         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,7 +51,7 @@
         <div class="max-w-7xl mx-auto">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-center">
+                    <div class="w-10 h-10 bg-primary/10 border border-primary/30 rounded-xl flex items-center justify-center">
                         <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                         </svg>
@@ -59,23 +59,23 @@
                     <h2 class="text-2xl font-bold text-white">PROJECTS</h2>
                 </div>
             </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {{-- Create New Project Card --}}
             @can('createAnyResource')
             <x-modal-input buttonTitle="" title="New Project">
                 <x-slot:content>
-                    <div class="group cursor-pointer bg-gradient-to-br from-gray-900/50 to-gray-800/30 border-2 border-dashed border-gray-700 hover:border-blue-500 rounded-2xl p-10 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-105 min-h-[300px] flex items-center justify-center relative overflow-hidden">
+                    <div class="group cursor-pointer glass border-2 border-dashed border-white/10 hover:border-primary rounded-2xl p-10 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:scale-105 min-h-[300px] flex items-center justify-center relative overflow-hidden">
                         {{-- Animated background glow --}}
-                        <div class="absolute inset-0 bg-gradient-to-br from-blue-600/0 via-purple-600/0 to-blue-600/0 group-hover:from-blue-600/10 group-hover:via-purple-600/10 group-hover:to-blue-600/10 transition-all duration-500"></div>
-                        
+                        <div class="absolute inset-0 bg-gradient-to-br from-primary/0 via-secondary/0 to-primary/0 group-hover:from-primary/10 group-hover:via-secondary/10 group-hover:to-primary/10 transition-all duration-500"></div>
+
                         <div class="text-center relative z-10">
-                            <div class="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-blue-600 to-blue-500 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg shadow-blue-500/30">
+                            <div class="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-primary-600 to-primary-500 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg shadow-primary/30">
                                 <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/>
                                 </svg>
                             </div>
-                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors tracking-wide">CREATE NEW PROJECT</h3>
+                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-primary transition-colors tracking-wide">CREATE NEW PROJECT</h3>
                             <p class="text-sm text-gray-400 font-medium">Start building something amazing</p>
                         </div>
                     </div>
@@ -83,7 +83,7 @@
                 <livewire:project.add-empty />
             </x-modal-input>
             @endcan
-            
+
             {{-- Project Cards --}}
             @foreach ($projects as $project)
                 @php
@@ -91,7 +91,7 @@
                     $totalResources = 0;
                     $activeResources = 0;
                     $resourceTypes = [];
-                    
+
                     foreach ($project->environments ?? [] as $environment) {
                         // Applications
                         if (isset($environment->applications)) {
@@ -119,7 +119,7 @@
                                 $resourceTypes[] = 'Web Application';
                             }
                         }
-                        
+
                         // Services
                         if (isset($environment->services)) {
                             $services = $environment->services;
@@ -142,7 +142,7 @@
                                 $resourceTypes[] = 'Service';
                             }
                         }
-                        
+
                         // Databases
                         $dbTypes = ['postgresqls', 'mysqls', 'mariadbs', 'mongodbs', 'redis'];
                         foreach ($dbTypes as $dbType) {
@@ -169,9 +169,9 @@
                             }
                         }
                     }
-                    
+
                     $inactiveResources = $totalResources - $activeResources;
-                    
+
                     // Générer des tags catégories
                     $categoryTags = [];
                     if ($project->id % 3 == 0) $categoryTags[] = 'Companies';
@@ -179,12 +179,12 @@
                     if ($project->id % 5 == 0) $categoryTags[] = 'Regional';
                     if (empty($categoryTags)) $categoryTags[] = 'Local';
                 @endphp
-                
+
                 <a href="{{ $project->navigateTo() }}" class="group block">
                     <div class="relative bg-gradient-to-br from-gray-900/90 to-gray-800/60 border-2 border-gray-700/50 hover:border-blue-500/60 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-[1.02] min-h-[320px] flex flex-col">
                         {{-- Glow effect on hover --}}
                         <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-blue-500/0 group-hover:from-blue-500/8 group-hover:via-purple-500/8 group-hover:to-blue-500/8 transition-all duration-500 pointer-events-none"></div>
-                        
+
                         {{-- Content --}}
                         <div class="relative z-10 flex flex-col h-full">
                         {{-- Header avec Logo et Titre --}}
@@ -203,7 +203,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         {{-- Resources Summary --}}
                         <div class="p-6 bg-gradient-to-br from-gray-900/60 to-gray-800/40">
                             <div class="grid grid-cols-3 gap-3">
@@ -227,7 +227,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         {{-- Tags Section --}}
                         <div class="p-4 flex-grow">
                             <div class="space-y-3">
@@ -241,7 +241,7 @@
                                     @endforeach
                                 </div>
                                 @endif
-                                
+
                                 {{-- Category Tags --}}
                                 <div class="flex items-center gap-2 flex-wrap">
                                     @foreach($categoryTags as $tag)
@@ -251,7 +251,7 @@
                                             @elseif($tag === 'Regional') bg-gradient-to-r from-orange-500/20 to-orange-600/10 text-orange-400 border border-orange-500/40
                                             @else bg-gradient-to-r from-orange-500/20 to-orange-600/10 text-orange-400 border border-orange-500/40
                                             @endif">
-                                            <span class="w-1.5 h-1.5 rounded-full 
+                                            <span class="w-1.5 h-1.5 rounded-full
                                                 @if($tag === 'Companies') bg-red-400
                                                 @elseif($tag === 'Students') bg-purple-400
                                                 @elseif($tag === 'Regional') bg-orange-400
@@ -263,7 +263,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         {{-- Footer avec Date --}}
                         <div class="px-4 py-2 bg-gray-900/20 border-t border-gray-700/50">
                             <div class="flex items-center justify-between">
@@ -278,7 +278,7 @@
                 </a>
             @endforeach
         </div>
-        
+
         @if ($projects->count() === 0)
             <div class="flex flex-col gap-4 items-center justify-center py-12">
                 <div class='text-xl font-semibold text-gray-400'>No projects found.</div>
@@ -321,7 +321,7 @@
                     @endif
                 </div>
             </div>
-        
+
         @if ($servers->count() > 0)
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach ($servers as $server)
@@ -329,17 +329,17 @@
                         $totalResources = 0;
                         $activeResources = 0;
                         $hasIssues = false;
-                        
+
                         foreach ($server->destinations() ?? [] as $destination) {
                             $totalResources += $destination->applications->count();
                             $activeResources += $destination->applications->where('status', 'running')->count();
                         }
-                        
+
                         if (!$server->isFunctional()) {
                             $hasIssues = true;
                         }
                     @endphp
-                    
+
                     <a href="{{ route('server.show', ['server_uuid' => $server->uuid]) }}" class="group block">
                         <div @class([
                             'rounded-2xl p-6 transition-all duration-300 min-h-[240px] flex flex-col hover:scale-[1.02]',
@@ -365,7 +365,7 @@
                                     </p>
                                 </div>
                             </div>
-                            
+
                             <div class="grid grid-cols-2 gap-3 mb-4">
                                 <div class="rounded-xl p-3 text-center bg-gradient-to-br from-blue-500/15 to-blue-600/10 border-2 border-blue-500/30">
                                     <div class="text-3xl font-bold text-blue-400">{{ $totalResources }}</div>
@@ -393,7 +393,7 @@
                                     ])>Active</div>
                                 </div>
                             </div>
-                            
+
                             <div class="mt-auto pt-4 border-t border-gray-700/50">
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="text-gray-400 truncate font-mono">{{ $server->ip }}</span>
@@ -419,7 +419,7 @@
             @if ($privateKeys->count() === 0)
                 <div class="flex flex-col gap-4 items-center justify-center py-12">
                     <div class='text-xl font-semibold text-gray-400'>No private keys found.</div>
-                    <div class="text-gray-500">Before you can add your server, first 
+                    <div class="text-gray-500">Before you can add your server, first
                         <x-modal-input buttonTitle="add a private key" title="New Private Key">
                             <livewire:security.private-key.create />
                         </x-modal-input>

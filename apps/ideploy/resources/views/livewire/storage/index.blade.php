@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-[#0a0e1a] text-white p-6">
+<div class="min-h-screen text-white p-6">
     <x-slot:title>
         Storages | Ideploy
     </x-slot>
@@ -10,7 +10,7 @@
             @can('create', App\Models\S3Storage::class)
                 <x-modal-input buttonTitle="+ Add" title="New S3 Storage" :closeOutside="false">
                     <x-slot:content>
-                        <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:shadow-lg hover:scale-105">
+                        <button class="inner-button">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                             </svg>
@@ -29,12 +29,12 @@
         @forelse ($s3 as $storage)
             <a href="/storages/{{ $storage->uuid }}" class="group block">
                 <div @class([
-                    'bg-[#151b2e] hover:bg-[#1a2137] border hover:border-gray-600 rounded-xl overflow-hidden transition-all duration-300',
+                    'glass-card hover:bg-white/5 border rounded-xl overflow-hidden transition-all duration-300',
                     'border-red-500' => !$storage->is_usable,
-                    'border-gray-700' => $storage->is_usable,
+                    'border-white/10 hover:border-primary/50' => $storage->is_usable,
                 ])>
                     {{-- Header --}}
-                    <div class="p-5 border-b border-gray-700/50">
+                    <div class="p-5 border-b border-white/10">
                         <div class="flex items-start gap-3">
                             {{-- Storage Icon --}}
                             <div @class([
@@ -50,7 +50,7 @@
                             {{-- Storage Info --}}
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400 transition-colors truncate">
+                                    <h3 class="text-lg font-semibold text-gray-100 group-hover:text-primary transition-colors truncate">
                                         {{ $storage->name }}
                                     </h3>
                                     {{-- Status Badge --}}
@@ -72,7 +72,7 @@
                     </div>
 
                     {{-- Footer --}}
-                    <div class="px-5 py-4 bg-gray-900/20">
+                    <div class="px-5 py-4 bg-white/5">
                         <div class="flex items-center justify-between text-xs">
                             <div class="flex items-center gap-2 text-gray-400">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
