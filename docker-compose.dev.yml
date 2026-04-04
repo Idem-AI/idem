@@ -128,25 +128,34 @@ services:
     restart: unless-stopped
     ports:
       - '${APP_PORT:-8000}:8080'
+    extra_hosts:
+      - 'soketi:host-gateway'
     environment:
       AUTORUN_ENABLED: 'false'
-      PUSHER_HOST: '${PUSHER_HOST:-soketi}'
+      PUSHER_HOST: 'localhost'
       PUSHER_PORT: '${PUSHER_PORT:-6001}'
       PUSHER_SCHEME: '${PUSHER_SCHEME:-http}'
       PUSHER_APP_ID: '${PUSHER_APP_ID:-coolify}'
       PUSHER_APP_KEY: '${PUSHER_APP_KEY:-coolify}'
       PUSHER_APP_SECRET: '${PUSHER_APP_SECRET:-coolify}'
+      PUSHER_BACKEND_HOST: 'soketi'
+      PUSHER_BACKEND_PORT: '6001'
       DB_HOST: postgres
       DB_DATABASE: '${DB_DATABASE:-coolify}'
       DB_USERNAME: '${DB_USERNAME:-coolify}'
       DB_PASSWORD: '${DB_PASSWORD:-password}'
       SONARQUBE_ADMIN_TOKEN: squ_dc0e5ea5635f3c4b1bdd46d37032485e2ade36f0
       REDIS_HOST: redis
+      # IDEM API Configuration
+      IDEM_API_URL: 'http://api:3000'
       # AI Configuration
       AI_PROVIDER: '${AI_PROVIDER:-gemini}'
       GEMINI_API_KEY: '${GEMINI_API_KEY:-AIzaSyBLz8JVQU2qnf1NoVWQouJ3xnNkXrAfJg4}'
       OPENAI_API_KEY: '${OPENAI_API_KEY}'
       CLAUDE_API_KEY: '${CLAUDE_API_KEY}'
+      # Session Configuration
+      SESSION_DOMAIN: 'localhost'
+      SANCTUM_STATEFUL_DOMAINS: 'localhost:8000,localhost'
     volumes:
       - ./apps/ideploy:/var/www/html:cached
       - /var/www/html/vendor
@@ -159,6 +168,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      api:
+        condition: service_started
+      soketi:
+        condition: service_started
 
   soketi:
     image: coolify-realtime:dev
@@ -212,7 +225,7 @@ services:
     env_file:
       - .env.dev
     ports:
-      - '${API_PORT:-3010}:3000'
+      - '${API_PORT:-3001}:3000'
     environment:
       NODE_ENV: development
       PORT: 3000
@@ -240,6 +253,7 @@ services:
   # ==================== MAIN DASHBOARD ====================
 
   main-dashboard:
+    user: '${UID}:${GID}'
     image: idem-main-dashboard:dev
     container_name: idem-dashboard-dev
     pull_policy: never
