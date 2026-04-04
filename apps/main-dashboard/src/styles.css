@@ -30,11 +30,7 @@
   }
 }
 
-/* Force dark theme for all components */
-html {
-  background-color: #0f141b !important;
-  color: #ffffff !important;
-}
+
 
 html.light {
   background-color: #0f141b !important;
