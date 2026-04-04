@@ -1,14 +1,14 @@
 @can('create', App\Models\S3Storage::class)
     <div class="w-full">
         {{-- Info Section --}}
-        <div class="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+        <div class="mb-6 p-4 bg-[#4F46E5]/10 border border-[#4F46E5]/20 rounded-lg">
             <div class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-[#4F46E5] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <div class="text-sm text-gray-300">
                     <p>Configure S3-compatible storage for backups and file storage. For more details, visit the
-                        <a class="text-primary hover:text-[#6366F1] underline" href="https://ideploy.io/docs/knowledge-base/s3/introduction" target="_blank">Ideploy Docs</a>.
+                        <a class="text-[#4F46E5] hover:text-[#6366F1] underline" href="https://ideploy.io/docs/knowledge-base/s3/introduction" target="_blank">Ideploy Docs</a>.
                     </p>
                 </div>
             </div>
@@ -34,7 +34,7 @@
             <div class="flex justify-end pt-2">
                 <button
                     type="submit"
-                    class="inner-button">
+                    class="px-6 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold rounded-lg transition-colors flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>

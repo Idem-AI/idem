@@ -1,13 +1,13 @@
 <div class="p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
     {{-- Info Section --}}
-    <div class="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+    <div class="mb-6 p-4 bg-[#4F46E5]/10 border border-[#4F46E5]/20 rounded-lg">
         <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-[#4F46E5] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <div class="text-sm text-gray-300">
                 <p class="mb-1">Private Keys are used to connect to your servers without passwords.</p>
-                <p class="font-semibold text-primary">You should not use passphrase protected keys.</p>
+                <p class="font-semibold text-[#4F46E5]">You should not use passphrase protected keys.</p>
             </div>
         </div>
     </div>
@@ -17,13 +17,13 @@
         <button 
             type="button"
             wire:click="generateNewEDKey" 
-            class="flex-1 px-4 py-2.5 bg-primary hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors text-sm">
+            class="flex-1 px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold rounded-lg transition-colors text-sm">
             Generate ED25519 Key
         </button>
         <button 
             type="button"
             wire:click="generateNewRSAKey"
-            class="px-4 py-2.5 border border-primary text-primary hover:bg-primary/10 font-semibold rounded-lg transition-colors text-sm">
+            class="px-4 py-2.5 border border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5]/10 font-semibold rounded-lg transition-colors text-sm">
             Generate RSA Key
         </button>
     </div>
@@ -54,7 +54,7 @@
         <div class="flex justify-end pt-2">
             <button 
                 type="submit"
-                class="inner-button">
+                class="px-6 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold rounded-lg transition-colors flex items-center gap-2">
                 Continue
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
