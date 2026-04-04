@@ -13,7 +13,7 @@
             <div class="absolute inset-0 opacity-10">
                 <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.3),transparent_50%)]" style="animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
             </div>
-            
+
             <div class="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                 <div class="flex-1">
                     <div class="flex items-center gap-4 mb-4">
@@ -28,7 +28,7 @@
                             <p class="text-sm text-gray-400">Configure your application's core settings and deployment options</p>
                         </div>
                     </div>
-                    
+
                     {{-- Status Indicators --}}
                     <div class="flex flex-wrap items-center gap-3">
                         @if(data_get($application, 'status') === 'running')
@@ -42,7 +42,7 @@
                                 <span class="text-xs font-semibold text-gray-400">Stopped</span>
                             </div>
                         @endif
-                        
+
                         @if(data_get($application, 'fqdn'))
                             <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-full">
                                 <svg class="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,7 +51,7 @@
                                 <span class="text-xs font-semibold text-blue-400 truncate max-w-[200px]">{{ Str::limit(data_get($application, 'fqdn'), 30) }}</span>
                             </div>
                         @endif
-                        
+
                         <div class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-500/30 rounded-full">
                             <svg class="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
@@ -60,7 +60,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 @can('update', $application)
                     <button type="submit" class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap">
                         <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -78,19 +78,19 @@
         <div class="space-y-8">
             {{-- Section: Application URLs --}}
             @php
-                $hasUrls = (data_get($application, 'fqdn') || 
+                $hasUrls = (data_get($application, 'fqdn') ||
                            collect(json_decode($application->docker_compose_domains))->count() > 0 ||
                            data_get($application, 'previews', collect([]))->count() > 0 ||
                            data_get($application, 'ports_mappings_array')) &&
                            data_get($application, 'settings.is_raw_compose_deployment_enabled') !== true;
             @endphp
-            
+
             @if ($hasUrls)
                 {{-- Quick Access Cards Grid - Style Vercel --}}
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         {{-- Git Repository Link --}}
                         @if (data_get($application, 'gitBranchLocation'))
-                            <a target="_blank" href="{{ $application->gitBranchLocation }}" 
+                            <a target="_blank" href="{{ $application->gitBranchLocation }}"
                                class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-gray-600 rounded-lg transition-all">
                                 <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-800 group-hover:bg-gray-700 transition-colors">
                                     <x-git-icon git="{{ $application->source?->getMorphClass() }}" class="w-5 h-5" />
@@ -110,7 +110,7 @@
                             @foreach (collect(json_decode($application->docker_compose_domains)) as $fqdn)
                                 @if (data_get($fqdn, 'domain'))
                                     @foreach (explode(',', data_get($fqdn, 'domain')) as $domain)
-                                        <a target="_blank" href="{{ getFqdnWithoutPort($domain) }}" 
+                                        <a target="_blank" href="{{ getFqdnWithoutPort($domain) }}"
                                            class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-green-500 rounded-lg transition-all">
                                             <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
                                                 <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +133,7 @@
                         {{-- Regular FQDN --}}
                         @if (data_get($application, 'fqdn'))
                             @foreach (str(data_get($application, 'fqdn'))->explode(',') as $fqdn)
-                                <a target="_blank" href="{{ getFqdnWithoutPort($fqdn) }}" 
+                                <a target="_blank" href="{{ getFqdnWithoutPort($fqdn) }}"
                                    class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-green-500 rounded-lg transition-all">
                                     <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
                                         <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +160,7 @@
                                         @foreach (collect(json_decode($preview->docker_compose_domains)) as $fqdn)
                                             @if (data_get($fqdn, 'domain'))
                                                 @foreach (explode(',', data_get($fqdn, 'domain')) as $domain)
-                                                    <a target="_blank" href="{{ getFqdnWithoutPort($domain) }}" 
+                                                    <a target="_blank" href="{{ getFqdnWithoutPort($domain) }}"
                                                        class="group flex items-center gap-3 p-4 bg-purple-900/10 hover:bg-purple-900/20 border border-purple-500/30 hover:border-purple-500 rounded-lg transition-all mb-2">
                                                         <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
                                                             <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +185,7 @@
                                 @else
                                     @foreach (data_get($application, 'previews') as $preview)
                                         @if (data_get($preview, 'fqdn'))
-                                            <a target="_blank" href="{{ getFqdnWithoutPort(data_get($preview, 'fqdn')) }}" 
+                                            <a target="_blank" href="{{ getFqdnWithoutPort(data_get($preview, 'fqdn')) }}"
                                                class="group flex items-center gap-3 p-4 bg-purple-900/10 hover:bg-purple-900/20 border border-purple-500/30 hover:border-purple-500 rounded-lg transition-all mb-2">
                                                 <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
                                                     <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,7 +215,7 @@
                                 <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1">Port Mappings</div>
                                 @foreach ($application->ports_mappings_array as $port)
                                     @if ($application->destination->server->id === 0)
-                                        <a target="_blank" href="http://localhost:{{ explode(':', $port)[0] }}" 
+                                        <a target="_blank" href="http://localhost:{{ explode(':', $port)[0] }}"
                                            class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-cyan-500 rounded-lg transition-all mb-2">
                                             <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors">
                                                 <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,7 +231,7 @@
                                             </svg>
                                         </a>
                                     @else
-                                        <a target="_blank" href="http://{{ $application->destination->server->ip }}:{{ explode(':', $port)[0] }}" 
+                                        <a target="_blank" href="http://{{ $application->destination->server->ip }}:{{ explode(':', $port)[0] }}"
                                            class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-cyan-500 rounded-lg transition-all mb-2">
                                             <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors">
                                                 <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,7 +248,7 @@
                                         </a>
                                         @if (count($application->additional_servers) > 0)
                                             @foreach ($application->additional_servers as $server)
-                                                <a target="_blank" href="http://{{ $server->ip }}:{{ explode(':', $port)[0] }}" 
+                                                <a target="_blank" href="http://{{ $server->ip }}:{{ explode(':', $port)[0] }}"
                                                    class="group flex items-center gap-3 p-4 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700 hover:border-cyan-500 rounded-lg transition-all mb-2">
                                                     <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors">
                                                         <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,7 +291,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
-                
+
                 <div x-show="sections.basic" x-collapse class="px-6 pb-6">
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
                         <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
@@ -303,7 +303,7 @@
             {{-- Section: Build Configuration --}}
             @if (!$application->dockerfile && $application->build_pack !== 'dockerimage')
                 <div class="glass-card p-6 hover:border-accent/30 transition-colors">
-                    <x-section-header 
+                    <x-section-header
                         title="Build Pack"
                         description="Choose how to build your application">
                         <x-slot:icon>
@@ -321,7 +321,7 @@
                             <option value="dockerfile">Dockerfile</option>
                             <option value="dockercompose">Docker Compose</option>
                         </x-forms.select>
-                        
+
                         @if ($application->settings->is_static || $application->build_pack === 'static')
                             <x-forms.select x-bind:disabled="!canUpdate" id="static_image" label="Static Image" required>
                                 <option value="nginx:alpine">nginx:alpine</option>
@@ -335,7 +335,7 @@
                             <x-forms.checkbox instantSave id="is_static" label="Is it a static site?"
                                 helper="If your application is a static site or the final build assets should be served as a static site, enable this."
                                 x-bind:disabled="!canUpdate" />
-                            
+
                             @if ($application->settings->is_static && $application->build_pack !== 'static')
                                 <x-forms.checkbox label="Is it a SPA (Single Page Application)?"
                                     helper="If your application is a SPA, enable this." id="is_spa" instantSave
@@ -347,9 +347,9 @@
                     @if ($application->settings->is_static || $application->build_pack === 'static')
                         <div class="mt-6">
                             <x-forms.textarea id="custom_nginx_configuration"
-                                placeholder="Empty means default configuration will be used." 
+                                placeholder="Empty means default configuration will be used."
                                 label="Custom Nginx Configuration"
-                                helper="You can add custom Nginx configuration here." 
+                                helper="You can add custom Nginx configuration here."
                                 x-bind:disabled="!canUpdate" />
                             @can('update', $application)
                                 <button wire:click="generateNginxConfiguration" class="inner-button mt-3">
@@ -381,7 +381,7 @@
                     <div class="space-y-4">
                         <div class="flex items-end gap-3">
                             @if ($application->settings->is_container_label_readonly_enabled == false)
-                                <x-forms.input placeholder="https://coolify.io" wire:model="application.fqdn"
+                                <x-forms.input placeholder="https://ideploy.io" wire:model="application.fqdn"
                                     label="Domains" readonly
                                     helper="Readonly labels are disabled. You can set the domains in the labels section."
                                     x-bind:disabled="!canUpdate" />
@@ -455,7 +455,7 @@
                                 <h3 class="text-lg font-semibold text-light">Docker Registry</h3>
                                 <p class="text-xs text-light opacity-60">
                                     @if ($application->build_pack !== 'dockerimage' && !$application->destination->server->isSwarm())
-                                        Push the built image to a docker registry. <a class='underline text-accent hover:text-accent/80' href='https://coolify.io/docs/knowledge-base/docker/registry' target='_blank'>Learn more</a>
+                                        Push the built image to a docker registry. <a class='underline text-accent hover:text-accent/80' href='https://ideploy.io/docs/knowledge-base/docker/registry' target='_blank'>Learn more</a>
                                     @else
                                         Configure your Docker image source
                                     @endif
@@ -473,7 +473,7 @@
                                 <div>
                                     <p class="text-sm text-warning font-medium">Docker Swarm Requirement</p>
                                     <p class="text-xs text-warning opacity-80 mt-1">
-                                        Docker Swarm requires the image to be available in a registry. <a class="underline font-semibold hover:text-warning/80" href="https://coolify.io/docs/knowledge-base/docker/registry" target="_blank">Learn more</a>
+                                        Docker Swarm requires the image to be available in a registry. <a class="underline font-semibold hover:text-warning/80" href="https://ideploy.io/docs/knowledge-base/docker/registry" target="_blank">Learn more</a>
                                     </p>
                                 </div>
                             </div>
@@ -555,12 +555,12 @@
                             <div class="glass-card p-3 mb-6">
                                 <p class="text-xs text-light opacity-70">
                                     💡 Nixpacks will detect the required configuration automatically.
-                                    <a class="underline text-accent hover:text-accent/80 font-medium" href="https://coolify.io/docs/applications/">Framework Specific Docs</a>
+                                    <a class="underline text-accent hover:text-accent/80 font-medium" href="https://ideploy.io/docs/applications/">Framework Specific Docs</a>
                                 </p>
                             </div>
                         @elseif ($application->build_pack === 'buildpacks')
                             <div class="space-y-4 mb-6">
-                                <x-forms.select id="buildpacks_builder" label="Builder" 
+                                <x-forms.select id="buildpacks_builder" label="Builder"
                                     helper="Cloud Native Buildpacks builder to use for building your application"
                                     x-bind:disabled="!canUpdate">
                                     <option value="paketobuildpacks/builder:base">Paketo Base (Recommended)</option>
@@ -570,25 +570,25 @@
                                     <option value="heroku/builder:20">Heroku-20</option>
                                     <option value="gcr.io/buildpacks/builder:v1">Google Cloud Buildpacks</option>
                                 </x-forms.select>
-                                
-                                <x-forms.input 
-                                    id="buildpacks_custom" 
-                                    label="Custom Buildpacks (Optional)" 
+
+                                <x-forms.input
+                                    id="buildpacks_custom"
+                                    label="Custom Buildpacks (Optional)"
                                     placeholder="docker://gcr.io/paketo-buildpacks/nodejs"
                                     helper="Comma-separated list of custom buildpacks to use."
                                     x-bind:disabled="!canUpdate" />
-                                
+
                                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                    <x-forms.input 
-                                        id="install_command" 
+                                    <x-forms.input
+                                        id="install_command"
                                         label="Install Command"
                                         x-bind:disabled="!canUpdate" />
-                                    <x-forms.input 
-                                        id="build_command" 
+                                    <x-forms.input
+                                        id="build_command"
                                         label="Build Command"
                                         x-bind:disabled="!canUpdate" />
-                                    <x-forms.input 
-                                        id="start_command" 
+                                    <x-forms.input
+                                        id="start_command"
                                         label="Start Command"
                                         x-bind:disabled="!canUpdate" />
                                 </div>
@@ -664,7 +664,7 @@
                                     label="Base Directory"
                                     helper="Directory to use as root. Useful for monorepos."
                                     x-bind:disabled="!canUpdate" />
-                                
+
                                 @if ($application->build_pack === 'dockerfile' && !$application->dockerfile)
                                     <x-forms.input placeholder="/Dockerfile" id="dockerfile_location"
                                         label="Dockerfile Location"
@@ -678,7 +678,7 @@
                                         helper="Useful for multi-stage builds"
                                         x-bind:disabled="!canUpdate" />
                                 @endif
-                                
+
                                 @if ($application->could_set_build_commands())
                                     @if ($application->settings->is_static)
                                         <x-forms.input placeholder="/dist" id="publish_directory"
@@ -783,7 +783,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <x-forms.textarea label="Dockerfile" id="dockerfile" monacoEditorLanguage="dockerfile"
                         useMonacoEditor rows="6" x-bind:disabled="!canUpdate"> </x-forms.textarea>
                 </div>
@@ -823,12 +823,12 @@
                                     x-bind:disabled="!canUpdate" />
                             @endif
                         @endif
-                        
+
                         @if (!$application->destination->server->isSwarm())
                             <x-forms.input placeholder="3000:3000" id="ports_mappings" label="Ports Mappings"
                                 helper="Map ports to the host system."
                                 x-bind:disabled="!canUpdate" />
-                            
+
                             <x-forms.input id="custom_network_aliases" label="Network Aliases"
                                 helper="Custom network aliases for Docker network."
                                 wire:model="custom_network_aliases" x-bind:disabled="!canUpdate" />
@@ -895,7 +895,7 @@
                             helper="Labels are readonly by default. Disable to edit labels directly."
                             id="is_container_label_readonly_enabled" instantSave
                             x-bind:disabled="!canUpdate"></x-forms.checkbox>
-                        
+
                         <x-forms.checkbox label="Escape special characters in labels?"
                             helper="By default, $ is escaped. Turn this off to use env variables inside labels."
                             id="is_container_label_escape_enabled" instantSave
@@ -904,9 +904,9 @@
 
                     @can('update', $application)
                         <div class="mt-6">
-                            <x-modal-confirmation title="Confirm Labels Reset to Coolify Defaults?"
+                            <x-modal-confirmation title="Confirm Labels Reset to Ideploy Defaults?"
                                 buttonTitle="Reset Labels to Defaults" buttonFullWidth submitAction="resetDefaultLabels(true)"
-                                :actions="['All your custom proxy labels will be lost.', 'Proxy labels will be reset to defaults.']" 
+                                :actions="['All your custom proxy labels will be lost.', 'Proxy labels will be reset to defaults.']"
                                 confirmationText="{{ $application->fqdn . '/' }}"
                                 confirmationLabel="Please confirm by entering the Application URL"
                                 shortConfirmationLabel="Application URL" :confirmWithPassword="false"
@@ -984,7 +984,7 @@
                                         <span class="text-purple-400">🖥️ Your Personal Server</span>
                                     @endif
                                 </p>
-                                
+
                                 @if($application->idem_deploy_on_managed ?? false)
                                     <div class="mt-3 flex flex-wrap gap-2">
                                         <span class="inline-flex items-center gap-1 text-xs text-gray-400">
@@ -1007,8 +1007,8 @@
                                     @endif
                                 @endif
                             </div>
-                            
-                            <a href="{{ route('application.deployment', ['application_uuid' => $application->uuid]) }}" 
+
+                            <a href="{{ route('application.deployment', ['application_uuid' => $application->uuid]) }}"
                                class="ml-4 inline-flex items-center px-4 py-2.5 border border-gray-600 shadow-sm text-sm font-medium rounded-lg text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors"
                                x-bind:disabled="!canUpdate">
                                 ⚙️ Configure
@@ -1018,7 +1018,7 @@
 
                     <div class="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                         <p class="text-sm text-blue-300">
-                            💡 <strong>Tip:</strong> You can deploy on IDEM managed servers (recommended) or use your own servers. 
+                            💡 <strong>Tip:</strong> You can deploy on IDEM managed servers (recommended) or use your own servers.
                             <a href="{{ route('application.deployment', ['application_uuid' => $application->uuid]) }}" class="underline font-medium hover:text-blue-200">Configure now</a>
                         </p>
                     </div>

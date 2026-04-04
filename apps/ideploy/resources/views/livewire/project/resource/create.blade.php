@@ -1,5 +1,5 @@
 <x-slot:title>
-    {{ data_get_str($project, 'name')->limit(10) }} > New | Coolify
+    {{ data_get_str($project, 'name')->limit(10) }} > New | Ideploy
 </x-slot>
 
 <div>

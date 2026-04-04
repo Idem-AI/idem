@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Script pour démarrer tous les services Coolify en arrière-plan
+# Script pour démarrer tous les services Ideploy en arrière-plan
 # Usage: ./scripts/start-all.sh
 
 set -e
 
-echo "🚀 Démarrage de tous les services Coolify..."
+echo "🚀 Démarrage de tous les services Ideploy..."
 
 # Options
 START_VITE=true

@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use OpenApi\Attributes as OA;
 
-#[OA\Info(title: 'Coolify', version: '0.1')]
-#[OA\Server(url: 'https://app.coolify.io/api/v1', description: 'Coolify Cloud API. Change the host to your own instance if you are self-hosting.')]
+#[OA\Info(title: 'Ideploy', version: '0.1')]
+#[OA\Server(url: 'https://app.ideploy.io/api/v1', description: 'Ideploy Cloud API. Change the host to your own instance if you are self-hosting.')]
 #[OA\SecurityScheme(
     type: 'http',
     scheme: 'bearer',
@@ -66,7 +66,7 @@ use OpenApi\Attributes as OA;
 class OpenApi
 {
     // This class is used to generate OpenAPI documentation
-    // for the Coolify API. It is not a controller and does
+    // for the Ideploy API. It is not a controller and does
     // not contain any routes. It is used to define the
     // OpenAPI metadata and security scheme for the API.
 }

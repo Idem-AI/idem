@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Notifications | Coolify
+        Notifications | Ideploy
     </x-slot>
     <x-notification.navbar />
     <form wire:submit='submit' class="flex flex-col gap-4 pb-4">
@@ -29,7 +29,7 @@
         <div class="flex items-end gap-2">
 
             <x-forms.input canGate="update" :canResource="$settings" type="password"
-                helper="Enter a valid HTTP or HTTPS URL. Coolify will send POST requests to this endpoint when events occur."
+                helper="Enter a valid HTTP or HTTPS URL. Ideploy will send POST requests to this endpoint when events occur."
                 required id="webhookUrl" label="Webhook URL (POST)" />
         </div>
     </form>

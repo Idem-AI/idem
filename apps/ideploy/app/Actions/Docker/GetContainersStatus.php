@@ -90,7 +90,7 @@ class GetContainersStatus
         foreach ($this->containers as $container) {
             if ($this->server->isSwarm()) {
                 $labels = data_get($container, 'Spec.Labels');
-                $uuid = data_get($labels, 'coolify.name');
+                $uuid = data_get($labels, 'ideploy.name');
             } else {
                 $labels = data_get($container, 'Config.Labels');
             }
@@ -102,9 +102,9 @@ class GetContainersStatus
                 $containerStatus = "$containerStatus ($containerHealth)";
             }
             $labels = Arr::undot(format_docker_labels_to_json($labels));
-            $applicationId = data_get($labels, 'coolify.applicationId');
+            $applicationId = data_get($labels, 'ideploy.applicationId');
             if ($applicationId) {
-                $pullRequestId = data_get($labels, 'coolify.pullRequestId');
+                $pullRequestId = data_get($labels, 'ideploy.pullRequestId');
                 if ($pullRequestId) {
                     if (str($applicationId)->contains('-')) {
                         $applicationId = str($applicationId)->before('-');
@@ -142,11 +142,11 @@ class GetContainersStatus
                 }
             } else {
                 $uuid = data_get($labels, 'com.docker.compose.service');
-                $type = data_get($labels, 'coolify.type');
+                $type = data_get($labels, 'ideploy.type');
 
                 if ($uuid) {
                     if ($type === 'service') {
-                        $database_id = data_get($labels, 'coolify.service.subId');
+                        $database_id = data_get($labels, 'ideploy.service.subId');
                         if ($database_id) {
                             $service_db = ServiceDatabase::where('id', $database_id)->first();
                             if ($service_db) {
@@ -156,7 +156,7 @@ class GetContainersStatus
                                     if ($isPublic) {
                                         $foundTcpProxy = $this->containers->filter(function ($value, $key) use ($uuid) {
                                             if ($this->server->isSwarm()) {
-                                                return data_get($value, 'Spec.Name') === "coolify-proxy_$uuid";
+                                                return data_get($value, 'Spec.Name') === "ideploy-proxy_$uuid";
                                             } else {
                                                 return data_get($value, 'Name') === "/$uuid-proxy";
                                             }
@@ -184,7 +184,7 @@ class GetContainersStatus
                             if ($isPublic) {
                                 $foundTcpProxy = $this->containers->filter(function ($value, $key) use ($uuid) {
                                     if ($this->server->isSwarm()) {
-                                        return data_get($value, 'Spec.Name') === "coolify-proxy_$uuid";
+                                        return data_get($value, 'Spec.Name') === "ideploy-proxy_$uuid";
                                     } else {
                                         return data_get($value, 'Name') === "/$uuid-proxy";
                                     }
@@ -199,14 +199,14 @@ class GetContainersStatus
                         }
                     }
                 }
-                if (data_get($container, 'Name') === '/coolify-db') {
+                if (data_get($container, 'Name') === '/ideploy-db') {
                     $foundDatabases[] = 0;
                 }
             }
-            $serviceLabelId = data_get($labels, 'coolify.serviceId');
+            $serviceLabelId = data_get($labels, 'ideploy.serviceId');
             if ($serviceLabelId) {
-                $subType = data_get($labels, 'coolify.service.subType');
-                $subId = data_get($labels, 'coolify.service.subId');
+                $subType = data_get($labels, 'ideploy.service.subType');
+                $subId = data_get($labels, 'ideploy.service.subId');
                 $service = $services->where('id', $serviceLabelId)->first();
                 if (! $service) {
                     continue;

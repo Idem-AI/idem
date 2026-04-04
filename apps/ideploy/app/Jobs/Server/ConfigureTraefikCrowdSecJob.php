@@ -24,44 +24,44 @@ class ConfigureTraefikCrowdSecJob implements ShouldQueue
     public function handle()
     {
         ray("🔧 Configuring Traefik with CrowdSec plugin on server: {$this->server->name}");
-        
+
         try {
             // 1. Restart Traefik with new configuration (includes CrowdSec plugin)
             ray("Restarting Traefik to load CrowdSec plugin...");
-            
+
             // Force regenerate proxy configuration
             StartProxy::run($this->server, async: false, force: true);
-            
+
             ray("✅ Traefik restarted with CrowdSec plugin");
-            
+
             // 2. Wait for Traefik to be fully ready
             sleep(10);
-            
+
             // 3. Verify plugin is loaded
             $this->verifyPluginLoaded();
-            
+
             ray("🎉 Traefik successfully configured with CrowdSec plugin");
-            
+
         } catch (\Exception $e) {
             ray("❌ Failed to configure Traefik: " . $e->getMessage());
             throw $e;
         }
     }
-    
+
     private function verifyPluginLoaded(): void
     {
         try {
             // Check Traefik logs for plugin loading
             $logs = instant_remote_process([
-                'docker logs coolify-proxy --tail 50 2>&1 | grep -i "bouncer\|plugin" || echo "no_plugin_logs"'
+                'docker logs ideploy-proxy --tail 50 2>&1 | grep -i "bouncer\|plugin" || echo "no_plugin_logs"'
             ], $this->server);
-            
+
             if (str_contains($logs, 'bouncer') || str_contains($logs, 'plugin')) {
                 ray("Plugin logs found: " . substr($logs, 0, 200));
             } else {
                 ray("⚠️ No plugin logs found in Traefik (this might be normal)");
             }
-            
+
         } catch (\Exception $e) {
             ray("Could not verify plugin: " . $e->getMessage());
             // Non-critical, continue anyway

@@ -1088,7 +1088,7 @@ class ApplicationsController extends Controller
             }
             $application->refresh();
             if ($application->settings->is_container_label_readonly_enabled) {
-                $application->custom_labels = str(implode('|coolify|', generateLabelsApplication($application)))->replace('|coolify|', "\n");
+                $application->custom_labels = str(implode('|ideploy|', generateLabelsApplication($application)))->replace('|ideploy|', "\n");
                 $application->save();
             }
             $application->isConfigurationChanged(true);
@@ -1243,7 +1243,7 @@ class ApplicationsController extends Controller
                 $application->settings->save();
             }
             if ($application->settings->is_container_label_readonly_enabled) {
-                $application->custom_labels = str(implode('|coolify|', generateLabelsApplication($application)))->replace('|coolify|', "\n");
+                $application->custom_labels = str(implode('|ideploy|', generateLabelsApplication($application)))->replace('|ideploy|', "\n");
                 $application->save();
             }
             $application->isConfigurationChanged(true);
@@ -1372,7 +1372,7 @@ class ApplicationsController extends Controller
                 $application->settings->save();
             }
             if ($application->settings->is_container_label_readonly_enabled) {
-                $application->custom_labels = str(implode('|coolify|', generateLabelsApplication($application)))->replace('|coolify|', "\n");
+                $application->custom_labels = str(implode('|ideploy|', generateLabelsApplication($application)))->replace('|ideploy|', "\n");
                 $application->save();
             }
             $application->isConfigurationChanged(true);
@@ -1457,7 +1457,7 @@ class ApplicationsController extends Controller
             $application->destination_type = $destination->getMorphClass();
             $application->environment_id = $environment->id;
 
-            $application->git_repository = 'coollabsio/coolify';
+            $application->git_repository = 'coollabsio/ideploy';
             $application->git_branch = 'main';
             $application->save();
             $application->refresh();
@@ -1466,7 +1466,7 @@ class ApplicationsController extends Controller
                 $application->settings->save();
             }
             if ($application->settings->is_container_label_readonly_enabled) {
-                $application->custom_labels = str(implode('|coolify|', generateLabelsApplication($application)))->replace('|coolify|', "\n");
+                $application->custom_labels = str(implode('|ideploy|', generateLabelsApplication($application)))->replace('|ideploy|', "\n");
                 $application->save();
             }
             $application->isConfigurationChanged(true);
@@ -1550,7 +1550,7 @@ class ApplicationsController extends Controller
             $application->destination_type = $destination->getMorphClass();
             $application->environment_id = $environment->id;
 
-            $application->git_repository = 'coollabsio/coolify';
+            $application->git_repository = 'coollabsio/ideploy';
             $application->git_branch = 'main';
             $application->save();
             $application->refresh();
@@ -1559,7 +1559,7 @@ class ApplicationsController extends Controller
                 $application->settings->save();
             }
             if ($application->settings->is_container_label_readonly_enabled) {
-                $application->custom_labels = str(implode('|coolify|', generateLabelsApplication($application)))->replace('|coolify|', "\n");
+                $application->custom_labels = str(implode('|ideploy|', generateLabelsApplication($application)))->replace('|ideploy|', "\n");
                 $application->save();
             }
             $application->isConfigurationChanged(true);
@@ -2191,7 +2191,7 @@ class ApplicationsController extends Controller
             }
         }
         if ($request->has('is_http_basic_auth_enabled') && $application->is_container_label_readonly_enabled === false) {
-            $application->custom_labels = str(implode('|coolify|', generateLabelsApplication($application)))->replace('|coolify|', "\n");
+            $application->custom_labels = str(implode('|ideploy|', generateLabelsApplication($application)))->replace('|ideploy|', "\n");
             $application->save();
         }
 
@@ -2310,7 +2310,7 @@ class ApplicationsController extends Controller
         }
         $application->fill($data);
         if ($application->settings->is_container_label_readonly_enabled && $requestHasDomains && $server->isProxyShouldRun()) {
-            $application->custom_labels = str(implode('|coolify|', generateLabelsApplication($application)))->replace('|coolify|', "\n");
+            $application->custom_labels = str(implode('|ideploy|', generateLabelsApplication($application)))->replace('|ideploy|', "\n");
         }
         $application->save();
 

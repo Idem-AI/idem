@@ -48,7 +48,7 @@ echo -e "${BLUE}📄 Step 4: Views to create${NC}"
 echo ""
 echo "The following Blade views need to be created:"
 echo "  - resources/views/subscription/index.blade.php"
-echo "  - resources/views/subscription/plans.blade.php" 
+echo "  - resources/views/subscription/plans.blade.php"
 echo "  - resources/views/subscription/checkout.blade.php"
 echo "  - resources/views/admin/idem/dashboard.blade.php"
 echo "  - resources/views/admin/idem/teams.blade.php"
@@ -78,7 +78,7 @@ if [ "$CREATE_TEST_DATA" = "y" ]; then
         ]);
         echo 'Admin created: admin@idem.local / password\n';
     }
-    
+
     if (App\\Models\\User::where('email', 'client@idem.local')->count() == 0) {
         \$client = App\\Models\\User::create([
             'name' => 'Test Client',
@@ -106,7 +106,7 @@ echo ""
 echo "1. Create the Blade view files (see IDEM_FRONTEND_CUSTOMIZATION.md)"
 echo "2. Add routes to routes/web.php (see guide)"
 echo "3. Restart your dev server:"
-echo "   docker compose -f docker-compose.dev.yml restart coolify"
+echo "   docker compose -f docker-compose.dev.yml restart ideploy"
 echo ""
 echo "4. Test the new pages:"
 echo "   http://localhost:8000/subscription"

@@ -136,7 +136,7 @@ class General extends Component
         'configurationChanged' => '$refresh',
         'confirmDomainUsage',
     ];
-    
+
     /**
      * Save domain explicitly when user clicks Save button
      */
@@ -144,20 +144,20 @@ class General extends Component
     {
         try {
             $this->authorize('update', $this->application);
-            
+
             // Sync to model and save
             $this->syncToModel();
             $this->application->save();
             $this->application->refresh();
-            
+
             // Sync back to keep UI in sync
             $this->syncFromModel();
-            
+
             // Reset labels if needed
             if ($this->is_container_label_readonly_enabled) {
                 $this->resetDefaultLabels(false);
             }
-            
+
             $this->dispatch('success', 'Domain saved successfully');
         } catch (\Throwable $e) {
             return handleError($e, $this);
@@ -295,7 +295,7 @@ class General extends Component
             'environment_uuid' => $this->application->environment->uuid,
             'application_uuid' => $this->application->uuid,
         ];
-        
+
         try {
             $this->parsedServices = $this->application->parse();
             if (is_null($this->parsedServices) || empty($this->parsedServices)) {
@@ -334,12 +334,12 @@ class General extends Component
             // Only update custom labels if user has permission
             try {
                 $this->authorize('update', $this->application);
-                $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
+                $this->customLabels = str(implode('|ideploy|', generateLabelsApplication($this->application)))->replace('|ideploy|', "\n");
                 $this->application->custom_labels = base64_encode($this->customLabels);
                 $this->application->save();
             } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
                 // User doesn't have update permission, just use existing labels
-                // $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
+                // $this->customLabels = str(implode('|ideploy|', generateLabelsApplication($this->application)))->replace('|ideploy|', "\n");
             }
         }
         $this->initialDockerComposeLocation = $this->application->docker_compose_location;
@@ -662,7 +662,7 @@ class General extends Component
             if (! $this->is_container_label_readonly_enabled && ! $manualReset) {
                 return;
             }
-            $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
+            $this->customLabels = str(implode('|ideploy|', generateLabelsApplication($this->application)))->replace('|ideploy|', "\n");
             $this->custom_labels = base64_encode($this->customLabels);
             $this->syncToModel();
             $this->application->save();
@@ -684,7 +684,7 @@ class General extends Component
             if ($this->application->additional_servers->count() === 0) {
                 foreach ($domains as $domain) {
                     if (! validateDNSEntry($domain, $this->application->destination->server)) {
-                        $showToaster && $this->dispatch('error', 'Validating DNS failed.', "Make sure you have added the DNS records correctly.<br><br>$domain->{$this->application->destination->server->ip}<br><br>Check this <a target='_blank' class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/dns-configuration'>documentation</a> for further help.");
+                        $showToaster && $this->dispatch('error', 'Validating DNS failed.', "Make sure you have added the DNS records correctly.<br><br>$domain->{$this->application->destination->server->ip}<br><br>Check this <a target='_blank' class='underline dark:text-white' href='https://ideploy.io/docs/knowledge-base/dns-configuration'>documentation</a> for further help.");
                     }
                 }
             }
@@ -779,7 +779,7 @@ class General extends Component
 
             $this->application->save();
             if (! $this->customLabels && $this->application->destination->server->proxyType() !== 'NONE' && ! $this->application->settings->is_container_label_readonly_enabled) {
-                $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
+                $this->customLabels = str(implode('|ideploy|', generateLabelsApplication($this->application)))->replace('|ideploy|', "\n");
                 $this->application->custom_labels = base64_encode($this->customLabels);
                 $this->application->save();
             }
@@ -826,7 +826,7 @@ class General extends Component
                         $domain = data_get($service, 'domain');
                         if ($domain) {
                             if (! validateDNSEntry($domain, $this->application->destination->server)) {
-                                $showToaster && $this->dispatch('error', 'Validating DNS failed.', "Make sure you have added the DNS records correctly.<br><br>$domain->{$this->application->destination->server->ip}<br><br>Check this <a target='_blank' class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/dns-configuration'>documentation</a> for further help.");
+                                $showToaster && $this->dispatch('error', 'Validating DNS failed.', "Make sure you have added the DNS records correctly.<br><br>$domain->{$this->application->destination->server->ip}<br><br>Check this <a target='_blank' class='underline dark:text-white' href='https://ideploy.io/docs/knowledge-base/dns-configuration'>documentation</a> for further help.");
                             }
                         }
                     }
@@ -947,24 +947,24 @@ class General extends Component
     {
         // Pipeline Card Data - ONLY use PipelineExecution data, NOT deployments
         $pipelineConfig = $this->application->pipelineConfig;
-        
+
         // Count ONLY pipeline executions (not deployments!)
         $totalExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)->count();
-        
+
         // Pipeline is active ONLY if config exists, is enabled AND has at least one execution
         $isPipelineActive = $pipelineConfig && $pipelineConfig->enabled && $totalExecutions > 0;
-        
+
         if ($isPipelineActive) {
             $successfulExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)
                 ->where('status', 'success')
                 ->count();
             $successRate = $totalExecutions > 0 ? round(($successfulExecutions / $totalExecutions) * 100) : 0;
-            
+
             // Calculate average time from started_at to finished_at for completed executions
             $completedExecutions = \App\Models\PipelineExecution::where('application_id', $this->application->id)
                 ->whereNotNull('finished_at')
                 ->get();
-            
+
             $averageTime = 0;
             if ($completedExecutions->count() > 0) {
                 $totalMinutes = $completedExecutions->sum(function($execution) {
@@ -972,7 +972,7 @@ class General extends Component
                 });
                 $averageTime = round($totalMinutes / $completedExecutions->count());
             }
-            
+
             $lastExecution = \App\Models\PipelineExecution::where('application_id', $this->application->id)
                 ->orderBy('created_at', 'desc')
                 ->first();
@@ -991,7 +991,7 @@ class General extends Component
         $isAppRunning = $this->application->isRunning();
         $isAppStopped = $this->application->isExited() || !$isAppRunning;
         $appRealStatus = $this->application->realStatus();
-        
+
         // Firewall/Security Card Data
         $firewallConfig = $this->application->firewallConfig;
         $activeRules = $firewallConfig ? $firewallConfig->rules()->where('enabled', true)->count() : 0;

@@ -5,7 +5,7 @@
             <div class="absolute inset-0 opacity-10">
                 <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.3),transparent_50%)]" style="animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
             </div>
-            
+
             <div class="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                 <div class="flex-1">
                     <div class="flex items-center gap-4 mb-4">
@@ -20,7 +20,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 @can('update', $database)
                     <button type="submit" class="group relative px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl font-semibold text-white shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap">
                         <div class="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -71,7 +71,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <x-forms.input label="Name" id="name" canGate="update" :canResource="$database" />
@@ -103,7 +103,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 @if ($database->started_at)
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -142,7 +142,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 <x-forms.input placeholder="3000:8123" id="portsMappings" label="Ports Mappings"
                     helper="A comma separated list of ports you would like to map to the host system.<br><span class='inline-block font-bold dark:text-warning'>Example</span>3000:8123,3002:6380" canGate="update" :canResource="$database" />
@@ -189,7 +189,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 <div class="mb-4">
                     <x-forms.checkbox instantSave id="isPublic" label="Make it publicly available" canGate="update" :canResource="$database" />
@@ -199,7 +199,7 @@
                 <x-forms.textarea placeholder="# maxmemory 256mb
 # maxmemory-policy allkeys-lru
 # timeout 300"
-                    helper="You only need to provide the Redis directives you want to override — Redis will use default values for everything else. <br/><br/>⚠️ <strong>Important:</strong> Coolify automatically applies the requirepass directive using the password shown in the Password field above. If you override requirepass in your custom configuration, make sure it matches the password field to avoid authentication issues. <br/><br/>🔗 <strong>Tip:</strong> <a target='_blank' class='underline dark:text-white' href='https://raw.githubusercontent.com/redis/redis/7.2/redis.conf'>View the full Redis default configuration</a> to see what options are available."
+                    helper="You only need to provide the Redis directives you want to override — Redis will use default values for everything else. <br/><br/>⚠️ <strong>Important:</strong> Ideploy automatically applies the requirepass directive using the password shown in the Password field above. If you override requirepass in your custom configuration, make sure it matches the password field to avoid authentication issues. <br/><br/>🔗 <strong>Tip:</strong> <a target='_blank' class='underline dark:text-white' href='https://raw.githubusercontent.com/redis/redis/7.2/redis.conf'>View the full Redis default configuration</a> to see what options are available."
                     label="Custom ClickHouse Configuration" rows="10" id="clickhouseConf" canGate="update" :canResource="$database" />
             </div>
         </div>
@@ -226,10 +226,10 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 <x-forms.input
-                    helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up Coolify's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
+                    helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up Ideploy's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://ideploy.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
                     placeholder="--cap-add SYS_ADMIN --device=/dev/fuse --security-opt apparmor:unconfined --ulimit nofile=1024:1024 --tmpfs /run:rw,noexec,nosuid,size=65536k"
                     id="customDockerRunOptions" label="Custom Docker Options" canGate="update" :canResource="$database" />
                 <x-forms.checkbox helper="Drain logs to your configured log drain endpoint in your Server settings."

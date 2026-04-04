@@ -15,7 +15,7 @@ services:
       - VERSION=${MINECRAFT_VERSION:-latest}
       - TYPE=${MINECRAFT_TYPE:-VANILLA}
       - SERVER_NAME=${MINECRAFT_SERVER_NAME:-Minecraft Server}
-      - MOTD=${MINECRAFT_MOTD:-Minecraft Server powered by §aCoolify§r}
+      - MOTD=${MINECRAFT_MOTD:-Minecraft Server powered by §aIdeploy§r}
       - DIFFICULTY=${MINECRAFT_DIFFICULTY:-normal}
       - MAX_PLAYERS=${MINECRAFT_MAX_PLAYERS:-10}
       - MAX_WORLD_SIZE=${MINECRAFT_MAX_WORLD_SIZE:-10000}

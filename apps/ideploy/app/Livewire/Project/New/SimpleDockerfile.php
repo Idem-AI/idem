@@ -37,12 +37,12 @@ CMD ["nginx", "-g", "daemon off;"]
         // IDEM: Check if user can deploy (quota check)
         $quotaService = app(IdemQuotaService::class);
         $team = Auth::user()->currentTeam();
-        
+
         if (!$quotaService->canDeployApp($team)) {
             $this->dispatch('error', 'Application limit reached. Please upgrade your plan to deploy more applications.');
             return redirect()->route('idem.subscription');
         }
-        
+
         $this->validate([
             'dockerfile' => 'required',
         ]);
@@ -66,7 +66,7 @@ CMD ["nginx", "-g", "daemon off;"]
         $application = Application::create([
             'name' => 'dockerfile-'.new Cuid2,
             'repository_project_id' => 0,
-            'git_repository' => 'coollabsio/coolify',
+            'git_repository' => 'coollabsio/ideploy',
             'git_branch' => 'main',
             'build_pack' => 'dockerfile',
             'dockerfile' => $this->dockerfile,

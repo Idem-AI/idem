@@ -22,7 +22,7 @@ class ConfigurationGenerator
                 'name' => $this->resource->name,
                 'uuid' => $this->resource->uuid,
                 'description' => $this->resource->description,
-                'coolify_details' => [
+                'ideploy_details' => [
                     'project_uuid' => $this->resource->project()->uuid,
                     'environment_uuid' => $this->resource->environment->uuid,
 

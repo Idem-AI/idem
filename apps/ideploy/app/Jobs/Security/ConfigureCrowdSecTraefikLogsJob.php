@@ -27,76 +27,76 @@ class ConfigureCrowdSecTraefikLogsJob implements ShouldQueue
     public function handle(): void
     {
         ray("🔧 Configuring CrowdSec to read Traefik logs on: {$this->server->name}");
-        
+
         try {
             // 1. Backup current docker-compose
             $this->backupDockerCompose();
-            
+
             // 2. Update docker-compose to mount Traefik logs
             $this->updateDockerCompose();
-            
+
             // 3. Update acquis.yaml with correct path
             $this->updateAcquisConfig();
-            
+
             // 4. Recreate CrowdSec container
             $this->recreateCrowdSec();
-            
+
             // 5. Verify logs are being read
             sleep(10);
             $this->verifyLogReading();
-            
+
             ray("✅ CrowdSec configured to read Traefik logs");
-            
+
         } catch (\Exception $e) {
             ray("❌ Failed to configure CrowdSec: {$e->getMessage()}");
             throw $e;
         }
     }
-    
+
     private function backupDockerCompose(): void
     {
         ray("Creating backup...");
-        
+
         // Check if directory and file exist first
         $dirCheck = instant_remote_process([
-            'test -d /var/lib/coolify/crowdsec && echo "DIR_EXISTS" || echo "DIR_NOT_FOUND"'
+            'test -d /var/lib/ideploy/crowdsec && echo "DIR_EXISTS" || echo "DIR_NOT_FOUND"'
         ], $this->server);
-        
+
         if (str_contains($dirCheck, 'DIR_NOT_FOUND')) {
-            throw new \Exception('CrowdSec directory /var/lib/coolify/crowdsec not found. Please install CrowdSec first.');
+            throw new \Exception('CrowdSec directory /var/lib/ideploy/crowdsec not found. Please install CrowdSec first.');
         }
-        
+
         $fileCheck = instant_remote_process([
-            'test -f /var/lib/coolify/crowdsec/docker-compose.yml && echo "FILE_EXISTS" || echo "FILE_NOT_FOUND"'
+            'test -f /var/lib/ideploy/crowdsec/docker-compose.yml && echo "FILE_EXISTS" || echo "FILE_NOT_FOUND"'
         ], $this->server);
-        
+
         if (str_contains($fileCheck, 'FILE_NOT_FOUND')) {
             throw new \Exception('CrowdSec docker-compose.yml not found. Please install CrowdSec first.');
         }
-        
+
         instant_remote_process([
-            'cd /var/lib/coolify/crowdsec',
+            'cd /var/lib/ideploy/crowdsec',
             'cp docker-compose.yml docker-compose.yml.backup-' . date('YmdHis'),
         ], $this->server);
-        
+
         ray("✅ Backup created");
     }
-    
+
     private function updateDockerCompose(): void
     {
         ray("Updating docker-compose.yml...");
-        
+
         // Read current compose
         $currentCompose = instant_remote_process([
-            'cat /var/lib/coolify/crowdsec/docker-compose.yml'
+            'cat /var/lib/ideploy/crowdsec/docker-compose.yml'
         ], $this->server);
-        
+
         // Check if already configured
-        if (str_contains($currentCompose, '/data/coolify/proxy:/traefik:ro')) {
+        if (str_contains($currentCompose, '/data/ideploy/proxy:/traefik:ro')) {
             ray("✅ Traefik logs already mounted");
             return;
         }
-        
+
         // Generate new compose with Traefik logs volume
         $newCompose = <<<'YAML'
 version: '3.8'
@@ -113,50 +113,50 @@ services:
       - './config:/etc/crowdsec'
       - './data:/var/lib/crowdsec/data'
       - '/var/log:/var/log:ro'
-      - '/data/coolify/proxy:/traefik:ro'
+      - '/data/ideploy/proxy:/traefik:ro'
     ports:
       - '0.0.0.0:8081:8080'
     networks:
-      - coolify
+      - ideploy
 networks:
-  coolify:
+  ideploy:
     external: true
 YAML;
-        
+
         // Write to temp file
         $tempFile = storage_path("app/crowdsec-compose-{$this->server->id}.yml");
         file_put_contents($tempFile, $newCompose);
-        
+
         // Upload
         instant_scp(
             $tempFile,
-            '/var/lib/coolify/crowdsec/docker-compose.yml',
+            '/var/lib/ideploy/crowdsec/docker-compose.yml',
             $this->server
         );
-        
+
         @unlink($tempFile);
-        
+
         ray("✅ docker-compose.yml updated");
     }
-    
+
     private function updateAcquisConfig(): void
     {
         ray("Updating acquis.yaml...");
-        
+
         // Get all applications on this server with firewall enabled
         $applications = \App\Models\Application::whereHas('destination', function($q) {
             $q->where('server_id', $this->server->id);
         })->whereHas('firewallConfig', function($q) {
             $q->where('enabled', true);
         })->get();
-        
+
         $acquisConfig = "---\n";
         $acquisConfig .= "source: file\n";
         $acquisConfig .= "filenames:\n";
         $acquisConfig .= "  - /traefik/access.log\n";
         $acquisConfig .= "labels:\n";
         $acquisConfig .= "  type: traefik\n\n";
-        
+
         // Add AppSec configs for each application
         foreach ($applications as $app) {
             $acquisConfig .= "---\n";
@@ -167,73 +167,73 @@ YAML;
             $acquisConfig .= "  type: appsec\n";
             $acquisConfig .= "  application_uuid: {$app->uuid}\n\n";
         }
-        
+
         // Write to temp file
         $tempFile = storage_path("app/acquis-{$this->server->id}.yaml");
         file_put_contents($tempFile, $acquisConfig);
-        
+
         // Upload
         instant_scp(
             $tempFile,
-            '/var/lib/coolify/crowdsec/config/acquis.yaml',
+            '/var/lib/ideploy/crowdsec/config/acquis.yaml',
             $this->server
         );
-        
+
         @unlink($tempFile);
-        
+
         ray("✅ acquis.yaml updated");
     }
-    
+
     private function recreateCrowdSec(): void
     {
         ray("Recreating CrowdSec container...");
-        
+
         instant_remote_process([
-            'cd /var/lib/coolify/crowdsec',
+            'cd /var/lib/ideploy/crowdsec',
             'docker compose down',
             'docker compose up -d',
         ], $this->server);
-        
+
         // Wait for CrowdSec to be healthy
         sleep(15);
-        
+
         ray("✅ CrowdSec recreated");
     }
-    
+
     private function verifyLogReading(): void
     {
         ray("Verifying log reading...");
-        
+
         // Check if file is accessible
         try {
             $result = instant_remote_process([
                 'docker exec crowdsec-live ls -lh /traefik/access.log 2>&1'
             ], $this->server);
-            
+
             if (str_contains($result, 'No such file')) {
                 ray("⚠️ Traefik access.log not found, but continuing...");
                 // Ne pas throw, juste un warning
                 return;
             }
-            
+
             ray("✅ Traefik logs accessible in CrowdSec container");
         } catch (\Exception $e) {
             ray("⚠️ Could not verify log reading: {$e->getMessage()}");
             // Continuer sans échec
         }
-        
+
         // Check CrowdSec logs for acquisition
         $logs = instant_remote_process([
             'docker logs crowdsec-live 2>&1 | grep -i "traefik/access.log" | tail -5'
         ], $this->server);
-        
+
         if (str_contains($logs, 'No matching files')) {
             throw new \Exception('CrowdSec cannot read Traefik logs');
         }
-        
+
         ray("✅ CrowdSec is reading Traefik logs");
     }
-    
+
     public function failed(\Throwable $exception): void
     {
         ray("ConfigureCrowdSecTraefikLogsJob failed: {$exception->getMessage()}");

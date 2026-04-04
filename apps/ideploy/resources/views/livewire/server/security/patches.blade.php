@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($server, 'name')->limit(10) }} > Security | Coolify
+        {{ data_get_str($server, 'name')->limit(10) }} > Security | Ideploy
     </x-slot>
     <livewire:server.navbar :server="$server" />
     <x-slide-over closeWithX fullScreen @startupdate.window="slideOverOpen = true">

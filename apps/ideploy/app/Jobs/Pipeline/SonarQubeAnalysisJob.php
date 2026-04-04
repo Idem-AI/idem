@@ -32,14 +32,14 @@ class SonarQubeAnalysisJob implements ShouldQueue
         try {
             $projectKey = "ideploy-{$this->application->uuid}";
             $sonarUrl = config('services.sonarqube.url', 'http://localhost:9000');
-            
+
             // 1. Auto-detect language and run scanner
             $language = $this->detectLanguage();
             $scannerCommand = $this->getScannerCommand($projectKey, $language);
-            
+
             // 2. Execute SonarQube scanner in Docker
             $result = Process::timeout(300)->run($scannerCommand);
-            
+
             if ($result->failed()) {
                 throw new \Exception("SonarQube scan failed: " . $result->errorOutput());
             }
@@ -77,9 +77,9 @@ class SonarQubeAnalysisJob implements ShouldQueue
     {
         $sonarUrl = config('services.sonarqube.url');
         $sonarToken = config('services.sonarqube.token');
-        
+
         return "docker run --rm " .
-               "--network coolify " .
+               "--network ideploy " .
                "-v {$this->sourceCode}:/usr/src " .
                "sonarsource/sonar-scanner-cli:latest " .
                "-Dsonar.projectKey={$projectKey} " .
@@ -95,7 +95,7 @@ class SonarQubeAnalysisJob implements ShouldQueue
         $sonarToken = config('services.sonarqube.token');
 
         $metrics = [
-            'bugs', 'vulnerabilities', 'code_smells', 
+            'bugs', 'vulnerabilities', 'code_smells',
             'coverage', 'duplicated_lines_density',
             'reliability_rating', 'security_rating', 'sqale_rating'
         ];
@@ -118,7 +118,7 @@ class SonarQubeAnalysisJob implements ShouldQueue
         // Quality Gate: fail if critical issues
         $bugs = (int)($metrics['bugs'] ?? 0);
         $vulnerabilities = (int)($metrics['vulnerabilities'] ?? 0);
-        
+
         return ($bugs > 10 || $vulnerabilities > 0) ? 'failed' : 'success';
     }
 }

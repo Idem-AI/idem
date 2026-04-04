@@ -1,8 +1,8 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
-        Storages | Coolify
+        Storages | Ideploy
     </x-slot>
-    
+
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center gap-3 mb-2">
@@ -46,7 +46,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
                                 </svg>
                             </div>
-                            
+
                             {{-- Storage Info --}}
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
@@ -70,7 +70,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     {{-- Footer --}}
                     <div class="px-5 py-4 bg-gray-900/20">
                         <div class="flex items-center justify-between text-xs">

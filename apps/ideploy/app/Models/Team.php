@@ -90,13 +90,13 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsPushover, Sen
     public static function serverLimitReached()
     {
         $team = currentTeam();
-        
+
         // Use IDEM Quota Service if available
         if (class_exists('App\Services\IdemQuotaService')) {
             $quotaService = app('App\Services\IdemQuotaService');
             return !$quotaService->canAddServer($team);
         }
-        
+
         // Fallback to original logic
         $serverLimit = Team::serverLimit();
         $servers = $team->servers->count();
@@ -138,7 +138,7 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsPushover, Sen
     {
         return Attribute::make(
             get: function () {
-                if (config('constants.coolify.self_hosted') || $this->id === 0) {
+                if (config('constants.ideploy.self_hosted') || $this->id === 0) {
                     return 999999999999;
                 }
 

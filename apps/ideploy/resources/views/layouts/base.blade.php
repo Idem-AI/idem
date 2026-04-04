@@ -9,22 +9,22 @@
     <meta name="Description" content="iDeploy: An open-source & self-hostable Heroku / Netlify / Vercel alternative" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@coolifyio" />
+    <meta name="twitter:site" content="@ideployio" />
     <meta name="twitter:title" content="iDeploy" />
     <meta name="twitter:description" content="An open-source & self-hostable Heroku / Netlify / Vercel alternative." />
-    <meta name="twitter:image" content="https://cdn.coollabs.io/assets/coolify/og-image.png" />
+    <meta name="twitter:image" content="https://cdn.coollabs.io/assets/ideploy/og-image.png" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://coolify.io" />
+    <meta property="og:url" content="https://ideploy.io" />
     <meta property="og:title" content="iDeploy" />
     <meta property="og:description" content="An open-source & self-hostable Heroku / Netlify / Vercel alternative." />
     <meta property="og:site_name" content="iDeploy" />
-    <meta property="og:image" content="https://cdn.coollabs.io/assets/coolify/og-image.png" />
-    
+    <meta property="og:image" content="https://cdn.coollabs.io/assets/ideploy/og-image.png" />
+
     {{-- IDEM: Google Fonts - Jura --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     @use('App\Models\InstanceSettings')
     @php
 
@@ -53,7 +53,7 @@
         }
     </style>
     @if (config('app.name') == 'iDeploy Cloud')
-        <script defer data-domain="app.coolify.io" src="https://analytics.coollabs.io/js/plausible.js"></script>
+        <script defer data-domain="app.ideploy.io" src="https://analytics.coollabs.io/js/plausible.js"></script>
         <script src="https://js.sentry-cdn.com/0f8593910512b5cdd48c6da78d4093be.min.js" crossorigin="anonymous"></script>
     @endif
     @auth
@@ -115,7 +115,7 @@
                                 }
                             });
                         }
-                        
+
                         // Existing link sanitization
                         if (node.nodeName === 'A' && node.hasAttribute('href')) {
                             const href = node.getAttribute('href') || '';
@@ -175,7 +175,7 @@
             window.Echo = new Echo({
                 broadcaster: 'pusher',
                 cluster: "{{ config('constants.pusher.host') }}" || window.location.hostname,
-                key: "{{ config('constants.pusher.app_key') }}" || 'coolify',
+                key: "{{ config('constants.pusher.app_key') }}" || 'ideploy',
                 wsHost: "{{ config('constants.pusher.host') }}" || window.location.hostname,
                 wsPort: "{{ getRealtime() }}",
                 wssPort: "{{ getRealtime() }}",

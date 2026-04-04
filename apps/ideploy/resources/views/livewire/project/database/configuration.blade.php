@@ -1,8 +1,8 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($database, 'name')->limit(10) }} > Configuration | Coolify
+        {{ data_get_str($database, 'name')->limit(10) }} > Configuration | Ideploy
     </x-slot>
-    
+
     {{-- Header Moderne --}}
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-white mb-2">
@@ -10,10 +10,10 @@
         </h1>
         <p class="text-base text-gray-400">Manage your database settings and deployment options</p>
     </div>
-    
+
     <livewire:project.shared.configuration-checker :resource="$database" />
     <livewire:project.database.heading :database="$database" />
-    
+
     <div class="flex flex-col lg:flex-row gap-6 mt-6">
         {{-- Sidebar Navigation Moderne --}}
         <div class="lg:w-64 flex-shrink-0">
@@ -23,10 +23,10 @@
                     <div class="text-xs uppercase tracking-widest text-blue-400 font-bold mb-3 px-1">
                         CONFIGURATION
                     </div>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.database.configuration') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.configuration') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.configuration', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,10 +34,10 @@
                         </svg>
                         <span>General</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.database.environment-variables') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.environment-variables') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.environment-variables', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,10 +45,10 @@
                         </svg>
                         <span>Variables</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.database.persistent-storage') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.persistent-storage') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.persistent-storage', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,10 +63,10 @@
                     <div class="text-xs uppercase tracking-widest text-purple-400 font-bold mb-3 px-1">
                         DEPLOYMENT
                     </div>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.database.servers') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.servers') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.servers', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,11 +74,11 @@
                         </svg>
                         <span>Servers</span>
                     </a>
-                    
+
                     @can('update', $database)
                         <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                            :class="'{{ request()->routeIs('project.database.import-backups') }}' === '1' 
-                                ? 'glass text-light glow-primary' 
+                            :class="'{{ request()->routeIs('project.database.import-backups') }}' === '1'
+                                ? 'glass text-light glow-primary'
                                 : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                             href="{{ route('project.database.import-backups', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,10 +87,10 @@
                             <span>Import Backups</span>
                         </a>
                     @endcan
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.database.webhooks') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.webhooks') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.webhooks', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,10 +105,10 @@
                     <div class="text-xs uppercase tracking-widest text-green-400 font-bold mb-3 px-1">
                         MONITORING
                     </div>
-                    
+
                     <a class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                        :class="'{{ request()->routeIs('project.database.resource-limits') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.resource-limits') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.resource-limits', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,10 +116,10 @@
                         </svg>
                         <span>Resource Limits</span>
                     </a>
-                    
+
                     <a class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                        :class="'{{ request()->routeIs('project.database.resource-operations') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.resource-operations') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.resource-operations', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,10 +127,10 @@
                         </svg>
                         <span>Operations</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.database.metrics') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.metrics') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.metrics', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,10 +145,10 @@
                     <div class="text-xs uppercase tracking-widest text-gray-400 font-bold mb-3 px-1">
                         OTHER
                     </div>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.database.tags') }}' === '1' 
-                            ? 'glass text-light glow-primary' 
+                        :class="'{{ request()->routeIs('project.database.tags') }}' === '1'
+                            ? 'glass text-light glow-primary'
                             : 'text-light opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.tags', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,10 +156,10 @@
                         </svg>
                         <span>Tags</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.database.danger') }}' === '1' 
-                            ? 'glass text-danger glow-secondary' 
+                        :class="'{{ request()->routeIs('project.database.danger') }}' === '1'
+                            ? 'glass text-danger glow-secondary'
                             : 'text-danger opacity-70 hover:opacity-100 hover:glass'"
                         href="{{ route('project.database.danger', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'database_uuid' => $database->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,29 +1,29 @@
 <?php
 
 return [
-    'coolify' => [
+    'ideploy' => [
         'version' => '4.0.0-beta.437',
         'helper_version' => '1.0.11',
         'realtime_version' => '1.0.10',
         'self_hosted' => env('SELF_HOSTED', true),
         'autoupdate' => env('AUTOUPDATE'),
-        'base_config_path' => env('BASE_CONFIG_PATH', '/data/coolify'),
+        'base_config_path' => env('BASE_CONFIG_PATH', '/data/ideploy'),
         'registry_url' => env('REGISTRY_URL', 'ghcr.io'),
-        'helper_image' => env('HELPER_IMAGE', env('REGISTRY_URL', 'ghcr.io').'/coollabsio/coolify-helper'),
-        'realtime_image' => env('REALTIME_IMAGE', env('REGISTRY_URL', 'ghcr.io').'/coollabsio/coolify-realtime'),
+        'helper_image' => env('HELPER_IMAGE', env('REGISTRY_URL', 'ghcr.io').'/coollabsio/ideploy-helper'),
+        'realtime_image' => env('REALTIME_IMAGE', env('REGISTRY_URL', 'ghcr.io').'/coollabsio/ideploy-realtime'),
         'is_windows_docker_desktop' => env('IS_WINDOWS_DOCKER_DESKTOP', false),
-        'releases_url' => 'https://cdn.coollabs.io/coolify/releases.json',
+        'releases_url' => 'https://cdn.coollabs.io/ideploy/releases.json',
     ],
 
     'urls' => [
-        'docs' => 'https://coolify.io/docs',
-        'contact' => 'https://coolify.io/docs/contact',
+        'docs' => 'https://ideploy.io/docs',
+        'contact' => 'https://ideploy.io/docs/contact',
     ],
 
     'services' => [
         // Temporary disabled until cache is implemented
-        // 'official' => 'https://cdn.coollabs.io/coolify/service-templates.json',
-        'official' => 'https://raw.githubusercontent.com/coollabsio/coolify/v4.x/templates/service-templates-latest.json',
+        // 'official' => 'https://cdn.coollabs.io/ideploy/service-templates.json',
+        'official' => 'https://raw.githubusercontent.com/coollabsio/ideploy/v4.x/templates/service-templates-latest.json',
         'file_name' => 'service-templates-latest.json',
     ],
 

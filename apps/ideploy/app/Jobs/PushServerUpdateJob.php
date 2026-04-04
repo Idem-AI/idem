@@ -144,15 +144,15 @@ class PushServerUpdateJob implements ShouldBeEncrypted, ShouldQueue, Silenced
             $containerHealth = data_get($container, 'health_status', 'unhealthy');
             $containerStatus = "$containerStatus ($containerHealth)";
             $labels = collect(data_get($container, 'labels'));
-            $coolify_managed = $labels->has('coolify.managed');
-            if ($coolify_managed) {
+            $ideploy_managed = $labels->has('ideploy.managed');
+            if ($ideploy_managed) {
                 $name = data_get($container, 'name');
-                if ($name === 'coolify-log-drain' && $this->isRunning($containerStatus)) {
+                if ($name === 'ideploy-log-drain' && $this->isRunning($containerStatus)) {
                     $this->foundLogDrainContainer = true;
                 }
-                if ($labels->has('coolify.applicationId')) {
-                    $applicationId = $labels->get('coolify.applicationId');
-                    $pullRequestId = $labels->get('coolify.pullRequestId', '0');
+                if ($labels->has('ideploy.applicationId')) {
+                    $applicationId = $labels->get('ideploy.applicationId');
+                    $pullRequestId = $labels->get('ideploy.pullRequestId', '0');
                     try {
                         if ($pullRequestId === '0') {
                             if ($this->allApplicationIds->contains($applicationId) && $this->isRunning($containerStatus)) {
@@ -175,10 +175,10 @@ class PushServerUpdateJob implements ShouldBeEncrypted, ShouldQueue, Silenced
                         }
                     } catch (\Exception $e) {
                     }
-                } elseif ($labels->has('coolify.serviceId')) {
-                    $serviceId = $labels->get('coolify.serviceId');
-                    $subType = $labels->get('coolify.service.subType');
-                    $subId = $labels->get('coolify.service.subId');
+                } elseif ($labels->has('ideploy.serviceId')) {
+                    $serviceId = $labels->get('ideploy.serviceId');
+                    $subType = $labels->get('ideploy.service.subType');
+                    $subId = $labels->get('ideploy.service.subId');
                     if ($subType === 'application' && $this->isRunning($containerStatus)) {
                         $this->foundServiceApplicationIds->push($subId);
                         $this->updateServiceSubStatus($serviceId, $subType, $subId, $containerStatus);
@@ -188,8 +188,8 @@ class PushServerUpdateJob implements ShouldBeEncrypted, ShouldQueue, Silenced
                     }
                 } else {
                     $uuid = $labels->get('com.docker.compose.service');
-                    $type = $labels->get('coolify.type');
-                    if ($name === 'coolify-proxy' && $this->isRunning($containerStatus)) {
+                    $type = $labels->get('ideploy.type');
+                    if ($name === 'ideploy-proxy' && $this->isRunning($containerStatus)) {
                         $this->foundProxy = true;
                     } elseif ($type === 'service' && $this->isRunning($containerStatus)) {
                     } else {
@@ -395,7 +395,7 @@ class PushServerUpdateJob implements ShouldBeEncrypted, ShouldQueue, Silenced
                 try {
                     if (CheckProxy::run($this->server)) {
                         StartProxy::run($this->server, async: false);
-                        $this->server->team?->notify(new ContainerRestarted('coolify-proxy', $this->server));
+                        $this->server->team?->notify(new ContainerRestarted('ideploy-proxy', $this->server));
                     }
                 } catch (\Throwable $e) {
                 }

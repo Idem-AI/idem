@@ -28,7 +28,7 @@ class PullChangelog implements ShouldBeEncrypted, ShouldQueue
     {
         try {
             // Fetch from CDN instead of GitHub API to avoid rate limits
-            $cdnUrl = config('constants.coolify.releases_url');
+            $cdnUrl = config('constants.ideploy.releases_url');
 
             $response = Http::retry(3, 1000)
                 ->timeout(30)

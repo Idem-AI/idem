@@ -19,7 +19,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-                <p class="text-sm">For more details, check our <a class='underline font-semibold hover:text-white' href='https://coolify.io/docs/api/operations/deploy-by-tag-or-uuid' target='_blank'>documentation</a>.</p>
+                <p class="text-sm">For more details, check our <a class='underline font-semibold hover:text-white' href='https://ideploy.io/docs/api/operations/deploy-by-tag-or-uuid' target='_blank'>documentation</a>.</p>
             </div>
         </div>
     </div>
@@ -32,7 +32,7 @@
                 <h3 class="text-lg font-semibold text-light">Deploy Webhook</h3>
             </div>
             <x-forms.input readonly
-                helper="See details in our <a target='_blank' class='underline dark:text-white' href='https://coolify.io/docs/api/operations/deploy-by-tag-or-uuid'>documentation</a>."
+                helper="See details in our <a target='_blank' class='underline dark:text-white' href='https://ideploy.io/docs/api/operations/deploy-by-tag-or-uuid'>documentation</a>."
                 label="Deploy Webhook (auth required)" id="deploywebhook"></x-forms.input>
         </div>
         {{-- Manual Git Webhooks Section --}}

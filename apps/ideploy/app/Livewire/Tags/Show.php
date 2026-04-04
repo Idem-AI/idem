@@ -10,7 +10,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Title('Tags | Coolify')]
+#[Title('Tags | Ideploy')]
 class Show extends Component
 {
     #[Locked]

@@ -22,16 +22,16 @@ echo "IP: {$server->ip}" . PHP_EOL . PHP_EOL;
 
 // Check if already configured
 $check = instant_remote_process([
-    'grep -q "ideploy_webhook" /var/lib/coolify/crowdsec/config/notifications/http.yaml && echo "EXISTS" || echo "NOT_FOUND"'
+    'grep -q "ideploy_webhook" /var/lib/ideploy/crowdsec/config/notifications/http.yaml && echo "EXISTS" || echo "NOT_FOUND"'
 ], $server);
 
 if (trim($check) === 'EXISTS') {
     echo "✅ Webhook already configured!" . PHP_EOL . PHP_EOL;
-    
+
     $content = instant_remote_process([
-        'cat /var/lib/coolify/crowdsec/config/notifications/http.yaml'
+        'cat /var/lib/ideploy/crowdsec/config/notifications/http.yaml'
     ], $server);
-    
+
     echo "Current config:" . PHP_EOL . $content . PHP_EOL;
     exit(0);
 }
@@ -89,7 +89,7 @@ echo "📤 Uploading webhook config to server..." . PHP_EOL;
 
 instant_scp(
     $tempPath,
-    '/var/lib/coolify/crowdsec/config/notifications/http.yaml',
+    '/var/lib/ideploy/crowdsec/config/notifications/http.yaml',
     $server
 );
 
@@ -114,7 +114,7 @@ file_put_contents($tempPath, $profilesYaml);
 
 instant_scp(
     $tempPath,
-    '/var/lib/coolify/crowdsec/config/profiles.yaml',
+    '/var/lib/ideploy/crowdsec/config/profiles.yaml',
     $server
 );
 
@@ -136,7 +136,7 @@ unlink($tempPath);
 echo "=== Verification ===" . PHP_EOL . PHP_EOL;
 
 $content = instant_remote_process([
-    'cat /var/lib/coolify/crowdsec/config/notifications/http.yaml'
+    'cat /var/lib/ideploy/crowdsec/config/notifications/http.yaml'
 ], $server);
 
 echo "Webhook config:" . PHP_EOL . $content . PHP_EOL . PHP_EOL;
@@ -153,7 +153,7 @@ try {
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     if ($httpCode === 200) {
         echo "✅ Webhook endpoint is accessible!" . PHP_EOL;
         echo "Response: " . $response . PHP_EOL;

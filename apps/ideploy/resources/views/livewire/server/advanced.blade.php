@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($server, 'name')->limit(10) }} > Advanced | Coolify
+        {{ data_get_str($server, 'name')->limit(10) }} > Advanced | Ideploy
     </x-slot>
     <livewire:server.navbar :server="$server" />
     <div x-data="{ activeTab: window.location.hash ? window.location.hash.substring(1) : 'general' }" class="flex flex-col h-full gap-8 sm:flex-row">
@@ -23,7 +23,7 @@
                             helper="Cron expression for disk usage check frequency.<br>You can use every_minute, hourly, daily, weekly, monthly, yearly.<br><br>Default is every night at 11:00 PM." />
                         <x-forms.input canGate="update" :canResource="$server" id="serverDiskUsageNotificationThreshold"
                             label="Server disk usage notification threshold (%)" required
-                            helper="If the server disk usage exceeds this threshold, Coolify will send a notification to the team members." />
+                            helper="If the server disk usage exceeds this threshold, Ideploy will send a notification to the team members." />
                     </div>
                 </div>
 

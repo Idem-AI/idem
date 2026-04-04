@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script pour nettoyer l'environnement de développement Coolify (Ideploy)
+# Script pour nettoyer l'environnement de développement Ideploy (Ideploy)
 # Usage: ./scripts/clean-all.sh [--no-artisan]
 
 set -e
@@ -44,7 +44,7 @@ clean_directory_contents() {
     fi
 }
 
-info "🧹 Nettoyage de l'environnement Coolify..."
+info "🧹 Nettoyage de l'environnement Ideploy..."
 
 # Supprimer les logs et PID générés par start-all.sh
 if [ -d "$PID_DIR" ]; then
