@@ -39,7 +39,7 @@
                                 <div @class([
                                     'w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg',
                                     'bg-gradient-to-br from-cyan-500 to-blue-600' => $destination->getMorphClass() === 'App\Models\StandaloneDocker',
-                                    'bg-gradient-to-br from-purple-500 to-pink-600' => $destination->getMorphClass() === 'App\Models\SwarmDocker',
+                                    'bg-gradient-to-br from-secondary-500 to-secondary-600' => $destination->getMorphClass() === 'App\Models\SwarmDocker',
                                 ])>
                                     @if ($destination->getMorphClass() === 'App\Models\StandaloneDocker')
                                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

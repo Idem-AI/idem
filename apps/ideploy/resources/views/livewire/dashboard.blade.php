@@ -26,7 +26,7 @@
         <div class="max-w-7xl mx-auto">
             <div class="glass-card border border-purple-500/40 rounded-xl p-4">
                 <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
                         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                         </svg>
@@ -292,24 +292,24 @@
         <div class="max-w-7xl mx-auto">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center justify-center">
-                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-10 h-10 bg-primary/10 border border-primary/30 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
                         </svg>
                     </div>
                     <h2 class="text-2xl font-bold text-white">SERVERS</h2>
                 </div>
                 <div class="flex items-center gap-3">
-                    <div class="bg-purple-500/10 border border-purple-500/30 px-6 py-3 rounded-xl">
+                    <div class="bg-primary/10 border border-primary/30 px-6 py-3 rounded-xl">
                         <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                            <span class="text-purple-300 text-sm font-bold tracking-wide">{{ count($servers) }} {{ count($servers) === 1 ? 'SERVER' : 'SERVERS' }}</span>
+                            <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                            <span class="text-primary text-sm font-bold tracking-wide">{{ count($servers) }} {{ count($servers) === 1 ? 'SERVER' : 'SERVERS' }}</span>
                         </div>
                     </div>
                     @if ($servers->count() > 0 && $privateKeys->count() > 0)
                         <x-modal-input buttonTitle="" title="New Server" :closeOutside="false">
                             <x-slot:content>
-                                <button class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white rounded-lg text-sm font-bold transition-all duration-200 shadow-lg shadow-purple-500/30 flex items-center gap-2">
+                                <button class="inner-button flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                                     </svg>

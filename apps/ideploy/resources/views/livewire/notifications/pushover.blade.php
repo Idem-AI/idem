@@ -2,9 +2,9 @@
     <x-slot:title>
         Pushover Notifications | iDeploy
     </x-slot>
-    
+
     <x-notification.navbar />
-    
+
     {{-- Page Header --}}
     <div class="glass-card mb-8 p-6">
         <div class="flex items-center justify-between">
@@ -19,10 +19,10 @@
                     <p class="text-sm text-gray-400 mt-1">Send push notifications to your devices</p>
                 </div>
             </div>
-            
+
             <div class="flex items-center gap-3">
                 @if ($pushoverEnabled)
-                    <button wire:click="sendTestNotification" 
+                    <button wire:click="sendTestNotification"
                             class="outer-button flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -79,7 +79,7 @@
                            placeholder="azGDORePK8gMaC0QOYAMyEEuzJnyUi">
                     <p class="text-xs text-gray-500 mt-1">Your Pushover user key</p>
                 </div>
-                
+
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">
                         API Token <span class="text-red-400">*</span>
@@ -157,8 +157,8 @@
             {{-- Backups --}}
             <div class="glass-dark p-5 rounded-xl border-glass">
                 <div class="flex items-center gap-3 mb-4">
-                    <div class="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
                         </svg>
                     </div>
