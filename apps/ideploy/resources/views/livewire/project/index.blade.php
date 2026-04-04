@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-[#0a0e1a] text-white p-6">
+<div class="min-h-screen text-white p-6">
     <x-slot:title>
         Projects | Ideploy
     </x-slot>
@@ -10,7 +10,7 @@
             @can('createAnyResource')
                 <x-modal-input buttonTitle="+ Add" title="New Project">
                     <x-slot:content>
-                        <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:shadow-lg hover:scale-105">
+                        <button class="inner-button">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                             </svg>
@@ -28,12 +28,12 @@
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3" x-data="{ projects: @js($projects) }">
         <template x-for="project in projects" :key="project.uuid">
             <div class="group">
-                <div class="bg-[#151b2e] hover:bg-[#1a2137] border border-gray-700 hover:border-gray-600 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer" @click="$wire.navigateToProject(project.uuid)">
+                <div class="glass-card hover:bg-white/5 border border-white/10 hover:border-primary/50 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer" @click="$wire.navigateToProject(project.uuid)">
                     {{-- Header --}}
-                    <div class="p-5 border-b border-gray-700/50">
+                    <div class="p-5 border-b border-white/10">
                         <div class="flex items-start gap-3">
                             {{-- Project Icon --}}
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
+                            <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                                 </svg>
@@ -41,19 +41,19 @@
 
                             {{-- Project Info --}}
                             <div class="flex-1 min-w-0">
-                                <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400 transition-colors mb-1 truncate" x-text="project.name"></h3>
+                                <h3 class="text-lg font-semibold text-gray-100 group-hover:text-primary transition-colors mb-1 truncate" x-text="project.name"></h3>
                                 <p class="text-sm text-gray-400 line-clamp-2" x-text="project.description || 'No description'"></p>
                             </div>
                         </div>
                     </div>
 
                     {{-- Actions Footer --}}
-                    <div class="px-5 py-3.5 bg-gray-900/20 border-t border-gray-700/50 flex items-center justify-between" x-show="project.canUpdate">
+                    <div class="px-5 py-3.5 bg-white/5 border-t border-white/10 flex items-center justify-between" x-show="project.canUpdate">
                         <span class="text-xs text-gray-500" x-text="project.resourceCount ? project.resourceCount + ' ressource(s)' : 'Aucune ressource'"></span>
                         <a wire:click.stop
                            x-show="project.canUpdate"
                            :href="`/project/${project.uuid}/edit`"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-700/60 rounded-lg transition-all">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -68,7 +68,7 @@
 
     {{-- Empty State --}}
     <div x-show="projects.length === 0" class="flex flex-col items-center justify-center py-16">
-        <div class="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-4">
+        <div class="w-20 h-20 glass rounded-full flex items-center justify-center mb-4">
             <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
             </svg>

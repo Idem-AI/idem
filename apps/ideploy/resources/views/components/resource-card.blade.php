@@ -1,9 +1,9 @@
-{{-- Enhanced Resource Card Component with Type Icons --}}
+{{-- Enhanced Resource Card Component with Type Icons - IDEM Design System --}}
 <div>
     <a class="group block" :href="item.hrefLink">
-        <div class="bg-gradient-to-br from-[#151b2e] to-[#0f1419] hover:from-[#1a2137] hover:to-[#141922] border-2 border-gray-700/50 hover:border-blue-500/50 rounded-2xl overflow-hidden transition-all duration-300 min-h-[240px] flex flex-col shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-1">
+        <div class="glass-card hover:bg-white/5 border border-white/10 hover:border-primary/50 rounded-2xl overflow-hidden transition-all duration-300 min-h-[240px] flex flex-col hover:shadow-glass-hover hover:-translate-y-1">
             {{-- Header with Icon --}}
-            <div class="p-5 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/30 to-transparent">
+            <div class="p-5 border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent">
                 <div class="flex items-start gap-3">
                     {{-- Resource Type Icon --}}
                     <div class="flex-shrink-0">
@@ -119,8 +119,8 @@
             <div class="p-5 flex-grow">
                 <div class="space-y-3">
                     <template x-if="item.fqdn">
-                        <div class="flex items-center gap-2 bg-gray-800/30 rounded-lg px-3 py-2">
-                            <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+                            <svg class="w-4 h-4 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
                             </svg>
                             <span class="text-xs text-gray-300 truncate font-mono" x-text="item.fqdn"></span>
@@ -139,13 +139,13 @@
             </div>
 
             {{-- Footer with Tags --}}
-            <div class="px-5 py-3 bg-gradient-to-r from-gray-900/40 to-gray-800/20 border-t border-gray-700/50">
+            <div class="px-5 py-3 bg-gradient-to-r from-white/5 to-transparent border-t border-white/10">
                 <div class="flex items-center gap-1.5 flex-wrap min-h-[28px]">
                     <template x-for="tag in item.tags">
-                        <a :href="`/tags/${tag.name}`" class="inline-flex items-center px-2.5 py-1 text-[10px] font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-md hover:bg-blue-500/30 transition-colors shadow-sm" x-text="tag.name">
+                        <a :href="`/tags/${tag.name}`" class="tag" x-text="tag.name">
                         </a>
                     </template>
-                    <a :href="`${item.hrefLink}/tags`" class="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold bg-gray-700/50 text-gray-400 border border-gray-600 rounded-md hover:bg-gray-700 transition-colors shadow-sm">
+                    <a :href="`${item.hrefLink}/tags`" class="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 rounded-md hover:bg-white/10 transition-colors">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>

@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-[#0a0e1a] text-white p-6">
+<div class="min-h-screen text-white p-6">
     <x-slot:title>
         Destinations | Ideploy
     </x-slot>
@@ -11,7 +11,7 @@
                 @can('createAnyResource')
                     <x-modal-input buttonTitle="+ Add" title="New Destination">
                         <x-slot:content>
-                            <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:shadow-lg hover:scale-105">
+                            <button class="inner-button">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                                 </svg>
@@ -31,9 +31,9 @@
         @forelse ($servers as $server)
             @forelse ($server->destinations() as $destination)
                 <a href="{{ route('destination.show', ['destination_uuid' => data_get($destination, 'uuid')]) }}" class="group block">
-                    <div class="bg-[#151b2e] hover:bg-[#1a2137] border border-gray-700 hover:border-gray-600 rounded-xl overflow-hidden transition-all duration-300">
+                    <div class="glass-card hover:bg-white/5 border border-white/10 hover:border-primary/50 rounded-xl overflow-hidden transition-all duration-300">
                         {{-- Header --}}
-                        <div class="p-5 border-b border-gray-700/50">
+                        <div class="p-5 border-b border-white/10">
                             <div class="flex items-start gap-3">
                                 {{-- Destination Icon --}}
                                 <div @class([
@@ -55,7 +55,7 @@
                                 {{-- Destination Info --}}
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
-                                        <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400 transition-colors truncate">
+                                        <h3 class="text-lg font-semibold text-gray-100 group-hover:text-primary transition-colors truncate">
                                             {{ $destination->name }}
                                         </h3>
                                         <span @class([
@@ -72,7 +72,7 @@
                         </div>
 
                         {{-- Footer --}}
-                        <div class="px-5 py-4 bg-gray-900/20">
+                        <div class="px-5 py-4 bg-white/5">
                             <div class="flex items-center justify-between text-xs">
                                 <div class="flex items-center gap-2 text-gray-400">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
