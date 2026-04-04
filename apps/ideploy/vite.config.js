@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
         resolve: {
             alias: {
                 vue: "vue/dist/vue.esm-bundler.js",
+                "@idem/shared-styles": "/packages/shared-styles",
             },
         },
     }

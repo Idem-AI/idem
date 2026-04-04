@@ -1,56 +1,34 @@
-@import "./fonts.css" layer(base);
-@import "./dashboard-modern.css";
+/* ============================================
+ * IDEPLOY - IDEM Design System Integration
+ * Utilise @idem/shared-styles comme base
+ * ============================================ */
 
-@import "tailwindcss";
+/* Import Tailwind CSS */
+@import 'tailwindcss';
 
-@import "./utilities.css";
+/* Import des fonts locales */
+@import './fonts.css' layer(base);
 
+/* Import du design system IDEM (styles uniquement, sans Tailwind) */
+@import './idem-design-system.css';
+
+/* Import du dashboard moderne */
+@import './dashboard-modern.css';
+
+/* Import des utilities locales */
+@import './utilities.css';
+
+/* Import des styles custom ideploy (Coolify) */
+@import './ideploy-custom.css';
+
+/* Plugins Tailwind spécifiques à ideploy */
 @plugin 'tailwind-scrollbar';
-@plugin '@tailwindcss/typography';
-@plugin '@tailwindcss/forms';
 
-
+/* Source des vues PHP pour Tailwind */
 @source '../../storage/framework/views/*.php';
 
+/* Custom variant pour dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
-
-@theme {
-    --font-sans: 'Jura', Inter, sans-serif;
-
-    --color-base: #101010;
-    --color-warning: #ffa70b;
-    --color-success: #219653;
-    --color-error: #d34053;
-    --color-coollabs-50: #f5f0ff;
-    --color-coollabs: #6b16ed;
-    --color-coollabs-100: #7317ff;
-    --color-coollabs-200: #5a12c7;
-    --color-coollabs-300: #4a0fa3;
-    --color-coolgray-100: #181818;
-    --color-coolgray-200: #202020;
-    --color-coolgray-300: #242424;
-    --color-coolgray-400: #282828;
-    --color-coolgray-500: #323232;
-    
-    /* IDEM Modern Theme Colors */
-    --color-primary: #1447e6;
-    --color-secondary: #d11ec0;
-    --color-primary-glow: #1449e6a8;
-    --color-secondary-glow: #d11ec0a8;
-    --color-accent: #22d3ee;
-    --color-accent-glow: rgba(34, 211, 238, 0.6);
-    
-    --color-bg-dark: #06080d;
-    --color-bg-light: #0f141b;
-    --color-light-text: #f5f5f5;
-    
-    /* Glass Effect Variables */
-    --glass-bg: rgba(15, 20, 27, 0.4);
-    --glass-bg-darker: rgba(20, 20, 30, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    --glass-blur: 8px;
-}
 
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
@@ -61,40 +39,39 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
-
-    *,
-    ::after,
-    ::before,
-    ::backdrop,
-    ::file-selector-button {
-        border-color: var(--color-coolgray-200, currentcolor);
-    }
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-coolgray-200, currentcolor);
+  }
 }
 
 @keyframes lds-heart {
-    0% {
-        transform: scale(1);
-    }
+  0% {
+    transform: scale(1);
+  }
 
-    5% {
-        transform: scale(1.2);
-    }
+  5% {
+    transform: scale(1.2);
+  }
 
-    39% {
-        transform: scale(0.85);
-    }
+  39% {
+    transform: scale(0.85);
+  }
 
-    45% {
-        transform: scale(1);
-    }
+  45% {
+    transform: scale(1);
+  }
 
-    60% {
-        transform: scale(0.95);
-    }
+  60% {
+    transform: scale(0.95);
+  }
 
-    100% {
-        transform: scale(0.9);
-    }
+  100% {
+    transform: scale(0.9);
+  }
 }
 
 /*
@@ -102,99 +79,99 @@
 */
 html,
 body {
-    @apply w-full min-h-full bg-neutral-50 dark:bg-base dark:text-neutral-400;
+  @apply w-full min-h-full bg-neutral-50 dark:bg-base dark:text-neutral-400;
 }
 
 body {
-    @apply min-h-screen text-sm antialiased scrollbar;
+  @apply min-h-screen text-sm antialiased scrollbar;
 }
 
 option {
-    @apply dark:text-white dark:bg-coolgray-100;
+  @apply dark:text-white dark:bg-coolgray-100;
 }
 
 button[isError]:not(:disabled) {
-    @apply text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800 hover:bg-red-300 hover:text-white dark:hover:bg-red-800 dark:hover:text-white;
+  @apply text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800 hover:bg-red-300 hover:text-white dark:hover:bg-red-800 dark:hover:text-white;
 }
 
 button[isHighlighted]:not(:disabled) {
-    @apply text-coollabs-200 dark:text-white bg-coollabs-50 dark:bg-coollabs/20 border-coollabs dark:border-coollabs-100 hover:bg-coollabs hover:text-white dark:hover:bg-coollabs-100 dark:hover:text-white;
+  @apply text-coollabs-200 dark:text-white bg-coollabs-50 dark:bg-coollabs/20 border-coollabs dark:border-coollabs-100 hover:bg-coollabs hover:text-white dark:hover:bg-coollabs-100 dark:hover:text-white;
 }
 
 h1 {
-    @apply text-3xl font-bold dark:text-white;
+  @apply text-3xl font-bold dark:text-white;
 }
 
 h2 {
-    @apply text-xl font-bold dark:text-white;
+  @apply text-xl font-bold dark:text-white;
 }
 
 h3 {
-    @apply text-lg font-bold dark:text-white;
+  @apply text-lg font-bold dark:text-white;
 }
 
 h4 {
-    @apply text-base font-bold dark:text-white;
+  @apply text-base font-bold dark:text-white;
 }
 
 a {
-    @apply hover:text-black dark:hover:text-white;
+  @apply hover:text-black dark:hover:text-white;
 }
 
 button:focus-visible,
 a:focus-visible {
-    @apply outline-none ring-2 ring-coollabs dark:ring-warning ring-offset-2 dark:ring-offset-coolgray-100;
+  @apply outline-none ring-2 ring-coollabs dark:ring-warning ring-offset-2 dark:ring-offset-coolgray-100;
 }
 
 label {
-    @apply dark:text-neutral-400;
+  @apply dark:text-neutral-400;
 }
 
 table {
-    @apply min-w-full divide-y dark:divide-coolgray-200 divide-neutral-300;
+  @apply min-w-full divide-y dark:divide-coolgray-200 divide-neutral-300;
 }
 
 thead {
-    @apply uppercase;
+  @apply uppercase;
 }
 
 tbody {
-    @apply divide-y dark:divide-coolgray-200 divide-neutral-300;
+  @apply divide-y dark:divide-coolgray-200 divide-neutral-300;
 }
 
 tr {
-    @apply text-black dark:text-neutral-400 dark:hover:bg-black hover:bg-neutral-200;
+  @apply text-black dark:text-neutral-400 dark:hover:bg-black hover:bg-neutral-200;
 }
 
 tr th {
-    @apply px-3 py-3.5 text-left text-black dark:text-white;
+  @apply px-3 py-3.5 text-left text-black dark:text-white;
 }
 
 tr th:first-child {
-    @apply py-3.5 pr-3 pl-4 sm:pl-6;
+  @apply py-3.5 pr-3 pl-4 sm:pl-6;
 }
 
 tr td {
-    @apply px-3 py-4 whitespace-nowrap;
+  @apply px-3 py-4 whitespace-nowrap;
 }
 
 tr td:first-child {
-    @apply pr-3 pl-4 font-bold sm:pl-6;
+  @apply pr-3 pl-4 font-bold sm:pl-6;
 }
 
 section {
-    @apply mb-12;
+  @apply mb-12;
 }
 
 /*
 * Utility classes
 */
-.input[type="password"] {
-    @apply pr-[2.4rem];
+.input[type='password'] {
+  @apply pr-[2.4rem];
 }
 
 .lds-heart {
-    animation: lds-heart 1.2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+  animation: lds-heart 1.2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
 /* ============================================
@@ -414,7 +391,9 @@ body {
 
 .input:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-glow), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 0 0 3px var(--color-accent-glow),
+    0 1px 2px 0 rgba(0, 0, 0, 0.05);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -597,7 +576,9 @@ select.input {
 .section-card:hover {
   border-color: rgba(20, 71, 230, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(20, 71, 230, 0.1);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(20, 71, 230, 0.1);
 }
 
 .section-card:hover::before {
@@ -743,7 +724,7 @@ select.input {
 
 /* Change all helper icons from yellow to blue */
 .helper,
-[class*="helper"],
+[class*='helper'],
 svg.text-warning,
 .text-warning svg {
   color: var(--color-accent) !important;
@@ -796,7 +777,9 @@ nav .text-success {
   font-size: 0.875rem;
   line-height: 1.5;
   max-width: 320px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 211, 238, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(34, 211, 238, 0.1);
 }
 
 /* ============================================
@@ -804,7 +787,7 @@ nav .text-success {
  * ============================================ */
 
 /* Update button - Primary blue */
-button[type="submit"].inner-button,
+button[type='submit'].inner-button,
 .form-actions .inner-button:first-child {
   background: linear-gradient(135deg, var(--color-primary), #0d3db8);
   color: white;
@@ -816,14 +799,14 @@ button[type="submit"].inner-button,
   cursor: pointer;
 }
 
-button[type="submit"].inner-button:hover {
+button[type='submit'].inner-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(20, 71, 230, 0.4);
 }
 
 /* Lock button - Secondary gray */
 .lock-button,
-button[wire\:click*="lock"] {
+button[wire\:click*='lock'] {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   color: var(--color-light);
   padding: 0.625rem 1.5rem;
@@ -835,7 +818,7 @@ button[wire\:click*="lock"] {
 }
 
 .lock-button:hover,
-button[wire\:click*="lock"]:hover {
+button[wire\:click*='lock']:hover {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
   border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
@@ -844,7 +827,7 @@ button[wire\:click*="lock"]:hover {
 /* Delete button - Danger red - Modern & Professional */
 .delete-button,
 button.delete-button,
-[class*="delete-button"] {
+[class*='delete-button'] {
   background: linear-gradient(135deg, #dc2626, #b91c1c);
   color: white;
   padding: 0.625rem 1.5rem;
@@ -901,7 +884,9 @@ form.flex.flex-col.items-center:hover {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(20, 71, 230, 0.1);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(20, 71, 230, 0.1);
 }
 
 /* Modal header */
@@ -930,10 +915,10 @@ form.flex.flex-col.items-center:hover {
  * ============================================ */
 
 /* Modern input style */
-input[type="text"],
-input[type="password"],
-input[type="email"],
-input[type="number"],
+input[type='text'],
+input[type='password'],
+input[type='email'],
+input[type='number'],
 textarea,
 select {
   background: rgba(255, 255, 255, 0.03);
@@ -944,10 +929,10 @@ select {
   transition: all 0.3s ease;
 }
 
-input[type="text"]:focus,
-input[type="password"]:focus,
-input[type="email"]:focus,
-input[type="number"]:focus,
+input[type='text']:focus,
+input[type='password']:focus,
+input[type='email']:focus,
+input[type='number']:focus,
 textarea:focus,
 select:focus {
   background: rgba(255, 255, 255, 0.05);
@@ -957,7 +942,7 @@ select:focus {
 }
 
 /* Checkbox improvements */
-input[type="checkbox"] {
+input[type='checkbox'] {
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 4px;
@@ -967,12 +952,12 @@ input[type="checkbox"] {
   transition: all 0.2s ease;
 }
 
-input[type="checkbox"]:checked {
+input[type='checkbox']:checked {
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
 
-input[type="checkbox"]:hover {
+input[type='checkbox']:hover {
   border-color: var(--color-primary);
 }
 
