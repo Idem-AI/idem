@@ -9,7 +9,7 @@
                 </x-modal-input>
                 @if ($repositories->count() > 0)
                     <a target="_blank" class="flex hover:no-underline" href="{{ getInstallationPath($github_app) }}">
-                        <button class="outer-button">
+                        <button class="px-4 py-2 border border-[#4F46E5] text-[#4F46E5] hover:bg-[#4F46E5]/10 font-semibold rounded-lg transition-colors text-sm flex items-center gap-2">
                             Change Repositories on GitHub
                             <x-external-link />
                         </button>

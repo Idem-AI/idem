@@ -113,7 +113,7 @@
             {{-- Submit Button --}}
             <div class="flex items-center justify-end gap-2 pt-3 mt-2 border-t border-gray-800/30">
                 <button type="submit"
-                        class="inner-button">
+                        class="px-6 py-2 text-sm font-semibold text-white bg-[#4F46E5] hover:bg-[#4338CA] rounded-lg transition-all flex items-center gap-2">
                     Continue
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
