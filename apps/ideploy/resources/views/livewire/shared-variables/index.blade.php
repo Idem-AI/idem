@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-[#0a0e1a] text-white p-6">
+<div class="min-h-screen text-white p-6">
     <x-slot:title>
         Shared Variables | Ideploy
     </x-slot>
@@ -12,12 +12,12 @@
     {{-- Variables Scopes Grid --}}
     <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <a href="{{ route('shared-variables.team.index') }}" class="group block">
-            <div class="bg-[#151b2e] hover:bg-[#1a2137] border border-gray-700 hover:border-gray-600 rounded-xl overflow-hidden transition-all duration-300">
+            <div class="glass-card hover:bg-white/5 border border-white/10 hover:border-primary/50 rounded-xl overflow-hidden transition-all duration-300">
                 {{-- Header --}}
-                <div class="p-5 border-b border-gray-700/50">
+                <div class="p-5 border-b border-white/10">
                     <div class="flex items-start gap-3">
                         {{-- Icon --}}
-                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                             </svg>
@@ -25,14 +25,14 @@
 
                         {{-- Info --}}
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400 transition-colors mb-1">Team wide</h3>
+                            <h3 class="text-lg font-semibold text-gray-100 group-hover:text-primary transition-colors mb-1">Team wide</h3>
                             <p class="text-sm text-gray-400">Usable for all resources in a team</p>
                         </div>
                     </div>
                 </div>
 
                 {{-- Footer --}}
-                <div class="px-5 py-4 bg-gray-900/20">
+                <div class="px-5 py-4 bg-white/5">
                     <div class="flex items-center justify-between text-xs">
                         <div class="flex items-center gap-2 text-gray-400">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,7 +40,7 @@
                             </svg>
                             <span>Global Scope</span>
                         </div>
-                        <svg class="w-3 h-3 text-gray-600 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3 text-gray-600 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                     </div>
@@ -49,9 +49,9 @@
         </a>
 
         <a href="{{ route('shared-variables.project.index') }}" class="group block">
-            <div class="bg-[#151b2e] hover:bg-[#1a2137] border border-gray-700 hover:border-gray-600 rounded-xl overflow-hidden transition-all duration-300">
+            <div class="glass-card hover:bg-white/5 border border-white/10 hover:border-primary/50 rounded-xl overflow-hidden transition-all duration-300">
                 {{-- Header --}}
-                <div class="p-5 border-b border-gray-700/50">
+                <div class="p-5 border-b border-white/10">
                     <div class="flex items-start gap-3">
                         {{-- Icon --}}
                         <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
@@ -62,14 +62,14 @@
 
                         {{-- Info --}}
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400 transition-colors mb-1">Project wide</h3>
+                            <h3 class="text-lg font-semibold text-gray-100 group-hover:text-primary transition-colors mb-1">Project wide</h3>
                             <p class="text-sm text-gray-400">Usable for all resources in a project</p>
                         </div>
                     </div>
                 </div>
 
                 {{-- Footer --}}
-                <div class="px-5 py-4 bg-gray-900/20">
+                <div class="px-5 py-4 bg-white/5">
                     <div class="flex items-center justify-between text-xs">
                         <div class="flex items-center gap-2 text-gray-400">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,7 +77,7 @@
                             </svg>
                             <span>Project Scope</span>
                         </div>
-                        <svg class="w-3 h-3 text-gray-600 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3 text-gray-600 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                     </div>
@@ -86,9 +86,9 @@
         </a>
 
         <a href="{{ route('shared-variables.environment.index') }}" class="group block">
-            <div class="bg-[#151b2e] hover:bg-[#1a2137] border border-gray-700 hover:border-gray-600 rounded-xl overflow-hidden transition-all duration-300">
+            <div class="glass-card hover:bg-white/5 border border-white/10 hover:border-primary/50 rounded-xl overflow-hidden transition-all duration-300">
                 {{-- Header --}}
-                <div class="p-5 border-b border-gray-700/50">
+                <div class="p-5 border-b border-white/10">
                     <div class="flex items-start gap-3">
                         {{-- Icon --}}
                         <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
@@ -99,14 +99,14 @@
 
                         {{-- Info --}}
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400 transition-colors mb-1">Environment wide</h3>
+                            <h3 class="text-lg font-semibold text-gray-100 group-hover:text-primary transition-colors mb-1">Environment wide</h3>
                             <p class="text-sm text-gray-400">Usable for all resources in an environment</p>
                         </div>
                     </div>
                 </div>
 
                 {{-- Footer --}}
-                <div class="px-5 py-4 bg-gray-900/20">
+                <div class="px-5 py-4 bg-white/5">
                     <div class="flex items-center justify-between text-xs">
                         <div class="flex items-center gap-2 text-gray-400">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +114,7 @@
                             </svg>
                             <span>Environment Scope</span>
                         </div>
-                        <svg class="w-3 h-3 text-gray-600 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3 text-gray-600 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                     </div>
