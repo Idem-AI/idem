@@ -30,14 +30,14 @@
                         placeholder="Type / to search resources..."
                         @keydown.window.slash.prevent="$refs.searchInput.focus()"
                         class="w-full pl-10 pr-4 py-3 bg-[#0f1724] border rounded-lg text-white placeholder-gray-500 transition-all"
-                        :class="isSticky ? 'border-primary shadow-lg shadow-[#4F46E5]/20' : 'border-gray-800/50 focus:border-primary'">
+                        :class="isSticky ? 'border-[#4F46E5] shadow-lg shadow-[#4F46E5]/20' : 'border-gray-800/50 focus:border-[#4F46E5]'">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 px-2 py-1 bg-gray-800/50 rounded">/</span>
                 </div>
             </div>
             {{-- Loading State --}}
             <div x-show="loading" class="flex items-center justify-center py-12">
                 <div class="text-center">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4F46E5] mx-auto"></div>
                     <p class="mt-4 text-sm text-gray-400">Loading resources...</p>
                 </div>
             </div>
@@ -254,7 +254,7 @@
             {{-- Option 1: IDEM Managed Servers --}}
             <div wire:click="chooseIdemManaged"
                  class="relative p-6 border-2 rounded-xl cursor-pointer transition-all
-                        border-primary bg-primary/10 hover:bg-primary/20 hover:border-primary-400">
+                        border-[#4F46E5] bg-[#4F46E5]/10 hover:bg-[#4F46E5]/20 hover:border-[#6366F1]">
                 <div class="absolute top-4 right-4">
                     <span class="px-3 py-1 text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30 rounded-full">
                         Recommended
@@ -304,7 +304,7 @@
             {{-- Option 2: Personal Servers --}}
             <div wire:click="choosePersonalServers"
                  class="relative p-6 border-2 rounded-xl cursor-pointer transition-all
-                        border-gray-800/50 bg-[#0f1724] hover:bg-[#151b2e] hover:border-primary/50">
+                        border-gray-800/50 bg-[#0f1724] hover:bg-[#151b2e] hover:border-[#4F46E5]/50">
                 <div class="flex items-start">
                     <span class="text-4xl mr-4">🖥️</span>
                     <div class="flex-1">
