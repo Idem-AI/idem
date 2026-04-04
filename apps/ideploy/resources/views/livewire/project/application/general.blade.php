@@ -13,7 +13,7 @@
             <div class="absolute inset-0 opacity-10">
                 <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.3),transparent_50%)]" style="animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
             </div>
-            
+
             <div class="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                 <div class="flex-1">
                     <div class="flex items-center gap-4 mb-4">
@@ -28,7 +28,7 @@
                             <p class="text-sm text-gray-400">Configure your application's core settings and deployment options</p>
                         </div>
                     </div>
-                    
+
                     {{-- Status Indicators --}}
                     <div class="flex flex-wrap items-center gap-3">
                         @if($application->isRunning())
@@ -42,7 +42,7 @@
                                 <span class="text-xs font-semibold text-gray-400">Stopped</span>
                             </div>
                         @endif
-                        
+
                         @if(data_get($application, 'fqdn'))
                             <a href="{{ getFqdnWithoutPort(data_get($application, 'fqdn')) }}" target="_blank" class="group flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 hover:border-blue-500/50 rounded-full transition-all hover:scale-105">
                                 <svg class="w-3 h-3 text-blue-400 group-hover:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +54,7 @@
                                 </svg>
                             </a>
                         @endif
-                        
+
                         @if(data_get($application, 'gitBranchLocation'))
                             <a href="{{ $application->gitBranchLocation }}" target="_blank" class="group flex items-center gap-2 px-3 py-1.5 bg-gray-500/20 border border-gray-500/30 hover:border-gray-500/50 rounded-full transition-all hover:scale-105">
                                 <x-git-icon git="{{ $application->source?->getMorphClass() }}" class="w-3 h-3 text-gray-400 group-hover:text-gray-300" />
@@ -64,7 +64,7 @@
                                 </svg>
                             </a>
                         @endif
-                        
+
                         <div class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-500/30 rounded-full">
                             <svg class="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
@@ -73,7 +73,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 @can('update', $application)
                     <button type="submit" class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap">
                         <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -90,18 +90,18 @@
 
         {{-- Section: Application URLs --}}
             @php
-                $hasUrls = (data_get($application, 'fqdn') || 
+                $hasUrls = (data_get($application, 'fqdn') ||
                            collect(json_decode($application->docker_compose_domains))->count() > 0 ||
                            data_get($application, 'previews', collect([]))->count() > 0 ||
                            data_get($application, 'ports_mappings_array')) &&
                            data_get($application, 'settings.is_raw_compose_deployment_enabled') !== true;
-                           
+
                 // Professional Dashboard Cards - ÉTAT RÉEL de l'application
                 // TOUTES LES DONNÉES VIENNENT DU COMPOSANT LIVEWIRE, PAS DE CALCULS ICI !
                 // Les variables $isPipelineActive, $totalDeployments, etc. sont passées par le composant
                 $server = $application->destination->server;
             @endphp
-            
+
             {{-- Professional Dashboard Cards avec VRAIES DONNÉES --}}
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {{-- Pipeline Status Card avec vraies données --}}
@@ -109,7 +109,7 @@
                     <div class="absolute inset-0 bg-gradient-to-br from-orange-500/0 via-yellow-500/0 to-amber-500/0 group-hover:from-orange-500/5 group-hover:via-yellow-500/5 group-hover:to-amber-500/5 transition-all duration-500"></div>
                     <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
                     <div class="absolute -top-20 -left-20 w-40 h-40 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-full blur-2xl group-hover:scale-125 group-hover:rotate-45 transition-transform duration-1000"></div>
-                    
+
                     {{-- Animated particles --}}
                     <div class="absolute inset-0 overflow-hidden pointer-events-none">
                         <div class="absolute top-4 right-8 w-1 h-1 bg-orange-400/60 rounded-full animate-ping" style="animation-delay: 0.5s;"></div>
@@ -117,7 +117,7 @@
                         <div class="absolute bottom-8 left-12 w-1 h-1 bg-amber-400/50 rounded-full animate-ping" style="animation-delay: 2s;"></div>
                         <div class="absolute top-6 left-20 w-0.5 h-0.5 bg-orange-300/70 rounded-full animate-pulse" style="animation-delay: 0.8s;"></div>
                     </div>
-                    
+
                     <div class="relative">
                         <div class="flex items-center justify-between mb-6">
                             <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
@@ -139,10 +139,10 @@
                                 </span>
                             @endif
                         </div>
-                        
+
                         <h3 class="text-xl font-bold text-white mb-2">Pipeline Status</h3>
                         <p class="text-sm text-gray-400 mb-6">Real deployment automation & build metrics</p>
-                        
+
                         @if($isPipelineActive)
                             <div class="grid grid-cols-3 gap-4 mb-6">
                                 <div class="text-center">
@@ -158,7 +158,7 @@
                                     <div class="text-xs text-gray-500 uppercase">Avg Time</div>
                                 </div>
                             </div>
-                            
+
                             <div class="flex items-center justify-between p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
                                 <div class="flex items-center gap-3">
                                     @if($isDeploymentInProgress)
@@ -190,7 +190,7 @@
                     <div class="absolute inset-0 bg-gradient-to-br from-green-500/0 via-emerald-500/0 to-teal-500/0 group-hover:from-green-500/5 group-hover:via-emerald-500/5 group-hover:to-teal-500/5 transition-all duration-500"></div>
                     <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
                     <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-emerald-500/15 to-transparent rounded-full blur-xl group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-800"></div>
-                    
+
                     {{-- Animated particles --}}
                     <div class="absolute inset-0 overflow-hidden pointer-events-none">
                         <div class="absolute top-6 right-10 w-1 h-1 bg-green-400/60 rounded-full animate-ping" style="animation-delay: 0.3s;"></div>
@@ -198,7 +198,7 @@
                         <div class="absolute bottom-10 left-14 w-1 h-1 bg-teal-400/50 rounded-full animate-ping" style="animation-delay: 1.8s;"></div>
                         <div class="absolute top-8 left-16 w-0.5 h-0.5 bg-green-300/70 rounded-full animate-pulse" style="animation-delay: 0.6s;"></div>
                     </div>
-                    
+
                     <div class="relative">
                         <div class="flex items-center justify-between mb-6">
                             <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:shadow-green-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
@@ -220,10 +220,10 @@
                                 </span>
                             @endif
                         </div>
-                        
+
                         <h3 class="text-xl font-bold text-white mb-2">Security Shield</h3>
                         <p class="text-sm text-gray-400 mb-6">Real CrowdSec protection & monitoring</p>
-                        
+
                         <div class="grid grid-cols-3 gap-4 mb-6">
                             <div class="text-center">
                                 <div class="text-2xl font-bold text-red-400">{{ number_format($blockedRequests) }}</div>
@@ -238,7 +238,7 @@
                                 <div class="text-xs text-gray-500 uppercase">Requests</div>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center justify-between p-3 bg-green-500/10 rounded-xl border border-green-500/20">
                             <div class="flex items-center gap-3">
                                 @if($isAppStopped)
@@ -269,7 +269,7 @@
                     <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
                     <div class="absolute -top-10 -left-10 w-24 h-24 bg-gradient-to-br from-purple-500/20 to-transparent rounded-full blur-xl group-hover:scale-125 group-hover:rotate-90 transition-transform duration-1000"></div>
                     <div class="absolute bottom-4 left-4 w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-transparent rounded-full blur-lg group-hover:scale-110 group-hover:-rotate-45 transition-transform duration-900"></div>
-                    
+
                     {{-- Animated particles --}}
                     <div class="absolute inset-0 overflow-hidden pointer-events-none">
                         <div class="absolute top-5 right-12 w-1 h-1 bg-blue-400/60 rounded-full animate-ping" style="animation-delay: 0.7s;"></div>
@@ -278,7 +278,7 @@
                         <div class="absolute top-10 left-18 w-0.5 h-0.5 bg-blue-300/70 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
                         <div class="absolute bottom-12 right-6 w-0.5 h-0.5 bg-cyan-400/60 rounded-full animate-ping" style="animation-delay: 2.1s;"></div>
                     </div>
-                    
+
                     <div class="relative">
                         <div class="flex items-center justify-between mb-6">
                             <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
@@ -296,10 +296,10 @@
                                 </span>
                             @endif
                         </div>
-                        
+
                         <h3 class="text-xl font-bold text-white mb-2">System Metrics</h3>
                         <p class="text-sm text-gray-400 mb-6">Real-time performance monitoring</p>
-                        
+
                         <div class="grid grid-cols-3 gap-4 mb-6">
                             <div class="text-center">
                                 @if($isAppStopped)
@@ -326,7 +326,7 @@
                                 <div class="text-xs text-gray-500 uppercase">Network</div>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center justify-between p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
                             <div class="flex items-center gap-3">
                                 @if($isAppStopped)
@@ -342,9 +342,9 @@
                     </div>
                 </div>
             </div>
-            
+
             {{-- MODALS INTERACTIFS POUR CHAQUE CARD --}}
-            
+
             {{-- Pipeline Configuration Modal --}}
             <div x-show="showPipelineModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" @keydown.escape.window="showPipelineModal = false">
                 <div class="flex min-h-screen items-center justify-center p-4">
@@ -528,8 +528,8 @@
                     </div>
                 </div>
             </div>
-            
-            
+
+
             {{-- Section: Overview (Name & Description) --}}
             <div x-data="{ expanded: false }" id="section-overview" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-blue-500/50 transition-all duration-300 mb-6">
                 {{-- Header Cliquable --}}
@@ -552,7 +552,7 @@
                         </svg>
                     </div>
                 </div>
-                
+
                 {{-- Form Content --}}
                 <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
@@ -591,7 +591,7 @@
                             </svg>
                         </div>
                     </div>
-                    
+
                     {{-- Form Content --}}
                     <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                         <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
@@ -605,7 +605,7 @@
                                     <option value="dockercompose">Docker Compose</option>
                                 </select>
                             </div>
-                            
+
                             @if ($application->settings->is_static || $application->build_pack === 'static')
                                 <div class="space-y-2">
                                     <label class="block text-sm font-semibold text-gray-300">Static Image <span class="text-red-400">*</span></label>
@@ -622,7 +622,7 @@
                             <x-forms.checkbox instantSave id="is_static" label="Is it a static site?"
                                 helper="If your application is a static site or the final build assets should be served as a static site, enable this."
                                 x-bind:disabled="!canUpdate" />
-                            
+
                             @if ($application->settings->is_static && $application->build_pack !== 'static')
                                 <x-forms.checkbox label="Is it a SPA (Single Page Application)?"
                                     helper="If your application is a SPA, enable this." id="is_spa" instantSave
@@ -634,9 +634,9 @@
                     @if ($application->settings->is_static || $application->build_pack === 'static')
                         <div class="mt-6">
                             <x-forms.textarea id="custom_nginx_configuration"
-                                placeholder="Empty means default configuration will be used." 
+                                placeholder="Empty means default configuration will be used."
                                 label="Custom Nginx Configuration"
-                                helper="You can add custom Nginx configuration here." 
+                                helper="You can add custom Nginx configuration here."
                                 x-bind:disabled="!canUpdate" />
                             @can('update', $application)
                                 <button wire:click="generateNginxConfiguration" class="inner-button mt-3">
@@ -672,13 +672,13 @@
                             </svg>
                         </div>
                     </div>
-                    
+
                     {{-- Form Content --}}
                     <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                         <div class="space-y-4">
                         <div class="flex items-end gap-3">
                             @if ($application->settings->is_container_label_readonly_enabled == false)
-                                <x-forms.input placeholder="https://coolify.io" wire:model="application.fqdn"
+                                <x-forms.input placeholder="https://ideploy.io" wire:model="application.fqdn"
                                     label="Domains" readonly
                                     helper="Readonly labels are disabled. You can set the domains in the labels section."
                                     x-bind:disabled="!canUpdate" />
@@ -783,7 +783,7 @@
                             </svg>
                         </div>
                     </div>
-                    
+
                     {{-- Form Content --}}
                     <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
@@ -796,7 +796,7 @@
                                 <div>
                                     <p class="text-sm text-warning font-medium">Docker Swarm Requirement</p>
                                     <p class="text-xs text-warning opacity-80 mt-1">
-                                        Docker Swarm requires the image to be available in a registry. <a class="underline font-semibold hover:text-warning/80" href="https://coolify.io/docs/knowledge-base/docker/registry" target="_blank">Learn more</a>
+                                        Docker Swarm requires the image to be available in a registry. <a class="underline font-semibold hover:text-warning/80" href="https://ideploy.io/docs/knowledge-base/docker/registry" target="_blank">Learn more</a>
                                     </p>
                                 </div>
                             </div>
@@ -862,7 +862,7 @@
                         </svg>
                     </div>
                 </div>
-                
+
                 {{-- Form Content --}}
                 <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
@@ -889,12 +889,12 @@
                             <div class="glass-card p-3 mb-6">
                                 <p class="text-xs text-light opacity-70">
                                     💡 Nixpacks will detect the required configuration automatically.
-                                    <a class="underline text-accent hover:text-accent/80 font-medium" href="https://coolify.io/docs/applications/">Framework Specific Docs</a>
+                                    <a class="underline text-accent hover:text-accent/80 font-medium" href="https://ideploy.io/docs/applications/">Framework Specific Docs</a>
                                 </p>
                             </div>
                         @elseif ($application->build_pack === 'buildpacks')
                             <div class="space-y-4 mb-6">
-                                <x-forms.select id="buildpacks_builder" label="Builder" 
+                                <x-forms.select id="buildpacks_builder" label="Builder"
                                     helper="Cloud Native Buildpacks builder to use for building your application"
                                     x-bind:disabled="!canUpdate">
                                     <option value="paketobuildpacks/builder:base">Paketo Base (Recommended)</option>
@@ -904,25 +904,25 @@
                                     <option value="heroku/builder:20">Heroku-20</option>
                                     <option value="gcr.io/buildpacks/builder:v1">Google Cloud Buildpacks</option>
                                 </x-forms.select>
-                                
-                                <x-forms.input 
-                                    id="buildpacks_custom" 
-                                    label="Custom Buildpacks (Optional)" 
+
+                                <x-forms.input
+                                    id="buildpacks_custom"
+                                    label="Custom Buildpacks (Optional)"
                                     placeholder="docker://gcr.io/paketo-buildpacks/nodejs"
                                     helper="Comma-separated list of custom buildpacks to use."
                                     x-bind:disabled="!canUpdate" />
-                                
+
                                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                    <x-forms.input 
-                                        id="install_command" 
+                                    <x-forms.input
+                                        id="install_command"
                                         label="Install Command"
                                         x-bind:disabled="!canUpdate" />
-                                    <x-forms.input 
-                                        id="build_command" 
+                                    <x-forms.input
+                                        id="build_command"
                                         label="Build Command"
                                         x-bind:disabled="!canUpdate" />
-                                    <x-forms.input 
-                                        id="start_command" 
+                                    <x-forms.input
+                                        id="start_command"
                                         label="Start Command"
                                         x-bind:disabled="!canUpdate" />
                                 </div>
@@ -998,7 +998,7 @@
                                     label="Base Directory"
                                     helper="Directory to use as root. Useful for monorepos."
                                     x-bind:disabled="!canUpdate" />
-                                
+
                                 @if ($application->build_pack === 'dockerfile' && !$application->dockerfile)
                                     <x-forms.input placeholder="/Dockerfile" id="dockerfile_location"
                                         label="Dockerfile Location"
@@ -1012,7 +1012,7 @@
                                         helper="Useful for multi-stage builds"
                                         x-bind:disabled="!canUpdate" />
                                 @endif
-                                
+
                                 @if ($application->could_set_build_commands())
                                     @if ($application->settings->is_static)
                                         <x-forms.input placeholder="/dist" id="publish_directory"
@@ -1118,7 +1118,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <x-forms.textarea label="Dockerfile" id="dockerfile" monacoEditorLanguage="dockerfile"
                         useMonacoEditor rows="6" x-bind:disabled="!canUpdate"> </x-forms.textarea>
                 </div>
@@ -1147,7 +1147,7 @@
                             </svg>
                         </div>
                     </div>
-                    
+
                     {{-- Form Content --}}
                     <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
@@ -1168,12 +1168,12 @@
                                     x-bind:disabled="!canUpdate" />
                             @endif
                         @endif
-                        
+
                         @if (!$application->destination->server->isSwarm())
                             <x-forms.input placeholder="3000:3000" id="ports_mappings" label="Ports Mappings"
                                 helper="Map ports to the host system."
                                 x-bind:disabled="!canUpdate" />
-                            
+
                             <x-forms.input id="custom_network_aliases" label="Network Aliases"
                                 helper="Custom network aliases for Docker network."
                                 wire:model="custom_network_aliases" x-bind:disabled="!canUpdate" />
@@ -1205,7 +1205,7 @@
                             </svg>
                         </div>
                     </div>
-                    
+
                     {{-- Form Content --}}
                     <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
@@ -1245,7 +1245,7 @@
                             </svg>
                         </div>
                     </div>
-                    
+
                     {{-- Form Content --}}
                     <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 
@@ -1262,7 +1262,7 @@
                             helper="Labels are readonly by default. Disable to edit labels directly."
                             id="is_container_label_readonly_enabled" instantSave
                             x-bind:disabled="!canUpdate"></x-forms.checkbox>
-                        
+
                         <x-forms.checkbox label="Escape special characters in labels?"
                             helper="By default, $ is escaped. Turn this off to use env variables inside labels."
                             id="is_container_label_escape_enabled" instantSave
@@ -1271,9 +1271,9 @@
 
                     @can('update', $application)
                         <div class="mt-6">
-                            <x-modal-confirmation title="Confirm Labels Reset to Coolify Defaults?"
+                            <x-modal-confirmation title="Confirm Labels Reset to Ideploy Defaults?"
                                 buttonTitle="Reset Labels to Defaults" buttonFullWidth submitAction="resetDefaultLabels(true)"
-                                :actions="['All your custom proxy labels will be lost.', 'Proxy labels will be reset to defaults.']" 
+                                :actions="['All your custom proxy labels will be lost.', 'Proxy labels will be reset to defaults.']"
                                 confirmationText="{{ $application->fqdn . '/' }}"
                                 confirmationLabel="Please confirm by entering the Application URL"
                                 shortConfirmationLabel="Application URL" :confirmWithPassword="false"
@@ -1305,7 +1305,7 @@
                         </svg>
                     </div>
                 </div>
-                
+
                 {{-- Form Content --}}
                 <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
 

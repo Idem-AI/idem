@@ -1072,7 +1072,7 @@ class AdminDeleteUser extends Command
                 if ($this->deletionState['phase_2_resources']) {
                     $this->warn('Phase 2 (Resources) was attempted:');
                     $this->warn('- Check remote servers for orphaned Docker containers');
-                    $this->warn('- Use: docker ps -a | grep coolify');
+                    $this->warn('- Use: docker ps -a | grep ideploy');
                     $this->warn('- Manually remove if needed: docker rm -f <container_id>');
                     $this->newLine();
                 }

@@ -1,8 +1,8 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
-        Profile | Coolify
+        Profile | Ideploy
     </x-slot>
-    
+
     {{-- Header --}}
     <div class="mb-6">
         <h1 class="text-3xl font-light text-gray-100 mb-2">Profile</h1>

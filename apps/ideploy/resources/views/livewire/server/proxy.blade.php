@@ -10,7 +10,7 @@
                             @can('update', $server)
                                 <x-modal-confirmation title="Confirm Proxy Switching?" buttonTitle="Switch Proxy"
                                     submitAction="changeProxy" :actions="['Custom proxy configurations may be reset to their default settings.']"
-                                    warningMessage="This operation may cause issues. Please refer to the guide <a href='https://coolify.io/docs/knowledge-base/server/proxies#switch-between-proxies' target='_blank' class='underline text-white'>switching between proxies</a> before proceeding!"
+                                    warningMessage="This operation may cause issues. Please refer to the guide <a href='https://ideploy.io/docs/knowledge-base/server/proxies#switch-between-proxies' target='_blank' class='underline text-white'>switching between proxies</a> before proceeding!"
                                     step2ButtonText="Switch Proxy" :confirmWithText="false" :confirmWithPassword="false">
                                 </x-modal-confirmation>
                             @endcan
@@ -32,15 +32,15 @@
                             id="redirectEnabled" label="Override default request handler"
                             helper="Requests to unknown hosts or stopped services will receive a 503 response or be redirected to the URL you set below (need to enable this first)." />
                         @if ($redirectEnabled)
-                            <x-forms.input canGate="update" :canResource="$server" placeholder="https://app.coolify.io"
+                            <x-forms.input canGate="update" :canResource="$server" placeholder="https://app.ideploy.io"
                                 id="redirectUrl" label="Redirect to (optional)" />
                         @endif
                     </div>
                     @php
                         $proxyTitle =
                             $server->proxyType() === ProxyTypes::TRAEFIK->value
-                                ? 'Traefik (Coolify Proxy)'
-                                : 'Caddy (Coolify Proxy)';
+                                ? 'Traefik (Ideploy Proxy)'
+                                : 'Caddy (Ideploy Proxy)';
                     @endphp
                     @if ($server->proxyType() === ProxyTypes::TRAEFIK->value || $server->proxyType() === 'CADDY')
                         <div class="flex items-center gap-2">

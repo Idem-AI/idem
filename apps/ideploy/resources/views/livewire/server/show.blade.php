@@ -1,6 +1,6 @@
 <div x-data x-init="@if ($server->hetzner_server_id && $server->cloudProviderToken && !$hetznerServerStatus) $wire.checkHetznerServerStatus() @endif">
     <x-slot:title>
-        {{ data_get_str($server, 'name')->limit(10) }} > General | Coolify
+        {{ data_get_str($server, 'name')->limit(10) }} > General | Ideploy
     </x-slot>
     <livewire:server.navbar :server="$server" />
     <div class="flex flex-col h-full gap-8 sm:flex-row">
@@ -95,7 +95,7 @@
                     @if ($server->id === 0)
                         <x-modal-confirmation title="Confirm Server Settings Change?" buttonTitle="Save"
                             submitAction="submit" :actions="[
-                                'If you misconfigure the server, you could lose a lot of functionalities of Coolify.',
+                                'If you misconfigure the server, you could lose a lot of functionalities of Ideploy.',
                             ]" :confirmWithText="false" :confirmWithPassword="false"
                             step2ButtonText="Save" canGate="update" :canResource="$server" />
                     @else
@@ -289,29 +289,29 @@
                                 <h3 class="pt-6">Swarm <span class="text-xs text-neutral-500">(experimental)</span>
                                 </h3>
                                 <div class="pb-4">Read the docs <a class='underline dark:text-white'
-                                        href='https://coolify.io/docs/knowledge-base/docker/swarm'
+                                        href='https://ideploy.io/docs/knowledge-base/docker/swarm'
                                         target='_blank'>here</a>.
                                 </div>
                                 <div class="w-96">
                                     @if ($server->settings->is_swarm_worker)
                                         <x-forms.checkbox disabled instantSave type="checkbox" id="isSwarmManager"
-                                            helper="For more information, please read the documentation <a class='dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/swarm' target='_blank'>here</a>."
+                                            helper="For more information, please read the documentation <a class='dark:text-white' href='https://ideploy.io/docs/knowledge-base/docker/swarm' target='_blank'>here</a>."
                                             label="Is it a Swarm Manager?" />
                                     @else
                                         <x-forms.checkbox canGate="update" :canResource="$server" instantSave
                                             type="checkbox" id="isSwarmManager"
-                                            helper="For more information, please read the documentation <a class='dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/swarm' target='_blank'>here</a>."
+                                            helper="For more information, please read the documentation <a class='dark:text-white' href='https://ideploy.io/docs/knowledge-base/docker/swarm' target='_blank'>here</a>."
                                             label="Is it a Swarm Manager?" :disabled="$isValidating" />
                                     @endif
 
                                     @if ($server->settings->is_swarm_manager)
                                         <x-forms.checkbox disabled instantSave type="checkbox" id="isSwarmWorker"
-                                            helper="For more information, please read the documentation <a class='dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/swarm' target='_blank'>here</a>."
+                                            helper="For more information, please read the documentation <a class='dark:text-white' href='https://ideploy.io/docs/knowledge-base/docker/swarm' target='_blank'>here</a>."
                                             label="Is it a Swarm Worker?" />
                                     @else
                                         <x-forms.checkbox canGate="update" :canResource="$server" instantSave
                                             type="checkbox" id="isSwarmWorker"
-                                            helper="For more information, please read the documentation <a class='dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/swarm' target='_blank'>here</a>."
+                                            helper="For more information, please read the documentation <a class='dark:text-white' href='https://ideploy.io/docs/knowledge-base/docker/swarm' target='_blank'>here</a>."
                                             label="Is it a Swarm Worker?" :disabled="$isValidating" />
                                     @endif
                                 </div>
@@ -337,7 +337,7 @@
                                         <x-slot:title>Sentinel Logs</x-slot:title>
                                         <x-slot:content>
                                             <livewire:project.shared.get-logs :server="$server"
-                                                container="coolify-sentinel" lazy />
+                                                container="ideploy-sentinel" lazy />
                                         </x-slot:content>
                                         <x-forms.button @click="slideOverOpen=true"
                                             :disabled="$isValidating">Logs</x-forms.button>
@@ -353,7 +353,7 @@
                                         <x-slot:title>Sentinel Logs</x-slot:title>
                                         <x-slot:content>
                                             <livewire:project.shared.get-logs :server="$server"
-                                                container="coolify-sentinel" lazy />
+                                                container="ideploy-sentinel" lazy />
                                         </x-slot:content>
                                         <x-forms.button @click="slideOverOpen=true"
                                             :disabled="$isValidating">Logs</x-forms.button>
@@ -405,8 +405,8 @@
                             </div>
 
                             <x-forms.input canGate="update" :canResource="$server" id="sentinelCustomUrl" required
-                                label="Coolify URL"
-                                helper="URL to your Coolify instance. If it is empty that means you do not have a FQDN set for your Coolify instance."
+                                label="Ideploy URL"
+                                helper="URL to your Ideploy instance. If it is empty that means you do not have a FQDN set for your Ideploy instance."
                                 :disabled="$isValidating" />
 
                             <div class="flex flex-col gap-2">

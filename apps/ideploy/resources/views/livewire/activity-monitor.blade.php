@@ -1,4 +1,4 @@
-@php use App\Actions\CoolifyTask\RunRemoteProcess; @endphp
+@php use App\Actions\IdeployTask\RunRemoteProcess; @endphp
 <div @class([
     'h-full flex flex-col overflow-hidden' => $fullHeight,
     'h-full overflow-hidden' => !$fullHeight,
@@ -34,10 +34,10 @@
             }
         }" x-init="// Initial scroll
         $nextTick(() => scrollToBottom());
-        
+
         // Add scroll event listener
         $el.addEventListener('scroll', () => handleScroll());
-        
+
         // Set up mutation observer to watch for content changes
         observer = new MutationObserver(() => {
             $nextTick(() => scrollToBottom());

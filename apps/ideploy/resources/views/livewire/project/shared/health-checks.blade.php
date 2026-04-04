@@ -9,7 +9,7 @@
                 @if (!$healthCheckEnabled)
                     <x-modal-confirmation title="Confirm Healthcheck Enable?" buttonTitle="Enable Healthcheck"
                         submitAction="toggleHealthcheck" :actions="['Enable healthcheck for this resource.']"
-                        warningMessage="If the health check fails, your application will become inaccessible. Please review the <a href='https://coolify.io/docs/knowledge-base/health-checks' target='_blank' class='underline text-white'>Health Checks</a> guide before proceeding!"
+                        warningMessage="If the health check fails, your application will become inaccessible. Please review the <a href='https://ideploy.io/docs/knowledge-base/health-checks' target='_blank' class='underline text-white'>Health Checks</a> guide before proceeding!"
                         step2ButtonText="Enable Healthcheck" :confirmWithText="false" :confirmWithPassword="false"
                         isHighlightedButton>
                     </x-modal-confirmation>
@@ -38,7 +38,7 @@
 
         {{-- Configuration Section --}}
         <div class="glass-card p-6">
-            <x-section-header 
+            <x-section-header
                 title="Configuration"
                 description="Define health check parameters">
                 <x-slot:icon>

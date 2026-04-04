@@ -1,8 +1,8 @@
 <div class="min-h-screen bg-[#0a0e1a] text-white p-6">
     <x-slot:title>
-        Servers | Coolify
+        Servers | Ideploy
     </x-slot>
-    
+
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center gap-3 mb-2">
@@ -46,7 +46,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
                                 </svg>
                             </div>
-                            
+
                             {{-- Server Info --}}
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
@@ -70,7 +70,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     {{-- Issues/Warnings --}}
                     @if (!$server->settings->is_reachable || !$server->settings->is_usable || $server->settings->force_disabled)
                         <div class="px-5 py-3 bg-red-900/20 border-b border-red-500/30">
@@ -83,7 +83,7 @@
                                         <div>• Not reachable</div>
                                     @endif
                                     @if (!$server->settings->is_usable)
-                                        <div>• Not usable by Coolify</div>
+                                        <div>• Not usable by Ideploy</div>
                                     @endif
                                     @if ($server->settings->force_disabled)
                                         <div>• Disabled by the system</div>
@@ -92,7 +92,7 @@
                             </div>
                         </div>
                     @endif
-                    
+
                     {{-- Footer with Server Details --}}
                     <div class="px-5 py-4 bg-gray-900/20">
                         <div class="flex items-center justify-between text-xs">
@@ -126,7 +126,7 @@
                 @endcan
             </div>
         @endforelse
-        
+
         @isset($error)
             <div class="col-span-full">
                 <div class="bg-red-900/20 border border-red-500/30 rounded-xl p-4">

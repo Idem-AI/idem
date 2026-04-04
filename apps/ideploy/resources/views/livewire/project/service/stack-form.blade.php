@@ -31,10 +31,10 @@
             <x-forms.input canGate="update" :canResource="$service" id="name" required label="Service Name" placeholder="My super WordPress site" />
             <x-forms.input canGate="update" :canResource="$service" id="description" label="Description" />
         </div>
-        
+
         <div class="pt-2 border-t border-gray-700">
             <x-forms.checkbox canGate="update" :canResource="$service" instantSave id="connectToDockerNetwork" label="Connect To Predefined Network"
-                helper="By default, you do not reach the Coolify defined networks." />
+                helper="By default, you do not reach the Ideploy defined networks." />
         </div>
     </div>
 

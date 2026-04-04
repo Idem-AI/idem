@@ -28,12 +28,12 @@
                     <x-forms.checkbox instantSave type="checkbox" id="is_build_server" label="Build Server?" />
                 </div>
             </div>
-            
+
             {{-- Swarm Options (Collapsed) --}}
             <div class="border-t border-gray-800/30 pt-2 mt-1">
                 <div class="text-xs text-gray-400 mb-2">
-                    <span class="text-[#4F46E5]">Docker Swarm</span> <span class="text-gray-600">(experimental)</span> - <a class='text-[#4F46E5] hover:text-[#6366F1] underline' href='https://coolify.io/docs/knowledge-base/docker/swarm' target='_blank'>docs</a> | 
-                    <span class="text-gray-500">⚠️ Non-root experimental - <a class="text-[#4F46E5] hover:text-[#6366F1] underline" target="_blank" href="https://coolify.io/docs/knowledge-base/server/non-root-user">docs</a></span>
+                    <span class="text-[#4F46E5]">Docker Swarm</span> <span class="text-gray-600">(experimental)</span> - <a class='text-[#4F46E5] hover:text-[#6366F1] underline' href='https://ideploy.io/docs/knowledge-base/docker/swarm' target='_blank'>docs</a> |
+                    <span class="text-gray-500">⚠️ Non-root experimental - <a class="text-[#4F46E5] hover:text-[#6366F1] underline" target="_blank" href="https://ideploy.io/docs/knowledge-base/server/non-root-user">docs</a></span>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                     @if ($is_swarm_worker || $is_build_server)
@@ -41,13 +41,13 @@
                     @else
                         <x-forms.checkbox type="checkbox" instantSave id="is_swarm_manager" label="Swarm Manager?" />
                     @endif
-                    
+
                     @if ($is_swarm_manager || $is_build_server)
                         <x-forms.checkbox disabled instantSave type="checkbox" id="is_swarm_worker" label="Swarm Worker?" />
                     @else
                         <x-forms.checkbox type="checkbox" instantSave id="is_swarm_worker" label="Swarm Worker?" />
                     @endif
-                    
+
                     @if ($is_swarm_worker && count($swarm_managers) > 0)
                         <div class="col-span-2">
                             <x-forms.select label="Swarm Cluster" id="selected_swarm_cluster" required>
@@ -63,7 +63,7 @@
                     @endif
                 </div>
             </div>
-            
+
             {{-- Géolocalisation & Spécifications (Admins uniquement) --}}
             @if(auth()->user() && auth()->user()->idem_role === 'admin')
                 <div class="border-t border-red-500/20 pt-4 mt-3">
@@ -74,7 +74,7 @@
                         <h4 class="text-sm font-semibold text-red-400">Admin: Géolocalisation & Spécifications</h4>
                         <span class="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">ADMIN ONLY</span>
                     </div>
-                    
+
                     {{-- Géolocalisation --}}
                     <div class="mb-4">
                         <h5 class="text-xs font-medium text-gray-400 mb-2">📍 Géolocalisation</h5>
@@ -93,7 +93,7 @@
                             Région auto-remplie: <span class="text-blue-400 font-medium">{{ $region ?? 'Non définie' }}</span>
                         </div>
                     </div>
-                    
+
                     {{-- Spécifications --}}
                     <div class="mb-4">
                         <h5 class="text-xs font-medium text-gray-400 mb-2">⚙️ Spécifications Serveur</h5>
@@ -109,10 +109,10 @@
                     </div>
                 </div>
             @endif
-            
+
             {{-- Submit Button --}}
             <div class="flex items-center justify-end gap-2 pt-3 mt-2 border-t border-gray-800/30">
-                <button type="submit" 
+                <button type="submit"
                         class="px-6 py-2 text-sm font-semibold text-white bg-[#4F46E5] hover:bg-[#4338CA] rounded-lg transition-all flex items-center gap-2">
                     Continue
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

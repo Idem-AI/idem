@@ -1,14 +1,14 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($application, 'name')->limit(10) }} > Configuration | Coolify
+        {{ data_get_str($application, 'name')->limit(10) }} > Configuration | Ideploy
     </x-slot>
-    
+
     {{-- Header avec titre et breadcrumb --}}
     <div class="mb-6">
         <h1 class="text-3xl font-bold text-white mb-2">Configuration</h1>
         <p class="text-gray-400">Manage your application settings and deployment options</p>
     </div>
-    
+
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
 
@@ -21,10 +21,10 @@
                     <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
                         Configuration
                     </div>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.configuration') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.configuration') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.configuration', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,10 +33,10 @@
                         </svg>
                         <span>General</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.advanced') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.advanced') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.advanced', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,8 +47,8 @@
 
                     @if ($application->destination->server->isSwarm())
                         <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                            :class="'{{ request()->routeIs('project.application.swarm') }}' === '1' 
-                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                            :class="'{{ request()->routeIs('project.application.swarm') }}' === '1'
+                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                             href="{{ route('project.application.swarm', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,10 +64,10 @@
                     <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
                         Environment
                     </div>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.environment-variables') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.environment-variables') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.environment-variables', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,10 +75,10 @@
                         </svg>
                         <span>Variables</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.persistent-storage') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.persistent-storage') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.persistent-storage', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,8 +89,8 @@
 
                     @if ($application->git_based())
                         <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                            :class="'{{ request()->routeIs('project.application.source') }}' === '1' 
-                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                            :class="'{{ request()->routeIs('project.application.source') }}' === '1'
+                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                             href="{{ route('project.application.source', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,10 +106,10 @@
                     <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
                         Deployment
                     </div>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.servers') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.servers') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.servers', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,10 +120,10 @@
                             <span class="w-2 h-2 bg-red-500 rounded-full"></span>
                         @endif
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.scheduled-tasks.show') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.scheduled-tasks.show') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.scheduled-tasks.show', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,10 +131,10 @@
                         </svg>
                         <span>Scheduled Tasks</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.webhooks') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.webhooks') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.webhooks', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,8 +145,8 @@
 
                     @if ($application->deploymentType() !== 'deploy_key')
                         <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                            :class="'{{ request()->routeIs('project.application.preview-deployments') }}' === '1' 
-                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                            :class="'{{ request()->routeIs('project.application.preview-deployments') }}' === '1'
+                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                             href="{{ route('project.application.preview-deployments', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,8 +159,8 @@
 
                     @if ($application->build_pack !== 'dockercompose')
                         <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                            :class="'{{ request()->routeIs('project.application.healthcheck') }}' === '1' 
-                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                            :class="'{{ request()->routeIs('project.application.healthcheck') }}' === '1'
+                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                             href="{{ route('project.application.healthcheck', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,8 +171,8 @@
                     @endif
 
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.rollback') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.rollback') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.rollback', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,10 +187,10 @@
                     <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
                         Monitoring
                     </div>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.resource-limits') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.resource-limits') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.resource-limits', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,10 +198,10 @@
                         </svg>
                         <span>Resource Limits</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.resource-operations') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.resource-operations') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.resource-operations', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,10 +209,10 @@
                         </svg>
                         <span>Operations</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.metrics') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.metrics') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.metrics', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,10 +227,10 @@
                     <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
                         Other
                     </div>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all'
-                        :class="'{{ request()->routeIs('project.application.tags') }}' === '1' 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' 
+                        :class="'{{ request()->routeIs('project.application.tags') }}' === '1'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/50'"
                         href="{{ route('project.application.tags', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,10 +238,10 @@
                         </svg>
                         <span>Tags</span>
                     </a>
-                    
+
                     <a class='group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-red-400 hover:text-red-300 hover:bg-red-500/10'
-                        :class="'{{ request()->routeIs('project.application.danger') }}' === '1' 
-                            ? 'bg-red-500/10 border border-red-500/30' 
+                        :class="'{{ request()->routeIs('project.application.danger') }}' === '1'
+                            ? 'bg-red-500/10 border border-red-500/30'
                             : ''"
                         href="{{ route('project.application.danger', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,8 +1,8 @@
 <div>
-    <x-slot:title>{{ data_get_str($application, 'name')->limit(10) }} > Deployments | Coolify</x-slot>
+    <x-slot:title>{{ data_get_str($application, 'name')->limit(10) }} > Deployments | Ideploy</x-slot>
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
-    
+
     {{-- Header Idem Style --}}
     <div class="mb-8">
         <div class="flex items-center justify-between mb-2">
@@ -53,7 +53,7 @@
                 {{-- Pagination --}}
                 @if ($deployments_count > 0)
                     <div class="flex items-center gap-3">
-                        <button 
+                        <button
                             wire:click="previousPage('{{ $defaultTake }}')"
                             @if (!$showPrev) disabled @endif
                             class="flex items-center justify-center w-10 h-10 rounded-lg transition-all"
@@ -67,7 +67,7 @@
                                 Page <span class="text-accent">{{ $currentPage }}</span> of {{ ceil($deployments_count / $defaultTake) }}
                             </span>
                         </div>
-                        <button 
+                        <button
                             wire:click="nextPage('{{ $defaultTake }}')"
                             @if (!$showNext) disabled @endif
                             class="flex items-center justify-center w-10 h-10 rounded-lg transition-all"
@@ -124,7 +124,7 @@
                                     @endif
                                     {{ $statusText }}
                                 </span>
-                                
+
                                 {{-- Deployment Type Badge --}}
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-white/5 text-light/70 border border-white/10">
                                     @if (data_get($deployment, 'is_webhook'))
@@ -149,7 +149,7 @@
                                         Manual
                                     @endif
                                 </span>
-                                
+
                                 @if (data_get($deployment, 'pull_request_id'))
                                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-primary/20 text-primary border border-primary/30">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +159,7 @@
                                     </span>
                                 @endif
                             </div>
-                            
+
                             <svg class="w-5 h-5 text-light/40 group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>

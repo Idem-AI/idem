@@ -33,7 +33,7 @@ class Reachable extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject("Coolify: Server ({$this->server->name}) revived.");
+        $mail->subject("Ideploy: Server ({$this->server->name}) revived.");
         $mail->view('emails.server-revived', [
             'name' => $this->server->name,
         ]);
@@ -62,7 +62,7 @@ class Reachable extends CustomEmailNotification
     public function toTelegram(): array
     {
         return [
-            'message' => "Coolify: Server '{$this->server->name}' revived. All automations & integrations are turned on again!",
+            'message' => "Ideploy: Server '{$this->server->name}' revived. All automations & integrations are turned on again!",
         ];
     }
 

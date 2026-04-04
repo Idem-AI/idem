@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use App\Actions\Server\UpdateCoolify;
+use App\Actions\Server\UpdateIdeploy;
 use App\Models\InstanceSettings;
 use Livewire\Component;
 
@@ -21,7 +21,7 @@ class Upgrade extends Component
     public function checkUpdate()
     {
         try {
-            $this->latestVersion = get_latest_version_of_coolify();
+            $this->latestVersion = get_latest_version_of_ideploy();
             $this->isUpgradeAvailable = data_get(InstanceSettings::get(), 'new_version_available', false);
             if (isDev()) {
                 $this->isUpgradeAvailable = true;
@@ -38,7 +38,7 @@ class Upgrade extends Component
                 return;
             }
             $this->updateInProgress = true;
-            UpdateCoolify::run(manual_update: true);
+            UpdateIdeploy::run(manual_update: true);
         } catch (\Throwable $e) {
             return handleError($e, $this);
         }

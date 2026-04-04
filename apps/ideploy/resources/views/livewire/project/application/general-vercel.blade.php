@@ -13,7 +13,7 @@
                     <h2 class="text-xl font-semibold text-white">General Configuration</h2>
                     <p class="text-sm text-gray-400 mt-1">Manage your application's core settings</p>
                 </div>
-                <x-forms.button canGate="update" :canResource="$application" type="submit" 
+                <x-forms.button canGate="update" :canResource="$application" type="submit"
                     class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
                     Save Changes
                 </x-forms.button>
@@ -32,7 +32,7 @@
                     </h3>
                     <p class="text-sm text-gray-400 mt-1">Application name and description</p>
                 </div>
-                
+
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
                     <x-forms.input x-bind:disabled="shouldDisable()" id="description" label="Description" />
@@ -60,7 +60,7 @@
                             <option value="dockerfile">Dockerfile</option>
                             <option value="dockercompose">Docker Compose</option>
                         </x-forms.select>
-                        
+
                         @if ($application->settings->is_static || $application->build_pack === 'static')
                             <x-forms.select x-bind:disabled="!canUpdate" id="static_image" label="Static Image" required>
                                 <option value="nginx:alpine">nginx:alpine</option>
@@ -74,7 +74,7 @@
                             <x-forms.checkbox instantSave id="is_static" label="Is it a static site?"
                                 helper="If your application is a static site or the final build assets should be served as a static site, enable this."
                                 x-bind:disabled="!canUpdate" />
-                            
+
                             @if ($application->settings->is_static && $application->build_pack !== 'static')
                                 <x-forms.checkbox label="Is it a SPA (Single Page Application)?"
                                     helper="If your application is a SPA, enable this." id="is_spa" instantSave
@@ -86,9 +86,9 @@
                     @if ($application->settings->is_static || $application->build_pack === 'static')
                         <div class="mt-6">
                             <x-forms.textarea id="custom_nginx_configuration"
-                                placeholder="Empty means default configuration will be used." 
+                                placeholder="Empty means default configuration will be used."
                                 label="Custom Nginx Configuration"
-                                helper="You can add custom Nginx configuration here." 
+                                helper="You can add custom Nginx configuration here."
                                 x-bind:disabled="!canUpdate" />
                             @can('update', $application)
                                 <x-forms.button wire:click="generateNginxConfiguration" class="mt-3">
@@ -116,7 +116,7 @@
                     <div class="space-y-4">
                         <div class="flex items-end gap-3">
                             @if ($application->settings->is_container_label_readonly_enabled == false)
-                                <x-forms.input placeholder="https://coolify.io" wire:model="application.fqdn"
+                                <x-forms.input placeholder="https://ideploy.io" wire:model="application.fqdn"
                                     label="Domains" readonly
                                     helper="Readonly labels are disabled. You can set the domains in the labels section."
                                     x-bind:disabled="!canUpdate" />
@@ -188,7 +188,7 @@
                         </h3>
                         <p class="text-sm text-gray-400 mt-1">
                             @if ($application->build_pack !== 'dockerimage' && !$application->destination->server->isSwarm())
-                                Push the built image to a docker registry. <a class='underline text-blue-400' href='https://coolify.io/docs/knowledge-base/docker/registry' target='_blank'>Learn more</a>
+                                Push the built image to a docker registry. <a class='underline text-blue-400' href='https://ideploy.io/docs/knowledge-base/docker/registry' target='_blank'>Learn more</a>
                             @else
                                 Configure your Docker image source
                             @endif
@@ -198,7 +198,7 @@
                     @if ($application->destination->server->isSwarm() && $application->build_pack !== 'dockerimage')
                         <div class="mb-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                             <p class="text-sm text-yellow-300">
-                                ⚠️ Docker Swarm requires the image to be available in a registry. <a class="underline font-medium" href="https://coolify.io/docs/knowledge-base/docker/registry" target="_blank">Learn more</a>
+                                ⚠️ Docker Swarm requires the image to be available in a registry. <a class="underline font-medium" href="https://ideploy.io/docs/knowledge-base/docker/registry" target="_blank">Learn more</a>
                             </p>
                         </div>
                     @endif
@@ -273,11 +273,11 @@
                             </div>
                             <div class="text-xs text-gray-400 mb-6">
                                 Nixpacks will detect the required configuration automatically.
-                                <a class="underline text-blue-400" href="https://coolify.io/docs/applications/">Framework Specific Docs</a>
+                                <a class="underline text-blue-400" href="https://ideploy.io/docs/applications/">Framework Specific Docs</a>
                             </div>
                         @elseif ($application->build_pack === 'buildpacks')
                             <div class="space-y-4 mb-6">
-                                <x-forms.select id="buildpacks_builder" label="Builder" 
+                                <x-forms.select id="buildpacks_builder" label="Builder"
                                     helper="Cloud Native Buildpacks builder to use for building your application"
                                     x-bind:disabled="!canUpdate">
                                     <option value="paketobuildpacks/builder:base">Paketo Base (Recommended)</option>
@@ -287,25 +287,25 @@
                                     <option value="heroku/builder:20">Heroku-20</option>
                                     <option value="gcr.io/buildpacks/builder:v1">Google Cloud Buildpacks</option>
                                 </x-forms.select>
-                                
-                                <x-forms.input 
-                                    id="buildpacks_custom" 
-                                    label="Custom Buildpacks (Optional)" 
+
+                                <x-forms.input
+                                    id="buildpacks_custom"
+                                    label="Custom Buildpacks (Optional)"
                                     placeholder="docker://gcr.io/paketo-buildpacks/nodejs"
                                     helper="Comma-separated list of custom buildpacks to use."
                                     x-bind:disabled="!canUpdate" />
-                                
+
                                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                    <x-forms.input 
-                                        id="install_command" 
+                                    <x-forms.input
+                                        id="install_command"
                                         label="Install Command"
                                         x-bind:disabled="!canUpdate" />
-                                    <x-forms.input 
-                                        id="build_command" 
+                                    <x-forms.input
+                                        id="build_command"
                                         label="Build Command"
                                         x-bind:disabled="!canUpdate" />
-                                    <x-forms.input 
-                                        id="start_command" 
+                                    <x-forms.input
+                                        id="start_command"
                                         label="Start Command"
                                         x-bind:disabled="!canUpdate" />
                                 </div>
@@ -374,7 +374,7 @@
                                     label="Base Directory"
                                     helper="Directory to use as root. Useful for monorepos."
                                     x-bind:disabled="!canUpdate" />
-                                
+
                                 @if ($application->build_pack === 'dockerfile' && !$application->dockerfile)
                                     <x-forms.input placeholder="/Dockerfile" id="dockerfile_location"
                                         label="Dockerfile Location"
@@ -388,7 +388,7 @@
                                         helper="Useful for multi-stage builds"
                                         x-bind:disabled="!canUpdate" />
                                 @endif
-                                
+
                                 @if ($application->could_set_build_commands())
                                     @if ($application->settings->is_static)
                                         <x-forms.input placeholder="/dist" id="publish_directory"
@@ -487,7 +487,7 @@
                         </h3>
                         <p class="text-sm text-gray-400 mt-1">Edit your Dockerfile configuration</p>
                     </div>
-                    
+
                     <x-forms.textarea label="Dockerfile" id="dockerfile" monacoEditorLanguage="dockerfile"
                         useMonacoEditor rows="6" x-bind:disabled="!canUpdate"> </x-forms.textarea>
                 </div>
@@ -523,12 +523,12 @@
                                     x-bind:disabled="!canUpdate" />
                             @endif
                         @endif
-                        
+
                         @if (!$application->destination->server->isSwarm())
                             <x-forms.input placeholder="3000:3000" id="ports_mappings" label="Ports Mappings"
                                 helper="Map ports to the host system."
                                 x-bind:disabled="!canUpdate" />
-                            
+
                             <x-forms.input id="custom_network_aliases" label="Network Aliases"
                                 helper="Custom network aliases for Docker network."
                                 wire:model="custom_network_aliases" x-bind:disabled="!canUpdate" />
@@ -587,7 +587,7 @@
                             helper="Labels are readonly by default. Disable to edit labels directly."
                             id="is_container_label_readonly_enabled" instantSave
                             x-bind:disabled="!canUpdate"></x-forms.checkbox>
-                        
+
                         <x-forms.checkbox label="Escape special characters in labels?"
                             helper="By default, $ is escaped. Turn this off to use env variables inside labels."
                             id="is_container_label_escape_enabled" instantSave
@@ -596,9 +596,9 @@
 
                     @can('update', $application)
                         <div class="mt-6">
-                            <x-modal-confirmation title="Confirm Labels Reset to Coolify Defaults?"
+                            <x-modal-confirmation title="Confirm Labels Reset to Ideploy Defaults?"
                                 buttonTitle="Reset Labels to Defaults" buttonFullWidth submitAction="resetDefaultLabels(true)"
-                                :actions="['All your custom proxy labels will be lost.', 'Proxy labels will be reset to defaults.']" 
+                                :actions="['All your custom proxy labels will be lost.', 'Proxy labels will be reset to defaults.']"
                                 confirmationText="{{ $application->fqdn . '/' }}"
                                 confirmationLabel="Please confirm by entering the Application URL"
                                 shortConfirmationLabel="Application URL" :confirmWithPassword="false"
@@ -676,7 +676,7 @@
                                         <span class="text-purple-400">🖥️ Your Personal Server</span>
                                     @endif
                                 </p>
-                                
+
                                 @if($application->idem_deploy_on_managed ?? false)
                                     <div class="mt-3 flex flex-wrap gap-2">
                                         <span class="inline-flex items-center gap-1 text-xs text-gray-400">
@@ -699,8 +699,8 @@
                                     @endif
                                 @endif
                             </div>
-                            
-                            <a href="{{ route('application.deployment', ['application_uuid' => $application->uuid]) }}" 
+
+                            <a href="{{ route('application.deployment', ['application_uuid' => $application->uuid]) }}"
                                class="ml-4 inline-flex items-center px-4 py-2.5 border border-gray-600 shadow-sm text-sm font-medium rounded-lg text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors"
                                x-bind:disabled="!canUpdate">
                                 ⚙️ Configure
@@ -710,7 +710,7 @@
 
                     <div class="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                         <p class="text-sm text-blue-300">
-                            💡 <strong>Tip:</strong> You can deploy on IDEM managed servers (recommended) or use your own servers. 
+                            💡 <strong>Tip:</strong> You can deploy on IDEM managed servers (recommended) or use your own servers.
                             <a href="{{ route('application.deployment', ['application_uuid' => $application->uuid]) }}" class="underline font-medium hover:text-blue-200">Configure now</a>
                         </p>
                     </div>

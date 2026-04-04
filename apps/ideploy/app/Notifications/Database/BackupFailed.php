@@ -30,7 +30,7 @@ class BackupFailed extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject("Coolify: [ACTION REQUIRED] Database Backup FAILED for {$this->database->name}");
+        $mail->subject("Ideploy: [ACTION REQUIRED] Database Backup FAILED for {$this->database->name}");
         $mail->view('emails.backup-failed', [
             'name' => $this->name,
             'database_name' => $this->database_name,
@@ -58,7 +58,7 @@ class BackupFailed extends CustomEmailNotification
 
     public function toTelegram(): array
     {
-        $message = "Coolify: Database backup for {$this->name} (db:{$this->database_name}) with frequency of {$this->frequency} was FAILED.\n\nReason:\n{$this->output}";
+        $message = "Ideploy: Database backup for {$this->name} (db:{$this->database_name}) with frequency of {$this->frequency} was FAILED.\n\nReason:\n{$this->output}";
 
         return [
             'message' => $message,

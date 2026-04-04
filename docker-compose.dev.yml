@@ -3,10 +3,10 @@ networks:
     driver: bridge
 
 volumes:
-  # Coolify/ideploy volumes
+  # Ideploy/ideploy volumes
   dev_postgres_data:
   dev_redis_data:
-  dev_coolify_data:
+  dev_ideploy_data:
   dev_backups_data:
   dev_minio_data:
   # API volumes
@@ -73,16 +73,16 @@ services:
     ports:
       - '${FORWARD_DB_PORT:-5432}:5432'
     environment:
-      POSTGRES_USER: '${DB_USERNAME:-coolify}'
+      POSTGRES_USER: '${DB_USERNAME:-ideploy}'
       POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
-      POSTGRES_DB: '${DB_DATABASE:-coolify}'
+      POSTGRES_DB: '${DB_DATABASE:-ideploy}'
       POSTGRES_HOST_AUTH_METHOD: 'trust'
     volumes:
       - dev_postgres_data:/var/lib/postgresql/data
     networks:
       - idem-dev
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-coolify}']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-ideploy}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -113,10 +113,10 @@ services:
     networks:
       - idem-dev
 
-  # ==================== IDEPLOY (Coolify) ====================
+  # ==================== IDEPLOY (Ideploy) ====================
 
   ideploy:
-    image: coolify:dev
+    image: ideploy:dev
     container_name: idem-ideploy-dev
     pull_policy: never
     build:
@@ -135,14 +135,14 @@ services:
       PUSHER_HOST: 'localhost'
       PUSHER_PORT: '${PUSHER_PORT:-6001}'
       PUSHER_SCHEME: '${PUSHER_SCHEME:-http}'
-      PUSHER_APP_ID: '${PUSHER_APP_ID:-coolify}'
-      PUSHER_APP_KEY: '${PUSHER_APP_KEY:-coolify}'
-      PUSHER_APP_SECRET: '${PUSHER_APP_SECRET:-coolify}'
+      PUSHER_APP_ID: '${PUSHER_APP_ID:-ideploy}'
+      PUSHER_APP_KEY: '${PUSHER_APP_KEY:-ideploy}'
+      PUSHER_APP_SECRET: '${PUSHER_APP_SECRET:-ideploy}'
       PUSHER_BACKEND_HOST: 'soketi'
       PUSHER_BACKEND_PORT: '6001'
       DB_HOST: postgres
-      DB_DATABASE: '${DB_DATABASE:-coolify}'
-      DB_USERNAME: '${DB_USERNAME:-coolify}'
+      DB_DATABASE: '${DB_DATABASE:-ideploy}'
+      DB_USERNAME: '${DB_USERNAME:-ideploy}'
       DB_PASSWORD: '${DB_PASSWORD:-password}'
       SONARQUBE_ADMIN_TOKEN: squ_dc0e5ea5635f3c4b1bdd46d37032485e2ade36f0
       REDIS_HOST: redis
@@ -174,24 +174,24 @@ services:
         condition: service_started
 
   soketi:
-    image: coolify-realtime:dev
+    image: ideploy-realtime:dev
     container_name: idem-soketi-dev
     pull_policy: never
     build:
       context: ./apps/ideploy
-      dockerfile: ./docker/coolify-realtime/Dockerfile
+      dockerfile: ./docker/ideploy-realtime/Dockerfile
     restart: unless-stopped
     ports:
       - '${FORWARD_SOKETI_PORT:-6001}:6001'
       - '6002:6002'
     volumes:
       - ./apps/ideploy/storage:/var/www/html/storage
-      - ./apps/ideploy/docker/coolify-realtime/terminal-server.js:/terminal/terminal-server.js
+      - ./apps/ideploy/docker/ideploy-realtime/terminal-server.js:/terminal/terminal-server.js
     environment:
       SOKETI_DEBUG: 'false'
-      SOKETI_DEFAULT_APP_ID: '${PUSHER_APP_ID:-coolify}'
-      SOKETI_DEFAULT_APP_KEY: '${PUSHER_APP_KEY:-coolify}'
-      SOKETI_DEFAULT_APP_SECRET: '${PUSHER_APP_SECRET:-coolify}'
+      SOKETI_DEFAULT_APP_ID: '${PUSHER_APP_ID:-ideploy}'
+      SOKETI_DEFAULT_APP_KEY: '${PUSHER_APP_KEY:-ideploy}'
+      SOKETI_DEFAULT_APP_SECRET: '${PUSHER_APP_SECRET:-ideploy}'
     entrypoint: ['/bin/sh', '/soketi-entrypoint.sh']
     networks:
       - idem-dev
