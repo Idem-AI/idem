@@ -40,11 +40,7 @@
         }
     @endphp
     <title>{{ $name }}{{ $title ?? 'iDeploy' }}</title>
-    @env('local')
-        <link rel="icon" href="{{ asset('ideploy-logo.svg') }}" type="image/svg+xml" />
-    @else
-        <link rel="icon" href="{{ asset('ideploy-logo.svg') }}" type="image/svg+xml" />
-    @endenv
+    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @vite(['resources/js/app.js', 'resources/css/app.css'])
     <style>

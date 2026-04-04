@@ -304,7 +304,7 @@
                                                 class="w-12 h-12 object-contain transition-transform group-hover:scale-110 group-hover:rotate-3"
                                                 x-on:error.window="$event.target.src = service.logo_github_url"
                                                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
-                                                x-on:error="$event.target.src = '/ideploy-logo.svg'"
+                                                x-on:error="$event.target.src = '/logo/logo_white.png'"
                                                 :data-fallback='service.logo_github_url' />
                                         </template>
                                     </div>

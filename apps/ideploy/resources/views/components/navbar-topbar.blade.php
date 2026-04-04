@@ -8,9 +8,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
         </button>
-        
-        {{-- Logo seul --}}
-        <img src="/logo/ideploy_logo1.svg" alt="iDeploy" class="h-8 w-auto">
+
+        {{-- Logo IDEM + Ideploy --}}
+        <div class="flex items-center gap-2">
+            <img src="{{ asset('logo/logo_white.png') }}" alt="IDEM" class="h-8 w-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+            <div class="text-xl font-bold tracking-wide text-glow-primary" style="display:none; background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</div>
+            <span class="text-xs font-medium text-gray-400">Ideploy</span>
+        </div>
     </div>
 
     {{-- Right: Subscription Info, Credits and User Menu --}}
@@ -23,11 +27,11 @@
                 $plan = $team->idem_subscription_plan ?? 'free';
                 $appsUsed = $team->idem_apps_count ?? 0;
                 $appsLimit = $team->idem_app_limit ?? 2;
-                
+
                 // Count actual servers from the team
                 $serversUsed = $team->servers()->count();
                 $serversLimit = $team->idem_server_limit ?? 0;
-                
+
                 // Plan colors
                 $planColors = [
                     'free' => ['bg' => 'bg-gray-600/20', 'text' => 'text-gray-400', 'border' => 'border-gray-600/30'],
@@ -37,7 +41,7 @@
                 ];
                 $colors = $planColors[$plan] ?? $planColors['free'];
             @endphp
-            
+
             {{-- Masquer les badges pour les admins --}}
             @if(!$isAdmin)
                 {{-- Plan Badge (Clickable) --}}
@@ -47,7 +51,7 @@
                     </svg>
                     <span class="text-xs font-bold {{ $colors['text'] }} uppercase">{{ $plan }}</span>
                 </a>
-                
+
                 {{-- Apps Quota --}}
                 <div class="flex items-center gap-2 px-3 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
                     <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +60,7 @@
                     <span class="text-xs font-medium text-gray-400">Apps:</span>
                     <span class="text-xs font-bold {{ $appsUsed >= $appsLimit ? 'text-red-400' : 'text-blue-400' }}">{{ $appsUsed }}/{{ $appsLimit }}</span>
                 </div>
-                
+
                 {{-- Servers Quota (always shown, free plan has 2 servers) --}}
                 <div class="flex items-center gap-2 px-3 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
                     <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,7 +69,7 @@
                     <span class="text-xs font-medium text-gray-400">Servers:</span>
                     <span class="text-xs font-bold {{ $serversUsed >= $serversLimit ? 'text-red-400' : 'text-green-400' }}">{{ $serversUsed }}/{{ $serversLimit > 0 ? $serversLimit : 2 }}</span>
                 </div>
-                
+
                 {{-- Credits Display --}}
                 <div class="flex items-center gap-2 px-3 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
                     <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,8 +93,8 @@
         <div x-data="{ open: false }" class="relative">
             <button @click="open = !open" class="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-lg transition-colors">
                 @if(auth()->user()->photo_url)
-                    <img src="{{ auth()->user()->photo_url }}" 
-                         alt="{{ auth()->user()->name }}" 
+                    <img src="{{ auth()->user()->photo_url }}"
+                         alt="{{ auth()->user()->name }}"
                          class="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500/30"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full items-center justify-center hidden">
@@ -109,7 +113,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </button>
-            
+
             {{-- Dropdown Menu --}}
             <div x-show="open" @click.away="open = false" x-cloak
                  class="absolute right-0 mt-2 w-56 bg-[#0a0e1a] border border-gray-700/50 rounded-lg shadow-xl z-50">

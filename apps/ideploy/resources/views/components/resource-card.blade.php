@@ -15,7 +15,7 @@
                                 </svg>
                             </div>
                         </template>
-                        
+
                         {{-- PostgreSQL Icon --}}
                         <template x-if="item.type === 'postgresql'">
                             <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg ring-2 ring-blue-600/30">
@@ -24,7 +24,7 @@
                                 </svg>
                             </div>
                         </template>
-                        
+
                         {{-- MySQL Icon --}}
                         <template x-if="item.type === 'mysql'">
                             <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center shadow-lg ring-2 ring-orange-500/30">
@@ -33,7 +33,7 @@
                                 </svg>
                             </div>
                         </template>
-                        
+
                         {{-- MariaDB Icon --}}
                         <template x-if="item.type === 'mariadb'">
                             <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow-lg ring-2 ring-teal-500/30">
@@ -42,7 +42,7 @@
                                 </svg>
                             </div>
                         </template>
-                        
+
                         {{-- MongoDB Icon --}}
                         <template x-if="item.type === 'mongodb'">
                             <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center shadow-lg ring-2 ring-green-600/30">
@@ -51,7 +51,7 @@
                                 </svg>
                             </div>
                         </template>
-                        
+
                         {{-- Redis Icon --}}
                         <template x-if="item.type === 'redis'">
                             <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg ring-2 ring-red-600/30">
@@ -60,7 +60,7 @@
                                 </svg>
                             </div>
                         </template>
-                        
+
                         {{-- Service Icon (default) --}}
                         <template x-if="item.type === 'service'">
                             <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg ring-2 ring-purple-600/30">
@@ -70,14 +70,14 @@
                             </div>
                         </template>
                     </div>
-                    
+
                     {{-- Title and Status --}}
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
                             <h3 class="text-base font-semibold text-gray-100 group-hover:text-blue-400 transition-colors truncate" x-text="item.name"></h3>
                         </div>
                         <p class="text-xs text-gray-400 line-clamp-1 mb-2" x-text="item.description || 'No description'"></p>
-                        
+
                         {{-- Status Badge --}}
                         <div class="flex items-center gap-2">
                             <template x-if="item.status.startsWith('running')">
@@ -114,7 +114,7 @@
                     </div>
                 </div>
             </div>
-            
+
             {{-- Content --}}
             <div class="p-5 flex-grow">
                 <div class="space-y-3">
@@ -126,7 +126,7 @@
                             <span class="text-xs text-gray-300 truncate font-mono" x-text="item.fqdn"></span>
                         </div>
                     </template>
-                    
+
                     <template x-if="item.server_status == false">
                         <div class="flex items-center gap-2 bg-red-500/10 rounded-lg px-3 py-2 border border-red-500/30">
                             <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,7 +137,7 @@
                     </template>
                 </div>
             </div>
-            
+
             {{-- Footer with Tags --}}
             <div class="px-5 py-3 bg-gradient-to-r from-gray-900/40 to-gray-800/20 border-t border-gray-700/50">
                 <div class="flex items-center gap-1.5 flex-wrap min-h-[28px]">
