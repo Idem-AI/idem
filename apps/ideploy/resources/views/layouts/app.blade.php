@@ -62,9 +62,12 @@
             {{-- Mobile Header --}}
             <div class="sticky top-0 z-40 flex items-center justify-between px-4 py-4 gap-x-6 sm:px-6 lg:hidden glass-dark border-b border-glass-border">
                 <div class="flex items-center gap-3 flex-shrink-0">
-                    {{-- IDEM Logo Mobile --}}
-                    <img src="{{ asset('logo/logo.png') }}" alt="IDEM" class="h-8 w-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                    <div class="text-xl font-bold tracking-wide text-glow-primary" style="display:none; background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</div>
+                    {{-- IDEM Logo Mobile + Ideploy --}}
+                    <div class="flex items-center gap-2">
+                        <img src="{{ asset('logo/logo_white.png') }}" alt="IDEM" class="h-8 w-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                        <div class="text-xl font-bold tracking-wide text-glow-primary" style="display:none; background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</div>
+                        <span class="text-xs font-medium text-gray-400">Ideploy</span>
+                    </div>
                     <livewire:switch-team />
                 </div>
                 <button type="button" class="-m-2.5 p-2.5 dark:text-warning" x-on:click="open = !open">

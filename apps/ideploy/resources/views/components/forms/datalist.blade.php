@@ -19,7 +19,7 @@
             selected: @entangle($modelBinding).live,
             options: [],
             filteredOptions: [],
-        
+
             init() {
                 this.options = Array.from(this.$refs.datalist.querySelectorAll('option')).map(opt => {
                     // Try to parse as integer, fallback to string
@@ -39,7 +39,7 @@
                     this.selected = [];
                 }
             },
-        
+
             filterOptions() {
                 if (!this.search) {
                     this.filteredOptions = this.options;
@@ -50,7 +50,7 @@
                     opt.text.toLowerCase().includes(searchLower)
                 );
             },
-        
+
             toggleOption(value) {
                 // Ensure selected is an array
                 if (!Array.isArray(this.selected)) {
@@ -67,7 +67,7 @@
                 // Focus input after selection
                 this.$refs.searchInput.focus();
             },
-        
+
             removeOption(value, event) {
                 // Ensure selected is an array
                 if (!Array.isArray(this.selected)) {
@@ -81,7 +81,7 @@
                     this.selected.splice(index, 1);
                 }
             },
-        
+
             isSelected(value) {
                 // Ensure selected is an array
                 if (!Array.isArray(this.selected)) {
@@ -89,7 +89,7 @@
                 }
                 return this.selected.includes(value);
             },
-        
+
             getSelectedText(value) {
                 const option = this.options.find(opt => opt.value == value);
                 return option ? option.text : value;
