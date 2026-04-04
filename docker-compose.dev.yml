@@ -208,6 +208,7 @@ services:
       - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
     volumes:
       - ./apps/ideploy:/var/www/html:cached
+      - ./packages:/packages:cached
     command: sh -c "npm install && npm run dev"
     networks:
       - idem-dev
