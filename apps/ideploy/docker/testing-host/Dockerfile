@@ -30,7 +30,7 @@ RUN chmod +x ~/.docker/cli-plugins/docker-compose /usr/bin/docker /root/.docker/
 RUN ssh-keygen -A
 RUN mkdir -p /run/sshd
 RUN mkdir -p ~/.ssh
-RUN echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFuGmoeGq/pojrsyP1pszcNVuZx9iFkCELtxrh31QJ68 coolify@coolify-instance" >> ~/.ssh/authorized_keys
+RUN echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFuGmoeGq/pojrsyP1pszcNVuZx9iFkCELtxrh31QJ68 ideploy@ideploy-instance" >> ~/.ssh/authorized_keys
 
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D", "-o", "ListenAddress=0.0.0.0", "-o", "Port=22"]

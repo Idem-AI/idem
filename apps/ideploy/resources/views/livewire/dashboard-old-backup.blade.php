@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Dashboard | Coolify
+        Dashboard | Ideploy
     </x-slot>
     @if (session('error'))
         <span x-data x-init="$wire.emit('error', '{{ session('error') }}')" />
@@ -40,7 +40,7 @@
                         $totalResources = 0;
                         $activeResources = 0;
                         $resourceTypes = [];
-                        
+
                         foreach ($project->environments ?? [] as $environment) {
                             // Applications
                             if (isset($environment->applications)) {
@@ -50,7 +50,7 @@
                                     $resourceTypes[] = 'Apps';
                                 }
                             }
-                            
+
                             // Services
                             if (isset($environment->services)) {
                                 $totalResources += $environment->services->count();
@@ -59,7 +59,7 @@
                                     $resourceTypes[] = 'Services';
                                 }
                             }
-                            
+
                             // PostgreSQL
                             if (isset($environment->postgresqls)) {
                                 $totalResources += $environment->postgresqls->count();
@@ -68,7 +68,7 @@
                                     $resourceTypes[] = 'PostgreSQL';
                                 }
                             }
-                            
+
                             // MySQL
                             if (isset($environment->mysqls)) {
                                 $totalResources += $environment->mysqls->count();
@@ -77,7 +77,7 @@
                                     $resourceTypes[] = 'MySQL';
                                 }
                             }
-                            
+
                             // MariaDB
                             if (isset($environment->mariadbs)) {
                                 $totalResources += $environment->mariadbs->count();
@@ -86,7 +86,7 @@
                                     $resourceTypes[] = 'MariaDB';
                                 }
                             }
-                            
+
                             // MongoDB
                             if (isset($environment->mongodbs)) {
                                 $totalResources += $environment->mongodbs->count();
@@ -95,7 +95,7 @@
                                     $resourceTypes[] = 'MongoDB';
                                 }
                             }
-                            
+
                             // Redis
                             if (isset($environment->redis)) {
                                 $totalResources += $environment->redis->count();
@@ -105,14 +105,14 @@
                                 }
                             }
                         }
-                        
+
                         $resourceTypes = array_unique($resourceTypes);
                     @endphp
-                    
+
                     {{-- Project Card --}}
                     <div class="relative bg-white dark:bg-coolgray-100 rounded-lg border border-neutral-200 dark:border-coolgray-200 hover:border-neutral-300 dark:hover:border-coolgray-300 transition-all group">
                         <a href="{{ $project->navigateTo() }}" class="absolute inset-0 z-0"></a>
-                        
+
                         {{-- Header Section --}}
                         <div class="p-4 border-b border-neutral-200 dark:border-coolgray-200">
                             <div class="flex items-start justify-between mb-3">
@@ -125,7 +125,7 @@
                                     </p>
                                 </div>
                             </div>
-                            
+
                             {{-- Action Buttons --}}
                             <div class="relative z-10 flex items-center gap-2">
                                 @if ($project->environments->first())
@@ -153,7 +153,7 @@
                                 @endcan
                             </div>
                         </div>
-                        
+
                         {{-- Summary Stats - Petites boxes compactes --}}
                         <div class="p-4">
                             <div class="grid grid-cols-3 gap-2">
@@ -162,20 +162,20 @@
                                     <div class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ $totalResources }}</div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Total</div>
                                 </div>
-                                
+
                                 {{-- Active Resources --}}
                                 <div class="bg-green-50 dark:bg-green-950/20 rounded-md p-2 text-center">
                                     <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ $activeResources }}</div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Active</div>
                                 </div>
-                                
+
                                 {{-- Inactive Resources --}}
                                 <div class="bg-gray-50 dark:bg-gray-950/20 rounded-md p-2 text-center">
                                     <div class="text-xl font-bold text-gray-600 dark:text-gray-400">{{ $totalResources - $activeResources }}</div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Inactive</div>
                                 </div>
                             </div>
-                            
+
                             {{-- Resource Types --}}
                             @if(count($resourceTypes) > 0)
                                 <div class="mt-3 pt-3 border-t border-neutral-200 dark:border-coolgray-200">
@@ -232,7 +232,7 @@
                         $totalResources = 0;
                         $activeResources = 0;
                         $resourceTypes = [];
-                        
+
                         try {
                             foreach ($server->destinations() as $destination) {
                                 $apps = $destination->applications ?? collect();
@@ -247,7 +247,7 @@
                         } catch (\Exception $e) {
                             // Ignore errors
                         }
-                        
+
                         try {
                             $services = $server->services()->get();
                             if ($services) {
@@ -262,7 +262,7 @@
                         } catch (\Exception $e) {
                             // Ignore errors
                         }
-                        
+
                         if ($server->standaloneDatabases) {
                             foreach ($server->standaloneDatabases as $db) {
                                 $totalResources++;
@@ -272,17 +272,17 @@
                                 }
                             }
                         }
-                        
+
                         $isReachable = $server->settings->is_reachable ?? true;
                         $isUsable = $server->settings->is_usable ?? true;
                         $isDisabled = $server->settings->force_disabled ?? false;
                         $hasIssues = !$isReachable || !$isUsable || $isDisabled;
                     @endphp
-                    
+
                     {{-- Server Card --}}
                     <div class="relative bg-white dark:bg-coolgray-100 rounded-lg border @if($hasIssues) border-red-500 dark:border-red-500 @else border-neutral-200 dark:border-coolgray-200 @endif hover:border-neutral-300 dark:hover:border-coolgray-300 transition-all group">
                         <a href="{{ route('server.show', ['server_uuid' => data_get($server, 'uuid')]) }}" class="absolute inset-0 z-0"></a>
-                        
+
                         {{-- Header Section --}}
                         <div class="p-4 border-b border-neutral-200 dark:border-coolgray-200">
                             <div class="flex items-start justify-between mb-3">
@@ -306,7 +306,7 @@
                                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                         {{ $server->description ?: 'No description' }}
                                     </p>
-                                    
+
                                     {{-- Error Messages --}}
                                     @if($hasIssues)
                                         <div class="mt-2 flex flex-wrap gap-1">
@@ -339,7 +339,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         {{-- Summary Stats - Petites boxes compactes --}}
                         <div class="p-4">
                             <div class="grid grid-cols-3 gap-2">
@@ -348,20 +348,20 @@
                                     <div class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ $totalResources }}</div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Total</div>
                                 </div>
-                                
+
                                 {{-- Active Resources --}}
                                 <div class="bg-green-50 dark:bg-green-950/20 rounded-md p-2 text-center">
                                     <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ $activeResources }}</div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Active</div>
                                 </div>
-                                
+
                                 {{-- Inactive Resources --}}
                                 <div class="bg-gray-50 dark:bg-gray-950/20 rounded-md p-2 text-center">
                                     <div class="text-xl font-bold text-gray-600 dark:text-gray-400">{{ $totalResources - $activeResources }}</div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Inactive</div>
                                 </div>
                             </div>
-                            
+
                             {{-- Resource Types --}}
                             @if(count($resourceTypes) > 0)
                                 <div class="mt-3 pt-3 border-t border-neutral-200 dark:border-coolgray-200">

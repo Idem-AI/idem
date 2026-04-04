@@ -11,7 +11,7 @@ class CrowdSecInstallCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'crowdsec:install 
+    protected $signature = 'crowdsec:install
                           {server_id : The server ID to install CrowdSec on}
                           {--force : Force reinstallation even if already installed}
                           {--dry-run : Show what would be done without executing}
@@ -74,7 +74,7 @@ class CrowdSecInstallCommand extends Command
 
             // Actual installation
             $this->info("🚀 Starting CrowdSec installation...");
-            
+
             if ($force && $server->crowdsec_installed) {
                 if ($this->confirm('⚠️ This will remove existing CrowdSec installation. Continue?')) {
                     $this->info("🗑️ Removing existing installation...");
@@ -89,21 +89,21 @@ class CrowdSecInstallCommand extends Command
             $this->info("🎉 CrowdSec installed successfully!");
             $this->line("API Key: " . substr($result['api_key'], 0, 10) . "...");
             $this->line("LAPI URL: " . config('crowdsec.lapi_url'));
-            
+
             // Test installation
             $this->info("🔍 Testing installation...");
             $healthStatus = $deploymentService->getHealthStatus($server);
-            
+
             $this->displayHealthStatus($healthStatus);
 
         } catch (\Exception $e) {
             $this->error("❌ Installation failed: {$e->getMessage()}");
-            
+
             if ($this->output->isVerbose()) {
                 $this->line("Stack trace:");
                 $this->line($e->getTraceAsString());
             }
-            
+
             return 1;
         }
 
@@ -119,18 +119,18 @@ class CrowdSecInstallCommand extends Command
 
         try {
             $config = config('crowdsec');
-            
+
             // Check Docker
             $this->info("  → Checking Docker availability...");
             // We can't actually run the validation here since it uses instant_remote_process
             // But we can show what would be checked
             $this->line("    ✓ Docker installation");
-            $this->line("    ✓ Docker coolify network");
+            $this->line("    ✓ Docker ideploy network");
             $this->line("    ✓ Port {$config['docker']['lapi_port']} availability");
             $this->line("    ✓ Directory permissions");
 
             $this->info("✅ All validation checks would pass (simulated)");
-            
+
         } catch (\Exception $e) {
             $this->error("❌ Validation failed: {$e->getMessage()}");
             throw $e;
@@ -143,7 +143,7 @@ class CrowdSecInstallCommand extends Command
     private function showDeploymentPlan(Server $server)
     {
         $config = config('crowdsec');
-        
+
         $this->line("📋 Deployment Plan:");
         $this->line("  1. Create directories at {$config['docker']['config_path']}");
         $this->line("  2. Generate Docker Compose file");
@@ -152,7 +152,7 @@ class CrowdSecInstallCommand extends Command
         $this->line("  5. Configure Traefik middleware");
         $this->line("  6. Update server metadata");
         $this->line("  7. Configure webhook for traffic logging");
-        
+
         $this->line("");
         $this->line("🐳 Container Configuration:");
         $this->line("  Image: {$config['docker']['image']}");
@@ -168,19 +168,19 @@ class CrowdSecInstallCommand extends Command
     {
         $this->line("");
         $this->line("🏥 Health Status:");
-        
+
         $this->line("  Container Running: " . ($status['container_running'] ? '✅ Yes' : '❌ No'));
         $this->line("  LAPI Responding: " . ($status['lapi_responding'] ? '✅ Yes' : '❌ No'));
         $this->line("  Bouncer Configured: " . ($status['bouncer_configured'] ? '✅ Yes' : '❌ No'));
-        
+
         if ($status['version']) {
             $this->line("  Version: {$status['version']}");
         }
-        
+
         if ($status['error']) {
             $this->line("  Error: {$status['error']}");
         }
-        
+
         $overallStatus = $status['healthy'] ? '✅ Healthy' : '❌ Unhealthy';
         $this->line("  Overall Status: {$overallStatus}");
     }

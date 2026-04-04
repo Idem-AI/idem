@@ -11,7 +11,7 @@ use App\Jobs\PullTemplatesFromCDN;
 use App\Jobs\RegenerateSslCertJob;
 use App\Jobs\ScheduledJobManager;
 use App\Jobs\ServerManagerJob;
-use App\Jobs\UpdateCoolifyJob;
+use App\Jobs\UpdateIdeployJob;
 use App\Jobs\Security\SyncCrowdSecAlertsJob;
 use App\Jobs\Security\CleanOldTrafficLogsJob;
 use App\Jobs\PollTrafficLoggerJob;
@@ -64,15 +64,15 @@ class Kernel extends ConsoleKernel
             $this->scheduleInstance->job(new ScheduledJobManager)->everyMinute()->onOneServer();
 
             $this->scheduleInstance->command('uploads:clear')->everyTwoMinutes();
-            
+
             // Pipeline Jobs
             $this->scheduleInstance->command('pipeline:cleanup-stuck')->hourly()->onOneServer();
-            
+
             // CrowdSec Security Jobs
             // TEMPORARILY DISABLED - SyncCrowdSecAlertsJob failing, not critical for IP blocking
             // $this->scheduleInstance->job(new SyncCrowdSecAlertsJob)->everyFiveMinutes()->onOneServer();
             $this->scheduleInstance->job(new CleanOldTrafficLogsJob)->daily()->onOneServer();
-            
+
             // Poll traffic logger
             $this->scheduleInstance->call(function () {
                 Server::where('traffic_logger_installed', true)->each(fn($s) => PollTrafficLoggerJob::dispatch($s));
@@ -101,15 +101,15 @@ class Kernel extends ConsoleKernel
 
             $this->scheduleInstance->command('cleanup:database --yes')->daily();
             $this->scheduleInstance->command('uploads:clear')->everyTwoMinutes();
-            
+
             // Pipeline Jobs
             $this->scheduleInstance->command('pipeline:cleanup-stuck')->hourly()->onOneServer();
-            
+
             // CrowdSec Security Jobs
             // TEMPORARILY DISABLED - SyncCrowdSecAlertsJob failing, not critical for IP blocking
             // $this->scheduleInstance->job(new SyncCrowdSecAlertsJob)->everyFiveMinutes()->onOneServer();
             $this->scheduleInstance->job(new CleanOldTrafficLogsJob)->daily()->onOneServer();
-            
+
             // Poll traffic logger
             $this->scheduleInstance->call(function () {
                 Server::where('traffic_logger_installed', true)->each(fn($s) => PollTrafficLoggerJob::dispatch($s));
@@ -152,7 +152,7 @@ class Kernel extends ConsoleKernel
 
         if ($this->settings->is_auto_update_enabled) {
             $autoUpdateFrequency = $this->settings->auto_update_frequency;
-            $this->scheduleInstance->job(new UpdateCoolifyJob)
+            $this->scheduleInstance->job(new UpdateIdeployJob)
                 ->cron($autoUpdateFrequency)
                 ->timezone($this->instanceTimezone)
                 ->onOneServer();

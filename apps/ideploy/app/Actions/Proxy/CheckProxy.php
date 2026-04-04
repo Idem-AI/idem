@@ -40,7 +40,7 @@ class CheckProxy
         }
 
         // Determine proxy container name based on environment
-        $proxyContainerName = $server->isSwarm() ? 'coolify-proxy_traefik' : 'coolify-proxy';
+        $proxyContainerName = $server->isSwarm() ? 'ideploy-proxy_traefik' : 'ideploy-proxy';
 
         if ($server->isSwarm()) {
             $status = getContainerStatus($server, $proxyContainerName);
@@ -102,7 +102,7 @@ class CheckProxy
             foreach ($conflicts as $port => $conflict) {
                 if ($conflict) {
                     if ($fromUI) {
-                        throw new \Exception("Port $port is in use.<br>You must stop the process using this port.<br><br>Docs: <a target='_blank' class='dark:text-white hover:underline' href='https://coolify.io/docs'>https://coolify.io/docs</a><br>Discord: <a target='_blank' class='dark:text-white hover:underline' href='https://coolify.io/discord'>https://coolify.io/discord</a>");
+                        throw new \Exception("Port $port is in use.<br>You must stop the process using this port.<br><br>Docs: <a target='_blank' class='dark:text-white hover:underline' href='https://ideploy.io/docs'>https://ideploy.io/docs</a><br>Discord: <a target='_blank' class='dark:text-white hover:underline' href='https://ideploy.io/discord'>https://ideploy.io/discord</a>");
                     } else {
                         return false;
                     }
@@ -180,7 +180,7 @@ class CheckProxy
         // Command sets for different ways to check ports, ordered by preference
         $portCheckScript = "
             $checkProxyPortScript
-            
+
             # Try ss command first
             if command -v ss >/dev/null 2>&1; then
                 ss_output=\$(ss -Htuln state listening sport = :$port 2>/dev/null);
@@ -194,14 +194,14 @@ class CheckProxy
                     exit 0;
                 fi;
                 # Check for dual-stack or docker processes
-                if [ \$count -le 2 ] && (echo \"\$ss_output\" | grep -q 'docker\\|coolify'); then
+                if [ \$count -le 2 ] && (echo \"\$ss_output\" | grep -q 'docker\\|ideploy'); then
                     echo 'port_free';
                     exit 0;
                 fi;
                 echo \"port_conflict|\$ss_output\";
                 exit 0;
             fi;
-            
+
             # Try netstat as fallback
             if command -v netstat >/dev/null 2>&1; then
                 netstat_output=\$(netstat -tuln 2>/dev/null | grep ':$port ');
@@ -214,14 +214,14 @@ class CheckProxy
                     echo 'port_free';
                     exit 0;
                 fi;
-                if [ \$count -le 2 ] && (echo \"\$netstat_output\" | grep -q 'docker\\|coolify'); then
+                if [ \$count -le 2 ] && (echo \"\$netstat_output\" | grep -q 'docker\\|ideploy'); then
                     echo 'port_free';
                     exit 0;
                 fi;
                 echo \"port_conflict|\$netstat_output\";
                 exit 0;
             fi;
-            
+
             # Final fallback using nc
             if nc -z -w1 127.0.0.1 $port >/dev/null 2>&1; then
                 echo 'port_conflict|nc_detected';
@@ -356,7 +356,7 @@ class CheckProxy
                     return false;
                 }
 
-                // Try to detect if this is our coolify-proxy
+                // Try to detect if this is our ideploy-proxy
                 if (strpos($details, 'docker') !== false || strpos($details, $proxyContainerName) !== false) {
                     // It's likely our docker or proxy, which is fine
                     return false;

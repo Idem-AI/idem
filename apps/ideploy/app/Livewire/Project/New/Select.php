@@ -42,7 +42,7 @@ class Select extends Component
     public bool $loadingServices = true;
 
     public bool $loading = false;
-    
+
     public array $preloadedResources = [];
 
     public $environments = [];
@@ -52,7 +52,7 @@ class Select extends Component
     public string $postgresql_type = 'postgres:16-alpine';
 
     public ?string $existingPostgresqlUrl = null;
-    
+
     // IDEM: Deployment choice
     public bool $deployOnIdemManaged = true;
     public string $idemServerStrategy = 'least_loaded';
@@ -67,7 +67,7 @@ class Select extends Component
         try {
             $this->parameters = get_route_parameters();
             if (isDev()) {
-                $this->existingPostgresqlUrl = 'postgres://coolify:password@coolify-db:5432';
+                $this->existingPostgresqlUrl = 'postgres://ideploy:password@ideploy-db:5432';
             }
             $projectUuid = data_get($this->parameters, 'project_uuid');
             $project = Project::whereUuid($projectUuid)->firstOrFail();
@@ -79,7 +79,7 @@ class Select extends Component
             return handleError($e, $this);
         }
     }
-    
+
     private function getStaticResources(): array
     {
         $gitBasedApplications = [
@@ -136,7 +136,7 @@ class Select extends Component
                 'name' => str($key)->headline(),
                 'logo' => asset($logo),
                 'logo_github_url' => file_exists($local_logo_path)
-                    ? 'https://raw.githubusercontent.com/coollabsio/coolify/refs/heads/main/public/'.$logo
+                    ? 'https://raw.githubusercontent.com/coollabsio/ideploy/refs/heads/main/public/'.$logo
                     : asset($default_logo),
             ] + (array) $service;
         })->all();
@@ -306,7 +306,7 @@ class Select extends Component
 
             return;
         }
-        
+
         // IDEM: Si le projet a un serveur assigné lors de sa création, l'utiliser directement
         $project = Project::whereUuid(data_get($this->parameters, 'project_uuid'))->first();
         if ($project && $project->assigned_server_id) {
@@ -320,7 +320,7 @@ class Select extends Component
         // Afficher le choix de déploiement pour TOUS les types (apps, databases, services)
         $this->current_step = 'deployment-choice';
         return;
-        
+
         // Note: Le code ci-dessous ne sera jamais atteint car on redirige toujours vers deployment-choice
         // Il est conservé pour référence mais pourrait être supprimé
         if (count($this->servers) === 1) {
@@ -395,12 +395,12 @@ class Select extends Component
     public function loadServers()
     {
         $allServers = Server::isUsable()->get()->sortBy('name');
-        
+
         // IDEM: Masquer les serveurs IDEM managed pour les utilisateurs normaux
         // Les admins IDEM voient tous les serveurs
         $user = auth()->user();
         $isIdemAdmin = $user && $user->idem_role === 'admin';
-        
+
         if (!$isIdemAdmin) {
             // Utilisateurs normaux ne voient que leurs serveurs personnels (non IDEM managed)
             $this->servers = $allServers->where('idem_managed', false);
@@ -408,7 +408,7 @@ class Select extends Component
             // Admins voient tous les serveurs
             $this->servers = $allServers;
         }
-        
+
         $this->allServers = $this->servers;
 
         if ($this->allServers && $this->allServers->isNotEmpty()) {
@@ -417,18 +417,18 @@ class Select extends Component
             });
         }
     }
-    
+
     // IDEM: Méthodes pour le choix de déploiement
     public function chooseIdemManaged()
     {
         $this->deployOnIdemManaged = true;
         $this->proceedWithDeploymentChoice();
     }
-    
+
     public function choosePersonalServers()
     {
         $this->deployOnIdemManaged = false;
-        
+
         // Vérifier que l'utilisateur a des serveurs personnels
         // Note: On n'exclut pas les swarm workers et build servers pour les serveurs personnels
         $personalServers = Server::ownedByCurrentTeam()
@@ -437,15 +437,15 @@ class Select extends Component
             ->whereRelation('settings', 'force_disabled', false)
             ->where('idem_managed', false)
             ->count();
-        
+
         if ($personalServers === 0) {
             $this->dispatch('error', 'You don\'t have any personal servers. Please add a server first or choose IDEM Managed Servers.');
             return;
         }
-        
+
         $this->current_step = 'servers';
     }
-    
+
     public function proceedWithDeploymentChoice()
     {
         if ($this->deployOnIdemManaged) {
@@ -453,13 +453,13 @@ class Select extends Component
             $idemServers = Server::where('idem_managed', true)
                 ->orderBy('idem_load_score', 'asc')
                 ->get();
-            
+
             if ($idemServers->isEmpty()) {
                 $this->dispatch('error', 'No IDEM managed servers available. Please contact support or use your personal servers.');
                 $this->current_step = 'servers';
                 return;
             }
-            
+
             // Sélectionner le serveur avec le load score le plus bas
             $selectedServer = $idemServers->first();
             $this->setServer($selectedServer);

@@ -6,7 +6,7 @@ Error:
 {{ $errorMessage }}
 </pre>
 
-The server has been removed from Coolify, but may still exist in your Hetzner Cloud account.
+The server has been removed from Ideploy, but may still exist in your Hetzner Cloud account.
 
 Please check your Hetzner Cloud console and manually delete the server if needed to avoid ongoing charges.
 

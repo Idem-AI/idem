@@ -1,19 +1,21 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Coolify",
+    "title": "Ideploy",
     "version": "0.1"
   },
   "servers": [
     {
-      "url": "https:\/\/app.coolify.io\/api\/v1",
-      "description": "Coolify Cloud API. Change the host to your own instance if you are self-hosting."
+      "url": "https:\/\/app.ideploy.io\/api\/v1",
+      "description": "Ideploy Cloud API. Change the host to your own instance if you are self-hosting."
     }
   ],
   "paths": {
     "\/applications": {
       "get": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "List",
         "description": "List all applications.",
         "operationId": "list-applications",
@@ -47,7 +49,9 @@
     },
     "\/applications\/public": {
       "post": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Create (Public)",
         "description": "Create new application based on a public git repository.",
         "operationId": "create-public-application",
@@ -94,7 +98,12 @@
                   },
                   "build_pack": {
                     "type": "string",
-                    "enum": ["nixpacks", "static", "dockerfile", "dockercompose"],
+                    "enum": [
+                      "nixpacks",
+                      "static",
+                      "dockerfile",
+                      "dockercompose"
+                    ],
                     "description": "The build pack type."
                   },
                   "ports_exposes": {
@@ -135,7 +144,9 @@
                   },
                   "static_image": {
                     "type": "string",
-                    "enum": ["nginx:alpine"],
+                    "enum": [
+                      "nginx:alpine"
+                    ],
                     "description": "The static image."
                   },
                   "install_command": {
@@ -286,7 +297,11 @@
                     "type": "string",
                     "nullable": true,
                     "description": "How to set redirect with Traefik \/ Caddy. www<->non-www.",
-                    "enum": ["www", "non-www", "both"]
+                    "enum": [
+                      "www",
+                      "non-www",
+                      "both"
+                    ]
                   },
                   "instant_deploy": {
                     "type": "boolean",
@@ -408,7 +423,11 @@
                           },
                           "resource_type": {
                             "type": "string",
-                            "enum": ["application", "service", "instance"],
+                            "enum": [
+                              "application",
+                              "service",
+                              "instance"
+                            ],
                             "example": "application"
                           },
                           "message": {
@@ -435,7 +454,9 @@
     },
     "\/applications\/private-github-app": {
       "post": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Create (Private - GH App)",
         "description": "Create new application based on a private repository through a Github App.",
         "operationId": "create-private-github-app-application",
@@ -495,7 +516,12 @@
                   },
                   "build_pack": {
                     "type": "string",
-                    "enum": ["nixpacks", "static", "dockerfile", "dockercompose"],
+                    "enum": [
+                      "nixpacks",
+                      "static",
+                      "dockerfile",
+                      "dockercompose"
+                    ],
                     "description": "The build pack type."
                   },
                   "name": {
@@ -528,7 +554,9 @@
                   },
                   "static_image": {
                     "type": "string",
-                    "enum": ["nginx:alpine"],
+                    "enum": [
+                      "nginx:alpine"
+                    ],
                     "description": "The static image."
                   },
                   "install_command": {
@@ -679,7 +707,11 @@
                     "type": "string",
                     "nullable": true,
                     "description": "How to set redirect with Traefik \/ Caddy. www<->non-www.",
-                    "enum": ["www", "non-www", "both"]
+                    "enum": [
+                      "www",
+                      "non-www",
+                      "both"
+                    ]
                   },
                   "instant_deploy": {
                     "type": "boolean",
@@ -801,7 +833,11 @@
                           },
                           "resource_type": {
                             "type": "string",
-                            "enum": ["application", "service", "instance"],
+                            "enum": [
+                              "application",
+                              "service",
+                              "instance"
+                            ],
                             "example": "application"
                           },
                           "message": {
@@ -828,7 +864,9 @@
     },
     "\/applications\/private-deploy-key": {
       "post": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Create (Private - Deploy Key)",
         "description": "Create new application based on a private repository through a Deploy Key.",
         "operationId": "create-private-deploy-key-application",
@@ -888,7 +926,12 @@
                   },
                   "build_pack": {
                     "type": "string",
-                    "enum": ["nixpacks", "static", "dockerfile", "dockercompose"],
+                    "enum": [
+                      "nixpacks",
+                      "static",
+                      "dockerfile",
+                      "dockercompose"
+                    ],
                     "description": "The build pack type."
                   },
                   "name": {
@@ -921,7 +964,9 @@
                   },
                   "static_image": {
                     "type": "string",
-                    "enum": ["nginx:alpine"],
+                    "enum": [
+                      "nginx:alpine"
+                    ],
                     "description": "The static image."
                   },
                   "install_command": {
@@ -1072,7 +1117,11 @@
                     "type": "string",
                     "nullable": true,
                     "description": "How to set redirect with Traefik \/ Caddy. www<->non-www.",
-                    "enum": ["www", "non-www", "both"]
+                    "enum": [
+                      "www",
+                      "non-www",
+                      "both"
+                    ]
                   },
                   "instant_deploy": {
                     "type": "boolean",
@@ -1194,7 +1243,11 @@
                           },
                           "resource_type": {
                             "type": "string",
-                            "enum": ["application", "service", "instance"],
+                            "enum": [
+                              "application",
+                              "service",
+                              "instance"
+                            ],
                             "example": "application"
                           },
                           "message": {
@@ -1221,7 +1274,9 @@
     },
     "\/applications\/dockerfile": {
       "post": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Create (Dockerfile)",
         "description": "Create new application based on a simple Dockerfile.",
         "operationId": "create-dockerfile-application",
@@ -1261,7 +1316,12 @@
                   },
                   "build_pack": {
                     "type": "string",
-                    "enum": ["nixpacks", "static", "dockerfile", "dockercompose"],
+                    "enum": [
+                      "nixpacks",
+                      "static",
+                      "dockerfile",
+                      "dockercompose"
+                    ],
                     "description": "The build pack type."
                   },
                   "ports_exposes": {
@@ -1424,7 +1484,11 @@
                     "type": "string",
                     "nullable": true,
                     "description": "How to set redirect with Traefik \/ Caddy. www<->non-www.",
-                    "enum": ["www", "non-www", "both"]
+                    "enum": [
+                      "www",
+                      "non-www",
+                      "both"
+                    ]
                   },
                   "instant_deploy": {
                     "type": "boolean",
@@ -1518,7 +1582,11 @@
                           },
                           "resource_type": {
                             "type": "string",
-                            "enum": ["application", "service", "instance"],
+                            "enum": [
+                              "application",
+                              "service",
+                              "instance"
+                            ],
                             "example": "application"
                           },
                           "message": {
@@ -1545,7 +1613,9 @@
     },
     "\/applications\/dockerimage": {
       "post": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Create (Docker Image)",
         "description": "Create new application based on a prebuilt docker image",
         "operationId": "create-dockerimage-application",
@@ -1736,7 +1806,11 @@
                     "type": "string",
                     "nullable": true,
                     "description": "How to set redirect with Traefik \/ Caddy. www<->non-www.",
-                    "enum": ["www", "non-www", "both"]
+                    "enum": [
+                      "www",
+                      "non-www",
+                      "both"
+                    ]
                   },
                   "instant_deploy": {
                     "type": "boolean",
@@ -1830,7 +1904,11 @@
                           },
                           "resource_type": {
                             "type": "string",
-                            "enum": ["application", "service", "instance"],
+                            "enum": [
+                              "application",
+                              "service",
+                              "instance"
+                            ],
                             "example": "application"
                           },
                           "message": {
@@ -1857,7 +1935,9 @@
     },
     "\/applications\/dockercompose": {
       "post": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Create (Docker Compose)",
         "description": "Create new application based on a docker-compose file.",
         "operationId": "create-dockercompose-application",
@@ -1985,7 +2065,11 @@
                           },
                           "resource_type": {
                             "type": "string",
-                            "enum": ["application", "service", "instance"],
+                            "enum": [
+                              "application",
+                              "service",
+                              "instance"
+                            ],
                             "example": "application"
                           },
                           "message": {
@@ -2012,7 +2096,9 @@
     },
     "\/applications\/{uuid}": {
       "get": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Get",
         "description": "Get application by UUID.",
         "operationId": "get-application-by-uuid",
@@ -2056,7 +2142,9 @@
         ]
       },
       "delete": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Delete",
         "description": "Delete application by UUID.",
         "operationId": "delete-application-by-uuid",
@@ -2146,7 +2234,9 @@
         ]
       },
       "patch": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Update",
         "description": "Update application by UUID.",
         "operationId": "update-application-by-uuid",
@@ -2203,7 +2293,12 @@
                   },
                   "build_pack": {
                     "type": "string",
-                    "enum": ["nixpacks", "static", "dockerfile", "dockercompose"],
+                    "enum": [
+                      "nixpacks",
+                      "static",
+                      "dockerfile",
+                      "dockercompose"
+                    ],
                     "description": "The build pack type."
                   },
                   "name": {
@@ -2382,7 +2477,11 @@
                     "type": "string",
                     "nullable": true,
                     "description": "How to set redirect with Traefik \/ Caddy. www<->non-www.",
-                    "enum": ["www", "non-www", "both"]
+                    "enum": [
+                      "www",
+                      "non-www",
+                      "both"
+                    ]
                   },
                   "instant_deploy": {
                     "type": "boolean",
@@ -2493,7 +2592,11 @@
                           },
                           "resource_type": {
                             "type": "string",
-                            "enum": ["application", "service", "instance"],
+                            "enum": [
+                              "application",
+                              "service",
+                              "instance"
+                            ],
                             "example": "application"
                           },
                           "message": {
@@ -2520,7 +2623,9 @@
     },
     "\/applications\/{uuid}\/logs": {
       "get": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Get application logs.",
         "description": "Get application logs by UUID.",
         "operationId": "get-application-logs-by-uuid",
@@ -2582,7 +2687,9 @@
     },
     "\/applications\/{uuid}\/envs": {
       "get": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "List Envs",
         "description": "List all envs by application UUID.",
         "operationId": "list-envs-by-application-uuid",
@@ -2629,7 +2736,9 @@
         ]
       },
       "post": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Create Env",
         "description": "Create env by application UUID.",
         "operationId": "create-env-by-application-uuid",
@@ -2716,7 +2825,9 @@
         ]
       },
       "patch": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Update Env",
         "description": "Update env by application UUID.",
         "operationId": "update-env-by-application-uuid",
@@ -2738,7 +2849,10 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["key", "value"],
+                "required": [
+                  "key",
+                  "value"
+                ],
                 "properties": {
                   "key": {
                     "type": "string",
@@ -2806,7 +2920,9 @@
     },
     "\/applications\/{uuid}\/envs\/bulk": {
       "patch": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Update Envs (Bulk)",
         "description": "Update multiple envs by application UUID.",
         "operationId": "update-envs-by-application-uuid",
@@ -2828,7 +2944,9 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["data"],
+                "required": [
+                  "data"
+                ],
                 "properties": {
                   "data": {
                     "type": "array",
@@ -2904,7 +3022,9 @@
     },
     "\/applications\/{uuid}\/envs\/{env_uuid}": {
       "delete": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Delete Env",
         "description": "Delete env by UUID.",
         "operationId": "delete-env-by-application-uuid",
@@ -2966,7 +3086,9 @@
     },
     "\/applications\/{uuid}\/start": {
       "get": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Start",
         "description": "Start application. `Post` request is also accepted.",
         "operationId": "start-application-by-uuid",
@@ -3042,7 +3164,9 @@
     },
     "\/applications\/{uuid}\/stop": {
       "get": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Stop",
         "description": "Stop application. `Post` request is also accepted.",
         "operationId": "stop-application-by-uuid",
@@ -3094,7 +3218,9 @@
     },
     "\/applications\/{uuid}\/restart": {
       "get": {
-        "tags": ["Applications"],
+        "tags": [
+          "Applications"
+        ],
         "summary": "Restart",
         "description": "Restart application. `Post` request is also accepted.",
         "operationId": "restart-application-by-uuid",
@@ -3151,7 +3277,9 @@
     },
     "\/databases": {
       "get": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "List",
         "description": "List all databases.",
         "operationId": "list-databases",
@@ -3183,7 +3311,9 @@
     },
     "\/databases\/{uuid}\/backups": {
       "get": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Get",
         "description": "Get backups details by database UUID.",
         "operationId": "get-database-backups-by-uuid",
@@ -3228,7 +3358,9 @@
         ]
       },
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create Backup",
         "description": "Create a new scheduled backup configuration for a database",
         "operationId": "create-database-backup",
@@ -3250,7 +3382,9 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["frequency"],
+                "required": [
+                  "frequency"
+                ],
                 "properties": {
                   "frequency": {
                     "type": "string",
@@ -3357,7 +3491,9 @@
     },
     "\/databases\/{uuid}": {
       "get": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Get",
         "description": "Get database by UUID.",
         "operationId": "get-database-by-uuid",
@@ -3402,7 +3538,9 @@
         ]
       },
       "delete": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Delete",
         "description": "Delete database by UUID.",
         "operationId": "delete-database-by-uuid",
@@ -3492,7 +3630,9 @@
         ]
       },
       "patch": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Update",
         "description": "Update database by UUID.",
         "operationId": "update-database-by-uuid",
@@ -3703,7 +3843,9 @@
     },
     "\/databases\/{uuid}\/backups\/{scheduled_backup_uuid}": {
       "delete": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Delete backup configuration",
         "description": "Deletes a backup configuration and all its executions.",
         "operationId": "delete-backup-configuration-by-uuid",
@@ -3779,7 +3921,9 @@
         ]
       },
       "patch": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Update",
         "description": "Update a specific backup configuration for a given database, identified by its UUID and the backup ID",
         "operationId": "update-database-backup",
@@ -3896,7 +4040,9 @@
     },
     "\/databases\/postgresql": {
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create (PostgreSQL)",
         "description": "Create a new PostgreSQL database.",
         "operationId": "create-database-postgresql",
@@ -3906,7 +4052,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "server_uuid": {
                     "type": "string",
@@ -4033,7 +4184,9 @@
     },
     "\/databases\/clickhouse": {
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create (Clickhouse)",
         "description": "Create a new Clickhouse database.",
         "operationId": "create-database-clickhouse",
@@ -4043,7 +4196,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "server_uuid": {
                     "type": "string",
@@ -4154,7 +4312,9 @@
     },
     "\/databases\/dragonfly": {
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create (DragonFly)",
         "description": "Create a new DragonFly database.",
         "operationId": "create-database-dragonfly",
@@ -4164,7 +4324,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "server_uuid": {
                     "type": "string",
@@ -4271,7 +4436,9 @@
     },
     "\/databases\/redis": {
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create (Redis)",
         "description": "Create a new Redis database.",
         "operationId": "create-database-redis",
@@ -4281,7 +4448,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "server_uuid": {
                     "type": "string",
@@ -4392,7 +4564,9 @@
     },
     "\/databases\/keydb": {
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create (KeyDB)",
         "description": "Create a new KeyDB database.",
         "operationId": "create-database-keydb",
@@ -4402,7 +4576,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "server_uuid": {
                     "type": "string",
@@ -4513,7 +4692,9 @@
     },
     "\/databases\/mariadb": {
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create (MariaDB)",
         "description": "Create a new MariaDB database.",
         "operationId": "create-database-mariadb",
@@ -4523,7 +4704,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "server_uuid": {
                     "type": "string",
@@ -4646,7 +4832,9 @@
     },
     "\/databases\/mysql": {
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create (MySQL)",
         "description": "Create a new MySQL database.",
         "operationId": "create-database-mysql",
@@ -4656,7 +4844,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "server_uuid": {
                     "type": "string",
@@ -4779,7 +4972,9 @@
     },
     "\/databases\/mongodb": {
       "post": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Create (MongoDB)",
         "description": "Create a new MongoDB database.",
         "operationId": "create-database-mongodb",
@@ -4789,7 +4984,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "server_uuid": {
                     "type": "string",
@@ -4900,7 +5100,9 @@
     },
     "\/databases\/{uuid}\/backups\/{scheduled_backup_uuid}\/executions\/{execution_uuid}": {
       "delete": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Delete backup execution",
         "description": "Deletes a specific backup execution.",
         "operationId": "delete-backup-execution-by-uuid",
@@ -4988,7 +5190,9 @@
     },
     "\/databases\/{uuid}\/backups\/{scheduled_backup_uuid}\/executions": {
       "get": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "List backup executions",
         "description": "Get all executions for a specific backup configuration.",
         "operationId": "list-backup-executions",
@@ -5065,7 +5269,9 @@
     },
     "\/databases\/{uuid}\/start": {
       "get": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Start",
         "description": "Start database. `Post` request is also accepted.",
         "operationId": "start-database-by-uuid",
@@ -5117,7 +5323,9 @@
     },
     "\/databases\/{uuid}\/stop": {
       "get": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Stop",
         "description": "Stop database. `Post` request is also accepted.",
         "operationId": "stop-database-by-uuid",
@@ -5169,7 +5377,9 @@
     },
     "\/databases\/{uuid}\/restart": {
       "get": {
-        "tags": ["Databases"],
+        "tags": [
+          "Databases"
+        ],
         "summary": "Restart",
         "description": "Restart database. `Post` request is also accepted.",
         "operationId": "restart-database-by-uuid",
@@ -5221,7 +5431,9 @@
     },
     "\/deployments": {
       "get": {
-        "tags": ["Deployments"],
+        "tags": [
+          "Deployments"
+        ],
         "summary": "List",
         "description": "List currently running deployments",
         "operationId": "list-deployments",
@@ -5255,7 +5467,9 @@
     },
     "\/deployments\/{uuid}": {
       "get": {
-        "tags": ["Deployments"],
+        "tags": [
+          "Deployments"
+        ],
         "summary": "Get",
         "description": "Get deployment by UUID.",
         "operationId": "get-deployment-by-uuid",
@@ -5300,7 +5514,9 @@
     },
     "\/deployments\/{uuid}\/cancel": {
       "post": {
-        "tags": ["Deployments"],
+        "tags": [
+          "Deployments"
+        ],
         "summary": "Cancel",
         "description": "Cancel a deployment by UUID.",
         "operationId": "cancel-deployment-by-uuid",
@@ -5388,7 +5604,9 @@
     },
     "\/deploy": {
       "get": {
-        "tags": ["Deployments"],
+        "tags": [
+          "Deployments"
+        ],
         "summary": "Deploy",
         "description": "Deploy by tag or uuid. `Post` request also accepted with `uuid` and `tag` json body.",
         "operationId": "deploy-by-tag-or-uuid",
@@ -5472,7 +5690,9 @@
     },
     "\/deployments\/applications\/{uuid}": {
       "get": {
-        "tags": ["Deployments"],
+        "tags": [
+          "Deployments"
+        ],
         "summary": "List application deployments",
         "description": "List application deployments by using the app uuid",
         "operationId": "list-deployments-by-app-uuid",
@@ -5540,7 +5760,9 @@
     },
     "\/github-apps": {
       "get": {
-        "tags": ["GitHub Apps"],
+        "tags": [
+          "GitHub Apps"
+        ],
         "summary": "List",
         "description": "List all GitHub apps.",
         "operationId": "list-github-apps",
@@ -5623,7 +5845,9 @@
         ]
       },
       "post": {
-        "tags": ["GitHub Apps"],
+        "tags": [
+          "GitHub Apps"
+        ],
         "summary": "Create GitHub App",
         "description": "Create a new GitHub app.",
         "operationId": "create-github-app",
@@ -5778,7 +6002,9 @@
     },
     "\/github-apps\/{github_app_id}\/repositories": {
       "get": {
-        "tags": ["GitHub Apps"],
+        "tags": [
+          "GitHub Apps"
+        ],
         "summary": "Load Repositories for a GitHub App",
         "description": "Fetch repositories from GitHub for a given GitHub app.",
         "operationId": "load-repositories",
@@ -5831,7 +6057,9 @@
     },
     "\/github-apps\/{github_app_id}\/repositories\/{owner}\/{repo}\/branches": {
       "get": {
-        "tags": ["GitHub Apps"],
+        "tags": [
+          "GitHub Apps"
+        ],
         "summary": "Load Branches for a GitHub Repository",
         "description": "Fetch branches from GitHub for a given repository.",
         "operationId": "load-branches",
@@ -5902,7 +6130,9 @@
     },
     "\/github-apps\/{github_app_id}": {
       "delete": {
-        "tags": ["GitHub Apps"],
+        "tags": [
+          "GitHub Apps"
+        ],
         "summary": "Delete GitHub App",
         "description": "Delete a GitHub app if it's not being used by any applications.",
         "operationId": "deleteGithubApp",
@@ -5964,7 +6194,9 @@
         ]
       },
       "patch": {
-        "tags": ["GitHub Apps"],
+        "tags": [
+          "GitHub Apps"
+        ],
         "summary": "Update GitHub App",
         "description": "Update an existing GitHub app.",
         "operationId": "updateGithubApp",
@@ -6085,7 +6317,7 @@
     "\/version": {
       "get": {
         "summary": "Version",
-        "description": "Get Coolify version.",
+        "description": "Get Ideploy version.",
         "operationId": "version",
         "responses": {
           "200": {
@@ -6245,7 +6477,9 @@
     },
     "\/projects": {
       "get": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "List",
         "description": "List projects.",
         "operationId": "list-projects",
@@ -6277,7 +6511,9 @@
         ]
       },
       "post": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "Create",
         "description": "Create Project.",
         "operationId": "create-project",
@@ -6342,7 +6578,9 @@
     },
     "\/projects\/{uuid}": {
       "get": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "Get",
         "description": "Get project by UUID.",
         "operationId": "get-project-by-uuid",
@@ -6385,7 +6623,9 @@
         ]
       },
       "delete": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "Delete",
         "description": "Delete project by UUID.",
         "operationId": "delete-project-by-uuid",
@@ -6438,7 +6678,9 @@
         ]
       },
       "patch": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "Update",
         "description": "Update Project.",
         "operationId": "update-project-by-uuid",
@@ -6522,7 +6764,9 @@
     },
     "\/projects\/{uuid}\/{environment_name_or_uuid}": {
       "get": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "Environment",
         "description": "Get environment by name or UUID.",
         "operationId": "get-environment-by-name-or-uuid",
@@ -6579,7 +6823,9 @@
     },
     "\/projects\/{uuid}\/environments": {
       "get": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "List Environments",
         "description": "List all environments in a project.",
         "operationId": "get-environments",
@@ -6628,7 +6874,9 @@
         ]
       },
       "post": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "Create Environment",
         "description": "Create environment in project.",
         "operationId": "create-environment",
@@ -6703,7 +6951,9 @@
     },
     "\/projects\/{uuid}\/environments\/{environment_name_or_uuid}": {
       "delete": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "Delete Environment",
         "description": "Delete environment by name or UUID. Environment must be empty.",
         "operationId": "delete-environment",
@@ -6766,7 +7016,9 @@
     },
     "\/resources": {
       "get": {
-        "tags": ["Resources"],
+        "tags": [
+          "Resources"
+        ],
         "summary": "List",
         "description": "Get all resources.",
         "operationId": "list-resources",
@@ -6798,7 +7050,9 @@
     },
     "\/security\/keys": {
       "get": {
-        "tags": ["Private Keys"],
+        "tags": [
+          "Private Keys"
+        ],
         "summary": "List",
         "description": "List all private keys.",
         "operationId": "list-private-keys",
@@ -6830,7 +7084,9 @@
         ]
       },
       "post": {
-        "tags": ["Private Keys"],
+        "tags": [
+          "Private Keys"
+        ],
         "summary": "Create",
         "description": "Create a new private key.",
         "operationId": "create-private-key",
@@ -6839,7 +7095,9 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["private_key"],
+                "required": [
+                  "private_key"
+                ],
                 "properties": {
                   "name": {
                     "type": "string"
@@ -6890,7 +7148,9 @@
         ]
       },
       "patch": {
-        "tags": ["Private Keys"],
+        "tags": [
+          "Private Keys"
+        ],
         "summary": "Update",
         "description": "Update a private key.",
         "operationId": "update-private-key",
@@ -6899,7 +7159,9 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["private_key"],
+                "required": [
+                  "private_key"
+                ],
                 "properties": {
                   "name": {
                     "type": "string"
@@ -6952,7 +7214,9 @@
     },
     "\/security\/keys\/{uuid}": {
       "get": {
-        "tags": ["Private Keys"],
+        "tags": [
+          "Private Keys"
+        ],
         "summary": "Get",
         "description": "Get key by UUID.",
         "operationId": "get-private-key-by-uuid",
@@ -6995,7 +7259,9 @@
         ]
       },
       "delete": {
-        "tags": ["Private Keys"],
+        "tags": [
+          "Private Keys"
+        ],
         "summary": "Delete",
         "description": "Delete a private key.",
         "operationId": "delete-private-key-by-uuid",
@@ -7062,7 +7328,9 @@
     },
     "\/servers": {
       "get": {
-        "tags": ["Servers"],
+        "tags": [
+          "Servers"
+        ],
         "summary": "List",
         "description": "List all servers.",
         "operationId": "list-servers",
@@ -7094,7 +7362,9 @@
         ]
       },
       "post": {
-        "tags": ["Servers"],
+        "tags": [
+          "Servers"
+        ],
         "summary": "Create",
         "description": "Create Server.",
         "operationId": "create-server",
@@ -7147,7 +7417,11 @@
                   },
                   "proxy_type": {
                     "type": "string",
-                    "enum": ["traefik", "caddy", "none"],
+                    "enum": [
+                      "traefik",
+                      "caddy",
+                      "none"
+                    ],
                     "example": "traefik",
                     "description": "The proxy type."
                   }
@@ -7197,7 +7471,9 @@
     },
     "\/servers\/{uuid}": {
       "get": {
-        "tags": ["Servers"],
+        "tags": [
+          "Servers"
+        ],
         "summary": "Get",
         "description": "Get server by UUID.",
         "operationId": "get-server-by-uuid",
@@ -7240,7 +7516,9 @@
         ]
       },
       "delete": {
-        "tags": ["Servers"],
+        "tags": [
+          "Servers"
+        ],
         "summary": "Delete",
         "description": "Delete server by UUID.",
         "operationId": "delete-server-by-uuid",
@@ -7293,7 +7571,9 @@
         ]
       },
       "patch": {
-        "tags": ["Servers"],
+        "tags": [
+          "Servers"
+        ],
         "summary": "Update",
         "description": "Update Server.",
         "operationId": "update-server-by-uuid",
@@ -7349,7 +7629,11 @@
                   },
                   "proxy_type": {
                     "type": "string",
-                    "enum": ["traefik", "caddy", "none"],
+                    "enum": [
+                      "traefik",
+                      "caddy",
+                      "none"
+                    ],
                     "description": "The proxy type."
                   }
                 },
@@ -7391,7 +7675,9 @@
     },
     "\/servers\/{uuid}\/resources": {
       "get": {
-        "tags": ["Servers"],
+        "tags": [
+          "Servers"
+        ],
         "summary": "Resources",
         "description": "Get resources by server.",
         "operationId": "get-resources-by-server-uuid",
@@ -7459,7 +7745,9 @@
     },
     "\/servers\/{uuid}\/domains": {
       "get": {
-        "tags": ["Servers"],
+        "tags": [
+          "Servers"
+        ],
         "summary": "Domains",
         "description": "Get domains by server.",
         "operationId": "get-domains-by-server-uuid",
@@ -7515,7 +7803,9 @@
     },
     "\/servers\/{uuid}\/validate": {
       "get": {
-        "tags": ["Servers"],
+        "tags": [
+          "Servers"
+        ],
         "summary": "Validate",
         "description": "Validate server by UUID.",
         "operationId": "validate-server-by-uuid",
@@ -7569,7 +7859,9 @@
     },
     "\/services": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "List",
         "description": "List all services.",
         "operationId": "list-services",
@@ -7601,7 +7893,9 @@
         ]
       },
       "post": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Create service",
         "description": "Create a one-click \/ custom service",
         "operationId": "create-service",
@@ -7610,7 +7904,12 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["server_uuid", "project_uuid", "environment_name", "environment_uuid"],
+                "required": [
+                  "server_uuid",
+                  "project_uuid",
+                  "environment_name",
+                  "environment_uuid"
+                ],
                 "properties": {
                   "type": {
                     "description": "The one-click service type",
@@ -7792,7 +8091,9 @@
     },
     "\/services\/{uuid}": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Get",
         "description": "Get service by UUID.",
         "operationId": "get-service-by-uuid",
@@ -7835,7 +8136,9 @@
         ]
       },
       "delete": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Delete",
         "description": "Delete service by UUID.",
         "operationId": "delete-service-by-uuid",
@@ -7924,7 +8227,9 @@
         ]
       },
       "patch": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Update",
         "description": "Update service by UUID.",
         "operationId": "update-service-by-uuid",
@@ -8040,7 +8345,9 @@
     },
     "\/services\/{uuid}\/envs": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "List Envs",
         "description": "List all envs by service UUID.",
         "operationId": "list-envs-by-service-uuid",
@@ -8087,7 +8394,9 @@
         ]
       },
       "post": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Create Env",
         "description": "Create env by service UUID.",
         "operationId": "create-env-by-service-uuid",
@@ -8177,7 +8486,9 @@
         ]
       },
       "patch": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Update Env",
         "description": "Update env by service UUID.",
         "operationId": "update-env-by-service-uuid",
@@ -8199,7 +8510,10 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["key", "value"],
+                "required": [
+                  "key",
+                  "value"
+                ],
                 "properties": {
                   "key": {
                     "type": "string",
@@ -8270,7 +8584,9 @@
     },
     "\/services\/{uuid}\/envs\/bulk": {
       "patch": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Update Envs (Bulk)",
         "description": "Update multiple envs by service UUID.",
         "operationId": "update-envs-by-service-uuid",
@@ -8292,7 +8608,9 @@
           "content": {
             "application\/json": {
               "schema": {
-                "required": ["data"],
+                "required": [
+                  "data"
+                ],
                 "properties": {
                   "data": {
                     "type": "array",
@@ -8371,7 +8689,9 @@
     },
     "\/services\/{uuid}\/envs\/{env_uuid}": {
       "delete": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Delete Env",
         "description": "Delete env by UUID.",
         "operationId": "delete-env-by-service-uuid",
@@ -8433,7 +8753,9 @@
     },
     "\/services\/{uuid}\/start": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Start",
         "description": "Start service. `Post` request is also accepted.",
         "operationId": "start-service-by-uuid",
@@ -8485,7 +8807,9 @@
     },
     "\/services\/{uuid}\/stop": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Stop",
         "description": "Stop service. `Post` request is also accepted.",
         "operationId": "stop-service-by-uuid",
@@ -8537,7 +8861,9 @@
     },
     "\/services\/{uuid}\/restart": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Restart",
         "description": "Restart service. `Post` request is also accepted.",
         "operationId": "restart-service-by-uuid",
@@ -8598,7 +8924,9 @@
     },
     "\/teams": {
       "get": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "List",
         "description": "Get all teams.",
         "operationId": "list-teams",
@@ -8632,7 +8960,9 @@
     },
     "\/teams\/{id}": {
       "get": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "Get",
         "description": "Get team by TeamId.",
         "operationId": "get-team-by-id",
@@ -8677,7 +9007,9 @@
     },
     "\/teams\/{id}\/members": {
       "get": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "Members",
         "description": "Get members by TeamId.",
         "operationId": "get-members-by-team-id",
@@ -8725,7 +9057,9 @@
     },
     "\/teams\/current": {
       "get": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "Authenticated Team",
         "description": "Get currently authenticated team.",
         "operationId": "get-current-team",
@@ -8756,7 +9090,9 @@
     },
     "\/teams\/current\/members": {
       "get": {
-        "tags": ["Teams"],
+        "tags": [
+          "Teams"
+        ],
         "summary": "Authenticated Team Members",
         "description": "Get currently authenticated team members.",
         "operationId": "get-current-team-members",
@@ -8855,7 +9191,12 @@
           "build_pack": {
             "type": "string",
             "description": "Build pack.",
-            "enum": ["nixpacks", "static", "dockerfile", "dockercompose"]
+            "enum": [
+              "nixpacks",
+              "static",
+              "dockerfile",
+              "dockercompose"
+            ]
           },
           "static_image": {
             "type": "string",
@@ -9121,7 +9462,11 @@
             "type": "string",
             "nullable": true,
             "description": "How to set redirect with Traefik \/ Caddy. www<->non-www.",
-            "enum": ["www", "non-www", "both"]
+            "enum": [
+              "www",
+              "non-www",
+              "both"
+            ]
           },
           "created_at": {
             "type": "string",
@@ -9141,7 +9486,7 @@
           },
           "compose_parsing_version": {
             "type": "string",
-            "description": "How Coolify parse the compose file."
+            "description": "How Ideploy parse the compose file."
           },
           "custom_nginx_configuration": {
             "type": "string",
@@ -9425,7 +9770,11 @@
           },
           "proxy_type": {
             "type": "string",
-            "enum": ["traefik", "caddy", "none"],
+            "enum": [
+              "traefik",
+              "caddy",
+              "none"
+            ],
             "description": "The proxy type."
           },
           "high_disk_usage_notification_sent": {
@@ -9610,7 +9959,7 @@
           },
           "docker_compose": {
             "type": "string",
-            "description": "The docker-compose.yml file that is parsed and modified by Coolify."
+            "description": "The docker-compose.yml file that is parsed and modified by Ideploy."
           },
           "destination_type": {
             "type": "string",
@@ -9805,8 +10154,13 @@
                 "errors": {
                   "type": "object",
                   "example": {
-                    "name": ["The name field is required."],
-                    "api_url": ["The api url field is required.", "The api url format is invalid."]
+                    "name": [
+                      "The name field is required."
+                    ],
+                    "api_url": [
+                      "The api url field is required.",
+                      "The api url format is invalid."
+                    ]
                   },
                   "additionalProperties": {
                     "type": "array",

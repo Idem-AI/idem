@@ -13,7 +13,7 @@ class FirewallConfigService
     public function __construct(
         private YAMLGeneratorService $yamlGenerator
     ) {}
-    
+
     /**
      * Get or create firewall config for an application
      */
@@ -33,7 +33,7 @@ class FirewallConfigService
             ]
         );
     }
-    
+
     /**
      * Enable firewall for an application
      */
@@ -41,13 +41,13 @@ class FirewallConfigService
     {
         return DB::transaction(function () use ($application) {
             $config = $this->getOrCreateConfig($application);
-            
+
             // Check if server has CrowdSec
             $server = $application->destination->server;
             if (!$server->crowdsec_available) {
                 throw new \Exception('CrowdSec is not available on this server');
             }
-            
+
             // Initialize CrowdSec API client
             if (!$config->crowdsec_api_key) {
                 $apiKey = $this->initializeCrowdSecForApp($application, $server);
@@ -56,41 +56,41 @@ class FirewallConfigService
                     'crowdsec_lapi_url' => $server->crowdsec_lapi_url,
                 ]);
             }
-            
+
             // Enable config
             $config->update(['enabled' => true]);
-            
+
             // Configure Traefik logging if not already done
             if (!$server->traefik_logging_enabled) {
                 ray("Configuring Traefik logging for metrics collection");
                 \App\Jobs\ConfigureTraefikLoggingJob::dispatch($server);
                 $server->update(['traefik_logging_enabled' => true]);
             }
-            
+
             // Deploy Traffic Logger if not already installed
             if (!$server->traffic_logger_installed) {
                 ray("Deploying Traffic Logger for real-time metrics");
                 \App\Jobs\Security\DeployTrafficLoggerJob::dispatch($server);
             }
-            
+
             // Deploy firewall rules to CrowdSec (YAML files)
             ray("Deploying firewall rules to CrowdSec");
             app(\App\Services\Security\FirewallRulesDeploymentService::class)->deployRules($config);
-            
+
             // Configure Traffic Logger ForwardAuth
             if ($server->traffic_logger_installed) {
                 ray("Configuring Traffic Logger ForwardAuth");
                 \App\Jobs\Security\ConfigureTrafficLoggerForwardAuthJob::dispatch($application);
             }
-            
+
             // Trigger application redeployment to apply CrowdSec labels
             ray("Triggering application redeployment to apply CrowdSec labels");
             $this->triggerApplicationRedeployment($application);
-            
+
             return $config->fresh();
         });
     }
-    
+
     /**
      * Trigger application redeployment to apply new labels
      */
@@ -103,39 +103,39 @@ class FirewallConfigService
                 $application,
                 'firewall_activation'
             )->delay(now()->addSeconds(5)); // Small delay to ensure DB commit
-            
+
             ray("Redeployment job dispatched for: {$application->name}");
-            
+
             // Option 2: Manual redeploy (commented out)
             // $application->configuration_changed_at = now();
             // $application->save();
             // ray("Application marked for manual redeployment");
-            
+
         } catch (\Exception $e) {
             ray("Failed to trigger redeployment: " . $e->getMessage());
             // Non-critical, continue anyway
         }
     }
-    
+
     /**
      * Disable firewall for an application
      */
     public function disableFirewall(FirewallConfig $config): FirewallConfig
     {
         $config->update(['enabled' => false]);
-        
+
         // Remove firewall rules from CrowdSec
         ray("Removing firewall rules from CrowdSec");
         app(\App\Services\Security\FirewallRulesDeploymentService::class)->removeRules($config->application);
-        
+
         // Trigger redeployment to remove CrowdSec labels
         $this->triggerApplicationRedeployment($config->application);
-        
+
         ray("Firewall disabled for: {$config->application->name}");
-        
+
         return $config->fresh();
     }
-    
+
     /**
      * Update firewall configuration
      */
@@ -151,16 +151,16 @@ class FirewallConfigService
                 'blocked_http_code' => $data['blocked_http_code'] ?? $config->blocked_http_code,
                 'passed_http_code' => $data['passed_http_code'] ?? $config->passed_http_code,
             ]);
-            
+
             // Redeploy configuration if enabled
             if ($config->enabled) {
                 $this->deployConfiguration($config);
             }
-            
+
             return $config->fresh();
         });
     }
-    
+
     /**
      * Initialize CrowdSec for an application
      */
@@ -168,22 +168,22 @@ class FirewallConfigService
     {
         // Create bouncer API key for this application via CrowdSec CLI
         $bouncerName = "app-{$application->uuid}";
-        
+
         ray("Creating CrowdSec bouncer for app: {$bouncerName}");
-        
+
         // Check if server has CrowdSec installed
         if (!$server->crowdsec_installed || !$server->crowdsec_available) {
             throw new \Exception('CrowdSec is not installed on the server');
         }
-        
+
         try {
             // Create bouncer directly via SSH (more reliable than LAPI)
             $result = instant_remote_process([
                 "docker exec crowdsec-live cscli bouncers add {$bouncerName} -o raw"
             ], $server);
-            
+
             $apiKey = trim($result);
-            
+
             // Check if bouncer creation failed
             if (empty($apiKey) || str_contains($apiKey, 'error') || str_contains($apiKey, 'already exists')) {
                 // Bouncer might already exist, try to get it
@@ -193,14 +193,14 @@ class FirewallConfigService
                     // In production, you should delete and recreate or store the key
                     return bin2hex(random_bytes(32));
                 }
-                
+
                 throw new \Exception("Failed to create bouncer: {$result}");
             }
-            
+
             ray("✅ Bouncer created: " . substr($apiKey, 0, 10) . "...");
-            
+
             return $apiKey;
-            
+
         } catch (\Exception $e) {
             ray("❌ Failed to create bouncer: " . $e->getMessage());
             // In test mode, fallback to fake key
@@ -211,7 +211,7 @@ class FirewallConfigService
             throw $e;
         }
     }
-    
+
     /**
      * Deploy configuration files to server
      */
@@ -219,51 +219,51 @@ class FirewallConfigService
     {
         $application = $config->application;
         $server = $application->destination->server;
-        
+
         // Generate AppSec config
         $appSecConfig = $this->yamlGenerator->generateAppSecConfig($config);
-        
+
         // Generate custom rules
         $enabledRules = $config->rules()->enabled()->ordered()->get();
         $customRules = $this->yamlGenerator->generateCustomRules($enabledRules);
-        
+
         // Use CrowdSec's config directory (mounted in container at /etc/crowdsec)
-        $basePath = "/var/lib/coolify/crowdsec/config";
-        
+        $basePath = "/var/lib/ideploy/crowdsec/config";
+
         instant_remote_process([
             "mkdir -p {$basePath}/appsec-configs",
             "mkdir -p {$basePath}/appsec-rules",
         ], $server);
-        
+
         // Write files locally first
         $tempDir = storage_path("app/crowdsec-temp/{$application->uuid}");
         @mkdir($tempDir, 0755, true);
-        
+
         file_put_contents("{$tempDir}/appsec-config.yaml", $appSecConfig);
         file_put_contents("{$tempDir}/custom-rules.yaml", $customRules);
-        
+
         // Copy to server (in CrowdSec config directory)
         instant_scp(
             "{$tempDir}/appsec-config.yaml",
             "{$basePath}/appsec-configs/{$application->uuid}.yaml",
             $server
         );
-        
+
         instant_scp(
             "{$tempDir}/custom-rules.yaml",
             "{$basePath}/appsec-rules/custom-rules-{$application->uuid}.yaml",
             $server
         );
-        
+
         // Reload CrowdSec
         $this->reloadCrowdSec($server);
-        
+
         // Cleanup temp files
         @unlink("{$tempDir}/appsec-config.yaml");
         @unlink("{$tempDir}/custom-rules.yaml");
         @rmdir($tempDir);
     }
-    
+
     /**
      * Reload CrowdSec configuration
      */
@@ -273,10 +273,10 @@ class FirewallConfigService
         instant_remote_process([
             'docker exec crowdsec-live kill -SIGHUP 1',
         ], $server);
-        
+
         ray('CrowdSec configuration reloaded');
     }
-    
+
     /**
      * Remove configuration files
      */
@@ -284,19 +284,19 @@ class FirewallConfigService
     {
         $application = $config->application;
         $server = $application->destination->server;
-        
-        $basePath = "/var/lib/coolify/crowdsec/config";
-        
+
+        $basePath = "/var/lib/ideploy/crowdsec/config";
+
         // Remove only this application's files
         instant_remote_process([
             "rm -f {$basePath}/appsec-configs/{$application->uuid}.yaml",
             "rm -f {$basePath}/appsec-rules/custom-rules-{$application->uuid}.yaml",
         ], $server);
-        
+
         // Reload CrowdSec to apply changes
         $this->reloadCrowdSec($server);
     }
-    
+
     /**
      * Get firewall statistics
      */
@@ -304,7 +304,7 @@ class FirewallConfigService
     {
         // Use getTrafficStats() from model which counts logs in real-time
         $trafficStats = $config->getTrafficStats();
-        
+
         return [
             'total_requests' => $trafficStats['all_traffic'],
             'total_blocked' => $trafficStats['denied_requests'],
@@ -316,7 +316,7 @@ class FirewallConfigService
             'top_blocked_ips' => $this->getTopBlockedIps($config),
         ];
     }
-    
+
     /**
      * Get recent blocked requests
      */
@@ -327,7 +327,7 @@ class FirewallConfigService
             ->where('timestamp', '>=', now()->subHours($hours))
             ->count();
     }
-    
+
     /**
      * Get top blocked IPs
      */
@@ -346,7 +346,7 @@ class FirewallConfigService
             ])
             ->toArray();
     }
-    
+
     /**
      * Test CrowdSec connection
      */
@@ -355,20 +355,20 @@ class FirewallConfigService
         if (!$config->crowdsec_api_key || !$config->crowdsec_lapi_url) {
             return false;
         }
-        
+
         try {
             $client = new CrowdSecApiClient(
                 $config->crowdsec_lapi_url,
                 $config->crowdsec_api_key // Already plain text, no decryption needed
             );
-            
+
             return $client->testConnection();
         } catch (\Exception $e) {
             ray('Connection test failed: ' . $e->getMessage());
             return false;
         }
     }
-    
+
     /**
      * Get CrowdSec health status
      */
@@ -380,29 +380,29 @@ class FirewallConfigService
             'connection' => false,
             'rules_deployed' => false,
         ];
-        
+
         if (!$config->crowdsec_api_key) {
             return $status;
         }
-        
+
         try {
             $client = new CrowdSecApiClient(
                 $config->crowdsec_lapi_url,
                 $config->crowdsec_api_key // Already plain text, no decryption needed
             );
-            
+
             $status['connection'] = $client->testConnection();
             $status['version'] = $client->getVersion();
             $status['rules_deployed'] = $this->checkRulesDeployed($config);
             $status['healthy'] = $status['connection'] && $status['rules_deployed'];
-            
+
         } catch (\Exception $e) {
             ray('Health check failed: ' . $e->getMessage());
         }
-        
+
         return $status;
     }
-    
+
     /**
      * Check if rules are deployed
      */
@@ -410,13 +410,13 @@ class FirewallConfigService
     {
         $application = $config->application;
         $server = $application->destination->server;
-        
+
         $configFile = "/var/lib/ideploy/crowdsec/{$application->uuid}/appsec-configs/{$application->uuid}.yaml";
-        
+
         $result = instant_remote_process([
             "test -f {$configFile} && echo 'exists' || echo 'missing'",
         ], $server);
-        
+
         return str_contains($result, 'exists');
     }
 }

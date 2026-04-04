@@ -7,7 +7,7 @@
             <div class="absolute inset-0 opacity-5">
                 <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 32px 32px;"></div>
             </div>
-            
+
             <div class="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 <div class="flex items-center gap-4">
                     <div class="icon-container w-16 h-16">
@@ -22,7 +22,7 @@
                         <p class="text-light/70 text-lg">Deploy applications, databases, and services to your infrastructure</p>
                     </div>
                 </div>
-                
+
                 <div class="w-full lg:w-64">
                     <div class="relative group">
                         <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none z-10">
@@ -54,10 +54,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                 </div>
-                <input 
-                    autocomplete="off" 
-                    x-ref="searchInput" 
-                    x-model="search" 
+                <input
+                    autocomplete="off"
+                    x-ref="searchInput"
+                    x-model="search"
                     placeholder="Search resources... (press / to focus)"
                     @keydown.window.slash.prevent="$refs.searchInput.focus()"
                     class="w-full pl-12 pr-20 py-4 bg-black/40 border border-white/10 rounded-xl text-light placeholder-light/40 focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 transition-all backdrop-blur-sm"
@@ -92,16 +92,16 @@
                             <p class="text-sm text-light/60">Deploy applications from Git repositories</p>
                         </div>
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         <template x-for="application in filteredGitBasedApplications" :key="application.name">
                             <div x-on:click='setType(application.id)'
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                                 class="group relative glass-card p-5 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10 overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
-                                
+
                                 {{-- Glow Effect --}}
                                 <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
-                                
+
                                 {{-- Logo Section --}}
                                 <div class="relative flex items-center justify-center mb-4">
                                     <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-600/10 border border-blue-500/20 flex items-center justify-center overflow-hidden group-hover:border-blue-500/40 group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all duration-300">
@@ -134,16 +134,16 @@
                             <p class="text-sm text-light/60">Deploy containerized applications with Docker</p>
                         </div>
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         <template x-for="application in filteredDockerBasedApplications" :key="application.name">
                             <div x-on:click="setType(application.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                                 class="group relative glass-card p-5 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/10 overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
-                                
+
                                 {{-- Glow Effect --}}
                                 <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-blue-600/0 group-hover:from-cyan-500/5 group-hover:to-blue-600/5 transition-all duration-300 rounded-xl"></div>
-                                
+
                                 {{-- Logo Section --}}
                                 <div class="relative flex items-center justify-center mb-4">
                                     <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 flex items-center justify-center overflow-hidden group-hover:border-cyan-500/40 group-hover:shadow-lg group-hover:shadow-cyan-500/20 transition-all duration-300">
@@ -179,18 +179,18 @@
                             <p class="text-sm text-light/60">Popular database engines for your applications</p>
                         </div>
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         <template x-for="database in filteredDatabases" :key="database.id">
                             <div x-on:click="setType(database.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                                 :style="`border-color: ${database.brand_border}; --db-color: ${database.brand_color}`"
                                 class="group relative glass-card p-5 overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg">
-                                
+
                                 {{-- Brand Glow Effect on hover --}}
                                 <div class="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                     :style="`background: radial-gradient(ellipse at center, ${database.brand_bg} 0%, transparent 70%)`"></div>
-                                
+
                                 {{-- Logo Section with brand colors --}}
                                 <div class="relative flex items-center justify-center mb-4">
                                     <div class="w-20 h-20 rounded-xl flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110"
@@ -286,16 +286,16 @@
                             </div>
                         </template>
                     </div>
-                    
+
                     <div x-show="filteredServices.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         <template x-for="service in filteredServices" :key="service.name">
                             <div x-on:click="setType('one-click-service-' + service.name)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                                 class="group relative glass-card p-5 hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
-                                
+
                                 {{-- Glow Effect --}}
                                 <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-teal-600/0 group-hover:from-emerald-500/5 group-hover:to-teal-600/5 transition-all duration-300 rounded-xl"></div>
-                                
+
                                 {{-- Logo Section --}}
                                 <div class="relative flex items-center justify-center mb-4">
                                     <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border border-emerald-500/20 flex items-center justify-center overflow-hidden group-hover:border-emerald-500/40 group-hover:shadow-lg group-hover:shadow-emerald-500/20 transition-all duration-300">
@@ -304,7 +304,7 @@
                                                 class="w-12 h-12 object-contain transition-transform group-hover:scale-110 group-hover:rotate-3"
                                                 x-on:error.window="$event.target.src = service.logo_github_url"
                                                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
-                                                x-on:error="$event.target.src = '/coolify-logo.svg'"
+                                                x-on:error="$event.target.src = '/ideploy-logo.svg'"
                                                 :data-fallback='service.logo_github_url' />
                                         </template>
                                     </div>
@@ -319,8 +319,8 @@
                                 <div class="relative text-center">
                                     <div class="flex items-center justify-center gap-2 mb-2">
                                         <h3 class="text-base font-semibold text-light group-hover:text-emerald-400 transition-colors truncate" x-text="service.name"></h3>
-                                        <a x-show="service.documentation" 
-                                           :href="service.documentation" 
+                                        <a x-show="service.documentation"
+                                           :href="service.documentation"
                                            target="_blank"
                                            onclick="event.stopPropagation()"
                                            class="flex-shrink-0 text-light/40 hover:text-emerald-400 transition-colors">
@@ -442,7 +442,7 @@
             </script>
         </div>
     @endif
-    
+
     {{-- Autres steps (deployment-choice, servers, destinations, etc.) - À garder de l'ancien fichier --}}
     @include('livewire.project.new.partials.other-steps')
 </div>

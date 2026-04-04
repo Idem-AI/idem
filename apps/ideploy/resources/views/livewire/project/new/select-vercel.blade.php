@@ -16,16 +16,16 @@
         </div>
 
         {{-- Search Bar --}}
-        <div x-data="searchResources()" x-init="window.addEventListener('scroll', () => isSticky = window.pageYOffset > 100)" 
+        <div x-data="searchResources()" x-init="window.addEventListener('scroll', () => isSticky = window.pageYOffset > 100)"
              class="sticky z-10 top-10 py-2">
             <div class="relative">
                 <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                <input 
-                    autocomplete="off" 
-                    x-ref="searchInput" 
-                    x-model="search" 
+                <input
+                    autocomplete="off"
+                    x-ref="searchInput"
+                    x-model="search"
                     placeholder="Search resources... (press / to focus)"
                     @keydown.window.slash.prevent="$refs.searchInput.focus()"
                     class="w-full pl-12 pr-16 py-4 bg-[#0a0a0a] border rounded-xl text-white placeholder-gray-500 transition-all text-base"
@@ -52,25 +52,25 @@
                         <h2 class="text-2xl font-bold text-white mb-2">Applications</h2>
                         <p class="text-sm text-gray-400 uppercase tracking-wide">Git Based</p>
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <template x-for="application in filteredGitBasedApplications" :key="application.name">
                             <div x-on:click='setType(application.id)'
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                                 class="group relative bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 transition-all hover:border-blue-500 hover:bg-[#0f0f0f]">
-                                
+
                                 {{-- Category Tag --}}
                                 <div class="absolute top-4 left-4">
                                     <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Application</span>
                                 </div>
-                                
+
                                 {{-- Logo --}}
                                 <div class="flex items-center justify-center py-8 mt-6">
                                     <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center overflow-hidden">
                                         <img :src="application.logo" class="w-12 h-12 object-contain transition-transform group-hover:scale-110" />
                                     </div>
                                 </div>
-                                
+
                                 {{-- Content --}}
                                 <div class="text-center mt-4">
                                     <h3 class="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors" x-text="application.name"></h3>
@@ -86,25 +86,25 @@
                     <div class="mb-6">
                         <p class="text-sm text-gray-400 uppercase tracking-wide">Docker Based</p>
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <template x-for="application in filteredDockerBasedApplications" :key="application.name">
                             <div x-on:click="setType(application.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                                 class="group relative bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 transition-all hover:border-blue-500 hover:bg-[#0f0f0f]">
-                                
+
                                 {{-- Category Tag --}}
                                 <div class="absolute top-4 left-4">
                                     <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Docker</span>
                                 </div>
-                                
+
                                 {{-- Logo --}}
                                 <div class="flex items-center justify-center py-8 mt-6">
                                     <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center overflow-hidden">
                                         <img :src="application.logo" class="w-12 h-12 object-contain transition-transform group-hover:scale-110" />
                                     </div>
                                 </div>
-                                
+
                                 {{-- Content --}}
                                 <div class="text-center mt-4">
                                     <h3 class="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors" x-text="application.name"></h3>
@@ -121,25 +121,25 @@
                         <h2 class="text-2xl font-bold text-white mb-2">Databases</h2>
                         <p class="text-sm text-gray-400">Popular database engines for your applications</p>
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <template x-for="database in filteredDatabases" :key="database.id">
                             <div x-on:click="setType(database.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                                 class="group relative bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 transition-all hover:border-green-500 hover:bg-[#0f0f0f]">
-                                
+
                                 {{-- Category Tag --}}
                                 <div class="absolute top-4 left-4">
                                     <span class="text-xs text-green-500 uppercase tracking-wider font-semibold">Database</span>
                                 </div>
-                                
+
                                 {{-- Logo --}}
                                 <div class="flex items-center justify-center py-8 mt-6">
                                     <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-600/20 border border-green-500/30 flex items-center justify-center">
                                         <span x-show="database.logo" x-html="database.logo" class="text-4xl transition-transform group-hover:scale-110"></span>
                                     </div>
                                 </div>
-                                
+
                                 {{-- Content --}}
                                 <div class="text-center mt-4">
                                     <h3 class="text-lg font-bold text-white mb-2 group-hover:text-green-400 transition-colors" x-text="database.name"></h3>
@@ -157,7 +157,7 @@
                             <h2 class="text-2xl font-bold text-white mb-2">Services</h2>
                             <p class="text-sm text-gray-400">One-click services and integrations</p>
                         </div>
-                        <button x-on:click="loadResources" 
+                        <button x-on:click="loadResources"
                                 class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg border border-gray-700 transition-all">
                             Reload List
                         </button>
@@ -165,18 +165,18 @@
 
                     <div class="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                         <p class="text-sm text-blue-300">
-                            <strong>Note:</strong> The respective trademarks mentioned here are owned by the respective companies. 
-                            Use of them does not imply any affiliation or endorsement. 
-                            <a class="underline hover:text-blue-200" target="_blank" href="https://coolify.io/docs/services/overview">Learn more →</a>
+                            <strong>Note:</strong> The respective trademarks mentioned here are owned by the respective companies.
+                            Use of them does not imply any affiliation or endorsement.
+                            <a class="underline hover:text-blue-200" target="_blank" href="https://ideploy.io/docs/services/overview">Learn more →</a>
                         </p>
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <template x-for="service in filteredServices" :key="service.name">
                             <div x-on:click="setType('one-click-service-' + service.name)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                                 class="group relative bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 transition-all hover:border-purple-500 hover:bg-[#0f0f0f]">
-                                
+
                                 {{-- Category Tag --}}
                                 <div class="absolute top-4 left-4">
                                     <span class="text-xs text-purple-500 uppercase tracking-wider font-semibold">Service</span>
@@ -184,14 +184,14 @@
 
                                 {{-- Documentation Link --}}
                                 <div class="absolute top-4 right-4" x-show="service.documentation">
-                                    <a :href="service.documentation" 
+                                    <a :href="service.documentation"
                                        target="_blank"
                                        onclick="event.stopPropagation()"
                                        class="text-xs text-gray-500 hover:text-blue-400 transition-colors">
                                         Docs →
                                     </a>
                                 </div>
-                                
+
                                 {{-- Logo --}}
                                 <div class="flex items-center justify-center py-8 mt-6">
                                     <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-600/20 border border-purple-500/30 flex items-center justify-center overflow-hidden">
@@ -200,12 +200,12 @@
                                                 class="w-12 h-12 object-contain transition-transform group-hover:scale-110"
                                                 x-on:error.window="$event.target.src = service.logo_github_url"
                                                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
-                                                x-on:error="$event.target.src = '/coolify-logo.svg'"
+                                                x-on:error="$event.target.src = '/ideploy-logo.svg'"
                                                 :data-fallback='service.logo_github_url' />
                                         </template>
                                     </div>
                                 </div>
-                                
+
                                 {{-- Content --}}
                                 <div class="text-center mt-4">
                                     <h3 class="text-lg font-bold text-white mb-2 group-hover:text-purple-400 transition-colors" x-text="service.name"></h3>
@@ -316,7 +316,7 @@
             </script>
         </div>
     @endif
-    
+
     {{-- Autres steps (deployment-choice, servers, destinations, etc.) - À garder de l'ancien fichier --}}
     @include('livewire.project.new.partials.other-steps')
 </div>

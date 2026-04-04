@@ -5,7 +5,7 @@
             <div class="absolute inset-0 opacity-10">
                 <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.3),transparent_50%)]" style="animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
             </div>
-            
+
             <div class="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                 <div class="flex-1">
                     <div class="flex items-center gap-4 mb-4">
@@ -20,7 +20,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="flex gap-3 items-center">
                     @can('update', $database)
                         <button type="submit" class="inner-button px-8 py-3 flex items-center gap-2">
@@ -68,7 +68,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <x-forms.input label="Name" id="name" canGate="update" :canResource="$database" />
@@ -100,7 +100,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 @if ($database->started_at)
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -121,9 +121,9 @@
                     </div>
                 @endif
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-forms.input label="Initial Database Arguments" id="" 
+                    <x-forms.input label="Initial Database Arguments" id=""
                         placeholder="If empty, use default. See in docker docs." canGate="update" :canResource="$database" />
-                    <x-forms.input label="Host Auth Method" id="" 
+                    <x-forms.input label="Host Auth Method" id=""
                         placeholder="If empty, use default. See in docker docs." canGate="update" :canResource="$database" />
                 </div>
             </div>
@@ -150,7 +150,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 <x-forms.input placeholder="3000:27017" id="portsMappings" label="Ports Mappings"
                     helper="A comma separated list of ports you would like to map to the host system.<br><span class='inline-block font-bold dark:text-warning'>Example</span>3000:27017,3002:5433" canGate="update" :canResource="$database" />
@@ -194,7 +194,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 @if ($enableSsl && $certificateValidUntil)
                     <div class="mb-4 p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
@@ -208,7 +208,7 @@
                         @endif
                     </div>
                 @endif
-                
+
                 <div class="mb-4">
                     @if ($database->isExited())
                         <x-forms.checkbox id="enableSsl" label="Enable SSL"
@@ -278,7 +278,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 <div class="mb-4">
                     <x-forms.checkbox instantSave id="isPublic" label="Make it publicly available" canGate="update" :canResource="$database" />
@@ -320,15 +320,15 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div x-show="expanded" x-collapse x-cloak class="px-6 pb-6">
                 <x-forms.input
-                    helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up Coolify's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
+                    helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up Ideploy's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://ideploy.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
                     placeholder="--cap-add SYS_ADMIN --device=/dev/fuse --security-opt apparmor:unconfined --ulimit nofile=1024:1024 --tmpfs /run:rw,noexec,nosuid,size=65536k"
                     id="customDockerRunOptions" label="Custom Docker Options" canGate="update" :canResource="$database" />
                 <x-forms.checkbox helper="Drain logs to your configured log drain endpoint in your Server settings."
                     instantSave="instantSaveAdvanced" id="isLogDrainEnabled" label="Drain Logs" canGate="update" :canResource="$database" />
-                
+
                 <div class="mt-6">
                     <h4 class="text-md font-semibold text-white mb-4">Initialization Scripts</h4>
                     <div class="flex flex-col gap-2">

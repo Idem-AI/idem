@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script d'initialisation complète de l'environnement Coolify (Ideploy)
+# Script d'initialisation complète de l'environnement Ideploy (Ideploy)
 # Usage: ./scripts/init-all.sh [--no-build]
 # Option --no-build : saute npm run build (utile pour un setup rapide)
 
@@ -35,7 +35,7 @@ if [ ! -f "artisan" ]; then
     exit 1
 fi
 
-info "🚀 Initialisation de l'environnement Coolify..."
+info "🚀 Initialisation de l'environnement Ideploy..."
 
 # Créer .env si nécessaire
 if [ ! -f ".env" ]; then

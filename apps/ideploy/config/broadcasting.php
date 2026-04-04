@@ -32,11 +32,11 @@ return [
 
         'pusher' => [
             'driver' => 'pusher',
-            'key' => env('PUSHER_APP_KEY', 'coolify'),
-            'secret' => env('PUSHER_APP_SECRET', 'coolify'),
-            'app_id' => env('PUSHER_APP_ID', 'coolify'),
+            'key' => env('PUSHER_APP_KEY', 'ideploy'),
+            'secret' => env('PUSHER_APP_SECRET', 'ideploy'),
+            'app_id' => env('PUSHER_APP_ID', 'ideploy'),
             'options' => [
-                'host' => env('PUSHER_BACKEND_HOST', 'coolify-realtime'),
+                'host' => env('PUSHER_BACKEND_HOST', 'ideploy-realtime'),
                 'port' => env('PUSHER_BACKEND_PORT', 6001),
                 'scheme' => env('PUSHER_SCHEME', 'http'),
                 'encrypted' => true,

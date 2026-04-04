@@ -1,8 +1,8 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($application, 'name')->limit(10) }} > Pipeline Settings | Coolify
+        {{ data_get_str($application, 'name')->limit(10) }} > Pipeline Settings | Ideploy
     </x-slot>
-    
+
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
 
@@ -23,15 +23,15 @@
     {{-- Tabs Navigation --}}
     <div class="px-6 mb-6">
         <div class="flex gap-1 border-b border-gray-800">
-            <a href="{{ route('project.application.pipeline', $parameters) }}" 
+            <a href="{{ route('project.application.pipeline', $parameters) }}"
                class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white transition">
                 Overview
             </a>
-            <a href="{{ route('project.application.pipeline.executions', $parameters) }}" 
+            <a href="{{ route('project.application.pipeline.executions', $parameters) }}"
                class="px-4 py-3 text-sm font-medium text-gray-400 hover:text-white transition">
                 Runs
             </a>
-            <a href="{{ route('project.application.pipeline.settings', $parameters) }}" 
+            <a href="{{ route('project.application.pipeline.settings', $parameters) }}"
                class="px-4 py-3 text-sm font-medium text-white border-b-2 border-blue-500 -mb-px">
                 Settings
             </a>
@@ -40,7 +40,7 @@
 
     {{-- Settings Content --}}
     <div class="px-6 space-y-6">
-        
+
         {{-- General Settings --}}
         <div class="bg-[#0f0f0f] border border-gray-800 rounded-lg p-6">
             <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -50,21 +50,21 @@
                 </svg>
                 General
             </h3>
-            
+
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Pipeline Name</label>
-                    <input type="text" wire:model="pipelineName" value="Main Pipeline" 
+                    <input type="text" wire:model="pipelineName" value="Main Pipeline"
                            class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
                 </div>
-                
+
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Trigger Branches</label>
-                    <input type="text" wire:model="triggerBranches" value="main, develop" 
+                    <input type="text" wire:model="triggerBranches" value="main, develop"
                            class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
                     <p class="text-xs text-gray-500 mt-2">Separate multiple branches with commas</p>
                 </div>
-                
+
                 <div>
                     <label class="flex items-center gap-2">
                         <input type="checkbox" wire:model="autoCancel" checked class="rounded">
@@ -83,7 +83,7 @@
                 </svg>
                 Auto-Trigger (Webhooks)
             </h3>
-            
+
             <div class="space-y-4">
                 <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
                     <div class="flex gap-3">
@@ -104,7 +104,7 @@
                     </label>
                     <p class="text-xs text-gray-500 ml-6">Automatically run pipeline when code is pushed to the repository</p>
                 </div>
-                
+
                 <div>
                     <label class="flex items-center gap-2 mb-2">
                         <input type="checkbox" wire:model="autoTriggerOnPr" class="rounded">
@@ -115,9 +115,9 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Watch Paths (Optional)</label>
-                    <textarea 
-                        wire:model="watchPaths" 
-                        rows="5" 
+                    <textarea
+                        wire:model="watchPaths"
+                        rows="5"
                         placeholder="src/**&#10;tests/**&#10;*.php&#10;package.json"
                         class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition font-mono text-sm"
                     ></textarea>
@@ -149,7 +149,7 @@
                 </svg>
                 SonarQube Configuration
             </h3>
-            
+
             <div class="space-y-4">
                 <div>
                     <label class="flex items-center gap-2 mb-4">
@@ -157,7 +157,7 @@
                         <span class="text-sm font-medium">Enable SonarQube code quality analysis</span>
                     </label>
                 </div>
-                
+
                 @if($sonarqubeEnabled ?? true)
                     <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
                         <div class="flex gap-3">
@@ -173,24 +173,24 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">SonarQube URL</label>
-                        <input type="url" wire:model="sonarqubeUrl" 
-                               placeholder="https://sonar.idem.africa (default)" 
+                        <input type="url" wire:model="sonarqubeUrl"
+                               placeholder="https://sonar.idem.africa (default)"
                                class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
                         <p class="text-xs text-gray-500 mt-2">Leave empty to use default: https://sonar.idem.africa</p>
                     </div>
-                    
+
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Authentication Token</label>
-                        <input type="password" wire:model="sonarqubeToken" 
-                               placeholder="squ_••••••••••••••••••••" 
+                        <input type="password" wire:model="sonarqubeToken"
+                               placeholder="squ_••••••••••••••••••••"
                                class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition font-mono">
                         <p class="text-xs text-gray-500 mt-2">Generate token in SonarQube: My Account → Security → Generate Tokens</p>
                     </div>
-                    
+
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Organization (Optional)</label>
-                        <input type="text" wire:model="sonarqubeOrganization" 
-                               placeholder="my-organization" 
+                        <input type="text" wire:model="sonarqubeOrganization"
+                               placeholder="my-organization"
                                class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
                         <p class="text-xs text-gray-500 mt-2">Required for SonarCloud, optional for self-hosted SonarQube</p>
                     </div>
@@ -206,7 +206,7 @@
                 </svg>
                 Trivy Security Scan
             </h3>
-            
+
             <div class="space-y-4">
                 <div>
                     <label class="flex items-center gap-2 mb-4">
@@ -214,7 +214,7 @@
                         <span class="text-sm font-medium">Enable Trivy security scanning</span>
                     </label>
                 </div>
-                
+
                 @if($trivyEnabled ?? true)
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-3">Scan Types</label>
@@ -233,7 +233,7 @@
                             </label>
                         </div>
                     </div>
-                    
+
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-3">Severity Levels</label>
                         <div class="flex flex-wrap gap-2">
@@ -255,7 +255,7 @@
                             </label>
                         </div>
                     </div>
-                    
+
                     <div>
                         <label class="flex items-center gap-2">
                             <input type="checkbox" wire:model="failOnCritical" checked class="rounded">
@@ -274,7 +274,7 @@
                 </svg>
                 Notifications
             </h3>
-            
+
             <div class="space-y-6">
                 {{-- Slack --}}
                 <div>
@@ -282,60 +282,60 @@
                         <input type="checkbox" wire:model="notificationsEnabled.slack" class="rounded">
                         <span class="font-medium">Slack</span>
                     </label>
-                    
+
                     @if($notificationsEnabled['slack'] ?? false)
                         <div class="space-y-3 ml-6">
                             <div>
                                 <label class="block text-sm text-gray-400 mb-2">Webhook URL</label>
-                                <input type="url" wire:model="notifications.slack.webhook_url" 
-                                       placeholder="https://hooks.slack.com/services/..." 
+                                <input type="url" wire:model="notifications.slack.webhook_url"
+                                       placeholder="https://hooks.slack.com/services/..."
                                        class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
                             </div>
                             <div>
                                 <label class="block text-sm text-gray-400 mb-2">Channel</label>
-                                <input type="text" wire:model="notifications.slack.channel" 
-                                       placeholder="#deployments" 
+                                <input type="text" wire:model="notifications.slack.channel"
+                                       placeholder="#deployments"
                                        class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
                             </div>
                         </div>
                     @endif
                 </div>
-                
+
                 {{-- Discord --}}
                 <div>
                     <label class="flex items-center gap-2 mb-3">
                         <input type="checkbox" wire:model="notificationsEnabled.discord" class="rounded">
                         <span class="font-medium">Discord</span>
                     </label>
-                    
+
                     @if($notificationsEnabled['discord'] ?? false)
                         <div class="ml-6">
                             <label class="block text-sm text-gray-400 mb-2">Webhook URL</label>
-                            <input type="url" wire:model="notifications.discord.webhook_url" 
-                                   placeholder="https://discord.com/api/webhooks/..." 
+                            <input type="url" wire:model="notifications.discord.webhook_url"
+                                   placeholder="https://discord.com/api/webhooks/..."
                                    class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
                         </div>
                     @endif
                 </div>
-                
+
                 {{-- Email --}}
                 <div>
                     <label class="flex items-center gap-2 mb-3">
                         <input type="checkbox" wire:model="notificationsEnabled.email" class="rounded">
                         <span class="font-medium">Email</span>
                     </label>
-                    
+
                     @if($notificationsEnabled['email'] ?? false)
                         <div class="ml-6">
                             <label class="block text-sm text-gray-400 mb-2">Recipients</label>
-                            <input type="text" wire:model="notifications.email.recipients" 
-                                   placeholder="dev@example.com, ops@example.com" 
+                            <input type="text" wire:model="notifications.email.recipients"
+                                   placeholder="dev@example.com, ops@example.com"
                                    class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
                             <p class="text-xs text-gray-500 mt-2">Separate multiple emails with commas</p>
                         </div>
                     @endif
                 </div>
-                
+
                 {{-- Notification Events --}}
                 <div class="pt-4 border-t border-gray-800">
                     <label class="block text-sm font-medium text-gray-300 mb-3">Notify on</label>
@@ -365,7 +365,7 @@
                 </svg>
                 Advanced
             </h3>
-            
+
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Timeout (minutes)</label>
@@ -373,7 +373,7 @@
                            class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
                     <p class="text-xs text-gray-500 mt-2">Maximum time allowed for pipeline execution</p>
                 </div>
-                
+
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Concurrency</label>
                     <select wire:model="concurrency" class="w-full bg-[#151b2e] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition">
@@ -384,7 +384,7 @@
                     </select>
                     <p class="text-xs text-gray-500 mt-2">Maximum number of concurrent pipeline runs</p>
                 </div>
-                
+
                 <div>
                     <label class="flex items-center gap-2">
                         <input type="checkbox" wire:model="retryOnFailure" class="rounded">
@@ -402,14 +402,14 @@
                 </svg>
                 Advanced Settings
             </h3>
-            
+
             <div class="space-y-6">
                 {{-- SonarQube Quality Gate --}}
                 <div class="bg-[#151b2e] border border-gray-700 rounded-lg p-4">
                     <h4 class="text-md font-semibold text-white mb-3 flex items-center gap-2">
                         📊 SonarQube Quality Gate
                     </h4>
-                    
+
                     <div class="space-y-4">
                         <div>
                             <label class="flex items-center gap-2">
@@ -418,21 +418,21 @@
                             </label>
                             <p class="text-xs text-gray-500 mt-1 ml-6">Automatically fail the pipeline if SonarQube detects critical security issues</p>
                         </div>
-                        
+
                         <div class="grid grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm text-gray-400 mb-2">Max Bugs</label>
-                                <input type="number" wire:model="sonarSettings.max_bugs" placeholder="No limit" 
+                                <input type="number" wire:model="sonarSettings.max_bugs" placeholder="No limit"
                                        class="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
                             </div>
                             <div>
                                 <label class="block text-sm text-gray-400 mb-2">Max Vulnerabilities</label>
-                                <input type="number" wire:model="sonarSettings.max_vulnerabilities" placeholder="No limit" 
+                                <input type="number" wire:model="sonarSettings.max_vulnerabilities" placeholder="No limit"
                                        class="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
                             </div>
                             <div>
                                 <label class="block text-sm text-gray-400 mb-2">Min Coverage (%)</label>
-                                <input type="number" wire:model="sonarSettings.min_coverage" placeholder="No limit" min="0" max="100" 
+                                <input type="number" wire:model="sonarSettings.min_coverage" placeholder="No limit" min="0" max="100"
                                        class="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
                             </div>
                         </div>
@@ -454,13 +454,13 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="p-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {{-- Python: Bandit --}}
                             <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
                                 <label class="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" wire:model.live="securityTools.bandit_enabled" 
+                                    <input type="checkbox" wire:model.live="securityTools.bandit_enabled"
                                            class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2">
@@ -477,11 +477,11 @@
                                     </div>
                                 </label>
                             </div>
-                            
+
                             {{-- JavaScript: ESLint Security --}}
                             <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
                                 <label class="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" wire:model.live="securityTools.eslint_security_enabled" 
+                                    <input type="checkbox" wire:model.live="securityTools.eslint_security_enabled"
                                            class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2">
@@ -498,11 +498,11 @@
                                     </div>
                                 </label>
                             </div>
-                            
+
                             {{-- PHP: Psalm Security --}}
                             <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
                                 <label class="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" wire:model.live="securityTools.psalm_security_enabled" 
+                                    <input type="checkbox" wire:model.live="securityTools.psalm_security_enabled"
                                            class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2">
@@ -519,11 +519,11 @@
                                     </div>
                                 </label>
                             </div>
-                            
+
                             {{-- Ruby: Brakeman --}}
                             <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
                                 <label class="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" wire:model.live="securityTools.brakeman_enabled" 
+                                    <input type="checkbox" wire:model.live="securityTools.brakeman_enabled"
                                            class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2">
@@ -540,11 +540,11 @@
                                     </div>
                                 </label>
                             </div>
-                            
+
                             {{-- Go: Gosec --}}
                             <div class="bg-[#0f1724] border border-gray-700 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-200">
                                 <label class="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" wire:model.live="securityTools.gosec_enabled" 
+                                    <input type="checkbox" wire:model.live="securityTools.gosec_enabled"
                                            class="mt-1 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2">
@@ -562,7 +562,7 @@
                                 </label>
                             </div>
                         </div>
-                        
+
                         {{-- Info Banner --}}
                         <div class="mt-6 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                             <div class="flex items-start gap-3">

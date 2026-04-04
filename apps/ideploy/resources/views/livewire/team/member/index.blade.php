@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Team Members | Coolify
+        Team Members | Ideploy
     </x-slot>
     <x-team.navbar />
     <h2>Members</h2>

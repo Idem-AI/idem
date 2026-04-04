@@ -41,10 +41,10 @@ return [
     'traffic_logging' => [
         // Activer le webhook traffic logging
         'enabled' => env('CROWDSEC_TRAFFIC_LOGGING_ENABLED', true),
-        
+
         // Nettoyer les anciens logs après X jours
         'retention_days' => env('CROWDSEC_LOG_RETENTION_DAYS', 30),
-        
+
         // Limite de logs par application (pour éviter DB overflow)
         'max_logs_per_app' => env('CROWDSEC_MAX_LOGS_PER_APP', 100000),
     ],
@@ -61,33 +61,33 @@ return [
     'docker' => [
         // Image Docker à utiliser
         'image' => env('CROWDSEC_DOCKER_IMAGE', 'crowdsecurity/crowdsec:latest'),
-        
+
         // Container name
         'container_name' => env('CROWDSEC_CONTAINER_NAME', 'crowdsec'),
-        
+
         // Base path pour les configs
-        'config_path' => env('CROWDSEC_CONFIG_PATH', '/var/lib/coolify/crowdsec'),
-        
+        'config_path' => env('CROWDSEC_CONFIG_PATH', '/var/lib/ideploy/crowdsec'),
+
         // Docker network
-        'network' => env('CROWDSEC_DOCKER_NETWORK', 'coolify'),
-        
+        'network' => env('CROWDSEC_DOCKER_NETWORK', 'ideploy'),
+
         // LAPI port (exposé localement)
         'lapi_port' => env('CROWDSEC_LAPI_PORT', '8081'),
-        
+
         // Collections par défaut à installer
         'collections' => [
             'crowdsecurity/nginx',
-            'crowdsecurity/traefik', 
+            'crowdsecurity/traefik',
             'crowdsecurity/http-cve',
         ],
-        
+
         // Environnement Docker
         'environment' => [
             'GID' => '1000',
             'TZ' => env('APP_TIMEZONE', 'UTC'),
         ],
     ],
-    
+
     /*
     |--------------------------------------------------------------------------
     | Installation Settings
@@ -96,20 +96,20 @@ return [
     | Paramètres pour l'installation automatique.
     |
     */
-    
+
     'installation' => [
         // Nombre d'essais pour l'installation
         'max_retries' => env('CROWDSEC_INSTALL_RETRIES', 3),
-        
+
         // Délai entre les tentatives (en secondes)
         'retry_delay' => env('CROWDSEC_RETRY_DELAY', 60),
-        
+
         // Timeout pour l'installation (en secondes)
         'timeout' => env('CROWDSEC_INSTALL_TIMEOUT', 600),
-        
+
         // Délai d'attente après start container
         'startup_wait' => env('CROWDSEC_STARTUP_WAIT', 15),
-        
+
         // Validation post-installation
         'validate_installation' => env('CROWDSEC_VALIDATE_INSTALL', true),
     ],

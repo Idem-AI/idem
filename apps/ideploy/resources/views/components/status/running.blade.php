@@ -9,7 +9,7 @@
     $isStopped = str($status)->lower()->contains('stopped') || str($status)->lower()->contains('exited');
     $isUnhealthy = str($status)->lower()->contains('unhealthy');
     $isRestarting = str($status)->lower()->contains('restarting');
-    
+
     // Déterminer la couleur du badge
     if ($isRunning && !$isUnhealthy) {
         $badgeColor = 'green';
@@ -36,7 +36,7 @@
         $bgClass = 'bg-gray-500/10';
         $borderClass = 'border-gray-500/30';
     }
-    
+
     $showUnhealthyHelper =
         !str($status)->startsWith('Proxy') &&
         !str($status)->contains('(') &&
@@ -57,11 +57,11 @@
             @endif
         </span>
     </div>
-    
+
     {{-- Helper pour unhealthy --}}
     @if ($showUnhealthyHelper)
         <x-helper
-            helper="Unhealthy state. <span class='text-yellow-400'>This doesn't mean that the resource is malfunctioning.</span><br><br>- If the resource is accessible, it indicates that no health check is configured - it is not mandatory.<br>- If the resource is not accessible (returning 404 or 503), it may indicate that a health check is needed and has not passed. <span class='text-yellow-400'>Your action is required.</span><br><br>More details in the <a href='https://coolify.io/docs/knowledge-base/proxy/traefik/healthchecks' class='underline text-blue-400 hover:text-blue-300' target='_blank'>documentation</a>.">
+            helper="Unhealthy state. <span class='text-yellow-400'>This doesn't mean that the resource is malfunctioning.</span><br><br>- If the resource is accessible, it indicates that no health check is configured - it is not mandatory.<br>- If the resource is not accessible (returning 404 or 503), it may indicate that a health check is needed and has not passed. <span class='text-yellow-400'>Your action is required.</span><br><br>More details in the <a href='https://ideploy.io/docs/knowledge-base/proxy/traefik/healthchecks' class='underline text-blue-400 hover:text-blue-300' target='_blank'>documentation</a>.">
             <x-slot:icon>
                 <svg class="w-4 h-4 text-yellow-400" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
                     <path fill="currentColor"

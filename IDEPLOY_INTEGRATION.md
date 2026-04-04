@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Le module **Déploiement** du `main-dashboard` se connecte à l'API REST d'**iDeploy** (basé sur Coolify v4) pour afficher un aperçu global des ressources déployées : applications, bases de données, services Docker et serveurs.
+Le module **Déploiement** du `main-dashboard` se connecte à l'API REST d'**iDeploy** (basé sur Ideploy v4) pour afficher un aperçu global des ressources déployées : applications, bases de données, services Docker et serveurs.
 
 ---
 
@@ -10,13 +10,14 @@ Le module **Déploiement** du `main-dashboard` se connecte à l'API REST d'**iDe
 
 ### 1. Configuration d'environnement
 
-| Fichier | Rôle |
-|---|---|
-| `apps/main-dashboard/src/environments/environment.ts` | Config prod — URL + token iDeploy |
-| `apps/main-dashboard/src/environments/environment.development.ts` | Config dev — URL localhost + token dev |
-| `apps/main-dashboard/mynode.js` | Script CI/CD — génère `environment.ts` depuis les vars d'env |
+| Fichier                                                           | Rôle                                                         |
+| ----------------------------------------------------------------- | ------------------------------------------------------------ |
+| `apps/main-dashboard/src/environments/environment.ts`             | Config prod — URL + token iDeploy                            |
+| `apps/main-dashboard/src/environments/environment.development.ts` | Config dev — URL localhost + token dev                       |
+| `apps/main-dashboard/mynode.js`                                   | Script CI/CD — génère `environment.ts` depuis les vars d'env |
 
 **Variables iDeploy :**
+
 ```typescript
 ideploy: {
   url: 'https://ideploy.idem.africa',   // prod
@@ -25,6 +26,7 @@ ideploy: {
 ```
 
 Variables CI/CD (à définir dans le pipeline) :
+
 ```
 IDEPLOY_URL=https://ideploy.idem.africa
 IDEPLOY_API_TOKEN=<token_sanctum_prod>
@@ -37,6 +39,7 @@ IDEPLOY_API_TOKEN=<token_sanctum_prod>
 **`apps/main-dashboard/src/app/modules/dashboard/models/ideploy.model.ts`**
 
 Interfaces reflétant l'API iDeploy :
+
 - `IDeployApplication` — application déployée (nom, statut, fqdn, build_pack, git_branch…)
 - `IDeployDatabase` — base de données managée (type, statut…)
 - `IDeployDockerService` — service Docker Compose
@@ -78,24 +81,26 @@ Sans ce fix, le token Firebase Firebase écrasait le token Sanctum d'iDeploy →
 
 **`apps/main-dashboard/src/app/modules/dashboard/pages/ideploy-overview/`**
 
-| Fichier | Contenu |
-|---|---|
-| `ideploy-overview.ts` | Composant Angular standalone, signals, computed |
+| Fichier                 | Contenu                                                     |
+| ----------------------- | ----------------------------------------------------------- |
+| `ideploy-overview.ts`   | Composant Angular standalone, signals, computed             |
 | `ideploy-overview.html` | Template : hero + resource cards + table apps + DBs/Servers |
-| `ideploy-overview.css` | Thème dark premium : grille CSS, icônes circulaires, glow |
+| `ideploy-overview.css`  | Thème dark premium : grille CSS, icônes circulaires, glow   |
 
 **Signaux exposés :**
+
 ```typescript
-loading       // boolean
-error         // string | null
-summary       // IDeploySummary | null
-stats         // computed — summary.stats
-servers       // computed — summary.servers
-appsWithUrl   // computed — apps ayant un fqdn
-recentDatabases // computed — 5 premières DBs
+loading; // boolean
+error; // string | null
+summary; // IDeploySummary | null
+stats; // computed — summary.stats
+servers; // computed — summary.servers
+appsWithUrl; // computed — apps ayant un fqdn
+recentDatabases; // computed — 5 premières DBs
 ```
 
 **Règle UI :** le bouton d'accès URL n'est affiché **que pour les apps avec statut `Running`** :
+
 ```html
 @if (app.fqdn && getStatusClass(app.status) === 'status-running') { ... }
 ```
@@ -150,9 +155,11 @@ Toutes les requêtes sont parallélisées via `forkJoin`. En cas d'erreur indivi
 ### Prérequis iDeploy (prod)
 
 1. **Token Sanctum** — généré via tinker sur le serveur prod :
+
    ```bash
    docker exec -it <container_ideploy_prod> php artisan tinker
    ```
+
    ```php
    $user = \App\Models\User::first();
    echo $user->createToken('main-dashboard-prod', ['read'])->plainTextToken;
@@ -165,10 +172,10 @@ Toutes les requêtes sont parallélisées via `forkJoin`. En cas d'erreur indivi
 
 ### Push requis ?
 
-| Application | Push nécessaire ? | Raison |
-|---|---|---|
-| **main-dashboard** | ✅ Oui | Token prod ajouté, nouveau composant, fix intercepteur |
-| **iDeploy** | ❌ Non | Aucun changement de code iDeploy — fix `allowed_ips` fait via DB directement |
+| Application        | Push nécessaire ? | Raison                                                                       |
+| ------------------ | ----------------- | ---------------------------------------------------------------------------- |
+| **main-dashboard** | ✅ Oui            | Token prod ajouté, nouveau composant, fix intercepteur                       |
+| **iDeploy**        | ❌ Non            | Aucun changement de code iDeploy — fix `allowed_ips` fait via DB directement |
 
 ### Build production
 
@@ -197,9 +204,9 @@ Thème dark premium inspiré du style grid/glow :
 
 ## États gérés
 
-| État | Rendu |
-|---|---|
-| Chargement | Skeleton cards + rows avec animation pulse |
-| Erreur réseau | Banner ambre avec bouton Réessayer |
-| Aucune ressource | Empty state avec icône circulaire + CTA |
+| État                | Rendu                                              |
+| ------------------- | -------------------------------------------------- |
+| Chargement          | Skeleton cards + rows avec animation pulse         |
+| Erreur réseau       | Banner ambre avec bouton Réessayer                 |
+| Aucune ressource    | Empty state avec icône circulaire + CTA            |
 | Données disponibles | Hero + 4 resource cards + table apps + bottom grid |

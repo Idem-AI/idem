@@ -1,3 +1,4 @@
+@import 'tailwindcss';
 /* Import shared design system (includes Tailwind 4 and theme) */
 @import '@idem/shared-styles/styles.css';
 

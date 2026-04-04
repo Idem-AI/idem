@@ -32,7 +32,7 @@ class GithubAppSeeder extends Seeder
             $this->command->info('Dev GitHub app already exists, skipping creation.');
         } else {
             GithubApp::create([
-                'name' => 'coolify-laravel-dev-public',
+                'name' => 'ideploy-laravel-dev-public',
                 'uuid' => '69420',
                 'organization' => 'coollabsio',
                 'api_url' => 'https://api.github.com',

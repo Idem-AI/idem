@@ -33,7 +33,7 @@ class SyncBunny extends Command
         $this->info('Fetching releases from GitHub...');
         try {
             $response = Http::timeout(30)
-                ->get('https://api.github.com/repos/coollabsio/coolify/releases', [
+                ->get('https://api.github.com/repos/coollabsio/ideploy/releases', [
                     'per_page' => 30,  // Fetch more releases for better changelog
                 ]);
 
@@ -47,7 +47,7 @@ class SyncBunny extends Command
                 // Upload to CDN
                 Http::pool(fn (Pool $pool) => [
                     $pool->storage(fileName: $releases_file)->put("/$bunny_cdn_storage_name/$bunny_cdn_path/releases.json"),
-                    $pool->purge("$bunny_cdn/coolify/releases.json"),
+                    $pool->purge("$bunny_cdn/ideploy/releases.json"),
                 ]);
 
                 // Clean up temporary file
@@ -80,7 +80,7 @@ class SyncBunny extends Command
         $only_github_releases = $this->option('github-releases');
         $nightly = $this->option('nightly');
         $bunny_cdn = 'https://cdn.coollabs.io';
-        $bunny_cdn_path = 'coolify';
+        $bunny_cdn_path = 'ideploy';
         $bunny_cdn_storage_name = 'coolcdn';
 
         $parent_dir = realpath(dirname(__FILE__).'/../../..');
@@ -126,7 +126,7 @@ class SyncBunny extends Command
         });
         try {
             if ($nightly) {
-                $bunny_cdn_path = 'coolify-nightly';
+                $bunny_cdn_path = 'ideploy-nightly';
 
                 $compose_file_location = "$parent_dir/other/nightly/$compose_file";
                 $compose_file_prod_location = "$parent_dir/other/nightly/$compose_file_prod";
@@ -167,7 +167,7 @@ class SyncBunny extends Command
                 }
                 $file = file_get_contents($versions_location);
                 $json = json_decode($file, true);
-                $actual_version = data_get($json, 'coolify.v4.version');
+                $actual_version = data_get($json, 'ideploy.v4.version');
 
                 $confirmed = confirm("Are you sure you want to sync to {$actual_version}?");
                 if (! $confirmed) {
