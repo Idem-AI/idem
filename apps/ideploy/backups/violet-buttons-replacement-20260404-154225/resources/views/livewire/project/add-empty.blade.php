@@ -199,7 +199,10 @@
                 </button>
                 <button type="button" wire:click="submit"
                     @if(!$deployment_region) disabled @endif
-                    class="{{ $deployment_region ? 'inner-button' : 'px-6 py-2.5 bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700/50 rounded-xl inline-flex items-center gap-2' }}">
+                    class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200
+                        {{ $deployment_region
+                            ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/20 hover:-translate-y-px active:translate-y-0'
+                            : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700/50' }}">
                     Créer le projet
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 </button>
