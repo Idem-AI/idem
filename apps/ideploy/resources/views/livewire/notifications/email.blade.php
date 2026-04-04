@@ -2,14 +2,14 @@
     <x-slot:title>
         Email Notifications | iDeploy
     </x-slot>
-    
+
     <x-notification.navbar />
-    
+
     {{-- Page Header --}}
     <div class="glass-card mb-8 p-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <div class="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl flex items-center justify-center border border-glass glow-primary">
+                <div class="w-14 h-14 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-xl flex items-center justify-center border border-glass glow-primary">
                     <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
@@ -19,12 +19,12 @@
                     <p class="text-sm text-gray-400 mt-1">Configure email delivery and notification preferences</p>
                 </div>
             </div>
-            
+
             <div class="flex items-center gap-3">
                 @if (auth()->user()->isAdminFromSession())
                     @can('sendTest', $settings)
                         @if ($team->isNotificationEnabled('email'))
-                            <button onclick="document.getElementById('testEmailModal').showModal()" 
+                            <button onclick="document.getElementById('testEmailModal').showModal()"
                                     class="outer-button flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -90,7 +90,7 @@
                                placeholder="iDeploy Notifications">
                         <p class="text-xs text-gray-500 mt-1">Name displayed in email sender</p>
                     </div>
-                    
+
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">
                             From Address <span class="text-red-400">*</span>
@@ -104,7 +104,7 @@
 
                 @if (isInstanceAdmin())
                     <div class="mt-4">
-                        <button type="button" wire:click='copyFromInstanceSettings' 
+                        <button type="button" wire:click='copyFromInstanceSettings'
                                 class="outer-button text-sm">
                             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -136,8 +136,8 @@
             <div class="glass-card p-6">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center border border-purple-500/30">
-                            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
                             </svg>
                         </div>
@@ -168,7 +168,7 @@
                                    class="input w-full"
                                    placeholder="smtp.mailgun.org">
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">
                                 Port <span class="text-red-400">*</span>
@@ -177,7 +177,7 @@
                                    class="input w-full"
                                    placeholder="587">
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">
                                 Encryption <span class="text-red-400">*</span>
@@ -199,7 +199,7 @@
                                    class="input w-full"
                                    placeholder="username">
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">
                                 SMTP Password
@@ -208,7 +208,7 @@
                                    class="input w-full"
                                    placeholder="••••••••">
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">
                                 Timeout (seconds)
@@ -258,7 +258,7 @@
                            class="input w-full"
                            placeholder="re_••••••••••••••••••••">
                     <p class="text-xs text-gray-500 mt-1">
-                        Get your API key from 
+                        Get your API key from
                         <a href="https://resend.com/api-keys" target="_blank" class="text-primary hover:underline">Resend Dashboard</a>
                     </p>
                 </div>
@@ -315,8 +315,8 @@
             {{-- Backups --}}
             <div class="glass-dark p-5 rounded-xl border-glass">
                 <div class="flex items-center gap-3 mb-4">
-                    <div class="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
                         </svg>
                     </div>
@@ -444,11 +444,11 @@
                            placeholder="test@example.com">
                 </div>
                 <div class="flex gap-3">
-                    <button type="button" onclick="document.getElementById('testEmailModal').close()" 
+                    <button type="button" onclick="document.getElementById('testEmailModal').close()"
                             class="outer-button flex-1">
                         Cancel
                     </button>
-                    <button type="submit" onclick="document.getElementById('testEmailModal').close()" 
+                    <button type="submit" onclick="document.getElementById('testEmailModal').close()"
                             class="inner-button flex-1">
                         Send Email
                     </button>
