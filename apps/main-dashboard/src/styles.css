@@ -3,6 +3,8 @@
 /* Import shared design system (includes Tailwind 4 and theme) */
 @import '@idem/shared-styles/styles.css';
 
+@import 'tailwindcss';
+
 /* PrimeNG Icons */
 @import 'primeicons/primeicons.css';
 
@@ -28,11 +30,7 @@
   }
 }
 
-/* Force dark theme for all components */
-html {
-  background-color: #0f141b !important;
-  color: #ffffff !important;
-}
+
 
 html.light {
   background-color: #0f141b !important;

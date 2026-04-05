@@ -35,7 +35,7 @@ class PublicGitRepository extends Component
 
     public bool $isStatic = false;
 
-    public bool $checkCoolifyConfig = true;
+    public bool $checkIdeployConfig = true;
 
     public ?string $publish_directory = null;
 
@@ -102,7 +102,7 @@ class PublicGitRepository extends Component
     public function mount()
     {
         if (isDev()) {
-            $this->repository_url = 'https://github.com/coollabsio/coolify-examples/tree/v4.x';
+            $this->repository_url = 'https://github.com/coollabsio/ideploy-examples/tree/v4.x';
             $this->port = 3000;
         }
         $this->parameters = get_route_parameters();
@@ -161,7 +161,7 @@ class PublicGitRepository extends Component
         try {
             // Clean and trim the URL
             $this->repository_url = trim($this->repository_url);
-            
+
             // Validate repository URL
             $validator = validator(['repository_url' => $this->repository_url], [
                 'repository_url' => ['required', 'string', new ValidGitRepositoryUrl],
@@ -177,7 +177,7 @@ class PublicGitRepository extends Component
                 $repository = str($this->repository_url)->after(':')->before('.git');
                 $this->repository_url = 'https://'.str($github_instance).'/'.$repository;
             }
-            
+
             // Add .git suffix for non-GitHub/non-special repos
             if (
                 (str($this->repository_url)->startsWith('https://') ||
@@ -189,7 +189,7 @@ class PublicGitRepository extends Component
             ) {
                 $this->repository_url = $this->repository_url.'.git';
             }
-            
+
             // Remove .git suffix for GitHub repos
             if (str($this->repository_url)->contains('github.com') && str($this->repository_url)->endsWith('.git')) {
                 $this->repository_url = str($this->repository_url)->beforeLast('.git')->value();
@@ -288,15 +288,15 @@ class PublicGitRepository extends Component
             // IDEM: Check if user can deploy (quota check)
             $quotaService = app(IdemQuotaService::class);
             $team = Auth::user()->currentTeam();
-            
+
             if (!$quotaService->canDeployApp($team)) {
                 $this->dispatch('error', 'Application limit reached. Please upgrade your plan to deploy more applications.');
                 return redirect()->route('idem.subscription');
             }
-            
+
             // Clean repository URL before validation
             $this->repository_url = trim($this->repository_url);
-            
+
             $this->validate();
 
             // Validate branch (repository URL was already validated in loadBranch/getGitSource)
@@ -328,7 +328,7 @@ class PublicGitRepository extends Component
                 $server = $destination->server;
                 $new_service = [
                     'name' => 'service'.str()->random(10),
-                    'docker_compose_raw' => 'coolify',
+                    'docker_compose_raw' => 'ideploy',
                     'environment_id' => $environment->id,
                     'server_id' => $server->id,
                 ];
@@ -395,7 +395,7 @@ class PublicGitRepository extends Component
             $fqdn = generateUrl(server: $destination->server, random: $application->uuid);
             $application->fqdn = $fqdn;
             $application->save();
-            if ($this->checkCoolifyConfig) {
+            if ($this->checkIdeployConfig) {
                 // $config = loadConfigFromGit($this->repository_url, $this->git_branch, $this->base_directory, $this->query['server_id'], auth()->user()->currentTeam()->id);
                 // if ($config) {
                 //     $application->setConfig($config);

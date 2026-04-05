@@ -26,15 +26,15 @@ class ConfigureTraefikLoggingJob implements ShouldQueue
 
         // Traefik log déjà en JSON via docker-compose
         // On crée juste un symlink pour que CrowdSec puisse lire les logs
-        
+
         $isDev = config('app.env') === 'local';
-        
+
         if ($isDev) {
-            $traefikLogPath = '/var/lib/docker/volumes/coolify_dev_coolify_data/_data/proxy/access.log';
+            $traefikLogPath = '/var/lib/docker/volumes/ideploy_dev_ideploy_data/_data/proxy/access.log';
         } else {
-            $traefikLogPath = '/data/coolify/proxy/access.log';
+            $traefikLogPath = '/data/ideploy/proxy/access.log';
         }
-        
+
         $commands = [
             "mkdir -p /var/log/traefik",
             "rm -f /var/log/traefik/access.log",
@@ -49,7 +49,7 @@ class ConfigureTraefikLoggingJob implements ShouldQueue
             );
             ray("Command output: {$output}");
         }
-        
+
         // Marquer comme configuré
         $this->server->update([
             'traefik_logging_enabled' => true

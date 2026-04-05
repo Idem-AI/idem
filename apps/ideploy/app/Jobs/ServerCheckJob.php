@@ -59,9 +59,9 @@ class ServerCheckJob implements ShouldBeEncrypted, ShouldQueue
                     $this->server->proxyType();
                     $foundProxyContainer = $this->containers->filter(function ($value, $key) {
                         if ($this->server->isSwarm()) {
-                            return data_get($value, 'Spec.Name') === 'coolify-proxy_traefik';
+                            return data_get($value, 'Spec.Name') === 'ideploy-proxy_traefik';
                         } else {
-                            return data_get($value, 'Name') === '/coolify-proxy';
+                            return data_get($value, 'Name') === '/ideploy-proxy';
                         }
                     })->first();
                     if (! $foundProxyContainer) {
@@ -69,7 +69,7 @@ class ServerCheckJob implements ShouldBeEncrypted, ShouldQueue
                             $shouldStart = CheckProxy::run($this->server);
                             if ($shouldStart) {
                                 StartProxy::run($this->server, async: false);
-                                $this->server->team?->notify(new ContainerRestarted('coolify-proxy', $this->server));
+                                $this->server->team?->notify(new ContainerRestarted('ideploy-proxy', $this->server));
                             }
                         } catch (\Throwable $e) {
                         }
@@ -89,7 +89,7 @@ class ServerCheckJob implements ShouldBeEncrypted, ShouldQueue
     private function checkLogDrainContainer()
     {
         $foundLogDrainContainer = $this->containers->filter(function ($value, $key) {
-            return data_get($value, 'Name') === '/coolify-log-drain';
+            return data_get($value, 'Name') === '/ideploy-log-drain';
         })->first();
         if ($foundLogDrainContainer) {
             $status = data_get($foundLogDrainContainer, 'State.Status');

@@ -82,6 +82,7 @@
       "businessPlan": "Business Plan",
       "diagrams": "Diagrams",
       "development": "Development",
+      "deploymentOverview": "Deployment Overview",
       "deployment": "Deployment",
       "viewAllProjects": "View All Projects",
       "sr": {
@@ -1842,5 +1843,33 @@
     "teamNameMinLength": "Team name must be at least {{min}} characters",
     "deploymentName": "Deployment name is required (minimum {{min}} characters)",
     "invalid": "Invalid field"
+  },
+  "deployment": {
+    "title": "Deployment Overview",
+    "subtitle": "Monitor and manage your application deployment",
+    "deployedAt": "Deployed at",
+    "version": "Version",
+    "openApp": "Open Application",
+    "manageOnIdeploy": "Manage on iDeploy",
+    "noDeployment": {
+      "title": "No Deployment Yet",
+      "description": "Deploy your application with iDeploy to see monitoring and statistics here.",
+      "cta": "Deploy with iDeploy"
+    },
+    "stats": {
+      "uptime": "Uptime",
+      "requests": "Total Requests",
+      "responseTime": "Avg Response Time",
+      "errorRate": "Error Rate"
+    },
+    "monitoring": {
+      "title": "Monitoring",
+      "health": "Application Health",
+      "healthy": "Healthy",
+      "ssl": "SSL Certificate",
+      "active": "Active",
+      "autoscaling": "Auto-scaling",
+      "enabled": "Enabled"
+    }
   }
 }
