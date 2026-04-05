@@ -457,6 +457,10 @@ body {
   position: relative;
   overflow: hidden;
   transition: all var(--duration-300) var(--ease-out);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
 }
 
 .inner-button::before {
