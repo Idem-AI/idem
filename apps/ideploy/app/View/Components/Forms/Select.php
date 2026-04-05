@@ -24,7 +24,7 @@ class Select extends Component
         public ?string $helper = null,
         public bool $required = false,
         public bool $disabled = false,
-        public string $defaultClass = 'select w-full',
+        public string $defaultClass = 'w-full',
         public ?string $canGate = null,
         public mixed $canResource = null,
         public bool $autoDisable = true,
