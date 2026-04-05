@@ -4,8 +4,4 @@ A new version of {{ $name }} is available at [{{ $fqdn }}]({{ $fqdn }}) .
 @else
 Pull request #{{ $pull_request_id }} of {{ $name }} deployed successfully
 [{{ $fqdn }}]({{ $fqdn }}).
-@endif
-
-[View Deployment Logs]({{ $deployment_url }})
-
-</x-emails.layout>
+@endif [View Deployment Logs]({{ $deployment_url }}) </x-emails.layout>
