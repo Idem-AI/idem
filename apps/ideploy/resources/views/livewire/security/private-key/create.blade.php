@@ -11,23 +11,23 @@
             </div>
         </div>
     </div>
-    
+
     {{-- Generate Buttons --}}
     <div class="flex gap-3 mb-6">
-        <button 
+        <button
             type="button"
-            wire:click="generateNewEDKey" 
+            wire:click="generateNewEDKey"
             class="flex-1 px-4 py-2.5 bg-primary hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors text-sm">
             Generate ED25519 Key
         </button>
-        <button 
+        <button
             type="button"
             wire:click="generateNewRSAKey"
             class="px-4 py-2.5 border border-primary text-primary hover:bg-primary/10 font-semibold rounded-lg transition-colors text-sm">
             Generate RSA Key
         </button>
     </div>
-    
+
     <form class="flex flex-col gap-4" wire:submit='createPrivateKey'>
         <div class="flex gap-2">
             <x-forms.input id="name" label="Name" required />
@@ -36,7 +36,7 @@
         <x-forms.textarea realtimeValidation id="value" rows="10"
             placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" label="Private Key" required />
         <x-forms.input id="publicKey" readonly label="Public Key" />
-        
+
         {{-- Warning --}}
         <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
             <div class="flex items-start gap-3">
@@ -49,12 +49,12 @@
                 </div>
             </div>
         </div>
-        
+
         {{-- Submit Button --}}
         <div class="flex justify-end pt-2">
-            <button 
+            <button
                 type="submit"
-                class="inner-button">
+                class="inner-button flex items-center gap-4">
                 Continue
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>

@@ -71,7 +71,7 @@
             </div>
 
             <div class="flex justify-end pt-1">
-                <button type="submit" class="inner-button">
+                <button type="submit" class="inner-button flex items-center gap-4">
                     Continuer
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </button>
