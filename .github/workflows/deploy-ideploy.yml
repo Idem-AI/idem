@@ -83,9 +83,9 @@ jobs:
            
             # Build image (context = monorepo root, Dockerfile = Dockerfile/prod/Dockerfile.ideploy)
             echo "Building Docker image..."
+
             docker build -f Dockerfile/prod/Dockerfile.ideploy -t $IMAGE_TAG .
             
-            # Push image
             echo "Pushing image to registry..."
             docker push $IMAGE_TAG
             
