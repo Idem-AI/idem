@@ -48,7 +48,7 @@ jobs:
             
             # Variables
             REPO_DIR="/root/idem"
-            FILE_DIR="/root/idem/apps/ideploy"
+            FILE_DIR="/root/idem"
             DEPLOYMENT_DIR="/root/application"
             BRANCH="${{ steps.vars.outputs.branch }}"
             COMMIT_ID="${{ steps.vars.outputs.commit_id }}"
@@ -80,12 +80,10 @@ jobs:
               echo "Retry $i/5..."
               rm -f .git/index.lock .git/index
             done
-            cd $FILE_DIR
-            # Build image
+           
+            # Build image (context = monorepo root, Dockerfile = Dockerfile/prod/Dockerfile.ideploy)
             echo "Building Docker image..."
-            docker build \
-              --build-context shared-styles=$REPO_DIR/packages/shared-styles \
-              -t $IMAGE_TAG .
+            docker build -f Dockerfile/prod/Dockerfile.ideploy -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
