@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+# Build: docker build --build-context shared-styles=../../packages/shared-styles -f Dockerfile .
 # Versions
 # https://hub.docker.com/r/serversideup/php/tags?name=8.4-fpm-nginx-alpine
 ARG SERVERSIDEUP_PHP_VERSION=8.4-fpm-nginx-alpine
@@ -38,6 +40,8 @@ FROM node:24-alpine AS static-assets
 
 WORKDIR /app
 COPY package*.json vite.config.js postcss.config.cjs ./
+# @idem/shared-styles: file:../../packages/shared-styles → résout vers /packages/shared-styles dans le container
+COPY --from=shared-styles . /packages/shared-styles
 RUN npm ci
 COPY . .
 RUN npm run build
