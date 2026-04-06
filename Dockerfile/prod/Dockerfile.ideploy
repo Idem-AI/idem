@@ -1,5 +1,3 @@
-# NOTE: Ce Dockerfile n'est plus utilise pour la production.
-# Le build prod se trouve dans Dockerfile/prod/Dockerfile.ideploy
 # Versions
 # https://hub.docker.com/r/serversideup/php/tags?name=8.4-fpm-nginx-alpine
 ARG SERVERSIDEUP_PHP_VERSION=8.4-fpm-nginx-alpine
@@ -28,7 +26,7 @@ RUN docker-php-serversideup-set-id www-data $USER_ID:$GROUP_ID && \
     docker-php-serversideup-set-file-permissions --owner $USER_ID:$GROUP_ID --service nginx
 
 WORKDIR /var/www/html
-COPY --chown=www-data:www-data composer.json composer.lock ./
+COPY --chown=www-data:www-data apps/ideploy/composer.json apps/ideploy/composer.lock ./
 RUN composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
 
 USER www-data
@@ -39,9 +37,12 @@ USER www-data
 FROM node:24-alpine AS static-assets
 
 WORKDIR /app
-COPY package*.json vite.config.js postcss.config.cjs ./
+COPY apps/ideploy/package*.json apps/ideploy/vite.config.js apps/ideploy/postcss.config.cjs ./
+# packages/shared-styles accessible directement depuis la racine du monorepo
+# file:../../packages/shared-styles (depuis /app) resout vers /packages/shared-styles
+COPY packages/shared-styles /packages/shared-styles/
 RUN npm ci
-COPY . .
+COPY apps/ideploy/ .
 RUN npm run build
 
 # =================================================================
@@ -99,38 +100,38 @@ RUN mkdir -p /usr/local/bin && \
     chmod +x /usr/local/bin/cloudflared
 
 # Configure PHP
-COPY docker/production/etc/php/conf.d/zzz-custom-php.ini /usr/local/etc/php/conf.d/zzz-custom-php.ini
+COPY apps/ideploy/docker/production/etc/php/conf.d/zzz-custom-php.ini /usr/local/etc/php/conf.d/zzz-custom-php.ini
 ENV PHP_OPCACHE_ENABLE=1
 
 # Configure entrypoint
-COPY --chmod=755 docker/production/entrypoint.d/ /etc/entrypoint.d
+COPY --chmod=755 apps/ideploy/docker/production/entrypoint.d/ /etc/entrypoint.d
 
 # Copy application files from previous stages
 COPY --from=base --chown=www-data:www-data /var/www/html/vendor ./vendor
 COPY --from=static-assets --chown=www-data:www-data /app/public/build ./public/build
 
 # Copy application source code
-COPY --chown=www-data:www-data composer.json composer.lock ./
-COPY --chown=www-data:www-data app ./app
-COPY --chown=www-data:www-data bootstrap ./bootstrap
-COPY --chown=www-data:www-data config ./config
-COPY --chown=www-data:www-data database ./database
-COPY --chown=www-data:www-data lang ./lang
-COPY --chown=www-data:www-data public ./public
-COPY --chown=www-data:www-data routes ./routes
-COPY --chown=www-data:www-data storage ./storage
-COPY --chown=www-data:www-data templates ./templates
-COPY --chown=www-data:www-data resources/views ./resources/views
-COPY --chown=www-data:www-data artisan artisan
-COPY --chown=www-data:www-data openapi.yaml ./openapi.yaml
-COPY --chown=www-data:www-data changelogs/ ./changelogs/
+COPY --chown=www-data:www-data apps/ideploy/composer.json apps/ideploy/composer.lock ./
+COPY --chown=www-data:www-data apps/ideploy/app ./app
+COPY --chown=www-data:www-data apps/ideploy/bootstrap ./bootstrap
+COPY --chown=www-data:www-data apps/ideploy/config ./config
+COPY --chown=www-data:www-data apps/ideploy/database ./database
+COPY --chown=www-data:www-data apps/ideploy/lang ./lang
+COPY --chown=www-data:www-data apps/ideploy/public ./public
+COPY --chown=www-data:www-data apps/ideploy/routes ./routes
+COPY --chown=www-data:www-data apps/ideploy/storage ./storage
+COPY --chown=www-data:www-data apps/ideploy/templates ./templates
+COPY --chown=www-data:www-data apps/ideploy/resources/views ./resources/views
+COPY --chown=www-data:www-data apps/ideploy/artisan artisan
+COPY --chown=www-data:www-data apps/ideploy/openapi.yaml ./openapi.yaml
+COPY --chown=www-data:www-data apps/ideploy/changelogs/ ./changelogs/
 
 RUN composer dump-autoload
 
 # Configure Nginx and S6 overlay
-COPY docker/production/etc/nginx/conf.d/custom.conf /etc/nginx/conf.d/custom.conf
-COPY docker/production/etc/nginx/site-opts.d/http.conf /etc/nginx/site-opts.d/http.conf
-COPY docker/production/etc/s6-overlay/ /etc/s6-overlay/
+COPY apps/ideploy/docker/production/etc/nginx/conf.d/custom.conf /etc/nginx/conf.d/custom.conf
+COPY apps/ideploy/docker/production/etc/nginx/site-opts.d/http.conf /etc/nginx/site-opts.d/http.conf
+COPY apps/ideploy/docker/production/etc/s6-overlay/ /etc/s6-overlay/
 
 RUN mkdir -p /etc/nginx/conf.d && \
     chown -R www-data:www-data /etc/nginx && \
