@@ -117,6 +117,7 @@ COPY --chown=www-data:www-data apps/ideploy/config ./config
 COPY --chown=www-data:www-data apps/ideploy/database ./database
 COPY --chown=www-data:www-data apps/ideploy/lang ./lang
 COPY --chown=www-data:www-data apps/ideploy/public ./public
+RUN rm -f public/hot
 COPY --from=static-assets --chown=www-data:www-data /app/public/build ./public/build
 COPY --chown=www-data:www-data apps/ideploy/routes ./routes
 COPY --chown=www-data:www-data apps/ideploy/storage ./storage
