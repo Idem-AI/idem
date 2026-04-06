@@ -19,7 +19,7 @@ COPY ./apps/api ./apps/api
 
 # Install all workspaces from root to establish symlinks
 RUN npm install --legacy-peer-deps
-
+RUN npm install mongoose
 # Set working directory to API
 WORKDIR /app/apps/api
 
