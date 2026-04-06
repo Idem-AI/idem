@@ -1000,6 +1000,7 @@ class General extends Component
         $uptime = $firewallConfig && $totalRequests > 0 ? round((($totalRequests - $blockedRequests) / $totalRequests) * 100, 1) : 99.9;
 
         return view('livewire.project.application.general', [
+            'server' => $this->application->destination->server,
             'isPipelineActive' => $isPipelineActive,
             'totalDeployments' => $totalExecutions,
             'successRate' => $successRate,
