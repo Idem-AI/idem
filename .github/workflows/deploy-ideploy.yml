@@ -7,6 +7,7 @@ on:
       - 'apps/ideploy/**'
       - 'Dockerfile.ideploy'
       - 'packages/shared-models/**'
+      - 'packages/shared-styles/**'
       - '.github/workflows/deploy-ideploy.yml'
   pull_request:
     types: [ closed ]
@@ -15,6 +16,7 @@ on:
       - 'apps/ideploy/**'
       - 'Dockerfile.ideploy'
       - 'packages/shared-models/**'
+      - 'packages/shared-styles/**'
       - '.github/workflows/deploy-ideploy.yml'
   workflow_dispatch:
 
@@ -81,7 +83,9 @@ jobs:
             cd $FILE_DIR
             # Build image
             echo "Building Docker image..."
-            docker build -t $IMAGE_TAG .
+            docker build \
+              --build-context shared-styles=$REPO_DIR/packages/shared-styles \
+              -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
