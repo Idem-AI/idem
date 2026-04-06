@@ -65,6 +65,7 @@ import migrationRoutes from './routes/migration.routes';
 import { teamsRoutes } from './routes/teams.routes';
 import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
+import ideployRoutes from './routes/ideploy.routes';
 
 const app: Express = express();
 
@@ -150,6 +151,9 @@ app.use('/api/contact', contactRoutes);
 
 // Logo import routes
 app.use('/api/logo', logoImportRoutes);
+
+// iDeploy routes
+app.use('/api/ideploy', ideployRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

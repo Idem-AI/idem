@@ -22,7 +22,7 @@ import { SelectElement } from '../../pages/create-project/datas';
 import { FormsModule } from '@angular/forms';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { first, switchMap } from 'rxjs/operators';
-import { EMPTY } from 'rxjs';
+import { EMPTY, firstValueFrom } from 'rxjs';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BetaBadgeComponent } from '../../../../shared/components/beta-badge/beta-badge';
@@ -495,10 +495,16 @@ export class SidebarDashboard implements OnInit {
     this.router.navigateByUrl(url);
   }
 
-  logout() {
+  async logout() {
     this.isDropdownOpen.set(false);
-    this.auth.logout();
-    this.router.navigate(['/login']);
+    try {
+      await firstValueFrom(this.auth.logout());
+      this.router.navigate(['/login']);
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Navigate to login even if logout fails
+      this.router.navigate(['/login']);
+    }
   }
 
   @HostListener('document:click', ['$event'])

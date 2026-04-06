@@ -6,7 +6,7 @@ use Symfony\Component\Yaml\Yaml;
 
 /**
  * Generate CrowdSec parser and scenarios for Traefik JSON logs
- * 
+ *
  * This service creates:
  * 1. Parser that reads Traefik JSON access logs
  * 2. Scenarios that filter events by app_uuid (isolation)
@@ -16,7 +16,7 @@ class ParserGeneratorService
 {
     /**
      * Generate Traefik JSON parser YAML
-     * 
+     *
      * This parser reads Traefik access.log (JSON format) and creates
      * events with evt.Parsed fields that scenarios can filter on
      */
@@ -35,7 +35,7 @@ class ParserGeneratorService
                         'apply_on' => 'message',
                     ],
                 ],
-                
+
                 // Decode JSON
                 [
                     'grok' => [
@@ -50,55 +50,55 @@ class ParserGeneratorService
                     'meta' => 'source_ip',
                     'expression' => 'JsonExtract(evt.Parsed.json_data, "ClientAddr") != "" ? JsonExtract(evt.Parsed.json_data, "ClientAddr").Split(":")[0] : ""',
                 ],
-                
+
                 // HTTP Method
                 [
                     'parsed' => 'method',
                     'expression' => 'JsonExtract(evt.Parsed.json_data, "RequestMethod")',
                 ],
-                
+
                 // Request Path
                 [
                     'parsed' => 'request_path',
                     'expression' => 'JsonExtract(evt.Parsed.json_data, "RequestPath")',
                 ],
-                
+
                 // User-Agent
                 [
                     'parsed' => 'http_user_agent',
                     'expression' => 'JsonExtractSlice(evt.Parsed.json_data, "RequestHeader.User-Agent")[0] ?? ""',
                 ],
-                
+
                 // Host
                 [
                     'parsed' => 'http_host',
                     'expression' => 'JsonExtract(evt.Parsed.json_data, "RequestHost")',
                 ],
-                
+
                 // HTTP Status
                 [
                     'parsed' => 'http_status',
                     'expression' => 'JsonExtract(evt.Parsed.json_data, "DownstreamStatus")',
                 ],
-                
+
                 // Referer
                 [
                     'parsed' => 'http_referer',
                     'expression' => 'JsonExtractSlice(evt.Parsed.json_data, "RequestHeader.Referer")[0] ?? ""',
                 ],
-                
+
                 // Protocol
                 [
                     'parsed' => 'http_version',
                     'expression' => 'JsonExtract(evt.Parsed.json_data, "RequestProtocol")',
                 ],
-                
+
                 // Set program name
                 [
                     'target' => 'evt.Parsed.program',
                     'value' => 'traefik',
                 ],
-                
+
                 // Timestamp
                 [
                     'target' => 'evt.StrTime',
@@ -106,17 +106,17 @@ class ParserGeneratorService
                 ],
             ],
         ];
-        
+
         return Yaml::dump($parser, 10, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
     }
-    
+
     /**
      * Generate acquis.yaml configuration with Traefik log source
      */
     public function generateAcquisConfig(array $appSecConfigs = []): string
     {
         $sources = [];
-        
+
         // Traefik logs source (uses official CrowdSec parser)
         $sources[] = [
             'source' => 'file',
@@ -125,7 +125,7 @@ class ParserGeneratorService
                 'type' => 'traefik',  // Official parser expects this label
             ],
         ];
-        
+
         // AppSec sources (one per application)
         foreach ($appSecConfigs as $config) {
             $sources[] = [
@@ -138,7 +138,7 @@ class ParserGeneratorService
                 ],
             ];
         }
-        
+
         // Generate YAML with separator between sources
         $yaml = '';
         foreach ($sources as $source) {
@@ -146,71 +146,71 @@ class ParserGeneratorService
             $yaml .= Yaml::dump($source, 6, 2);
             $yaml .= "\n";
         }
-        
+
         return $yaml;
     }
-    
+
     /**
      * Install official CrowdSec Traefik parser
-     * 
+     *
      * Instead of creating a custom parser, we use the official one
      * from CrowdSec hub which is battle-tested and maintained
      */
     public function installOfficialTraefikParser(\App\Models\Server $server): void
     {
         ray("Installing official CrowdSec Traefik parser...");
-        
+
         try {
             // Install Traefik collection (includes parser + scenarios)
             $output = instant_remote_process([
                 'docker exec crowdsec-live cscli collections install crowdsecurity/traefik -o raw 2>&1 || echo "INSTALL_FAILED"',
             ], $server);
-            
+
             if (str_contains($output, 'INSTALL_FAILED')) {
                 ray("⚠️ Collection might already be installed or install failed, continuing...");
             } else {
                 ray("✅ Traefik collection installed");
             }
-            
+
             // Reload CrowdSec to apply
             instant_remote_process([
                 'docker exec crowdsec-live kill -SIGHUP 1',
             ], $server);
-            
+
             sleep(3);
-            
+
             ray("✅ Official Traefik parser ready");
-            
+
         } catch (\Exception $e) {
             ray("⚠️ Parser installation issue (might already exist): " . $e->getMessage());
             // Continue anyway, parser might already be installed
         }
     }
-    
+
     /**
      * Upload acquis.yaml to server
      */
     public function uploadAcquisConfig(\App\Models\Server $server, string $yaml): void
     {
         ray("Uploading acquis.yaml to server: {$server->name}");
-        
+
         // Write locally
         $tempFile = storage_path("app/acquis-{$server->id}.yaml");
         file_put_contents($tempFile, $yaml);
-        
+
         // Upload to server
         instant_scp(
             $tempFile,
-            '/var/lib/coolify/crowdsec/config/acquis.yaml',
+            '/var/lib/ideploy/crowdsec/config/acquis.yaml',
             $server
         );
-        
+
         // Cleanup
         @unlink($tempFile);
-        
+
         ray("✅ Acquis config uploaded successfully");
     }
-    
+
     /**
      * Deploy raw parser for Traefik logs
      * This parser sets program=traefik based on the label type=traefik from acquis.yaml
@@ -218,7 +218,7 @@ class ParserGeneratorService
     public function deployTraefikRawParser(\App\Models\Server $server): void
     {
         ray("Deploying Traefik raw parser...");
-        
+
         $parserYaml = <<<'YAML'
 name: ideploy/traefik-raw
 description: Prepare raw JSON for traefik-logs parser
@@ -232,21 +232,21 @@ statics:
   - parsed: program
     value: traefik
 YAML;
-        
+
         // Write locally
         $tempFile = storage_path("app/ideploy-traefik-raw-{$server->id}.yaml");
         file_put_contents($tempFile, $parserYaml);
-        
+
         // Upload to server
         instant_scp(
             $tempFile,
-            '/var/lib/coolify/crowdsec/config/parsers/s00-raw/ideploy-traefik-raw.yaml',
+            '/var/lib/ideploy/crowdsec/config/parsers/s00-raw/ideploy-traefik-raw.yaml',
             $server
         );
-        
+
         ray("✅ Traefik raw parser deployed");
     }
-    
+
     /**
      * Deploy IP enrichment parser for Traefik logs
      * This parser copies remote_addr to source_ip meta for scenarios to work
@@ -254,7 +254,7 @@ YAML;
     public function deployIPEnrichmentParser(\App\Models\Server $server): void
     {
         ray("Deploying IP enrichment parser...");
-        
+
         $parserYaml = <<<'YAML'
 name: ideploy/ip-enrich
 description: "Enrich Traefik logs with source_ip meta for scenarios"
@@ -268,28 +268,28 @@ statics:
   - meta: traefik_router_name
     expression: "evt.Parsed.traefik_router_name"
 YAML;
-        
+
         // Write locally
         $tempFile = storage_path("app/ideploy-ip-enrich-{$server->id}.yaml");
         file_put_contents($tempFile, $parserYaml);
-        
+
         // Upload to server
         instant_scp(
             $tempFile,
-            '/var/lib/coolify/crowdsec/config/parsers/s02-enrich/ideploy-ip-enrich.yaml',
+            '/var/lib/ideploy/crowdsec/config/parsers/s02-enrich/ideploy-ip-enrich.yaml',
             $server
         );
-        
+
         ray("✅ IP enrichment parser deployed");
     }
-    
+
     /**
      * Test parser with sample log
      */
     public function testParser(\App\Models\Server $server): array
     {
         ray("Testing parser with sample log...");
-        
+
         // Sample Traefik JSON log
         $sampleLog = json_encode([
             'ClientAddr' => '203.0.113.42:52345',
@@ -304,20 +304,20 @@ YAML;
             'DownstreamStatus' => 200,
             'StartUTC' => date('c'),
         ]);
-        
+
         // Test parser
         $output = instant_remote_process([
             "echo '{$sampleLog}' | docker exec -i crowdsec-live cscli parsers test ideploy/traefik-json --type traefik-json || echo 'PARSER_TEST_FAILED'",
         ], $server);
-        
+
         $success = !str_contains($output, 'PARSER_TEST_FAILED');
-        
+
         return [
             'success' => $success,
             'output' => $output,
         ];
     }
-    
+
     /**
      * Génère un scenario CrowdSec pour une règle firewall
      * ISOLATION PAR APP: Le scenario filtre par app_uuid
@@ -331,13 +331,13 @@ YAML;
     ): string {
         $filters = $this->buildFilters($appUuid, $conditions);
         $remediation = $this->mapActionToRemediation($action);
-        
+
         // Include rule ID in scenario name to guarantee uniqueness
         $sanitizedName = str_replace(' ', '-', strtolower($ruleName));
-        $scenarioName = $ruleId 
+        $scenarioName = $ruleId
             ? "ideploy/{$appUuid}/{$sanitizedName}-{$ruleId}"
             : "ideploy/{$appUuid}/{$sanitizedName}";
-        
+
         $scenario = [
             'type' => 'leaky',
             'name' => $scenarioName,
@@ -354,10 +354,10 @@ YAML;
                 'remediation' => true,  // Required for profile to create decision
             ],
         ];
-        
+
         return Yaml::dump($scenario, 10, 2);
     }
-    
+
     /**
      * Construit les filtres pour le scenario
      * CRITIQUE: Filtre par app_uuid pour isolation
@@ -368,12 +368,12 @@ YAML;
         // On utilise le RouterName OU RequestHost qui contient l'app UUID
         $filters = ["evt.Parsed.program == 'traefik'"];
         $filters[] = "(evt.Meta.traefik_router_name contains '{$appUuid}' || evt.Meta.http_host contains '{$appUuid}')";
-        
+
         foreach ($conditions as $condition) {
             $field = $condition['field'];
             $operator = $condition['operator'];
             $value = $condition['value'];
-            
+
             $filter = match($field) {
                 'uri', 'request_path' => $this->buildUriFilter($operator, $value),
                 'method' => "evt.Parsed.verb == '{$value}'",
@@ -383,15 +383,15 @@ YAML;
                 'host' => "evt.Meta.target_fqdn == '{$value}'",
                 default => null
             };
-            
+
             if ($filter) {
                 $filters[] = $filter;
             }
         }
-        
+
         return implode(' && ', $filters);
     }
-    
+
     /**
      * Construit filtre URI
      */
@@ -405,7 +405,7 @@ YAML;
             default => "evt.Parsed.request == '{$value}'"
         };
     }
-    
+
     /**
      * Construit filtre User-Agent
      */
@@ -418,7 +418,7 @@ YAML;
             default => "evt.Parsed.http_user_agent contains '{$value}'"
         };
     }
-    
+
     /**
      * Map action vers remediation CrowdSec
      */

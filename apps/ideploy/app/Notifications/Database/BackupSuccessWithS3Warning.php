@@ -37,7 +37,7 @@ class BackupSuccessWithS3Warning extends CustomEmailNotification
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject("Coolify: Backup succeeded locally but S3 upload failed for {$this->database->name}");
+        $mail->subject("Ideploy: Backup succeeded locally but S3 upload failed for {$this->database->name}");
         $mail->view('emails.backup-success-with-s3-warning', [
             'name' => $this->name,
             'database_name' => $this->database_name,
@@ -69,7 +69,7 @@ class BackupSuccessWithS3Warning extends CustomEmailNotification
 
     public function toTelegram(): array
     {
-        $message = "Coolify: Database backup for {$this->name} (db:{$this->database_name}) with frequency of {$this->frequency} succeeded locally but failed to upload to S3.\n\nS3 Error:\n{$this->s3_error}";
+        $message = "Ideploy: Database backup for {$this->name} (db:{$this->database_name}) with frequency of {$this->frequency} succeeded locally but failed to upload to S3.\n\nS3 Error:\n{$this->s3_error}";
 
         if ($this->s3_storage_url) {
             $message .= "\n\nCheck S3 Configuration: {$this->s3_storage_url}";

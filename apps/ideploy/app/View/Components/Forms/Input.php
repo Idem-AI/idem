@@ -26,7 +26,7 @@ class Input extends Component
         public ?string $helper = null,
         public bool $allowToPeak = true,
         public bool $isMultiline = false,
-        public string $defaultClass = 'input',
+        public string $defaultClass = '',
         public string $autocomplete = 'off',
         public ?int $minlength = null,
         public ?int $maxlength = null,
