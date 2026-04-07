@@ -30,7 +30,7 @@ class Datalist extends Component
         public ?string $value = null,
         public ?string $placeholder = null,
         public bool $autofocus = false,
-        public string $defaultClass = 'input',
+        public string $defaultClass = '',
         public ?string $canGate = null,
         public mixed $canResource = null,
         public bool $autoDisable = true,

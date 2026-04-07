@@ -1,5 +1,1 @@
-{{ $description }}
-
-{{ Illuminate\Mail\Markdown::parse('---') }}
-
-{{-- {{ Illuminate\Mail\Markdown::parse($debug) }} --}}
+{{ $description }} {{ Illuminate\Mail\Markdown::parse('---') }} {{-- {{ Illuminate\Mail\Markdown::parse($debug) }} --}}

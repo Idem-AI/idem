@@ -33,6 +33,7 @@ WORKDIR /app/apps/api
 
 # Install dependencies
 RUN npm install --legacy-peer-deps --force && npm cache clean --force
+RUN npm install @google/generative-ai
 
 # Install missing dependencies manually at root level
 WORKDIR /app
@@ -85,7 +86,7 @@ COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules
 
 # Also copy shared packages that might be needed
 COPY --from=builder --chown=apiuser:nodejs /app/packages ./packages
-
+COPY ./apps/api/ .
 # Create logs directory with correct permissions
 RUN mkdir -p /app/logs && chown -R apiuser:nodejs /app/logs
 
