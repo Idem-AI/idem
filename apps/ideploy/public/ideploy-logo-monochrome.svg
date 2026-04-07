@@ -1,13 +1,21 @@
-<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <\!-- Background transparent pour version monochrome -->
-  <rect width="200" height="200" rx="20" fill="transparent"/>
-  
-  <\!-- Lettre I (barre verticale gauche) -->
-  <rect x="30" y="50" width="20" height="100" fill="currentColor"/>
-  
-  <\!-- Lettre D -->
-  <path d="M 80 50 L 80 150 L 120 150 C 140 150 155 135 155 115 L 155 85 C 155 65 140 50 120 50 Z M 100 70 L 120 70 C 128 70 135 77 135 85 L 135 115 C 135 123 128 130 120 130 L 100 130 Z" fill="currentColor"/>
-  
-  <\!-- Symbole > (chevron) -->
-  <path d="M 125 85 L 145 100 L 125 115" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_460_234)">
+<path d="M502 0H10C4.47715 0 0 4.47715 0 10V502C0 507.523 4.47715 512 10 512H502C507.523 512 512 507.523 512 502V10C512 4.47715 507.523 0 502 0Z" fill="#1447E6"/>
+<mask id="mask0_460_234" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="175" y="69" width="260" height="361">
+<path d="M175 69H254.5C354.187 69 435 149.813 435 249.5C435 349.187 354.187 430 254.5 430H175V69Z" fill="white"/>
+</mask>
+<g mask="url(#mask0_460_234)">
+<path d="M175 34H254.5C373.517 34 470 130.483 470 249.5H400C400 169.143 334.857 104 254.5 104H175V34ZM470 249.5C470 368.517 373.517 465 254.5 465H175V395H254.5C334.857 395 400 329.857 400 249.5H470ZM254.5 34C373.517 34 470 130.483 470 249.5C470 368.517 373.517 465 254.5 465V395C334.857 395 400 329.857 400 249.5C400 169.143 334.857 104 254.5 104V34Z" fill="white"/>
+</g>
+<path d="M257 198H236V312H257V198Z" fill="white"/>
+<path d="M275 177H218V198H275V177Z" fill="white"/>
+<path d="M275 312H218V333H275V312Z" fill="white"/>
+<path d="M300.4 294.4C298.133 290.333 299.067 287.067 303.2 284.6L356.6 254.6V260.2L303.4 230.8C299.2 228.4 298.2 225.067 300.4 220.8C302.867 216.733 306.2 215.8 310.4 218L366.8 249.4C370.133 251.333 371.8 253.867 371.8 257C371.8 260.8 370.133 263.667 366.8 265.6L310.4 297.2C306.067 299.467 302.733 298.533 300.4 294.4Z" fill="white"/>
+<path d="M148 72H105V430H148V72Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="clip0_460_234">
+<rect width="512" height="512" fill="white"/>
+</clipPath>
+</defs>
 </svg>
