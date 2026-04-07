@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ProjectModel } from '../../models/project.model';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -51,8 +51,13 @@ export class CreateProjectComponent implements OnInit {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly cookieService = inject(CookieService);
   private readonly translate = inject(TranslateService);
+
+  // AppGen handoff
+  protected readonly fromAppGen = signal<boolean>(false);
+  protected readonly appgenHandoff = signal<any>(null);
 
   // Core state
   protected readonly currentStepIndex = signal<number>(0);
@@ -135,6 +140,45 @@ export class CreateProjectComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDraftProject();
+    this.loadAppGenHandoff();
+  }
+
+  /**
+   * Load AppGen handoff context from URL params or sessionStorage
+   */
+  private loadAppGenHandoff(): void {
+    const params = this.route.snapshot.queryParams;
+    if (params['from'] !== 'appgen') return;
+
+    this.fromAppGen.set(true);
+
+    // Pre-fill name and description from URL
+    const name = params['name'] ? decodeURIComponent(params['name']) : null;
+    const description = params['description'] ? decodeURIComponent(params['description']) : null;
+
+    // Read full handoff payload from sessionStorage
+    let handoff: any = null;
+    try {
+      const raw = sessionStorage.getItem('appgen_handoff');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.expiresAt && new Date(parsed.expiresAt) > new Date()) {
+          handoff = parsed;
+          sessionStorage.removeItem('appgen_handoff');
+        }
+      }
+    } catch (e) {
+      console.warn('Could not read AppGen handoff:', e);
+    }
+
+    this.appgenHandoff.set(handoff);
+
+    // Pre-fill project from handoff data
+    this.project.update((current) => ({
+      ...current,
+      name: name || handoff?.appName || current.name,
+      description: description || handoff?.description || current.description,
+    }));
   }
 
   /**

@@ -5,11 +5,15 @@ import useChatModeStore from '@/stores/chatModeSlice';
 import { ChatMode } from '@/types/chat';
 import useTerminalStore from '@/stores/terminalSlice';
 import { getWebContainerInstance } from '../WeIde/services/webcontainer';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Modal } from 'antd';
-import { sendToGitHub } from '@/api/persistence/db';
+import { sendToGitHub, getCurrentUser } from '@/api/persistence/db';
 import { HelpButton } from './HelpButton';
+import { DeployModal } from '../DeployModal/DeployModal';
+import useAppGenContextStore from '@/stores/appgenContextSlice';
+import { UserProfile } from './UserProfile';
+import type { UserModel } from '@/api/persistence/userModel';
 
 // Add a helper function to recursively get all files
 const getAllFiles = async (
@@ -98,23 +102,17 @@ export function HeaderActions() {
     }
   };
 
+  const { updateDraftFiles } = useAppGenContextStore();
+  const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
+
+  useEffect(() => {
+    getCurrentUser().then((user) => setCurrentUser(user));
+  }, []);
+
   const handleDeployClick = () => {
     setShowDeployChoiceModal(true);
-  };
-
-  const handleDeployChoice = (choice: 'netlify' | 'idem') => {
-    setShowDeployChoiceModal(false);
-
-    if (choice === 'idem') {
-      const idemUrl = process.env.REACT_APP_IDEM_MAIN_APP_URL;
-      if (idemUrl) {
-        window.open(`${idemUrl}/console/deployments`, '_blank');
-      } else {
-        toast.error('REACT_APP_IDEM_MAIN_APP_URL not configured');
-      }
-    } else {
-      publishToNetlify();
-    }
+    // Sync current files into AppGen context before deploying
+    updateDraftFiles(files as Record<string, string>);
   };
 
   const publishToNetlify = async () => {
@@ -216,6 +214,7 @@ export function HeaderActions() {
 
   return (
     <div className="flex items-center gap-2">
+      {currentUser && <UserProfile user={currentUser} />}
       <HelpButton />
       {mode === ChatMode.Builder && (
         <div className="flex items-center gap-2">
@@ -308,6 +307,12 @@ export function HeaderActions() {
           {/* Directory opening option disabled in web mode */}
         </div>
       )}
+      <DeployModal
+        open={showDeployChoiceModal}
+        onClose={() => setShowDeployChoiceModal(false)}
+        onNetlifyDeploy={publishToNetlify}
+      />
+
       {showModal && (
         <Modal
           open={showModal}
@@ -419,155 +424,6 @@ export function HeaderActions() {
             <p className="text-sm text-gray-400 mt-4">
               Please wait while we deploy your application...
             </p>
-          </div>
-        </Modal>
-      )}
-
-      {/* Deploy Choice Modal */}
-      {showDeployChoiceModal && (
-        <Modal
-          open={showDeployChoiceModal}
-          onCancel={() => setShowDeployChoiceModal(false)}
-          footer={null}
-          width={600}
-          className=" bg-black"
-          styles={{
-            content: { backgroundColor: 'var(--color-bg-light)' },
-            body: {
-              padding: 0,
-            },
-            header: {
-              display: 'none',
-            },
-          }}
-        >
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 12l2 2 4-4"
-                />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Déployer votre projet</h3>
-            <p className="text-gray-300 text-sm">Choisissez votre méthode de déploiement</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Custom Deployment - Coming Soon */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left opacity-60 cursor-not-allowed">
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center flex-shrink-0">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-lg text-gray-400">Déploiement personnalisé</h4>
-                    <span className="inline-block text-xs text-white uppercase tracking-wide font-bold bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1.5 rounded-full shadow-lg">
-                      Disponible bientôt
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-400 mb-4 leading-relaxed">
-                  Déployez sur votre infrastructure avec Idem Deploy
-                </p>
-
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2 py-1 text-xs bg-gray-800/50 text-gray-500 rounded-md font-medium">
-                    AWS
-                  </span>
-                  <span className="px-2 py-1 text-xs bg-gray-800/50 text-gray-500 rounded-md font-medium">
-                    Docker
-                  </span>
-                  <span className="px-2 py-1 text-xs bg-gray-800/50 text-gray-500 rounded-md font-medium">
-                    Kubernetes
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Deployment */}
-            <button
-              onClick={() => handleDeployChoice('netlify')}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-800 via-gray-750 to-gray-700 p-6 text-left transition-all duration-300 hover:border-blue-400 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center flex-shrink-0">
-                    <svg
-                      className="w-5 h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">
-                      Déploiement rapide
-                    </h4>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">
-                      En un clic
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-                  Déploiement instantané avec CDN global et SSL automatique
-                </p>
-
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2 py-1 text-xs bg-blue-900/50 text-blue-300 rounded-md font-medium">
-                    Instantané
-                  </span>
-                  <span className="px-2 py-1 text-xs bg-blue-800/50 text-blue-200 rounded-md font-medium">
-                    CDN Global
-                  </span>
-                  <span className="px-2 py-1 text-xs bg-blue-700/50 text-blue-100 rounded-md font-medium">
-                    SSL Auto
-                  </span>
-                </div>
-              </div>
-
-              {/* Hover effect overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-700/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-          </div>
-
-          <div className="flex justify-center">
-            <button
-              onClick={() => setShowDeployChoiceModal(false)}
-              className="px-6 py-2 text-gray-400 hover:text-gray-200 transition-colors font-medium"
-            >
-              Annuler
-            </button>
           </div>
         </Modal>
       )}
