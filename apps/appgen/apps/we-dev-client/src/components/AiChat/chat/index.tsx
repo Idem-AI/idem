@@ -40,6 +40,7 @@ import { ProjectTutorial } from '../../Onboarding/ProjectTutorial';
 import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
+import useChatHistoryStore from '@/stores/chatHistoryStore';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -202,6 +203,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     setOldFiles,
   } = useFileStore();
   const { mode } = useChatModeStore();
+  const { touchSession, updateSessionTitle, setActiveChatUuid } = useChatHistoryStore();
   // use global state
   const { uploadedImages, addImages, removeImage, clearImages, setModelOptions } = useChatStore();
   const { resetTerminals } = useTerminalStore();
@@ -589,13 +591,18 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             content: input,
           },
         ];
+        const autoTitle =
+          [...initMessage, ...messages]
+            .find((m) => m.role === 'user' && !m.content.includes('<boltArtifact'))
+            ?.content?.slice(0, 60) || 'Nouvelle conversation';
         await db.insert(chatUuid, {
           messages: [...messages, ...initMessage, message],
-          title:
-            [...initMessage, ...messages]
-              .find((m) => m.role === 'user' && !m.content.includes('<boltArtifact'))
-              ?.content?.slice(0, 50) || 'New Chat',
+          title: autoTitle,
         });
+        // Sync with chat history store (localStorage-persisted list)
+        touchSession(chatUuid);
+        updateSessionTitle(chatUuid, autoTitle);
+        setActiveChatUuid(chatUuid);
       } catch (error) {
         console.error('Failed to save chat history:', error);
       }
@@ -646,6 +653,20 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     },
   });
+
+  // Listen for auto-prompt from AppGen landing page (placed here, after useChat, so isLoading/append are defined)
+  useEffect(() => {
+    const unsubscribe = eventEmitter.on('chat:autoPrompt', (prompt: string) => {
+      if (prompt && !isLoading) {
+        append({
+          id: uuidv4(),
+          role: 'user',
+          content: prompt,
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [isLoading, append]);
 
   // Get status and type from URL data (projectId already obtained above)
   const { status, type } = useUrlData({ append });
