@@ -6,11 +6,13 @@ use Livewire\Component;
 
 class Landing extends Component
 {
-    public function mount()
+    public function logout()
     {
-        if (auth()->check()) {
-            return redirect()->route('dashboard');
-        }
+        auth()->logout();
+        session()->invalidate();
+        session()->regenerateToken();
+
+        return redirect()->route('landing');
     }
 
     public function render()
