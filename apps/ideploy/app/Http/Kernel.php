@@ -38,6 +38,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\RedirectAuthToMainDashboard::class, // Redirect login/register to main-dashboard
             \App\Http\Middleware\CheckForcePasswordReset::class,
             \App\Http\Middleware\DecideWhatToDoWithUser::class,
 

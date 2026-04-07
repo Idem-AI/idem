@@ -1,3 +1,6 @@
+@php
+    $dashboardLoginUrl = rtrim(config('idem.dashboard_url', env('IDEM_DASHBOARD_URL', 'http://localhost:4200')), '/') . '/login?redirect=ideploy';
+@endphp
 <div class="min-h-screen text-white" style="font-family: 'Jura', sans-serif;">
     <x-slot:title>iDeploy — Deploy with confidence</x-slot>
 
@@ -26,10 +29,10 @@
 
             {{-- CTA --}}
             <div class="flex items-center gap-3">
-                <a href="/auth/link" class="outer-button button-sm">
+                <a href="{{ $dashboardLoginUrl }}" class="outer-button button-sm">
                     Sign in
                 </a>
-                <a href="/auth/link" class="inner-button button-sm">
+                <a href="{{ $dashboardLoginUrl }}" class="inner-button button-sm">
                     Get started
                 </a>
             </div>
@@ -72,7 +75,7 @@
 
             {{-- CTAs --}}
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-                <a href="/auth/link" class="inner-button button-lg w-full sm:w-auto">
+                <a href="{{ $dashboardLoginUrl }}" class="inner-button button-lg w-full sm:w-auto">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -256,7 +259,7 @@
                         <h3 class="font-bold text-white mb-1">Your app is ready to deploy!</h3>
                         <p class="text-sm text-gray-400">Sign in or create an account to deploy your generated application directly from AppGen.</p>
                     </div>
-                    <a href="/auth/link" class="inner-button button-sm flex-shrink-0">
+                    <a href="{{ $dashboardLoginUrl }}" class="inner-button button-sm flex-shrink-0">
                         Sign in & Deploy
                     </a>
                 </div>
@@ -290,7 +293,7 @@
                         Join thousands of developers who trust iDeploy to ship faster.<br>Free to self-host. Forever open-source.
                     </p>
                     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <a href="/auth/link" class="inner-button button-lg w-full sm:w-auto">
+                        <a href="{{ $dashboardLoginUrl }}" class="inner-button button-lg w-full sm:w-auto">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -325,7 +328,7 @@
             </div>
             <p class="text-xs text-gray-600">© {{ date('Y') }} iDeploy · Part of the Idem ecosystem</p>
             <div class="flex items-center gap-6">
-                <a href="/auth/link" class="text-xs text-gray-500 hover:text-white transition-colors">Sign in</a>
+                <a href="{{ $dashboardLoginUrl }}" class="text-xs text-gray-500 hover:text-white transition-colors">Sign in</a>
                 <a href="https://github.com/idem-africa/ideploy" target="_blank" class="text-xs text-gray-500 hover:text-white transition-colors">GitHub</a>
             </div>
         </div>
