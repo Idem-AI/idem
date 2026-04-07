@@ -11,7 +11,7 @@
                 <div class="w-8 h-8 flex items-center justify-center">
                     <img src="{{ asset('ideploy-logo.svg') }}" alt="EPLOY Logo" class="w-8 h-8 object-contain">
                 </div>
-                <span class="text-lg font-bold tracking-tight">EPLOY</span>
+                <span class="text-3xl font-bold tracking-tight">EPLOY</span>
             </div>
 
             @auth
