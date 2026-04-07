@@ -57,7 +57,7 @@
                 <div class="flex items-center gap-3">
                     <label class="flex items-center gap-2">
                         <input type="checkbox" wire:model="webhookEnabled" wire:change="instantSaveWebhookEnabled"
-                               class="w-5 h-5 rounded border-gray-600 text-green-600 focus:ring-green-500 focus:ring-offset-0">
+                               class="input">
                         <span class="text-sm font-medium text-light">Enabled</span>
                     </label>
                     <button type="submit" class="inner-button">
@@ -138,7 +138,7 @@
                 <div class="space-y-3">
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="deploymentSuccessWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-green-600 focus:ring-green-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-green-400 transition">Deployment Success</span>
                             <p class="text-xs text-gray-500">Notify when deployment completes successfully</p>
@@ -146,7 +146,7 @@
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="deploymentFailureWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-red-600 focus:ring-red-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-red-400 transition">Deployment Failure</span>
                             <p class="text-xs text-gray-500">Notify when deployment fails</p>
@@ -154,7 +154,7 @@
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="statusChangeWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-yellow-600 focus:ring-yellow-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-yellow-400 transition">Container Status Changes</span>
                             <p class="text-xs text-gray-500">Notify on container stop/restart events</p>
@@ -176,7 +176,7 @@
                 <div class="space-y-3">
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="backupSuccessWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-green-600 focus:ring-green-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-green-400 transition">Backup Success</span>
                             <p class="text-xs text-gray-500">Notify when backup completes</p>
@@ -184,7 +184,7 @@
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="backupFailureWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-red-600 focus:ring-red-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-red-400 transition">Backup Failure</span>
                             <p class="text-xs text-gray-500">Notify when backup fails</p>
@@ -206,7 +206,7 @@
                 <div class="space-y-3">
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="scheduledTaskSuccessWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-green-600 focus:ring-green-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-green-400 transition">Task Success</span>
                             <p class="text-xs text-gray-500">Notify when scheduled task succeeds</p>
@@ -214,7 +214,7 @@
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="scheduledTaskFailureWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-red-600 focus:ring-red-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-red-400 transition">Task Failure</span>
                             <p class="text-xs text-gray-500">Notify when scheduled task fails</p>
@@ -236,42 +236,42 @@
                 <div class="space-y-3">
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="dockerCleanupSuccessWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-green-600 focus:ring-green-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-green-400 transition">Docker Cleanup Success</span>
                         </div>
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="dockerCleanupFailureWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-red-600 focus:ring-red-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-red-400 transition">Docker Cleanup Failure</span>
                         </div>
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="serverDiskUsageWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-yellow-600 focus:ring-yellow-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-yellow-400 transition">Server Disk Usage</span>
                         </div>
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="serverReachableWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-green-600 focus:ring-green-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-green-400 transition">Server Reachable</span>
                         </div>
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="serverUnreachableWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-red-600 focus:ring-red-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-red-400 transition">Server Unreachable</span>
                         </div>
                     </label>
                     <label class="flex items-start gap-3 cursor-pointer group">
                         <input type="checkbox" wire:model="serverPatchWebhookNotifications" wire:change="saveModel"
-                               class="mt-0.5 w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0">
+                               class="input">
                         <div>
                             <span class="text-sm text-light group-hover:text-blue-400 transition">Server Patching</span>
                         </div>
