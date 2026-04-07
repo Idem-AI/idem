@@ -2,35 +2,23 @@
     $dashboardLoginUrl = rtrim(config('idem.dashboard_url', env('IDEM_DASHBOARD_URL', 'http://localhost:4200')), '/') . '/login?redirect=ideploy';
 @endphp
 <div class="min-h-screen text-white" style="font-family: 'Jura', sans-serif;">
-    <x-slot:title>iDeploy — Deploy with confidence</x-slot>
+    <x-slot:title>EPLOY — Deploy with confidence</x-slot>
 
-    {{-- ================================================================
-         NAVBAR
-    ================================================================ --}}
+    {{-- Navbar --}}
     <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
-            {{-- Logo --}}
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 bg-primary/20 border border-primary/40 rounded-xl flex items-center justify-center">
-                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary/20 border border-primary/40 rounded-xl flex items-center justify-center">
+                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 12l2 2 4-4" />
                     </svg>
                 </div>
-                <span class="text-xl font-bold text-white tracking-wide">iDeploy</span>
+                <span class="text-lg font-bold tracking-tight">EPLOY</span>
             </div>
 
-            {{-- Nav links --}}
-            <div class="hidden md:flex items-center gap-8">
-                <a href="#features" class="text-sm text-gray-400 hover:text-white transition-colors">Features</a>
-                <a href="#how-it-works" class="text-sm text-gray-400 hover:text-white transition-colors">How it works</a>
-                <a href="#pricing" class="text-sm text-gray-400 hover:text-white transition-colors">Pricing</a>
-            </div>
-
-            {{-- CTA / User Menu --}}
             @auth
                 <div class="relative" x-data="{ open: false }">
-                    {{-- User Button --}}
                     <button @click="open = !open" @click.away="open = false"
                         class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
                         <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
@@ -42,21 +30,16 @@
                         </svg>
                     </button>
 
-                    {{-- Dropdown Menu --}}
                     <div x-show="open" x-transition:enter="transition ease-out duration-200"
                         x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                         x-transition:leave="transition ease-in duration-150"
                         x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
                         class="absolute right-0 mt-2 w-56 rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden"
                         style="display: none;">
-
-                        {{-- User Info --}}
                         <div class="px-4 py-3 border-b border-white/10">
                             <p class="text-sm font-medium text-white">{{ auth()->user()->name ?? 'User' }}</p>
                             <p class="text-xs text-gray-400 truncate">{{ auth()->user()->email }}</p>
                         </div>
-
-                        {{-- Menu Items --}}
                         <div class="py-2">
                             <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,8 +56,6 @@
                                 Profile
                             </a>
                         </div>
-
-                        {{-- Logout --}}
                         <div class="border-t border-white/10 py-2">
                             <button wire:click="logout" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,73 +68,47 @@
                     </div>
                 </div>
             @else
-                <div class="flex items-center gap-3">
-                    <a href="{{ $dashboardLoginUrl }}" class="outer-button button-sm">
-                        Sign in
-                    </a>
-                    <a href="{{ $dashboardLoginUrl }}" class="inner-button button-sm">
-                        Get started
-                    </a>
-                </div>
+                <a href="{{ $dashboardLoginUrl }}" class="outer-button button-sm">Sign in</a>
             @endauth
         </div>
     </nav>
 
-    {{-- ================================================================
-         HERO
-    ================================================================ --}}
+    {{-- Hero --}}
     <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        {{-- Background glow --}}
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
             <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full opacity-20 blur-3xl"
-                style="background: radial-gradient(ellipse, #1447e6 0%, transparent 70%);">
-            </div>
+                style="background: radial-gradient(ellipse, #1447e6 0%, transparent 70%);"></div>
             <div class="absolute top-1/3 left-1/4 w-[300px] h-[300px] rounded-full opacity-10 blur-3xl"
-                style="background: radial-gradient(ellipse, #22d3ee 0%, transparent 70%);">
-            </div>
+                style="background: radial-gradient(ellipse, #22d3ee 0%, transparent 70%);"></div>
         </div>
 
         <div class="relative max-w-5xl mx-auto px-6 text-center">
-            {{-- Badge --}}
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary/30 text-sm text-primary font-semibold mb-8">
-                <span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                Open-source · Self-hostable · Production-ready
-            </div>
-
-            {{-- Headline --}}
             <h1 class="font-bold text-white leading-tight mb-6"
                 style="font-size: clamp(2.5rem, 6vw, 5rem); letter-spacing: -0.03em;">
                 Deploy your apps<br>
                 <span class="i-underline" style="color: #22d3ee;">with confidence</span>
             </h1>
 
-            {{-- Sub --}}
             <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-                iDeploy is a self-hostable platform to deploy and manage your applications, databases and services —
-                without the complexity of Kubernetes or the cost of cloud platforms.
+                Self-hostable platform to deploy and manage your applications, databases and services without the complexity of Kubernetes.
             </p>
 
-            {{-- CTAs --}}
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
                 <a href="{{ $dashboardLoginUrl }}" class="inner-button button-lg w-full sm:w-auto">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    Start deploying free
+                    Start deploying
                 </a>
-                <a href="#how-it-works" class="outer-button button-lg w-full sm:w-auto">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <a href="https://github.com/coollabsio/coolify" target="_blank" class="outer-button button-lg w-full sm:w-auto">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                     </svg>
-                    See how it works
+                    View on GitHub
                 </a>
             </div>
 
-            {{-- Stats --}}
             <div class="grid grid-cols-3 gap-6 max-w-lg mx-auto">
                 <div class="text-center">
                     <div class="text-3xl font-bold text-white mb-1">10k+</div>
@@ -171,18 +126,15 @@
         </div>
     </section>
 
-    {{-- ================================================================
-         FEATURES
-    ================================================================ --}}
+    {{-- Features --}}
     <section id="features" class="py-24 px-6">
         <div class="max-w-7xl mx-auto">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-white mb-4">Everything you need to deploy</h2>
-                <p class="text-gray-400 max-w-xl mx-auto">From simple web apps to complex microservices, iDeploy handles it all on your own infrastructure.</p>
+                <p class="text-gray-400 max-w-xl mx-auto">From simple web apps to complex microservices, EPLOY handles it all on your own infrastructure.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {{-- Feature 1 --}}
                 <div class="glass-card p-6">
                     <div class="w-12 h-12 bg-primary/20 border border-primary/30 rounded-xl flex items-center justify-center mb-5">
                         <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,7 +146,6 @@
                     <p class="text-sm text-gray-400 leading-relaxed">Deploy Node.js, Python, PHP, Go, Ruby and more. Works with Next.js, Laravel, Django, Rails out of the box.</p>
                 </div>
 
-                {{-- Feature 2 --}}
                 <div class="glass-card p-6">
                     <div class="w-12 h-12 bg-accent-500/20 border border-accent-500/30 rounded-xl flex items-center justify-center mb-5">
                         <svg class="w-6 h-6 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,7 +157,6 @@
                     <p class="text-sm text-gray-400 leading-relaxed">PostgreSQL, MySQL, MongoDB, Redis — provisioned in seconds with automatic backups and point-in-time recovery.</p>
                 </div>
 
-                {{-- Feature 3 --}}
                 <div class="glass-card p-6">
                     <div class="w-12 h-12 bg-green-500/20 border border-green-500/30 rounded-xl flex items-center justify-center mb-5">
                         <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,7 +168,6 @@
                     <p class="text-sm text-gray-400 leading-relaxed">Free SSL certificates via Let's Encrypt, automatic renewals, and edge caching for maximum performance.</p>
                 </div>
 
-                {{-- Feature 4 --}}
                 <div class="glass-card p-6">
                     <div class="w-12 h-12 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center mb-5">
                         <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,7 +179,6 @@
                     <p class="text-sm text-gray-400 leading-relaxed">Connect your GitHub, GitLab or Bitbucket repo. Push to deploy with zero-downtime rolling updates.</p>
                 </div>
 
-                {{-- Feature 5 --}}
                 <div class="glass-card p-6">
                     <div class="w-12 h-12 bg-yellow-500/20 border border-yellow-500/30 rounded-xl flex items-center justify-center mb-5">
                         <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,7 +190,6 @@
                     <p class="text-sm text-gray-400 leading-relaxed">CPU, memory, network — live metrics per container. Instant alerts via email, Slack or Telegram.</p>
                 </div>
 
-                {{-- Feature 6 --}}
                 <div class="glass-card p-6">
                     <div class="w-12 h-12 bg-red-500/20 border border-red-500/30 rounded-xl flex items-center justify-center mb-5">
                         <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,9 +204,7 @@
         </div>
     </section>
 
-    {{-- ================================================================
-         HOW IT WORKS
-    ================================================================ --}}
+    {{-- How it works --}}
     <section id="how-it-works" class="py-24 px-6">
         <div class="max-w-5xl mx-auto">
             <div class="text-center mb-16">
@@ -268,28 +213,24 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {{-- Step 1 --}}
                 <div class="relative text-center">
                     <div class="w-16 h-16 mx-auto mb-6 bg-primary/20 border-2 border-primary/40 rounded-2xl flex items-center justify-center">
                         <span class="text-2xl font-bold text-primary">1</span>
                     </div>
                     <h3 class="text-lg font-bold text-white mb-3">Connect your server</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">Add any Linux server via SSH. iDeploy installs Docker and configures everything automatically.</p>
-                    {{-- Connector --}}
+                    <p class="text-sm text-gray-400 leading-relaxed">Add any Linux server via SSH. EPLOY installs Docker and configures everything automatically.</p>
                     <div class="hidden md:block absolute top-8 left-full w-full h-px border-t border-dashed border-white/10 -translate-x-8"></div>
                 </div>
 
-                {{-- Step 2 --}}
                 <div class="relative text-center">
                     <div class="w-16 h-16 mx-auto mb-6 bg-accent-500/20 border-2 border-accent-500/40 rounded-2xl flex items-center justify-center">
                         <span class="text-2xl font-bold text-accent-500">2</span>
                     </div>
                     <h3 class="text-lg font-bold text-white mb-3">Link your repository</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">Connect GitHub, GitLab or Bitbucket. Choose your branch and let iDeploy build your app.</p>
+                    <p class="text-sm text-gray-400 leading-relaxed">Connect GitHub, GitLab or Bitbucket. Choose your branch and let EPLOY build your app.</p>
                     <div class="hidden md:block absolute top-8 left-full w-full h-px border-t border-dashed border-white/10 -translate-x-8"></div>
                 </div>
 
-                {{-- Step 3 --}}
                 <div class="text-center">
                     <div class="w-16 h-16 mx-auto mb-6 bg-green-500/20 border-2 border-green-500/40 rounded-2xl flex items-center justify-center">
                         <span class="text-2xl font-bold text-green-400">3</span>
@@ -301,44 +242,13 @@
         </div>
     </section>
 
-    {{-- ================================================================
-         FROM APPGEN BANNER (if coming from AppGen)
-    ================================================================ --}}
-    @if(request()->has('from') && request()->get('from') === 'appgen')
-    <section class="py-12 px-6">
-        <div class="max-w-3xl mx-auto">
-            <div class="glass-card p-6 border border-primary/30">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-primary/20 border border-primary/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="font-bold text-white mb-1">Your app is ready to deploy!</h3>
-                        <p class="text-sm text-gray-400">Sign in or create an account to deploy your generated application directly from AppGen.</p>
-                    </div>
-                    <a href="{{ $dashboardLoginUrl }}" class="inner-button button-sm flex-shrink-0">
-                        Sign in & Deploy
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-    @endif
-
-    {{-- ================================================================
-         CTA FINAL
-    ================================================================ --}}
+    {{-- CTA --}}
     <section id="pricing" class="py-24 px-6">
         <div class="max-w-3xl mx-auto text-center">
             <div class="glass-card p-12 relative overflow-hidden">
-                {{-- Glow bg --}}
                 <div class="absolute inset-0 pointer-events-none overflow-hidden">
                     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-15 blur-3xl"
-                        style="background: radial-gradient(ellipse, #1447e6 0%, transparent 70%);">
-                    </div>
+                        style="background: radial-gradient(ellipse, #1447e6 0%, transparent 70%);"></div>
                 </div>
 
                 <div class="relative">
@@ -350,7 +260,7 @@
                     </div>
                     <h2 class="text-4xl font-bold text-white mb-4">Ready to deploy?</h2>
                     <p class="text-gray-400 mb-8 leading-relaxed">
-                        Join thousands of developers who trust iDeploy to ship faster.<br>Free to self-host. Forever open-source.
+                        Join thousands of developers who trust EPLOY to ship faster.<br>Free to self-host. Forever open-source.
                     </p>
                     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <a href="{{ $dashboardLoginUrl }}" class="inner-button button-lg w-full sm:w-auto">
@@ -358,9 +268,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                            Get started — it's free
+                            Get started
                         </a>
-                        <a href="https://github.com/idem-africa/ideploy" target="_blank" class="outer-button button-lg w-full sm:w-auto">
+                        <a href="https://github.com/coollabsio/coolify" target="_blank" class="outer-button button-lg w-full sm:w-auto">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                 <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
                             </svg>
@@ -372,9 +282,7 @@
         </div>
     </section>
 
-    {{-- ================================================================
-         FOOTER
-    ================================================================ --}}
+    {{-- Footer --}}
     <footer class="py-10 px-6 border-t border-white/5">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-2">
@@ -384,12 +292,12 @@
                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 12l2 2 4-4" />
                     </svg>
                 </div>
-                <span class="text-sm font-semibold text-gray-400">iDeploy</span>
+                <span class="text-sm font-semibold text-gray-400">EPLOY</span>
             </div>
-            <p class="text-xs text-gray-600">© {{ date('Y') }} iDeploy · Part of the Idem ecosystem</p>
+            <p class="text-xs text-gray-600">© {{ date('Y') }} EPLOY · Powered by Idem</p>
             <div class="flex items-center gap-6">
                 <a href="{{ $dashboardLoginUrl }}" class="text-xs text-gray-500 hover:text-white transition-colors">Sign in</a>
-                <a href="https://github.com/idem-africa/ideploy" target="_blank" class="text-xs text-gray-500 hover:text-white transition-colors">GitHub</a>
+                <a href="https://github.com/coollabsio/coolify" target="_blank" class="text-xs text-gray-500 hover:text-white transition-colors">GitHub</a>
             </div>
         </div>
     </footer>
