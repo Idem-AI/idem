@@ -7,6 +7,7 @@ use App\Http\Controllers\UploadController;
 use App\Livewire\Admin\Index as AdminIndex;
 use App\Livewire\Boarding\Index as BoardingIndex;
 use App\Livewire\Dashboard;
+use App\Livewire\Landing;
 use App\Livewire\Destination\Index as DestinationIndex;
 use App\Livewire\Destination\Show as DestinationShow;
 use App\Livewire\ForcePasswordReset;
@@ -107,6 +108,9 @@ Route::middleware(['throttle:login'])->group(function () {
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
 
+// Landing page — public, redirects authenticated users to /dashboard
+Route::get('/', Landing::class)->name('landing');
+
 // One-Click Deploy API (for AppGen integration)
 Route::post('/api/one-click-deploy', [OneClickController::class, 'deploy'])->middleware('auth:sanctum')->name('one-click.deploy');
 
@@ -115,7 +119,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/force-password-reset', ForcePasswordReset::class)->name('auth.force-password-reset');
     });
 
-    Route::get('/', Dashboard::class)->name('dashboard');
+    Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/onboarding', BoardingIndex::class)->name('onboarding');
 
     // AI Assistant Routes
@@ -197,7 +201,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/idem', \App\Livewire\Idem\Dashboard::class)->name('idem.dashboard');
     Route::get('/idem/subscription', \App\Livewire\Idem\SubscriptionDashboard::class)->name('idem.subscription');
     Route::get('/application/{application_uuid}/deployment', \App\Livewire\Idem\DeploymentChoice::class)->name('application.deployment');
-    
+
     // IDEM Admin Routes
     Route::middleware(['idem.admin'])->prefix('idem/admin')->group(function () {
         Route::get('/', \App\Livewire\Idem\AdminDashboard::class)->name('idem.admin.dashboard');
@@ -237,13 +241,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/security', FirewallOverview::class)->name('project.application.security.overview');
         Route::get('/security/traffic', FirewallTraffic::class)->name('project.application.security.traffic');
         Route::get('/security/rules', FirewallRules::class)->name('project.application.security.rules');
-        
+
         // Analytics
         Route::get('/analytics', AnalyticsOverview::class)->name('project.application.analytics');
-        
+
         // Insights
         Route::get('/insights', InsightsOverview::class)->name('project.application.insights');
-        
+
         // CI/CD Pipeline
         Route::get('/pipeline', PipelineOverview::class)->name('project.application.pipeline');
         Route::get('/pipeline/executions', PipelineExecutions::class)->name('project.application.pipeline.executions');
