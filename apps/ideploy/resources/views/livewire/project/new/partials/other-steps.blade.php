@@ -5,7 +5,7 @@
         <p class="text-xs text-text-tertiary mt-0.5">Select the environment infrastructure</p>
     </div>
     
-    <div class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[rgba(255,255,255,0.05)] mb-8">
+    <div x-data="{ showNoServersModal: false }" class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[rgba(255,255,255,0.05)] mb-8">
         <div wire:click="chooseIdemManaged" class="group flex-1 p-6 sm:p-8 relative cursor-pointer hover:bg-surface-2 transition-colors flex flex-col">
             <div class="absolute top-0 left-0 w-full h-[1px] bg-primary-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
             <header class="flex justify-between items-start mb-6">
@@ -26,7 +26,7 @@
             </div>
         </div>
         
-        <div wire:click="choosePersonalServers" class="group flex-1 p-6 sm:p-8 relative cursor-pointer hover:bg-surface-2 transition-colors flex flex-col">
+            <div @if(count($servers ?? []) === 0) x-on:click="showNoServersModal = true" @else wire:click="choosePersonalServers" @endif class="group flex-1 p-6 sm:p-8 relative cursor-pointer hover:bg-surface-2 transition-colors flex flex-col">
             <div class="absolute top-0 left-0 w-full h-[1px] bg-accent-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
             <header class="flex justify-between items-start mb-6">
                 <h3 class="text-sm font-medium text-text-primary group-hover:text-accent-400 transition-colors">Private Infrastructure</h3>
@@ -44,6 +44,45 @@
                 <svg class="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </div>
         </div>
+
+        {{-- The No Servers Modal --}}
+        <template x-teleport="body">
+            <div x-show="showNoServersModal" class="fixed inset-0 z-[100] flex items-center justify-center px-4" style="display: none;">
+                <div x-show="showNoServersModal" 
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="fixed inset-0 bg-black/60 backdrop-blur-sm" x-on:click="showNoServersModal = false"></div>
+                
+                <div x-show="showNoServersModal"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     class="relative bg-surface-1 border border-[rgba(255,255,255,0.05)] rounded-glass shadow-2xl p-6 sm:p-8 max-w-md w-full transform transition-all">
+                    
+                    <div class="mb-6 flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-text-primary mb-2">No Private Nodes Detected</h3>
+                            <p class="text-xs text-text-tertiary leading-relaxed">You don't have any personal servers. Please add a server first or choose IDEM Managed Servers.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 pt-6 border-t border-[rgba(255,255,255,0.05)]">
+                        <button type="button" x-on:click="showNoServersModal = false" class="text-xs font-medium text-text-tertiary hover:text-text-primary transition-colors px-3">Cancel</button>
+                        <a href="/servers" class="inner-button px-5 py-2 inline-flex items-center justify-center text-xs font-medium">Add Server</a>
+                    </div>
+                </div>
+            </div>
+        </template>
     </div>
 @endif
 
