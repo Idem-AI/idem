@@ -1,281 +1,191 @@
-{{-- IDEM: Deployment Choice Step --}}
+{{-- Contiguous Grid Layout for Step: Deployment Choice --}}
 @if ($current_step === 'deployment-choice')
-    <div class="mb-8">
-        <div class="mb-6 p-6 bg-[#0a0a0a] rounded-xl border border-gray-800">
-            <h2 class="text-2xl font-bold text-white mb-2">🚀 Choose Deployment Environment</h2>
-            <p class="text-sm text-gray-400">Select where you want to deploy your resource</p>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {{-- Option 1: IDEM Managed Servers --}}
-            <div wire:click="chooseIdemManaged" 
-                 class="group relative p-8 border-2 rounded-xl cursor-pointer transition-all
-                        border-blue-500 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-400">
-                <div class="absolute top-4 right-4">
-                    <span class="px-3 py-1 text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30 rounded-full">
-                        Recommended
-                    </span>
-                </div>
-                
-                <div class="flex items-start">
-                    <div class="text-5xl mr-6">☁️</div>
-                    <div class="flex-1">
-                        <h3 class="text-xl font-bold text-white mb-3">
-                            IDEM Managed Servers
-                        </h3>
-                        <p class="text-sm text-gray-300 mb-6">
-                            Deploy on our managed infrastructure with automatic scaling and high availability
-                        </p>
-                        
-                        <ul class="space-y-3">
-                            <li class="flex items-center text-sm text-gray-300">
-                                <svg class="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>High availability & uptime</span>
-                            </li>
-                            <li class="flex items-center text-sm text-gray-300">
-                                <svg class="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Automatic load balancing</span>
-                            </li>
-                            <li class="flex items-center text-sm text-gray-300">
-                                <svg class="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Zero server management</span>
-                            </li>
-                            <li class="flex items-center text-sm text-gray-300">
-                                <svg class="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Optimized performance</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+    <div class="mb-4">
+        <h2 class="text-sm font-medium text-text-primary">Deployment Target</h2>
+        <p class="text-xs text-text-tertiary mt-0.5">Select the environment infrastructure</p>
+    </div>
+    
+    <div class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[rgba(255,255,255,0.05)] mb-8">
+        <div wire:click="chooseIdemManaged" class="group flex-1 p-6 sm:p-8 relative cursor-pointer hover:bg-surface-2 transition-colors flex flex-col">
+            <div class="absolute top-0 left-0 w-full h-[1px] bg-primary-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
+            <header class="flex justify-between items-start mb-6">
+                <h3 class="text-sm font-medium text-text-primary group-hover:text-primary-400 transition-colors">IDEM Managed Infrastructure</h3>
+                <span class="text-[9px] uppercase tracking-widest text-primary-400 border border-primary-500/20 px-1.5 py-0.5 rounded-sm bg-primary-500/10">Recommended</span>
+            </header>
+            <div class="text-xs text-text-tertiary leading-relaxed mb-6 max-w-sm flex-1">
+                <p class="mb-2">Deploy instantly on our pre-configured network.</p>
+                <ul class="space-y-1 text-[11px]">
+                    <li>— Automatic load balancing</li>
+                    <li>— High availability</li>
+                    <li>— Zero server maintenance</li>
+                </ul>
             </div>
-            
-            {{-- Option 2: Personal Servers --}}
-            <div wire:click="choosePersonalServers" 
-                 class="group relative p-8 border-2 rounded-xl cursor-pointer transition-all
-                        border-gray-800 bg-[#0a0a0a] hover:bg-[#0f0f0f] hover:border-gray-700">
-                <div class="flex items-start">
-                    <div class="text-5xl mr-6">🖥️</div>
-                    <div class="flex-1">
-                        <h3 class="text-xl font-bold text-white mb-3">
-                            Your Personal Servers
-                        </h3>
-                        <p class="text-sm text-gray-300 mb-6">
-                            Deploy on your own infrastructure with full control
-                        </p>
-                        
-                        <ul class="space-y-3">
-                            <li class="flex items-center text-sm text-gray-300">
-                                <svg class="w-5 h-5 text-blue-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Complete control</span>
-                            </li>
-                            <li class="flex items-center text-sm text-gray-300">
-                                <svg class="w-5 h-5 text-blue-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Custom configuration</span>
-                            </li>
-                            <li class="flex items-center text-sm text-gray-300">
-                                <svg class="w-5 h-5 text-blue-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Use existing infrastructure</span>
-                            </li>
-                            <li class="flex items-center text-sm text-gray-300">
-                                <svg class="w-5 h-5 text-blue-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Self-managed updates</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+            <div class="text-[11px] font-medium text-text-secondary group-hover:text-primary-400 transition-colors flex items-center gap-2 mt-auto">
+                <span>Select Path</span>
+                <svg class="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </div>
         </div>
         
-        <div class="mt-8 p-5 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-            <div class="flex items-start">
-                <div class="text-2xl mr-3">💡</div>
-                <p class="text-sm text-blue-300">
-                    <strong class="font-semibold">Recommendation:</strong> IDEM Managed Servers provide automatic load balancing, high availability, and require zero maintenance. Perfect for production workloads.
-                </p>
+        <div wire:click="choosePersonalServers" class="group flex-1 p-6 sm:p-8 relative cursor-pointer hover:bg-surface-2 transition-colors flex flex-col">
+            <div class="absolute top-0 left-0 w-full h-[1px] bg-accent-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
+            <header class="flex justify-between items-start mb-6">
+                <h3 class="text-sm font-medium text-text-primary group-hover:text-accent-400 transition-colors">Private Infrastructure</h3>
+            </header>
+            <div class="text-xs text-text-tertiary leading-relaxed mb-6 max-w-sm flex-1">
+                <p class="mb-2">Total control over hardware and networking.</p>
+                <ul class="space-y-1 text-[11px]">
+                    <li>— Connect custom nodes</li>
+                    <li>— Bring your own cloud</li>
+                    <li>— Manual scaling configured by you</li>
+                </ul>
+            </div>
+            <div class="text-[11px] font-medium text-text-secondary group-hover:text-accent-400 transition-colors flex items-center gap-2 mt-auto">
+                <span>Select Path</span>
+                <svg class="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </div>
         </div>
     </div>
 @endif
 
 @if ($current_step === 'servers')
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-white mb-2">Select a Server</h2>
-        <p class="text-sm text-gray-400 mb-6">Choose where to deploy your resource</p>
+    <div class="mb-4 flex justify-between items-end">
+        <div>
+            <h2 class="text-sm font-medium text-text-primary">Host Node Selection</h2>
+            <p class="text-xs text-text-tertiary mt-0.5">Select a node from your private mesh</p>
+        </div>
+        <a href="/servers" class="text-[10px] text-text-tertiary hover:text-text-primary underline transition-colors">Manage Nodes</a>
     </div>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @if ($onlyBuildServerAvailable)
-            <div class="col-span-full p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                <p class="text-yellow-300">
-                    Only build servers are available. You need at least one server that is not set as a build server. 
-                    <a class="underline hover:text-yellow-200" href="/servers">Go to servers page →</a>
-                </p>
-            </div>
-        @else
-            @forelse($servers as $server)
-                <div wire:click="setServer({{ $server }})" 
-                     class="group cursor-pointer p-6 bg-[#0a0a0a] border border-gray-800 rounded-xl transition-all hover:border-blue-500 hover:bg-[#0f0f0f]">
-                    <div class="flex items-center mb-4">
-                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center mr-4">
-                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{{ $server->name }}</h3>
-                            <p class="text-sm text-gray-400">{{ $server->description ?: 'No description' }}</p>
+    <div class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0">
+            @if ($onlyBuildServerAvailable)
+                <div class="col-span-full p-6 bg-orange-500/5 flex flex-col items-center justify-center">
+                    <p class="text-[11px] text-orange-400 mb-3">No valid compute nodes available.</p>
+                    <x-forms.button class="button-sm">Configure Nodes</x-forms.button>
+                </div>
+            @else
+                @forelse($servers as $index => $server)
+                    <div wire:click="setServer({{ $server }})"
+                         class="group relative p-5 hover:bg-surface-2 transition-colors cursor-pointer flex items-center justify-between
+                                {{ $index % 3 !== 2 ? 'lg:border-r border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index % 2 !== 1 ? 'sm:border-r lg:border-r-0 border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index >= 3 ? 'lg:border-t border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index >= 2 ? 'sm:border-t lg:border-t-0 border-[rgba(255,255,255,0.05)]' : '' }}">
+                        <div class="absolute inset-y-0 left-0 w-[1px] bg-primary-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="w-1.5 h-1.5 rounded-full bg-green-500/50 group-hover:bg-green-400 transition-colors"></div>
+                                <h4 class="text-sm font-medium text-text-primary group-hover:text-primary-400 transition-colors truncate">{{ $server->name }}</h4>
+                            </div>
+                            <p class="text-[11px] text-text-tertiary pl-3.5">{{ $server->description ?: 'Status: Ready' }}</p>
                         </div>
                     </div>
-                </div>
-            @empty
-                <div class="col-span-full p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
-                    <p class="text-red-300">
-                        No validated & reachable servers found. 
-                        <a class="underline hover:text-red-200" href="/servers">Go to servers page →</a>
-                    </p>
-                </div>
-            @endforelse
-        @endif
+                @empty
+                    <div class="col-span-full p-6 text-center">
+                        <p class="text-xs text-text-tertiary">No validated servers detected.</p>
+                    </div>
+                @endforelse
+            @endif
+        </div>
     </div>
 @endif
 
 @if ($current_step === 'destinations')
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-white mb-2">Select a Destination</h2>
-        <p class="text-sm text-gray-400 mb-6">Destinations are used to segregate resources by network</p>
+    <div class="mb-4">
+        <h2 class="text-sm font-medium text-text-primary">Network Destination</h2>
+        <p class="text-xs text-text-tertiary mt-0.5">Select a segregation network</p>
     </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @if ($server->isSwarm())
-            @foreach ($swarmDockers as $swarmDocker)
-                <div wire:click="setDestination('{{ $swarmDocker->uuid }}')" 
-                     class="group cursor-pointer p-6 bg-[#0a0a0a] border border-gray-800 rounded-xl transition-all hover:border-blue-500 hover:bg-[#0f0f0f]">
-                    <h3 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors mb-2">
-                        Swarm Docker
-                    </h3>
-                    <p class="text-sm text-gray-400">{{ $swarmDocker->name }}</p>
-                </div>
-            @endforeach
-        @else
-            @foreach ($standaloneDockers as $standaloneDocker)
-                <div wire:click="setDestination('{{ $standaloneDocker->uuid }}')" 
-                     class="group cursor-pointer p-6 bg-[#0a0a0a] border border-gray-800 rounded-xl transition-all hover:border-blue-500 hover:bg-[#0f0f0f]">
-                    <h3 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors mb-2">
-                        Standalone Docker
-                    </h3>
-                    <p class="text-sm text-gray-400 mb-1">{{ $standaloneDocker->name }}</p>
-                    <p class="text-xs text-gray-500">Network: {{ $standaloneDocker->network }}</p>
-                </div>
-            @endforeach
-        @endif
+
+    <div class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0">
+            @if ($server->isSwarm())
+                @foreach ($swarmDockers as $index => $swarmDocker)
+                    <div wire:click="setDestination('{{ $swarmDocker->uuid }}')"
+                         class="group relative p-5 hover:bg-surface-2 transition-colors cursor-pointer
+                                {{ $index % 3 !== 2 ? 'lg:border-r border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index % 2 !== 1 ? 'sm:border-r lg:border-r-0 border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index >= 3 ? 'lg:border-t border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index >= 2 ? 'sm:border-t lg:border-t-0 border-[rgba(255,255,255,0.05)]' : '' }}">
+                        <div class="absolute inset-y-0 left-0 w-[1px] bg-accent-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
+                        <h4 class="text-sm font-medium text-text-primary group-hover:text-accent-400 transition-colors mb-1">Swarm Endpoint</h4>
+                        <p class="text-[11px] text-text-tertiary">{{ $swarmDocker->name }}</p>
+                    </div>
+                @endforeach
+            @else
+                @foreach ($standaloneDockers as $index => $standaloneDocker)
+                    <div wire:click="setDestination('{{ $standaloneDocker->uuid }}')"
+                         class="group relative p-5 hover:bg-surface-2 transition-colors cursor-pointer
+                                {{ $index % 3 !== 2 ? 'lg:border-r border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index % 2 !== 1 ? 'sm:border-r lg:border-r-0 border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index >= 3 ? 'lg:border-t border-[rgba(255,255,255,0.05)]' : '' }}
+                                {{ $index >= 2 ? 'sm:border-t lg:border-t-0 border-[rgba(255,255,255,0.05)]' : '' }}">
+                        <div class="absolute inset-y-0 left-0 w-[1px] bg-accent-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
+                        <h4 class="text-sm font-medium text-text-primary group-hover:text-accent-400 transition-colors mb-1">{{ $standaloneDocker->name }}</h4>
+                        <p class="text-[10px] text-text-tertiary bg-white/5 inline-block px-1.5 py-0.5 rounded">{{ $standaloneDocker->network }}</p>
+                    </div>
+                @endforeach
+            @endif
+        </div>
     </div>
 @endif
 
 @if ($current_step === 'select-postgresql-type')
     <div x-data="{ selecting: false }">
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold text-white mb-2">Select PostgreSQL Type</h2>
-            <p class="text-sm text-gray-400 mb-6">Choose the PostgreSQL variant that best fits your needs</p>
+        <div class="mb-4">
+            <h2 class="text-sm font-medium text-text-primary">Engine Configuration</h2>
+            <p class="text-xs text-text-tertiary mt-0.5">Select PostgreSQL distribution variant</p>
         </div>
         
-        <div class="grid grid-cols-1 gap-6">
-            {{-- PostgreSQL 17 --}}
-            <div class="group cursor-pointer p-6 bg-[#0a0a0a] border border-gray-800 rounded-xl transition-all hover:border-blue-500 hover:bg-[#0f0f0f]"
-                :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgres:17-alpine'))">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <h3 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors mb-2">
-                            PostgreSQL 17 (default)
-                        </h3>
-                        <p class="text-sm text-gray-400">
-                            Standard PostgreSQL without extensions - Perfect for most use cases
-                        </p>
-                    </div>
-                    <a href="https://hub.docker.com/_/postgres/" target="_blank" 
-                       onclick="event.stopPropagation()"
-                       class="ml-4 px-4 py-2 text-sm text-gray-400 hover:text-blue-400 transition-colors">
-                        Docs →
-                    </a>
+        <div class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[rgba(255,255,255,0.05)]">
+                <div class="group relative p-6 hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
+                    :class="{ 'opacity-50 cursor-not-allowed': selecting }"
+                    x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgres:17-alpine'))">
+                    <div class="absolute inset-y-0 left-0 w-[1px] bg-primary-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
+                    <header class="flex justify-between items-start mb-4">
+                        <h3 class="text-sm font-medium text-text-primary group-hover:text-primary-400 transition-colors">Standard v17</h3>
+                        <span class="text-[9px] uppercase tracking-widest text-text-tertiary border border-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-sm bg-surface-base">Default</span>
+                    </header>
+                    <p class="text-xs text-text-tertiary leading-relaxed mb-2 max-w-sm flex-1">
+                        Base distribution. Light, fast, and secure. Standard performance.
+                    </p>
                 </div>
-            </div>
 
-            {{-- Supabase PostgreSQL --}}
-            <div class="group cursor-pointer p-6 bg-[#0a0a0a] border border-gray-800 rounded-xl transition-all hover:border-green-500 hover:bg-[#0f0f0f]"
-                :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('supabase/postgres:17.4.1.032'))">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <h3 class="text-lg font-bold text-white group-hover:text-green-400 transition-colors mb-2">
-                            Supabase PostgreSQL (with extensions)
-                        </h3>
-                        <p class="text-sm text-gray-400">
-                            PostgreSQL with pre-installed extensions for advanced features
-                        </p>
-                    </div>
-                    <a href="https://github.com/supabase/postgres" target="_blank" 
-                       onclick="event.stopPropagation()"
-                       class="ml-4 px-4 py-2 text-sm text-gray-400 hover:text-green-400 transition-colors">
-                        Docs →
-                    </a>
+                <div class="group relative p-6 hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
+                    :class="{ 'opacity-50 cursor-not-allowed': selecting }"
+                    x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('supabase/postgres:17.4.1.032'))">
+                    <div class="absolute inset-y-0 left-0 w-[1px] bg-accent-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
+                    <header class="flex justify-between items-start mb-4">
+                        <h3 class="text-sm font-medium text-text-primary group-hover:text-accent-400 transition-colors">Supabase Pack</h3>
+                    </header>
+                    <p class="text-xs text-text-tertiary leading-relaxed mb-2 max-w-sm flex-1">
+                        Includes PostGIS, pgvector, and cloud extensions pre-installed.
+                    </p>
                 </div>
-            </div>
 
-            {{-- PostGIS --}}
-            <div class="group cursor-pointer p-6 bg-[#0a0a0a] border border-gray-800 rounded-xl transition-all hover:border-yellow-500 hover:bg-[#0f0f0f]"
-                :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgis/postgis:17-3.5-alpine'))">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <h3 class="text-lg font-bold text-white group-hover:text-yellow-400 transition-colors mb-2">
-                            PostGIS (AMD only)
-                        </h3>
-                        <p class="text-sm text-gray-400">
-                            PostgreSQL with geospatial extensions for location-based applications
-                        </p>
-                    </div>
-                    <a href="https://github.com/postgis/docker-postgis" target="_blank" 
-                       onclick="event.stopPropagation()"
-                       class="ml-4 px-4 py-2 text-sm text-gray-400 hover:text-yellow-400 transition-colors">
-                        Docs →
-                    </a>
+                <div class="group relative p-6 border-t border-[rgba(255,255,255,0.05)] hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
+                    :class="{ 'opacity-50 cursor-not-allowed': selecting }"
+                    x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgis/postgis:17-3.5-alpine'))">
+                    <div class="absolute inset-y-0 left-0 w-[1px] bg-green-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
+                    <header class="flex justify-between items-start mb-4">
+                        <h3 class="text-sm font-medium text-text-primary group-hover:text-green-400 transition-colors">PostGIS</h3>
+                        <span class="text-[9px] uppercase tracking-widest text-text-tertiary border border-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-sm bg-surface-base">AMD only</span>
+                    </header>
+                    <p class="text-xs text-text-tertiary leading-relaxed mb-2 max-w-sm flex-1">
+                        Geospatial extensions built-in for advanced location mapping.
+                    </p>
                 </div>
-            </div>
 
-            {{-- PGVector --}}
-            <div class="group cursor-pointer p-6 bg-[#0a0a0a] border border-gray-800 rounded-xl transition-all hover:border-purple-500 hover:bg-[#0f0f0f]"
-                :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
-                x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('pgvector/pgvector:pg17'))">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <h3 class="text-lg font-bold text-white group-hover:text-purple-400 transition-colors mb-2">
-                            PGVector (17)
-                        </h3>
-                        <p class="text-sm text-gray-400">
-                            PostgreSQL with vector similarity search for AI/ML applications
-                        </p>
-                    </div>
-                    <a href="https://github.com/pgvector/pgvector" target="_blank" 
-                       onclick="event.stopPropagation()"
-                       class="ml-4 px-4 py-2 text-sm text-gray-400 hover:text-purple-400 transition-colors">
-                        Docs →
-                    </a>
+                <div class="group relative p-6 border-t border-[rgba(255,255,255,0.05)] hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
+                    :class="{ 'opacity-50 cursor-not-allowed': selecting }"
+                    x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('pgvector/pgvector:pg17'))">
+                    <div class="absolute inset-y-0 left-0 w-[1px] bg-purple-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
+                    <header class="flex justify-between items-start mb-4">
+                        <h3 class="text-sm font-medium text-text-primary group-hover:text-purple-400 transition-colors">PGVector v17</h3>
+                    </header>
+                    <p class="text-xs text-text-tertiary leading-relaxed mb-2 max-w-sm flex-1">
+                        Dedicated vector embedding store for AI/ML workloads.
+                    </p>
                 </div>
             </div>
         </div>
@@ -283,28 +193,16 @@
 @endif
 
 @if ($current_step === 'existing-postgresql')
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-white mb-2">Connect Existing PostgreSQL</h2>
-        <p class="text-sm text-gray-400 mb-6">Enter the connection URL for your existing PostgreSQL database</p>
-    </div>
-    
-    <form wire:submit='addExistingPostgresql' class="max-w-2xl">
-        <div class="space-y-4">
-            <x-forms.input 
-                placeholder="postgres://username:password@hostname:5432/database" 
-                label="Database Connection URL"
-                id="existingPostgresqlUrl" 
-                class="bg-[#0a0a0a] border-gray-800" />
-            
-            <div class="flex gap-4">
-                <x-forms.button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white">
-                    Connect Database
-                </x-forms.button>
-                <button type="button" wire:click="$set('current_step', 'type')" 
-                        class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
-                    Cancel
-                </button>
+    <div class="border border-[rgba(255,255,255,0.05)] rounded-glass bg-surface-1 p-6 mb-8">
+        <header class="mb-5">
+            <h2 class="text-sm font-medium text-text-primary">Connect Foreign URI</h2>
+            <p class="text-xs text-text-tertiary mt-1">Link an existing external database instance.</p>
+        </header>
+        <form wire:submit='addExistingPostgresql' class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+                <x-forms.input placeholder="postgres://user:pass@host:5432/db" id="existingPostgresqlUrl" />
             </div>
-        </div>
-    </form>
+            <button type="submit" class="inner-button px-6 text-xs whitespace-nowrap">Link Database</button>
+        </form>
+    </div>
 @endif
