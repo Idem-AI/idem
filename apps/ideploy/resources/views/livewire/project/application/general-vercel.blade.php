@@ -116,12 +116,12 @@
                     <div class="space-y-4">
                         <div class="flex items-end gap-3">
                             @if ($application->settings->is_container_label_readonly_enabled == false)
-                                <x-forms.input placeholder="https://ideploy.io" wire:model="application.fqdn"
+                                <x-forms.input placeholder="https://ideploy.io" wire:model.blur="application.fqdn"
                                     label="Domains" readonly
                                     helper="Readonly labels are disabled. You can set the domains in the labels section."
                                     x-bind:disabled="!canUpdate" />
                             @else
-                                <x-forms.input placeholder="https://app.example.com" wire:model="application.fqdn"
+                                <x-forms.input placeholder="https://app.example.com" wire:model.blur="application.fqdn"
                                     label="Domains"
                                     helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- https://app.example.com<br>- https://api.example.com:3000"
                                     x-bind:disabled="!canUpdate" />
