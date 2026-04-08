@@ -79,7 +79,7 @@
                                 @if(!$deployOnManaged && $canAddServers)
                                     <div class="mt-5 pt-5 border-t border-[rgba(255,255,255,0.05)] animate-in fade-in slide-in-from-top-2 duration-300">
                                         <label class="block text-[10px] font-medium text-text-tertiary uppercase tracking-widest mb-2">Target Node</label>
-                                        @if($personalServers->count() > 0)
+                                        @if($personalServers?->count() > 0)
                                             <x-forms.select wire:model="personalServerId" class="bg-surface-1 border border-[rgba(255,255,255,0.05)] text-xs h-8 py-0 pl-2">
                                                 <option value="">Scan for node...</option>
                                                 @foreach($personalServers as $server)
