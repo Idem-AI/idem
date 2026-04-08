@@ -78,10 +78,10 @@ jobs:
               echo "Retry $i/5..."
               rm -f .git/index.lock .git/index
             done
-            cd $FILE_DIR
+            cd $REPO_DIR
             # Build image
             echo "Building Docker image..."
-            docker build -t $IMAGE_TAG .
+            docker build -f Dockerfile/prod/Dockerfile.ideploy -t $IMAGE_TAG .
             
             # Push image
             echo "Pushing image to registry..."
