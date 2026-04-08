@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { environment } from '../../../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 import { SeoService } from '../../../../shared/services/seo.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { LoginCardComponent } from '../../components/login-card/login-card';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -16,13 +18,18 @@ import { LoginCardComponent } from '../../components/login-card/login-card';
 export class Login implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly seoService = inject(SeoService);
+  private readonly http = inject(HttpClient);
+  private readonly route = inject(ActivatedRoute);
 
   // Check if the app is in beta mode from environment
   protected readonly isBeta = signal(environment.isBeta);
   private readonly router = inject(Router);
   // Get waitlist form URL from environment
   protected readonly waitlistFormUrl = signal(environment.waitlistUrl);
+  private redirectTarget: string | null = null;
+
   ngOnInit(): void {
+    this.redirectTarget = this.route.snapshot.queryParamMap.get('redirect');
     this.setupSeo();
   }
 
@@ -76,9 +83,46 @@ export class Login implements OnInit {
 
   protected async onLoginSuccess(): Promise<void> {
     try {
+      // Check if we need to redirect to iDeploy
+      if (this.redirectTarget === 'ideploy') {
+        await this.handleIdeployRedirect();
+        return;
+      }
+
+      // Default: navigate to console
       await this.router.navigate(['/console']);
     } catch (error) {
       console.error('Error navigating after login:', error);
+    }
+  }
+
+  private async handleIdeployRedirect(): Promise<void> {
+    try {
+      console.log('Generating iDeploy SSO token...');
+      const apiUrl = environment.services.api.url;
+      const ideployUrl = environment.services.ideploy.url;
+
+      // Call API to generate one-time token
+      const response = await firstValueFrom(
+        this.http.post<{ success: boolean; token: string }>(
+          `${apiUrl}/auth/ideploy-token`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+
+      if (response.success && response.token) {
+        console.log('iDeploy SSO token generated, redirecting...');
+        // Redirect to iDeploy with token
+        window.location.href = `${ideployUrl}/auth/idem?token=${response.token}`;
+      } else {
+        console.error('Failed to generate iDeploy token');
+        await this.router.navigate(['/console']);
+      }
+    } catch (error) {
+      console.error('Error generating iDeploy SSO token:', error);
+      // Fallback to console on error
+      await this.router.navigate(['/console']);
     }
   }
 }

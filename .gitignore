@@ -93,3 +93,4 @@ data/
 docker-compose.staging.yml
 
 .windsurf
+apps/ideploy/public/hot

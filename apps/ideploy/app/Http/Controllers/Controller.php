@@ -14,6 +14,7 @@ use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
@@ -157,5 +158,64 @@ class Controller extends BaseController
         $invitation->delete();
 
         return redirect()->route('team.index');
+    }
+
+    public function idemAuth()
+    {
+        $token = request()->get('token');
+        if (!$token) {
+            return redirect()->route('landing')->with('error', 'Invalid authentication token.');
+        }
+
+        try {
+            // Call Idem API to validate the token
+            $apiUrl = rtrim(config('idem.api_url', env('IDEM_API_URL', 'http://localhost:3001')), '/');
+            $sharedSecret = env('IDEPLOY_SHARED_SECRET');
+
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'X-Ideploy-Secret' => $sharedSecret,
+            ])->post("{$apiUrl}/auth/ideploy-token/validate", [
+                'token' => $token,
+            ]);
+
+            if (!$response->successful() || !$response->json('success')) {
+                return redirect()->route('landing')->with('error', 'Authentication failed or token expired.');
+            }
+
+            $userData = $response->json('user');
+            $email = $userData['email'];
+            $uid = $userData['uid'];
+
+            // Find or create user
+            $user = User::whereEmail($email)->first();
+            if (!$user) {
+                // Create new user from Idem data
+                $user = User::create([
+                    'name' => $userData['displayName'] ?? explode('@', $email)[0],
+                    'email' => $email,
+                    'password' => Hash::make(Str::random(32)), // Random password, user logs in via Idem
+                    'email_verified_at' => now(),
+                ]);
+
+                // Create default team
+                $team = $user->teams()->create([
+                    'name' => "{$user->name}'s Team",
+                    'personal_team' => true,
+                ]);
+                $user->teams()->attach($team->id, ['role' => 'owner']);
+            } else {
+                $team = $user->teams()->first();
+            }
+
+            // Log the user in
+            Auth::login($user);
+            session(['currentTeam' => $team]);
+
+            return redirect()->route('dashboard');
+        } catch (\Throwable $e) {
+            ray($e->getMessage());
+            return redirect()->route('landing')->with('error', 'Authentication error: ' . $e->getMessage());
+        }
     }
 }
