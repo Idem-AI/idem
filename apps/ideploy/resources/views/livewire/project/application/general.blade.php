@@ -8,16 +8,14 @@
 }">
     <form wire:submit='submit' class="max-w-7xl pb-32">
         {{-- Hero Header Ultra-Moderne Style Vercel --}}
-        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-600/10 to-purple-600/10 border border-blue-500/20 p-8 mb-8">
+        <div class="glass-card p-6 md:p-8 mb-8">
             {{-- Animated Background Pattern --}}
-            <div class="absolute inset-0 opacity-10">
-                <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.3),transparent_50%)]" style="animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
-            </div>
+            
 
             <div class="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                 <div class="flex-1">
                     <div class="flex items-center gap-4 mb-4">
-                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-all">
+                        <div class="w-12 h-12 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                             <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
@@ -75,8 +73,8 @@
                 </div>
 
                 @can('update', $application)
-                    <button type="submit" class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap">
-                        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <button type="submit" class="inner-button px-5 py-2 inline-flex items-center justify-center text-xs">
+                        
                         <span class="relative flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -105,22 +103,17 @@
             {{-- Professional Dashboard Cards avec VRAIES DONNÉES --}}
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {{-- Pipeline Status Card avec vraies données --}}
-                <div x-data="{ showPipelineModal: false }" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/10 via-yellow-500/10 to-amber-500/10 border border-orange-500/20 p-6 hover:border-orange-500/40 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20" @click="showPipelineModal = true">
-                    <div class="absolute inset-0 bg-gradient-to-br from-orange-500/0 via-yellow-500/0 to-amber-500/0 group-hover:from-orange-500/5 group-hover:via-yellow-500/5 group-hover:to-amber-500/5 transition-all duration-500"></div>
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-                    <div class="absolute -top-20 -left-20 w-40 h-40 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-full blur-2xl group-hover:scale-125 group-hover:rotate-45 transition-transform duration-1000"></div>
+                <div x-data="{ showPipelineModal: false }" class="glass-card p-6 hover:bg-surface-2 transition-colors cursor-pointer" @click="showPipelineModal = true">
+                    
+                    
+                    
 
                     {{-- Animated particles --}}
-                    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div class="absolute top-4 right-8 w-1 h-1 bg-orange-400/60 rounded-full animate-ping" style="animation-delay: 0.5s;"></div>
-                        <div class="absolute top-12 right-16 w-1.5 h-1.5 bg-yellow-400/40 rounded-full animate-pulse" style="animation-delay: 1.2s;"></div>
-                        <div class="absolute bottom-8 left-12 w-1 h-1 bg-amber-400/50 rounded-full animate-ping" style="animation-delay: 2s;"></div>
-                        <div class="absolute top-6 left-20 w-0.5 h-0.5 bg-orange-300/70 rounded-full animate-pulse" style="animation-delay: 0.8s;"></div>
-                    </div>
+                    
 
                     <div class="relative">
                         <div class="flex items-center justify-between mb-6">
-                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
+                            <div class="w-12 h-12 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
                                 </svg>
@@ -186,22 +179,17 @@
                 </div>
 
                 {{-- Security & Firewall Protection Card avec vraies données --}}
-                <div x-data="{ showFirewallModal: false }" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 via-emerald-500/10 to-teal-500/10 border border-green-500/20 p-6 hover:border-green-500/40 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20" @click="showFirewallModal = true">
-                    <div class="absolute inset-0 bg-gradient-to-br from-green-500/0 via-emerald-500/0 to-teal-500/0 group-hover:from-green-500/5 group-hover:via-emerald-500/5 group-hover:to-teal-500/5 transition-all duration-500"></div>
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-                    <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-emerald-500/15 to-transparent rounded-full blur-xl group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-800"></div>
+                <div x-data="{ showFirewallModal: false }" class="glass-card p-6 hover:bg-surface-2 transition-colors cursor-pointer" @click="showFirewallModal = true">
+                    
+                    
+                    
 
                     {{-- Animated particles --}}
-                    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div class="absolute top-6 right-10 w-1 h-1 bg-green-400/60 rounded-full animate-ping" style="animation-delay: 0.3s;"></div>
-                        <div class="absolute top-14 right-20 w-1.5 h-1.5 bg-emerald-400/40 rounded-full animate-pulse" style="animation-delay: 1.5s;"></div>
-                        <div class="absolute bottom-10 left-14 w-1 h-1 bg-teal-400/50 rounded-full animate-ping" style="animation-delay: 1.8s;"></div>
-                        <div class="absolute top-8 left-16 w-0.5 h-0.5 bg-green-300/70 rounded-full animate-pulse" style="animation-delay: 0.6s;"></div>
-                    </div>
+                    
 
                     <div class="relative">
                         <div class="flex items-center justify-between mb-6">
-                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:shadow-green-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
+                            <div class="w-12 h-12 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                                 </svg>
@@ -264,24 +252,18 @@
                 </div>
 
                 {{-- Application Metrics Card --}}
-                <div x-data="{ showMetricsModal: false }" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/20 p-6 hover:border-blue-500/40 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20" @click="showMetricsModal = true">
-                    <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500"></div>
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-                    <div class="absolute -top-10 -left-10 w-24 h-24 bg-gradient-to-br from-purple-500/20 to-transparent rounded-full blur-xl group-hover:scale-125 group-hover:rotate-90 transition-transform duration-1000"></div>
-                    <div class="absolute bottom-4 left-4 w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-transparent rounded-full blur-lg group-hover:scale-110 group-hover:-rotate-45 transition-transform duration-900"></div>
+                <div x-data="{ showMetricsModal: false }" class="glass-card p-6 hover:bg-surface-2 transition-colors cursor-pointer" @click="showMetricsModal = true">
+                    
+                    
+                    
+                    
 
                     {{-- Animated particles --}}
-                    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div class="absolute top-5 right-12 w-1 h-1 bg-blue-400/60 rounded-full animate-ping" style="animation-delay: 0.7s;"></div>
-                        <div class="absolute top-16 right-24 w-1.5 h-1.5 bg-indigo-400/40 rounded-full animate-pulse" style="animation-delay: 1.1s;"></div>
-                        <div class="absolute bottom-6 left-10 w-1 h-1 bg-purple-400/50 rounded-full animate-ping" style="animation-delay: 1.6s;"></div>
-                        <div class="absolute top-10 left-18 w-0.5 h-0.5 bg-blue-300/70 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
-                        <div class="absolute bottom-12 right-6 w-0.5 h-0.5 bg-cyan-400/60 rounded-full animate-ping" style="animation-delay: 2.1s;"></div>
-                    </div>
+                    
 
                     <div class="relative">
                         <div class="flex items-center justify-between mb-6">
-                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/60 transition-all group-hover:scale-110 group-hover:rotate-3">
+                            <div class="w-12 h-12 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                 </svg>
@@ -531,11 +513,11 @@
 
 
             {{-- Section: Overview (Name & Description) --}}
-            <div x-data="{ expanded: false }" id="section-overview" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-blue-500/50 transition-all duration-300 mb-6">
+            <div x-data="{ expanded: false }" id="section-overview" class="glass-card mb-6 transition-colors">
                 {{-- Header Cliquable --}}
                 <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-all duration-300 group-hover:scale-110">
+                        <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
@@ -570,11 +552,11 @@
 
             {{-- Section: Build Configuration --}}
             @if (!$application->dockerfile && $application->build_pack !== 'dockerimage')
-                <div x-data="{ expanded: false }" id="section-build" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-purple-500/50 transition-all duration-300 mb-6">
+                <div x-data="{ expanded: false }" id="section-build" class="glass-card mb-6 transition-colors">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-all group-hover:scale-110">
+                            <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
                                 </svg>
@@ -651,11 +633,11 @@
 
             {{-- Section: Domains & Routing --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div x-data="{ expanded: false }" id="section-domains" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-green-500/50 transition-all duration-300 mb-6">
+                <div x-data="{ expanded: false }" id="section-domains" class="glass-card mb-6 transition-colors">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:shadow-green-500/50 transition-all duration-300 group-hover:scale-110">
+                            <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 919-9"></path>
                                 </svg>
@@ -678,18 +660,18 @@
                         <div class="space-y-4">
                         <div class="flex items-end gap-3">
                             @if ($application->settings->is_container_label_readonly_enabled == false)
-                                <x-forms.input placeholder="https://ideploy.io" wire:model="application.fqdn"
+                                <x-forms.input placeholder="https://ideploy.io" wire:model.blur="application.fqdn"
                                     label="Domains" readonly
                                     helper="Readonly labels are disabled. You can set the domains in the labels section."
                                     x-bind:disabled="!canUpdate" />
                             @else
-                                <x-forms.input placeholder="https://app.example.com" wire:model="fqdn"
+                                <x-forms.input placeholder="https://app.example.com" wire:model.blur="fqdn"
                                     label="Domains"
                                     helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- https://app.example.com<br>- https://api.example.com:3000<br><br><span class='text-success'>✓ SSL certificates are automatically generated for custom domains</span>"
                                     x-bind:disabled="!canUpdate" />
                                 @can('update', $application)
-                                    <button wire:click="saveDomain" class="group relative px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl font-semibold text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap overflow-hidden">
-                                        <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-green-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    <button wire:click="saveDomain" class="inner-button px-5 py-2 inline-flex items-center justify-center text-xs">
+                                        
                                         <span class="relative flex items-center gap-2">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -697,8 +679,8 @@
                                             Save
                                         </span>
                                     </button>
-                                    <button wire:click="getWildcardDomain" class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 whitespace-nowrap overflow-hidden">
-                                        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    <button wire:click="getWildcardDomain" class="inner-button px-5 py-2 inline-flex items-center justify-center text-xs">
+                                        
                                         <span class="relative flex items-center gap-2">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -756,11 +738,11 @@
 
             {{-- Section: Docker Registry --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div x-data="{ expanded: false }" id="section-registry" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-cyan-500/50 transition-all duration-300 mb-6">
+                <div x-data="{ expanded: false }" id="section-registry" class="glass-card mb-6 transition-colors">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 group-hover:shadow-cyan-500/50 transition-all duration-300 group-hover:scale-110">
+                            <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                 </svg>
@@ -841,11 +823,11 @@
             @endif
 
             {{-- Section: Build Commands --}}
-            <div x-data="{ expanded: false }" id="section-build-commands" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-orange-500/50 transition-all duration-300 mb-6">
+            <div x-data="{ expanded: false }" id="section-build-commands" class="glass-card mb-6 transition-colors">
                 {{-- Header Cliquable --}}
                 <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/50 transition-all duration-300 group-hover:scale-110">
+                        <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                             </svg>
@@ -1126,11 +1108,11 @@
 
             {{-- Section: Network --}}
             @if ($application->build_pack !== 'dockercompose')
-                <div x-data="{ expanded: false }" id="section-network" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-pink-500/50 transition-all duration-300 mb-6">
+                <div x-data="{ expanded: false }" id="section-network" class="glass-card mb-6 transition-colors">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:shadow-pink-500/50 transition-all duration-300 group-hover:scale-110">
+                            <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 919-9"></path>
                                 </svg>
@@ -1184,11 +1166,11 @@
             @endif
 
             {{-- Section: HTTP Basic Auth --}}
-            <div x-data="{ expanded: false }" id="section-http-auth" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-yellow-500/50 transition-all duration-300 mb-6">
+            <div x-data="{ expanded: false }" id="section-http-auth" class="glass-card mb-6 transition-colors">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center shadow-lg shadow-yellow-500/30 group-hover:shadow-yellow-500/50 transition-all duration-300 group-hover:scale-110">
+                            <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                 </svg>
@@ -1224,11 +1206,11 @@
             </div>
 
             {{-- Section: Container Labels --}}
-            <div x-data="{ expanded: false }" id="section-labels" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 mb-6">
+            <div x-data="{ expanded: false }" id="section-labels" class="glass-card mb-6 transition-colors">
                     {{-- Header Cliquable --}}
                     <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:shadow-indigo-500/50 transition-all duration-300 group-hover:scale-110">
+                            <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                                 </svg>
@@ -1284,11 +1266,11 @@
             </div>
 
             {{-- Section: Pre/Post Deployment --}}
-            <div x-data="{ expanded: false }" id="section-deployment-commands" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-red-500/50 transition-all duration-300 mb-6">
+            <div x-data="{ expanded: false }" id="section-deployment-commands" class="glass-card mb-6 transition-colors">
                 {{-- Header Cliquable --}}
                 <div @click="expanded = !expanded" class="flex items-center justify-between p-6 cursor-pointer">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:shadow-red-500/50 transition-all duration-300 group-hover:scale-110">
+                        <div class="w-10 h-10 rounded border border-[rgba(255,255,255,0.05)] flex items-center justify-center bg-surface-2">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                             </svg>
