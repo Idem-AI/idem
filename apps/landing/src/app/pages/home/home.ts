@@ -14,6 +14,7 @@ import { DeploymentScreenshots } from '../../components/deployment-screenshots/d
 import { AfricanMarketComponent } from '../../components/african-market/african-market';
 import { Cta } from '../../components/cta/cta';
 import { VideoTrailer } from "../../components/video-trailer/video-trailer";
+import { TrustedByComponent } from '../../components/trusted-by/trusted-by';
 
 @Component({
   selector: 'app-home',
@@ -27,7 +28,8 @@ import { VideoTrailer } from "../../components/video-trailer/video-trailer";
     DeploymentScreenshots,
     AfricanMarketComponent,
     Cta,
-    VideoTrailer
+    VideoTrailer,
+    TrustedByComponent
 ],
   templateUrl: './home.html',
   styleUrl: './home.css',
