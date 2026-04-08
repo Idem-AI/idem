@@ -8,6 +8,7 @@ import chatRouter from './routes/chat.js';
 import deployRouter from './routes/deploy.js';
 import enhancedPromptRouter from './routes/enhancedPrompt.js';
 import modelRouter from './routes/model.js';
+import handoffRouter from './routes/handoff.js';
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ app.use('/api/chat', chatRouter);
 app.use('/api/deploy', deployRouter);
 app.use('/api/enhancedPrompt', enhancedPromptRouter);
 app.use('/api/model', modelRouter);
+app.use('/api/handoff', handoffRouter);
 
 app.use(errorHandler);
 
@@ -82,6 +84,8 @@ app.listen(PORT, () => {
   console.log(`   GET    /api/model             - Get available models`);
   console.log(`   GET    /api/model/config      - Get model configuration`);
   console.log(`   GET    /api/model/default     - Get default model`);
+  console.log(`   POST   /api/handoff           - Store AppGen context for handoff`);
+  console.log(`   GET    /api/handoff/:id       - Retrieve AppGen handoff by ID`);
   console.log(`   GET    /health                - Health check`);
   console.log('='.repeat(80));
   console.log('\n');
