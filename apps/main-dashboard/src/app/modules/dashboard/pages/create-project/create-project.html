@@ -16,8 +16,48 @@
 } @else {
   <!-- Main Content -->
   <div class="w-full min-h-screen">
+    <!-- AppGen Handoff Banner -->
+    @if (fromAppGen()) {
+      <div
+        class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-gradient-to-r from-blue-900/90 to-purple-900/90 backdrop-blur border-b border-blue-700/50"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0"
+          >
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-white">Importé depuis AppGen</p>
+            <p class="text-xs text-blue-300">Votre génération a été pré-remplie ci-dessous</p>
+          </div>
+        </div>
+        <a
+          href="javascript:history.back()"
+          class="text-xs text-blue-300 hover:text-white flex items-center gap-1 transition-colors"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+          Retour à AppGen
+        </a>
+      </div>
+    }
+
     <!-- Content Area -->
-    <div class="pt-24 pb-24">
+    <div [class]="fromAppGen() ? 'pt-36 pb-24' : 'pt-24 pb-24'">
       <!-- Step Content -->
       @if (isStepActive(0)) {
         <app-project-description
