@@ -37,20 +37,5 @@ export class TrustedByComponent {
       logo: 'https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg',
       url: 'https://meta.com'
     },
-    {
-      name: 'Netflix',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg',
-      url: 'https://netflix.com'
-    },
-    {
-      name: 'Apple',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg',
-      url: 'https://apple.com'
-    },
-    {
-      name: 'Spotify',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg',
-      url: 'https://spotify.com'
-    }
   ];
 }
