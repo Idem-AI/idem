@@ -275,7 +275,7 @@
                         <x-forms.button class="button-sm">Configure Nodes</x-forms.button>
                     </div>
                 @else
-                    @forelse($servers as $index => $server)
+                    @forelse($servers ?? [] as $index => $server)
                         <div wire:click="setServer({{ $server }})"
                              class="group relative p-5 hover:bg-surface-2 transition-colors cursor-pointer flex items-center justify-between
                                     {{ $index % 3 !== 2 ? 'lg:border-r border-[rgba(255,255,255,0.05)]' : '' }}
@@ -311,7 +311,7 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0">
                 @if ($server->isSwarm())
-                    @foreach ($swarmDockers as $index => $swarmDocker)
+                    @foreach ($swarmDockers ?? [] as $index => $swarmDocker)
                         <div wire:click="setDestination('{{ $swarmDocker->uuid }}')"
                              class="group relative p-5 hover:bg-surface-2 transition-colors cursor-pointer
                                     {{ $index % 3 !== 2 ? 'lg:border-r border-[rgba(255,255,255,0.05)]' : '' }}
@@ -324,7 +324,7 @@
                         </div>
                     @endforeach
                 @else
-                    @foreach ($standaloneDockers as $index => $standaloneDocker)
+                    @foreach ($standaloneDockers ?? [] as $index => $standaloneDocker)
                         <div wire:click="setDestination('{{ $standaloneDocker->uuid }}')"
                              class="group relative p-5 hover:bg-surface-2 transition-colors cursor-pointer
                                     {{ $index % 3 !== 2 ? 'lg:border-r border-[rgba(255,255,255,0.05)]' : '' }}
