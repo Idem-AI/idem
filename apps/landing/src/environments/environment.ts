@@ -27,6 +27,12 @@ export const environment = {
     webgen: {
       url: 'https://appgen.idem.africa',
     },
+    idev: {
+      url: 'https://appgen.idem.africa',
+    },
+    ideploy: {
+      url: 'https://deploy.idem.africa',
+    },
     diagen: {
       url: 'http://chart.idem.africa',
     },
