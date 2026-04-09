@@ -77,10 +77,10 @@ export class IdevPage implements OnInit {
 
   private setupSeo(): void {
     this.seoService.setupPageSeo({
-      title: $localize`:@@idev.seo.title:IDEV — AI-Powered Application Generator | Idem`,
-      description: $localize`:@@idev.seo.description:Transform your idea into a fully functional application with IDEV. AI-powered code generation for React, Next.js and more. Part of the Idem ecosystem — built in Cameroon for Africa.`,
+      title: $localize`:@@idev.seo.title:IDEV — AI App Generator & Code Builder by Idem`,
+      description: $localize`:@@idev.seo.description:Transformer votre idée en application SaaS ou mobile avec IDEV. Le générateur d'applications intelligent de l'écosystème Idem. Code React/Next.js propre, souveraineté numérique et déploiement instantané.`,
       path: '/idev',
-      keywords: 'AI app generator, code generation, application builder, React generator, Next.js builder, AI development, no-code, low-code, Idem, IDEV, African tech',
+      keywords: 'generateur de code IA, AI app generator, build SaaS with AI, code generation, React builder, Next.js generator, software development automation, Idem, IDEV, African tech innovation, AI startup tools',
       ogImage: `${this.seoService.domain}/assets/seo/og-image.webp`,
     });
   }
