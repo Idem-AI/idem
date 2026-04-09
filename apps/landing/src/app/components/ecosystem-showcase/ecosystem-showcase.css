@@ -1,0 +1,78 @@
+/* ============================================================================
+   ECOSYSTEM SHOWCASE — Premium Animations
+   ============================================================================ */
+
+/* Section reveal */
+.eco-reveal {
+  animation: eco-fade-up 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes eco-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card entrance animations */
+.eco-card {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+
+.eco-card-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.eco-card-delay-1 {
+  transition-delay: 0.1s;
+}
+
+.eco-card-delay-2 {
+  transition-delay: 0.3s;
+}
+
+/* Card hover effects */
+.eco-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(99, 102, 241, 0.08);
+  transform: translateY(-4px);
+}
+
+/* Flow connector animation */
+.eco-flow {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.5s,
+    transform 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.5s;
+}
+
+.eco-flow-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .eco-reveal,
+  .eco-card,
+  .eco-flow {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
