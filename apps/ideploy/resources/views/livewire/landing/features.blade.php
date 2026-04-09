@@ -1,6 +1,6 @@
 <section id="features" class="py-32 px-6 relative z-10">
     <div class="max-w-7xl mx-auto">
-        <h2 class="text-4xl md:text-5xl font-black text-white text-center mb-16 drop-shadow-md" style="letter-spacing: -0.04em;">Everything you need. <span class="text-white/40">Nothing you don't.</span></h2>
+        <h1 class="text-4xl md:text-5xl font-black text-white text-center mb-16 drop-shadow-md" style="letter-spacing: -0.04em;">Everything you <span class="i-underline">need</span>. <span class="text-white/40">Nothing you don't.</span></h1>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Feature 1 -->

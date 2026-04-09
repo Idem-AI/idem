@@ -54,8 +54,8 @@
         <!-- Text content -->
         <div class="max-w-4xl mx-auto">
             <h1 class="font-black leading-[1.05] mb-8 text-white break-words" style="font-size: clamp(3.8rem, 8vw, 7.5rem); letter-spacing: -0.04em; text-shadow: 0 0 40px rgba(0,0,0,0.5);">
-                Deploy apps.<br>
-                <span class="i-underline text-secondary">Not servers.</span>
+                Deploy apps,<br>
+                <span class="i-underline text-secondary">Not servers</span>
             </h1>
 
             <p class="text-[20px] md:text-[24px] text-white/70 mb-12 max-w-2xl mx-auto font-medium leading-relaxed drop-shadow-md">

@@ -7,7 +7,7 @@
                 <div class="w-16 h-16 rounded-[1rem] bg-white/5 flex items-center justify-center mb-8 border border-white/10 shadow-[0_0_20px_rgba(var(--color-primary-500-rgb),0.3)] backdrop-blur-md">
                     <span class="text-2xl drop-shadow-[0_0_10px_var(--color-primary-500)]" style="color: var(--color-primary-500)">1</span>
                 </div>
-                <h2 class="text-5xl font-black text-white mb-6 leading-tight drop-shadow-md" style="letter-spacing: -0.04em;">Push to deploy.<br>It's that simple.</h2>
+                <h1 class="text-5xl font-black text-white mb-6 leading-tight drop-shadow-md" style="letter-spacing: -0.04em;">Push to <span class="i-underline">deploy</span>.<br>It's that simple.</h1>
                 <p class="text-xl text-white/60 mb-8 font-medium leading-relaxed">
                     Connect your GitHub repo, select your branch, and hit deploy. EPLOY automatically builds your Docker image, provisions an SSL cert, and launches your app securely.
                 </p>
@@ -78,7 +78,7 @@
                 <div class="w-16 h-16 rounded-[1rem] bg-white/5 flex items-center justify-center mb-8 border border-white/10 shadow-[0_0_20px_rgba(var(--color-accent-500-rgb),0.3)] backdrop-blur-md">
                     <span class="text-2xl drop-shadow-[0_0_10px_var(--color-accent-500)]" style="color: var(--color-accent-500)">2</span>
                 </div>
-                <h2 class="text-5xl font-black text-white mb-6 leading-tight drop-shadow-md" style="letter-spacing: -0.04em;">Instantiate DBs<br>in 1-Click.</h2>
+                <h1 class="text-5xl font-black text-white mb-6 leading-tight drop-shadow-md" style="letter-spacing: -0.04em;">Instantiate DBs<br>in <span class="i-underline">1-Click</span>.</h1>
                 <p class="text-xl text-white/60 mb-8 font-medium leading-relaxed">
                     Stop manually configuring databases. Provision Postgres, Redis, MongoDB, or MySQL instances in one click. Completely managed, inherently secure, with native scheduled backups.
                 </p>
