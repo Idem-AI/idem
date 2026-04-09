@@ -13,5 +13,6 @@ class EncryptCookies extends Middleware
      */
     protected $except = [
         'session', // IDEM API session cookie - must not be encrypted by Laravel
+        'idem_session_active',
     ];
 }

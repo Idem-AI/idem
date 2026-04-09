@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
+
 use App\Events\ServerValidated;
 use App\Listeners\MaintenanceModeDisabledNotification;
 use App\Listeners\MaintenanceModeEnabledNotification;
@@ -44,7 +49,13 @@ class EventServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        Event::listen(Login::class, function () {
+            Cookie::queue('idem_session_active', '1', 30 * 24 * 60);
+        });
+
+        Event::listen(Logout::class, function () {
+            Cookie::queue('idem_session_active', '0', 30 * 24 * 60);
+        });
     }
 
     public function shouldDiscoverEvents(): bool
