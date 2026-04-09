@@ -26,7 +26,7 @@ const envFile = `export const environment = {
     },
   },
 };`;
-
+// trigger ci/cd
 // Définir le chemin du dossier
 const envDir = path.join(__dirname, './src/environments');
 
