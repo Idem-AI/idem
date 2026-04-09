@@ -4,21 +4,45 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex">
+    <meta name="robots" content="index, follow">
     <meta name="theme-color" content="#ffffff" />
-    <meta name="Description" content="iDeploy: An open-source & self-hostable Heroku / Netlify / Vercel alternative" />
+    <meta name="description" content="iDeploy — One-Click Deployment Service by Idem. Déployez vos applications en un clic, souverainement. Support VPS, cloud et infrastructure personnalisée sans DevOps." />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@ideployio" />
-    <meta name="twitter:title" content="iDeploy" />
-    <meta name="twitter:description" content="An open-source & self-hostable Heroku / Netlify / Vercel alternative." />
-    <meta name="twitter:image" content="https://cdn.coollabs.io/assets/ideploy/og-image.png" />
+    <meta name="twitter:site" content="@IdemAfrica" />
+    <meta name="twitter:title" content="iDeploy — One-Click Deployment Service by Idem" />
+    <meta name="twitter:description" content="Déployez vos applications simplement avec le service de déploiement souverain d'Idem." />
+    <meta name="twitter:image" content="https://idem.africa/assets/seo/og-image.webp" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://ideploy.io" />
-    <meta property="og:title" content="iDeploy" />
-    <meta property="og:description" content="An open-source & self-hostable Heroku / Netlify / Vercel alternative." />
-    <meta property="og:site_name" content="iDeploy" />
-    <meta property="og:image" content="https://cdn.coollabs.io/assets/ideploy/og-image.png" />
+    <meta property="og:url" content="https://deploy.idem.africa" />
+    <meta property="og:title" content="iDeploy — One-Click Deployment Service by Idem" />
+    <meta property="og:description" content="Déployez vos applications en un clic avec iDeploy, le service de déploiement souverain d'Idem." />
+    <meta property="og:site_name" content="Idem Ecosystem" />
+    <meta property="og:image" content="https://idem.africa/assets/seo/og-image.webp" />
+
+    <!-- Structured Data - iDeploy Service by Idem -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "iDeploy",
+        "alternateName": "iDeploy by Idem",
+        "description": "Simplified application deployment service for the Idem ecosystem. One-click deployment to any cloud or VPS.",
+        "url": "https://deploy.idem.africa",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web",
+        "author": {
+          "@type": "Organization",
+          "name": "Idem",
+          "url": "https://idem.africa"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Idem",
+          "url": "https://idem.africa"
+        }
+      }
+    </script>
 
     {{-- IDEM: Google Fonts - Jura --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
