@@ -62,6 +62,17 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'idev',
+    loadComponent: () => import('./pages/idev-page/idev-page').then((m) => m.IdevPage),
+    data: { layout: 'public' },
+  },
+  {
+    path: 'ideploy',
+    loadComponent: () =>
+      import('./pages/ideploy-page/ideploy-page').then((m) => m.IdeployPage),
+    data: { layout: 'public' },
+  },
+  {
     path: 'premium-beta',
     loadComponent: () =>
       import('./pages/premium-beta-access/premium-beta-access').then((m) => m.PremiumBetaAccess),

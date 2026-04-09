@@ -1,0 +1,229 @@
+<!-- IDEV Page -->
+<div class="relative min-h-screen overflow-hidden bg-grid">
+  <!-- Background orbs -->
+  <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+    <div class="absolute top-[-200px] right-[-200px] w-[500px] h-[500px] rounded-full bg-linear-to-br from-primary to-secondary opacity-15 blur-[120px]"></div>
+    <div class="absolute bottom-[-200px] left-[-200px] w-[400px] h-[400px] rounded-full bg-linear-to-tr from-secondary to-accent opacity-15 blur-[120px]"></div>
+  </div>
+
+  <div class="relative z-10">
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+        <!-- Breadcrumb -->
+        <div class="flex items-center justify-center gap-2 mb-8 text-sm text-white/50">
+          <a routerLink="/home" class="hover:text-white transition-colors" i18n="@@idev.breadcrumb.idem">Idem</a>
+          <span>/</span>
+          <span class="text-primary font-medium">IDEV</span>
+        </div>
+
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
+          <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+          <span class="text-xs font-bold text-primary uppercase tracking-widest" i18n="@@idev.badge">AI App Generator</span>
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 tracking-tight" i18n="@@idev.hero.title">
+          From Idea to <span class="i-underline">Application</span><br />in Minutes
+        </h1>
+
+        <p class="text-lg lg:text-xl text-white/60 max-w-3xl mx-auto leading-relaxed mb-10" i18n="@@idev.hero.description">
+          Describe what you want to build. IDEV's AI generates a complete, production-ready application — frontend, backend, and database — instantly.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a
+            href="{{ idevUrl }}"
+            class="inner-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span i18n="@@idev.hero.cta">Start Building</span>
+          </a>
+          <a
+            routerLink="/ideploy"
+            class="outer-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
+          >
+            <span i18n="@@idev.hero.secondaryCta">Deploy with iDeploy</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="relative py-24 lg:py-32">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl lg:text-5xl font-bold text-white mb-4" i18n="@@idev.howItWorks.title">
+            How <span class="i-underline">IDEV</span> Works
+          </h2>
+          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@idev.howItWorks.description">
+            Three simple steps from idea to application
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          @for (step of steps; track step.number; let i = $index) {
+            <div class="relative glass-card p-8 rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300 group">
+              <!-- Step Number -->
+              <div class="text-6xl font-black text-white/5 absolute top-4 right-6 select-none">{{ step.number }}</div>
+
+              <div class="relative">
+                <div class="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-6">
+                  <span class="text-primary font-bold text-lg">{{ step.number }}</span>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3 group-hover:text-primary transition-colors">
+                  {{ step.title }}
+                </h3>
+                <p class="text-white/60 leading-relaxed">{{ step.description }}</p>
+              </div>
+
+              <!-- Connector line (not on last item) -->
+              @if (i < steps.length - 1) {
+                <div class="hidden lg:block absolute -right-4 top-1/2 -translate-y-1/2 z-20">
+                  <svg class="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section class="relative py-24 lg:py-32 bg-bg-dark">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl lg:text-5xl font-bold text-white mb-4" i18n="@@idev.features.title">
+            Built for <span class="i-underline">Developers</span>
+          </h2>
+          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@idev.features.description">
+            Everything you need to go from concept to production-ready application
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          @for (feature of features; track feature.title) {
+            <div class="glass-card p-6 lg:p-8 rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300 group">
+              <!-- Icon -->
+              <div class="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-5">
+                @if (feature.icon === 'code') {
+                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                } @else if (feature.icon === 'eye') {
+                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                } @else if (feature.icon === 'sparkle') {
+                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                } @else if (feature.icon === 'stack') {
+                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                } @else if (feature.icon === 'download') {
+                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                } @else if (feature.icon === 'cloud') {
+                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                }
+              </div>
+
+              <h3 class="text-lg font-bold text-white mb-2 group-hover:text-primary transition-colors">
+                {{ feature.title }}
+              </h3>
+              <p class="text-white/60 text-sm leading-relaxed">{{ feature.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Ecosystem Cross-Links -->
+    <section class="relative py-24 lg:py-32">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl lg:text-4xl font-bold text-white mb-4" i18n="@@idev.ecosystem.title">
+            Part of the <span class="i-underline">Idem</span> Ecosystem
+          </h2>
+          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@idev.ecosystem.description">
+            IDEV works seamlessly with the rest of the Idem platform
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Idem Platform -->
+          <a routerLink="/home" class="glass-card p-6 rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300 group block">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                <img src="/assets/icons/logo_white.webp" alt="Idem" class="w-6 h-auto" />
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-white group-hover:text-primary transition-colors" i18n="@@idev.ecosystem.idem.title">Idem Platform</h3>
+                <p class="text-white/50 text-xs" i18n="@@idev.ecosystem.idem.tagline">Complete business creation</p>
+              </div>
+            </div>
+            <p class="text-white/60 text-sm" i18n="@@idev.ecosystem.idem.description">
+              Create your entire business with AI: brand, strategy, legal docs, and more.
+            </p>
+          </a>
+
+          <!-- iDeploy -->
+          <a routerLink="/ideploy" class="glass-card p-6 rounded-2xl border border-white/10 hover:border-secondary/30 transition-all duration-300 group block">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-secondary/15 border border-secondary/25 flex items-center justify-center">
+                <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-white group-hover:text-secondary transition-colors">iDeploy</h3>
+                <p class="text-white/50 text-xs" i18n="@@idev.ecosystem.ideploy.tagline">Simplified deployment</p>
+              </div>
+            </div>
+            <p class="text-white/60 text-sm" i18n="@@idev.ecosystem.ideploy.description">
+              Deploy your IDEV-generated app with one click. Custom domains, SSL, and monitoring included.
+            </p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="relative py-16 lg:py-24">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <div class="glass-card p-8 lg:p-12 rounded-2xl border border-primary/20 text-center">
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4" i18n="@@idev.finalCta.title">
+            Ready to Build Your App?
+          </h2>
+          <p class="text-white/60 text-lg mb-8 max-w-2xl mx-auto" i18n="@@idev.finalCta.description">
+            Join thousands of builders who use IDEV to turn their ideas into reality. Start for free, no credit card required.
+          </p>
+          <a
+            href="{{ idevUrl }}"
+            class="inner-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span i18n="@@idev.finalCta.cta">Launch IDEV</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
