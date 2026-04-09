@@ -37,5 +37,15 @@ export class TrustedByComponent {
       logo: 'https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg',
       url: 'https://meta.com'
     },
+    {
+      name: 'Github',
+      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/98/Github_2023_logo.svg',
+      url: 'https://github.com'
+    },
+    {
+      name: 'Gitlab',
+      logo: 'https://upload.wikimedia.org/wikipedia/commons/1/17/Gitlab_logo.svg',
+      url: 'https://gitlab.com'
+    }
   ];
 }
