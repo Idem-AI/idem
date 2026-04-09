@@ -132,6 +132,9 @@ const useUserStore = create<UserState>()(
           isAuthenticated: true,
           isLoginModalOpen: false,
         }))
+
+        // Global Logout Sync: Set sentinel cookie
+        document.cookie = "idem_session_active=1; path=/;"
       },
 
       logout: () => {
@@ -151,6 +154,9 @@ const useUserStore = create<UserState>()(
           isAuthenticated: false,
           rememberMe: false,
         }))
+
+        // Global Logout Sync: Set sentinel cookie to 0
+        document.cookie = "idem_session_active=0; path=/;"
       },
 
       updateUser: (userData) =>
