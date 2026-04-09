@@ -18,6 +18,7 @@ import { AppGenLanding } from './components/Landing/AppGenLanding';
 import useAppGenContextStore from './stores/appgenContextSlice';
 import { consumePendingContext } from './hooks/useAuth';
 import { getCurrentUser } from './api/persistence/db';
+import { AuthSync } from './components/Auth/AuthSync';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
 
@@ -127,6 +128,7 @@ function App() {
   // Chat — full app (authenticated or projectId workflow)
   return (
     <TopViewContainer>
+      <AuthSync />
       <GlobalLimitModal onLogin={openLoginModal} />
       <div
         className={classNames('h-screen w-screen flex flex-col', {
