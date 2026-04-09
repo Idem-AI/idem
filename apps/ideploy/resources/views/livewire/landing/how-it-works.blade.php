@@ -1,38 +1,47 @@
-{{-- How it works --}}
-<section id="how-it-works" class="py-32 px-6 relative z-10">
-    <div class="max-w-5xl mx-auto">
-        <div class="text-center mb-24">
-            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tighter">Deploy in 3 steps</h2>
-            <p class="text-xl text-gray-400 font-light max-w-2xl mx-auto">From messy codebases to live production in a matter of flat minutes.</p>
-        </div>
+<section class="py-32 px-6 relative z-10 border-t border-white/5">
+    <div class="max-w-4xl mx-auto">
+        <h2 class="text-4xl md:text-5xl font-black text-white text-center mb-16 drop-shadow-md" style="letter-spacing: -0.04em;">How it works</h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div class="relative text-center group">
-                <div class="w-20 h-20 mx-auto mb-8 bg-primary/20 border-2 border-primary/40 rounded-[2rem] flex items-center justify-center group-hover:-translate-y-2 transition-transform shadow-[0_0_20px_rgba(20,71,230,0.2)]">
-                    <span class="text-3xl font-black text-primary">1</span>
-                </div>
-                <h3 class="text-xl font-bold text-white mb-4 tracking-tight">Connect your server</h3>
-                <p class="text-base text-gray-400 leading-relaxed font-light">Add any Linux server via SSH. EPLOY installs internal Docker and configures the architecture seamlessly automatically.</p>
-                <!-- Timeline connector -->
-                <div class="hidden md:block absolute top-10 left-full w-full h-[2px] bg-gradient-to-r from-primary/50 to-transparent -translate-x-10 -z-10"></div>
-            </div>
+        <div class="glass-card relative p-8 md:p-16 rounded-[3rem] border border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]">
+            <!-- Central connecting line -->
+            <div class="absolute left-1/2 top-16 bottom-16 w-px bg-gradient-to-b from-primary-500/50 via-white/10 to-accent-500/50 transform -translate-x-1/2 hidden md:block"></div>
 
-            <div class="relative text-center group">
-                <div class="w-20 h-20 mx-auto mb-8 bg-accent-500/20 border-2 border-accent-500/40 rounded-[2rem] flex items-center justify-center group-hover:-translate-y-2 transition-transform shadow-[0_0_20px_rgba(34,211,238,0.2)]">
-                    <span class="text-3xl font-black text-accent-500">2</span>
+            <div class="space-y-16">
+                <!-- Step 1 -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-8 group">
+                    <div class="md:w-5/12 text-center md:text-right">
+                        <h3 class="text-2xl font-bold text-white mb-2 group-hover:text-primary-400 transition-colors">1. Connect Provider</h3>
+                        <p class="text-white/60 font-medium">Link your GitHub, GitLab, or Bitbucket account. We only ask for the permissions we absolutely need.</p>
+                    </div>
+                    <div class="w-16 h-16 rounded-full glass-card flex items-center justify-center border-2 border-primary-500 shadow-[0_0_20px_rgba(var(--color-primary-500-rgb),0.4)] relative z-10">
+                        <span class="text-xl font-bold text-white">1</span>
+                    </div>
+                    <div class="md:w-5/12"></div>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-4 tracking-tight">Link your repository</h3>
-                <p class="text-base text-gray-400 leading-relaxed font-light">Connect GitHub, GitLab or Bitbucket. Select your dedicated branch and let EPLOY magically build your target app.</p>
-                 <!-- Timeline connector -->
-                <div class="hidden md:block absolute top-10 left-full w-full h-[2px] bg-gradient-to-r from-accent-500/50 to-transparent -translate-x-10 -z-10"></div>
-            </div>
 
-            <div class="text-center group">
-                <div class="w-20 h-20 mx-auto mb-8 bg-green-500/20 border-2 border-green-500/40 rounded-[2rem] flex items-center justify-center group-hover:-translate-y-2 transition-transform shadow-[0_0_20px_rgba(74,222,128,0.2)]">
-                    <span class="text-3xl font-black text-green-400">3</span>
+                <!-- Step 2 -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-8 group">
+                    <div class="md:w-5/12 hidden md:block"></div>
+                    <div class="w-16 h-16 rounded-full glass-card flex items-center justify-center border-2 border-white/20 hover:border-white/50 transition-colors relative z-10">
+                        <span class="text-xl font-bold text-white">2</span>
+                    </div>
+                    <div class="md:w-5/12 text-center md:text-left">
+                        <h3 class="text-2xl font-bold text-white mb-2">2. Define Destination</h3>
+                        <p class="text-white/60 font-medium">Add any Linux server using an SSH key. A $4/mo Hetzner VPS works just fine.</p>
+                    </div>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-4 tracking-tight">Go live instantly</h3>
-                <p class="text-base text-gray-400 leading-relaxed font-light">Your app is securely live with Let's Encrypt SSL, a custom domain, and robust automatic deploys on every push.</p>
+
+                <!-- Step 3 -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-8 group">
+                    <div class="md:w-5/12 text-center md:text-right">
+                        <h3 class="text-2xl font-bold text-white mb-2 group-hover:text-accent-400 transition-colors">3. Deploy</h3>
+                        <p class="text-white/60 font-medium">Hit deploy. We automatically build the container and route the traffic. It just works.</p>
+                    </div>
+                    <div class="w-16 h-16 rounded-full glass-card flex items-center justify-center border-2 border-accent-500 shadow-[0_0_20px_rgba(var(--color-accent-500-rgb),0.4)] relative z-10">
+                        <span class="text-xl font-bold text-white">3</span>
+                    </div>
+                    <div class="md:w-5/12"></div>
+                </div>
             </div>
         </div>
     </div>

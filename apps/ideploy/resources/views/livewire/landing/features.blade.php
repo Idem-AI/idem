@@ -1,93 +1,39 @@
-<!-- Bento Box Features Section -->
-<section id="features" class="relative z-10 py-32 px-6">
-    <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-24">
-            <h2 class="text-5xl md:text-6xl font-bold mb-8 tracking-tighter">Everything you need,<br><span class="text-gray-400">perfectly organized.</span></h2>
-            <p class="text-xl md:text-2xl text-gray-500 max-w-3xl mx-auto font-light">A powerful suite of tools designed to make deployments completely effortless and scalable.</p>
-        </div>
+<section id="features" class="py-32 px-6 relative z-10">
+    <div class="max-w-7xl mx-auto">
+        <h2 class="text-4xl md:text-5xl font-black text-white text-center mb-16 drop-shadow-md" style="letter-spacing: -0.04em;">Everything you need. <span class="text-white/40">Nothing you don't.</span></h2>
 
-        <!-- Bento Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-4 md:grid-rows-3 gap-6 auto-rows-[280px]">
-            
-            <!-- Primary Feature (Large Block) -->
-            <div class="glass-card md:col-span-2 md:row-span-2 p-10 flex flex-col justify-between group overflow-hidden relative" style="border-radius: 32px">
-                <!-- Glow effect on hover -->
-                <div class="absolute -right-20 -top-20 w-80 h-80 bg-primary/20 blur-3xl rounded-full opacity-30 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-                
-                <div>
-                    <div class="w-16 h-16 bg-primary border border-primary-400 rounded-2xl flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(20,71,230,0.5)]">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                    </div>
-                    <h3 class="text-3xl font-bold text-white mb-4 tracking-tight">Any Language<br>Any Framework</h3>
-                    <p class="text-gray-400 leading-relaxed text-lg font-light pr-8">Deploy Node.js, Python, PHP, Go, Ruby and more. Fully optimized for Next.js, Laravel, Django, and Rails straight out of the box.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Feature 1 -->
+            <div class="glass-card hover:-translate-y-2 transition-all p-8 rounded-[2rem] border border-white/10 group">
+                <div class="w-12 h-12 rounded-[1rem] bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(var(--color-primary-500-rgb),0.2)]">
+                    <svg class="w-6 h-6 text-primary-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                 </div>
-                <!-- Decorative element -->
-                <div class="mt-8 flex flex-col gap-3 opacity-60 group-hover:opacity-100 transition-opacity duration-500">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                    </div>
-                    <div class="h-3 w-4/5 glass-bg-light rounded-full"></div>
-                    <div class="h-3 w-3/5 glass-bg-light rounded-full"></div>
-                    <div class="h-3 w-2/3 glass-bg-light rounded-full"></div>
-                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Any Language</h3>
+                <p class="text-white/60 text-sm font-medium leading-relaxed">Nixpacks integration means if it builds on your machine, it builds on Eploy. No Dockerfile required.</p>
             </div>
 
-            <!-- Feature 2 (Wide Horizontal) -->
-            <div class="glass-card md:col-span-2 md:row-span-1 p-8 group flex items-center gap-8 relative overflow-hidden" style="border-radius: 32px">
-                 <div class="absolute -left-10 -bottom-10 w-48 h-48 bg-accent-500/20 blur-3xl rounded-full opacity-30 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-                <div class="shrink-0 w-16 h-16 bg-accent-500/20 border border-accent-500/40 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                     <svg class="w-8 h-8 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>
+            <!-- Feature 2 -->
+            <div class="glass-card hover:-translate-y-2 transition-all p-8 rounded-[2rem] border border-white/10 group">
+                <div class="w-12 h-12 rounded-[1rem] bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(var(--color-accent-500-rgb),0.2)]">
+                    <svg class="w-6 h-6 text-accent-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                 </div>
-                <div>
-                    <h3 class="text-2xl font-bold text-white mb-3 tracking-tight">Managed Databases</h3>
-                    <p class="text-gray-400 text-lg leading-relaxed font-light">PostgreSQL, MySQL, MongoDB, Redis. Provisioned in seconds with completely automated backups.</p>
-                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Auto SSL</h3>
+                <p class="text-white/60 text-sm font-medium leading-relaxed">We automatically generate and renew Let's Encrypt certificates for all your connected custom domains.</p>
             </div>
 
-             <!-- Feature 3 (Wide Horizontal) -->
-            <div class="glass-card md:col-span-2 md:row-span-1 p-8 group flex items-center gap-8 relative overflow-hidden" style="border-radius: 32px">
-                 <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-yellow-500/20 blur-3xl rounded-full opacity-30 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-                <div class="shrink-0 w-16 h-16 bg-yellow-500/20 border border-yellow-500/40 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                     <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            <!-- Feature 3 -->
+            <div class="glass-card hover:-translate-y-2 transition-all p-8 rounded-[2rem] border border-white/10 group lg:col-span-2 relative overflow-hidden">
+                <div class="absolute right-0 bottom-0 w-64 h-64 bg-primary-500/10 rounded-tl-full blur-3xl pointer-events-none"></div>
+                <div class="w-12 h-12 rounded-[1rem] bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                    <svg class="w-6 h-6 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
                 </div>
-                <div>
-                    <h3 class="text-2xl font-bold text-white mb-3 tracking-tight">Live Real-time Metrics</h3>
-                    <p class="text-gray-400 text-lg leading-relaxed font-light">Monitor CPU, memory, and network instantly. Get direct alerts to Slack, Telegram, or email.</p>
-                </div>
-            </div>
-
-            <!-- Feature 4 (Small Box) -->
-            <div class="glass-card md:col-span-1 md:row-span-1 p-8 group relative overflow-hidden flex flex-col justify-center items-center text-center" style="border-radius: 32px">
-                <div class="w-14 h-14 bg-green-500/20 border border-green-500/40 rounded-2xl flex items-center justify-center mb-6 group-hover:-translate-y-2 transition-transform duration-500">
-                    <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                </div>
-                 <h3 class="text-xl font-bold text-white mb-2">Automated SSL</h3>
-                 <p class="text-gray-400 text-sm font-light">Free, zero configurations certs securely provisioned via Let's Encrypt.</p>
-            </div>
-
-            <!-- Feature 5 (Small Box) -->
-             <div class="glass-card md:col-span-1 md:row-span-1 p-8 group relative overflow-hidden flex flex-col justify-center items-center text-center" style="border-radius: 32px">
-                <div class="w-14 h-14 bg-purple-500/20 border border-purple-500/40 rounded-2xl flex items-center justify-center mb-6 group-hover:-translate-y-2 transition-transform duration-500">
-                    <svg class="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                </div>
-                 <h3 class="text-xl font-bold text-white mb-2">CI/CD Ready</h3>
-                 <p class="text-gray-400 text-sm font-light">Instant zero-downtime rolls for every git push seamlessly.</p>
-            </div>
-
-            <!-- Feature 6 (Wide Bottom) -->
-            <div class="glass-card md:col-span-2 md:row-span-1 p-8 group relative overflow-hidden flex items-center gap-8 border-white/5" style="border-radius: 32px; background: rgba(255,255,255,0.01)">
-                <div class="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                 <div class="shrink-0 w-16 h-16 bg-red-500/20 border border-red-500/40 rounded-2xl flex items-center justify-center ml-2">
-                    <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-bold text-white mb-2 tracking-tight">100% Self-hosted</h3>
-                    <p class="text-gray-400 text-lg font-light">Your infra, your data. Deploy entirely on your own terms. No vendor lock-in.</p>
+                <h3 class="text-xl font-bold text-white mb-3">PR Previews</h3>
+                <p class="text-white/60 text-sm font-medium leading-relaxed max-w-sm">Every pull request gets its own isolated deployment environment. Review changes live before merging to production. Automatically destroyed when merged, keeping costs at zero.</p>
+                <div class="mt-6 flex items-center gap-4">
+                    <div class="h-2 w-32 bg-white/10 rounded-full overflow-hidden"><div class="h-full w-1/2 bg-primary-500"></div></div>
+                    <span class="text-xs font-mono text-white/40">Building...</span>
                 </div>
             </div>
-
         </div>
     </div>
 </section>
