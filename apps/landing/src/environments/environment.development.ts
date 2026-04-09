@@ -27,6 +27,12 @@ export const environment = {
     webgen: {
       url: 'http://localhost:5173',
     },
+    idev: {
+      url: 'http://localhost:5173',
+    },
+    ideploy: {
+      url: 'http://localhost:8000',
+    },
     diagen: {
       url: 'http://localhost:3002',
     },

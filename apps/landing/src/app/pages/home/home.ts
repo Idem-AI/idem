@@ -14,6 +14,7 @@ import { DeploymentScreenshots } from '../../components/deployment-screenshots/d
 import { AfricanMarketComponent } from '../../components/african-market/african-market';
 import { Cta } from '../../components/cta/cta';
 import { VideoTrailer } from "../../components/video-trailer/video-trailer";
+import { EcosystemShowcaseComponent } from '../../components/ecosystem-showcase/ecosystem-showcase';
 
 @Component({
   selector: 'app-home',
@@ -26,6 +27,7 @@ import { VideoTrailer } from "../../components/video-trailer/video-trailer";
     Features,
     DeploymentScreenshots,
     AfricanMarketComponent,
+    EcosystemShowcaseComponent,
     Cta,
     VideoTrailer
 ],
@@ -53,7 +55,7 @@ export class Home implements OnInit {
       { name: 'description', content: description },
       {
         name: 'keywords',
-        content: $localize`:@@home.seo.keywords:AI brand creation, instant app deployment, AI assistant, business plan generator, UML diagram creator, logo design AI, website builder, brand identity, technical architecture, one-click deployment, SaaS platform, startup tools, AI automation, digital transformation, app development, brand design, visual identity, deployment automation, AI-powered development`,
+        content: $localize`:@@home.seo.keywords:AI brand creation, instant app deployment, AI assistant, business plan generator, UML diagram creator, logo design AI, website builder, brand identity, technical architecture, one-click deployment, SaaS platform, startup tools, AI automation, digital transformation, app development, brand design, visual identity, deployment automation, AI-powered development, IDEV, iDeploy, AI app generator, application ecosystem, code generation, simplified deployment`,
       },
       { name: 'author', content: $localize`:@@home.seo.author:Idem Team` },
       { name: 'robots', content: 'index, follow' },
