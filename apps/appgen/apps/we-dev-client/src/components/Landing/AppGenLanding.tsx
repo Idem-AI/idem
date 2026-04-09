@@ -56,14 +56,13 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 flex items-center justify-center">
+            <div className="flex items-center justify-center">
               <img
-                src="/assets/icons/idem.png"
-                alt="IDEON Logo"
-                className="w-8 h-8 object-contain"
+                src="/assets/idev-logo.png"
+                alt="IDEV Logo"
+                className="w-[120px] h-auto object-contain"
               />
             </div>
-            <span className="text-4xl font-bold tracking-tight">EON</span>
           </div>
           <div>
             {currentUser ? (
@@ -93,7 +92,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
             Build apps with AI
           </h1>
           <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-            Describe your idea, IDEON generates production-ready code in seconds
+            Describe your idea, IDEV generates production-ready code in seconds
           </p>
 
           {/* Input */}
@@ -236,7 +235,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
                 <span className="text-2xl font-bold text-primary">1</span>
               </div>
               <h3 className="text-xl font-semibold mb-3">Describe your idea</h3>
-              <p className="text-gray-400">Tell IDEON what you want to build in plain language</p>
+              <p className="text-gray-400">Tell IDEV what you want to build in plain language</p>
             </div>
 
             <div className="text-center">

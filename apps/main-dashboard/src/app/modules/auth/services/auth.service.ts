@@ -28,6 +28,7 @@ export class AuthService {
   private cookieService = inject(CookieService);
   private apiUrl = `${environment.services.api.url}/auth`;
   private readonly CURRENT_USER_COOKIE = 'currentUser';
+  private readonly SESSION_ACTIVE_COOKIE = 'idem_session_active';
 
   /** True while we're waiting for a redirect login result (mobile flow) */
   readonly redirectLoginInProgress = signal(false);
@@ -38,6 +39,22 @@ export class AuthService {
   constructor() {
     this.user$ = user(this.auth);
     this.redirectResultReady = this.handleRedirectResult();
+
+    // Start global logout synchronization check
+    if (typeof window !== 'undefined') {
+      setInterval(() => this.checkGlobalLogout(), 3000);
+    }
+  }
+
+  private checkGlobalLogout(): void {
+    const isActive = this.cookieService.get(this.SESSION_ACTIVE_COOKIE);
+    const locallyLoggedIn = !!this.getCurrentUser();
+
+    // If the global sentinel says session is inactive but we think we're logged in, logout.
+    if (locallyLoggedIn && isActive === '0') {
+      console.log('AuthSync: Global logout detected from cookie, logging out locally...');
+      this.logout().subscribe();
+    }
   }
 
   /**
@@ -120,6 +137,9 @@ export class AuthService {
     // Sauvegarder l'utilisateur dans les cookies
     this.saveUserToCookies(user);
 
+    // Set global session active sentinel
+    this.cookieService.set(this.SESSION_ACTIVE_COOKIE, '1', 30);
+
     try {
       await firstValueFrom(
         this.http.post<void>(
@@ -149,6 +169,8 @@ export class AuthService {
         this.tokenService.clearToken();
         // Effacer l'utilisateur des cookies
         this.cookieService.remove(this.CURRENT_USER_COOKIE);
+        // Clear global session sentinel
+        this.cookieService.set(this.SESSION_ACTIVE_COOKIE, '0', 30);
         sessionStorage.clear();
 
         // Try to notify backend, but don't block logout if it fails
