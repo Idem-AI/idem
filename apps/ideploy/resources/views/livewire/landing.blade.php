@@ -1,7 +1,7 @@
 @php
     $dashboardLoginUrl = rtrim(config('idem.dashboard_url', env('IDEM_DASHBOARD_URL', 'http://localhost:4200')), '/') . '/login?redirect=ideploy';
 @endphp
-<div class="relative min-h-screen text-white bg-[#06080d] overflow-hidden" style="font-family: 'Jura', sans-serif;">
+<div class="relative min-h-screen text-white overflow-hidden" style="font-family: 'Jura', sans-serif;">
     <x-slot:title>EPLOY — Deploy apps, not servers</x-slot>
 
     <!-- Global Glassmorphism Accents (Restored from styles.css intent) -->

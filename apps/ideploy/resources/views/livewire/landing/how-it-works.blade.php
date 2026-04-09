@@ -1,6 +1,6 @@
 <section class="py-32 px-6 relative z-10 border-t border-white/5">
     <div class="max-w-4xl mx-auto">
-        <h2 class="text-4xl md:text-5xl font-black text-white text-center mb-16 drop-shadow-md" style="letter-spacing: -0.04em;">How it works</h2>
+        <h1 class="text-4xl md:text-5xl font-black text-white text-center mb-16 drop-shadow-md" style="letter-spacing: -0.04em;"><span class="i-underline">How</span> it works</h1>
 
         <div class="glass-card relative p-8 md:p-16 rounded-[3rem] border border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]">
             <!-- Central connecting line -->

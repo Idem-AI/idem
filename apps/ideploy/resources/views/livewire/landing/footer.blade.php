@@ -3,7 +3,7 @@
 @endphp
 
 {{-- Footer --}}
-<footer class="py-12 px-6 border-t border-white/10 bg-[#06080d]">
+<footer class="py-12 px-6 border-t border-white/10 bg-transparent">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--color-primary-500)">

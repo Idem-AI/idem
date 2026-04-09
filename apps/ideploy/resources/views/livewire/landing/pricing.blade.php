@@ -5,7 +5,7 @@
         <div class="absolute top-0 right-0 w-96 h-96 bg-primary-500/30 rounded-full blur-[100px] z-0"></div>
         
         <div class="glass-card relative z-10 p-16 md:p-24 border border-white/10 text-center backdrop-blur-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]">
-            <h2 class="text-5xl md:text-6xl font-black text-white mb-6 drop-shadow-lg" style="letter-spacing: -0.04em;">Ready to host?</h2>
+            <h1 class="text-5xl md:text-6xl font-black text-white mb-6 drop-shadow-lg" style="letter-spacing: -0.04em;">Ready to <span class="i-underline">host?</span></h1>
             
             <p class="text-xl text-white/70 mb-12 max-w-xl mx-auto font-medium">
                 Join thousands of developers escaping the PaaS tax. Stop paying for traffic. Start paying for hardware.
