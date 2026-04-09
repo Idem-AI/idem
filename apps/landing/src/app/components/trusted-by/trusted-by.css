@@ -1,0 +1,43 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.scroller-container {
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+}
+
+.scroller-container:hover .scroller-content {
+  animation-play-state: paused;
+}
+
+.scroller-content {
+  display: flex;
+  animation: scroll 40s linear infinite;
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.partner-logo {
+  filter: grayscale(100%) brightness(1.5);
+  opacity: 0.5;
+  transition: all 0.4s ease;
+}
+
+/* Original colors and full opacity on hover */
+.partner-logo:hover {
+  filter: grayscale(0%) brightness(1);
+  opacity: 1;
+  transform: scale(1.1);
+}
