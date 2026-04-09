@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /assets/private/
+
+# IDEV is a service of Idem
+# Main Site: https://idem.africa
+
+Sitemap: https://idem.africa/sitemap.xml
