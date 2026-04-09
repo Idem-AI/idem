@@ -1,0 +1,25 @@
+{
+  "locale": "en",
+  "translations": {
+    "idev.step1.title": "Describe Your Idea",
+    "idev.step1.description": "Tell IDEV what you want to build. Describe your app in plain language — no technical expertise required.",
+    "idev.step2.title": "AI Generates Code",
+    "idev.step2.description": "Our AI agents analyze your idea and generate a complete, production-ready application with frontend, backend, and database.",
+    "idev.step3.title": "Iterate & Deploy",
+    "idev.step3.description": "Preview your app in real-time, make adjustments through conversation, and deploy instantly with iDeploy.",
+    "idev.feature1.title": "Full-Stack Generation",
+    "idev.feature1.description": "Complete React/Next.js applications with API routes, database models, and authentication.",
+    "idev.feature2.title": "Real-Time Preview",
+    "idev.feature2.description": "See your application come to life as the AI builds it, with instant hot-reload preview.",
+    "idev.feature3.title": "AI-Driven Iteration",
+    "idev.feature3.description": "Refine your app through natural language. Simply describe changes and the AI applies them.",
+    "idev.feature4.title": "Modern Tech Stack",
+    "idev.feature4.description": "Built with industry-standard technologies: React, Next.js, TypeScript, Tailwind CSS, and more.",
+    "idev.feature5.title": "Export & Own",
+    "idev.feature5.description": "Export your complete source code. You own everything — no vendor lock-in, no restrictions.",
+    "idev.feature6.title": "iDeploy Integration",
+    "idev.feature6.description": "Seamlessly deploy your generated application with one click through the iDeploy platform.",
+    "idev.seo.title": "IDEV — AI App Generator & Code Builder by Idem",
+    "idev.seo.description": "Transform your idea into a SaaS or mobile application with IDEV. The intelligent application generator of the Idem ecosystem. Clean React/Next.js code, digital sovereignty, and instant deployment."
+  }
+}
