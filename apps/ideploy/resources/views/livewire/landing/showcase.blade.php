@@ -1,8 +1,10 @@
-<section id="showcase" class="py-32 px-6 relative z-10 border-t border-white/5 mt-16 bg-gradient-to-b from-transparent to-black/30">
+<section id="showcase" class="py-32 px-6 relative z-10 border-t border-white/5 mt-16 bg-transparent">
     <div class="max-w-7xl mx-auto">
         
         <div class="mb-16">
-            <h2 class="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-md" style="letter-spacing: -0.04em;">Explore what people are building</h2>
+            <h1 class="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-md" style="letter-spacing: -0.04em;">
+                Explore what <span class="i-underline">people are building</span>
+            </h1>
             <p class="text-xl text-white/60 max-w-2xl font-medium">From complex microservices architectures to simple static portfolios, see how Eploy powers the independent web.</p>
         </div>
 

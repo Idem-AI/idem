@@ -1,6 +1,6 @@
 <section class="py-32 px-6 relative z-10">
     <div class="max-w-7xl mx-auto">
-        <h2 class="text-4xl md:text-5xl font-black text-white mb-16 text-center drop-shadow-md" style="letter-spacing: -0.04em;">Built for how you work</h2>
+        <h1 class="text-4xl md:text-5xl font-black text-white mb-16 text-center drop-shadow-md" style="letter-spacing: -0.04em;">Built for how you <span class="i-underline">work</span></h1>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <!-- Role 1 -->
