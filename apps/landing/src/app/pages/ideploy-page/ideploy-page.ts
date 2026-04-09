@@ -86,10 +86,10 @@ export class IdeployPage implements OnInit {
 
   private setupSeo(): void {
     this.seoService.setupPageSeo({
-      title: $localize`:@@ideploy.seo.title:iDeploy — Simplified App Deployment | Idem`,
-      description: $localize`:@@ideploy.seo.description:Deploy your applications with one click using iDeploy. VPS, cloud, or quick deploy — zero DevOps required. Custom domains, SSL, monitoring included. Part of the Idem ecosystem.`,
+      title: $localize`:@@ideploy.seo.title:iDeploy — Sovereign Cloud & One-Click App Deployment by Idem`,
+      description: $localize`:@@ideploy.seo.description:Le service de déploiement souverain d'Idem. Déployez vos apps sur VPS ou Cloud en un clic. Alternative africaine aux solutions occidentales avec auto-scaling et monitoring intégré. Zéro DevOps requis.`,
       path: '/ideploy',
-      keywords: 'app deployment, one-click deploy, cloud hosting, VPS deployment, Docker, SSL, CDN, monitoring, Idem, iDeploy, African tech, simplified deployment',
+      keywords: 'cloud souverain Afrique, sovereign hosting, deploy app on VPS, docker swarm automation, one-click deployment, self-hosted cloud, Idem, iDeploy, alternative Heroku, DevOps as a service',
       ogImage: `${this.seoService.domain}/assets/seo/og-image.webp`,
     });
   }
