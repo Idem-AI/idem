@@ -41,7 +41,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\RedirectAuthToMainDashboard::class, // Redirect login/register to main-dashboard
             \App\Http\Middleware\CheckForcePasswordReset::class,
             \App\Http\Middleware\DecideWhatToDoWithUser::class,
-
+            \App\Http\Middleware\SyncLogout::class,
         ],
 
         'api' => [
