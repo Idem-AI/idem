@@ -1,0 +1,221 @@
+<!-- Ecosystem Showcase Section -->
+<section class="ecosystem-section relative py-24 lg:py-32 overflow-hidden">
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Section Header -->
+    <div class="text-center mb-16 lg:mb-20" [ngClass]="{ 'eco-reveal': isVisible() }">
+      <div
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
+      >
+        <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+        <span class="text-xs font-bold text-primary uppercase tracking-widest" i18n="@@ecosystem.badge">
+          Ecosystem
+        </span>
+      </div>
+
+      <h2
+        class="text-3xl sm:text-4xl lg:text-6xl font-bold text-white mb-6 tracking-tight"
+        i18n="@@ecosystem.title"
+      >
+        One Platform,<br />
+        <span class="i-underline">Specialized Apps</span>
+      </h2>
+
+      <p
+        class="text-lg lg:text-xl text-white/60 max-w-3xl mx-auto leading-relaxed"
+        i18n="@@ecosystem.description"
+      >
+        Idem evolves to offer an ecosystem of specialized applications, while staying true to its
+        original mission: empowering entrepreneurs to create and launch their projects with
+        artificial intelligence.
+      </p>
+    </div>
+
+    <!-- Ecosystem Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-12">
+      @for (app of apps; track app.id; let i = $index) {
+        <div
+          class="eco-card group relative rounded-2xl border border-white/10 overflow-hidden transition-all duration-500"
+          [ngClass]="{
+            'eco-card-visible': isVisible(),
+            'eco-card-delay-1': i === 0,
+            'eco-card-delay-2': i === 1
+          }"
+        >
+          <!-- Card Glow Effect -->
+          <div
+            class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            [ngStyle]="{
+              'background':
+                'radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ' +
+                app.accentColor + '10, transparent 40%)'
+            }"
+          ></div>
+
+          <!-- Card Content -->
+          <div class="relative glass-card p-8 lg:p-10 h-full flex flex-col">
+            <!-- App Header -->
+            <div class="flex items-start justify-between mb-6">
+              <div>
+                <div class="flex items-center gap-3 mb-2">
+                  <!-- Icon -->
+                  @if (app.id === 'idev') {
+                    <div
+                      class="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center"
+                    >
+                      <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                        />
+                      </svg>
+                    </div>
+                  } @else {
+                    <div
+                      class="w-12 h-12 rounded-xl bg-secondary/15 border border-secondary/25 flex items-center justify-center"
+                    >
+                      <svg class="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                    </div>
+                  }
+                  <div>
+                    <h3 class="text-2xl lg:text-3xl font-bold text-white">{{ app.name }}</h3>
+                  </div>
+                </div>
+                <p class="text-sm font-medium" [ngStyle]="{ color: app.accentColor }">
+                  {{ app.tagline }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <p class="text-white/70 leading-relaxed mb-8 text-base lg:text-lg flex-1">
+              {{ app.description }}
+            </p>
+
+            <!-- Features List -->
+            <div class="space-y-3 mb-8">
+              @for (feature of app.features; track feature) {
+                <div class="flex items-center gap-3">
+                  <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3 h-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <span class="text-white/80 text-sm">{{ feature }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- CTA -->
+            <a
+              [routerLink]="app.route"
+              class="inner-button w-full sm:w-auto text-center px-6 py-3 rounded-xl font-semibold inline-flex items-center justify-center gap-2 transition-all duration-300 group-hover:shadow-lg"
+            >
+              {{ app.ctaLabel }}
+              <svg
+                class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17 8l4 4m0 0l-4 4m4-4H3"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Flow Connector: Visual showing the journey -->
+    <div class="eco-flow" [ngClass]="{ 'eco-flow-visible': isVisible() }">
+      <div
+        class="relative rounded-2xl border border-white/10 bg-white/[0.02] p-6 lg:p-8"
+      >
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 lg:gap-10">
+          <!-- Step 1: Idea -->
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+              <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <span class="text-white font-medium text-sm" i18n="@@ecosystem.flow.idea">Your Idea</span>
+          </div>
+
+          <!-- Arrow -->
+          <svg class="w-6 h-6 text-white/30 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+          <svg class="w-6 h-6 text-white/30 sm:hidden rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+
+          <!-- Step 2: IDEV -->
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+            </div>
+            <span class="text-primary font-bold text-sm">IDEV</span>
+          </div>
+
+          <!-- Arrow -->
+          <svg class="w-6 h-6 text-white/30 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+          <svg class="w-6 h-6 text-white/30 sm:hidden rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+
+          <!-- Step 3: iDeploy -->
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-secondary/20 border border-secondary/30 flex items-center justify-center">
+              <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <span class="text-secondary font-bold text-sm">iDeploy</span>
+          </div>
+
+          <!-- Arrow -->
+          <svg class="w-6 h-6 text-white/30 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+          <svg class="w-6 h-6 text-white/30 sm:hidden rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+
+          <!-- Step 4: Live -->
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+              <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span class="text-green-400 font-medium text-sm" i18n="@@ecosystem.flow.live">Live!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

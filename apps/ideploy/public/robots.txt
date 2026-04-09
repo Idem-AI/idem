@@ -1,2 +1,11 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /password/
+Disallow: /email/
+Disallow: /livewire/
+Disallow: /storage/
+
+Sitemap: https://idem.africa/sitemap.xml

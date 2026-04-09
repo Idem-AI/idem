@@ -21,6 +21,10 @@ Allow: /robots.txt
 Allow: /en/
 Allow: /fr/
 
+# Allow ecosystem app pages
+Allow: /idev
+Allow: /ideploy
+
 # Crawl delay to be respectful
 Crawl-delay: 1
 
