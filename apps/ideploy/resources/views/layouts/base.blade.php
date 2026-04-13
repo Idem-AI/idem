@@ -22,6 +22,7 @@
 
     <!-- Structured Data - iDeploy Service by Idem -->
     <script type="application/ld+json">
+    @verbatim
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
@@ -42,6 +43,7 @@
           "url": "https://idem.africa"
         }
       }
+    @endverbatim
     </script>
 
     {{-- IDEM: Google Fonts - Jura --}}
@@ -49,7 +51,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    @use('App\Models\InstanceSettings')
     @php
 
         $instanceSettings = instanceSettings();
