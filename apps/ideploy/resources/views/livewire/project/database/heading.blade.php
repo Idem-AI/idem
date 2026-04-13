@@ -6,8 +6,8 @@
             <livewire:activity-monitor header="Logs" fullHeight />
         </x-slot:content>
     </x-slide-over>
-    <div class="navbar-main">
-        <nav class="flex shrink-0 gap-3 items-center whitespace-nowrap scrollbar min-h-10">
+    <div class="flex items-center justify-between gap-4 flex-wrap">
+        <nav class="flex shrink-0 gap-6 items-center whitespace-nowrap scrollbar min-h-10">
             <a class="nav-link {{ request()->routeIs('project.database.configuration') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.database.configuration', $parameters) }}">
                 Configuration
