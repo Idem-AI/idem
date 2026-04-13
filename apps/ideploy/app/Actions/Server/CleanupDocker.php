@@ -23,8 +23,8 @@ class CleanupDocker
         $helperImageVersion = data_get($settings, 'helper_version');
         $helperImage = config('constants.ideploy.helper_image');
         $helperImageWithVersion = "$helperImage:$helperImageVersion";
-        $helperImageWithoutPrefix = 'coollabsio/ideploy-helper';
-        $helperImageWithoutPrefixVersion = "coollabsio/ideploy-helper:$helperImageVersion";
+        $helperImageWithoutPrefix = 'coollabsio/coolify-helper';
+        $helperImageWithoutPrefixVersion = "coollabsio/coolify-helper:$helperImageVersion";
 
         $commands = [
             'docker container prune -f --filter "label=ideploy.managed=true" --filter "label!=ideploy.proxy=true"',
