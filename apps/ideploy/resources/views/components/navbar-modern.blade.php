@@ -153,8 +153,7 @@
             {{-- Projects --}}
             <li>
                 <a href="/projects"
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('project/*') || request()->is('projects') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('project/*') || request()->is('projects') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg {{ request()->is('project/*') || request()->is('projects') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                             <svg class="w-5 h-5 {{ request()->is('project/*') || request()->is('projects') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
@@ -172,8 +171,7 @@
             {{-- Servers --}}
             <li>
                 <a href="/servers"
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('server/*') || request()->is('servers') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('server/*') || request()->is('servers') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg {{ request()->is('server/*') || request()->is('servers') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                             <svg class="w-5 h-5 {{ request()->is('server/*') || request()->is('servers') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
@@ -193,8 +191,7 @@
             {{-- Sources --}}
             <li>
                 <a href="{{ route('source.all') }}"
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('source*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('source*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg {{ request()->is('source*') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                             <svg class="w-5 h-5 {{ request()->is('source*') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 15 15">
@@ -209,8 +206,7 @@
             {{-- Destinations --}}
             <li>
                 <a href="{{ route('destination.index') }}"
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('destination*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('destination*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg {{ request()->is('destination*') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                             <svg class="w-5 h-5 {{ request()->is('destination*') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -225,8 +221,7 @@
             {{-- S3 Storages --}}
             <li>
                 <a href="{{ route('storage.index') }}"
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('storages*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('storages*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg {{ request()->is('storages*') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                             <svg class="w-5 h-5 {{ request()->is('storages*') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -247,8 +242,7 @@
                 @if(auth()->user()->idem_role === 'admin')
                     <li>
                         <a href="{{ route('settings.index') }}"
-                           class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('settings*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                            <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                           class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('settings*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                             <div class="relative flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-lg {{ request()->is('settings*') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                                     <svg class="w-5 h-5 {{ request()->is('settings*') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
@@ -274,8 +268,7 @@
             {{-- Shared Variables --}}
             <li>
                 <a href="{{ route('shared-variables.index') }}"
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('shared-variables*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('shared-variables*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg {{ request()->is('shared-variables*') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                             <svg class="w-5 h-5 {{ request()->is('shared-variables*') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -293,8 +286,7 @@
             {{-- Notifications --}}
             <li>
                 <a href="{{ route('notifications.email') }}"
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('notifications*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('notifications*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg {{ request()->is('notifications*') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                             <svg class="w-5 h-5 {{ request()->is('notifications*') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -309,8 +301,7 @@
             {{-- Keys & Tokens --}}
             <li>
                 <a href="{{ route('security.private-key.index') }}"
-                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden {{ request()->is('security*') ? 'bg-white/5 text-white shadow-lg shadow-blue-500/10' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-600/0 group-hover:from-blue-500/5 group-hover:to-indigo-600/5 transition-all duration-300 rounded-xl"></div>
+                   class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->is('security*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <div class="relative flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg {{ request()->is('security*') ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-white/5 border border-white/10 group-hover:bg-blue-500/10 group-hover:border-blue-500/20' }} flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                             <svg class="w-5 h-5 {{ request()->is('security*') ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor">

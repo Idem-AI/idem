@@ -305,3 +305,34 @@ section {
   border-radius: 0.375rem;
   padding: 0.5rem;
 }
+
+@utility icon {
+  @apply w-5 h-5 flex-shrink-0;
+}
+
+@utility menu-item {
+  @apply flex items-center gap-3 w-full px-3 py-2.5 text-sm rounded-lg transition-all duration-200 cursor-pointer no-underline hover:bg-surface-2;
+  color: var(--color-text-secondary);
+  font-family: 'Jura', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  border-left: 2px solid transparent;
+}
+
+@utility menu-item-active {
+  color: var(--color-text-primary) !important;
+  background: var(--glass-bg-light) !important;
+  border-left-color: var(--color-primary-500) !important;
+}
+
+@utility nav-link {
+  @apply text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200 pb-3 no-underline;
+  font-family: 'Jura', sans-serif;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid transparent;
+}
+
+@utility nav-link-active {
+  color: var(--color-text-primary) !important;
+  border-bottom-color: var(--color-primary-500) !important;
+}

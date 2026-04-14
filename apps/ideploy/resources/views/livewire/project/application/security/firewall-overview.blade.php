@@ -99,28 +99,22 @@
             </div>
             
             <div class="flex gap-3">
-                <button wire:click="openBotManagement" class="group px-5 py-3 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-blue-600/20 hover:to-blue-500/10 border border-gray-700 hover:border-blue-500/50 rounded-xl text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 hover:scale-105">
-                    <div class="w-8 h-8 bg-blue-500/20 group-hover:bg-blue-500 rounded-lg flex items-center justify-center transition-colors">
-                        <svg class="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
-                        </svg>
-                    </div>
+                <button wire:click="openBotManagement" class="outer-button button-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                    </svg>
                     <span>Bot Management</span>
                 </button>
-                <button wire:click="openRateLimit" class="group px-5 py-3 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-purple-600/20 hover:to-purple-500/10 border border-gray-700 hover:border-purple-500/50 rounded-xl text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-purple-500/20 hover:scale-105">
-                    <div class="w-8 h-8 bg-purple-500/20 group-hover:bg-purple-500 rounded-lg flex items-center justify-center transition-colors">
-                        <svg class="w-4 h-4 text-purple-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
-                    </div>
+                <button wire:click="openRateLimit" class="outer-button button-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
                     <span>Protection Patterns</span>
                 </button>
-                <button wire:click="openGeoBlocking" class="group px-5 py-3 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-green-600/20 hover:to-green-500/10 border border-gray-700 hover:border-green-500/50 rounded-xl text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-green-500/20 hover:scale-105">
-                    <div class="w-8 h-8 bg-green-500/20 group-hover:bg-green-500 rounded-lg flex items-center justify-center transition-colors">
-                        <svg class="w-4 h-4 text-green-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
+                <button wire:click="openGeoBlocking" class="outer-button button-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                     <span>Geo-Blocking</span>
                 </button>
             </div>
@@ -410,36 +404,36 @@
     </div>
     
     {{-- Bot Management Modal --}}
-    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showBotManagementModal').live }" x-show="show" x-cloak>
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showBotManagementModal').live }" x-show="show" x-cloak style="font-family: 'Jura', sans-serif;">
         {{-- Backdrop --}}
-        <div class="fixed inset-0 bg-black/90 backdrop-blur-sm transition-all duration-300" @click="show = false"></div>
+        <div class="fixed inset-0 bg-black/95 backdrop-blur-md transition-all duration-300" @click="show = false"></div>
             
             {{-- Modal Content --}}
             <div class="flex min-h-full items-center justify-center p-4" @click.self="show = false">
-                <div class="relative w-full max-w-4xl bg-gradient-to-br from-gray-900 to-gray-800 border border-blue-500/30 rounded-2xl shadow-2xl shadow-blue-500/20 transform transition-all" @click.stop>
+                <div class="relative w-full max-w-4xl glass-card border-2 border-glass glow-accent" @click.stop>
                     {{-- Header --}}
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent">
+                    <div class="flex items-center justify-between px-8 py-6 border-b border-glass bg-gradient-glow">
                         <div>
-                            <p class="text-xs text-blue-400 mb-1 font-semibold">Firewall Protection</p>
-                            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
-                                🤖 Bot Management Templates
+                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 tracking-wide i-underline">
+                                BOT MANAGEMENT
                             </h2>
+                            <p class="text-sm text-gray-300 mt-2 font-medium">Pre-configured bot protection templates</p>
                         </div>
-                        <button @click="show = false" class="group p-2 rounded-lg bg-gray-800/50 hover:bg-red-500/20 border border-gray-700 hover:border-red-500/50 transition-all duration-200">
-                            <svg class="w-5 h-5 text-gray-400 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        <button @click="show = false" class="group outer-button p-3 rounded-xl hover:bg-danger transition-all duration-200">
+                            <svg class="w-6 h-6 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
                     </div>
                     
                     {{-- Info Banner --}}
-                    <div class="px-6 py-4 bg-blue-900/20 border-b border-gray-800">
-                        <div class="flex gap-3">
-                            <svg class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="px-8 py-4 border-b border-glass glass-dark">
+                        <div class="flex gap-3 items-start">
+                            <svg class="w-5 h-5 text-accent-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <div>
-                                <p class="text-sm text-blue-300 font-medium">Pre-configured Protection Templates</p>
+                                <p class="text-sm text-white font-semibold tracking-wide">Pre-configured Protection Templates</p>
                                 <p class="text-xs text-gray-400 mt-1">Import ready-to-use bot detection rules based on User-Agent patterns and behavioral analysis.</p>
                             </div>
                         </div>
@@ -449,14 +443,14 @@
                     <div class="px-6 py-6 max-h-[60vh] overflow-y-auto">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach($botTemplates as $key => $template)
-                                <div class="bg-[#151b2e] border border-gray-800 rounded-lg p-4 hover:border-gray-700 transition-colors">
+                                <div class="glass border border-glass rounded-xl p-4 hover:border-white/20 transition-all duration-200">
                                     {{-- Template Header --}}
                                     <div class="flex items-start justify-between mb-3">
                                         <div class="flex-1">
-                                            <h3 class="text-sm font-semibold text-white mb-1">{{ $template['name'] }}</h3>
+                                            <h3 class="text-sm font-semibold text-white mb-1 tracking-wide">{{ $template['name'] }}</h3>
                                             <p class="text-xs text-gray-400">{{ $template['description'] }}</p>
                                         </div>
-                                        <span class="px-2 py-0.5 rounded text-xs font-medium
+                                        <span class="px-2 py-0.5 rounded text-xs font-medium ml-2
                                             @if($template['severity'] === 'critical') bg-red-900/30 text-red-400
                                             @elseif($template['severity'] === 'high') bg-orange-900/30 text-orange-400
                                             @elseif($template['severity'] === 'medium') bg-yellow-900/30 text-yellow-400
@@ -482,8 +476,8 @@
                                     </div>
                                     
                                     {{-- Usage Info --}}
-                                    <div class="mb-4 p-3 bg-[#0a0a0a] border border-gray-800 rounded text-xs text-gray-400">
-                                        <p class="font-medium text-gray-300 mb-1">💡 Usage:</p>
+                                    <div class="mb-4 p-3 glass-dark border border-glass rounded-lg text-xs text-gray-400">
+                                        <p class="font-medium text-white mb-1">Usage:</p>
                                         <p>{{ $template['usage'] }}</p>
                                     </div>
                                     
@@ -503,14 +497,11 @@
                                     @endif
                                     
                                     {{-- Import Button --}}
-                                    <button wire:click="importBotTemplate('{{ $key }}')" 
-                                            class="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg text-sm font-bold transition-all duration-200 shadow-lg shadow-blue-500/30">
-                                        <span class="flex items-center justify-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                                            </svg>
-                                            Import Template
-                                        </span>
+                                    <button wire:click="importBotTemplate('{{ $key }}')" class="inner-button w-full button-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                        </svg>
+                                        Import
                                     </button>
                                 </div>
                             @endforeach
@@ -518,19 +509,17 @@
                     </div>
                     
                     {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent">
+                    <div class="px-8 py-6 border-t border-glass glass-dark">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                <p class="text-sm text-gray-400"><span class="text-white font-bold">{{ count($botTemplates) }}</span> templates available</p>
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
+                                <span class="text-gray-300 text-sm font-medium"><span class="text-white font-bold">{{ count($botTemplates) }}</span> TEMPLATES AVAILABLE</span>
                             </div>
-                            <button @click="show = false" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl text-sm font-bold transition-all duration-200 shadow-lg shadow-blue-500/30">
-                                <span class="flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    Close
-                                </span>
+                            <button @click="show = false" class="outer-button button-sm flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Close
                             </button>
                         </div>
                     </div>
@@ -539,37 +528,37 @@
     </div>
     
     {{-- Rate Limiting Modal --}}
-    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showRateLimitModal').live }" x-show="show" x-cloak>
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showRateLimitModal').live }" x-show="show" x-cloak style="font-family: 'Jura', sans-serif;">
         {{-- Backdrop --}}
-        <div class="fixed inset-0 bg-black/90 backdrop-blur-sm transition-all duration-300" @click="show = false"></div>
+        <div class="fixed inset-0 bg-black/95 backdrop-blur-md transition-all duration-300" @click="show = false"></div>
             
             {{-- Modal Content --}}
             <div class="flex min-h-full items-center justify-center p-4" @click.self="show = false">
-                <div class="relative w-full max-w-4xl bg-gradient-to-br from-gray-900 to-gray-800 border border-purple-500/30 rounded-2xl shadow-2xl shadow-purple-500/20 transform transition-all" @click.stop>
+                <div class="relative w-full max-w-4xl glass-card border-2 border-glass glow-accent" @click.stop>
                     {{-- Header --}}
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-transparent">
+                    <div class="flex items-center justify-between px-8 py-6 border-b border-glass bg-gradient-glow">
                         <div>
-                            <p class="text-xs text-purple-400 mb-1 font-semibold">Firewall Protection</p>
-                            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
-                                🛡️ Protection Pattern Templates
+                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 tracking-wide i-underline">
+                                PROTECTION PATTERNS
                             </h2>
+                            <p class="text-sm text-gray-300 mt-2 font-medium">Pattern-based request filtering and rate limiting</p>
                         </div>
-                        <button @click="show = false" class="group p-2 rounded-lg bg-gray-800/50 hover:bg-red-500/20 border border-gray-700 hover:border-red-500/50 transition-all duration-200">
-                            <svg class="w-5 h-5 text-gray-400 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        <button @click="show = false" class="group outer-button p-3 rounded-xl hover:bg-danger transition-all duration-200">
+                            <svg class="w-6 h-6 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
                     </div>
                     
                     {{-- Info Banner --}}
-                    <div class="px-6 py-4 bg-purple-900/20 border-b border-gray-800">
-                        <div class="flex gap-3">
-                            <svg class="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="px-8 py-4 border-b border-glass glass-dark">
+                        <div class="flex gap-3 items-start">
+                            <svg class="w-5 h-5 text-accent-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                             </svg>
                             <div>
-                                <p class="text-sm text-purple-300 font-medium">Pre-configured Protection Patterns</p>
-                                <p class="text-xs text-gray-400 mt-1">Pattern-based request filtering and monitoring. Note: These are static rules, not temporal rate limiting with request counting. For true rate limiting with time-based tracking, see CrowdSec Scenarios (coming soon).</p>
+                                <p class="text-sm text-white font-semibold tracking-wide">Pre-configured Protection Patterns</p>
+                                <p class="text-xs text-gray-400 mt-1">Pattern-based request filtering and monitoring. Static rules for request pattern detection. For time-based rate limiting, see CrowdSec Scenarios (coming soon).</p>
                             </div>
                         </div>
                     </div>
@@ -578,11 +567,11 @@
                     <div class="px-6 py-6 max-h-[60vh] overflow-y-auto">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach($rateLimitTemplates as $key => $template)
-                                <div class="bg-[#151b2e] border border-gray-800 rounded-lg p-4 hover:border-gray-700 transition-colors">
+                                <div class="glass border border-glass rounded-xl p-4 hover:border-white/20 transition-all duration-200">
                                     {{-- Template Header --}}
                                     <div class="flex items-start justify-between mb-3">
                                         <div class="flex-1">
-                                            <h3 class="text-sm font-semibold text-white mb-1">{{ $template['name'] }}</h3>
+                                            <h3 class="text-sm font-semibold text-white mb-1 tracking-wide">{{ $template['name'] }}</h3>
                                             <p class="text-xs text-gray-400">{{ $template['description'] }}</p>
                                         </div>
                                         <span class="px-2 py-0.5 rounded text-xs font-medium ml-2
@@ -616,8 +605,8 @@
                                     </div>
                                     
                                     {{-- Usage Info --}}
-                                    <div class="mb-4 p-3 bg-[#0a0a0a] border border-gray-800 rounded text-xs text-gray-400">
-                                        <p class="font-medium text-gray-300 mb-1">💡 Usage:</p>
+                                    <div class="mb-4 p-3 glass-dark border border-glass rounded-lg text-xs text-gray-400">
+                                        <p class="font-medium text-white mb-1">Usage:</p>
                                         <p>{{ $template['usage'] }}</p>
                                     </div>
                                     
@@ -637,9 +626,11 @@
                                     @endif
                                     
                                     {{-- Import Button --}}
-                                    <button wire:click="importRateLimitTemplate('{{ $key }}')" 
-                                            class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors">
-                                        Import Template
+                                    <button wire:click="importRateLimitTemplate('{{ $key }}')" class="inner-button w-full button-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                        </svg>
+                                        Import
                                     </button>
                                 </div>
                             @endforeach
@@ -647,19 +638,17 @@
                     </div>
                     
                     {{-- Footer --}}
-                    <div class="px-6 py-4 border-t border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-transparent">
+                    <div class="px-8 py-6 border-t border-glass glass-dark">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                                <p class="text-sm text-gray-400"><span class="text-white font-bold">{{ count($rateLimitTemplates) }}</span> templates available</p>
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
+                                <span class="text-gray-300 text-sm font-medium"><span class="text-white font-bold">{{ count($rateLimitTemplates) }}</span> TEMPLATES AVAILABLE</span>
                             </div>
-                            <button @click="show = false" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white rounded-xl text-sm font-bold transition-all duration-200 shadow-lg shadow-purple-500/30">
-                                <span class="flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    Close
-                                </span>
+                            <button @click="show = false" class="outer-button button-sm flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Close
                             </button>
                         </div>
                     </div>
@@ -669,18 +658,18 @@
     
     {{-- Install Modal (si pas activé) --}}
     @if(!$crowdSecAvailable && $showInstallModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto">
-            <div class="fixed inset-0 bg-black/80 transition-opacity"></div>
+        <div class="fixed inset-0 z-50 overflow-y-auto" style="font-family: 'Jura', sans-serif;">
+            <div class="fixed inset-0 bg-black/95 backdrop-blur-md transition-opacity"></div>
             <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-md bg-[#0a0a0a] border border-gray-800 rounded-xl shadow-2xl p-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">Activate Firewall</h3>
-                    <p class="text-sm text-gray-400 mb-6">CrowdSec will be automatically installed and configured on your server.</p>
+                <div class="relative w-full max-w-md glass-card border-2 border-glass glow-accent p-8">
+                    <h3 class="text-2xl font-bold text-white mb-2 tracking-wide i-underline">Activate Firewall</h3>
+                    <p class="text-sm text-gray-400 mt-4 mb-6">CrowdSec will be automatically installed and configured on your server.</p>
                     
                     <div class="flex gap-3">
-                        <button wire:click="$set('showInstallModal', false)" class="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <button wire:click="$set('showInstallModal', false)" class="outer-button button-sm flex-1">
                             Cancel
                         </button>
-                        <button wire:click="activateFirewall" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <button wire:click="activateFirewall" class="inner-button button-sm flex-1">
                             Activate Now
                         </button>
                     </div>
@@ -701,7 +690,7 @@
                     <div class="flex items-center justify-between px-8 py-6 border-b border-glass bg-gradient-glow">
                         <div>
                             <h2 class="text-3xl font-bold text-white flex items-center gap-3 tracking-wide i-underline">
-                                🌍 GEO-BLOCKING
+                                GEO-BLOCKING
                             </h2>
                             <p class="text-sm text-gray-300 mt-2 font-medium">Block or allow traffic from specific countries</p>
                         </div>
@@ -717,13 +706,13 @@
                         <div class="flex gap-6">
                             <button wire:click="$set('geoBlockingMode', 'blacklist')" class="flex-1 glass-card p-6 border-2 transition-all duration-300 {{ $geoBlockingMode === 'blacklist' ? 'border-danger shadow-glass-hover' : 'border-glass hover:border-gray-600' }}" style="{{ $geoBlockingMode === 'blacklist' ? 'box-shadow: 0 0 20px color-mix(in oklch, var(--color-danger) 50%, transparent);' : '' }}">
                                 <div class="text-left">
-                                    <p class="text-lg font-bold tracking-wide {{ $geoBlockingMode === 'blacklist' ? 'text-danger' : 'text-gray-400' }}">🚫 BLACKLIST MODE</p>
+                                    <p class="text-lg font-bold tracking-wide {{ $geoBlockingMode === 'blacklist' ? 'text-danger' : 'text-gray-400' }}">BLACKLIST MODE</p>
                                     <p class="text-sm mt-2 font-medium {{ $geoBlockingMode === 'blacklist' ? 'text-gray-300' : 'text-gray-500' }}">Block selected countries</p>
                                 </div>
                             </button>
                             <button wire:click="$set('geoBlockingMode', 'whitelist')" class="flex-1 glass-card p-6 border-2 transition-all duration-300 {{ $geoBlockingMode === 'whitelist' ? 'border-success shadow-glass-hover' : 'border-glass hover:border-gray-600' }}" style="{{ $geoBlockingMode === 'whitelist' ? 'box-shadow: 0 0 20px color-mix(in oklch, var(--color-success) 50%, transparent);' : '' }}">
                                 <div class="text-left">
-                                    <p class="text-lg font-bold tracking-wide {{ $geoBlockingMode === 'whitelist' ? 'text-success' : 'text-gray-400' }}">✅ WHITELIST MODE</p>
+                                    <p class="text-lg font-bold tracking-wide {{ $geoBlockingMode === 'whitelist' ? 'text-success' : 'text-gray-400' }}">WHITELIST MODE</p>
                                     <p class="text-sm mt-2 font-medium {{ $geoBlockingMode === 'whitelist' ? 'text-gray-300' : 'text-gray-500' }}">Allow only selected countries</p>
                                 </div>
                             </button>
@@ -732,10 +721,10 @@
                         {{-- Quick Actions --}}
                         <div class="flex gap-3 mt-5">
                             <button wire:click="applySuggestedCountries('whitelist')" class="glass px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:border-primary border border-glass transition-all duration-300 tracking-wide" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
-                                📍 EU + US + MAJOR COUNTRIES
+                                EU + US + MAJOR COUNTRIES
                             </button>
                             <button wire:click="applySuggestedCountries('blacklist')" class="glass px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:border-danger border border-glass transition-all duration-300 tracking-wide" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
-                                ⚠️ HIGH-RISK COUNTRIES
+                                HIGH-RISK COUNTRIES
                             </button>
                         </div>
                     </div>
@@ -784,7 +773,7 @@
                             <div class="flex items-center gap-4">
                                 <div class="glass px-6 py-3 rounded-xl glow-secondary">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+                                        <div class="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
                                         <span class="text-gray-300 text-sm font-medium">Selected:</span>
                                         <span class="text-white font-bold text-2xl">{{ count($selectedCountries) }}</span>
                                         <span class="text-gray-400 text-sm font-medium tracking-wide">{{ count($selectedCountries) === 1 ? 'COUNTRY' : 'COUNTRIES' }}</span>
@@ -792,16 +781,14 @@
                                 </div>
                             </div>
                             <div class="flex gap-4">
-                                <button @click="show = false" class="px-8 py-3 text-sm font-bold tracking-wide rounded-xl border border-glass bg-glass hover:bg-glass-dark text-white transition-all duration-300 hover:shadow-glass" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+                                <button @click="show = false" class="outer-button button-sm">
                                     CANCEL
                                 </button>
-                                <button wire:click="createGeoBlockingRule" class="px-8 py-3 text-sm font-bold tracking-wide rounded-xl text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" style="background: linear-gradient(135deg, #1447e6, #3ca4fa); box-shadow: 0 4px 12px rgba(20, 71, 230, 0.3); border: none;" {{ count($selectedCountries) === 0 ? 'disabled' : '' }}>
-                                    <span class="flex items-center gap-2">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                        CREATE RULE
-                                    </span>
+                                <button wire:click="createGeoBlockingRule" class="inner-button button-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed" {{ count($selectedCountries) === 0 ? 'disabled' : '' }}>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    CREATE RULE
                                 </button>
                             </div>
                         </div>
