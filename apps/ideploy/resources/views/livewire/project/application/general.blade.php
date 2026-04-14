@@ -670,23 +670,17 @@
                                     helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- https://app.example.com<br>- https://api.example.com:3000<br><br><span class='text-success'>✓ SSL certificates are automatically generated for custom domains</span>"
                                     x-bind:disabled="!canUpdate" />
                                 @can('update', $application)
-                                    <button wire:click="saveDomain" class="inner-button px-5 py-2 inline-flex items-center justify-center text-xs">
-                                        
-                                        <span class="relative flex items-center gap-2">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                            </svg>
-                                            Save
-                                        </span>
+                                    <button wire:click="saveDomain" class="outer-button px-5 py-2.5 inline-flex items-center gap-2 text-sm font-medium whitespace-nowrap">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                        SAVE
                                     </button>
-                                    <button wire:click="getWildcardDomain" class="inner-button px-5 py-2 inline-flex items-center justify-center text-xs">
-                                        
-                                        <span class="relative flex items-center gap-2">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                            </svg>
-                                            Generate Domain
-                                        </span>
+                                    <button wire:click="getWildcardDomain" class="inner-button px-5 py-2.5 inline-flex items-center gap-2 text-sm font-medium whitespace-nowrap">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        GENERATE DOMAIN
                                     </button>
                                 @endcan
                             @endif
