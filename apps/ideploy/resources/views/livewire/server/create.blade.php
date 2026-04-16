@@ -52,7 +52,7 @@
                 <div class="flex-1">
                     <h3 class="text-sm font-semibold text-amber-400 mb-1">Private Key Required</h3>
                     <p class="text-sm text-gray-400 mb-4">You need to create a private key before you can add a server. Private keys are used for SSH authentication.</p>
-                    <livewire:private-key.create from="server" />
+                    <livewire:security.private-key.create from="server" />
                 </div>
             </div>
         </div>
