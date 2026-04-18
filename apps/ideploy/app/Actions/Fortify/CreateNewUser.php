@@ -56,6 +56,12 @@ class CreateNewUser implements CreatesNewUsers
                 'password' => Hash::make($input['password']),
             ]);
             $team = $user->teams()->first();
+            
+            // Create personal team if user doesn't have one
+            if (!$team) {
+                $team = $user->recreate_personal_team();
+            }
+            
             if (isCloud()) {
                 $user->sendVerificationEmail();
             } else {
