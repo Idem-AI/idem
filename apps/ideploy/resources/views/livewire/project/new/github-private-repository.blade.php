@@ -1,15 +1,18 @@
 <div>
     {{-- Header --}}
-    <div class="mb-6 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50">
+    <div class="mb-6 glass-card p-6">
         <div class="flex items-center justify-between gap-4 mb-2">
-            <h1 class="text-2xl font-bold text-white">Create a new Application</h1>
+            <div>
+                <p class="text-xs text-gray-500 tracking-widest uppercase mb-1">GitHub App</p>
+                <h1 class="text-2xl font-bold text-white">Create a new Application</h1>
+            </div>
             <div class="flex items-center gap-2">
                 <x-modal-input buttonTitle="+ Add GitHub App" title="New GitHub App" closeOutside="false">
                     <livewire:source.github.create />
                 </x-modal-input>
                 @if ($repositories->count() > 0)
                     <a target="_blank" class="flex hover:no-underline" href="{{ getInstallationPath($github_app) }}">
-                        <button class="outer-button">
+                        <button class="outer-button flex items-center gap-2">
                             Change Repositories on GitHub
                             <x-external-link />
                         </button>
@@ -51,30 +54,37 @@
             @endif
             @if ($current_step === 'repository')
                 @if ($repositories->count() > 0)
-                    <div class="flex flex-col gap-2 pb-6">
-                        <div class="flex gap-2">
-                            <x-forms.select class="w-full" label="Repository" wire:model="selected_repository_id">
-                                @foreach ($repositories as $repo)
-                                    @if ($loop->first)
-                                        <option selected value="{{ data_get($repo, 'id') }}">
-                                            {{ data_get($repo, 'name') }}
-                                        </option>
-                                    @else
-                                        <option value="{{ data_get($repo, 'id') }}">{{ data_get($repo, 'name') }}
-                                        </option>
-                                    @endif
-                                @endforeach
-                            </x-forms.select>
-                        </div>
-                        <x-forms.button wire:click.prevent="loadBranches"> Load Repository </x-forms.button>
+                    <div class="glass-card p-6 mb-6">
+                        <label class="block text-sm font-semibold text-gray-200 mb-2">Repository</label>
+                        <select wire:model="selected_repository_id" class="w-full px-4 py-3 bg-gray-900 border border-gray-700/80 rounded-xl text-white text-sm transition-all focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer mb-4">
+                            @foreach ($repositories as $repo)
+                                @if ($loop->first)
+                                    <option selected value="{{ data_get($repo, 'id') }}">
+                                        {{ data_get($repo, 'name') }}
+                                    </option>
+                                @else
+                                    <option value="{{ data_get($repo, 'id') }}">{{ data_get($repo, 'name') }}
+                                    </option>
+                                @endif
+                            @endforeach
+                        </select>
+                        <button wire:click.prevent="loadBranches" class="inner-button w-full flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Load Repository
+                        </button>
                     </div>
                 @else
                     <div>No repositories found. Check your GitHub App configuration.</div>
                 @endif
                 @if ($branches->count() > 0)
-                    <h2 class="text-xl font-bold text-white mb-4">Configuration</h2>
+                    <div class="mb-3">
+                        <p class="text-xs text-gray-500 tracking-widest uppercase mb-1">Step 2</p>
+                        <h2 class="text-xl font-bold text-white">Configuration</h2>
+                    </div>
                     <div class="flex flex-col gap-4">
-                        <form class="flex flex-col gap-4 p-6 bg-[#0f1724] rounded-xl border border-gray-800/50" wire:submit='submit'>
+                        <form class="flex flex-col gap-5 glass-card p-6" wire:submit='submit'>
                             <div class="flex flex-col gap-2 pb-6">
                                 <div class="flex gap-2">
                                     <x-forms.select id="selected_branch_name" label="Branch">
@@ -132,9 +142,12 @@
                                     </div>
                                 @endif
                             </div>
-                            <x-forms.button type="submit">
+                            <button type="submit" class="inner-button w-full flex items-center justify-center gap-2">
                                 Continue
-                            </x-forms.button>
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
                 @endif
             @endif
         </div>
