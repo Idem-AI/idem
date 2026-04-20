@@ -1,0 +1,543 @@
+<div class="w-full min-h-screen md:p-6">
+  @if (isLoading()) {
+    <div class="max-w-6xl mx-auto text-center py-20">
+      <app-loader />
+    </div>
+  } @else if (!projectId()) {
+    <div class="max-w-3xl mx-auto text-center py-20">
+      <h3 class="text-xl font-semibold text-white mb-2">
+        {{ 'dashboard.legalDocs.noProject.title' | translate }}
+      </h3>
+      <p class="text-gray-400">{{ 'dashboard.legalDocs.noProject.subtitle' | translate }}</p>
+    </div>
+  } @else {
+    <div class="max-w-6xl mx-auto space-y-8">
+      <!-- Header -->
+      <div>
+        <h1 class="text-2xl font-bold text-white mb-1">
+          {{ 'dashboard.legalDocs.title' | translate }}
+        </h1>
+        <p class="text-sm text-gray-400">
+          {{ 'dashboard.legalDocs.subtitle' | translate }}
+        </p>
+      </div>
+
+      @if (isGenerating()) {
+        <!-- Generation progress -->
+        <div class="glass-card p-6">
+          <h2 class="text-lg font-semibold text-white mb-4">
+            {{ 'dashboard.legalDocs.generating.title' | translate }}
+          </h2>
+          <ul class="space-y-2">
+            @for (item of stepStatuses() | keyvalue; track item.key) {
+              <li
+                class="flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors"
+                [ngClass]="{
+                  'border-white/5 bg-white/[0.02]': item.value === 'pending',
+                  'border-primary/40 bg-primary/5': item.value === 'in-progress',
+                  'border-primary/20 bg-primary/[0.04]': item.value === 'completed',
+                }"
+              >
+                <div class="w-5 h-5 shrink-0 flex items-center justify-center">
+                  @if (item.value === 'completed') {
+                    <svg
+                      class="w-5 h-5 text-primary"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  } @else if (item.value === 'in-progress') {
+                    <div
+                      class="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"
+                    ></div>
+                  } @else {
+                    <div class="w-2 h-2 rounded-full bg-white/20"></div>
+                  }
+                </div>
+                @if (findEntry($any(item.key)); as entry) {
+                  <span class="text-sm text-white flex-1">{{ entryName(entry) }}</span>
+                } @else {
+                  <span class="text-sm text-white flex-1">{{ item.key }}</span>
+                }
+              </li>
+            }
+          </ul>
+          <div class="mt-6 flex justify-end">
+            <button class="outer-button" (click)="cancel()">
+              {{ 'common.cancel' | translate }}
+            </button>
+          </div>
+        </div>
+      } @else {
+        <!-- Generated documents (shown FIRST when present) -->
+        @if (legalDocs() && legalDocs()!.documents.length > 0) {
+          <section class="glass-card p-6 border-primary/20">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-10 h-10 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center"
+                >
+                  <svg
+                    class="w-5 h-5 text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="text-lg font-semibold text-white">
+                    {{ 'dashboard.legalDocs.generated.title' | translate }}
+                  </h2>
+                  <p class="text-xs text-gray-400">
+                    {{ legalDocs()!.documents.length }}
+                    {{ 'dashboard.legalDocs.generated.count' | translate }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <ul class="grid md:grid-cols-2 gap-3">
+              @for (doc of legalDocs()!.documents; track doc.id) {
+                <li
+                  class="flex items-center justify-between gap-3 p-4 rounded-lg border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors"
+                >
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div
+                      class="w-9 h-9 shrink-0 rounded-lg bg-white/5 flex items-center justify-center"
+                    >
+                      <svg
+                        class="w-4 h-4 text-gray-300"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.5"
+                          d="M9 12h6m-6 4h6M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"
+                        />
+                      </svg>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium text-white truncate">{{ doc.name }}</div>
+                      <div class="text-xs text-gray-500">
+                        {{ doc.generatedAt | date: 'medium' }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button class="outer-button button-sm" (click)="downloadDocument(doc)">
+                      {{ 'dashboard.legalDocs.actions.download' | translate }}
+                    </button>
+                    <button
+                      class="w-9 h-9 flex items-center justify-center rounded-lg border border-white/10 text-gray-400 hover:text-red-300 hover:border-red-300/40 transition-colors"
+                      (click)="deleteDocument(doc)"
+                      [attr.aria-label]="'common.delete' | translate"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+
+          <!-- Divider between generated and add-more -->
+          <div class="flex items-center gap-4 my-2">
+            <div class="flex-1 h-px bg-white/5"></div>
+            <span class="text-xs uppercase tracking-wider text-gray-500">
+              {{ 'dashboard.legalDocs.addMore' | translate }}
+            </span>
+            <div class="flex-1 h-px bg-white/5"></div>
+          </div>
+        }
+
+        <!-- Stepper indicator -->
+        <div class="flex items-center gap-3 md:gap-6 px-2">
+          <div class="flex items-center gap-2">
+            <div
+              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border transition-colors"
+              [ngClass]="{
+                'bg-primary text-white border-primary': selected().size > 0,
+                'bg-white/5 text-gray-400 border-white/10': selected().size === 0,
+              }"
+            >
+              1
+            </div>
+            <span
+              class="text-sm"
+              [ngClass]="{
+                'text-white': selected().size > 0,
+                'text-gray-400': selected().size === 0,
+              }"
+            >
+              {{ 'dashboard.legalDocs.stepper.select' | translate }}
+            </span>
+          </div>
+          <div class="flex-1 h-px bg-white/10"></div>
+          <div class="flex items-center gap-2">
+            <div
+              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border transition-colors"
+              [ngClass]="{
+                'bg-primary text-white border-primary': canGenerate(),
+                'bg-white/5 text-gray-400 border-white/10': !canGenerate(),
+              }"
+            >
+              2
+            </div>
+            <span
+              class="text-sm"
+              [ngClass]="{ 'text-white': canGenerate(), 'text-gray-400': !canGenerate() }"
+            >
+              {{ 'dashboard.legalDocs.stepper.context' | translate }}
+            </span>
+          </div>
+          <div class="flex-1 h-px bg-white/10"></div>
+          <div class="flex items-center gap-2">
+            <div
+              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border bg-white/5 text-gray-400 border-white/10"
+            >
+              3
+            </div>
+            <span class="text-sm text-gray-400">
+              {{ 'dashboard.legalDocs.stepper.generate' | translate }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Step 1: Pick documents -->
+        <section class="glass-card p-6">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+              <span
+                class="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 text-primary flex items-center justify-center text-xs font-semibold"
+                >1</span
+              >
+              <div>
+                <h2 class="text-lg font-semibold text-white">
+                  {{ 'dashboard.legalDocs.steps.selection.title' | translate }}
+                </h2>
+                <p class="text-sm text-gray-400">
+                  {{ 'dashboard.legalDocs.steps.selection.subtitle' | translate }}
+                </p>
+              </div>
+            </div>
+            <div class="text-sm text-gray-400">
+              {{ selected().size }} {{ 'dashboard.legalDocs.selected' | translate }}
+            </div>
+          </div>
+
+          @for (group of ['company', 'contracts', 'customers', 'internal']; track group) {
+            @if (groupedCatalog()[group]?.length) {
+              <div class="mb-5">
+                <h3 class="text-xs uppercase tracking-wider text-gray-500 mb-2">
+                  {{ 'dashboard.legalDocs.groups.' + group | translate }}
+                </h3>
+                <div class="grid md:grid-cols-2 gap-3">
+                  @for (entry of groupedCatalog()[group]; track entry.type) {
+                    <button
+                      type="button"
+                      (click)="toggleType(entry.type)"
+                      class="text-left p-4 rounded-lg border transition-colors"
+                      [ngClass]="{
+                        'border-primary bg-primary/10': isSelected(entry.type),
+                        'border-white/10 bg-white/[0.02] hover:border-white/20': !isSelected(
+                          entry.type
+                        ),
+                      }"
+                    >
+                      <div class="flex items-start gap-3">
+                        <div
+                          class="w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5"
+                          [ngClass]="{
+                            'border-primary bg-primary': isSelected(entry.type),
+                            'border-white/30': !isSelected(entry.type),
+                          }"
+                        >
+                          @if (isSelected(entry.type)) {
+                            <svg
+                              class="w-3 h-3 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="3"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-sm font-medium text-white">{{ entryName(entry) }}</div>
+                          <div class="text-xs text-gray-400 mt-1">
+                            {{ entryDescription(entry) }}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </section>
+
+        <!-- Step 2: Context form -->
+        @if (selected().size > 0) {
+          <section class="glass-card p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <span
+                class="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 text-primary flex items-center justify-center text-xs font-semibold"
+                >2</span
+              >
+              <div>
+                <h2 class="text-lg font-semibold text-white">
+                  {{ 'dashboard.legalDocs.steps.context.title' | translate }}
+                </h2>
+                <p class="text-sm text-gray-400">
+                  {{ 'dashboard.legalDocs.steps.context.subtitle' | translate }}
+                </p>
+              </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+              @if (requiredFields().includes('country')) {
+                <div>
+                  <label>{{ 'dashboard.legalDocs.fields.country' | translate }} *</label>
+                  <input
+                    type="text"
+                    [ngModel]="context().country"
+                    (ngModelChange)="updateContext('country', $event)"
+                    placeholder="Côte d’Ivoire, Cameroun, Sénégal…"
+                  />
+                </div>
+              }
+              @if (requiredFields().includes('legalForm')) {
+                <div>
+                  <label>{{ 'dashboard.legalDocs.fields.legalForm' | translate }} *</label>
+                  <input
+                    type="text"
+                    [ngModel]="context().legalForm"
+                    (ngModelChange)="updateContext('legalForm', $event)"
+                    placeholder="SARL, SAS, SA…"
+                  />
+                </div>
+              }
+              @if (requiredFields().includes('capital')) {
+                <div>
+                  <label>{{ 'dashboard.legalDocs.fields.capital' | translate }} *</label>
+                  <input
+                    type="text"
+                    [ngModel]="context().capital"
+                    (ngModelChange)="updateContext('capital', $event)"
+                    placeholder="1 000 000"
+                  />
+                </div>
+              }
+              @if (requiredFields().includes('currency')) {
+                <div>
+                  <label>{{ 'dashboard.legalDocs.fields.currency' | translate }} *</label>
+                  <select
+                    [ngModel]="context().currency"
+                    (ngModelChange)="updateContext('currency', $event)"
+                  >
+                    <option value="XAF">XAF / FCFA (CEMAC)</option>
+                    <option value="XOF">XOF / FCFA (UEMOA)</option>
+                    <option value="NGN">NGN — Naira</option>
+                    <option value="KES">KES — Kenyan Shilling</option>
+                    <option value="GHS">GHS — Cedi</option>
+                    <option value="ZAR">ZAR — Rand</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </div>
+              }
+              @if (requiredFields().includes('headOffice')) {
+                <div class="md:col-span-2">
+                  <label>{{ 'dashboard.legalDocs.fields.headOffice' | translate }} *</label>
+                  <input
+                    type="text"
+                    [ngModel]="context().headOffice"
+                    (ngModelChange)="updateContext('headOffice', $event)"
+                    placeholder="Adresse complète du siège social"
+                  />
+                </div>
+              }
+              @if (requiredFields().includes('companyEmail')) {
+                <div>
+                  <label>{{ 'dashboard.legalDocs.fields.companyEmail' | translate }} *</label>
+                  <input
+                    type="email"
+                    [ngModel]="context().companyEmail"
+                    (ngModelChange)="updateContext('companyEmail', $event)"
+                    placeholder="contact@entreprise.com"
+                  />
+                </div>
+              }
+              @if (requiredFields().includes('companyPhone')) {
+                <div>
+                  <label>{{ 'dashboard.legalDocs.fields.companyPhone' | translate }}</label>
+                  <input
+                    type="tel"
+                    [ngModel]="context().companyPhone"
+                    (ngModelChange)="updateContext('companyPhone', $event)"
+                    placeholder="+237 …"
+                  />
+                </div>
+              }
+              @if (requiredFields().includes('website')) {
+                <div>
+                  <label>{{ 'dashboard.legalDocs.fields.website' | translate }} *</label>
+                  <input
+                    type="url"
+                    [ngModel]="context().website"
+                    (ngModelChange)="updateContext('website', $event)"
+                    placeholder="https://..."
+                  />
+                </div>
+              }
+              @if (requiredFields().includes('activityDescription')) {
+                <div class="md:col-span-2">
+                  <label
+                    >{{ 'dashboard.legalDocs.fields.activityDescription' | translate }} *</label
+                  >
+                  <textarea
+                    [ngModel]="context().activityDescription"
+                    (ngModelChange)="updateContext('activityDescription', $event)"
+                    rows="3"
+                    placeholder="Décrivez précisément l’activité (objet social)."
+                  ></textarea>
+                </div>
+              }
+            </div>
+
+            @if (requiredFields().includes('founders')) {
+              <div class="mt-6">
+                <div class="flex items-center justify-between mb-3">
+                  <label class="!mb-0"
+                    >{{ 'dashboard.legalDocs.fields.founders' | translate }} *</label
+                  >
+                  <button type="button" class="outer-button button-sm" (click)="addFounder()">
+                    + {{ 'dashboard.legalDocs.fields.addFounder' | translate }}
+                  </button>
+                </div>
+                @if ((context().founders || []).length === 0) {
+                  <div
+                    class="text-sm text-gray-500 px-4 py-6 rounded-lg border border-dashed border-white/10 text-center"
+                  >
+                    {{ 'dashboard.legalDocs.fields.noFounders' | translate }}
+                  </div>
+                }
+                @for (f of context().founders || []; track $index; let i = $index) {
+                  <div class="grid md:grid-cols-12 gap-2 mb-2 items-start">
+                    <input
+                      class="md:col-span-4"
+                      type="text"
+                      [ngModel]="f.name"
+                      (ngModelChange)="updateFounder(i, 'name', $event)"
+                      placeholder="Nom complet"
+                    />
+                    <input
+                      class="md:col-span-4"
+                      type="text"
+                      [ngModel]="f.role"
+                      (ngModelChange)="updateFounder(i, 'role', $event)"
+                      placeholder="Rôle (Gérant, Associé…)"
+                    />
+                    <input
+                      class="md:col-span-3"
+                      type="text"
+                      [ngModel]="f.shares"
+                      (ngModelChange)="updateFounder(i, 'shares', $event)"
+                      placeholder="Parts / %"
+                    />
+                    <button
+                      type="button"
+                      class="md:col-span-1 w-full h-[46px] rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/30 flex items-center justify-center"
+                      (click)="removeFounder(i)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (missingRequiredFields().length > 0) {
+              <p class="mt-6 text-xs text-amber-400">
+                {{ 'dashboard.legalDocs.missingFields' | translate }}:
+                {{ missingRequiredFields().join(', ') }}
+              </p>
+            }
+          </section>
+        }
+
+        @if (errorMessage()) {
+          <p class="text-sm text-red-400 text-center">{{ errorMessage() }}</p>
+        }
+
+        <!-- Spacer to avoid sticky CTA overlap -->
+        @if (selected().size > 0) {
+          <div class="h-20"></div>
+        }
+      }
+    </div>
+
+    <!-- Sticky CTA bar when a selection exists -->
+    @if (!isGenerating() && selected().size > 0) {
+      <div
+        class="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-neutral-950/85 backdrop-blur-md"
+        [class.md:left-64]="true"
+      >
+        <div
+          class="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-4 flex-wrap"
+        >
+          <div class="text-sm">
+            <span class="text-white font-medium">{{ selected().size }}</span>
+            <span class="text-gray-400"> {{ 'dashboard.legalDocs.selected' | translate }}</span>
+            @if (missingRequiredFields().length > 0) {
+              <span class="text-amber-400 ml-3 text-xs">
+                • {{ missingRequiredFields().length }}
+                {{ 'dashboard.legalDocs.missingFieldsShort' | translate }}
+              </span>
+            }
+          </div>
+          <button class="inner-button" [disabled]="!canGenerate()" (click)="generate()">
+            {{ 'dashboard.legalDocs.actions.generate' | translate }}
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>

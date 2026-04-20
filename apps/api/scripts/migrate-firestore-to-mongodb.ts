@@ -35,7 +35,7 @@ class FirestoreToMongoDBMigration {
   private firebaseBucket: any;
 
   constructor() {
-    this.minioBucket = process.env.MINIO_BUCKET_NAME || 'idem-storage';
+    this.minioBucket = process.env.MINIO_BUCKET_NAME || 'idem-storage2';
   }
 
   async connect() {
