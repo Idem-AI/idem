@@ -6,6 +6,7 @@ import {
   ElementRef,
   OnInit,
   ViewChild,
+  ViewEncapsulation,
   computed,
   inject,
   signal,
@@ -14,6 +15,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MarkdownModule } from 'ngx-markdown';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { Loader } from '../../../../shared/components/loader/loader';
 import { AdvisorService } from '../../services/ai-agents/advisor.service';
@@ -29,8 +31,10 @@ const SUGGESTED_PROMPTS_FR = [
 @Component({
   selector: 'app-advisor',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, Loader],
+  imports: [CommonModule, FormsModule, TranslateModule, MarkdownModule, Loader],
   templateUrl: './advisor.html',
+  styleUrls: ['./advisor-markdown.css'],
+  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdvisorPage implements OnInit, AfterViewChecked {
@@ -117,9 +121,7 @@ export class AdvisorPage implements OnInit, AfterViewChecked {
         },
         error: (err) => {
           console.error('Advisor send error:', err);
-          this.errorMessage.set(
-            this.translate.instant('dashboard.advisor.errors.send'),
-          );
+          this.errorMessage.set(this.translate.instant('dashboard.advisor.errors.send'));
           this.pendingAssistant.set(false);
           // Remove optimistic message on error
           this.messages.update((msgs) => msgs.filter((m) => m.id !== optimistic.id));
