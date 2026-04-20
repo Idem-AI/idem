@@ -80,6 +80,9 @@
       "teams": "Équipes",
       "branding": "Image de marque",
       "businessPlan": "Business Plan",
+      "pitchDeck": "Pitch Deck",
+      "legalDocs": "Documents juridiques",
+      "advisor": "Conseiller",
       "diagrams": "Diagrammes",
       "development": "Développement",
       "deploymentOverview": "Aperçu du déploiement",
@@ -1604,6 +1607,136 @@
         }
       }
     },
+    "showPitchDeck": {
+      "loading": "Chargement de votre pitch deck…",
+      "title": "Pitch Deck",
+      "slide": "Slide",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour générer ou consulter son pitch deck."
+      },
+      "empty": {
+        "title": "Aucun pitch deck pour le moment",
+        "subtitle": "Générez un deck minimaliste de qualité investisseur à partir des données de votre projet. 11 slides : couverture, problème, solution, marché, produit, business model, traction, concurrence, équipe, financier, demande."
+      },
+      "generating": {
+        "title": "Génération de votre deck",
+        "subtitle": "Chaque slide est produite indépendamment — patientez.",
+        "slides": "slides"
+      },
+      "status": {
+        "inProgress": "En cours"
+      },
+      "actions": {
+        "generate": "Générer le deck",
+        "regenerate": "Regénérer",
+        "download": "Télécharger le PDF"
+      },
+      "slides": {
+        "Cover": "Couverture",
+        "Problem": "Problème",
+        "Solution": "Solution",
+        "Market": "Marché",
+        "Product": "Produit",
+        "Business Model": "Business Model",
+        "Traction": "Traction",
+        "Competition": "Concurrence",
+        "Team": "Équipe",
+        "Financials": "Financier",
+        "Ask": "Demande"
+      },
+      "errors": {
+        "generation": "Une erreur est survenue pendant la génération du deck.",
+        "download": "Impossible de télécharger le PDF.",
+        "pdfLoad": "Impossible de charger l’aperçu PDF."
+      },
+      "loadingPdf": "Chargement de l’aperçu PDF…"
+    },
+    "legalDocs": {
+      "title": "Documents juridiques",
+      "subtitle": "Générez des brouillons de documents juridiques adaptés au contexte africain (zone OHADA + pays de common law). Chaque document doit être relu par un juriste avant usage.",
+      "selected": "sélectionné(s)",
+      "addMore": "Ajouter d’autres documents",
+      "missingFields": "Champs requis manquants",
+      "missingFieldsShort": "champ(s) requis manquant(s)",
+      "stepper": {
+        "select": "Choisir",
+        "context": "Contexte",
+        "generate": "Générer"
+      },
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour choisir et générer ses documents juridiques."
+      },
+      "steps": {
+        "selection": {
+          "title": "1 — Choisissez les documents nécessaires",
+          "subtitle": "Seuls les champs requis par votre sélection seront demandés."
+        },
+        "context": {
+          "title": "2 — Contexte de l’entreprise",
+          "subtitle": "L’IA utilise ces données comme source de vérité. Elle n’invente rien."
+        }
+      },
+      "groups": {
+        "company": "Structure sociétaire",
+        "contracts": "Contrats",
+        "customers": "Clients & public",
+        "internal": "Interne"
+      },
+      "fields": {
+        "country": "Pays",
+        "legalForm": "Forme juridique",
+        "capital": "Capital social",
+        "currency": "Devise",
+        "headOffice": "Siège social",
+        "companyEmail": "Email de l’entreprise",
+        "companyPhone": "Téléphone de l’entreprise",
+        "website": "Site web",
+        "activityDescription": "Activité (objet social)",
+        "founders": "Associés / fondateurs",
+        "addFounder": "Ajouter un associé",
+        "noFounders": "Aucun associé ajouté. Ajoutez-en au moins un."
+      },
+      "actions": {
+        "generate": "Générer les documents sélectionnés",
+        "download": "Télécharger le PDF"
+      },
+      "generating": {
+        "title": "Génération des documents"
+      },
+      "generated": {
+        "title": "Documents générés",
+        "count": "document(s) prêts"
+      },
+      "errors": {
+        "catalog": "Impossible de charger le catalogue de documents.",
+        "generation": "La génération a échoué. Réessayez."
+      }
+    },
+    "advisor": {
+      "title": "Conseiller",
+      "subtitle": "Conseil IA pour la création d’entreprise en Afrique — ancré sur votre projet.",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour que le conseiller analyse son contexte."
+      },
+      "empty": {
+        "title": "Comment puis-je vous aider ?",
+        "subtitle": "Posez vos questions sur la forme juridique, les démarches, le financement, la fiscalité… Je poserai des questions complémentaires si besoin."
+      },
+      "composer": {
+        "placeholder": "Posez votre question… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
+        "send": "Envoyer",
+        "hint": "Les réponses sont des conseils générés par IA et ne constituent pas un conseil juridique ou financier."
+      },
+      "actions": {
+        "clear": "Effacer la conversation"
+      },
+      "errors": {
+        "send": "Impossible d’envoyer le message. Réessayez."
+      }
+    },
     "diagramDisplay": {
       "actions": {
         "add": "Ajouter un diagramme",
@@ -1720,6 +1853,7 @@
     "teamDetails": "Détails de l'équipe"
   },
   "common": {
+    "new": "Nouveau",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",

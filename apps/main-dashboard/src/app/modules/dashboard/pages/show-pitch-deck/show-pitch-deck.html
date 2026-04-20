@@ -1,0 +1,172 @@
+<div class="w-full min-h-screen md:p-6">
+  @if (isLoading()) {
+    <div class="max-w-6xl mx-auto text-center py-20">
+      <app-loader />
+      <p class="text-gray-400 mt-4">{{ 'dashboard.showPitchDeck.loading' | translate }}</p>
+    </div>
+  } @else if (!projectId()) {
+    <div class="max-w-3xl mx-auto text-center py-20">
+      <h3 class="text-xl font-semibold text-white mb-2">
+        {{ 'dashboard.showPitchDeck.noProject.title' | translate }}
+      </h3>
+      <p class="text-gray-400">
+        {{ 'dashboard.showPitchDeck.noProject.subtitle' | translate }}
+      </p>
+    </div>
+  } @else if (isGenerating()) {
+    <!-- Generation in progress -->
+    <div class="max-w-3xl mx-auto py-10">
+      <div class="glass-card p-8">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-white mb-1">
+              {{ 'dashboard.showPitchDeck.generating.title' | translate }}
+            </h2>
+            <p class="text-sm text-gray-400">
+              {{ 'dashboard.showPitchDeck.generating.subtitle' | translate }}
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-3xl font-bold text-white tabular-nums">
+              {{ completedCount() }} / {{ steps().length }}
+            </div>
+            <div class="text-xs text-gray-400 uppercase tracking-wider">
+              {{ 'dashboard.showPitchDeck.generating.slides' | translate }}
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-8">
+          <div
+            class="h-full bg-primary transition-all duration-300"
+            [style.width.%]="(completedCount() / steps().length) * 100"
+          ></div>
+        </div>
+
+        <ul class="space-y-2">
+          @for (step of steps(); track step.name) {
+            <li
+              class="flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors"
+              [ngClass]="{
+                'border-white/5 bg-white/[0.02]': step.status === 'pending',
+                'border-primary/40 bg-primary/5': step.status === 'in-progress',
+                'border-primary/20 bg-primary/[0.04]': step.status === 'completed',
+              }"
+            >
+              <div class="w-5 h-5 shrink-0 flex items-center justify-center">
+                @if (step.status === 'completed') {
+                  <svg
+                    class="w-5 h-5 text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                } @else if (step.status === 'in-progress') {
+                  <div
+                    class="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"
+                  ></div>
+                } @else {
+                  <div class="w-2 h-2 rounded-full bg-white/20"></div>
+                }
+              </div>
+              <span
+                class="text-sm flex-1"
+                [ngClass]="{
+                  'text-gray-500': step.status === 'pending',
+                  'text-white': step.status !== 'pending',
+                }"
+              >
+                {{ 'dashboard.showPitchDeck.slides.' + step.name | translate }}
+              </span>
+              @if (step.status === 'in-progress') {
+                <span class="text-xs text-primary uppercase tracking-wider">
+                  {{ 'dashboard.showPitchDeck.status.inProgress' | translate }}
+                </span>
+              }
+            </li>
+          }
+        </ul>
+
+        <div class="mt-8 flex justify-end">
+          <button class="outer-button" (click)="cancelGeneration()">
+            {{ 'common.cancel' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  } @else if (pitchDeck() && pitchDeck()!.sections.length > 0) {
+    <!-- Deck viewer (PDF) -->
+    <div class="max-w-7xl mx-auto">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h2 class="text-2xl font-bold text-white mb-1">
+            {{ 'dashboard.showPitchDeck.title' | translate }}
+          </h2>
+          <p class="text-sm text-gray-400">
+            {{ pitchDeck()!.sections.length }}
+            {{ 'dashboard.showPitchDeck.generating.slides' | translate }}
+          </p>
+        </div>
+      </div>
+
+      @if (pdfLoading() && !pdfBlob()) {
+        <div class="glass-card p-10 text-center">
+          <div
+            class="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4"
+          ></div>
+          <p class="text-sm text-gray-400">
+            {{ 'dashboard.showPitchDeck.loadingPdf' | translate }}
+          </p>
+        </div>
+      } @else if (pdfBlob()) {
+        <app-pitch-deck-pdf-viewer
+          [pdfBlob]="pdfBlob()"
+          [slideNames]="slideNames()"
+          (downloadRequested)="downloadPdf()"
+          (regenerateRequested)="regenerate()"
+        ></app-pitch-deck-pdf-viewer>
+      }
+
+      @if (errorMessage()) {
+        <p class="mt-6 text-sm text-red-400 text-center">{{ errorMessage() }}</p>
+      }
+    </div>
+  } @else {
+    <!-- Empty state -->
+    <div class="max-w-2xl mx-auto text-center py-20">
+      <div class="mb-6 flex justify-center">
+        <div
+          class="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center"
+        >
+          <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 3h18M8 15h8"
+            />
+          </svg>
+        </div>
+      </div>
+      <h2 class="text-2xl font-bold text-white mb-3">
+        {{ 'dashboard.showPitchDeck.empty.title' | translate }}
+      </h2>
+      <p class="text-gray-400 mb-8 max-w-lg mx-auto">
+        {{ 'dashboard.showPitchDeck.empty.subtitle' | translate }}
+      </p>
+      <button class="inner-button" (click)="startGeneration()">
+        {{ 'dashboard.showPitchDeck.actions.generate' | translate }}
+      </button>
+      @if (errorMessage()) {
+        <p class="mt-6 text-sm text-red-400">{{ errorMessage() }}</p>
+      }
+    </div>
+  }
+</div>

@@ -55,7 +55,7 @@ export class BrandingService extends GenericService {
   // Optimisée pour qualité maximale avec vitesse préservée
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview', // Gemini 3 comme demandé
+    modelName: 'gemini-3.1-flash-lite-preview', // Gemini 3 comme demandé
     llmOptions: {
       maxOutputTokens: 1000, // Augmenté pour plus de détails SVG complexes
       temperature: 0.2, // Réduit pour cohérence et qualité constante
@@ -67,7 +67,7 @@ export class BrandingService extends GenericService {
   // Configuration LLM pour la génération de couleurs
   private static readonly COLORS_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    modelName: 'gemini-3.1-flash-lite-preview',
     llmOptions: {
       maxOutputTokens: 3500,
       temperature: 0.1,
@@ -79,7 +79,7 @@ export class BrandingService extends GenericService {
   // Configuration LLM pour la génération de typographies
   private static readonly TYPOGRAPHY_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    modelName: 'gemini-3.1-flash-lite-preview',
     llmOptions: {
       maxOutputTokens: 5000,
       temperature: 0.7,
