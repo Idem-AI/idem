@@ -39,13 +39,8 @@ export class TrustedByComponent {
     },
     {
       name: 'Github',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/98/Github_2023_logo.svg',
+      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg',
       url: 'https://github.com'
     },
-    {
-      name: 'Gitlab',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/1/17/Gitlab_logo.svg',
-      url: 'https://gitlab.com'
-    }
   ];
 }
