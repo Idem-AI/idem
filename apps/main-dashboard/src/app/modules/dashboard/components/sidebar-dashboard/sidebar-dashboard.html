@@ -211,17 +211,34 @@
 
         <!-- Label -->
         @if (!isSidebarCollapsed()) {
-          <span class="font-medium transition-all duration-200 group-hover:translate-x-1">
+          <span class="font-medium transition-all duration-200 group-hover:translate-x-1 flex-1">
             {{ item.labelKey | translate }}
           </span>
+          @if (item.isNew) {
+            <span
+              class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
+            >
+              {{ 'common.new' | translate }}
+            </span>
+          }
+        } @else if (item.isNew) {
+          <!-- Collapsed: tiny dot badge on icon -->
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary"></span>
         }
 
         <!-- Tooltip for collapsed state -->
         @if (isSidebarCollapsed()) {
           <div
-            class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50"
+            class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 flex items-center gap-2"
           >
             {{ item.labelKey | translate }}
+            @if (item.isNew) {
+              <span
+                class="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-primary/20 text-primary"
+              >
+                {{ 'common.new' | translate }}
+              </span>
+            }
           </div>
         }
       </a>
@@ -335,7 +352,14 @@
                 [class.hover:bg-white]="!item.isActive"
               >
                 <i [class]="item.icon" class="text-lg"></i>
-                <span class="font-medium">{{ item.labelKey | translate }}</span>
+                <span class="font-medium flex-1">{{ item.labelKey | translate }}</span>
+                @if (item.isNew) {
+                  <span
+                    class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
+                  >
+                    {{ 'common.new' | translate }}
+                  </span>
+                }
               </a>
             }
           </nav>

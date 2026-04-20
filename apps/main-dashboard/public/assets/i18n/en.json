@@ -80,6 +80,9 @@
       "teams": "Teams",
       "branding": "Branding",
       "businessPlan": "Business Plan",
+      "pitchDeck": "Pitch Deck",
+      "legalDocs": "Legal Documents",
+      "advisor": "Business Advisor",
       "diagrams": "Diagrams",
       "development": "Development",
       "deploymentOverview": "Deployment Overview",
@@ -1604,6 +1607,136 @@
         }
       }
     },
+    "showPitchDeck": {
+      "loading": "Loading your pitch deck…",
+      "title": "Pitch Deck",
+      "slide": "Slide",
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project to generate or view its pitch deck."
+      },
+      "empty": {
+        "title": "No pitch deck yet",
+        "subtitle": "Generate a minimalist investor-grade deck from your project data. Eleven slides: cover, problem, solution, market, product, business model, traction, competition, team, financials, ask."
+      },
+      "generating": {
+        "title": "Generating your deck",
+        "subtitle": "Each slide is crafted independently — hang tight.",
+        "slides": "slides"
+      },
+      "status": {
+        "inProgress": "Working"
+      },
+      "actions": {
+        "generate": "Generate deck",
+        "regenerate": "Regenerate",
+        "download": "Download PDF"
+      },
+      "slides": {
+        "Cover": "Cover",
+        "Problem": "Problem",
+        "Solution": "Solution",
+        "Market": "Market",
+        "Product": "Product",
+        "Business Model": "Business Model",
+        "Traction": "Traction",
+        "Competition": "Competition",
+        "Team": "Team",
+        "Financials": "Financials",
+        "Ask": "The Ask"
+      },
+      "errors": {
+        "generation": "Something went wrong while generating the deck.",
+        "download": "Could not download the PDF.",
+        "pdfLoad": "Could not load the PDF preview."
+      },
+      "loadingPdf": "Loading PDF preview…"
+    },
+    "legalDocs": {
+      "title": "Legal Documents",
+      "subtitle": "Generate draft legal documents tailored to the African reality (OHADA zone + common-law). Each document is reviewable and should be validated by a lawyer.",
+      "selected": "selected",
+      "addMore": "Add more documents",
+      "missingFields": "Missing required fields",
+      "missingFieldsShort": "required field(s) missing",
+      "stepper": {
+        "select": "Select",
+        "context": "Context",
+        "generate": "Generate"
+      },
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project to pick and generate its legal documents."
+      },
+      "steps": {
+        "selection": {
+          "title": "1 — Pick the documents you need",
+          "subtitle": "Only the fields required by your selection will be asked."
+        },
+        "context": {
+          "title": "2 — Company context",
+          "subtitle": "The AI uses this data as the single source of truth. Never invents."
+        }
+      },
+      "groups": {
+        "company": "Company structure",
+        "contracts": "Contracts",
+        "customers": "Customers & public",
+        "internal": "Internal"
+      },
+      "fields": {
+        "country": "Country",
+        "legalForm": "Legal form",
+        "capital": "Share capital",
+        "currency": "Currency",
+        "headOffice": "Registered office",
+        "companyEmail": "Company email",
+        "companyPhone": "Company phone",
+        "website": "Website",
+        "activityDescription": "Business activity",
+        "founders": "Founders / shareholders",
+        "addFounder": "Add founder",
+        "noFounders": "No founder yet. Add at least one."
+      },
+      "actions": {
+        "generate": "Generate selected documents",
+        "download": "Download PDF"
+      },
+      "generating": {
+        "title": "Generating documents"
+      },
+      "generated": {
+        "title": "Generated documents",
+        "count": "document(s) ready"
+      },
+      "errors": {
+        "catalog": "Unable to load the document catalog.",
+        "generation": "Generation failed. Try again."
+      }
+    },
+    "advisor": {
+      "title": "Business advisor",
+      "subtitle": "AI-powered guidance for starting a company in Africa — grounded in your project.",
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project so the advisor can analyze its context."
+      },
+      "empty": {
+        "title": "How can I help?",
+        "subtitle": "Ask about legal form, administrative steps, financing, tax or anything else. I will ask follow-up questions when needed."
+      },
+      "composer": {
+        "placeholder": "Ask the advisor… (Enter to send, Shift+Enter for new line)",
+        "send": "Send",
+        "hint": "Responses are AI-generated guidance and not legal or financial advice."
+      },
+      "actions": {
+        "clear": "Clear conversation"
+      },
+      "errors": {
+        "send": "Could not send the message. Try again."
+      }
+    },
     "diagramDisplay": {
       "actions": {
         "add": "Add Diagram",
@@ -1765,6 +1898,7 @@
     "teamDetails": "Team Details"
   },
   "common": {
+    "new": "New",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",

@@ -12,7 +12,7 @@ export class MinIOConnection {
     const useSSL = process.env.MINIO_USE_SSL === 'true';
     const accessKey = process.env.MINIO_ACCESS_KEY || 'minioadmin';
     const secretKey = process.env.MINIO_SECRET_KEY || 'minioadmin';
-    this.bucketName = process.env.MINIO_BUCKET_NAME || 'idem-storage';
+    this.bucketName = process.env.MINIO_BUCKET_NAME || 'idem-storage2';
 
     this.client = new Minio.Client({
       endPoint,

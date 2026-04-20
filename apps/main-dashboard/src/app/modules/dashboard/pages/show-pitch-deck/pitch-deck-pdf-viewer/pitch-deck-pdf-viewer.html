@@ -1,0 +1,89 @@
+<div class="w-full">
+  @if (loading()) {
+    <div class="glass-card p-10 text-center">
+      <div class="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4"></div>
+      <p class="text-sm text-gray-400">{{ 'dashboard.showPitchDeck.loadingPdf' | translate }}</p>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="glass-card p-8 text-center">
+      <p class="text-sm text-red-400 mb-4">{{ errorMessage() }}</p>
+      <button class="outer-button" (click)="onRegenerate()">
+        {{ 'dashboard.showPitchDeck.actions.regenerate' | translate }}
+      </button>
+    </div>
+  } @else {
+    <!-- Toolbar + main preview -->
+    <div class="glass-card p-4 mb-6">
+      <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-gray-400 uppercase tracking-wider">
+            {{ 'dashboard.showPitchDeck.slide' | translate }}
+            {{ activePage() }} / {{ pages().length }}
+          </span>
+          @if (currentSlideName()) {
+            <span class="text-sm text-white/80 truncate max-w-[260px]">{{ currentSlideName() }}</span>
+          }
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white"
+            (click)="prev()"
+            [disabled]="activePage() === 1"
+            [attr.aria-label]="'common.previous' | translate"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white"
+            (click)="next()"
+            [disabled]="activePage() === pages().length"
+            [attr.aria-label]="'common.next' | translate"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div class="w-px h-6 bg-white/10 mx-1"></div>
+          <button class="outer-button button-sm" (click)="onRegenerate()">
+            {{ 'dashboard.showPitchDeck.actions.regenerate' | translate }}
+          </button>
+          <button class="inner-button button-sm" (click)="onDownload()">
+            {{ 'dashboard.showPitchDeck.actions.download' | translate }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Main slide (real PDF page) -->
+      <div class="w-full flex items-center justify-center bg-neutral-950 rounded-lg border border-white/10 p-4">
+        <canvas #mainCanvas class="max-w-full h-auto shadow-2xl shadow-black/50 rounded-sm"></canvas>
+      </div>
+    </div>
+
+    <!-- Thumbnails grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      @for (page of pages(); track page.pageNumber) {
+        <button
+          type="button"
+          (click)="selectPage(page.pageNumber)"
+          class="group relative rounded-lg overflow-hidden border transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+          [ngClass]="{
+            'border-primary ring-2 ring-primary/40': activePage() === page.pageNumber,
+            'border-white/10 hover:border-white/30': activePage() !== page.pageNumber
+          }"
+        >
+          <div class="relative bg-white">
+            <canvas #thumbCanvas class="block w-full h-auto"></canvas>
+          </div>
+          <div
+            class="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/70 text-white text-[10px] uppercase tracking-wider flex items-center justify-between gap-2"
+          >
+            <span>{{ page.pageNumber }}</span>
+            <span class="truncate">{{ page.name }}</span>
+          </div>
+        </button>
+      }
+    </div>
+  }
+</div>
