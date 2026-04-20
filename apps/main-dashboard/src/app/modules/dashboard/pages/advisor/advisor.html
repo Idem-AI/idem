@@ -62,13 +62,17 @@
                 {{ msg.role === 'user' ? 'Me' : 'AI' }}
               </div>
               <div
-                class="max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words"
+                class="max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed advisor-message"
                 [ngClass]="{
                   'bg-primary text-white': msg.role === 'user',
-                  'bg-white/[0.03] text-gray-100 border border-white/5': msg.role !== 'user',
+                  'bg-white/5 text-gray-100 border border-white/5': msg.role !== 'user',
                 }"
               >
-                {{ msg.content }}
+                @if (msg.role === 'user') {
+                  <div class="whitespace-pre-wrap break-words">{{ msg.content }}</div>
+                } @else {
+                  <markdown [data]="msg.content" class="markdown-content"></markdown>
+                }
               </div>
             </div>
           }
