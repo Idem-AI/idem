@@ -60,6 +60,7 @@
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
+    "@google/generative-ai": "^0.21.0",
     "typescript": "^5.8.2"
   }
 }
