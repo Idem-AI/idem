@@ -1610,7 +1610,8 @@
     "showPitchDeck": {
       "loading": "Chargement de votre pitch deck…",
       "title": "Pitch Deck",
-      "slide": "Slide",
+      "slide": "Diapositive",
+      "allSlides": "Toutes les diapositives",
       "noProject": {
         "title": "Aucun projet sélectionné",
         "subtitle": "Sélectionnez un projet pour générer ou consulter son pitch deck."
