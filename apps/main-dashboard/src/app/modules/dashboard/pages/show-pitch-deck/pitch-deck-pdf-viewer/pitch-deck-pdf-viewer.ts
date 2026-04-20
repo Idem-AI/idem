@@ -116,10 +116,10 @@ export class PitchDeckPdfViewer implements OnChanges, AfterViewInit, OnDestroy {
       this.loading.set(false);
 
       // Let Angular render the canvases, then paint
-      queueMicrotask(() => {
+      setTimeout(() => {
         this.renderMainPage(1);
         this.renderThumbnails();
-      });
+      }, 0);
     } catch (err) {
       console.error('[PitchDeckPdfViewer] Failed to load PDF:', err);
       this.errorMessage.set('Impossible de charger le PDF.');
