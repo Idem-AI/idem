@@ -96,8 +96,6 @@ export class Header implements OnInit {
       label: $localize`:@@header.menu.product:Product`,
       type: 'dropdown',
       items: [
-        { label: $localize`:@@header.menu.solutions:Solutions`, route: '/solutions' },
-        { label: $localize`:@@header.menu.architecture:Architecture`, route: '/architecture' },
         { label: $localize`:@@header.menu.pricing:Pricing`, route: '/pricing' },
         { label: 'IDEV', route: '/idev' },
         { label: 'iDeploy', route: '/ideploy' },
