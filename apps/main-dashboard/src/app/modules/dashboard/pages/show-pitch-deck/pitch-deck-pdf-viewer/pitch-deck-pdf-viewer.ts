@@ -22,10 +22,7 @@ import { DOCUMENT } from '@angular/common';
 // pdfjs-dist is available transitively via ng2-pdf-viewer
 // Using the matching version worker from CDN for zero-config reliability.
 import * as pdfjsLib from 'pdfjs-dist';
-import type {
-  PDFDocumentProxy,
-  PDFPageProxy,
-} from 'pdfjs-dist/types/src/display/api';
+import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
 
 interface SlidePage {
   pageNumber: number;
@@ -119,10 +116,10 @@ export class PitchDeckPdfViewer implements OnChanges, AfterViewInit, OnDestroy {
       this.loading.set(false);
 
       // Let Angular render the canvases, then paint
-      queueMicrotask(() => {
+      setTimeout(() => {
         this.renderMainPage(1);
         this.renderThumbnails();
-      });
+      }, 0);
     } catch (err) {
       console.error('[PitchDeckPdfViewer] Failed to load PDF:', err);
       this.errorMessage.set('Impossible de charger le PDF.');
@@ -137,20 +134,30 @@ export class PitchDeckPdfViewer implements OnChanges, AfterViewInit, OnDestroy {
       const page: PDFPageProxy = await this.pdfDocument.getPage(pageNumber);
       const canvas = this.mainCanvas.nativeElement;
       const container = canvas.parentElement as HTMLElement | null;
-      const containerWidth = container?.clientWidth ?? 900;
+      if (!container) return;
+
+      // Le conteneur a aspect-video (16:9), on veut remplir exactement
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
       const viewport = page.getViewport({ scale: 1 });
-      const scale = (containerWidth / viewport.width) * (this.devicePixelRatio() || 1);
+      const ratio = this.devicePixelRatio() || 1;
+
+      // Calculer le scale pour remplir le conteneur (cover behavior)
+      const scaleX = containerWidth / viewport.width;
+      const scaleY = containerHeight / viewport.height;
+      const scale = Math.max(scaleX, scaleY) * ratio;
       const scaledViewport = page.getViewport({ scale });
 
       canvas.width = scaledViewport.width;
       canvas.height = scaledViewport.height;
-      canvas.style.width = `${containerWidth}px`;
-      canvas.style.height = `${(containerWidth / viewport.width) * viewport.height}px`;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.objectFit = 'contain';
 
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const task = page.render({ canvasContext: ctx, viewport: scaledViewport, canvas });
+      const task = page.render({ canvasContext: ctx, viewport: scaledViewport });
       this.mainRenderTask = task;
       await task.promise;
     } catch (err: unknown) {
@@ -183,7 +190,7 @@ export class PitchDeckPdfViewer implements OnChanges, AfterViewInit, OnDestroy {
 
         const ctx = canvas.getContext('2d');
         if (!ctx) continue;
-        await page.render({ canvasContext: ctx, viewport: scaledViewport, canvas }).promise;
+        await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
       } catch (err) {
         console.warn('[PitchDeckPdfViewer] Thumbnail render error:', err);
       }

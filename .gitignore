@@ -94,3 +94,4 @@ docker-compose.staging.yml
 
 .windsurf
 apps/ideploy/public/hot
+apps/chart/vite.config.js.timestamp-1776724487404-1ec21a1d67413.mjs
