@@ -1,0 +1,206 @@
+/* Styles pour le rendu Markdown dans les messages de l'advisor */
+
+.advisor-message .markdown-content {
+  color: inherit;
+  line-height: 1.6;
+  word-wrap: break-word;
+  font-weight: 400 !important;
+}
+
+/* Reset du poids de police pour tout le contenu */
+.advisor-message .markdown-content * {
+  font-weight: inherit;
+}
+
+/* Titres avec tailles distinctes et poids appropriés */
+.advisor-message .markdown-content h1 {
+  font-size: 1.75em !important;
+  font-weight: 700 !important;
+  margin-top: 1.2em !important;
+  margin-bottom: 0.6em !important;
+  line-height: 1.3 !important;
+  color: inherit;
+}
+
+.advisor-message .markdown-content h2 {
+  font-size: 1.5em !important;
+  font-weight: 700 !important;
+  margin-top: 1.1em !important;
+  margin-bottom: 0.55em !important;
+  line-height: 1.3 !important;
+  color: inherit;
+}
+
+.advisor-message .markdown-content h3 {
+  font-size: 1.35em !important;
+  font-weight: 600 !important;
+  margin-top: 1em !important;
+  margin-bottom: 0.5em !important;
+  line-height: 1.3 !important;
+  color: inherit;
+}
+
+.advisor-message .markdown-content h4 {
+  font-size: 1.2em !important;
+  font-weight: 600 !important;
+  margin-top: 0.9em !important;
+  margin-bottom: 0.45em !important;
+  line-height: 1.3 !important;
+  color: inherit;
+}
+
+.advisor-message .markdown-content h5 {
+  font-size: 1.1em !important;
+  font-weight: 600 !important;
+  margin-top: 0.8em !important;
+  margin-bottom: 0.4em !important;
+  line-height: 1.3 !important;
+  color: inherit;
+}
+
+.advisor-message .markdown-content h6 {
+  font-size: 1.05em !important;
+  font-weight: 600 !important;
+  margin-top: 0.7em !important;
+  margin-bottom: 0.35em !important;
+  line-height: 1.3 !important;
+  color: inherit;
+}
+
+/* Paragraphes avec espacement */
+.advisor-message .markdown-content p {
+  margin-bottom: 0.85em !important;
+  margin-top: 0 !important;
+  line-height: 1.6 !important;
+}
+
+.advisor-message .markdown-content p:first-child {
+  margin-top: 0 !important;
+}
+
+.advisor-message .markdown-content p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Premier élément après un titre */
+.advisor-message .markdown-content h1 + p,
+.advisor-message .markdown-content h2 + p,
+.advisor-message .markdown-content h3 + p,
+.advisor-message .markdown-content h4 + p,
+.advisor-message .markdown-content h5 + p,
+.advisor-message .markdown-content h6 + p {
+  margin-top: 0 !important;
+}
+
+.advisor-message .markdown-content ul,
+.advisor-message .markdown-content ol {
+  margin: 0.75em 0 !important;
+  padding-left: 1.5em !important;
+  list-style-position: outside !important;
+}
+
+.advisor-message .markdown-content ul {
+  list-style-type: disc !important;
+}
+
+.advisor-message .markdown-content ol {
+  list-style-type: decimal !important;
+}
+
+.advisor-message .markdown-content li {
+  margin-bottom: 0.4em !important;
+  margin-left: 0 !important;
+  padding-left: 0.25em !important;
+}
+
+.advisor-message .markdown-content li > p {
+  margin: 0 !important;
+}
+
+.advisor-message .markdown-content ul ul,
+.advisor-message .markdown-content ol ul {
+  list-style-type: circle !important;
+  margin-top: 0.25em !important;
+}
+
+.advisor-message .markdown-content ul ol,
+.advisor-message .markdown-content ol ol {
+  margin-top: 0.25em !important;
+}
+
+.advisor-message .markdown-content code {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  padding: 0.15rem 0.35rem !important;
+  border-radius: 0.25rem !important;
+  font-size: 0.9em !important;
+  font-family: 'Courier New', Consolas, Monaco, monospace !important;
+  color: inherit !important;
+}
+
+.advisor-message .markdown-content pre {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  padding: 0.875rem !important;
+  border-radius: 0.5rem !important;
+  overflow-x: auto !important;
+  margin: 1em 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.advisor-message .markdown-content pre code {
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: 0.85em !important;
+}
+
+.advisor-message .markdown-content blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.4) !important;
+  padding-left: 1em !important;
+  margin: 1em 0 !important;
+  font-style: italic;
+  opacity: 0.95;
+  padding-top: 0.25em !important;
+  padding-bottom: 0.25em !important;
+}
+
+.advisor-message .markdown-content a {
+  color: inherit;
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
+.advisor-message .markdown-content a:hover {
+  opacity: 1;
+}
+
+.advisor-message .markdown-content strong {
+  font-weight: 600;
+}
+
+.advisor-message .markdown-content em {
+  font-style: italic;
+}
+
+.advisor-message .markdown-content hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 1em 0;
+}
+
+.advisor-message .markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75em 0;
+}
+
+.advisor-message .markdown-content th,
+.advisor-message .markdown-content td {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.5em;
+  text-align: left;
+}
+
+.advisor-message .markdown-content th {
+  font-weight: 600;
+  background-color: rgba(0, 0, 0, 0.2);
+}
