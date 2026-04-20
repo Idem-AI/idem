@@ -120,16 +120,33 @@
                     <x-forms.input id="user" label="Utilisateur SSH" required placeholder="root" />
                 </div>
 
-                <x-forms.select label="Clé privée" id="private_key_id">
-                    <option disabled>Sélectionner une clé privée</option>
-                    @foreach ($private_keys as $key)
-                        @if ($loop->first)
-                            <option selected value="{{ $key->id }}">{{ $key->name }}</option>
-                        @else
-                            <option value="{{ $key->id }}">{{ $key->name }}</option>
-                        @endif
-                    @endforeach
-                </x-forms.select>
+                @if($private_keys->count() > 0)
+                    <x-forms.select label="Clé privée" id="private_key_id">
+                        <option disabled>Sélectionner une clé privée</option>
+                        @foreach ($private_keys as $key)
+                            @if ($loop->first)
+                                <option selected value="{{ $key->id }}">{{ $key->name }}</option>
+                            @else
+                                <option value="{{ $key->id }}">{{ $key->name }}</option>
+                            @endif
+                        @endforeach
+                    </x-forms.select>
+                @else
+                    <div class="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                        <div class="flex items-start gap-3 mb-3">
+                            <svg class="w-5 h-5 text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                            </svg>
+                            <div class="flex-1">
+                                <h4 class="text-sm font-semibold text-amber-400 mb-1">Clé privée requise</h4>
+                                <p class="text-xs text-gray-400 mb-3">Vous devez créer une clé privée pour l'authentification SSH avant de continuer.</p>
+                                <x-modal-input buttonTitle="Créer une clé privée" title="Nouvelle clé privée">
+                                    <livewire:security.private-key.create from="server" />
+                                </x-modal-input>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 <div class="flex items-start gap-3 px-4 py-3 bg-blue-500/6 border border-blue-500/15 rounded-xl">
                     <svg class="w-4 h-4 text-blue-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -144,7 +161,7 @@
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                         Retour
                     </button>
-                    <button type="submit" class="inner-button flex items-center gap-4">
+                    <button type="submit" class="inner-button flex items-center gap-4" @if($private_keys->count() === 0) disabled @endif>
                         Continuer
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </button>

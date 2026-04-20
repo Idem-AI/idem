@@ -41,23 +41,6 @@
         </div>
     @endif
 
-    @if($private_keys->count() === 0)
-        <div class="p-6 bg-[#0f1724] rounded-xl border border-amber-500/30">
-            <div class="flex items-start gap-4">
-                <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-sm font-semibold text-amber-400 mb-1">Private Key Required</h3>
-                    <p class="text-sm text-gray-400 mb-4">You need to create a private key before you can add a server. Private keys are used for SSH authentication.</p>
-                    <livewire:security.private-key.create from="server" />
-                </div>
-            </div>
-        </div>
-    @else
-        <livewire:server.new.by-ip :private_keys="$private_keys" :limit_reached="$limit_reached" />
-    @endif
+    <livewire:server.new.by-ip :private_keys="$private_keys" :limit_reached="$limit_reached" />
 
 </div>
