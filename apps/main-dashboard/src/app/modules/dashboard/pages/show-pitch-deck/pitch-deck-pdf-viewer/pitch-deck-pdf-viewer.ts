@@ -22,10 +22,7 @@ import { DOCUMENT } from '@angular/common';
 // pdfjs-dist is available transitively via ng2-pdf-viewer
 // Using the matching version worker from CDN for zero-config reliability.
 import * as pdfjsLib from 'pdfjs-dist';
-import type {
-  PDFDocumentProxy,
-  PDFPageProxy,
-} from 'pdfjs-dist/types/src/display/api';
+import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
 
 interface SlidePage {
   pageNumber: number;
@@ -150,7 +147,7 @@ export class PitchDeckPdfViewer implements OnChanges, AfterViewInit, OnDestroy {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const task = page.render({ canvasContext: ctx, viewport: scaledViewport, canvas });
+      const task = page.render({ canvasContext: ctx, viewport: scaledViewport });
       this.mainRenderTask = task;
       await task.promise;
     } catch (err: unknown) {
@@ -183,7 +180,7 @@ export class PitchDeckPdfViewer implements OnChanges, AfterViewInit, OnDestroy {
 
         const ctx = canvas.getContext('2d');
         if (!ctx) continue;
-        await page.render({ canvasContext: ctx, viewport: scaledViewport, canvas }).promise;
+        await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
       } catch (err) {
         console.warn('[PitchDeckPdfViewer] Thumbnail render error:', err);
       }
