@@ -124,6 +124,29 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/pitch-deck',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-pitch-deck/show-pitch-deck').then(
+        (m) => m.ShowPitchDeck,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/legal-docs',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/legal-docs/legal-docs').then((m) => m.LegalDocsPage),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/advisor',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/advisor/advisor').then((m) => m.AdvisorPage),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
     path: 'project/diagrams',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-diagrams/show-diagrams').then(

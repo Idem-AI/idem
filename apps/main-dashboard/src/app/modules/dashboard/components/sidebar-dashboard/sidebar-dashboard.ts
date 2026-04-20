@@ -116,19 +116,21 @@ export class SidebarDashboard implements OnInit {
   private readonly translate = inject(TranslateService);
 
   // Navigation items
-  protected readonly navigationItems = signal([
+  protected readonly navigationItems = signal<
+    Array<{
+      labelKey: string;
+      icon: string;
+      route: string;
+      isActive: boolean;
+      isNew?: boolean;
+    }>
+  >([
     {
       labelKey: 'dashboard.sidebar.projectHome',
       icon: 'pi pi-home',
       route: 'project/dashboard',
       isActive: false,
     },
-    // {
-    //   labelKey: 'dashboard.sidebar.teams',
-    //   icon: 'pi pi-users',
-    //   route: 'project/teams',
-    //   isActive: false,
-    // },
     {
       labelKey: 'dashboard.sidebar.branding',
       icon: 'pi pi-palette',
@@ -140,6 +142,27 @@ export class SidebarDashboard implements OnInit {
       icon: 'pi pi-calendar',
       route: 'project/business-plan',
       isActive: false,
+    },
+    {
+      labelKey: 'dashboard.sidebar.pitchDeck',
+      icon: 'pi pi-desktop',
+      route: 'project/pitch-deck',
+      isActive: false,
+      isNew: true,
+    },
+    {
+      labelKey: 'dashboard.sidebar.legalDocs',
+      icon: 'pi pi-file-edit',
+      route: 'project/legal-docs',
+      isActive: false,
+      isNew: true,
+    },
+    {
+      labelKey: 'dashboard.sidebar.advisor',
+      icon: 'pi pi-comments',
+      route: 'project/advisor',
+      isActive: false,
+      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.diagrams',
