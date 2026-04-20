@@ -1611,6 +1611,7 @@
       "loading": "Loading your pitch deck…",
       "title": "Pitch Deck",
       "slide": "Slide",
+      "allSlides": "All slides",
       "noProject": {
         "title": "No project selected",
         "subtitle": "Select a project to generate or view its pitch deck."

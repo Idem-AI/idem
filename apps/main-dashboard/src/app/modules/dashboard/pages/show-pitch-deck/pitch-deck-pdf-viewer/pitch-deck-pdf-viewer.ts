@@ -134,15 +134,25 @@ export class PitchDeckPdfViewer implements OnChanges, AfterViewInit, OnDestroy {
       const page: PDFPageProxy = await this.pdfDocument.getPage(pageNumber);
       const canvas = this.mainCanvas.nativeElement;
       const container = canvas.parentElement as HTMLElement | null;
-      const containerWidth = container?.clientWidth ?? 900;
+      if (!container) return;
+
+      // Le conteneur a aspect-video (16:9), on veut remplir exactement
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
       const viewport = page.getViewport({ scale: 1 });
-      const scale = (containerWidth / viewport.width) * (this.devicePixelRatio() || 1);
+      const ratio = this.devicePixelRatio() || 1;
+
+      // Calculer le scale pour remplir le conteneur (cover behavior)
+      const scaleX = containerWidth / viewport.width;
+      const scaleY = containerHeight / viewport.height;
+      const scale = Math.max(scaleX, scaleY) * ratio;
       const scaledViewport = page.getViewport({ scale });
 
       canvas.width = scaledViewport.width;
       canvas.height = scaledViewport.height;
-      canvas.style.width = `${containerWidth}px`;
-      canvas.style.height = `${(containerWidth / viewport.width) * viewport.height}px`;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.objectFit = 'contain';
 
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
