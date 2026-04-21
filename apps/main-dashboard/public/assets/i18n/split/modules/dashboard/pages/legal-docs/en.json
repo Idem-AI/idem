@@ -1,0 +1,62 @@
+{
+  "title": "Legal Documents",
+  "subtitle": "Generate draft legal documents tailored to the African reality (OHADA zone + common-law). Each document is reviewable and should be validated by a lawyer.",
+  "selected": "selected",
+  "addMore": "Add more documents",
+  "missingFields": "Missing required fields",
+  "missingFieldsShort": "required field(s) missing",
+  "stepper": {
+    "select": "Select",
+    "context": "Context",
+    "generate": "Generate"
+  },
+  "noProject": {
+    "title": "No project selected",
+    "subtitle": "Select a project to pick and generate its legal documents."
+  },
+  "steps": {
+    "selection": {
+      "title": "1 — Pick the documents you need",
+      "subtitle": "Only the fields required by your selection will be asked."
+    },
+    "context": {
+      "title": "2 — Company context",
+      "subtitle": "The AI uses this data as the single source of truth. Never invents."
+    }
+  },
+  "groups": {
+    "company": "Company structure",
+    "contracts": "Contracts",
+    "customers": "Customers & public",
+    "internal": "Internal"
+  },
+  "fields": {
+    "country": "Country",
+    "legalForm": "Legal form",
+    "capital": "Share capital",
+    "currency": "Currency",
+    "headOffice": "Registered office",
+    "companyEmail": "Company email",
+    "companyPhone": "Company phone",
+    "website": "Website",
+    "activityDescription": "Business activity",
+    "founders": "Founders / shareholders",
+    "addFounder": "Add founder",
+    "founderName": "Full name",
+    "founderShares": "Shares (%)",
+    "founderRole": "Role"
+  },
+  "actions": {
+    "generate": "Generate documents",
+    "download": "Download",
+    "downloadAll": "Download all",
+    "regenerate": "Regenerate"
+  },
+  "status": {
+    "generating": "Generating…",
+    "ready": "Ready"
+  },
+  "errors": {
+    "generation": "Generation failed. Try again."
+  }
+}
