@@ -1,0 +1,46 @@
+{
+  "loading": "Loading your pitch deck…",
+  "title": "Pitch Deck",
+  "slide": "Slide",
+  "allSlides": "All slides",
+  "noProject": {
+    "title": "No project selected",
+    "subtitle": "Select a project to generate or view its pitch deck."
+  },
+  "empty": {
+    "title": "No pitch deck yet",
+    "subtitle": "Generate a minimalist investor-grade deck from your project data. Eleven slides: cover, problem, solution, market, product, business model, traction, competition, team, financials, ask."
+  },
+  "generating": {
+    "title": "Generating your deck",
+    "subtitle": "Each slide is crafted independently — hang tight.",
+    "slides": "slides"
+  },
+  "status": {
+    "inProgress": "Working"
+  },
+  "actions": {
+    "generate": "Generate deck",
+    "regenerate": "Regenerate",
+    "download": "Download PDF"
+  },
+  "slides": {
+    "Cover": "Cover",
+    "Problem": "Problem",
+    "Solution": "Solution",
+    "Market": "Market",
+    "Product": "Product",
+    "Business Model": "Business Model",
+    "Traction": "Traction",
+    "Competition": "Competition",
+    "Team": "Team",
+    "Financials": "Financials",
+    "Ask": "The Ask"
+  },
+  "errors": {
+    "generation": "Something went wrong while generating the deck.",
+    "download": "Could not download the PDF.",
+    "pdfLoad": "Could not load the PDF preview."
+  },
+  "loadingPdf": "Loading PDF preview…"
+}

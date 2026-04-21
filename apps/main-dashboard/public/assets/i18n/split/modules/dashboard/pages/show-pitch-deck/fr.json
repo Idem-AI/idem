@@ -1,0 +1,46 @@
+{
+  "loading": "Chargement de votre pitch deck…",
+  "title": "Pitch Deck",
+  "slide": "Diapositive",
+  "allSlides": "Toutes les diapositives",
+  "noProject": {
+    "title": "Aucun projet sélectionné",
+    "subtitle": "Sélectionnez un projet pour générer ou consulter son pitch deck."
+  },
+  "empty": {
+    "title": "Aucun pitch deck pour le moment",
+    "subtitle": "Générez un deck minimaliste de qualité investisseur à partir des données de votre projet. Onze diapositives : couverture, problème, solution, marché, produit, modèle économique, traction, concurrence, équipe, finances, demande."
+  },
+  "generating": {
+    "title": "Génération de votre deck",
+    "subtitle": "Chaque diapositive est créée indépendamment — patientez.",
+    "slides": "diapositives"
+  },
+  "status": {
+    "inProgress": "En cours"
+  },
+  "actions": {
+    "generate": "Générer le deck",
+    "regenerate": "Régénérer",
+    "download": "Télécharger le PDF"
+  },
+  "slides": {
+    "Cover": "Couverture",
+    "Problem": "Problème",
+    "Solution": "Solution",
+    "Market": "Marché",
+    "Product": "Produit",
+    "Business Model": "Modèle économique",
+    "Traction": "Traction",
+    "Competition": "Concurrence",
+    "Team": "Équipe",
+    "Financials": "Finances",
+    "Ask": "La demande"
+  },
+  "errors": {
+    "generation": "Une erreur s'est produite lors de la génération du deck.",
+    "download": "Impossible de télécharger le PDF.",
+    "pdfLoad": "Impossible de charger l'aperçu PDF."
+  },
+  "loadingPdf": "Chargement de l'aperçu PDF…"
+}

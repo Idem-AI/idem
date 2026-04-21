@@ -1,0 +1,23 @@
+{
+  "title": "Conseiller",
+  "subtitle": "Conseil IA pour la création d'entreprise en Afrique — ancré sur votre projet.",
+  "noProject": {
+    "title": "Aucun projet sélectionné",
+    "subtitle": "Sélectionnez un projet pour que le conseiller puisse analyser son contexte."
+  },
+  "empty": {
+    "title": "Comment puis-je vous aider ?",
+    "subtitle": "Posez des questions sur la forme juridique, les démarches administratives, le financement, la fiscalité ou autre. Je poserai des questions complémentaires si nécessaire."
+  },
+  "composer": {
+    "placeholder": "Posez votre question… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
+    "send": "Envoyer",
+    "hint": "Les réponses sont des conseils générés par IA et ne constituent pas un avis juridique ou financier."
+  },
+  "actions": {
+    "clear": "Effacer la conversation"
+  },
+  "errors": {
+    "send": "Impossible d'envoyer le message. Réessayez."
+  }
+}

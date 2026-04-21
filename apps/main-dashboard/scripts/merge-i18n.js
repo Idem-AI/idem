@@ -98,6 +98,11 @@ const CONFIG = {
     'modules/dashboard/pages/development/create-development': 'dashboard.createDevelopment',
     'modules/dashboard/pages/development/show-development': 'dashboard.showDevelopment',
 
+    // Dashboard pages - Pitch Deck, Legal Docs, Advisor
+    'modules/dashboard/pages/show-pitch-deck': 'dashboard.showPitchDeck',
+    'modules/dashboard/pages/legal-docs': 'dashboard.legalDocs',
+    'modules/dashboard/pages/advisor': 'dashboard.advisor',
+
     // Shared components
     'shared/components/not-found': 'notFound',
     'shared/components/pdf-viewer': 'dashboard.pdfViewer',
