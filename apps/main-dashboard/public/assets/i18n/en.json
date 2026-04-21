@@ -85,7 +85,6 @@
       "advisor": "Business Advisor",
       "diagrams": "Diagrams",
       "development": "Development",
-      "deploymentOverview": "Deployment Overview",
       "deployment": "Deployment",
       "viewAllProjects": "View All Projects",
       "sr": {
@@ -173,6 +172,29 @@
           "label": "Contributor",
           "description": "Contribute to project tasks"
         }
+      }
+    },
+    "advisor": {
+      "title": "Business advisor",
+      "subtitle": "AI-powered guidance for starting a company in Africa — grounded in your project.",
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project so the advisor can analyze its context."
+      },
+      "empty": {
+        "title": "How can I help?",
+        "subtitle": "Ask about legal form, administrative steps, financing, tax or anything else. I will ask follow-up questions when needed."
+      },
+      "composer": {
+        "placeholder": "Ask the advisor… (Enter to send, Shift+Enter for new line)",
+        "send": "Send",
+        "hint": "Responses are AI-generated guidance and not legal or financial advice."
+      },
+      "actions": {
+        "clear": "Clear conversation"
+      },
+      "errors": {
+        "send": "Could not send the message. Try again."
       }
     },
     "colorCustomizer": {
@@ -290,36 +312,23 @@
           "title": "Initial Based",
           "description": "Initials as the main element of your logo design",
           "example": "IBM, HP, CNN"
-        },
-        "examplesLabel": "Ex:"
+        }
       },
       "modes": {
         "ai": {
           "title": "AI Generation",
-          "description": "AI creates unique logos based on your brand",
-          "badge": "Recommended",
-          "features": {
-            "smart": "Smart design",
-            "multiple": "Multiple options",
-            "fast": "Instant results"
-          }
+          "description": "AI creates unique logos based on your brand"
         },
         "custom": {
           "title": "Custom Description",
-          "description": "Describe exactly how you want your logo",
-          "features": {
-            "control": "Full control",
-            "precise": "Precise vision",
-            "unique": "Unique result"
-          }
+          "description": "Describe exactly how you want your logo"
         }
       },
       "fields": {
         "description": {
           "label": "Logo Description",
           "placeholder": "Example: Minimalist logo with a mountain peak, blue and white colors, adventure and trust...",
-          "charCount": "characters",
-          "tip": "Be specific about colors, shapes, style and mood. The more details you provide, the better the result will match your vision."
+          "charCount": "characters (min {{min}})"
         }
       },
       "buttons": {
@@ -639,7 +648,6 @@
       "steps": {
         "description": "Project Description",
         "details": "Project Details",
-        "logoChoice": "Logo",
         "colors": "Color Selection",
         "typography": "Typography Selection",
         "logo": "Logo Selection",
@@ -652,41 +660,6 @@
       },
       "errors": {
         "noActiveProject": "No active project found. Please select a project first."
-      }
-    },
-    "logoChoice": {
-      "title": "Do you already have a logo?",
-      "subtitle": "You can import your existing logo or let our AI create one for you",
-      "import": {
-        "title": "I already have a logo",
-        "description": "Upload your existing logo file. We'll optimize it and convert it to a clean vector format."
-      },
-      "ai": {
-        "title": "Create with AI",
-        "description": "Let our AI generate unique logo concepts based on your project's identity.",
-        "badge": "AI Powered"
-      },
-      "backToChoice": "Back to options",
-      "continueWithLogo": "Continue with this logo",
-      "extractedColors": "Colors detected in your logo",
-      "colorsUsedAsPrimary": "These colors will be used as primary colors. Our AI will propose complementary palettes.",
-      "generatingBranding": "Generating your brand identity...",
-      "generatingBrandingSubtitle": "Our AI is creating color palettes and typography sets based on your logo."
-    },
-    "logoImport": {
-      "dropzone": {
-        "title": "Drag & drop your logo here",
-        "subtitle": "or click to browse files",
-        "maxSize": "Maximum file size: 10MB"
-      },
-      "upload": {
-        "button": "Upload & Vectorize",
-        "uploading": "Uploading...",
-        "processing": "Processing and vectorizing your logo..."
-      },
-      "result": {
-        "title": "Vectorized Logo",
-        "changeFile": "Choose another file"
       }
     },
     "createTeam": {
@@ -714,11 +687,6 @@
     },
     "dashboard": {
       "loading": "Loading your dashboard...",
-      "viewAllProjects": "View All Projects",
-      "openFeature": "Open Feature",
-      "progressOverview": "Progress Overview",
-      "projectInformation": "Project Information",
-      "pending": "Pending",
       "hero": {
         "activeProject": "Active Project",
         "defaultDescription": "Transform your ideas into reality with our comprehensive project management tools",
@@ -782,25 +750,6 @@
         "title": "No Active Project",
         "description": "Select a project to get started with your journey",
         "goToProjects": "Go to Projects"
-      },
-      "errors": {
-        "noProjectSelected": "No project selected",
-        "projectNotFound": "Project not found: {{projectId}}",
-        "failedToLoad": "Failed to load project data"
-      },
-      "quotaWarning": {
-        "title": "Quota Warning",
-        "daily": "Daily",
-        "weekly": "Weekly",
-        "messages": {
-          "approaching": "You are approaching your quota limit",
-          "daily": "You are approaching your daily quota limit",
-          "weekly": "You are approaching your weekly quota limit",
-          "dailyAndWeekly": "You are approaching both your daily and weekly quota limits"
-        },
-        "buttons": {
-          "viewDetails": "View Details"
-        }
       }
     },
     "aiAssistant": {
@@ -1211,6 +1160,68 @@
       },
       "members": "members"
     },
+    "legalDocs": {
+      "title": "Legal Documents",
+      "subtitle": "Generate draft legal documents tailored to the African reality (OHADA zone + common-law). Each document is reviewable and should be validated by a lawyer.",
+      "selected": "selected",
+      "addMore": "Add more documents",
+      "missingFields": "Missing required fields",
+      "missingFieldsShort": "required field(s) missing",
+      "stepper": {
+        "select": "Select",
+        "context": "Context",
+        "generate": "Generate"
+      },
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project to pick and generate its legal documents."
+      },
+      "steps": {
+        "selection": {
+          "title": "1 — Pick the documents you need",
+          "subtitle": "Only the fields required by your selection will be asked."
+        },
+        "context": {
+          "title": "2 — Company context",
+          "subtitle": "The AI uses this data as the single source of truth. Never invents."
+        }
+      },
+      "groups": {
+        "company": "Company structure",
+        "contracts": "Contracts",
+        "customers": "Customers & public",
+        "internal": "Internal"
+      },
+      "fields": {
+        "country": "Country",
+        "legalForm": "Legal form",
+        "capital": "Share capital",
+        "currency": "Currency",
+        "headOffice": "Registered office",
+        "companyEmail": "Company email",
+        "companyPhone": "Company phone",
+        "website": "Website",
+        "activityDescription": "Business activity",
+        "founders": "Founders / shareholders",
+        "addFounder": "Add founder",
+        "founderName": "Full name",
+        "founderShares": "Shares (%)",
+        "founderRole": "Role"
+      },
+      "actions": {
+        "generate": "Generate documents",
+        "download": "Download",
+        "downloadAll": "Download all",
+        "regenerate": "Regenerate"
+      },
+      "status": {
+        "generating": "Generating…",
+        "ready": "Ready"
+      },
+      "errors": {
+        "generation": "Generation failed. Try again."
+      }
+    },
     "myTeams": {
       "title": "My Teams",
       "subtitle": "Manage and collaborate with your teams",
@@ -1607,137 +1618,6 @@
         }
       }
     },
-    "showPitchDeck": {
-      "loading": "Loading your pitch deck…",
-      "title": "Pitch Deck",
-      "slide": "Slide",
-      "allSlides": "All slides",
-      "noProject": {
-        "title": "No project selected",
-        "subtitle": "Select a project to generate or view its pitch deck."
-      },
-      "empty": {
-        "title": "No pitch deck yet",
-        "subtitle": "Generate a minimalist investor-grade deck from your project data. Eleven slides: cover, problem, solution, market, product, business model, traction, competition, team, financials, ask."
-      },
-      "generating": {
-        "title": "Generating your deck",
-        "subtitle": "Each slide is crafted independently — hang tight.",
-        "slides": "slides"
-      },
-      "status": {
-        "inProgress": "Working"
-      },
-      "actions": {
-        "generate": "Generate deck",
-        "regenerate": "Regenerate",
-        "download": "Download PDF"
-      },
-      "slides": {
-        "Cover": "Cover",
-        "Problem": "Problem",
-        "Solution": "Solution",
-        "Market": "Market",
-        "Product": "Product",
-        "Business Model": "Business Model",
-        "Traction": "Traction",
-        "Competition": "Competition",
-        "Team": "Team",
-        "Financials": "Financials",
-        "Ask": "The Ask"
-      },
-      "errors": {
-        "generation": "Something went wrong while generating the deck.",
-        "download": "Could not download the PDF.",
-        "pdfLoad": "Could not load the PDF preview."
-      },
-      "loadingPdf": "Loading PDF preview…"
-    },
-    "legalDocs": {
-      "title": "Legal Documents",
-      "subtitle": "Generate draft legal documents tailored to the African reality (OHADA zone + common-law). Each document is reviewable and should be validated by a lawyer.",
-      "selected": "selected",
-      "addMore": "Add more documents",
-      "missingFields": "Missing required fields",
-      "missingFieldsShort": "required field(s) missing",
-      "stepper": {
-        "select": "Select",
-        "context": "Context",
-        "generate": "Generate"
-      },
-      "noProject": {
-        "title": "No project selected",
-        "subtitle": "Select a project to pick and generate its legal documents."
-      },
-      "steps": {
-        "selection": {
-          "title": "1 — Pick the documents you need",
-          "subtitle": "Only the fields required by your selection will be asked."
-        },
-        "context": {
-          "title": "2 — Company context",
-          "subtitle": "The AI uses this data as the single source of truth. Never invents."
-        }
-      },
-      "groups": {
-        "company": "Company structure",
-        "contracts": "Contracts",
-        "customers": "Customers & public",
-        "internal": "Internal"
-      },
-      "fields": {
-        "country": "Country",
-        "legalForm": "Legal form",
-        "capital": "Share capital",
-        "currency": "Currency",
-        "headOffice": "Registered office",
-        "companyEmail": "Company email",
-        "companyPhone": "Company phone",
-        "website": "Website",
-        "activityDescription": "Business activity",
-        "founders": "Founders / shareholders",
-        "addFounder": "Add founder",
-        "noFounders": "No founder yet. Add at least one."
-      },
-      "actions": {
-        "generate": "Generate selected documents",
-        "download": "Download PDF"
-      },
-      "generating": {
-        "title": "Generating documents"
-      },
-      "generated": {
-        "title": "Generated documents",
-        "count": "document(s) ready"
-      },
-      "errors": {
-        "catalog": "Unable to load the document catalog.",
-        "generation": "Generation failed. Try again."
-      }
-    },
-    "advisor": {
-      "title": "Business advisor",
-      "subtitle": "AI-powered guidance for starting a company in Africa — grounded in your project.",
-      "noProject": {
-        "title": "No project selected",
-        "subtitle": "Select a project so the advisor can analyze its context."
-      },
-      "empty": {
-        "title": "How can I help?",
-        "subtitle": "Ask about legal form, administrative steps, financing, tax or anything else. I will ask follow-up questions when needed."
-      },
-      "composer": {
-        "placeholder": "Ask the advisor… (Enter to send, Shift+Enter for new line)",
-        "send": "Send",
-        "hint": "Responses are AI-generated guidance and not legal or financial advice."
-      },
-      "actions": {
-        "clear": "Clear conversation"
-      },
-      "errors": {
-        "send": "Could not send the message. Try again."
-      }
-    },
     "diagramDisplay": {
       "actions": {
         "add": "Add Diagram",
@@ -1791,6 +1671,52 @@
           "subtitle": "Please select a project to view or generate its diagrams"
         }
       }
+    },
+    "showPitchDeck": {
+      "loading": "Loading your pitch deck…",
+      "title": "Pitch Deck",
+      "slide": "Slide",
+      "allSlides": "All slides",
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project to generate or view its pitch deck."
+      },
+      "empty": {
+        "title": "No pitch deck yet",
+        "subtitle": "Generate a minimalist investor-grade deck from your project data. Eleven slides: cover, problem, solution, market, product, business model, traction, competition, team, financials, ask."
+      },
+      "generating": {
+        "title": "Generating your deck",
+        "subtitle": "Each slide is crafted independently — hang tight.",
+        "slides": "slides"
+      },
+      "status": {
+        "inProgress": "Working"
+      },
+      "actions": {
+        "generate": "Generate deck",
+        "regenerate": "Regenerate",
+        "download": "Download PDF"
+      },
+      "slides": {
+        "Cover": "Cover",
+        "Problem": "Problem",
+        "Solution": "Solution",
+        "Market": "Market",
+        "Product": "Product",
+        "Business Model": "Business Model",
+        "Traction": "Traction",
+        "Competition": "Competition",
+        "Team": "Team",
+        "Financials": "Financials",
+        "Ask": "The Ask"
+      },
+      "errors": {
+        "generation": "Something went wrong while generating the deck.",
+        "download": "Could not download the PDF.",
+        "pdfLoad": "Could not load the PDF preview."
+      },
+      "loadingPdf": "Loading PDF preview…"
     },
     "showTests": {
       "works": "Show tests works!"
@@ -1899,7 +1825,6 @@
     "teamDetails": "Team Details"
   },
   "common": {
-    "new": "New",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -1978,33 +1903,5 @@
     "teamNameMinLength": "Team name must be at least {{min}} characters",
     "deploymentName": "Deployment name is required (minimum {{min}} characters)",
     "invalid": "Invalid field"
-  },
-  "deployment": {
-    "title": "Deployment Overview",
-    "subtitle": "Monitor and manage your application deployment",
-    "deployedAt": "Deployed at",
-    "version": "Version",
-    "openApp": "Open Application",
-    "manageOnIdeploy": "Manage on iDeploy",
-    "noDeployment": {
-      "title": "No Deployment Yet",
-      "description": "Deploy your application with iDeploy to see monitoring and statistics here.",
-      "cta": "Deploy with iDeploy"
-    },
-    "stats": {
-      "uptime": "Uptime",
-      "requests": "Total Requests",
-      "responseTime": "Avg Response Time",
-      "errorRate": "Error Rate"
-    },
-    "monitoring": {
-      "title": "Monitoring",
-      "health": "Application Health",
-      "healthy": "Healthy",
-      "ssl": "SSL Certificate",
-      "active": "Active",
-      "autoscaling": "Auto-scaling",
-      "enabled": "Enabled"
-    }
   }
 }

@@ -85,7 +85,6 @@
       "advisor": "Conseiller",
       "diagrams": "Diagrammes",
       "development": "Développement",
-      "deploymentOverview": "Aperçu du déploiement",
       "deployment": "Déploiement",
       "viewAllProjects": "Voir tous les projets",
       "sr": {
@@ -173,6 +172,29 @@
           "label": "Contributeur",
           "description": "Contribuer aux tâches du projet"
         }
+      }
+    },
+    "advisor": {
+      "title": "Conseiller",
+      "subtitle": "Conseil IA pour la création d'entreprise en Afrique — ancré sur votre projet.",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour que le conseiller puisse analyser son contexte."
+      },
+      "empty": {
+        "title": "Comment puis-je vous aider ?",
+        "subtitle": "Posez des questions sur la forme juridique, les démarches administratives, le financement, la fiscalité ou autre. Je poserai des questions complémentaires si nécessaire."
+      },
+      "composer": {
+        "placeholder": "Posez votre question… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
+        "send": "Envoyer",
+        "hint": "Les réponses sont des conseils générés par IA et ne constituent pas un avis juridique ou financier."
+      },
+      "actions": {
+        "clear": "Effacer la conversation"
+      },
+      "errors": {
+        "send": "Impossible d'envoyer le message. Réessayez."
       }
     },
     "colorCustomizer": {
@@ -290,36 +312,23 @@
           "title": "Basé sur les initiales",
           "description": "Les initiales comme élément principal de la conception de votre logo",
           "example": "IBM, HP, CNN"
-        },
-        "examplesLabel": "Ex :"
+        }
       },
       "modes": {
         "ai": {
           "title": "Génération par IA",
-          "description": "L'IA crée des logos uniques basés sur votre marque",
-          "badge": "Recommandé",
-          "features": {
-            "smart": "Design intelligent",
-            "multiple": "Plusieurs options",
-            "fast": "Résultats instantanés"
-          }
+          "description": "L'IA crée des logos uniques basés sur votre marque"
         },
         "custom": {
           "title": "Description personnalisée",
-          "description": "Décrivez exactement comment vous voulez votre logo",
-          "features": {
-            "control": "Contrôle total",
-            "precise": "Vision précise",
-            "unique": "Résultat unique"
-          }
+          "description": "Décrivez exactement comment vous voulez votre logo"
         }
       },
       "fields": {
         "description": {
           "label": "Description du logo",
           "placeholder": "Exemple : Logo minimaliste avec un sommet de montagne, couleurs bleu et blanc, aventure et confiance...",
-          "charCount": "caractères",
-          "tip": "Soyez précis sur les couleurs, formes, style et ambiance. Plus vous donnez de détails, mieux le résultat correspondra à votre vision."
+          "charCount": "caractères (min {{min}})"
         }
       },
       "buttons": {
@@ -639,7 +648,6 @@
       "steps": {
         "description": "Description du projet",
         "details": "Détails du projet",
-        "logoChoice": "Logo",
         "colors": "Sélection des couleurs",
         "typography": "Sélection de la typographie",
         "logo": "Sélection du logo",
@@ -652,41 +660,6 @@
       },
       "errors": {
         "noActiveProject": "Aucun projet actif trouvé. Veuillez d'abord sélectionner un projet."
-      }
-    },
-    "logoChoice": {
-      "title": "Avez-vous déjà un logo ?",
-      "subtitle": "Vous pouvez importer votre logo existant ou laisser notre IA en créer un pour vous",
-      "import": {
-        "title": "J'ai déjà un logo",
-        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre."
-      },
-      "ai": {
-        "title": "Créer avec l'IA",
-        "description": "Laissez notre IA générer des concepts de logo uniques basés sur l'identité de votre projet.",
-        "badge": "Propulsé par l'IA"
-      },
-      "backToChoice": "Retour aux options",
-      "continueWithLogo": "Continuer avec ce logo",
-      "extractedColors": "Couleurs détectées dans votre logo",
-      "colorsUsedAsPrimary": "Ces couleurs seront utilisées comme couleurs primaires. Notre IA proposera des palettes complémentaires.",
-      "generatingBranding": "Génération de votre identité visuelle...",
-      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo."
-    },
-    "logoImport": {
-      "dropzone": {
-        "title": "Glissez-déposez votre logo ici",
-        "subtitle": "ou cliquez pour parcourir les fichiers",
-        "maxSize": "Taille maximale : 10 Mo"
-      },
-      "upload": {
-        "button": "Importer et vectoriser",
-        "uploading": "Envoi en cours...",
-        "processing": "Traitement et vectorisation de votre logo..."
-      },
-      "result": {
-        "title": "Logo vectorisé",
-        "changeFile": "Choisir un autre fichier"
       }
     },
     "createTeam": {
@@ -714,11 +687,6 @@
     },
     "dashboard": {
       "loading": "Chargement de votre tableau de bord...",
-      "viewAllProjects": "Voir tous les projets",
-      "openFeature": "Ouvrir la fonctionnalité",
-      "progressOverview": "Aperçu de la progression",
-      "projectInformation": "Informations du projet",
-      "pending": "En attente",
       "hero": {
         "activeProject": "Projet actif",
         "defaultDescription": "Transformez vos idées en réalité avec nos outils complets de gestion de projet",
@@ -782,25 +750,6 @@
         "title": "Aucun projet actif",
         "description": "Sélectionnez un projet pour commencer votre parcours",
         "goToProjects": "Aller aux projets"
-      },
-      "errors": {
-        "noProjectSelected": "Aucun projet sélectionné",
-        "projectNotFound": "Projet introuvable : {{projectId}}",
-        "failedToLoad": "Échec du chargement des données du projet"
-      },
-      "quotaWarning": {
-        "title": "Avertissement de quota",
-        "daily": "Quotidien",
-        "weekly": "Hebdomadaire",
-        "messages": {
-          "approaching": "Vous approchez de votre limite de quota",
-          "daily": "Vous approchez de votre limite de quota quotidien",
-          "weekly": "Vous approchez de votre limite de quota hebdomadaire",
-          "dailyAndWeekly": "Vous approchez de vos limites de quota quotidien et hebdomadaire"
-        },
-        "buttons": {
-          "viewDetails": "Voir les détails"
-        }
       }
     },
     "aiAssistant": {
@@ -1211,6 +1160,68 @@
       },
       "members": "membres"
     },
+    "legalDocs": {
+      "title": "Documents juridiques",
+      "subtitle": "Générez des brouillons de documents juridiques adaptés au contexte africain (zone OHADA + pays de common law). Chaque document doit être relu par un juriste avant usage.",
+      "selected": "sélectionné(s)",
+      "addMore": "Ajouter d'autres documents",
+      "missingFields": "Champs requis manquants",
+      "missingFieldsShort": "champ(s) requis manquant(s)",
+      "stepper": {
+        "select": "Sélectionner",
+        "context": "Contexte",
+        "generate": "Générer"
+      },
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour choisir et générer ses documents juridiques."
+      },
+      "steps": {
+        "selection": {
+          "title": "1 — Choisissez les documents dont vous avez besoin",
+          "subtitle": "Seuls les champs requis par votre sélection seront demandés."
+        },
+        "context": {
+          "title": "2 — Contexte de l'entreprise",
+          "subtitle": "L'IA utilise ces données comme source unique de vérité. N'invente jamais."
+        }
+      },
+      "groups": {
+        "company": "Structure de l'entreprise",
+        "contracts": "Contrats",
+        "customers": "Clients & public",
+        "internal": "Interne"
+      },
+      "fields": {
+        "country": "Pays",
+        "legalForm": "Forme juridique",
+        "capital": "Capital social",
+        "currency": "Devise",
+        "headOffice": "Siège social",
+        "companyEmail": "Email de l'entreprise",
+        "companyPhone": "Téléphone de l'entreprise",
+        "website": "Site web",
+        "activityDescription": "Activité commerciale",
+        "founders": "Fondateurs / actionnaires",
+        "addFounder": "Ajouter un fondateur",
+        "founderName": "Nom complet",
+        "founderShares": "Parts (%)",
+        "founderRole": "Rôle"
+      },
+      "actions": {
+        "generate": "Générer les documents",
+        "download": "Télécharger",
+        "downloadAll": "Tout télécharger",
+        "regenerate": "Régénérer"
+      },
+      "status": {
+        "generating": "Génération en cours…",
+        "ready": "Prêt"
+      },
+      "errors": {
+        "generation": "La génération a échoué. Réessayez."
+      }
+    },
     "myTeams": {
       "title": "Mes équipes",
       "subtitle": "Gérez et collaborez avec vos équipes",
@@ -1607,137 +1618,6 @@
         }
       }
     },
-    "showPitchDeck": {
-      "loading": "Chargement de votre pitch deck…",
-      "title": "Pitch Deck",
-      "slide": "Diapositive",
-      "allSlides": "Toutes les diapositives",
-      "noProject": {
-        "title": "Aucun projet sélectionné",
-        "subtitle": "Sélectionnez un projet pour générer ou consulter son pitch deck."
-      },
-      "empty": {
-        "title": "Aucun pitch deck pour le moment",
-        "subtitle": "Générez un deck minimaliste de qualité investisseur à partir des données de votre projet. 11 slides : couverture, problème, solution, marché, produit, business model, traction, concurrence, équipe, financier, demande."
-      },
-      "generating": {
-        "title": "Génération de votre deck",
-        "subtitle": "Chaque slide est produite indépendamment — patientez.",
-        "slides": "slides"
-      },
-      "status": {
-        "inProgress": "En cours"
-      },
-      "actions": {
-        "generate": "Générer le deck",
-        "regenerate": "Regénérer",
-        "download": "Télécharger le PDF"
-      },
-      "slides": {
-        "Cover": "Couverture",
-        "Problem": "Problème",
-        "Solution": "Solution",
-        "Market": "Marché",
-        "Product": "Produit",
-        "Business Model": "Business Model",
-        "Traction": "Traction",
-        "Competition": "Concurrence",
-        "Team": "Équipe",
-        "Financials": "Financier",
-        "Ask": "Demande"
-      },
-      "errors": {
-        "generation": "Une erreur est survenue pendant la génération du deck.",
-        "download": "Impossible de télécharger le PDF.",
-        "pdfLoad": "Impossible de charger l’aperçu PDF."
-      },
-      "loadingPdf": "Chargement de l’aperçu PDF…"
-    },
-    "legalDocs": {
-      "title": "Documents juridiques",
-      "subtitle": "Générez des brouillons de documents juridiques adaptés au contexte africain (zone OHADA + pays de common law). Chaque document doit être relu par un juriste avant usage.",
-      "selected": "sélectionné(s)",
-      "addMore": "Ajouter d’autres documents",
-      "missingFields": "Champs requis manquants",
-      "missingFieldsShort": "champ(s) requis manquant(s)",
-      "stepper": {
-        "select": "Choisir",
-        "context": "Contexte",
-        "generate": "Générer"
-      },
-      "noProject": {
-        "title": "Aucun projet sélectionné",
-        "subtitle": "Sélectionnez un projet pour choisir et générer ses documents juridiques."
-      },
-      "steps": {
-        "selection": {
-          "title": "1 — Choisissez les documents nécessaires",
-          "subtitle": "Seuls les champs requis par votre sélection seront demandés."
-        },
-        "context": {
-          "title": "2 — Contexte de l’entreprise",
-          "subtitle": "L’IA utilise ces données comme source de vérité. Elle n’invente rien."
-        }
-      },
-      "groups": {
-        "company": "Structure sociétaire",
-        "contracts": "Contrats",
-        "customers": "Clients & public",
-        "internal": "Interne"
-      },
-      "fields": {
-        "country": "Pays",
-        "legalForm": "Forme juridique",
-        "capital": "Capital social",
-        "currency": "Devise",
-        "headOffice": "Siège social",
-        "companyEmail": "Email de l’entreprise",
-        "companyPhone": "Téléphone de l’entreprise",
-        "website": "Site web",
-        "activityDescription": "Activité (objet social)",
-        "founders": "Associés / fondateurs",
-        "addFounder": "Ajouter un associé",
-        "noFounders": "Aucun associé ajouté. Ajoutez-en au moins un."
-      },
-      "actions": {
-        "generate": "Générer les documents sélectionnés",
-        "download": "Télécharger le PDF"
-      },
-      "generating": {
-        "title": "Génération des documents"
-      },
-      "generated": {
-        "title": "Documents générés",
-        "count": "document(s) prêts"
-      },
-      "errors": {
-        "catalog": "Impossible de charger le catalogue de documents.",
-        "generation": "La génération a échoué. Réessayez."
-      }
-    },
-    "advisor": {
-      "title": "Conseiller",
-      "subtitle": "Conseil IA pour la création d’entreprise en Afrique — ancré sur votre projet.",
-      "noProject": {
-        "title": "Aucun projet sélectionné",
-        "subtitle": "Sélectionnez un projet pour que le conseiller analyse son contexte."
-      },
-      "empty": {
-        "title": "Comment puis-je vous aider ?",
-        "subtitle": "Posez vos questions sur la forme juridique, les démarches, le financement, la fiscalité… Je poserai des questions complémentaires si besoin."
-      },
-      "composer": {
-        "placeholder": "Posez votre question… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
-        "send": "Envoyer",
-        "hint": "Les réponses sont des conseils générés par IA et ne constituent pas un conseil juridique ou financier."
-      },
-      "actions": {
-        "clear": "Effacer la conversation"
-      },
-      "errors": {
-        "send": "Impossible d’envoyer le message. Réessayez."
-      }
-    },
     "diagramDisplay": {
       "actions": {
         "add": "Ajouter un diagramme",
@@ -1791,6 +1671,52 @@
           "subtitle": "Veuillez sélectionner un projet pour voir ou générer ses diagrammes"
         }
       }
+    },
+    "showPitchDeck": {
+      "loading": "Chargement de votre pitch deck…",
+      "title": "Pitch Deck",
+      "slide": "Diapositive",
+      "allSlides": "Toutes les diapositives",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour générer ou consulter son pitch deck."
+      },
+      "empty": {
+        "title": "Aucun pitch deck pour le moment",
+        "subtitle": "Générez un deck minimaliste de qualité investisseur à partir des données de votre projet. Onze diapositives : couverture, problème, solution, marché, produit, modèle économique, traction, concurrence, équipe, finances, demande."
+      },
+      "generating": {
+        "title": "Génération de votre deck",
+        "subtitle": "Chaque diapositive est créée indépendamment — patientez.",
+        "slides": "diapositives"
+      },
+      "status": {
+        "inProgress": "En cours"
+      },
+      "actions": {
+        "generate": "Générer le deck",
+        "regenerate": "Régénérer",
+        "download": "Télécharger le PDF"
+      },
+      "slides": {
+        "Cover": "Couverture",
+        "Problem": "Problème",
+        "Solution": "Solution",
+        "Market": "Marché",
+        "Product": "Produit",
+        "Business Model": "Modèle économique",
+        "Traction": "Traction",
+        "Competition": "Concurrence",
+        "Team": "Équipe",
+        "Financials": "Finances",
+        "Ask": "La demande"
+      },
+      "errors": {
+        "generation": "Une erreur s'est produite lors de la génération du deck.",
+        "download": "Impossible de télécharger le PDF.",
+        "pdfLoad": "Impossible de charger l'aperçu PDF."
+      },
+      "loadingPdf": "Chargement de l'aperçu PDF…"
     },
     "showTests": {
       "works": "Les tests fonctionnent !"
@@ -1854,7 +1780,6 @@
     "teamDetails": "Détails de l'équipe"
   },
   "common": {
-    "new": "Nouveau",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",
@@ -1920,242 +1845,18 @@
     "dashboard": "Tableau de bord",
     "projects": "Projets",
     "teams": "Équipes",
-    "profile": "Profil"
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
   },
-  "projectDetails": {
-    "backToProjects": "Retour aux projets",
-    "generate": "Générer le plan d'affaires",
-    "selectProject": "Sélectionner un projet"
-  },
-  "empty": {
-    "title": "Aucun plan d'affaires pour le moment",
-    "subtitle": "Générez un plan d'affaires complet pour votre projet",
-    "noProject": {
-      "title": "Aucun projet sélectionné",
-      "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
-    }
-  },
-  "diagramDisplay": {
-    "actions": {
-      "add": "Ajouter un diagramme",
-      "addNew": "Ajouter un nouveau diagramme",
-      "download": "Télécharger",
-      "downloadPdf": "Télécharger en PDF",
-      "edit": "Modifier",
-      "editDiagrams": "Modifier les diagrammes"
-    },
-    "available": {
-      "title": "Diagrammes disponibles"
-    }
-  },
-  "diagramGeneration": {
-    "inProgress": {
-      "title": "Génération des diagrammes",
-      "stepsCompleted": "étapes terminées",
-      "current": "En cours : {{steps}}"
-    },
-    "steps": {
-      "analyzing": "Analyse de la structure du projet",
-      "architecture": "Création du diagramme d'architecture",
-      "database": "Conception du schéma de base de données",
-      "api": "Cartographie des points de terminaison API",
-      "deployment": "Planification de la stratégie de déploiement",
-      "security": "Définition des mesures de sécurité"
-    },
-    "stepCompletedAt": "Terminé à {{time}}",
-    "errors": {
-      "title": "Échec de la génération",
-      "failed": "Échec de la génération des diagrammes"
-    },
-    "cancelled": "Génération des diagrammes annulée",
-    "available": {
-      "title": "Diagrammes disponibles"
-    }
-  },
-  "showDiagrams": {
-    "loading": {
-      "checking": "Vérification de vos diagrammes..."
-    },
-    "buttons": {
-      "generate": "Générer les diagrammes",
-      "selectProject": "Sélectionner un projet"
-    },
-    "empty": {
-      "title": "Aucun diagramme pour le moment",
-      "subtitle": "Générez des diagrammes d'architecture système pour votre projet",
-      "noProject": {
-        "title": "Aucun projet sélectionné",
-        "subtitle": "Veuillez sélectionner un projet pour voir ou générer ses diagrammes"
-      }
-    }
-  },
-  "showTests": {
-    "works": "Les tests fonctionnent !"
-  },
-  "teamDetailsGlobal": {
-    "backToTeams": "Retour aux équipes",
-    "assignedProjects": "Projets assignés",
-    "projects": "projets",
-    "teamMembers": "Membres de l'équipe",
-    "members": "membres",
-    "buttons": {
-      "addMember": "Ajouter un membre",
-      "addFirstMember": "Ajouter le premier membre",
-      "remove": "Retirer"
-    },
-    "cards": {
-      "teamRoles": "Rôles de l'équipe",
-      "teamRole": "Rôle dans l'équipe",
-      "joined": "Rejoint le {{date}}"
-    },
-    "empty": {
-      "noProjects": "Cette équipe n'est assignée à aucun projet pour le moment",
-      "noMembers": "Aucun membre dans cette équipe pour le moment"
-    }
-  },
-  "teamDetailsProject": {
-    "backToTeams": "Retour aux équipes du projet",
-    "sections": {
-      "teamMembers": "Membres de l'équipe"
-    },
-    "cards": {
-      "teamRole": "Rôle dans l'équipe",
-      "joined": "Rejoint le {{date}}"
-    },
-    "buttons": {
-      "remove": "Retirer"
-    },
-    "empty": {
-      "noMembers": "Aucun membre dans cette équipe"
-    },
-    "members": "membres"
-  },
-  "pdfViewer": {
-    "loading": "Chargement du PDF...",
-    "wait": "Veuillez patienter pendant le chargement de votre document",
-    "noContent": "Aucun PDF à afficher"
+  "validation": {
+    "required": "{{fieldName}} est requis",
+    "email": "Veuillez saisir une adresse e-mail valide",
+    "minLength": "Minimum {{min}} caractères requis",
+    "maxLength": "Maximum {{max}} caractères autorisés",
+    "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
+    "teamNameMinLength": "Le nom de l'équipe doit comporter au moins {{min}} caractères",
+    "deploymentName": "Le nom du déploiement est requis (minimum {{min}} caractères)",
+    "invalid": "Champ invalide"
   }
-},
-"projects": {
-  "title": "Projets",
-  "createNew": "Créer un nouveau projet",
-  "myProjects": "Mes projets",
-  "noProjects": "Aucun projet trouvé",
-  "projectDetails": "Détails du projet"
-},
-"teams": {
-  "title": "Équipes",
-  "createNew": "Créer une nouvelle équipe",
-  "myTeams": "Mes équipes",
-  "noTeams": "Aucune équipe trouvée",
-  "teamDetails": "Détails de l'équipe"
-},
-"common": {
-  "save": "Enregistrer",
-  "cancel": "Annuler",
-  "delete": "Supprimer",
-  "edit": "Modifier",
-  "create": "Créer",
-  "back": "Retour",
-  "next": "Suivant",
-  "previous": "Précédent",
-  "loading": "Chargement...",
-  "search": "Rechercher",
-  "filter": "Filtrer",
-  "export": "Exporter",
-  "import": "Importer",
-  "refresh": "Actualiser",
-  "adding": "Ajout en cours...",
-  "optional": "Optionnel",
-  "creating": "Création en cours...",
-  "completed": "Terminé",
-  "ready": "Prêt",
-  "submitting": "Soumission en cours...",
-  "saving": "Enregistrement en cours...",
-  "deploying": "Déploiement en cours...",
-  "oops": "Oups !",
-  "complete": "Terminé",
-  "progress": "En cours",
-  "retry": "Réessayer",
-  "selected": "Sélectionné",
-  "notAvailable": "N/A",
-  "noDescription": "Aucune description",
-  "error": "Erreur",
-  "notSpecified": "Non spécifié",
-  "uploading": "Téléversement en cours...",
-  "downloading": "Téléchargement en cours...",
-  "download": "Télécharger",
-  "send": "Envoyer",
-  "pdf": "PDF",
-  "inProgress": "En cours...",
-  "generating": "Génération en cours...",
-  "noContent": "Aucun contenu disponible",
-  "understood": "Compris",
-  "page": "Page",
-  "of": "sur",
-  "changeLanguage": "Changer de langue",
-  "continue": "Continuer",
-  "apply": "Appliquer",
-  "reset": "Réinitialiser"
-},
-"notFound": {
-  "title": "Page introuvable",
-  "subtitle": "La page que vous recherchez n'existe pas ou a été déplacée.",
-  "buttons": {
-    "home": "Aller à l'accueil",
-    "dashboard": "Aller au tableau de bord"
-  }
-},
-"errors": {
-  "generic": "Une erreur est survenue",
-  "notFound": "Non trouvé",
-  "unauthorized": "Non autorisé",
-  "serverError": "Erreur du serveur"
-},
-"navigation": {
-  "dashboard": "Tableau de bord",
-  "projects": "Projets",
-  "teams": "Équipes",
-  "profile": "Profil",
-  "settings": "Paramètres",
-  "logout": "Déconnexion"
-},
-"validation": {
-  "required": "{{fieldName}} est requis",
-  "email": "Veuillez entrer une adresse e-mail valide",
-  "minLength": "Minimum {{min}} caractères requis",
-  "maxLength": "Maximum {{max}} caractères autorisés",
-  "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
-  "teamNameMinLength": "Le nom de l'équipe doit contenir au moins {{min}} caractères",
-  "deploymentName": "Le nom du déploiement est requis (minimum {{min}} caractères)",
-  "invalid": "Champ invalide"
-},
-"deployment": {
-  "title": "Aperçu du déploiement",
-  "subtitle": "Surveillez et gérez le déploiement de votre application",
-  "deployedAt": "Déployé le",
-  "version": "Version",
-  "openApp": "Ouvrir l'application",
-  "manageOnIdeploy": "Gérer sur iDeploy",
-  "noDeployment": {
-    "title": "Aucun déploiement",
-    "description": "Déployez votre application avec iDeploy pour voir les statistiques et le monitoring ici.",
-    "cta": "Déployer avec iDeploy"
-  },
-  "stats": {
-    "uptime": "Disponibilité",
-    "requests": "Requêtes totales",
-    "responseTime": "Temps de réponse moyen",
-    "errorRate": "Taux d'erreur"
-  },
-  "monitoring": {
-    "title": "Surveillance",
-    "health": "Santé de l'application",
-    "healthy": "En bonne santé",
-    "ssl": "Certificat SSL",
-    "active": "Actif",
-    "autoscaling": "Auto-scaling",
-    "enabled": "Activé"
-  }
-}
 }
