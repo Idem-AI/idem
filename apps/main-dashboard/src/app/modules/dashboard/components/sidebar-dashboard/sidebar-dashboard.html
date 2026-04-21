@@ -187,18 +187,18 @@
       <a
         [routerLink]="item.route"
         class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden"
-        [class.bg-primary]="item.isActive"
-        [class.text-white]="item.isActive"
-        [class.text-gray-300]="!item.isActive"
-        [class.hover:bg-primary]="!item.isActive"
-        [class.hover:text-white]="!item.isActive"
-        [class.justify-center]="isSidebarCollapsed()"
-        [class.px-3]="!isSidebarCollapsed()"
-        [class.px-2]="isSidebarCollapsed()"
+        [ngClass]="{
+          'bg-primary text-white shadow-lg shadow-primary/30': item.isActive,
+          'text-gray-300 hover:bg-primary hover:text-white hover:shadow-lg hover:shadow-primary/30':
+            !item.isActive,
+          'justify-center': isSidebarCollapsed(),
+          'px-3': !isSidebarCollapsed(),
+          'px-2': isSidebarCollapsed(),
+        }"
       >
         <!-- Active indicator -->
         @if (item.isActive) {
-          <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"></div>
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full"></div>
         }
 
         <!-- Icon -->
