@@ -1,0 +1,23 @@
+{
+  "title": "Business advisor",
+  "subtitle": "AI-powered guidance for starting a company in Africa — grounded in your project.",
+  "noProject": {
+    "title": "No project selected",
+    "subtitle": "Select a project so the advisor can analyze its context."
+  },
+  "empty": {
+    "title": "How can I help?",
+    "subtitle": "Ask about legal form, administrative steps, financing, tax or anything else. I will ask follow-up questions when needed."
+  },
+  "composer": {
+    "placeholder": "Ask the advisor… (Enter to send, Shift+Enter for new line)",
+    "send": "Send",
+    "hint": "Responses are AI-generated guidance and not legal or financial advice."
+  },
+  "actions": {
+    "clear": "Clear conversation"
+  },
+  "errors": {
+    "send": "Could not send the message. Try again."
+  }
+}

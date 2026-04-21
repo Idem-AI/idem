@@ -1,0 +1,62 @@
+{
+  "title": "Documents juridiques",
+  "subtitle": "Générez des brouillons de documents juridiques adaptés au contexte africain (zone OHADA + pays de common law). Chaque document doit être relu par un juriste avant usage.",
+  "selected": "sélectionné(s)",
+  "addMore": "Ajouter d'autres documents",
+  "missingFields": "Champs requis manquants",
+  "missingFieldsShort": "champ(s) requis manquant(s)",
+  "stepper": {
+    "select": "Sélectionner",
+    "context": "Contexte",
+    "generate": "Générer"
+  },
+  "noProject": {
+    "title": "Aucun projet sélectionné",
+    "subtitle": "Sélectionnez un projet pour choisir et générer ses documents juridiques."
+  },
+  "steps": {
+    "selection": {
+      "title": "1 — Choisissez les documents dont vous avez besoin",
+      "subtitle": "Seuls les champs requis par votre sélection seront demandés."
+    },
+    "context": {
+      "title": "2 — Contexte de l'entreprise",
+      "subtitle": "L'IA utilise ces données comme source unique de vérité. N'invente jamais."
+    }
+  },
+  "groups": {
+    "company": "Structure de l'entreprise",
+    "contracts": "Contrats",
+    "customers": "Clients & public",
+    "internal": "Interne"
+  },
+  "fields": {
+    "country": "Pays",
+    "legalForm": "Forme juridique",
+    "capital": "Capital social",
+    "currency": "Devise",
+    "headOffice": "Siège social",
+    "companyEmail": "Email de l'entreprise",
+    "companyPhone": "Téléphone de l'entreprise",
+    "website": "Site web",
+    "activityDescription": "Activité commerciale",
+    "founders": "Fondateurs / actionnaires",
+    "addFounder": "Ajouter un fondateur",
+    "founderName": "Nom complet",
+    "founderShares": "Parts (%)",
+    "founderRole": "Rôle"
+  },
+  "actions": {
+    "generate": "Générer les documents",
+    "download": "Télécharger",
+    "downloadAll": "Tout télécharger",
+    "regenerate": "Régénérer"
+  },
+  "status": {
+    "generating": "Génération en cours…",
+    "ready": "Prêt"
+  },
+  "errors": {
+    "generation": "La génération a échoué. Réessayez."
+  }
+}
