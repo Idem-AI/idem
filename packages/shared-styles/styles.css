@@ -34,6 +34,7 @@ body {
      -------------------------------------------------------------------------- */
 
   /* Primary Brand Colors */
+  --color-primary: #1447e6;
   --color-primary-50: oklch(0.97 0.01 264);
   --color-primary-100: oklch(0.94 0.02 264);
   --color-primary-200: oklch(0.88 0.04 264);
