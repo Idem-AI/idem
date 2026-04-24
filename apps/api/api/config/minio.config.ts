@@ -81,6 +81,17 @@ export class MinIOConnection {
   }
 
   public getPublicUrl(objectName: string): string {
+    // Use MINIO_PUBLIC_URL if set (for production with custom domain)
+    // Otherwise fallback to constructing URL from ENDPOINT and PORT (for local dev)
+    const publicUrl = process.env.MINIO_PUBLIC_URL;
+
+    if (publicUrl) {
+      // Remove trailing slash if present
+      const baseUrl = publicUrl.endsWith('/') ? publicUrl.slice(0, -1) : publicUrl;
+      return `${baseUrl}/${this.bucketName}/${objectName}`;
+    }
+
+    // Fallback to old behavior for backward compatibility
     const endPoint = process.env.MINIO_ENDPOINT || 'localhost';
     const port = process.env.MINIO_PORT || '9000';
     const useSSL = process.env.MINIO_USE_SSL === 'true';
