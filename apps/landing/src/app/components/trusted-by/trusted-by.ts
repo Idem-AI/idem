@@ -15,32 +15,60 @@ export interface Partner {
   styleUrl: './trusted-by.css',
 })
 export class TrustedByComponent {
-  // Ajoutez facilement de nouveaux partenaires dans cette liste
+  // Communautés tech camerounaises partenaires
   partners: Partner[] = [
     {
-      name: 'Google',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg',
-      url: 'https://google.com'
+      name: 'GDG Douala',
+      logo: '/assets/images/trust-by/gdg douala.png',
+      url: 'https://gdg.community.dev/gdg-douala/',
+    },
+
+    {
+      name: '.NET Cameroun',
+      logo: '/assets/images/trust-by/dotnet cameroun logo.png',
+      url: 'https://dotnet.cm',
     },
     {
-      name: 'Microsoft',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg',
-      url: 'https://microsoft.com'
+      name: 'AWS User Group Douala',
+      logo: '/assets/images/trust-by/aws user group douala.png',
+      url: 'https://www.meetup.com/awsugdouala/',
+    },
+        {
+      name: 'DevGirls',
+      logo: '/assets/images/trust-by/devgirl logo 1.png',
+      url: 'https://www.devgirls.org/home',
     },
     {
-      name: 'Amazon',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg',
-      url: 'https://amazon.com'
+      name: 'Rhopen',
+      logo: '/assets/images/trust-by/rhopen logo.png',
+      url: 'https://rhopen.fr',
     },
     {
-      name: 'Meta',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg',
-      url: 'https://meta.com'
+      name: 'AWS User Group Yaoundé',
+      logo: '/assets/images/trust-by/aws user group yaounde.png',
+      url: 'https://www.meetup.com/aws-user-group-yaounde/',
     },
     {
-      name: 'Github',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg',
-      url: 'https://github.com'
+      name: 'OSS Cameroun',
+      logo: '/assets/images/trust-by/oss cameroun logo.png',
+      url: 'https://osscameroon.com',
+    },
+
+    {
+      name: 'Rhopen Labs',
+      logo: '/assets/images/trust-by/rhopen labs logo.png',
+      url: 'https://rhopenlabs.africa',
+    },
+    {
+      name: 'RAVISA',
+      logo: '/assets/images/trust-by/RAVISA_2 2 1.png',
+      url: 'https://ravisa.org/index.html',
+    },
+
+    {
+      name: 'GDG Afrique Francophone',
+      logo: '/assets/images/trust-by/gdgs afrique francophone logo.png',
+      url: 'https://gdg.community.dev/',
     },
   ];
 }
