@@ -29,8 +29,6 @@ const requiredVars = [
   'FIREBASE_API_KEY',
   'FIREBASE_AUTH_DOMAIN',
   'FIREBASE_PROJECT_ID',
-  'FIREBASE_STORAGE_BUCKET',
-  'FIREBASE_MESSAGING_SENDER_ID',
   'FIREBASE_APP_ID'
 ];
 
@@ -44,7 +42,7 @@ if (missing.length > 0) {
 
 // Générer le fichier environment.ts
 const isProduction = process.env.NODE_ENV === 'production';
-const targetFile = isProduction 
+const targetFile = isProduction
   ? path.join(__dirname, '..', 'src', 'environments', 'environment.ts')
   : path.join(__dirname, '..', 'src', 'environments', 'environment.development.ts');
 
@@ -62,8 +60,6 @@ export const environment = {
     apiKey: '${env.FIREBASE_API_KEY}',
     authDomain: '${env.FIREBASE_AUTH_DOMAIN}',
     projectId: '${env.FIREBASE_PROJECT_ID}',
-    storageBucket: '${env.FIREBASE_STORAGE_BUCKET}',
-    messagingSenderId: '${env.FIREBASE_MESSAGING_SENDER_ID}',
     appId: '${env.FIREBASE_APP_ID}',
     measurementId: '${env.FIREBASE_MEASUREMENT_ID || ''}',
   },
