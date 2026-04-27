@@ -70,9 +70,8 @@ export const environment = {
       url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://deploy.idem.africa' : 'http://localhost:8000')}',
     },
   },
-};
-`;
-
+};`;
+// trigger ci/cd
 // Définir le chemin du dossier
 const envDir = path.join(__dirname, './src/environments');
 
