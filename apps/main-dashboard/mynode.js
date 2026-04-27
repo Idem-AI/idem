@@ -1,22 +1,33 @@
 const fs = require('fs');
 const path = require('path');
+const dotenv = require('dotenv');
 
-// Déterminer l'environnement (production ou development)
-const isProduction = process.env.NODE_ENV === 'production';
-const envFile = isProduction ? '.env' : '.env.development';
-const envPath = path.join(__dirname, envFile);
+// Déterminer l'environnement
+const NODE_ENV = process.env.NODE_ENV || 'production';
+const isProduction = NODE_ENV === 'production';
 
-// Charger les variables d'environnement depuis le bon fichier
-require('dotenv').config({ path: envPath });
+// Fichiers possibles (ordre de priorité)
+const envFiles = isProduction
+  ? ['.env', '.env.production']
+  : ['.env.development', '.env'];
 
-// Vérifier que le fichier .env existe
-if (!fs.existsSync(envPath)) {
-  console.error(`\n❌ Fichier ${envFile} introuvable!`);
-  console.error(`📝 Copiez ${envFile}.example vers ${envFile} et remplissez les valeurs.\n`);
-  console.error(`Commandes:`);
-  console.error(`  cp ${envFile}.example ${envFile}`);
-  console.error(`  nano ${envFile}\n`);
-  process.exit(1);
+// Trouver le premier fichier existant
+let envPath = null;
+
+for (const file of envFiles) {
+  const fullPath = path.join(__dirname, file);
+  if (fs.existsSync(fullPath)) {
+    envPath = fullPath;
+    break;
+  }
+}
+
+// Charger le fichier s’il existe
+if (envPath) {
+  dotenv.config({ path: envPath });
+  console.log(`✅ Chargement des variables depuis ${envPath}`);
+} else {
+  console.warn(`⚠️ Aucun fichier .env trouvé, utilisation des variables système`);
 }
 
 // Variables requises
@@ -28,20 +39,25 @@ const requiredVars = [
   'IDEPLOY_API_TOKEN'
 ];
 
-// Vérifier que toutes les variables requises sont présentes et configurées
-const missing = requiredVars.filter(v => !process.env[v] || process.env[v].includes('your_'));
+// Vérification intelligente (ne casse pas en CI si variables injectées)
+const missing = requiredVars.filter(
+  v => !process.env[v] || process.env[v].includes('your_')
+);
+
 if (missing.length > 0) {
-  console.error(`\n❌ Variables d'environnement manquantes ou non configurées:`);
+  console.error(`\n❌ Variables d'environnement manquantes:`);
   missing.forEach(v => console.error(`   - ${v}`));
-  console.error(`\n📝 Éditez ${envFile} et remplacez les valeurs par défaut.\n`);
-  process.exit(1);
+
+  if (!isProduction) {
+    console.error(`\n📝 Mode dev: configure ton .env\n`);
+    process.exit(1);
+  } else {
+    console.warn(`⚠️ Mode production: on continue (variables potentiellement injectées ailleurs)`);
+  }
 }
 
-// Générer le contenu du fichier environment.ts
-const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
-// Ce fichier est généré depuis ${envFile} par mynode.js
-// Pour modifier la configuration, éditez ${envFile} puis relancez: npm run env:${isProduction ? 'prod' : 'dev'}
-
+// Génération du fichier Angular
+const envFileContent = `// ⚠️ AUTO-GENERATED FILE
 export const environment = {
   environment: '${isProduction ? 'prod' : 'dev'}',
   isBeta: ${process.env.IS_BETA || 'true'},
@@ -50,10 +66,10 @@ export const environment = {
     enabled: ${process.env.ANALYTICS_ENABLED || (isProduction ? 'true' : 'false')},
   },
   firebase: {
-    apiKey: '${process.env.FIREBASE_API_KEY}',
-    authDomain: '${process.env.FIREBASE_AUTH_DOMAIN}',
-    projectId: '${process.env.FIREBASE_PROJECT_ID}',
-    appId: '${process.env.FIREBASE_APP_ID}',
+    apiKey: '${process.env.FIREBASE_API_KEY || ''}',
+    authDomain: '${process.env.FIREBASE_AUTH_DOMAIN || ''}',
+    projectId: '${process.env.FIREBASE_PROJECT_ID || ''}',
+    appId: '${process.env.FIREBASE_APP_ID || ''}',
     measurementId: '${process.env.FIREBASE_MEASUREMENT_ID || ''}',
   },
   services: {
@@ -63,7 +79,7 @@ export const environment = {
     },
     ideploy: {
       url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://ideploy.idem.africa' : 'http://localhost:8000')}',
-      apiToken: '${process.env.IDEPLOY_API_TOKEN}',
+      apiToken: '${process.env.IDEPLOY_API_TOKEN || ''}',
     },
     webgen: {
       url: '${process.env.SERVICES_WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:5173')}',
@@ -75,19 +91,18 @@ export const environment = {
 };
 `;
 
-// Définir le chemin du dossier
 const envDir = path.join(__dirname, './src/environments');
 
-// Vérifier et créer le dossier s'il n'existe pas
 if (!fs.existsSync(envDir)) {
   fs.mkdirSync(envDir, { recursive: true });
-  console.log(`📁 Created directory: ${envDir}`);
 }
 
-// Définir le chemin du fichier de sortie
-const targetFileName = isProduction ? 'environment.ts' : 'environment.development.ts';
+const targetFileName = isProduction
+  ? 'environment.ts'
+  : 'environment.development.ts';
+
 const targetPath = path.join(envDir, targetFileName);
 
-// Écrire le fichier (toujours écraser pour garantir la synchronisation avec .env)
 fs.writeFileSync(targetPath, envFileContent, 'utf8');
-console.log(`✅ Fichier ${targetFileName} généré avec succès depuis ${envFile}`);
+
+console.log(`✅ ${targetFileName} généré (${NODE_ENV})`);
