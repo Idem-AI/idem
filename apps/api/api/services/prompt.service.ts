@@ -520,6 +520,7 @@ export class PromptService {
       // Increment quota after successful API call
       if (userId && !skipQuotaCheck) {
         try {
+          await userService.incrementUsage(userId, 1);
           logger.info(`Incremented quota usage for user ${userId}`);
         } catch (quotaError) {
           logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
