@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "scripts": {
     "ng": "ng",
+    "env:dev": "node scripts/set-env.js",
+    "env:prod": "NODE_ENV=production node scripts/set-env.js",
+    "prestart": "npm run env:dev",
     "start": "ng serve --host 0.0.0.0 --port 4201",
     "dev": "ng serve --host 0.0.0.0 --port 4201",
+    "prebuild": "npm run env:prod",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
