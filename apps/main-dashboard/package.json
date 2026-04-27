@@ -3,7 +3,11 @@
   "version": "0.0.1",
   "scripts": {
     "ng": "ng",
+    "env:dev": "node mynode.js",
+    "env:prod": "NODE_ENV=production node mynode.js",
+    "prestart": "npm run env:dev",
     "start": "ng serve --host 0.0.0.0",
+    "prebuild": "npm run env:prod",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
