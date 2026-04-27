@@ -44,12 +44,20 @@ Thumbs.db
 .nx/cache
 .nx/workspace-data
 
-# Environment
+# Environment files (CRITICAL - NEVER COMMIT)
 .env
 .env.local
 .env.*.local
 .env.production
+.env.development
 .env.*
+!.env.example
+!.env.*.example
+
+# Generated environment files (auto-generated from .env)
+**/environments/environment.ts
+**/environments/environment.development.ts
+**/environments/environment.production.ts
 # Logs
 logs
 *.log
