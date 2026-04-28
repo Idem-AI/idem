@@ -25,7 +25,7 @@ WORKDIR /app/apps/landing
 RUN npm install --legacy-peer-deps --ignore-scripts && \
     npm install @angular/animations@^20.3.0 --save --legacy-peer-deps --ignore-scripts
     
-RUN node -r dotenv/config mynode.js
+RUN npm install dotenv --save && node -r dotenv/config mynode.js
 # Builder l'application landing (version anglaise d'abord)
 RUN npm run build:en && \
     mkdir -p /tmp/en-build && \
