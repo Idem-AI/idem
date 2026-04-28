@@ -11,8 +11,8 @@ require('dotenv').config({ path: envPath });
 
 // Vérifier que le fichier .env existe
 if (!fs.existsSync(envPath)) {
-  console.error(`\n❌ Fichier ${envFile} introuvable!`);
-  console.error(`📝 Copiez ${envFile}.example vers ${envFile} et remplissez les valeurs.\n`);
+  console.error(`\n Fichier ${envFile} introuvable!`);
+  console.error(` Copiez ${envFile}.example vers ${envFile} et remplissez les valeurs.\n`);
   console.error(`Commandes:`);
   console.error(`  cp ${envFile}.example ${envFile}`);
   console.error(`  nano ${envFile}\n`);
@@ -30,14 +30,14 @@ const requiredVars = [
 // Vérifier que toutes les variables requises sont présentes et configurées
 const missing = requiredVars.filter(v => !process.env[v] || process.env[v].includes('your_'));
 if (missing.length > 0) {
-  console.error(`\n❌ Variables d'environnement manquantes ou non configurées:`);
+  console.error(`\n Variables d'environnement manquantes ou non configurées:`);
   missing.forEach(v => console.error(`   - ${v}`));
-  console.error(`\n📝 Éditez ${envFile} et remplacez les valeurs par défaut.\n`);
+  console.error(`\n Éditez ${envFile} et remplacez les valeurs par défaut.\n`);
   process.exit(1);
 }
 
 // Générer le contenu du fichier environment.ts
-const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
+const envFileContent = `//  FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
 // Ce fichier est généré depuis ${envFile} par mynode.js
 // Pour modifier la configuration, éditez ${envFile} puis relancez: npm run env:${isProduction ? 'prod' : 'dev'}
 
@@ -78,7 +78,7 @@ const envDir = path.join(__dirname, './src/environments');
 // Vérifier et créer le dossier s'il n'existe pas
 if (!fs.existsSync(envDir)) {
   fs.mkdirSync(envDir, { recursive: true });
-  console.log(`📁 Created directory: ${envDir}`);
+  console.log(` Created directory: ${envDir}`);
 }
 
 // Définir le chemin du fichier de sortie
