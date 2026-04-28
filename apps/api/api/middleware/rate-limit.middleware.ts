@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClient, RedisClientType } from 'redis';
+import Redis from 'ioredis';
 import logger from '../config/logger';
 
 interface RateLimitConfig {
@@ -18,7 +18,7 @@ interface RateLimitInfo {
 }
 
 class RateLimiter {
-  private redisClient: RedisClientType | null = null;
+  private redisClient: Redis | null = null;
   private fallbackStore: Map<string, { count: number; resetTime: number }> = new Map();
   private isRedisAvailable = false;
 
@@ -29,9 +29,9 @@ class RateLimiter {
   private async initializeRedis() {
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-      this.redisClient = createClient({ url: redisUrl });
+      this.redisClient = new Redis(redisUrl);
 
-      this.redisClient.on('error', (err) => {
+      this.redisClient.on('error', (err: Error) => {
         logger.error('Redis Client Error:', err);
         this.isRedisAvailable = false;
       });
@@ -40,8 +40,6 @@ class RateLimiter {
         logger.info('Redis connected for rate limiting');
         this.isRedisAvailable = true;
       });
-
-      await this.redisClient.connect();
     } catch (error) {
       logger.warn('Redis not available, using in-memory fallback for rate limiting');
       this.isRedisAvailable = false;
@@ -94,7 +92,7 @@ class RateLimiter {
 
       // Set expiration on first request
       if (newCount === 1) {
-        await this.redisClient!.expire(redisKey, Math.ceil(config.windowMs / 1000));
+        await this.redisClient!.expire(redisKey, Math.ceil(config.windowMs / 1000) as number);
       }
 
       return {
