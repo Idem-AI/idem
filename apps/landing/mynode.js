@@ -87,4 +87,4 @@ const targetPath = path.join(envDir, targetFileName);
 
 // Écrire le fichier (toujours écraser pour garantir la synchronisation avec .env)
 fs.writeFileSync(targetPath, envFileContent, 'utf8');
-console.log(`✅ Fichier ${targetFileName} généré avec succès depuis ${envFile}`);
+console.log(` Fichier ${targetFileName} généré avec succès depuis ${envFile}`);
