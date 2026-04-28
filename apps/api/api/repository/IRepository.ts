@@ -12,4 +12,9 @@ export interface IRepository<T extends { id?: string; createdAt?: Date; updatedA
     collectionPath: string
   ): Promise<T | null>;
   delete(id: string, collectionPath: string): Promise<boolean>;
+
+  /** Find a single document matching a query filter */
+  findOne?(query: Record<string, any>, collectionPath: string): Promise<T | null>;
+  /** Find all documents matching a query filter */
+  find?(query: Record<string, any>, collectionPath: string): Promise<T[]>;
 }

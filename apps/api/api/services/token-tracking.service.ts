@@ -3,6 +3,9 @@ import { IRepository } from '../repository/IRepository';
 import { RepositoryFactory } from '../repository/RepositoryFactory';
 
 interface TokenUsage {
+  id?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
   userId: string;
   date: string; // YYYY-MM-DD
   inputTokens: number;
@@ -202,11 +205,16 @@ class TokenTrackingService {
    */
   private async getDailyUsage(userId: string, date: string): Promise<TokenUsage | null> {
     try {
-      const usage = await this.tokenRepository.findOne(
-        { userId, date },
-        'token_usage'
-      );
-      return usage;
+      if (this.tokenRepository.findOne) {
+        const usage = await this.tokenRepository.findOne(
+          { userId, date },
+          'token_usage'
+        );
+        return usage;
+      }
+      // Fallback: use findAll and filter
+      const all = await this.tokenRepository.findAll('token_usage');
+      return all.find((u) => u.userId === userId && u.date === date) || null;
     } catch (error) {
       logger.error(`Error getting daily usage for user ${userId}:`, error);
       return null;
@@ -228,16 +236,33 @@ class TokenTrackingService {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-      const usages = await this.tokenRepository.find(
-        {
-          userId,
-          date: { $gte: monthStart, $lte: monthEnd },
-        },
-        'token_usage'
-      );
+      let usages: TokenUsage[];
+      if (this.tokenRepository.find) {
+        usages = await this.tokenRepository.find(
+          {
+            userId,
+            date: { $gte: monthStart, $lte: monthEnd },
+          },
+          'token_usage'
+        );
+      } else {
+        // Fallback: use findAll and filter
+        const all = await this.tokenRepository.findAll('token_usage');
+        usages = all.filter(
+          (u) => u.userId === userId && u.date >= monthStart && u.date <= monthEnd
+        );
+      }
+
+      interface MonthlyTotals {
+        totalTokens: number;
+        inputTokens: number;
+        outputTokens: number;
+        estimatedCost: number;
+        requestCount: number;
+      }
 
       const totals = usages.reduce(
-        (acc, usage) => ({
+        (acc: MonthlyTotals, usage: TokenUsage) => ({
           totalTokens: acc.totalTokens + usage.totalTokens,
           inputTokens: acc.inputTokens + usage.inputTokens,
           outputTokens: acc.outputTokens + usage.outputTokens,
@@ -270,9 +295,9 @@ class TokenTrackingService {
     try {
       const existing = await this.getDailyUsage(usage.userId, usage.date);
 
-      if (existing) {
+      if (existing && existing.id) {
         await this.tokenRepository.update(
-          { userId: usage.userId, date: usage.date },
+          existing.id,
           usage,
           'token_usage'
         );
@@ -362,7 +387,11 @@ class TokenTrackingService {
    */
   async resetDailyUsage(userId: string, date: string): Promise<boolean> {
     try {
-      await this.tokenRepository.delete({ userId, date }, 'token_usage');
+      // Find the document first to get its ID
+      const usage = await this.getDailyUsage(userId, date);
+      if (usage && usage.id) {
+        await this.tokenRepository.delete(usage.id, 'token_usage');
+      }
       logger.info(`Daily usage reset for user ${userId} on ${date}`);
       return true;
     } catch (error) {

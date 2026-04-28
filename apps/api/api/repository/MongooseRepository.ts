@@ -306,4 +306,74 @@ export class MongooseRepository<
       throw error;
     }
   }
+
+  async findOne(query: Record<string, any>, collectionPath: string): Promise<T | null> {
+    logger.info(`MongooseRepository.findOne called for ${collectionPath}`);
+
+    try {
+      const parts = collectionPath.split('/');
+      const collectionName = parts[parts.length - 1];
+      const nestedFilter = this.buildNestedFilter(collectionPath);
+
+      const doc = await mongoose.connection
+        .collection(collectionName)
+        .findOne({ ...query, ...nestedFilter } as any);
+
+      if (!doc) {
+        return null;
+      }
+
+      const entity = {
+        ...doc,
+        id: doc._id.toString(),
+      } as unknown as T;
+
+      delete (entity as any)._id;
+      delete (entity as any).__v;
+
+      return entity;
+    } catch (error: any) {
+      logger.error(`Error in findOne for ${collectionPath}: ${error.message}`, {
+        stack: error.stack,
+      });
+      throw error;
+    }
+  }
+
+  async find(query: Record<string, any>, collectionPath: string): Promise<T[]> {
+    logger.info(`MongooseRepository.find called for ${collectionPath}`);
+
+    try {
+      const parts = collectionPath.split('/');
+      const collectionName = parts[parts.length - 1];
+      const nestedFilter = this.buildNestedFilter(collectionPath);
+
+      const docs = await mongoose.connection
+        .collection(collectionName)
+        .find({ ...query, ...nestedFilter } as any)
+        .toArray();
+
+      if (!docs || docs.length === 0) {
+        return [];
+      }
+
+      return docs.map((doc) => {
+        const entity = {
+          ...doc,
+          id: doc._id.toString(),
+        } as unknown as T;
+
+        delete (entity as any)._id;
+        delete (entity as any).__v;
+
+        return entity;
+      });
+    } catch (error: any) {
+      logger.error(`Error in find for ${collectionPath}: ${error.message}`, {
+        stack: error.stack,
+      });
+      throw error;
+    }
+  }
 }
+
