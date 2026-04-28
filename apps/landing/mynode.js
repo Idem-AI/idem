@@ -1,21 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 
-// Déterminer l'environnement (production ou development)
-const isProduction = process.env.NODE_ENV === 'production';
-const envFile = isProduction ? '.env' : '.env.development';
-const envPath = path.join(__dirname, envFile);
+const envPath = path.join(__dirname, '.env');
 
-// Charger les variables d'environnement depuis le bon fichier
+// Charger les variables d'environnement depuis .env
 require('dotenv').config({ path: envPath });
 
 // Vérifier que le fichier .env existe
 if (!fs.existsSync(envPath)) {
-  console.error(`\n Fichier ${envFile} introuvable!`);
-  console.error(` Copiez ${envFile}.example vers ${envFile} et remplissez les valeurs.\n`);
+  console.error(`\n❌ Fichier .env introuvable!`);
+  console.error(`📝 Copiez .env.example vers .env et remplissez les valeurs.\n`);
   console.error(`Commandes:`);
-  console.error(`  cp ${envFile}.example ${envFile}`);
-  console.error(`  nano ${envFile}\n`);
+  console.error(`  cp .env.example .env`);
+  console.error(`  nano .env\n`);
   process.exit(1);
 }
 
@@ -30,23 +27,23 @@ const requiredVars = [
 // Vérifier que toutes les variables requises sont présentes et configurées
 const missing = requiredVars.filter(v => !process.env[v] || process.env[v].includes('your_'));
 if (missing.length > 0) {
-  console.error(`\n Variables d'environnement manquantes ou non configurées:`);
+  console.error(`\n❌ Variables d'environnement manquantes ou non configurées:`);
   missing.forEach(v => console.error(`   - ${v}`));
-  console.error(`\n Éditez ${envFile} et remplacez les valeurs par défaut.\n`);
+  console.error(`\n📝 Éditez .env et remplacez les valeurs par défaut.\n`);
   process.exit(1);
 }
 
 // Générer le contenu du fichier environment.ts
-const envFileContent = `//  FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
-// Ce fichier est généré depuis ${envFile} par mynode.js
-// Pour modifier la configuration, éditez ${envFile} puis relancez: npm run env:${isProduction ? 'prod' : 'dev'}
+const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
+// Ce fichier est généré depuis .env par mynode.js
+// Pour modifier la configuration, éditez .env puis relancez: npm run env:prod
 
 export const environment = {
-  environment: '${isProduction ? 'prod' : 'dev'}',
+  environment: 'prod',
   isBeta: ${process.env.IS_BETA || 'true'},
   waitlistUrl: '${process.env.WAITLIST_URL || 'https://forms.gle/gP7fr8te9qMUovad6'}',
   analytics: {
-    enabled: ${process.env.ANALYTICS_ENABLED || (isProduction ? 'true' : 'false')},
+    enabled: ${process.env.ANALYTICS_ENABLED || 'true'},
   },
   firebase: {
     apiKey: '${process.env.FIREBASE_API_KEY}',
@@ -58,19 +55,20 @@ export const environment = {
   services: {
     domain: '${process.env.SERVICES_DOMAIN || 'https://idem.africa'}',
     dashboard: {
-      url: '${process.env.SERVICES_DASHBOARD_URL || (isProduction ? 'https://console.idem.africa' : 'http://localhost:4200')}',
+      url: '${process.env.SERVICES_DASHBOARD_URL || 'https://console.idem.africa'}',
     },
     api: {
-      url: '${process.env.SERVICES_API_URL || (isProduction ? 'https://api.idem.africa' : 'http://localhost:3001')}',
+      url: '${process.env.SERVICES_API_URL || 'https://api.idem.africa'}',
     },
     idev: {
-      url: '${process.env.SERVICES_IDEV_URL || (isProduction ? 'https://appgen.idem.africa' : 'http://localhost:5173')}',
+      url: '${process.env.SERVICES_IDEV_URL || 'https://appgen.idem.africa'}',
     },
     ideploy: {
-      url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://deploy.idem.africa' : 'http://localhost:8000')}',
+      url: '${process.env.SERVICES_IDEPLOY_URL || 'https://deploy.idem.africa'}',
     },
   },
 };`;
+
 // trigger ci/cd
 // Définir le chemin du dossier
 const envDir = path.join(__dirname, './src/environments');
@@ -78,13 +76,10 @@ const envDir = path.join(__dirname, './src/environments');
 // Vérifier et créer le dossier s'il n'existe pas
 if (!fs.existsSync(envDir)) {
   fs.mkdirSync(envDir, { recursive: true });
-  console.log(` Created directory: ${envDir}`);
+  console.log(`📁 Created directory: ${envDir}`);
 }
 
-// Définir le chemin du fichier de sortie
-const targetFileName = isProduction ? 'environment.ts' : 'environment.development.ts';
-const targetPath = path.join(envDir, targetFileName);
-
-// Écrire le fichier (toujours écraser pour garantir la synchronisation avec .env)
+// Écrire le fichier environment.ts
+const targetPath = path.join(envDir, 'environment.ts');
 fs.writeFileSync(targetPath, envFileContent, 'utf8');
-console.log(` Fichier ${targetFileName} généré avec succès depuis ${envFile}`);
+console.log(`✅ Fichier environment.ts généré avec succès depuis .env`);
