@@ -259,7 +259,7 @@ export class CreateProjectComponent implements OnInit {
   /**
    * Navigate to next step
    */
-  protected goToNextStep(): void {
+  protected async goToNextStep(): Promise<void> {
     // For typography step, prepare and save typography data before proceeding
     if (this.currentStepIndex() === 4 && this.typographyComponent) {
       // Typography step (index shifted by logo-choice step)
@@ -267,6 +267,11 @@ export class CreateProjectComponent implements OnInit {
       if (typographyData) {
         this.onProjectUpdate(typographyData);
       }
+    }
+
+    // After completing the "details" step (index 1), create the project in the database
+    if (this.currentStepIndex() === 1 && !this.project().id) {
+      await this.createProjectInDatabase();
     }
 
     if (this.canGoNext()) {
@@ -290,6 +295,28 @@ export class CreateProjectComponent implements OnInit {
       } else {
         this.finalizeProject();
       }
+    }
+  }
+
+  /**
+   * Create project in database after details step
+   */
+  private async createProjectInDatabase(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+      const currentProject = this.project();
+      
+      const projectId = await this.projectService.createProject(currentProject).toPromise();
+      
+      if (projectId) {
+        this.project.update((p: ProjectModel) => ({ ...p, id: projectId }));
+        this.cookieService.set('projectId', projectId);
+        this.saveDraftProject();
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+    } finally {
+      this.isLoading.set(false);
     }
   }
 
