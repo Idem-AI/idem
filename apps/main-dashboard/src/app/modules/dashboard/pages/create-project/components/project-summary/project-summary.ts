@@ -149,17 +149,25 @@ export class ProjectSummaryComponent {
         marketingAccepted: this.marketingConsentAccepted(),
       };
 
-      // First, persist the user's branding selections to the backend
-      const brandingUpdate: Partial<ProjectModel> = {
-        analysisResultModel: this.project().analysisResultModel,
-      };
+      const currentProject = this.project();
 
       this.projectService
-        .updateProject(this.project().id!, brandingUpdate)
+        .createProject(currentProject)
         .pipe(
-          switchMap(() =>
-            this.projectService.finalizeProjectCreation(this.project().id!, acceptanceData),
-          ),
+          switchMap((projectId) => {
+            this.cookieService.set('projectId', projectId);
+
+            const brandingUpdate: Partial<ProjectModel> = {
+              analysisResultModel: currentProject.analysisResultModel,
+            };
+            return this.projectService
+              .updateProject(projectId, brandingUpdate)
+              .pipe(
+                switchMap(() =>
+                  this.projectService.finalizeProjectCreation(projectId, acceptanceData),
+                ),
+              );
+          }),
         )
         .subscribe({
           next: (response) => {

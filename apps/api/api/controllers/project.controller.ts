@@ -31,9 +31,11 @@ class ProjectController {
         });
         return;
       }
-      const projectId = await projectService.createUserProject(userId, projectData);
-      logger.info(`Project created successfully for userId ${userId} with projectId: ${projectId}`);
-      res.status(201).json({ message: 'Project created successfully', projectId });
+      const newProject = await projectService.createUserProject(userId, projectData);
+      logger.info(
+        `Project created successfully for userId ${userId} with projectId: ${newProject.id}`
+      );
+      res.status(201).json({ message: 'Project created successfully', projectId: newProject.id });
     } catch (error: any) {
       logger.error(`Error in createProject controller for userId ${userId}: ${error.message}`, {
         stack: error.stack,
