@@ -149,25 +149,16 @@ export class ProjectSummaryComponent {
         marketingAccepted: this.marketingConsentAccepted(),
       };
 
-      const currentProject = this.project();
+      const brandingUpdate: Partial<ProjectModel> = {
+        analysisResultModel: this.project().analysisResultModel,
+      };
 
       this.projectService
-        .createProject(currentProject)
+        .updateProject(this.project().id!, brandingUpdate)
         .pipe(
-          switchMap((projectId) => {
-            this.cookieService.set('projectId', projectId);
-
-            const brandingUpdate: Partial<ProjectModel> = {
-              analysisResultModel: currentProject.analysisResultModel,
-            };
-            return this.projectService
-              .updateProject(projectId, brandingUpdate)
-              .pipe(
-                switchMap(() =>
-                  this.projectService.finalizeProjectCreation(projectId, acceptanceData),
-                ),
-              );
-          }),
+          switchMap(() =>
+            this.projectService.finalizeProjectCreation(this.project().id!, acceptanceData),
+          ),
         )
         .subscribe({
           next: (response) => {

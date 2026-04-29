@@ -118,7 +118,11 @@ class ProjectController {
       }
       const { name, description, ...otherUpdatedData } = req.body;
       const updatedData: Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>> =
-        { name, description, ...otherUpdatedData };
+        { 
+          ...(name !== undefined && { name }),
+          ...(description !== undefined && { description }),
+          ...otherUpdatedData 
+        };
       if (!projectId) {
         res.status(400).json({ message: 'Project ID is required' });
         return;
