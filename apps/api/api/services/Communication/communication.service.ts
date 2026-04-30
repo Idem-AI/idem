@@ -14,17 +14,15 @@ import {
 } from '../../models/communication.model';
 import { cacheService } from '../cache.service';
 import { GenericService } from '../common/generic.service';
-import {
-  AIChatMessage,
-  LLMProvider,
-  PromptConfig,
-  PromptService,
-} from '../prompt.service';
+import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
 import { AGENT_COMMUNICATION_STRATEGY_PROMPT } from './prompts/agent-communication-strategy.prompt';
 import { AGENT_CONTEXT_EXTRACTION_PROMPT } from './prompts/agent-context-extraction.prompt';
 import { AGENT_EDITORIAL_CALENDAR_PROMPT } from './prompts/agent-editorial-calendar.prompt';
 import { AGENT_FLYER_GENERATION_PROMPT } from './prompts/agent-flyer-generation.prompt';
+import { AGENT_IMAGE_BRIEF_PROMPT } from './prompts/agent-image-brief.prompt';
 import { AGENT_TRENDS_SUMMARY_PROMPT } from './prompts/agent-trends-summary.prompt';
+import { imageSourcingService, ImageBrief, SourcedImage } from './imageSourcing.service';
+import { flyerRenderService } from './flyerRender.service';
 
 export type CommunicationStreamEvent =
   | { type: 'step-start'; step: string }
@@ -60,10 +58,7 @@ export class CommunicationService extends GenericService {
   // Public read / write helpers
   // --------------------------------------------------------------------------
 
-  async getCommunication(
-    userId: string,
-    projectId: string
-  ): Promise<CommunicationModel | null> {
+  async getCommunication(userId: string, projectId: string): Promise<CommunicationModel | null> {
     const project = await this.projectRepository.findById(projectId, this.collection(userId));
     if (!project) return null;
     return (project.analysisResultModel as any)?.communication ?? null;
@@ -378,8 +373,7 @@ export class CommunicationService extends GenericService {
 
     await stream?.({ type: 'step-start', step: 'calendar' });
     const startDate = new Date().toISOString().slice(0, 10);
-    const systemPrompt = AGENT_EDITORIAL_CALENDAR_PROMPT
-      .replace(/\{\{rhythm\}\}/g, rhythm)
+    const systemPrompt = AGENT_EDITORIAL_CALENDAR_PROMPT.replace(/\{\{rhythm\}\}/g, rhythm)
       .replace(/\{\{horizonWeeks\}\}/g, String(horizonWeeks))
       .replace(/\{\{startDate\}\}/g, startDate);
 
@@ -451,31 +445,56 @@ export class CommunicationService extends GenericService {
       if (cached) return cached;
     }
 
+    // ---- Step 5a: image brief (tiny LLM call) -------------------------------
+    const brief = await this.buildImageBrief(userId, content, context, format);
+
+    // ---- Step 5b: source the image (stock first, generate fallback) + scan -
+    const flyerId = `flyer-${contentId}-${format}-${Date.now().toString(36)}`;
+    let sourced: SourcedImage | null = null;
+    try {
+      sourced = await imageSourcingService.sourceImage(brief, {
+        userId,
+        projectId,
+        tag: flyerId,
+      });
+    } catch (err: any) {
+      logger.warn('Flyer image sourcing failed, falling back to text-only flyer', {
+        error: err?.message,
+      });
+    }
+
+    // ---- Step 5c: composition (copy + HTML coherent with the image) --------
     const systemPrompt = AGENT_FLYER_GENERATION_PROMPT.replace(/\{\{format\}\}/g, format);
+    const userPayload: Record<string, unknown> = {
+      BRAND: {
+        name: context.brandName,
+        tone: context.tone,
+        colors: context.branding,
+      },
+      CONTENT_IDEA: {
+        title: content.title,
+        hook: content.hook,
+        description: content.description,
+        format: content.format,
+        channel: content.channel,
+        callToAction: content.callToAction,
+        hashtags: content.hashtags,
+      },
+      FORMAT: format,
+    };
+    if (sourced) {
+      userPayload.IMAGE_URL = sourced.url;
+      userPayload.IMAGE_SUBJECT = sourced.analysis.subject;
+      userPayload.IMAGE_MOOD = sourced.analysis.mood;
+      userPayload.IMAGE_DOMINANT_COLORS = sourced.analysis.dominantColors;
+      userPayload.IMAGE_LUMINANCE = sourced.analysis.luminance;
+      userPayload.IMAGE_COMPOSITION = sourced.analysis.composition;
+      userPayload.IMAGE_DETECTED_TEXT = sourced.analysis.detectedText;
+    }
+
     const messages: AIChatMessage[] = [
       { role: 'system', content: systemPrompt },
-      {
-        role: 'user',
-        content:
-          'BRAND:\n' +
-          JSON.stringify({
-            name: context.brandName,
-            tone: context.tone,
-            colors: context.branding,
-          }) +
-          '\n\nCONTENT_IDEA:\n' +
-          JSON.stringify({
-            title: content.title,
-            hook: content.hook,
-            description: content.description,
-            format: content.format,
-            channel: content.channel,
-            callToAction: content.callToAction,
-            hashtags: content.hashtags,
-          }) +
-          '\n\nFORMAT:\n' +
-          format,
-      },
+      { role: 'user', content: JSON.stringify(userPayload, null, 2) },
     ];
 
     const raw = await this.promptService.runPrompt(
@@ -489,8 +508,32 @@ export class CommunicationService extends GenericService {
     );
     const parsed = this.safeJson<Partial<Flyer>>(raw) ?? {};
 
+    let html =
+      typeof parsed.html === 'string'
+        ? parsed.html
+        : this.fallbackFlyerHtml(content, context, format, sourced?.url);
+    // Substitute the IMAGE_URL placeholder if the model echoed it literally.
+    if (sourced?.url) {
+      html = html.replace(/\{\{IMAGE_URL\}\}/g, sourced.url);
+    }
+
+    // ---- Step 5d: render flyer HTML to PNG ---------------------------------
+    let renderedUrl: string | undefined;
+    try {
+      const rendered = await flyerRenderService.renderFlyerToPng(html, format, {
+        userId,
+        projectId,
+        flyerId,
+      });
+      renderedUrl = rendered.url;
+    } catch (err: any) {
+      logger.warn('Flyer PNG render failed, returning HTML-only flyer', {
+        error: err?.message,
+      });
+    }
+
     const flyer: Flyer = {
-      id: `flyer-${contentId}-${format}-${Date.now().toString(36)}`,
+      id: flyerId,
       contentId,
       format,
       concept: parsed.concept || '',
@@ -501,7 +544,12 @@ export class CommunicationService extends GenericService {
         body: parsed.marketingText?.body || content.description,
         cta: parsed.marketingText?.cta || content.callToAction,
       },
-      html: typeof parsed.html === 'string' ? parsed.html : this.fallbackFlyerHtml(content, context, format),
+      html,
+      imageUrl: renderedUrl,
+      backgroundImageUrl: sourced?.url,
+      imageSource: sourced?.source,
+      imageAnalysis: sourced?.analysis,
+      imageAttribution: sourced?.attribution,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -515,9 +563,7 @@ export class CommunicationService extends GenericService {
         ? {
             ...existing.calendar,
             items: existing.calendar.items.map((it) =>
-              it.id === contentId
-                ? { ...it, flyerIds: [...(it.flyerIds || []), flyer.id] }
-                : it
+              it.id === contentId ? { ...it, flyerIds: [...(it.flyerIds || []), flyer.id] } : it
             ),
             updatedAt: new Date(),
           }
@@ -584,11 +630,7 @@ export class CommunicationService extends GenericService {
     const branding = project.analysisResultModel?.branding;
     if (branding) {
       const primaryColors = branding.colors?.colors;
-      parts.push(
-        `Brand Colors: ${
-          primaryColors ? JSON.stringify(primaryColors) : 'unspecified'
-        }`
-      );
+      parts.push(`Brand Colors: ${primaryColors ? JSON.stringify(primaryColors) : 'unspecified'}`);
       const primaryTypography = branding.typography;
       if (primaryTypography) {
         parts.push(
@@ -620,11 +662,7 @@ export class CommunicationService extends GenericService {
   }
 
   private shortHash(data: unknown): string {
-    return crypto
-      .createHash('sha256')
-      .update(JSON.stringify(data))
-      .digest('hex')
-      .substring(0, 16);
+    return crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex').substring(0, 16);
   }
 
   private trendBucketKey(context: CommunicationContext): string {
@@ -685,22 +723,104 @@ export class CommunicationService extends GenericService {
   private fallbackFlyerHtml(
     content: ContentIdea,
     context: CommunicationContext,
-    format: FlyerFormat
+    format: FlyerFormat,
+    imageUrl?: string
   ): string {
     const size =
       format === 'story'
         ? 'w-[1080px] h-[1920px]'
         : format === 'banner'
-        ? 'w-[1200px] h-[630px]'
-        : format === 'post'
-        ? 'w-[1200px] h-[1500px]'
-        : format === 'a4'
-        ? 'w-[210mm] h-[297mm]'
-        : 'w-[1080px] h-[1080px]';
+          ? 'w-[1200px] h-[630px]'
+          : format === 'post'
+            ? 'w-[1200px] h-[1500px]'
+            : format === 'a4'
+              ? 'w-[1240px] h-[1754px]'
+              : 'w-[1080px] h-[1080px]';
     const primary = context.branding.primary || '#0ea5e9';
     const secondary = context.branding.secondary || '#0f172a';
     const text = context.branding.text || '#ffffff';
-    return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]"><div class="text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="flex-1 flex flex-col justify-center gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${this.escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${this.escapeHtml(content.description)}</div></div><div class="flex items-center justify-between"><div class="bg-[${primary}] text-[${secondary}] font-bold px-6 py-3 rounded-full">${this.escapeHtml(content.callToAction)}</div><div class="text-xs opacity-60">${content.channel} · ${content.format}</div></div></div>`;
+    const bgImage = imageUrl
+      ? `<img src="${imageUrl}" class="absolute inset-0 w-full h-full object-cover" /><div class="absolute inset-0 bg-gradient-to-t from-[${secondary}]/90 via-[${secondary}]/40 to-transparent"></div>`
+      : '';
+    return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]">${bgImage}<div class="relative text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="relative flex-1 flex flex-col justify-end gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${this.escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${this.escapeHtml(content.description)}</div></div><div class="relative flex items-center justify-between"><div class="bg-[${primary}] text-[${secondary}] font-bold px-6 py-3 rounded-full">${this.escapeHtml(content.callToAction)}</div><div class="text-xs opacity-60">${content.channel} · ${content.format}</div></div></div>`;
+  }
+
+  /**
+   * Tiny LLM call to decide what to search / generate. Returns sensible
+   * defaults if parsing fails so the pipeline never blocks on this step.
+   */
+  private async buildImageBrief(
+    userId: string,
+    content: ContentIdea,
+    context: CommunicationContext,
+    format: FlyerFormat
+  ): Promise<ImageBrief> {
+    const orientation: 'portrait' | 'landscape' | 'square' =
+      format === 'banner' ? 'landscape' : format === 'square' ? 'square' : 'portrait';
+
+    try {
+      const messages: AIChatMessage[] = [
+        { role: 'system', content: AGENT_IMAGE_BRIEF_PROMPT },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            BRAND: {
+              businessType: context.businessType,
+              tone: context.tone,
+              keywords: context.keywords,
+            },
+            CONTENT: {
+              title: content.title,
+              hook: content.hook,
+              description: content.description,
+              format: content.format,
+            },
+            FORMAT: format,
+          }),
+        },
+      ];
+      const raw = await this.promptService.runPrompt(
+        {
+          ...DEFAULT_PROMPT_CONFIG,
+          userId,
+          promptType: 'communication_image_brief',
+          llmOptions: { maxOutputTokens: 400 },
+        },
+        messages
+      );
+      const parsed = this.safeJson<Partial<ImageBrief>>(raw) ?? {};
+      return {
+        searchQuery:
+          (parsed.searchQuery && parsed.searchQuery.trim()) ||
+          this.fallbackSearchQuery(content, context),
+        generationPrompt:
+          (parsed.generationPrompt && parsed.generationPrompt.trim()) ||
+          this.fallbackGenerationPrompt(content, context),
+        preferGenerated: !!parsed.preferGenerated,
+        orientation: (parsed.orientation as ImageBrief['orientation']) || orientation,
+      };
+    } catch (err: any) {
+      logger.warn('buildImageBrief failed, using heuristic brief', { error: err?.message });
+      return {
+        searchQuery: this.fallbackSearchQuery(content, context),
+        generationPrompt: this.fallbackGenerationPrompt(content, context),
+        orientation,
+      };
+    }
+  }
+
+  private fallbackSearchQuery(content: ContentIdea, context: CommunicationContext): string {
+    const base = [content.title, ...(context.keywords || []).slice(0, 2)].filter(Boolean).join(' ');
+    return base.replace(/[^a-zA-Z0-9 ]+/g, '').slice(0, 60) || context.businessType || 'business';
+  }
+
+  private fallbackGenerationPrompt(content: ContentIdea, context: CommunicationContext): string {
+    return (
+      `Photorealistic editorial photograph for a ${context.businessType} brand. ` +
+      `Subject relates to: ${content.title}. ` +
+      `Mood: ${context.tone}. Soft natural lighting, clean composition with negative ` +
+      `space for overlay text. No on-image typography, no logos, no watermarks.`
+    );
   }
 
   private escapeHtml(raw: string): string {
