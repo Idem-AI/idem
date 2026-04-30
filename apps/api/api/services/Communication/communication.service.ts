@@ -517,20 +517,10 @@ export class CommunicationService extends GenericService {
       html = html.replace(/\{\{IMAGE_URL\}\}/g, sourced.url);
     }
 
-    // ---- Step 5d: render flyer HTML to PNG ---------------------------------
-    let renderedUrl: string | undefined;
-    try {
-      const rendered = await flyerRenderService.renderFlyerToPng(html, format, {
-        userId,
-        projectId,
-        flyerId,
-      });
-      renderedUrl = rendered.url;
-    } catch (err: any) {
-      logger.warn('Flyer PNG render failed, returning HTML-only flyer', {
-        error: err?.message,
-      });
-    }
+    // Return the URL to our on-the-fly render endpoint.
+    const port = process.env.PORT || '3001';
+    const apiUrl = process.env.API_URL || `http://localhost:${port}`;
+    const renderedUrl = `${apiUrl}/project/communication/${projectId}/flyer/${flyerId}/image`;
 
     const flyer: Flyer = {
       id: flyerId,
@@ -581,6 +571,32 @@ export class CommunicationService extends GenericService {
     format: FlyerFormat
   ): Promise<Flyer> {
     return this.generateFlyer(userId, projectId, contentId, { format, force: true });
+  }
+
+  // --------------------------------------------------------------------------
+  // 6. Get Flyer Image (On-the-fly rendering + cache)
+  // --------------------------------------------------------------------------
+
+  async getFlyerImage(projectId: string, flyerId: string): Promise<Buffer> {
+    const cacheKey = cacheService.generateAIKey('flyer-img', 'public', projectId, flyerId);
+    const cachedBase64 = await cacheService.get<string>(cacheKey, { prefix: 'flyer', ttl: 86400 });
+    if (cachedBase64) {
+      return Buffer.from(cachedBase64, 'base64');
+    }
+
+    const project = await this.projectRepository.findById(projectId, 'projects');
+    if (!project) throw new Error(`Project not found: ${projectId}`);
+    
+    const communication = (project.analysisResultModel as any)?.communication;
+    const flyer = communication?.flyers?.find((f: any) => f.id === flyerId);
+    if (!flyer || !flyer.html) {
+      throw new Error(`Flyer not found or missing HTML: ${flyerId}`);
+    }
+
+    const buffer = await flyerRenderService.renderFlyerToPng(flyer.html, flyer.format);
+    await cacheService.set(cacheKey, buffer.toString('base64'), { prefix: 'flyer', ttl: 86400 });
+
+    return buffer;
   }
 
   // --------------------------------------------------------------------------

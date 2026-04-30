@@ -73,8 +73,7 @@ export class FlyerRenderService {
   async renderFlyerToPng(
     innerHtml: string,
     format: FlyerFormat,
-    meta: { userId: string; projectId: string; flyerId: string }
-  ): Promise<{ url: string; filePath: string; width: number; height: number }> {
+  ): Promise<Buffer> {
     const dims = FORMAT_DIMENSIONS[format] || FORMAT_DIMENSIONS.square;
     const html = this.buildFullHtml(innerHtml, dims);
 
@@ -89,9 +88,9 @@ export class FlyerRenderService {
       await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
 
       // Wait for any <img> to finish loading so the screenshot is complete.
-      await page.evaluate(async () => {
+      await page.evaluate(() => {
         const images = Array.from(document.images);
-        await Promise.all(
+        return Promise.all(
           images.map((img) =>
             img.complete && img.naturalWidth > 0
               ? Promise.resolve()
@@ -108,23 +107,12 @@ export class FlyerRenderService {
         clip: { x: 0, y: 0, width: dims.width, height: dims.height },
       })) as Buffer;
 
-      const fileName = `flyer-${meta.flyerId}-${format}.png`;
-      const folderPath = `users/${meta.userId}/projects/${meta.projectId}/communication/flyers`;
-      const upload = await this.storage.uploadFile(buffer, fileName, folderPath, 'image/png');
-
-      logger.info('FlyerRenderService: PNG rendered + uploaded', {
-        flyerId: meta.flyerId,
+      logger.info('FlyerRenderService: PNG rendered (not saved)', {
         format,
-        url: upload.downloadURL,
         sizeKB: Math.round(buffer.length / 1024),
       });
 
-      return {
-        url: upload.downloadURL,
-        filePath: upload.filePath,
-        width: dims.width,
-        height: dims.height,
-      };
+      return buffer;
     } finally {
       await page.close().catch(() => undefined);
     }

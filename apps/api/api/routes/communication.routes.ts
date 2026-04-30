@@ -5,6 +5,7 @@ import {
   generateFlyerController,
   generateStrategyStreamController,
   getCommunicationController,
+  getFlyerImageController,
   regenerateFlyerController,
   updateCalendarItemController,
   updateStrategyController,
@@ -177,8 +178,8 @@ communicationRoutes.post(
 
 /**
  * @openapi
- * /project/communication/{projectId}/flyer/{contentId}/regenerate:
- *   post:
+ * /project/communication/{projectId}/flyer/{flyerId}/image:
+ *   get:
  *     tags: [Communication]
  *     summary: Force regeneration of the flyer for one selected content idea.
  *     security: [{ bearerAuth: [] }]
@@ -189,4 +190,16 @@ communicationRoutes.post(
   checkPolicyAcceptance,
   checkQuota,
   regenerateFlyerController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/flyer/{flyerId}/image:
+ *   get:
+ *     tags: [Communication]
+ *     summary: Fetch the rendered flyer image directly as a PNG.
+ */
+communicationRoutes.get(
+  `/${resource}/:projectId/flyer/:flyerId/image`,
+  getFlyerImageController
 );
