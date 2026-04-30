@@ -465,7 +465,13 @@ export class CommunicationService extends GenericService {
     }
 
     // ---- Step 5c: composition (copy + HTML coherent with the image) --------
-    const systemPrompt = AGENT_FLYER_GENERATION_PROMPT.replace(/\{\{format\}\}/g, format);
+    let systemPrompt = AGENT_FLYER_GENERATION_PROMPT.replace(/\{\{format\}\}/g, format);
+    
+    // Inject brand colors into the system prompt
+    systemPrompt = systemPrompt
+      .replace(/\{\{BRAND\.colors\.primary\}\}/g, context.branding.primary)
+      .replace(/\{\{BRAND\.colors\.text\}\}/g, context.branding.text || '#000000');
+
     const userPayload: Record<string, unknown> = {
       BRAND: {
         name: context.brandName,
@@ -491,6 +497,12 @@ export class CommunicationService extends GenericService {
       userPayload.IMAGE_LUMINANCE = sourced.analysis.luminance;
       userPayload.IMAGE_COMPOSITION = sourced.analysis.composition;
       userPayload.IMAGE_DETECTED_TEXT = sourced.analysis.detectedText;
+
+      // Also inject image metadata into the system prompt for better AI context
+      systemPrompt = systemPrompt
+        .replace(/\{\{IMAGE_URL\}\}/g, sourced.url)
+        .replace(/\{\{IMAGE_LUMINANCE\}\}/g, sourced.analysis.luminance)
+        .replace(/\{\{IMAGE_COMPOSITION\}\}/g, sourced.analysis.composition || 'balanced');
     }
 
     const messages: AIChatMessage[] = [
@@ -513,10 +525,10 @@ export class CommunicationService extends GenericService {
       typeof parsed.html === 'string'
         ? parsed.html
         : this.fallbackFlyerHtml(content, context, format, sourced?.url);
-    // Substitute the IMAGE_URL placeholder if the model echoed it literally.
-    if (sourced?.url) {
-      html = html.replace(/\{\{IMAGE_URL\}\}/g, sourced.url);
-    }
+    
+    // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
+    // because we correctly populate the system prompt now. The AI will see 
+    // the real URL. We keep the logic clean and rely on the prompt quality.
 
     // Return the URL to our on-the-fly render endpoint.
     const port = process.env.PORT || '3001';
@@ -594,6 +606,8 @@ export class CommunicationService extends GenericService {
     const communication = (project.analysisResultModel as any)?.communication;
     const flyer = communication?.flyers?.find((f: any) => f.id === flyerId);
     if (!flyer || !flyer.html) {
+      const availableFlyers = communication?.flyers?.map((f: any) => f.id) || [];
+      logger.error(`Flyer not found or missing HTML: ${flyerId}`, { availableFlyers, flyerId, projectId });
       throw new Error(`Flyer not found or missing HTML: ${flyerId}`);
     }
 
@@ -615,16 +629,17 @@ export class CommunicationService extends GenericService {
     projectId: string,
     patcher: (existing: CommunicationModel) => CommunicationModel
   ): Promise<CommunicationModel | null> {
-    const project = await this.projectRepository.findById(projectId, this.collection(userId));
-    if (!project) return null;
+    const project = await this.projectRepository.findById(projectId, this.collection(userId), { bypassCache: true });
+    if (!project) {
+      logger.error(`patchCommunication: Project ${projectId} not found for user ${userId}`);
+      return null;
+    }
 
-    const analysis = project.analysisResultModel as any;
-    const existing: CommunicationModel = analysis?.communication ?? {};
-    const patched: CommunicationModel = {
-      ...patcher(existing),
-      updatedAt: new Date(),
-      createdAt: existing.createdAt || new Date(),
-    };
+    const analysis = (project.analysisResultModel as any) || {};
+    const existing = (analysis.communication as CommunicationModel) || {};
+    const patched = patcher(existing);
+
+    logger.info(`patchCommunication: updating project ${projectId} with new communication data (flyers count: ${patched.flyers?.length || 0})`);
 
     const updatedProject = await this.projectRepository.update(
       projectId,
@@ -637,8 +652,14 @@ export class CommunicationService extends GenericService {
       },
       this.collection(userId)
     );
-    if (!updatedProject) return null;
-    return patched;
+
+    if (!updatedProject) {
+      logger.error(`patchCommunication: Failed to update project ${projectId} in database`);
+    } else {
+      logger.info(`patchCommunication: Successfully updated project ${projectId} in database`);
+    }
+
+    return updatedProject ? patched : null;
   }
 
   private buildProjectSummary(project: ProjectModel): string {
