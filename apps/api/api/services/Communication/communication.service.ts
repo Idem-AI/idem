@@ -179,6 +179,7 @@ export class CommunicationService extends GenericService {
         text: (colors as any).text,
         primaryFont: typography?.primaryFont,
         secondaryFont: typography?.secondaryFont,
+        fontUrl: typography?.url,
         logoSvg: branding?.logo?.svg,
       },
       extractedAt: new Date(),
@@ -584,7 +585,10 @@ export class CommunicationService extends GenericService {
       return Buffer.from(cachedBase64, 'base64');
     }
 
-    const project = await this.projectRepository.findById(projectId, 'projects');
+    // Use findOne instead of findById to bypass the repository cache.
+    // The cache key used by findById('projects') is disjoint from the cache
+    // invalidated during patchCommunication('users/userId/projects').
+    const project = await this.projectRepository.findOne({ _id: projectId }, 'projects');
     if (!project) throw new Error(`Project not found: ${projectId}`);
     
     const communication = (project.analysisResultModel as any)?.communication;
@@ -593,7 +597,10 @@ export class CommunicationService extends GenericService {
       throw new Error(`Flyer not found or missing HTML: ${flyerId}`);
     }
 
-    const buffer = await flyerRenderService.renderFlyerToPng(flyer.html, flyer.format);
+    const branding = (project.analysisResultModel as any)?.branding;
+    const typography = branding?.typography;
+
+    const buffer = await flyerRenderService.renderFlyerToPng(flyer.html, flyer.format, typography);
     await cacheService.set(cacheKey, buffer.toString('base64'), { prefix: 'flyer', ttl: 86400 });
 
     return buffer;

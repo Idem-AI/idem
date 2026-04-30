@@ -73,9 +73,10 @@ export class FlyerRenderService {
   async renderFlyerToPng(
     innerHtml: string,
     format: FlyerFormat,
+    typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
   ): Promise<Buffer> {
     const dims = FORMAT_DIMENSIONS[format] || FORMAT_DIMENSIONS.square;
-    const html = this.buildFullHtml(innerHtml, dims);
+    const html = this.buildFullHtml(innerHtml, dims, typography);
 
     const browser = await this.getBrowser();
     const page = await browser.newPage();
@@ -123,7 +124,17 @@ export class FlyerRenderService {
    * use the Tailwind Play CDN inside the offscreen browser only — it never
    * touches the host dashboard.
    */
-  private buildFullHtml(innerHtml: string, dims: FlyerSize): string {
+  private buildFullHtml(
+    innerHtml: string,
+    dims: FlyerSize,
+    typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
+  ): string {
+    const fontUrl = typography?.url || 'https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap';
+    // Clean up Google Font URL if necessary (ensure it has &display=swap)
+    const finalFontUrl = fontUrl.includes('display=swap') ? fontUrl : `${fontUrl}&display=swap`;
+    const fontPrimary = typography?.primaryFont || 'Jura';
+    const fontSecondary = typography?.secondaryFont || 'Jura';
+
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -131,12 +142,16 @@ export class FlyerRenderService {
 <meta name="viewport" content="width=${dims.width},initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="${finalFontUrl}" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+  :root {
+    --font-primary: '${fontPrimary}', system-ui, sans-serif;
+    --font-secondary: '${fontSecondary}', system-ui, sans-serif;
+  }
   *, *::before, *::after { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #ffffff; font-family: 'Jura', system-ui, sans-serif; }
+  html, body { margin: 0; padding: 0; background: #ffffff; font-family: var(--font-secondary); }
   /* Force the AI's outer flyer container to fill the canvas regardless of
      the arbitrary w-[..]/h-[..] classes it chose, so the PNG is never cropped. */
   body > *:first-child {

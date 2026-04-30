@@ -57,6 +57,7 @@ export interface CommunicationContext {
     text?: string;
     primaryFont?: string;
     secondaryFont?: string;
+    fontUrl?: string;
     logoSvg?: string;
   };
   extractedAt: Date;
