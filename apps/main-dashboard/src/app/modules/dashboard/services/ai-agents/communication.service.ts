@@ -102,6 +102,16 @@ export class CommunicationService {
       .pipe(catchError((err) => throwError(() => err)));
   }
 
+  /** GET on-demand flyer image blob */
+  downloadFlyerImage(projectId: string, flyerId: string): Observable<Blob> {
+    return this.http
+      .get(`${this.apiUrl}/${projectId}/flyer/${flyerId}/image`, {
+        responseType: 'blob',
+        headers: { Accept: 'image/png' },
+      })
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
   // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------

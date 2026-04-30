@@ -39,6 +39,7 @@ export class ShowCommunication implements OnInit {
   protected readonly isGeneratingStrategy = signal<boolean>(false);
   protected readonly isGeneratingCalendar = signal<boolean>(false);
   protected readonly isGeneratingFlyer = signal<boolean>(false);
+  protected readonly isDownloadingImage = signal<boolean>(false);
   protected readonly errorMessage = signal<string>('');
 
   protected readonly model = signal<CommunicationModel | null>(null);
@@ -243,21 +244,30 @@ export class ShowCommunication implements OnInit {
   protected openFlyerModal(content: ContentIdea): void {
     this.selectedContent.set(content);
     this.selectedFormat.set('square');
-    this.currentFlyer.set(this.findExistingFlyer(content, 'square'));
+    const flyer = this.findExistingFlyer(content, 'square');
+    this.currentFlyer.set(flyer);
     this.isFlyerModalOpen.set(true);
+    if (flyer) {
+      this.loadFlyerImage(flyer);
+    }
   }
 
   protected closeFlyerModal(): void {
     this.isFlyerModalOpen.set(false);
     this.selectedContent.set(null);
     this.currentFlyer.set(null);
+    this.isDownloadingImage.set(false);
   }
 
   protected setFlyerFormat(format: FlyerFormat): void {
     this.selectedFormat.set(format);
     const content = this.selectedContent();
     if (!content) return;
-    this.currentFlyer.set(this.findExistingFlyer(content, format));
+    const flyer = this.findExistingFlyer(content, format);
+    this.currentFlyer.set(flyer);
+    if (flyer) {
+      this.loadFlyerImage(flyer);
+    }
   }
 
   /** CRITICAL: only call LLM when user clicks. */
@@ -277,6 +287,7 @@ export class ShowCommunication implements OnInit {
         this.currentFlyer.set(flyer);
         this.pushFlyerToModel(flyer);
         this.isGeneratingFlyer.set(false);
+        this.loadFlyerImage(flyer);
       },
       error: (err) => {
         this.errorMessage.set(err?.error?.message || 'Flyer generation failed');
@@ -288,6 +299,31 @@ export class ShowCommunication implements OnInit {
   protected flyerSafeHtml(flyer: Flyer | null): SafeHtml | null {
     if (!flyer?.html) return null;
     return this.sanitizer.bypassSecurityTrustHtml(flyer.html);
+  }
+
+  private loadFlyerImage(flyer: Flyer): void {
+    const projectId = this.projectId();
+    if (!projectId || !flyer.id) return;
+    
+    // Check if it's already an object URL (starts with blob:) or is a base64
+    if (flyer.imageUrl && (flyer.imageUrl.startsWith('blob:') || flyer.imageUrl.startsWith('data:'))) {
+      return;
+    }
+
+    this.isDownloadingImage.set(true);
+    this.communication.downloadFlyerImage(projectId, flyer.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const updatedFlyer = { ...flyer, imageUrl: url };
+        this.currentFlyer.set(updatedFlyer);
+        this.pushFlyerToModel(updatedFlyer);
+        this.isDownloadingImage.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load flyer image blob', err);
+        this.isDownloadingImage.set(false);
+      }
+    });
   }
 
   // ---------------- nav
