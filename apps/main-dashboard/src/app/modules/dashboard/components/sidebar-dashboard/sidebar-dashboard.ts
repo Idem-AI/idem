@@ -151,6 +151,13 @@ export class SidebarDashboard implements OnInit {
       isNew: true,
     },
     {
+      labelKey: 'dashboard.sidebar.communication',
+      icon: 'pi pi-megaphone',
+      route: 'project/communication',
+      isActive: false,
+      isNew: true,
+    },
+    {
       labelKey: 'dashboard.sidebar.legalDocs',
       icon: 'pi pi-file-edit',
       route: 'project/legal-docs',
