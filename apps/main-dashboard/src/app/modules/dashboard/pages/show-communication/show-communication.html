@@ -65,9 +65,11 @@
       <p class="mt-2 text-[var(--color-text-secondary)]">
         Choose a project from your list to start generating communication assets.
       </p>
-      <button class="inner-button mt-6" (click)="goToProjects()">
-        <i class="pi pi-arrow-right"></i> Go to my projects
-      </button>
+      <div class="flex justify-center mt-6">
+        <button class="inner-button" (click)="goToProjects()">
+          <i class="pi pi-arrow-right"></i> Go to my projects
+        </button>
+      </div>
     </div>
   } @else {
     <!-- STRATEGY TAB -->
@@ -83,18 +85,20 @@
               We extract a compact context from your project, pull lightweight trend signals,
               and produce a structured, editable strategy.
             </p>
-            <button
-              class="inner-button mt-6"
-              [disabled]="isGeneratingStrategy()"
-              (click)="generateStrategy(false)"
-            >
-              @if (isGeneratingStrategy()) {
-                <i class="pi pi-spin pi-spinner"></i>
-              } @else {
-                <i class="pi pi-sparkles"></i>
-              }
-              Generate strategy
-            </button>
+            <div class="flex justify-center mt-6">
+              <button
+                class="inner-button"
+                [disabled]="isGeneratingStrategy()"
+                (click)="generateStrategy(false)"
+              >
+                @if (isGeneratingStrategy()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                } @else {
+                  <i class="pi pi-sparkles"></i>
+                }
+                Generate strategy
+              </button>
+            </div>
           </div>
         } @else {
           <!-- Context chip -->
@@ -204,18 +208,20 @@
               We'll produce 4 weeks of content ideas — titles, hooks, formats, channels — so you can
               pick what to publish. Visuals are only generated on demand.
             </p>
-            <button
-              class="inner-button mt-6"
-              [disabled]="isGeneratingCalendar() || !strategy()"
-              (click)="generateCalendar(false)"
-            >
-              @if (isGeneratingCalendar()) {
-                <i class="pi pi-spin pi-spinner"></i>
-              } @else {
-                <i class="pi pi-sparkles"></i>
-              }
-              Generate calendar
-            </button>
+            <div class="flex justify-center mt-6">
+              <button
+                class="inner-button"
+                [disabled]="isGeneratingCalendar() || !strategy()"
+                (click)="generateCalendar(false)"
+              >
+                @if (isGeneratingCalendar()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                } @else {
+                  <i class="pi pi-sparkles"></i>
+                }
+                Generate calendar
+              </button>
+            </div>
             @if (!strategy()) {
               <p class="mt-3 text-xs text-[var(--color-text-tertiary)]">
                 Generate a strategy first to produce a more relevant calendar.
