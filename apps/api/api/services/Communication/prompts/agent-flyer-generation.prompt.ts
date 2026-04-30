@@ -69,13 +69,14 @@ DO NOT blend archetypes. Execute your chosen one with 100% commitment.
 ═══════════════════════════════════════════════════════════
 TYPOGRAPHY RULES
 ═══════════════════════════════════════════════════════════
-- Headlines: style="font-family: var(--font-primary)" — MASSIVE, dominant.
+- Headlines: use Tailwind class \`font-primary\` — MASSIVE, dominant.
   Use Tailwind size classes: text-[96px] to text-[220px] for the display line.
   Line-height tight: leading-none or leading-[0.9].
   Tracking: either very tight (tracking-tighter) or very wide (tracking-[0.3em]).
 
-- Body / details: style="font-family: var(--font-secondary)" — small and refined.
+- Body / details: use Tailwind class \`font-secondary\` — small and refined.
   Use text-[13px] to text-[18px]. Max 2–3 lines.
+  (Note: the base HTML body defaults to font-secondary, but you can explicitly use the class).
 
 - NEVER use equal sizes for all text elements. Contrast is everything.
 - ALL CAPS for headlines is strongly preferred for print flyers.
@@ -135,7 +136,7 @@ Active format: {{format}}
 TECHNICAL HTML RULES
 ═══════════════════════════════════════════════════════════
 - Raw HTML + Tailwind utility classes only. No <script>. No CDN links.
-- Inline style="" is allowed ONLY for: font-family, transform, mix-blend-mode,
+- Inline style="" is allowed ONLY for: transform, mix-blend-mode,
   letter-spacing values not available in Tailwind, and background gradients.
 - Single unbroken line. Zero newlines inside the "html" string value.
 - Outer container: exactly the format dimensions. overflow-hidden. relative.
