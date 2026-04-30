@@ -145,6 +145,19 @@ export class FlyerRenderService {
 <link href="${finalFontUrl}" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css">
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          primary: ['var(--font-primary)'],
+          secondary: ['var(--font-secondary)'],
+          sans: ['var(--font-secondary)']
+        }
+      }
+    }
+  }
+</script>
 <style>
   :root {
     --font-primary: '${fontPrimary}', system-ui, sans-serif;
