@@ -1,6 +1,8 @@
 import express, { Express, Request, Response } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
+import { metricsMiddleware } from './middleware/metrics.middleware';
+import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -72,6 +74,9 @@ import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
 
 const app: Express = express();
+
+// Prometheus metrics middleware (must be before routes)
+app.use(metricsMiddleware);
 
 // HTTP request logging middleware
 app.use(morgan('combined', { stream: loggerStream }));
@@ -165,6 +170,9 @@ app.use('/api/ideploy', ideployRoutes);
 // AppGen routes
 app.use('/appgen', appgenRoutes);
 
+// Prometheus metrics endpoint (no auth required for scraping)
+app.use('/metrics', metricsRouter);
+
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -174,6 +182,18 @@ app.get('/', (req: Request, res: Response) => {
     message: 'Welcome to idem API',
     status: 'healthy',
     timestamp: new Date().toISOString(),
+  });
+});
+
+// Health check endpoint for monitoring probes
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'healthy',
+    service: 'idem-api',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage(),
+    version: process.env.npm_package_version || '1.0.0',
   });
 });
 
