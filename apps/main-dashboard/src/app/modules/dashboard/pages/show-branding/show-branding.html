@@ -684,10 +684,12 @@
         <p class="text-gray-300 mb-8">
           {{ 'dashboard.showBranding.empty.noProject.subtitle' | translate }}
         </p>
-        <button class="inner-button" (click)="goToProjects()">
-          <i class="pi pi-folder mr-2"></i>
-          {{ 'dashboard.showBranding.buttons.selectProject' | translate }}
-        </button>
+        <div class="flex justify-center">
+          <button class="inner-button" (click)="goToProjects()">
+            <i class="pi pi-folder mr-2"></i>
+            {{ 'dashboard.showBranding.buttons.selectProject' | translate }}
+          </button>
+        </div>
       </div>
     </div>
   }

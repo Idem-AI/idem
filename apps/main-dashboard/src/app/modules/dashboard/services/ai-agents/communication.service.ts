@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, throwError, from } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { SseClient } from 'ngx-sse-client';
 import { environment } from '../../../../../environments/environment';
+import { TokenService } from '../../../../shared/services/token.service';
 import {
   CommunicationContext,
   CommunicationModel,
@@ -20,6 +21,7 @@ export class CommunicationService {
   private readonly apiUrl = `${environment.services.api.url}/project/communication`;
   private readonly http = inject(HttpClient);
   private readonly sse = inject(SseClient);
+  private readonly tokenService = inject(TokenService);
 
   /** GET /project/communication/:projectId */
   getCommunication(projectId: string): Observable<CommunicationModel> {
@@ -87,22 +89,14 @@ export class CommunicationService {
   }
 
   /** POST on-demand flyer generation */
-  generateFlyer(
-    projectId: string,
-    contentId: string,
-    format: FlyerFormat,
-  ): Observable<Flyer> {
+  generateFlyer(projectId: string, contentId: string, format: FlyerFormat): Observable<Flyer> {
     return this.http
       .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${contentId}`, { format })
       .pipe(catchError((err) => throwError(() => err)));
   }
 
   /** POST force flyer regeneration */
-  regenerateFlyer(
-    projectId: string,
-    contentId: string,
-    format: FlyerFormat,
-  ): Observable<Flyer> {
+  regenerateFlyer(projectId: string, contentId: string, format: FlyerFormat): Observable<Flyer> {
     return this.http
       .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${contentId}/regenerate`, { format })
       .pipe(catchError((err) => throwError(() => err)));
@@ -113,29 +107,37 @@ export class CommunicationService {
   // ---------------------------------------------------------------------------
 
   private streamUrl(url: string): Observable<CommunicationStreamEvent> {
-    return new Observable<CommunicationStreamEvent>((observer) => {
-      const sub = this.sse
-        .stream(url, { keepAlive: true, reconnectionDelay: 1000 })
-        .subscribe({
-          next: (event: Event) => {
-            if (event.type !== 'message') return;
-            const message = event as MessageEvent;
-            if (!message.data || typeof message.data !== 'string') return;
-            try {
-              const payload = JSON.parse(message.data) as CommunicationStreamEvent;
-              observer.next(payload);
-              if (payload.type === 'complete' || payload.type === 'error') {
-                observer.complete();
-              }
-            } catch {
-              // ignore invalid frames
-            }
-          },
-          error: (err) => observer.error(err),
-          complete: () => observer.complete(),
+    return from(this.tokenService.getTokenAsync()).pipe(
+      switchMap((token: string | null) => {
+        return new Observable<CommunicationStreamEvent>((observer) => {
+          const requestOptions = token
+            ? { headers: { Authorization: `Bearer ${token}` } }
+            : undefined;
+
+          const sub = this.sse
+            .stream(url, { keepAlive: true, reconnectionDelay: 1000 }, requestOptions)
+            .subscribe({
+              next: (event: Event) => {
+                if (event.type !== 'message') return;
+                const message = event as MessageEvent;
+                if (!message.data || typeof message.data !== 'string') return;
+                try {
+                  const payload = JSON.parse(message.data) as CommunicationStreamEvent;
+                  observer.next(payload);
+                  if (payload.type === 'complete' || payload.type === 'error') {
+                    observer.complete();
+                  }
+                } catch {
+                  // ignore invalid frames
+                }
+              },
+              error: (err) => observer.error(err),
+              complete: () => observer.complete(),
+            });
+          return () => sub.unsubscribe();
         });
-      return () => sub.unsubscribe();
-    });
+      }),
+    );
   }
 
   /** Editable calendar model helpers */

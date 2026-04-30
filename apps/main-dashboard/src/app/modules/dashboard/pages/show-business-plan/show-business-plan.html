@@ -69,9 +69,11 @@
       <p class="text-gray-600 mb-8">
         {{ 'dashboard.showBusinessPlan.empty.subtitle' | translate }}
       </p>
-      <button class="inner-button" (click)="generateBusinessPlan()">
-        {{ 'dashboard.showBusinessPlan.buttons.generate' | translate }}
-      </button>
+      <div class="flex justify-center">
+        <button class="inner-button" (click)="generateBusinessPlan()">
+          {{ 'dashboard.showBusinessPlan.buttons.generate' | translate }}
+        </button>
+      </div>
     </div>
   } @else {
     <!-- Empty State - No project ID -->
