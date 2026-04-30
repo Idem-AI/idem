@@ -72,6 +72,7 @@ import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
+import { communicationRoutes } from './routes/communication.routes';
 
 const app: Express = express();
 
@@ -172,6 +173,8 @@ app.use('/appgen', appgenRoutes);
 
 // Prometheus metrics endpoint (no auth required for scraping)
 app.use('/metrics', metricsRouter);
+// Communication routes (strategy / calendar / flyers on demand)
+app.use('/project', communicationRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
