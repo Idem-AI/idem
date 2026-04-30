@@ -7,8 +7,6 @@ import { RepositoryFactory } from '../repository/RepositoryFactory';
 export interface QuotaLimits {
   dailyLimit: number;
   weeklyLimit: number;
-  betaDailyLimit: number;
-  betaWeeklyLimit: number;
 }
 
 export interface QuotaCheckResult {
@@ -19,22 +17,17 @@ export interface QuotaCheckResult {
 }
 class UserService {
   private userRepository: IRepository<UserModel>;
-  private isBeta: boolean;
   private quotaLimits: QuotaLimits;
   constructor() {
     this.userRepository = RepositoryFactory.getRepository<UserModel>();
-
-    this.isBeta = process.env.IS_BETA === 'true';
 
     // Configure quota limits based on environment
     this.quotaLimits = {
       dailyLimit: parseInt(process.env.DAILY_QUOTA_LIMIT || '50'),
       weeklyLimit: parseInt(process.env.WEEKLY_QUOTA_LIMIT || '200'),
-      betaDailyLimit: parseInt(process.env.BETA_DAILY_QUOTA_LIMIT || '20'),
-      betaWeeklyLimit: parseInt(process.env.BETA_WEEKLY_QUOTA_LIMIT || '200'),
     };
 
-    logger.info(`QuotaService initialized - Beta mode: ${this.isBeta}, Limits:`, this.quotaLimits);
+    logger.info(`QuotaService initialized - Limits:`, this.quotaLimits);
   }
 
   public async createUser(user: UserModel): Promise<UserModel> {
@@ -54,8 +47,8 @@ class UserService {
       user.quota = {
         dailyUsage: 0,
         weeklyUsage: 0,
-        dailyLimit: this.isBeta ? this.quotaLimits.betaDailyLimit : this.quotaLimits.dailyLimit,
-        weeklyLimit: this.isBeta ? this.quotaLimits.betaWeeklyLimit : this.quotaLimits.weeklyLimit,
+        dailyLimit: this.quotaLimits.dailyLimit,
+        weeklyLimit: this.quotaLimits.weeklyLimit,
         lastResetDaily: new Date().toISOString().split('T')[0], // YYYY-MM-DD
         lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
       };
@@ -121,8 +114,10 @@ class UserService {
         logger.info(`Updating lastLogin for user ${uid}`);
         if (!user.quota) {
           user.quota = {
-            dailyUsage: this.quotaLimits.dailyLimit,
-            weeklyUsage: this.quotaLimits.weeklyLimit,
+            dailyUsage: 0,
+            weeklyUsage: 0,
+            dailyLimit: this.quotaLimits.dailyLimit,
+            weeklyLimit: this.quotaLimits.weeklyLimit,
             lastResetDaily: new Date().toISOString().split('T')[0],
             lastResetWeekly: new Date().toISOString().split('T')[0],
           };
@@ -185,31 +180,17 @@ class UserService {
       // Reset counters if needed
       quotaData = await this.resetCountersIfNeeded(userId, quotaData);
 
-      const currentLimits = this.isBeta
-        ? {
-            daily: this.quotaLimits.betaDailyLimit,
-            weekly: this.quotaLimits.betaWeeklyLimit,
-          }
-        : {
-            daily: this.quotaLimits.dailyLimit,
-            weekly: this.quotaLimits.weeklyLimit,
-          };
-
-      const remainingDaily = Math.max(0, currentLimits.daily - quotaData.dailyUsage);
-      const remainingWeekly = Math.max(0, currentLimits.weekly - quotaData.weeklyUsage);
+      const remainingDaily = Math.max(0, this.quotaLimits.dailyLimit - quotaData.dailyUsage);
+      const remainingWeekly = Math.max(0, this.quotaLimits.weeklyLimit - quotaData.weeklyUsage);
 
       const allowed = remainingDaily > 0 && remainingWeekly > 0;
 
       let message: string | undefined;
       if (!allowed) {
         if (remainingDaily <= 0) {
-          message = this.isBeta
-            ? `Daily beta quota exceeded (${currentLimits.daily} requests/day)`
-            : `Daily quota exceeded (${currentLimits.daily} requests/day)`;
+          message = `Daily quota exceeded (${this.quotaLimits.dailyLimit} requests/day)`;
         } else if (remainingWeekly <= 0) {
-          message = this.isBeta
-            ? `Weekly beta quota exceeded (${currentLimits.weekly} requests/week)`
-            : `Weekly quota exceeded (${currentLimits.weekly} requests/week)`;
+          message = `Weekly quota exceeded (${this.quotaLimits.weeklyLimit} requests/week)`;
         }
       }
 
@@ -278,7 +259,6 @@ class UserService {
     weeklyLimit: number;
     remainingDaily: number;
     remainingWeekly: number;
-    isBeta: boolean;
   }> {
     try {
       logger.info(`Getting quota info for user: ${userId}`);
@@ -290,27 +270,16 @@ class UserService {
 
       quotaData = await this.resetCountersIfNeeded(userId, quotaData);
 
-      const currentLimits = this.isBeta
-        ? {
-            daily: this.quotaLimits.betaDailyLimit,
-            weekly: this.quotaLimits.betaWeeklyLimit,
-          }
-        : {
-            daily: this.quotaLimits.dailyLimit,
-            weekly: this.quotaLimits.weeklyLimit,
-          };
-
-      const remainingDaily = Math.max(0, currentLimits.daily - quotaData.dailyUsage);
-      const remainingWeekly = Math.max(0, currentLimits.weekly - quotaData.weeklyUsage);
+      const remainingDaily = Math.max(0, this.quotaLimits.dailyLimit - quotaData.dailyUsage);
+      const remainingWeekly = Math.max(0, this.quotaLimits.weeklyLimit - quotaData.weeklyUsage);
 
       return {
         dailyUsage: quotaData.dailyUsage,
         weeklyUsage: quotaData.weeklyUsage,
-        dailyLimit: currentLimits.daily,
-        weeklyLimit: currentLimits.weekly,
+        dailyLimit: this.quotaLimits.dailyLimit,
+        weeklyLimit: this.quotaLimits.weeklyLimit,
         remainingDaily,
         remainingWeekly,
-        isBeta: this.isBeta,
       };
     } catch (error) {
       logger.error(`Error getting quota info for user ${userId}:`, error);
@@ -446,13 +415,6 @@ class UserService {
     return new Date(d.setDate(diff));
   }
 
-  /**
-   * Check if beta mode is enabled
-   */
-  isBetaMode(): boolean {
-    return this.isBeta;
-  }
-
   async getUserEmail(userId: string): Promise<string | undefined> {
     const user = await this.userRepository.findById(userId, 'users');
     return user?.email;
@@ -462,15 +424,10 @@ class UserService {
    * Get current quota limits
    */
   getCurrentLimits(): { daily: number; weekly: number } {
-    return this.isBeta
-      ? {
-          daily: this.quotaLimits.betaDailyLimit,
-          weekly: this.quotaLimits.betaWeeklyLimit,
-        }
-      : {
-          daily: this.quotaLimits.dailyLimit,
-          weekly: this.quotaLimits.weeklyLimit,
-        };
+    return {
+      daily: this.quotaLimits.dailyLimit,
+      weekly: this.quotaLimits.weeklyLimit,
+    };
   }
 }
 
