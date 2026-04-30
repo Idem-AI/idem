@@ -22,14 +22,18 @@ const logger = winston.createLogger({
     winston.format.splat(),
     winston.format.json()
   ),
-  defaultMeta: { service: 'idems-api' }, // Default metadata for all logs
+  defaultMeta: {
+    service: 'idem-api',         // Service label for Loki/Promtail
+    environment: process.env.NODE_ENV || 'development',
+  },
   transports: [
     // Console transport - for development or general output
+    // Also collected by Promtail via Docker log driver
     new winston.transports.Console({
       format: consoleFormat,
       handleExceptions: true, // Log unhandled exceptions
     }),
-    // File transport for errors
+    // File transport for errors — scraped by Promtail
     new winston.transports.File({
       filename: 'logs/error.log',
       level: 'error',
@@ -38,7 +42,7 @@ const logger = winston.createLogger({
       maxFiles: 5,
       tailable: true,
     }),
-    // File transport for all logs (optional, can be verbose)
+    // File transport for all logs — scraped by Promtail
     new winston.transports.File({
       filename: 'logs/combined.log',
       format: fileFormat,
