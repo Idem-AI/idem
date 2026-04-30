@@ -123,19 +123,23 @@ export class FirestoreRepository<T extends { id?: string; createdAt?: Date; upda
     }
   }
 
-  async findById(id: string, collectionPath: string): Promise<T | null> {
+  async findById(id: string, collectionPath: string, options?: { bypassCache?: boolean }): Promise<T | null> {
     // Generate cache key for this specific document
     const cacheKey = cacheService.generateDBKey(collectionPath.replace(/\//g, ':'), 'system', id);
 
-    // Try to get from cache first
-    const cached = await cacheService.get<T>(cacheKey, {
-      prefix: 'db',
-      ttl: 1800, // 30 minutes
-    });
+    // Try to get from cache first (unless bypassed)
+    if (!options?.bypassCache) {
+      const cached = await cacheService.get<T>(cacheKey, {
+        prefix: 'db',
+        ttl: 1800, // 30 minutes
+      });
 
-    if (cached) {
-      logger.debug(`Database cache hit for ${collectionPath}/${id}`);
-      return cached;
+      if (cached) {
+        logger.debug(`Database cache hit for ${collectionPath}/${id}`);
+        return cached;
+      }
+    } else {
+      logger.info(`Bypassing database cache for ${collectionPath}/${id}`);
     }
 
     logger.info(`FirestoreRepository.findById called for ${collectionPath}, id: ${id}`);

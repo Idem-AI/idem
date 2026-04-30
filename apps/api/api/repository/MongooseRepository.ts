@@ -127,19 +127,23 @@ export class MongooseRepository<
     }
   }
 
-  async findById(id: string, collectionPath: string): Promise<T | null> {
+  async findById(id: string, collectionPath: string, options?: { bypassCache?: boolean }): Promise<T | null> {
     // Generate cache key for this specific document
     const cacheKey = cacheService.generateDBKey(collectionPath.replace(/\//g, ':'), 'system', id);
 
-    // Try to get from cache first
-    const cached = await cacheService.get<T>(cacheKey, {
-      prefix: 'db',
-      ttl: 1800, // 30 minutes
-    });
+    // Try to get from cache first (unless bypassed)
+    if (!options?.bypassCache) {
+      const cached = await cacheService.get<T>(cacheKey, {
+        prefix: 'db',
+        ttl: 1800, // 30 minutes
+      });
 
-    if (cached) {
-      logger.debug(`Database cache hit for ${collectionPath}/${id}`);
-      return cached;
+      if (cached) {
+        logger.debug(`Database cache hit for ${collectionPath}/${id}`);
+        return cached;
+      }
+    } else {
+      logger.info(`Bypassing database cache for ${collectionPath}/${id}`);
     }
 
     logger.info(`MongooseRepository.findById called for ${collectionPath}, id: ${id}`);
@@ -150,26 +154,34 @@ export class MongooseRepository<
       const collectionName = parts[parts.length - 1];
       const nestedFilter = this.buildNestedFilter(collectionPath);
 
+      // Try to convert ID to ObjectId if possible (robustness for native driver)
+      let queryId: any = id;
+      if (typeof id === 'string' && mongoose.Types.ObjectId.isValid(id)) {
+        queryId = new mongoose.Types.ObjectId(id);
+      }
+
       // Use native MongoDB collection to support string _id (Firebase UIDs)
-      const doc = await mongoose.connection
+      // Try both ObjectId and string just in case
+      let doc = await mongoose.connection
         .collection(collectionName)
-        .findOne({ _id: id, ...nestedFilter } as any);
+        .findOne({ _id: queryId, ...nestedFilter } as any);
+
+      if (!doc && queryId !== id) {
+        // Fallback to string ID if ObjectId search failed
+        doc = await mongoose.connection
+          .collection(collectionName)
+          .findOne({ _id: id, ...nestedFilter } as any);
+      }
 
       if (!doc) {
         logger.warn(`Document not found in ${collectionPath} with id: ${id}`);
         return null;
       }
 
-      const entity = {
-        ...doc,
-        id: doc._id.toString(),
-      } as unknown as T;
+      const entity = this.mapToEntity(doc);
 
-      // Remove MongoDB _id and __v from result
-      delete (entity as any)._id;
-      delete (entity as any).__v;
-
-      // Cache the result for future requests
+      logger.debug(`Document found in ${collectionPath} with id: ${id}`);
+      
       await cacheService.set(cacheKey, entity, {
         prefix: 'db',
         ttl: 1800, // 30 minutes
@@ -235,23 +247,46 @@ export class MongooseRepository<
       const collectionName = parts[parts.length - 1];
       const nestedFilter = this.buildNestedFilter(collectionPath);
 
+      // Try to convert ID to ObjectId if possible
+      let queryId: any = id;
+      if (typeof id === 'string' && mongoose.Types.ObjectId.isValid(id)) {
+        queryId = new mongoose.Types.ObjectId(id);
+      }
+
       // Use native MongoDB collection to support string _id (Firebase UIDs)
-      const result = await mongoose.connection
+      const query = { _id: queryId, ...nestedFilter };
+      
+      let result = await mongoose.connection
         .collection(collectionName)
         .findOneAndUpdate(
-          { _id: id, ...nestedFilter } as any,
+          query as any,
           { $set: { ...item, updatedAt: new Date() } },
           { returnDocument: 'after' }
         );
 
-      if (!result) {
+      // Handle MongoDB Driver v4 ModifyResult wrapper if present
+      let updatedDoc = (result as any).value !== undefined ? (result as any).value : result;
+
+      if (!updatedDoc && queryId !== id) {
+        // Fallback to string ID if ObjectId update failed
+        result = await mongoose.connection
+          .collection(collectionName)
+          .findOneAndUpdate(
+            { _id: id, ...nestedFilter } as any,
+            { $set: { ...item, updatedAt: new Date() } },
+            { returnDocument: 'after' }
+          );
+        updatedDoc = (result as any).value !== undefined ? (result as any).value : result;
+      }
+
+      if (!updatedDoc) {
         logger.warn(`Document not found in ${collectionPath} with id: ${id}`);
         return null;
       }
 
       const updatedEntity = {
-        ...result,
-        id: result._id.toString(),
+        ...updatedDoc,
+        id: updatedDoc._id.toString(),
       } as unknown as T;
 
       // Remove MongoDB _id and __v from result
@@ -315,23 +350,28 @@ export class MongooseRepository<
       const collectionName = parts[parts.length - 1];
       const nestedFilter = this.buildNestedFilter(collectionPath);
 
+      // Special handling for _id in query
+      const processedQuery = { ...query };
+      if (processedQuery._id && typeof processedQuery._id === 'string' && mongoose.Types.ObjectId.isValid(processedQuery._id)) {
+        // Try searching with ObjectId first
+        const objectIdQuery = { ...processedQuery, _id: new mongoose.Types.ObjectId(processedQuery._id), ...nestedFilter };
+        const doc = await mongoose.connection
+          .collection(collectionName)
+          .findOne(objectIdQuery as any);
+        
+        if (doc) return this.mapToEntity(doc);
+      }
+
+      // Fallback or standard search
       const doc = await mongoose.connection
         .collection(collectionName)
-        .findOne({ ...query, ...nestedFilter } as any);
+        .findOne({ ...processedQuery, ...nestedFilter } as any);
 
       if (!doc) {
         return null;
       }
 
-      const entity = {
-        ...doc,
-        id: doc._id.toString(),
-      } as unknown as T;
-
-      delete (entity as any)._id;
-      delete (entity as any).__v;
-
-      return entity;
+      return this.mapToEntity(doc);
     } catch (error: any) {
       logger.error(`Error in findOne for ${collectionPath}: ${error.message}`, {
         stack: error.stack,
@@ -357,23 +397,24 @@ export class MongooseRepository<
         return [];
       }
 
-      return docs.map((doc) => {
-        const entity = {
-          ...doc,
-          id: doc._id.toString(),
-        } as unknown as T;
-
-        delete (entity as any)._id;
-        delete (entity as any).__v;
-
-        return entity;
-      });
+      return docs.map((doc) => this.mapToEntity(doc));
     } catch (error: any) {
       logger.error(`Error in find for ${collectionPath}: ${error.message}`, {
         stack: error.stack,
       });
       throw error;
     }
+  }
+  private mapToEntity(doc: any): T {
+    const entity = {
+      ...doc,
+      id: doc._id.toString(),
+    } as unknown as T;
+
+    delete (entity as any)._id;
+    delete (entity as any).__v;
+
+    return entity;
   }
 }
 
