@@ -280,3 +280,29 @@ export const regenerateFlyerController = async (
     res.status(500).json({ message: error.message || 'Failed to regenerate flyer' });
   }
 };
+
+// ---------------------------------------------------------------------------
+// GET /project/communication/:projectId/flyer/:flyerId/image
+// ---------------------------------------------------------------------------
+export const getFlyerImageController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const flyerId = req.params.flyerId;
+  if (!flyerId) {
+    res.status(400).json({ message: 'Flyer ID is required' });
+    return;
+  }
+
+  try {
+    const buffer = await communicationService.getFlyerImage(projectId, flyerId);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
+  } catch (error: any) {
+    logger.error(`getFlyerImageController error: ${error.message}`, { stack: error.stack });
+    res.status(404).json({ message: error.message || 'Image not found' });
+  }
+};
