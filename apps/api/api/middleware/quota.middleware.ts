@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { userService } from '../services/user.service';
-import betaRestrictionsService from '../services/betaRestrictions.service';
+import restrictionsService from '../services/restrictions.service';
 import logger from '../config/logger';
 
 export interface CustomRequest extends Request {
@@ -44,9 +44,7 @@ export const checkQuota = async (
         error: 'Quota exceeded',
         message: quotaCheck.message,
         quota: quotaInfo,
-        betaLimitations: betaRestrictionsService.isBetaMode()
-          ? betaRestrictionsService.getBetaLimitationsMessage()
-          : null,
+        limitations: restrictionsService.getLimitationsMessage(),
       });
       return;
     }
@@ -55,7 +53,6 @@ export const checkQuota = async (
     (req as any).quotaInfo = {
       remainingDaily: quotaCheck.remainingDaily,
       remainingWeekly: quotaCheck.remainingWeekly,
-      isBeta: betaRestrictionsService.isBetaMode(),
     };
 
     logger.info(`Quota middleware: Quota check passed for user ${userId}`);
@@ -67,39 +64,6 @@ export const checkQuota = async (
       message: 'Failed to check quota',
     });
   }
-};
-
-/**
- * Middleware to validate feature access in beta mode
- */
-export const checkFeatureAccess = (featureName: string) => {
-  return (req: Request & { user?: { uid: string } }, res: Response, next: NextFunction): void => {
-    try {
-      logger.info(
-        `Feature access middleware: Checking feature '${featureName}' for user ${req.user?.uid}`
-      );
-
-      const featureValidation = betaRestrictionsService.validateFeature(featureName);
-
-      if (!featureValidation.allowed) {
-        logger.warn(`Feature access denied: ${featureValidation.message}`);
-        res.status(403).json({
-          error: 'Feature not available',
-          message: featureValidation.message,
-          betaLimitations: betaRestrictionsService.getBetaLimitationsMessage(),
-        });
-        return;
-      }
-
-      next();
-    } catch (error) {
-      logger.error('Feature access middleware error:', error);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to check feature access',
-      });
-    }
-  };
 };
 
 /**
@@ -121,7 +85,7 @@ export const validateInput = (inputField: string = 'content') => {
 
       logger.info(`Input validation: Validating ${inputField} for user ${req.user?.uid}`);
 
-      const inputValidation = betaRestrictionsService.validateInput(input);
+      const inputValidation = restrictionsService.validateInput(input);
 
       if (!inputValidation.allowed) {
         logger.warn(`Input validation failed: ${inputValidation.message}`);
@@ -144,9 +108,9 @@ export const validateInput = (inputField: string = 'content') => {
 };
 
 /**
- * Middleware to add beta information to responses
+ * Middleware to add system information to responses
  */
-export const addBetaInfo = (
+export const addSystemInfo = (
   req: Request & { user?: { uid: string } },
   res: Response,
   next: NextFunction
@@ -154,18 +118,14 @@ export const addBetaInfo = (
   const originalJson = res.json;
 
   res.json = function (body: any) {
-    if (betaRestrictionsService.isBetaMode()) {
-      const enhancedBody = {
-        ...body,
-        betaInfo: {
-          isBeta: true,
-          limitations: betaRestrictionsService.getBetaLimitationsMessage(),
-          restrictions: betaRestrictionsService.getRestrictions(),
-        },
-      };
-      return originalJson.call(this, enhancedBody);
-    }
-    return originalJson.call(this, body);
+    const enhancedBody = {
+      ...body,
+      systemInfo: {
+        limitations: restrictionsService.getLimitationsMessage(),
+        restrictions: restrictionsService.getRestrictions(),
+      },
+    };
+    return originalJson.call(this, enhancedBody);
   };
 
   next();

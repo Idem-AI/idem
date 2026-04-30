@@ -1,81 +1,46 @@
 import logger from '../config/logger';
 
-export interface BetaRestrictions {
+export interface Restrictions {
   maxStyles: number;
   maxResolution: string;
-  allowedFeatures: string[];
   maxOutputTokens: number;
   restrictedPrompts: string[];
 }
 
-export interface FeatureValidationResult {
+export interface ValidationResult {
   allowed: boolean;
   message?: string;
   adjustedParams?: any;
 }
 
-export class BetaRestrictionsService {
-  private isBeta: boolean;
-  private restrictions: BetaRestrictions;
+export class RestrictionsService {
+  private restrictions: Restrictions;
 
   constructor() {
-    logger.info('Initializing BetaRestrictionsService...');
-    this.isBeta = process.env.IS_BETA === 'true';
+    logger.info('Initializing RestrictionsService...');
 
-    // Configure beta restrictions
+    // Configure restrictions using environment variables
     this.restrictions = {
-      maxStyles: parseInt(process.env.BETA_MAX_STYLES || '3'),
-      maxResolution: process.env.BETA_MAX_RESOLUTION || 'medium',
-      allowedFeatures: (process.env.BETA_ALLOWED_FEATURES || 'logo,colors,typography').split(','),
-      maxOutputTokens: parseInt(process.env.BETA_MAX_OUTPUT_TOKENS || '1000'),
+      maxStyles: parseInt(process.env.MAX_STYLES || '3'),
+      maxResolution: process.env.MAX_RESOLUTION || 'medium',
+      maxOutputTokens: parseInt(process.env.MAX_OUTPUT_TOKENS || '1000'),
       restrictedPrompts: (
-        process.env.BETA_RESTRICTED_PROMPTS || 'complex-branding,full-charter'
+        process.env.RESTRICTED_PROMPTS || 'complex-branding,full-charter'
       ).split(','),
     };
 
-    logger.info(
-      `BetaRestrictionsService initialized - Beta mode: ${this.isBeta}`,
-      this.restrictions
-    );
+    logger.info('RestrictionsService initialized:', this.restrictions);
   }
 
   /**
-   * Validate if a feature is allowed in beta mode
+   * Validate and adjust prompt parameters for current restrictions
    */
-  validateFeature(featureName: string): FeatureValidationResult {
-    if (!this.isBeta) {
-      return { allowed: true };
-    }
-
-    logger.info(`Validating feature '${featureName}' for beta mode`);
-
-    if (!this.restrictions.allowedFeatures.includes(featureName)) {
-      const message = `Feature '${featureName}' is not available in beta version. Available features: ${this.restrictions.allowedFeatures.join(
-        ', '
-      )}`;
-      logger.warn(message);
-      return {
-        allowed: false,
-        message,
-      };
-    }
-
-    return { allowed: true };
-  }
-
-  /**
-   * Validate and adjust prompt parameters for beta restrictions
-   */
-  validatePromptParams(promptType: string, params: any): FeatureValidationResult {
-    if (!this.isBeta) {
-      return { allowed: true, adjustedParams: params };
-    }
-
-    logger.info(`Validating prompt params for '${promptType}' in beta mode`);
+  validatePromptParams(promptType: string, params: any): ValidationResult {
+    logger.info(`Validating prompt params for '${promptType}'`);
 
     // Check if prompt type is restricted
     if (this.restrictions.restrictedPrompts.includes(promptType)) {
-      const message = `Prompt type '${promptType}' is restricted in beta version`;
+      const message = `Prompt type '${promptType}' is restricted`;
       logger.warn(message);
       return {
         allowed: false,
@@ -83,7 +48,7 @@ export class BetaRestrictionsService {
       };
     }
 
-    // Adjust parameters for beta restrictions
+    // Adjust parameters for current restrictions
     const adjustedParams = { ...params };
 
     // Limit output tokens
@@ -92,16 +57,14 @@ export class BetaRestrictionsService {
         adjustedParams.llmOptions.maxOutputTokens,
         this.restrictions.maxOutputTokens
       );
-      logger.info(
-        `Adjusted maxOutputTokens to ${adjustedParams.llmOptions.maxOutputTokens} for beta`
-      );
+      logger.info(`Adjusted maxOutputTokens to ${adjustedParams.llmOptions.maxOutputTokens}`);
     }
 
     // Limit styles if applicable
     if (adjustedParams.styles && Array.isArray(adjustedParams.styles)) {
       if (adjustedParams.styles.length > this.restrictions.maxStyles) {
         adjustedParams.styles = adjustedParams.styles.slice(0, this.restrictions.maxStyles);
-        logger.info(`Limited styles to ${this.restrictions.maxStyles} for beta`);
+        logger.info(`Limited styles to ${this.restrictions.maxStyles}`);
       }
     }
 
@@ -113,7 +76,7 @@ export class BetaRestrictionsService {
 
       if (requestedResolutionIndex > maxResolutionIndex) {
         adjustedParams.resolution = this.restrictions.maxResolution;
-        logger.info(`Adjusted resolution to ${this.restrictions.maxResolution} for beta`);
+        logger.info(`Adjusted resolution to ${this.restrictions.maxResolution}`);
       }
     }
 
@@ -124,29 +87,21 @@ export class BetaRestrictionsService {
   }
 
   /**
-   * Get beta limitations message for user
+   * Get current limitations message for user
    */
-  getBetaLimitationsMessage(): string {
-    if (!this.isBeta) {
-      return '';
-    }
-
+  getLimitationsMessage(): string {
     return `
-🧪 Beta Version Limitations:
+🚀 System Limitations:
 • Maximum ${this.restrictions.maxStyles} style options per generation
 • Maximum resolution: ${this.restrictions.maxResolution}
-• Available features: ${this.restrictions.allowedFeatures.join(', ')}
-• Reduced token output for faster responses
-• Some advanced features are disabled
-
-Thank you for testing our beta version! 🚀
+• Optimized token output for faster responses
     `.trim();
   }
 
   /**
    * Validate input to prevent abusive requests
    */
-  validateInput(input: string): FeatureValidationResult {
+  validateInput(input: string): ValidationResult {
     logger.info('Validating user input for potential abuse');
 
     // Check for empty or whitespace-only input
@@ -217,30 +172,19 @@ Thank you for testing our beta version! 🚀
   }
 
   /**
-   * Check if beta mode is enabled
+   * Get current restrictions
    */
-  isBetaMode(): boolean {
-    return this.isBeta;
-  }
-
-  /**
-   * Get current beta restrictions
-   */
-  getRestrictions(): BetaRestrictions {
+  getRestrictions(): Restrictions {
     return { ...this.restrictions };
   }
 
   /**
-   * Apply beta-specific prompt modifications
+   * Apply prompt modifications if needed
    */
-  applyBetaPromptModifications(originalPrompt: string): string {
-    if (!this.isBeta) {
-      return originalPrompt;
-    }
-
-    // Add beta-specific instructions to prompts
-    const betaInstructions = `
-BETA VERSION INSTRUCTIONS:
+  applyPromptModifications(originalPrompt: string): string {
+    // Add standard instructions to prompts
+    const instructions = `
+SYSTEM INSTRUCTIONS:
 - Keep responses concise and focused
 - Limit creative variations to essential options
 - Prioritize speed over extensive detail
@@ -248,8 +192,8 @@ BETA VERSION INSTRUCTIONS:
 
 `;
 
-    return betaInstructions + originalPrompt;
+    return instructions + originalPrompt;
   }
 }
 
-export default new BetaRestrictionsService();
+export default new RestrictionsService();

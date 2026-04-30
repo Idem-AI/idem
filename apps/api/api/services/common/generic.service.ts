@@ -86,7 +86,7 @@ export class GenericService {
    * @param project Project model
    * @param includeProjectInfo Whether to include project details in the prompt
    * @param userId User ID for quota tracking
-   * @param promptType Type of prompt for beta restrictions
+
    * @returns Generated content for the step
    */
   protected async runStepAndAppend(
