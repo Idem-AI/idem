@@ -70,6 +70,7 @@ import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
+import { communicationRoutes } from './routes/communication.routes';
 
 const app: Express = express();
 
@@ -164,6 +165,9 @@ app.use('/api/ideploy', ideployRoutes);
 
 // AppGen routes
 app.use('/appgen', appgenRoutes);
+
+// Communication routes (strategy / calendar / flyers on demand)
+app.use('/project', communicationRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

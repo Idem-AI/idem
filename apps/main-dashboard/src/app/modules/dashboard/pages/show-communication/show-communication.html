@@ -1,0 +1,489 @@
+<div class="w-full min-h-screen md:p-6 rounded-2xl relative">
+  <!-- HEADER -->
+  <div class="max-w-7xl mx-auto mb-6">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Communication Engine</h1>
+        <p class="text-gray-600 mt-1">
+          Strategy, editorial calendar, and on-demand visuals for your project.
+        </p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="inline-flex rounded-full bg-gray-100 p-1 w-fit">
+        <button
+          type="button"
+          class="px-5 py-2 rounded-full text-sm font-medium transition-colors"
+          [class.bg-white]="activeTab() === 'strategy'"
+          [class.shadow]="activeTab() === 'strategy'"
+          [class.text-gray-900]="activeTab() === 'strategy'"
+          [class.text-gray-600]="activeTab() !== 'strategy'"
+          (click)="setActiveTab('strategy')"
+        >
+          <i class="pi pi-compass mr-2"></i> Strategy
+        </button>
+        <button
+          type="button"
+          class="px-5 py-2 rounded-full text-sm font-medium transition-colors"
+          [class.bg-white]="activeTab() === 'calendar'"
+          [class.shadow]="activeTab() === 'calendar'"
+          [class.text-gray-900]="activeTab() === 'calendar'"
+          [class.text-gray-600]="activeTab() !== 'calendar'"
+          (click)="setActiveTab('calendar')"
+        >
+          <i class="pi pi-calendar mr-2"></i> Calendar
+        </button>
+      </div>
+    </div>
+
+    @if (streamStatus() && (isGeneratingStrategy() || isGeneratingCalendar())) {
+      <div class="mt-4 flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>{{ streamStatus() }}</span>
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="mt-4 flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- LOADING / EMPTY STATE -->
+  @if (isLoading()) {
+    <div class="max-w-7xl mx-auto text-center py-20">
+      <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
+      <p class="mt-3 text-gray-600">Loading communication engine…</p>
+    </div>
+  } @else if (!projectId()) {
+    <div class="max-w-3xl mx-auto text-center py-20">
+      <i class="pi pi-info-circle text-5xl text-gray-400"></i>
+      <h3 class="mt-4 text-lg font-medium text-gray-900">Select a project</h3>
+      <p class="mt-2 text-gray-600">
+        Choose a project from your list to start generating communication assets.
+      </p>
+      <button
+        class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
+        (click)="goToProjects()"
+      >
+        Go to my projects
+      </button>
+    </div>
+  } @else {
+    <!-- STRATEGY TAB -->
+    @if (activeTab() === 'strategy') {
+      <div class="max-w-7xl mx-auto">
+        @if (!strategy()) {
+          <div class="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+            <i class="pi pi-compass text-5xl text-gray-400"></i>
+            <h3 class="mt-4 text-xl font-semibold text-gray-900">
+              Generate your communication strategy
+            </h3>
+            <p class="mt-2 text-gray-600 max-w-lg mx-auto">
+              We extract a compact context from your project, pull lightweight trend signals,
+              and produce a structured, editable strategy.
+            </p>
+            <button
+              class="mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2"
+              [disabled]="isGeneratingStrategy()"
+              (click)="generateStrategy(false)"
+            >
+              @if (isGeneratingStrategy()) {
+                <i class="pi pi-spin pi-spinner"></i>
+              } @else {
+                <i class="pi pi-sparkles"></i>
+              }
+              Generate strategy
+            </button>
+          </div>
+        } @else {
+          <!-- Context chip -->
+          @if (context()) {
+            <div class="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 flex flex-wrap gap-3 text-sm">
+              <span class="px-3 py-1 bg-white rounded-full border border-blue-200">
+                <strong>Brand:</strong> {{ context()!.brandName }}
+              </span>
+              <span class="px-3 py-1 bg-white rounded-full border border-blue-200">
+                <strong>Type:</strong> {{ context()!.businessType }}
+              </span>
+              <span class="px-3 py-1 bg-white rounded-full border border-blue-200">
+                <strong>Tone:</strong> {{ context()!.tone }}
+              </span>
+              @for (ch of context()!.channels; track ch) {
+                <span class="px-3 py-1 bg-white rounded-full border border-blue-200">
+                  <i class="pi pi-hashtag text-xs mr-1"></i>{{ ch }}
+                </span>
+              }
+            </div>
+          }
+
+          <!-- Summary -->
+          <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+              Strategy summary
+            </label>
+            <textarea
+              class="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              rows="3"
+              [ngModel]="strategy()!.summary"
+              (ngModelChange)="updateStrategySummary($event)"
+            ></textarea>
+          </div>
+
+          <!-- Blocks grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            @for (block of strategy()!.blocks; track block.id) {
+              <div class="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] uppercase tracking-widest bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                      {{ block.kind }}
+                    </span>
+                    <input
+                      class="font-semibold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 flex-1"
+                      [ngModel]="block.title"
+                      (ngModelChange)="updateStrategyBlock(block.id, { title: $event })"
+                    />
+                  </div>
+                </div>
+                <textarea
+                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  rows="5"
+                  [ngModel]="block.body"
+                  (ngModelChange)="updateStrategyBlock(block.id, { body: $event })"
+                ></textarea>
+              </div>
+            }
+          </div>
+
+          <div class="mt-6 flex flex-wrap gap-3 justify-end">
+            <button
+              class="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium"
+              (click)="generateStrategy(true)"
+              [disabled]="isGeneratingStrategy()"
+            >
+              <i class="pi pi-refresh mr-2"></i> Regenerate
+            </button>
+            <button
+              class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold"
+              (click)="saveStrategy()"
+            >
+              <i class="pi pi-save mr-2"></i> Save changes
+            </button>
+          </div>
+
+          <!-- Trends row -->
+          @if (trends().length > 0) {
+            <div class="mt-8">
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
+                Trend signals used
+              </h3>
+              <div class="flex flex-wrap gap-2">
+                @for (t of trends(); track t.id) {
+                  <span
+                    class="text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1 rounded-full"
+                    [attr.title]="t.description"
+                  >
+                    <i class="pi pi-chart-line mr-1"></i>{{ t.label }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <!-- CALENDAR TAB -->
+    @if (activeTab() === 'calendar') {
+      <div class="max-w-7xl mx-auto">
+        @if (!calendar()) {
+          <div class="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+            <i class="pi pi-calendar text-5xl text-gray-400"></i>
+            <h3 class="mt-4 text-xl font-semibold text-gray-900">
+              Build your editorial calendar
+            </h3>
+            <p class="mt-2 text-gray-600 max-w-lg mx-auto">
+              We'll produce 4 weeks of content ideas — titles, hooks, formats, channels — so you can
+              pick what to publish. Visuals are only generated on demand.
+            </p>
+            <button
+              class="mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2"
+              [disabled]="isGeneratingCalendar() || !strategy()"
+              (click)="generateCalendar(false)"
+            >
+              @if (isGeneratingCalendar()) {
+                <i class="pi pi-spin pi-spinner"></i>
+              } @else {
+                <i class="pi pi-sparkles"></i>
+              }
+              Generate calendar
+            </button>
+            @if (!strategy()) {
+              <p class="mt-3 text-xs text-gray-500">
+                Generate a strategy first to produce a more relevant calendar.
+              </p>
+            }
+          </div>
+        } @else {
+          <!-- Filters -->
+          <div class="flex flex-wrap gap-3 items-end mb-6">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Channel</label>
+              <select
+                class="rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white"
+                [ngModel]="filterChannel()"
+                (ngModelChange)="setFilterChannel($event)"
+              >
+                <option value="all">All channels</option>
+                @for (ch of channels; track ch) {
+                  <option [value]="ch">{{ ch }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Format</label>
+              <select
+                class="rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white"
+                [ngModel]="filterFormat()"
+                (ngModelChange)="setFilterFormat($event)"
+              >
+                <option value="all">All formats</option>
+                @for (fm of formats; track fm) {
+                  <option [value]="fm">{{ fm }}</option>
+                }
+              </select>
+            </div>
+            <div class="ml-auto flex gap-2">
+              <button
+                class="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium"
+                (click)="generateCalendar(true)"
+                [disabled]="isGeneratingCalendar()"
+              >
+                <i class="pi pi-refresh mr-2"></i> Regenerate calendar
+              </button>
+            </div>
+          </div>
+
+          <!-- Weeks -->
+          <div class="space-y-8">
+            @for (weekGroup of calendarWeeks(); track weekGroup.week) {
+              <div>
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                    {{ weekGroup.week }}
+                  </div>
+                  <h2 class="text-lg font-semibold text-gray-900">Week {{ weekGroup.week }}</h2>
+                  <span class="text-xs text-gray-500">{{ weekGroup.items.length }} ideas</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  @for (item of weekGroup.items; track item.id) {
+                    <div class="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all p-4 flex flex-col">
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                            {{ item.channel }}
+                          </span>
+                          <span class="text-[10px] uppercase tracking-wider bg-purple-50 text-purple-700 px-2 py-0.5 rounded">
+                            {{ item.format }}
+                          </span>
+                          <span class="text-[10px] text-gray-500">
+                            {{ item.scheduledFor }}
+                          </span>
+                        </div>
+                        @if (item.flyerIds && item.flyerIds.length > 0) {
+                          <span class="text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded inline-flex items-center gap-1">
+                            <i class="pi pi-image text-[10px]"></i>
+                            {{ item.flyerIds.length }}
+                          </span>
+                        }
+                      </div>
+                      <h3 class="mt-3 font-semibold text-gray-900 line-clamp-2">{{ item.title }}</h3>
+                      <p class="mt-1 text-sm text-gray-600 line-clamp-2">{{ item.hook }}</p>
+                      <p class="mt-2 text-sm text-gray-700 line-clamp-3">{{ item.description }}</p>
+
+                      @if (item.hashtags.length > 0) {
+                        <div class="mt-2 flex flex-wrap gap-1">
+                          @for (tag of item.hashtags; track tag) {
+                            <span class="text-[10px] text-gray-500">#{{ tag }}</span>
+                          }
+                        </div>
+                      }
+
+                      <div class="mt-auto pt-4 flex items-center justify-between">
+                        <span class="text-xs text-gray-600">
+                          <i class="pi pi-megaphone mr-1"></i>{{ item.callToAction }}
+                        </span>
+                        <button
+                          class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg inline-flex items-center gap-1"
+                          (click)="openFlyerModal(item)"
+                        >
+                          <i class="pi pi-image"></i>
+                          Generate Visual
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- FLYER MODAL (on-demand generation) -->
+  @if (isFlyerModalOpen() && selectedContent()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      (click)="closeFlyerModal()"
+    >
+      <div
+        class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Modal header -->
+        <div class="flex items-start justify-between p-5 border-b border-gray-100">
+          <div>
+            <div class="text-[10px] uppercase tracking-widest text-gray-500">Visual for content</div>
+            <h2 class="text-xl font-bold text-gray-900 mt-1">{{ selectedContent()!.title }}</h2>
+            <p class="text-sm text-gray-600 mt-1">{{ selectedContent()!.hook }}</p>
+          </div>
+          <button
+            class="text-gray-400 hover:text-gray-700 p-1"
+            (click)="closeFlyerModal()"
+          >
+            <i class="pi pi-times text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Format selector -->
+        <div class="flex items-center gap-2 px-5 py-3 bg-gray-50 border-b border-gray-100 overflow-x-auto">
+          <span class="text-xs font-semibold uppercase text-gray-500 mr-2">Format:</span>
+          @for (fmt of flyerFormats; track fmt) {
+            <button
+              class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+              [class.bg-blue-600]="selectedFormat() === fmt"
+              [class.text-white]="selectedFormat() === fmt"
+              [class.bg-white]="selectedFormat() !== fmt"
+              [class.text-gray-700]="selectedFormat() !== fmt"
+              [class.border]="selectedFormat() !== fmt"
+              [class.border-gray-200]="selectedFormat() !== fmt"
+              (click)="setFlyerFormat(fmt)"
+            >
+              {{ fmt }}
+            </button>
+          }
+        </div>
+
+        <!-- Body -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-0 flex-1 overflow-auto">
+          <!-- Preview -->
+          <div class="md:col-span-3 p-6 bg-gray-100 min-h-[400px] flex items-center justify-center">
+            @if (isGeneratingFlyer()) {
+              <div class="text-center">
+                <i class="pi pi-spin pi-spinner text-4xl text-blue-600"></i>
+                <p class="mt-3 text-sm text-gray-600">Generating visual…</p>
+              </div>
+            } @else if (currentFlyer()) {
+              <div class="w-full flex items-center justify-center">
+                <div
+                  class="max-w-full max-h-[60vh] overflow-auto shadow-lg rounded-lg"
+                  [innerHTML]="flyerSafeHtml(currentFlyer())"
+                ></div>
+              </div>
+            } @else {
+              <div class="text-center max-w-sm">
+                <i class="pi pi-image text-5xl text-gray-400"></i>
+                <h3 class="mt-3 text-lg font-semibold text-gray-900">No visual yet</h3>
+                <p class="mt-2 text-sm text-gray-600">
+                  Click <strong>Generate visual</strong> to create a flyer in the selected format.
+                  This is the only moment we call the AI for visuals.
+                </p>
+              </div>
+            }
+          </div>
+
+          <!-- Concept / text -->
+          <div class="md:col-span-2 p-6 border-l border-gray-100 space-y-4">
+            @if (currentFlyer()) {
+              <div>
+                <div class="text-[10px] uppercase tracking-widest text-gray-500">Concept</div>
+                <p class="mt-1 text-sm text-gray-900">{{ currentFlyer()!.concept }}</p>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase tracking-widest text-gray-500">Layout notes</div>
+                <p class="mt-1 text-sm text-gray-700">{{ currentFlyer()!.layoutNotes }}</p>
+              </div>
+              <div class="border-t border-gray-100 pt-4">
+                <div class="text-[10px] uppercase tracking-widest text-gray-500">Headline</div>
+                <p class="mt-1 text-sm font-semibold text-gray-900">
+                  {{ currentFlyer()!.marketingText.headline }}
+                </p>
+              </div>
+              @if (currentFlyer()!.marketingText.subheadline) {
+                <div>
+                  <div class="text-[10px] uppercase tracking-widest text-gray-500">Subheadline</div>
+                  <p class="mt-1 text-sm text-gray-700">
+                    {{ currentFlyer()!.marketingText.subheadline }}
+                  </p>
+                </div>
+              }
+              <div>
+                <div class="text-[10px] uppercase tracking-widest text-gray-500">Body</div>
+                <p class="mt-1 text-sm text-gray-700">
+                  {{ currentFlyer()!.marketingText.body }}
+                </p>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase tracking-widest text-gray-500">CTA</div>
+                <p class="mt-1 text-sm font-semibold text-blue-700">
+                  {{ currentFlyer()!.marketingText.cta }}
+                </p>
+              </div>
+            } @else {
+              <p class="text-sm text-gray-500">
+                Marketing text and concept will appear here after generation.
+              </p>
+            }
+          </div>
+        </div>
+
+        <!-- Modal footer -->
+        <div class="flex items-center justify-end gap-2 p-5 border-t border-gray-100 bg-gray-50">
+          <button
+            class="border border-gray-300 text-gray-700 hover:bg-gray-100 px-4 py-2 rounded-lg text-sm font-medium"
+            (click)="closeFlyerModal()"
+          >
+            Close
+          </button>
+          @if (currentFlyer()) {
+            <button
+              class="border border-blue-200 text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium"
+              [disabled]="isGeneratingFlyer()"
+              (click)="triggerFlyerGeneration(true)"
+            >
+              <i class="pi pi-refresh mr-2"></i> Regenerate
+            </button>
+          } @else {
+            <button
+              class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-2"
+              [disabled]="isGeneratingFlyer()"
+              (click)="triggerFlyerGeneration(false)"
+            >
+              @if (isGeneratingFlyer()) {
+                <i class="pi pi-spin pi-spinner"></i>
+              } @else {
+                <i class="pi pi-sparkles"></i>
+              }
+              Generate visual
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

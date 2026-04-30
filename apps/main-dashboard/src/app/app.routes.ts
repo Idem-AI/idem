@@ -124,6 +124,15 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/communication',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-communication/show-communication').then(
+        (m) => m.ShowCommunication,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
     path: 'project/pitch-deck',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-pitch-deck/show-pitch-deck').then(

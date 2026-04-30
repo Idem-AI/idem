@@ -8,6 +8,7 @@ import { LegalDocsModel } from './legalDocs.model';
 import { AdvisorConversationModel } from './advisor.model';
 import { WebContainerModel } from './webcontainer.model';
 import { DevelopmentConfigsModel } from './development.model';
+import { CommunicationModel } from './communication.model';
 
 /**
  * @openapi
@@ -58,6 +59,7 @@ export interface AnalysisResultModel {
   pitchDeck?: PitchDeckModel;
   legalDocs?: LegalDocsModel;
   advisorConversation?: AdvisorConversationModel;
+  communication?: CommunicationModel;
   design: DiagramModel;
   development: {
     configs: DevelopmentConfigsModel;
