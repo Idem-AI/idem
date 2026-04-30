@@ -145,6 +145,32 @@ export interface EditorialCalendar {
 
 export type FlyerFormat = 'square' | 'story' | 'banner' | 'post' | 'a4';
 
+export type FlyerImageSource = 'stock' | 'generated';
+
+/**
+ * Quick vision scan of the chosen image. Used to make the marketing copy
+ * and layout coherent with the picture (no brand / tone / content mismatch).
+ */
+export interface FlyerImageAnalysis {
+  subject: string;
+  mood: string;
+  /** Dominant hex colors picked from the image, primary first. */
+  dominantColors: string[];
+  /** 'dark' | 'light' | 'mixed' — decides text-on-image contrast. */
+  luminance: 'dark' | 'light' | 'mixed';
+  /** Composition hint: where is the subject / where is there empty space. */
+  composition?: string;
+  /** Any text detected inside the image (avoid overlaying near it). */
+  detectedText?: string;
+}
+
+export interface FlyerImageAttribution {
+  /** Photographer or AI model. */
+  author?: string;
+  sourceUrl?: string;
+  provider: 'pexels' | 'unsplash' | 'gemini' | 'openai' | 'other';
+}
+
 export interface Flyer {
   id: string;
   contentId: string;
@@ -157,8 +183,15 @@ export interface Flyer {
     body: string;
     cta: string;
   };
-  /** Single-line Tailwind HTML ready to render in a preview pane. */
+  /** Single-line Tailwind HTML used internally to render the PNG. */
   html: string;
+  /** Public URL of the rendered flyer PNG (served from MinIO). */
+  imageUrl?: string;
+  /** Public URL of the background image used inside the flyer. */
+  backgroundImageUrl?: string;
+  imageSource?: FlyerImageSource;
+  imageAnalysis?: FlyerImageAnalysis;
+  imageAttribution?: FlyerImageAttribution;
   createdAt: Date;
   updatedAt: Date;
 }
