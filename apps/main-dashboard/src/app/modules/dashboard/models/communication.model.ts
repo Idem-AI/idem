@@ -106,6 +106,23 @@ export interface EditorialCalendar {
 
 export type FlyerFormat = 'square' | 'story' | 'banner' | 'post' | 'a4';
 
+export type FlyerImageSource = 'stock' | 'generated';
+
+export interface FlyerImageAnalysis {
+  subject: string;
+  mood: string;
+  dominantColors: string[];
+  luminance: 'dark' | 'light' | 'mixed';
+  composition?: string;
+  detectedText?: string;
+}
+
+export interface FlyerImageAttribution {
+  author?: string;
+  sourceUrl?: string;
+  provider: 'pexels' | 'unsplash' | 'gemini' | 'openai' | 'other';
+}
+
 export interface Flyer {
   id: string;
   contentId: string;
@@ -119,6 +136,11 @@ export interface Flyer {
     cta: string;
   };
   html: string;
+  imageUrl?: string;
+  backgroundImageUrl?: string;
+  imageSource?: FlyerImageSource;
+  imageAnalysis?: FlyerImageAnalysis;
+  imageAttribution?: FlyerImageAttribution;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
