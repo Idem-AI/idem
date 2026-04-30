@@ -12,6 +12,7 @@ export class MinIOConnection {
     const useSSL = process.env.MINIO_USE_SSL === 'true';
     const accessKey = process.env.MINIO_ACCESS_KEY || 'minioadmin';
     const secretKey = process.env.MINIO_SECRET_KEY || 'minioadmin';
+    const region = process.env.MINIO_REGION || 'us-east-1';
     this.bucketName = process.env.MINIO_BUCKET_NAME || 'idem-storage2';
 
     this.client = new Minio.Client({
@@ -20,12 +21,14 @@ export class MinIOConnection {
       useSSL,
       accessKey,
       secretKey,
+      region,
     });
 
     logger.info('MinIO client initialized', {
       endPoint,
       port,
       useSSL,
+      region,
       bucketName: this.bucketName,
     });
   }
@@ -42,8 +45,9 @@ export class MinIOConnection {
       const exists = await this.client.bucketExists(this.bucketName);
 
       if (!exists) {
-        await this.client.makeBucket(this.bucketName, 'us-east-1');
-        logger.info(`Bucket created: ${this.bucketName}`);
+        const region = process.env.MINIO_REGION || 'us-east-1';
+        await this.client.makeBucket(this.bucketName, region);
+        logger.info(`Bucket created: ${this.bucketName} in region ${region}`);
       } else {
         logger.info(`Bucket already exists: ${this.bucketName}`);
       }

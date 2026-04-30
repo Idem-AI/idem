@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express, { Express, Request, Response } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
@@ -5,7 +8,6 @@ import { metricsMiddleware } from './middleware/metrics.middleware';
 import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import mongoDBConnection from './config/mongodb.config';
 import { storageService } from './services/storage.service';
@@ -16,8 +18,6 @@ import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import swaggerOptions from './config/swagger.config';
-
-dotenv.config();
 
 // Firebase Auth initialization (kept for authentication only - backward compatibility)
 const serviceAccountFromEnv = {
