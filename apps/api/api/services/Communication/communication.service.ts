@@ -171,8 +171,8 @@ export class CommunicationService extends GenericService {
 
     const branding = project.analysisResultModel?.branding;
     const colors = branding?.colors?.colors ?? {
-      primary: '#0ea5e9',
-      secondary: '#1e293b',
+      primary: '#144706',
+      secondary: '#000066',
       accent: '#f59e0b',
       background: '#ffffff',
       text: '#0f172a',
