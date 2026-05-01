@@ -259,7 +259,12 @@ Active format: {{format}}
 ═══════════════════════════════════════════════════════════
 TECHNICAL HTML RULES
 ═══════════════════════════════════════════════════════════
-- Raw HTML + Tailwind utility classes only. No <script>. No CDN links.
+- Raw HTML + Tailwind utility classes only. No <script>.
+- FONTS: You MUST include the Google Fonts <link> tag at the very beginning of your "html" string for ALL fonts you use.
+  - Mandatory: include the brand font URL: {{BRAND.branding.fontUrl}}
+  - Primary Font: {{BRAND.branding.primaryFont}}
+  - Secondary Font: {{BRAND.branding.secondaryFont}}
+  - If you use a custom font like font-['Montserrat'], you MUST add its Google Fonts <link> tag at the top.
 - Inline style="" is allowed for: transform, mix-blend-mode, letter-spacing,
   background gradients, text-shadow, -webkit-text-stroke, clip-path, filter.
 - Single unbroken line. Zero newlines inside the "html" string value.
