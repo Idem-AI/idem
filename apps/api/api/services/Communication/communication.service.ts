@@ -13,6 +13,14 @@ import {
   TrendSignal,
 } from '../../models/communication.model';
 import { cacheService } from '../cache.service';
+
+interface DesignSeed {
+  archetype: string;
+  colorStrategy: string;
+  typographyMood: string;
+  layoutTension: string;
+  spacingMultiplier: number;
+}
 import { GenericService } from '../common/generic.service';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
 import { AGENT_COMMUNICATION_STRATEGY_PROMPT } from './prompts/agent-communication-strategy.prompt';
@@ -484,8 +492,12 @@ export class CommunicationService extends GenericService {
     }
 
     // ---- Step 5c: composition (copy + HTML coherent with the image) --------
-    let systemPrompt = AGENT_FLYER_GENERATION_PROMPT.replace(/\{\{format\}\}/g, format);
-    
+    const seed = this.generateDesignSeed();
+    let systemPrompt = AGENT_FLYER_GENERATION_PROMPT.replace(/\{\{format\}\}/g, format).replace(
+      /\{\{DESIGN_SEED\}\}/g,
+      JSON.stringify(seed, null, 2)
+    );
+
     // Inject brand colors into the system prompt
     systemPrompt = systemPrompt
       .replace(/\{\{BRAND\.colors\.primary\}\}/g, context.branding.primary)
@@ -496,8 +508,9 @@ export class CommunicationService extends GenericService {
         name: context.brandName,
         tone: context.tone,
         branding: context.branding, // Detailed branding including logoUrls
-        colors: context.branding,   // Legacy path for color placeholders
+        colors: context.branding, // Legacy path for color placeholders
       },
+      DESIGN_SEED: seed,
       CONTENT_IDEA: {
         title: content.title,
         hook: content.hook,
@@ -894,5 +907,53 @@ export class CommunicationService extends GenericService {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Generates a deterministic design "seed" that forces archetype diversity.
+   */
+  private generateDesignSeed(): DesignSeed {
+    const archetypes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    const colorStrategies = [
+      'MONOCHROME_ACCENT', // One dominant color + one vivid accent only
+      'SPLIT_COMPLEMENTARY', // Brand color + its two split-complementary image tones
+      'DUOTONE', // Two colors only: brand primary + near-black or near-white
+      'IMAGE_EXTRACTED', // Pull 2 dominant colors FROM the image analysis
+      'INVERSE', // Invert expected luminance logic (dark on light image, etc.)
+      'BRAND_FULL', // Use full brand palette including secondary/accent
+    ];
+    const typographyMoods = [
+      'CONDENSED_TOWER', // Very tall narrow letters, stacked vertically
+      'WIDE_WHISPER', // Ultra-wide tracking on a small word, massive presence
+      'WEIGHT_CLASH', // Extra-bold headline + ultra-thin subheadline
+      'SINGLE_LETTER_ANCHOR', // One giant letter (drop cap style) as visual anchor
+      'ALL_LOWERCASE_INTIMATE', // Deliberate lowercase for warmth/intimacy
+      'ROTATED_AXIS', // Key word rotated 90° or -15° to break the grid
+      'OUTLINE_FILLED_MIX', // Some words outlined, some filled
+      'STAGGERED_INDENT', // Each line indented progressively (staircase effect)
+    ];
+    const layoutTensions = [
+      'TEXT_ESCAPES_BOUNDS', // Headline partially bleeds outside the container
+      'DIAGONAL_FLOW', // Main axis is 30–45° diagonal, not horizontal/vertical
+      'RULE_HEAVY', // Thick horizontal/vertical rules divide the space
+      'NEGATIVE_SPACE_HERO', // 60%+ of canvas is intentionally empty
+      'CORNER_ANCHOR', // All key elements pinned to one corner, rest is empty
+      'FULL_BLEED_EDGE', // Image or color block touches ALL four edges
+      'FRAME_WITHIN_FRAME', // Thin inset border creates inner frame
+      'COLLAGE_LAYER', // 3+ layered elements at varying opacities
+    ];
+
+    // Rotate based on timestamp bucket (changes every generation)
+    const now = Date.now();
+    const pick = <T>(arr: T[]): T => arr[Math.floor((now / 1000 + Math.random() * 100) % arr.length)];
+
+    return {
+      archetype: pick(archetypes),
+      colorStrategy: pick(colorStrategies),
+      typographyMood: pick(typographyMoods),
+      layoutTension: pick(layoutTensions),
+      // Extra entropy: random odd number for spacing/sizing decisions
+      spacingMultiplier: (Math.floor(Math.random() * 5) + 1) * 2 + 1, // 3,5,7,9,11
+    };
   }
 }
