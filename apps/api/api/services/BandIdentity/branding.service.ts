@@ -53,40 +53,41 @@ export class BrandingService extends GenericService {
 
   // Configuration LLM pour la génération de logos et variations
   // Optimisée pour qualité maximale avec vitesse préservée
-  private static readonly LOGO_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-pro-preview', // Gemini 3 comme demandé
-    llmOptions: {
-      maxOutputTokens: 1000, // Augmenté pour plus de détails SVG complexes
-      temperature: 0.1, // Réduit pour cohérence et qualité constante
-      topP: 0.9, // Augmenté pour diversité créative contrôlée
-      topK: 30, // Optimisé pour équilibre qualité/vitesse
-    },
-  };
+private static readonly LOGO_LLM_CONFIG = {
+  provider: LLMProvider.GEMINI,
+  modelName: 'gemini-3-pro-preview',
+  llmOptions: {
+    maxOutputTokens: 2048, // SVG complet sans troncature (path + text + defs)
+    temperature: 0.7,      // Variance créative — évite la convergence cercle-bleu
+    topP: 0.95,            // Pool de sampling légèrement élargi pour les couleurs et concepts
+    topK: 40,              // Sweet spot Gemini — au-delà, le JSON se dégrade
+  },
+};
 
-  // Configuration LLM pour la génération de couleurs
-  private static readonly COLORS_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.1-flash-lite-preview',
-    llmOptions: {
-      maxOutputTokens: 3500,
-      temperature: 0.1,
-      topP: 0.9,
-      topK: 50,
-    },
-  };
+// Configuration LLM optimisée pour la vitesse — génération de couleurs
+private static readonly COLORS_LLM_CONFIG = {
+  provider: LLMProvider.GEMINI,
+  modelName: 'gemini-3.1-flash-lite-preview',
+  llmOptions: {
+    maxOutputTokens: 1200, // réduit fortement la latence
+    temperature: 0.05, // réponses plus déterministes
+    topP: 0.8,
+    topK: 20,
+  },
+};
 
-  // Configuration LLM pour la génération de typographies
-  private static readonly TYPOGRAPHY_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.1-flash-lite-preview',
-    llmOptions: {
-      maxOutputTokens: 5000,
-      temperature: 0.7,
-      topP: 0.9,
-      topK: 40,
-    },
-  };
+// Configuration LLM optimisée pour la vitesse — génération de typographies
+private static readonly TYPOGRAPHY_LLM_CONFIG = {
+  provider: LLMProvider.GEMINI,
+  modelName: 'gemini-3.1-flash-lite-preview',
+  llmOptions: {
+    maxOutputTokens: 1800, // suffisant pour du JSON structuré
+    temperature: 0.3, // équilibre vitesse/cohérence
+    topP: 0.8,
+    topK: 20,
+  },
+};
+
 
   constructor(promptService: PromptService) {
     super(promptService);
