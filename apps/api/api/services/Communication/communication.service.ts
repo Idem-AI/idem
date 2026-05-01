@@ -40,7 +40,7 @@ export type CommunicationStreamEvent =
 
 const DEFAULT_PROMPT_CONFIG: PromptConfig = {
   provider: LLMProvider.GEMINI,
-  modelName: 'gemini-3-flash-preview',
+  modelName: 'gemini-3.1-flash-lite-preview',
 };
 
 /**
@@ -117,8 +117,12 @@ export class CommunicationService extends GenericService {
     projectId: string,
     opts: { force?: boolean } = {}
   ): Promise<CommunicationContext> {
+    logger.info(`[Communication] Extracting context`, { userId, projectId, force: opts.force });
     const project = await this.getProject(projectId, userId);
-    if (!project) throw new Error(`Project not found: ${projectId}`);
+    if (!project) {
+      logger.error(`[Communication] Project not found during context extraction`, { projectId });
+      throw new Error(`Project not found: ${projectId}`);
+    }
 
     const contentHash = this.hashProjectForContext(project);
     const cacheKey = cacheService.generateAIKey(
@@ -134,10 +138,11 @@ export class CommunicationService extends GenericService {
         ttl: 7200,
       });
       if (cached) {
-        logger.info(`CommunicationContext cache hit for projectId=${projectId}`);
+        logger.info(`[Communication] Context cache hit`, { projectId });
         return cached;
       }
     }
+    logger.info(`[Communication] Context cache miss, running LLM extraction`, { projectId });
 
     // Compact input — explicitly avoid sending the full business plan.
     const projectSummary = this.buildProjectSummary(project);
@@ -153,10 +158,15 @@ export class CommunicationService extends GenericService {
       },
     ];
 
+    const start = Date.now();
     const raw = await this.promptService.runPrompt(
       { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_context' },
       messages
     );
+    logger.info(`[Communication] Context extraction LLM complete`, {
+      projectId,
+      durationMs: Date.now() - start,
+    });
     const parsed = this.safeJson<Partial<CommunicationContext>>(raw) ?? {};
 
     const branding = project.analysisResultModel?.branding;
@@ -232,12 +242,17 @@ export class CommunicationService extends GenericService {
     projectId: string,
     context: CommunicationContext
   ): Promise<TrendSignal[]> {
+    logger.info(`[Communication] Getting trend signals`, { userId, projectId });
     const bucket = this.trendBucketKey(context);
     const cached = await cacheService.get<TrendSignal[]>(bucket, {
       prefix: 'trends',
       ttl: 60 * 60 * 24, // 24h
     });
-    if (cached && cached.length > 0) return cached;
+    if (cached && cached.length > 0) {
+      logger.info(`[Communication] Trends cache hit`, { bucket });
+      return cached;
+    }
+    logger.info(`[Communication] Trends cache miss, running LLM summary`, { bucket });
 
     const messages: AIChatMessage[] = [
       { role: 'system', content: AGENT_TRENDS_SUMMARY_PROMPT },
@@ -286,6 +301,7 @@ export class CommunicationService extends GenericService {
     projectId: string,
     opts: { force?: boolean; streamCallback?: (e: CommunicationStreamEvent) => Promise<void> } = {}
   ): Promise<CommunicationStrategy> {
+    logger.info(`[Communication] Generating strategy`, { userId, projectId, force: opts.force });
     const stream = opts.streamCallback;
     await stream?.({ type: 'step-start', step: 'context' });
     const context = await this.extractContext(userId, projectId);
@@ -368,6 +384,7 @@ export class CommunicationService extends GenericService {
       streamCallback?: (e: CommunicationStreamEvent) => Promise<void>;
     } = {}
   ): Promise<EditorialCalendar> {
+    logger.info(`[Communication] Generating calendar`, { userId, projectId, force: opts.force });
     const stream = opts.streamCallback;
     const rhythm = opts.rhythm || 'weekly';
     const horizonWeeks = opts.horizonWeeks || 4;
@@ -454,10 +471,12 @@ export class CommunicationService extends GenericService {
     opts: { format?: FlyerFormat; force?: boolean } = {}
   ): Promise<Flyer> {
     const format = opts.format || 'square';
+    logger.info(`[Communication] Generating flyer`, { userId, projectId, contentId, format });
     const communication = await this.getCommunication(userId, projectId);
     const calendar = communication?.calendar;
     const content = calendar?.items.find((i) => i.id === contentId);
     if (!content) {
+      logger.error(`[Communication] Content idea not found`, { contentId });
       throw new Error(`Content idea not found: ${contentId}`);
     }
     const context = communication?.context ?? (await this.extractContext(userId, projectId));
@@ -498,10 +517,13 @@ export class CommunicationService extends GenericService {
       JSON.stringify(seed, null, 2)
     );
 
-    // Inject brand colors into the system prompt
+    // Inject brand colors and fonts into the system prompt
     systemPrompt = systemPrompt
       .replace(/\{\{BRAND\.colors\.primary\}\}/g, context.branding.primary)
-      .replace(/\{\{BRAND\.colors\.text\}\}/g, context.branding.text || '#000000');
+      .replace(/\{\{BRAND\.colors\.text\}\}/g, context.branding.text || '#000000')
+      .replace(/\{\{BRAND\.branding\.fontUrl\}\}/g, context.branding.fontUrl || 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap')
+      .replace(/\{\{BRAND\.branding\.primaryFont\}\}/g, context.branding.primaryFont || 'Montserrat')
+      .replace(/\{\{BRAND\.branding\.secondaryFont\}\}/g, context.branding.secondaryFont || 'Montserrat');
 
     const userPayload: Record<string, unknown> = {
       BRAND: {

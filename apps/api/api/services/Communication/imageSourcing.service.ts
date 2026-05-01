@@ -69,6 +69,7 @@ export class ImageSourcingService {
     brief: ImageBrief,
     opts: { userId: string; projectId: string; tag: string }
   ): Promise<SourcedImage> {
+    logger.info(`[ImageSourcing] Sourcing image`, { tag: opts.tag, searchQuery: brief.searchQuery });
     // ── Path A: stock image ──────────────────────────────────────────────
     if (!brief.preferGenerated && process.env.PEXELS_API_KEY) {
       try {
@@ -80,7 +81,7 @@ export class ImageSourcingService {
             brief.searchQuery
           ).catch(() => this.fallbackAnalysis());
 
-          logger.info('ImageSourcing: stock image', { tag: opts.tag, url: stockHit.url });
+          logger.info(`[ImageSourcing] Stock image found and analyzed`, { tag: opts.tag, url: stockHit.url });
           return {
             url: stockHit.url,           // full-res for the flyer
             source: 'stock',
@@ -120,7 +121,10 @@ export class ImageSourcingService {
     });
 
     const photos: any[] = response.data?.photos || [];
-    if (!photos.length) return null;
+    if (!photos.length) {
+      logger.info(`[ImageSourcing] No stock photos found for query`, { query: brief.searchQuery });
+      return null;
+    }
 
     const best = photos[0];
     const url: string = best.src?.large2x || best.src?.large || best.src?.original;
@@ -128,6 +132,7 @@ export class ImageSourcingService {
     const mediumUrl: string = best.src?.medium || url;
     if (!url) return null;
 
+    logger.info(`[ImageSourcing] Pexels hit`, { author: best.photographer, url });
     return {
       url,
       mediumUrl,
@@ -149,10 +154,8 @@ export class ImageSourcingService {
     brief: ImageBrief,
     opts: { userId: string; projectId: string; tag: string }
   ): Promise<SourcedImage> {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
-    }
-
+    logger.info(`[ImageSourcing] Generating and analyzing with Gemini`, { tag: opts.tag });
+    const start = Date.now();
     const response = await this.geminiAI.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
       contents: [
@@ -168,6 +171,11 @@ export class ImageSourcingService {
         responseModalities: ['TEXT', 'IMAGE'],
         candidateCount: 1,
       },
+    });
+
+    logger.info(`[ImageSourcing] Gemini generation complete`, {
+      tag: opts.tag,
+      durationMs: Date.now() - start,
     });
 
     const parts = (response.candidates?.[0]?.content?.parts || []) as any[];
@@ -201,7 +209,11 @@ export class ImageSourcingService {
       Promise.resolve(this.parseAnalysisJson(analysisText)),
     ]);
 
-    logger.info('ImageSourcing: AI-generated + analyzed', { tag: opts.tag, url: upload.downloadURL });
+    logger.info(`[ImageSourcing] AI-generated image sourced`, {
+      tag: opts.tag,
+      url: upload.downloadURL,
+      analysis: !!analysis,
+    });
     return {
       url: upload.downloadURL,
       source: 'generated',

@@ -75,6 +75,8 @@ export class FlyerRenderService {
     format: FlyerFormat,
     typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
   ): Promise<Buffer> {
+    const start = Date.now();
+    logger.info(`[FlyerRender] Starting PNG render`, { format });
     const dims = FORMAT_DIMENSIONS[format] || FORMAT_DIMENSIONS.square;
     const html = this.buildFullHtml(innerHtml, dims, typography);
 
@@ -108,9 +110,10 @@ export class FlyerRenderService {
         clip: { x: 0, y: 0, width: dims.width, height: dims.height },
       })) as Buffer;
 
-      logger.info('FlyerRenderService: PNG rendered (not saved)', {
+      logger.info(`[FlyerRender] PNG rendered successfully`, {
         format,
         sizeKB: Math.round(buffer.length / 1024),
+        durationMs: Date.now() - start,
       });
 
       return buffer;
