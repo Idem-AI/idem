@@ -181,6 +181,25 @@ export class CommunicationService extends GenericService {
         secondaryFont: typography?.secondaryFont,
         fontUrl: typography?.url,
         logoSvg: branding?.logo?.svg,
+        logoUrls: branding?.logo
+          ? {
+              primary: branding.logo.svg,
+              withText: branding.logo.variations?.withText
+                ? {
+                    light: branding.logo.variations.withText.lightBackground,
+                    dark: branding.logo.variations.withText.darkBackground,
+                    mono: branding.logo.variations.withText.monochrome,
+                  }
+                : undefined,
+              iconOnly: branding.logo.variations?.iconOnly
+                ? {
+                    light: branding.logo.variations.iconOnly.lightBackground,
+                    dark: branding.logo.variations.iconOnly.darkBackground,
+                    mono: branding.logo.variations.iconOnly.monochrome,
+                  }
+                : undefined,
+            }
+          : undefined,
       },
       extractedAt: new Date(),
     };
@@ -476,7 +495,8 @@ export class CommunicationService extends GenericService {
       BRAND: {
         name: context.brandName,
         tone: context.tone,
-        colors: context.branding,
+        branding: context.branding, // Detailed branding including logoUrls
+        colors: context.branding,   // Legacy path for color placeholders
       },
       CONTENT_IDEA: {
         title: content.title,
