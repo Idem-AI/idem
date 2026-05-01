@@ -40,7 +40,7 @@ export type CommunicationStreamEvent =
 
 const DEFAULT_PROMPT_CONFIG: PromptConfig = {
   provider: LLMProvider.GEMINI,
-  modelName: 'gemini-3.1-flash-lite-preview',
+  modelName: 'gemini-3-flash-preview',
 };
 
 /**
