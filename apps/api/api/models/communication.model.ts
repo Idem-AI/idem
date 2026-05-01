@@ -59,6 +59,19 @@ export interface CommunicationContext {
     secondaryFont?: string;
     fontUrl?: string;
     logoSvg?: string;
+    logoUrls?: {
+      primary: string;
+      withText?: {
+        light?: string;
+        dark?: string;
+        mono?: string;
+      };
+      iconOnly?: {
+        light?: string;
+        dark?: string;
+        mono?: string;
+      };
+    };
   };
   extractedAt: Date;
 }
