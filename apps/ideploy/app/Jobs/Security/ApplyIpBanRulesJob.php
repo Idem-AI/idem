@@ -51,8 +51,30 @@ class ApplyIpBanRulesJob implements ShouldQueue
         
         ray("Found IPs to ban: " . implode(', ', $ips));
         
+        $server = $this->rule->config->application->destination->server;
+        
         // Créer les décisions CrowdSec
         $this->createDecisions($ips);
+        
+        // Restart Traefik to clear in-memory bouncer cache
+        // so new ban decisions take effect immediately (cache:live mode)
+        $this->clearBouncerCache($server);
+    }
+    
+    /**
+     * Restart Traefik proxy to flush the bouncer in-memory cache
+     * This ensures new ban decisions are enforced immediately
+     */
+    private function clearBouncerCache($server): void
+    {
+        try {
+            instant_remote_process([
+                'docker restart coolify-proxy'
+            ], $server);
+            ray("✅ Traefik restarted to clear bouncer cache");
+        } catch (\Exception $e) {
+            ray("⚠️ Could not restart Traefik: " . $e->getMessage());
+        }
     }
     
     /**
