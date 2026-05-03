@@ -22,8 +22,11 @@ class IdemQuotaService
         $planName = $team->idem_subscription_plan ?? 'free';
         $plan = IdemSubscriptionPlan::findByName($planName);
         
+        // If plan not found in DB, use sensible defaults (5 apps for free)
         if (!$plan) {
-            return false;
+            $defaultLimit = 5;
+            $currentApps = $this->getTeamAppsCount($team);
+            return $currentApps < $defaultLimit;
         }
 
         // Unlimited apps
@@ -49,8 +52,11 @@ class IdemQuotaService
         $planName = $team->idem_subscription_plan ?? 'free';
         $plan = IdemSubscriptionPlan::findByName($planName);
         
+        // If plan not found, allow up to 2 servers by default
         if (!$plan) {
-            return false;
+            $defaultLimit = 2;
+            $currentServers = $this->getTeamServersCount($team);
+            return $currentServers < $defaultLimit;
         }
 
         // Unlimited servers
@@ -70,25 +76,9 @@ class IdemQuotaService
      */
     public function getTeamAppsCount(Team $team): int
     {
-        // Get all team applications
-        $apps = Application::whereHas('environment.project', function ($query) use ($team) {
+        // Count all team applications regardless of server type
+        return Application::whereHas('environment.project', function ($query) use ($team) {
             $query->where('team_id', $team->id);
-        })->get();
-
-        // Filter to only count apps on IDEM managed servers
-        return $apps->filter(function ($app) {
-            $destination = $app->destination;
-            if (!$destination) {
-                return false;
-            }
-            
-            $server = $destination->server;
-            if (!$server) {
-                return false;
-            }
-            
-            // Only count if deployed on IDEM managed server
-            return $server->idem_managed === true;
         })->count();
     }
 

@@ -2677,7 +2677,17 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                     continue;
                 }
 
-                // Quote if contains : (like http://..., ports, etc.)
+                // Don't quote ForwardAuth addresses or any Traefik URL values
+                if (str_ends_with($key, '.address') || str_ends_with($key, '.url')) {
+                    continue;
+                }
+
+                // Don't quote plain HTTP/HTTPS URL values (traffic-logger, etc.)
+                if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+                    continue;
+                }
+
+                // Quote if contains : (like host:port references)
                 if (str_contains($value, ':')) {
                     // Only quote if not already quoted
                     if (!str_starts_with($value, '"') && !str_starts_with($value, "'")) {

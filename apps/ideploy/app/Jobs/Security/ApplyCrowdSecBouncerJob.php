@@ -99,6 +99,7 @@ class ApplyCrowdSecBouncerJob implements ShouldQueue
             "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.CrowdsecLapiKey={$lapiKey}",
             "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.CrowdsecLapiScheme=http",
             "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.CrowdsecMode=live",
+            "traefik.http.middlewares.crowdsec-{$uuid}.plugin.bouncer.DefaultDecisionSeconds=30",
             "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.enabled=true",
             "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.CrowdsecLapiHost={$lapiHost}:{$lapiPort}",
             "traefik.http.middlewares.appsec-{$uuid}.plugin.bouncer.CrowdsecLapiKey={$lapiKey}",

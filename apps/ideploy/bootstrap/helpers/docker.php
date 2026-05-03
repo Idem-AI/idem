@@ -416,6 +416,11 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
             $host = $url->getHost();
             $path = $url->getPath();
             $schema = $url->getScheme();
+            // When FQDN is http:// but ForceHTTPS is enabled, treat as https://
+            // so both the HTTPS router and the HTTP→HTTPS redirect router are generated
+            if ($schema === 'http' && $is_force_https_enabled) {
+                $schema = 'https';
+            }
             $port = $url->getPort();
             if (is_null($port) && ! is_null($onlyPort)) {
                 $port = $onlyPort;
@@ -486,12 +491,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     if ($application && isFirewallEnabled($application)) {
                         // Add LAPI bouncer (IP blocking)
                         $middlewares->push("crowdsec-{$uuid}");
-                        // Add AppSec WAF (HTTP inspection)
-                        $firewallConfig = getFirewallConfig($application);
-                        $hasPathRules = $firewallConfig && $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
-                        if ($firewallConfig && ($firewallConfig->inband_enabled || $hasPathRules)) {
-                            $middlewares->push("appsec-{$uuid}");
-                        }
+                        // AppSec WAF disabled ($shouldEnableAppSec=false in crowdsec.php) - requires separate installation
                     }
 
                     if ($middlewares->isNotEmpty()) {
@@ -525,12 +525,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     if ($application && isFirewallEnabled($application)) {
                         // Add LAPI bouncer (IP blocking)
                         $middlewares->push("crowdsec-{$uuid}");
-                        // Add AppSec WAF (HTTP inspection)
-                        $firewallConfig = getFirewallConfig($application);
-                        $hasPathRules = $firewallConfig && $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
-                        if ($firewallConfig && ($firewallConfig->inband_enabled || $hasPathRules)) {
-                            $middlewares->push("appsec-{$uuid}");
-                        }
+                        // AppSec WAF disabled ($shouldEnableAppSec=false in crowdsec.php) - requires separate installation
                     }
 
                     if ($middlewares->isNotEmpty()) {
@@ -590,12 +585,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     if ($application && isFirewallEnabled($application)) {
                         // Add LAPI bouncer (IP blocking)
                         $middlewares->push("crowdsec-{$uuid}");
-                        // Add AppSec WAF (HTTP inspection)
-                        $firewallConfig = getFirewallConfig($application);
-                        $hasPathRules = $firewallConfig && $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
-                        if ($firewallConfig && ($firewallConfig->inband_enabled || $hasPathRules)) {
-                            $middlewares->push("appsec-{$uuid}");
-                        }
+                        // AppSec WAF disabled ($shouldEnableAppSec=false in crowdsec.php) - requires separate installation
                     }
 
                     if ($middlewares->isNotEmpty()) {
@@ -629,12 +619,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     if ($application && isFirewallEnabled($application)) {
                         // Add LAPI bouncer (IP blocking)
                         $middlewares->push("crowdsec-{$uuid}");
-                        // Add AppSec WAF (HTTP inspection)
-                        $firewallConfig = getFirewallConfig($application);
-                        $hasPathRules = $firewallConfig && $firewallConfig->rules()->enabled()->where('protection_mode', 'path_only')->exists();
-                        if ($firewallConfig && ($firewallConfig->inband_enabled || $hasPathRules)) {
-                            $middlewares->push("appsec-{$uuid}");
-                        }
+                        // AppSec WAF disabled ($shouldEnableAppSec=false in crowdsec.php) - requires separate installation
                     }
 
                     if ($middlewares->isNotEmpty()) {
@@ -662,6 +647,15 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
     if ($pull_request_id !== 0) {
         $appUuid = $appUuid.'-pr-'.$pull_request_id;
     }
+    // Extract custom labels to pass as serviceLabels so middlewares are auto-added to routers
+    $customServiceLabels = null;
+    if ($application->custom_labels) {
+        $rawLabels = base64_decode($application->custom_labels, true);
+        if ($rawLabels !== false) {
+            $customServiceLabels = collect(array_filter(explode("\n", $rawLabels)));
+        }
+    }
+
     $labels = collect([]);
     if ($pull_request_id === 0) {
         if ($application->fqdn) {
@@ -682,6 +676,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                             http_basic_auth_username: $application->http_basic_auth_username,
                             http_basic_auth_password: $application->http_basic_auth_password,
                             application: $application,
+                            serviceLabels: $customServiceLabels,
                         ));
                         break;
                     case ProxyTypes::CADDY->value:
@@ -713,6 +708,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                     http_basic_auth_username: $application->http_basic_auth_username,
                     http_basic_auth_password: $application->http_basic_auth_password,
                     application: $application,
+                    serviceLabels: $customServiceLabels,
                 ));
                 $labels = $labels->merge(fqdnLabelsForCaddy(
                     network: $application->destination->network,
@@ -750,6 +746,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                         http_basic_auth_username: $application->http_basic_auth_username,
                         http_basic_auth_password: $application->http_basic_auth_password,
                         application: $application,
+                        serviceLabels: $customServiceLabels,
                     ));
                     break;
                 case ProxyTypes::CADDY->value:
@@ -779,6 +776,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                 http_basic_auth_username: $application->http_basic_auth_username,
                 http_basic_auth_password: $application->http_basic_auth_password,
                 application: $application,
+                serviceLabels: $customServiceLabels,
             ));
             $labels = $labels->merge(fqdnLabelsForCaddy(
                 network: $application->destination->network,
