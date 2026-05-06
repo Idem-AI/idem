@@ -93,6 +93,9 @@ export class LogoImportComponent {
 
     // Generate local preview
     this.generateLocalPreview(file);
+
+    // Auto-upload for better UX
+    setTimeout(() => this.uploadFile(), 100);
   }
 
   private generateLocalPreview(file: File): void {
@@ -147,10 +150,12 @@ export class LogoImportComponent {
               this.importedSvg.set(event.result.svg);
               this.importedWidth.set(event.result.width);
               this.importedHeight.set(event.result.height);
-              this.extractedColors.set(event.result.extractedColors || []);
+              // Keep only top 4 colors for better UX
+              const topColors = (event.result.extractedColors || []).slice(0, 4);
+              this.extractedColors.set(topColors);
               // Emit the SVG and extracted colors to parent
               this.svgImported.emit(event.result.svg);
-              this.colorsExtracted.emit(event.result.extractedColors || []);
+              this.colorsExtracted.emit(topColors);
             }
             break;
 
