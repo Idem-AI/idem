@@ -19,7 +19,11 @@
     @endif
 
     <x-forms.checkbox id="is_multiline" label="Is Multiline?" />
-    <x-forms.button type="submit" @click="slideOverOpen=false">
-        Save
-    </x-forms.button>
+    <button type="submit" @click="slideOverOpen=false"
+        class="inner-button w-full py-2.5 px-4 text-sm font-semibold text-white rounded-lg flex items-center justify-center gap-2 mt-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+        </svg>
+        Save Variable
+    </button>
 </form>
