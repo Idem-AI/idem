@@ -687,7 +687,8 @@
       },
       "result": {
         "title": "Logo vectorisé",
-        "changeFile": "Choisir un autre fichier"
+        "changeFile": "Choisir un autre fichier",
+        "extractedColors": "Couleurs principales"
       }
     },
     "createTeam": {

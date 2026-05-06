@@ -687,7 +687,8 @@
       },
       "result": {
         "title": "Vectorized Logo",
-        "changeFile": "Choose another file"
+        "changeFile": "Choose another file",
+        "extractedColors": "Main Colors"
       }
     },
     "createTeam": {
