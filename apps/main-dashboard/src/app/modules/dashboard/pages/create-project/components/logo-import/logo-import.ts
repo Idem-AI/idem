@@ -150,8 +150,8 @@ export class LogoImportComponent {
               this.importedSvg.set(event.result.svg);
               this.importedWidth.set(event.result.width);
               this.importedHeight.set(event.result.height);
-              // Keep only top 4 colors for better UX
-              const topColors = (event.result.extractedColors || []).slice(0, 4);
+              // Keep only top 2 colors (primary and secondary)
+              const topColors = (event.result.extractedColors || []).slice(0, 2);
               this.extractedColors.set(topColors);
               // Emit the SVG and extracted colors to parent
               this.svgImported.emit(event.result.svg);

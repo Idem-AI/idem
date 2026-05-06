@@ -79,23 +79,32 @@
         </div>
       </div>
 
-      <!-- Extracted colors (top 4) -->
+      <!-- Extracted colors (primary and secondary) -->
       @if (extractedColors().length > 0) {
         <div class="rounded-xl border border-white/10 glass p-6">
           <h3 class="text-sm font-medium text-gray-200 mb-4">
             {{ 'dashboard.logoImport.result.extractedColors' | translate }}
           </h3>
-          <div class="grid grid-cols-4 gap-3">
-            @for (color of extractedColors(); track color) {
-              <div class="flex flex-col items-center gap-2 group">
+          <div class="grid grid-cols-2 gap-4">
+            @for (color of extractedColors(); track $index) {
+              <div class="flex flex-col items-center gap-3 group">
                 <div
                   class="w-full aspect-square rounded-lg border-2 border-white/20 group-hover:border-white/40 transition-all shadow-lg group-hover:scale-105"
                   [style.background-color]="color"
                 ></div>
-                <span
-                  class="text-xs font-mono text-gray-400 group-hover:text-gray-200 transition-colors uppercase"
-                  >{{ color }}</span
-                >
+                <div class="text-center">
+                  <p class="text-xs font-medium text-gray-300 mb-1">
+                    {{
+                      $index === 0
+                        ? ('dashboard.logoImport.result.primaryColor' | translate)
+                        : ('dashboard.logoImport.result.secondaryColor' | translate)
+                    }}
+                  </p>
+                  <span
+                    class="text-xs font-mono text-gray-400 group-hover:text-gray-200 transition-colors uppercase"
+                    >{{ color }}</span
+                  >
+                </div>
               </div>
             }
           </div>
