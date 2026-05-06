@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
@@ -33,6 +33,7 @@ export class LogoChoiceComponent {
   readonly previousStep = output<void>();
   readonly projectUpdate = output<Partial<ProjectModel>>();
   readonly logoChoiceMade = output<'import' | 'ai'>();
+  readonly logoImportComplete = output<boolean>();
 
   // State
   protected readonly choice = signal<'import' | 'ai' | null>(null);
@@ -40,6 +41,11 @@ export class LogoChoiceComponent {
   protected readonly importedColors = signal<string[]>([]);
   protected readonly isGeneratingBranding = signal(false);
   protected readonly generationError = signal<string | null>(null);
+
+  // Computed: logo import is complete when we have both SVG and at least 2 colors
+  protected readonly isLogoImportComplete = computed(() => {
+    return !!this.importedSvg() && this.importedColors().length >= 2;
+  });
 
   /**
    * User selects "I already have a logo"
@@ -64,6 +70,10 @@ export class LogoChoiceComponent {
    */
   protected onSvgImported(svg: string): void {
     this.importedSvg.set(svg);
+    // Trigger branding generation if we have both SVG and colors
+    if (this.importedColors().length > 0) {
+      this.continueWithImportedLogo();
+    }
   }
 
   /**
@@ -71,41 +81,28 @@ export class LogoChoiceComponent {
    */
   protected onColorsExtracted(colors: string[]): void {
     this.importedColors.set(colors);
+    // Emit completion status to parent
+    this.logoImportComplete.emit(this.isLogoImportComplete());
+    // Trigger branding generation if we have both SVG and colors
+    if (this.importedSvg()) {
+      this.continueWithImportedLogo();
+    }
   }
 
   /**
    * After importing, trigger AI generation of colors and typography from logo,
    * then proceed to the colors selection step.
    */
-  protected continueWithImportedLogo(): void {
+  private continueWithImportedLogo(): void {
     const svg = this.importedSvg();
     const colors = this.importedColors();
     const currentProject = this.project();
 
-    if (!svg || !currentProject) return;
+    if (!svg || !currentProject || colors.length === 0) return;
+    // Prevent duplicate calls
+    if (this.isGeneratingBranding()) return;
 
-    // First, update the project with the imported logo
-    const importedLogo = {
-      id: `imported-${Date.now()}`,
-      name: 'Imported Logo',
-      svg: svg,
-      concept: 'User-imported logo',
-      colors: colors,
-      fonts: [],
-    };
-
-    this.projectUpdate.emit({
-      analysisResultModel: {
-        ...currentProject?.analysisResultModel,
-        branding: {
-          ...currentProject?.analysisResultModel?.branding,
-          logo: importedLogo,
-          generatedLogos: [importedLogo],
-        },
-      },
-    } as Partial<ProjectModel>);
-
-    // Then trigger AI generation of colors and typography from logo colors
+    // Trigger AI generation of colors and typography from logo colors
     this.isGeneratingBranding.set(true);
     this.generationError.set(null);
 

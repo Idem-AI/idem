@@ -126,6 +126,7 @@ export class CreateProjectComponent implements OnInit {
 
   // Step-specific validation state
   protected readonly typographySelectionValid = signal(false);
+  protected readonly logoImportComplete = signal(false);
 
   // Logo choice: 'import' means user imported a logo, 'ai' means generate with AI
   protected readonly logoChoice = signal<'import' | 'ai' | null>(null);
@@ -224,7 +225,12 @@ export class CreateProjectComponent implements OnInit {
       case 'typography':
         return this.typographySelectionValid();
       case 'logo-choice':
-        return this.logoChoice() !== null;
+        // For import choice, require logo to be imported and vectorized with colors extracted
+        if (this.logoChoice() === 'import') {
+          return this.logoImportComplete();
+        }
+        // For AI choice, just need the choice to be made
+        return this.logoChoice() === 'ai';
       case 'logo':
         return !!project.analysisResultModel?.branding?.logo;
       case 'variations':
@@ -305,9 +311,9 @@ export class CreateProjectComponent implements OnInit {
     try {
       this.isLoading.set(true);
       const currentProject = this.project();
-      
+
       const projectId = await this.projectService.createProject(currentProject).toPromise();
-      
+
       if (projectId) {
         this.project.update((p: ProjectModel) => ({ ...p, id: projectId }));
         this.cookieService.set('projectId', projectId);
@@ -397,6 +403,13 @@ export class CreateProjectComponent implements OnInit {
       // The logo-choice component already emits nextStep for AI
     }
     // For 'import', the logo-choice component handles the flow internally
+  }
+
+  /**
+   * Handle logo import completion status
+   */
+  protected onLogoImportComplete(isComplete: boolean): void {
+    this.logoImportComplete.set(isComplete);
   }
 
   /**
