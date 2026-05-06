@@ -178,11 +178,13 @@
                 </select>
             </div>
             
+            {{-- Hidden data element updated by Livewire (outside wire:ignore) --}}
+            <div id="hourly-traffic-data" data-hourly='@json($hourlyTrafficData)' class="hidden"></div>
+
             @if($stats['all_traffic'] > 0)
                 {{-- Chart with data --}}
                 <div class="relative h-64" wire:ignore>
                     <canvas id="trafficChart" 
-                            data-hourly='@json($hourlyTrafficData)' 
                             data-allowed="{{ $stats['allowed'] }}" 
                             data-denied="{{ $stats['denied'] }}"></canvas>
                 </div>
@@ -211,8 +213,9 @@
                             const canvas = document.getElementById('trafficChart');
                             if (!canvas) return;
                             
-                            // Get real hourly data (with allowed and denied)
-                            const hourlyData = JSON.parse(canvas.dataset.hourly || '{}');
+                            // Get real hourly data from the non-ignored element (updated by Livewire)
+                            const dataEl = document.getElementById('hourly-traffic-data');
+                            const hourlyData = JSON.parse(dataEl ? dataEl.dataset.hourly : '{}');
                             
                             const labels = [];
                             const allowedData = [];
@@ -290,8 +293,9 @@
                             initOrUpdateChart();
                         }
                         
-                        // Update on Livewire updates (but chart won't be destroyed thanks to wire:ignore)
+                        // Update on Livewire updates
                         document.addEventListener('livewire:init', initOrUpdateChart);
+                        document.addEventListener('livewire:updated', initOrUpdateChart);
                     })();
                 </script>
             @else
@@ -327,13 +331,13 @@
                         @foreach($recentEvents as $event)
                             <div class="flex items-center justify-between p-4 bg-[#151b2e] rounded-lg border border-gray-800">
                                 <div class="flex items-center gap-4">
-                                    @if($event['action'] === 'denied')
+                                    @if(in_array($event['action'], ['ban', 'block', 'denied']))
                                         <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
                                             <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                                             </svg>
                                         </div>
-                                    @elseif($event['action'] === 'challenged')
+                                    @elseif(in_array($event['action'], ['captcha', 'challenged']))
                                         <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
                                             <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -355,9 +359,9 @@
                                 
                                 <div class="text-right">
                                     <span class="px-2 py-1 rounded text-xs font-medium
-                                        {{ $event['action'] === 'denied' ? 'bg-red-500/20 text-red-400' : '' }}
-                                        {{ $event['action'] === 'challenged' ? 'bg-yellow-500/20 text-yellow-400' : '' }}
-                                        {{ $event['action'] === 'allowed' ? 'bg-green-500/20 text-green-400' : '' }}
+                                        {{ in_array($event['action'], ['ban','block','denied']) ? 'bg-red-500/20 text-red-400' : '' }}
+                                        {{ in_array($event['action'], ['captcha','challenged']) ? 'bg-yellow-500/20 text-yellow-400' : '' }}
+                                        {{ in_array($event['action'], ['allow','allowed']) ? 'bg-green-500/20 text-green-400' : '' }}
                                     ">
                                         {{ ucfirst($event['action']) }}
                                     </span>
