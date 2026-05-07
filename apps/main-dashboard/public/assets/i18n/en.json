@@ -1866,6 +1866,19 @@
       "missingElements": "Missing elements:",
       "backButton": "Back to Dashboard",
       "completeButton": "Complete Brand Identity"
+    },
+    "completeBranding": {
+      "loading": "Loading your project...",
+      "projectNotFound": "Project not found.",
+      "noLogoSelected": "No logo selected. Please go back to the previous step.",
+      "backToLogoChoice": "Back to logo choice",
+      "finish": "Finish",
+      "steps": {
+        "logoChoice": "Logo",
+        "colors": "Colors",
+        "typography": "Typography",
+        "logoVariations": "Variations"
+      }
     }
   },
   "logoCreation": {

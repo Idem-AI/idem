@@ -1866,6 +1866,19 @@
       "missingElements": "Éléments manquants :",
       "backButton": "Retour au tableau de bord",
       "completeButton": "Compléter l'identité de marque"
+    },
+    "completeBranding": {
+      "loading": "Chargement de votre projet...",
+      "projectNotFound": "Projet introuvable.",
+      "noLogoSelected": "Aucun logo sélectionné. Veuillez retourner à l'étape précédente.",
+      "backToLogoChoice": "Retour au choix du logo",
+      "finish": "Terminer",
+      "steps": {
+        "logoChoice": "Logo",
+        "colors": "Couleurs",
+        "typography": "Typographie",
+        "logoVariations": "Variations"
+      }
     }
   },
   "common": {

@@ -1,0 +1,159 @@
+@if (isLoading()) {
+  <!-- Loading State -->
+  <div class="h-screen w-full flex items-center justify-center">
+    <div class="text-center space-y-4">
+      <div
+        class="w-12 h-12 mx-auto border-2 border-primary border-t-transparent rounded-full animate-spin"
+      ></div>
+      <p class="text-gray-400">{{ 'dashboard.completeBranding.loading' | translate }}</p>
+    </div>
+  </div>
+} @else if (!project()) {
+  <!-- Project not found -->
+  <div class="h-screen w-full flex items-center justify-center">
+    <div class="text-center">
+      <p class="text-gray-400">{{ 'dashboard.completeBranding.projectNotFound' | translate }}</p>
+    </div>
+  </div>
+} @else {
+  <div class="w-full min-h-screen">
+    <!-- ───────────────── Step Content ───────────────── -->
+    <div class="pt-24 pb-24">
+
+      <!-- STEP 0 : Logo Choice (import ou IA) -->
+      @if (isStepActive('logo-choice')) {
+        <app-logo-choice
+          [project]="project()!"
+          (nextStep)="onLogoChoiceNextStep()"
+          (previousStep)="goToPreviousStep()"
+          (projectUpdate)="onProjectUpdate($event)"
+          (logoChoiceMade)="onLogoChoiceMade($event)"
+          (logoImportComplete)="onLogoImportComplete($event)"
+        ></app-logo-choice>
+      }
+
+      <!-- STEP 1 : Colors & Typography generation -->
+      @if (isStepActive('colors')) {
+        <app-color-selection
+          [project]="project()!"
+          (projectUpdate)="onProjectUpdate($event)"
+          (colorSelected)="onColorSelected($event)"
+          (nextStep)="goToNextStep()"
+          (previousStep)="goToPreviousStep()"
+        ></app-color-selection>
+      }
+
+      <!-- STEP 2 : Typography selection -->
+      @if (isStepActive('typography')) {
+        <app-typography-selection
+          [project]="project()!"
+          (projectUpdate)="onProjectUpdate($event)"
+          (typographySelectionChanged)="onTypographySelectionChanged($event)"
+        ></app-typography-selection>
+      }
+
+      <!-- STEP 3 (IA only) : Logo Variations -->
+      @if (isStepActive('logo-variations')) {
+        @if (selectedLogo) {
+          <app-logo-variations
+            [selectedLogo]="selectedLogo"
+            [project]="project()!"
+            (variationsGenerated)="onVariationsGenerated()"
+            (projectUpdate)="onProjectFullUpdate($event)"
+            (nextStep)="finalize()"
+          ></app-logo-variations>
+        } @else {
+          <!-- Fallback : aucun logo disponible -->
+          <div class="flex items-center justify-center min-h-[60vh]">
+            <div class="text-center space-y-4">
+              <p class="text-gray-400">
+                {{ 'dashboard.completeBranding.noLogoSelected' | translate }}
+              </p>
+              <button
+                (click)="navigateToStep(0)"
+                class="px-6 py-3 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors"
+              >
+                <i class="pi pi-arrow-left mr-2"></i>
+                {{ 'dashboard.completeBranding.backToLogoChoice' | translate }}
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- ───────────────── Fixed Navigation Bar ───────────────── -->
+    <div
+      class="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700"
+    >
+      <div class="max-w-4xl mx-auto px-4 py-4">
+        <div class="flex justify-between items-center">
+
+          <!-- Previous -->
+          <button
+            (click)="goToPreviousStep()"
+            [disabled]="!canGoPrevious()"
+            class="flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
+              ></path>
+            </svg>
+            {{ 'common.previous' | translate }}
+          </button>
+
+          <!-- Step dots -->
+          <div class="flex items-center space-x-2">
+            @for (step of steps; track step.id; let i = $index) {
+              <div
+                class="w-2 h-2 rounded-full transition-colors"
+                [class.bg-primary]="i <= currentStepIndex()"
+                [class.bg-gray-600]="i > currentStepIndex()"
+              ></div>
+            }
+          </div>
+
+          <!-- Next / Finish -->
+          @if (!isLastStep()) {
+            <button
+              (click)="goToNextStep()"
+              [disabled]="!canGoNext()"
+              class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {{ 'common.next' | translate }}
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                ></path>
+              </svg>
+            </button>
+          } @else {
+            <button
+              (click)="finalize()"
+              [disabled]="isFinalizing()"
+              class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              @if (isFinalizing()) {
+                <span
+                  class="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"
+                ></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                <i class="pi pi-check mr-2"></i>
+                {{ 'dashboard.completeBranding.finish' | translate }}
+              }
+            </button>
+          }
+
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -17,7 +17,7 @@ export class BrandingRequiredBlockerComponent {
   constructor(private router: Router) {}
 
   protected onCompleteBranding(): void {
-    this.router.navigate(['/console/project/branding']);
+    this.router.navigate(['/project/complete-branding']);
   }
 
   protected onBackToDashboard(): void {
