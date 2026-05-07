@@ -13,6 +13,7 @@ export interface BrandIdentityModel {
   generatedTypography: TypographyModel[];
   sections: SectionModel[];
   pdfBlob?: Blob; // Optional PDF blob for optimized loading
+  importedLogoColors?: string[]; // Couleurs extraites du logo importé (workflow import)
 }
 
 export interface TypographyModel {

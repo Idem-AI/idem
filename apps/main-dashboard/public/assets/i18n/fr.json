@@ -688,7 +688,9 @@
       "result": {
         "title": "Logo vectorisé",
         "changeFile": "Choisir un autre fichier",
-        "extractedColors": "Couleurs principales"
+        "extractedColors": "Couleurs principales",
+        "primaryColor": "Couleur primaire",
+        "secondaryColor": "Couleur secondaire"
       }
     },
     "createTeam": {

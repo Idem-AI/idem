@@ -86,7 +86,7 @@
             {{ 'dashboard.logoImport.result.extractedColors' | translate }}
           </h3>
           <div class="grid grid-cols-2 gap-4">
-            @for (color of extractedColors(); track $index) {
+            @for (color of extractedColors(); track color; let i = $index) {
               <div class="flex flex-col items-center gap-3 group">
                 <div
                   class="w-full aspect-square rounded-lg border-2 border-white/20 group-hover:border-white/40 transition-all shadow-lg group-hover:scale-105"
@@ -95,7 +95,7 @@
                 <div class="text-center">
                   <p class="text-xs font-medium text-gray-300 mb-1">
                     {{
-                      $index === 0
+                      i === 0
                         ? ('dashboard.logoImport.result.primaryColor' | translate)
                         : ('dashboard.logoImport.result.secondaryColor' | translate)
                     }}

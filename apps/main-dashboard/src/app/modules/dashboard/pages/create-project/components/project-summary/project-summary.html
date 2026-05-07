@@ -85,13 +85,13 @@
               <h3 class="text-lg font-semibold text-gray-300 mb-4">
                 {{ 'dashboard.projectSummary.subsections.logo' | translate }}
               </h3>
-              @if (getSelectedLogo()) {
+              @if (selectedLogoData()) {
                 <div class="flex flex-col items-center justify-center">
                   <div
                     class="w-40 h-40 flex items-center justify-center p-4 mb-2 bg-zinc-100 rounded-lg"
-                    [innerHTML]="getSelectedLogo()!.svg | safeHtml"
+                    [innerHTML]="selectedLogoData()!.svg | safeHtml"
                   ></div>
-                  <p class="text-gray-300">{{ getSelectedLogo()?.name }}</p>
+                  <p class="text-gray-300">{{ selectedLogoData()?.name }}</p>
                 </div>
               }
             </div>
@@ -101,21 +101,21 @@
               <h3 class="text-lg font-semibold text-gray-300 mb-4">
                 {{ 'dashboard.projectSummary.subsections.colorPalette' | translate }}
               </h3>
-              @if (getSelectedColor()) {
+              @if (selectedColorData()) {
                 <div class="space-y-3">
-                  <p class="text-gray-300">{{ getSelectedColor()?.name }}</p>
+                  <p class="text-gray-300">{{ selectedColorData()?.name }}</p>
                   <div class="flex space-x-2">
                     <div
                       class="w-10 h-10 rounded-lg"
-                      [style.backgroundColor]="(getSelectedColor()?.colors)!.primary"
+                      [style.backgroundColor]="(selectedColorData()?.colors)!.primary"
                     ></div>
                     <div
                       class="w-10 h-10 rounded-lg"
-                      [style.backgroundColor]="(getSelectedColor()?.colors)!.secondary"
+                      [style.backgroundColor]="(selectedColorData()?.colors)!.secondary"
                     ></div>
                     <div
                       class="w-10 h-10 rounded-lg"
-                      [style.backgroundColor]="(getSelectedColor()?.colors)!.accent"
+                      [style.backgroundColor]="(selectedColorData()?.colors)!.accent"
                     ></div>
                   </div>
                 </div>
@@ -127,20 +127,20 @@
               <h3 class="text-lg font-semibold text-gray-300 mb-4">
                 {{ 'dashboard.projectSummary.subsections.typography' | translate }}
               </h3>
-              @if (getSelectedTypography()) {
+              @if (selectedTypographyData()) {
                 <div class="space-y-3">
-                  <p class="text-gray-300">{{ getSelectedTypography()?.name }}</p>
+                  <p class="text-gray-300">{{ selectedTypographyData()?.name }}</p>
                   <p
-                    [style.fontFamily]="getSelectedTypography()?.primaryFont"
+                    [style.fontFamily]="selectedTypographyData()?.primaryFont"
                     class="text-lg font-bold text-gray-200"
                   >
-                    {{ getSelectedTypography()?.primaryFont }}
+                    {{ selectedTypographyData()?.primaryFont }}
                   </p>
                   <p
-                    [style.fontFamily]="getSelectedTypography()?.secondaryFont"
+                    [style.fontFamily]="selectedTypographyData()?.secondaryFont"
                     class="text-md text-gray-300"
                   >
-                    {{ getSelectedTypography()?.secondaryFont }}
+                    {{ selectedTypographyData()?.secondaryFont }}
                   </p>
                 </div>
               }

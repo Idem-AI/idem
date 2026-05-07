@@ -53,41 +53,40 @@ export class BrandingService extends GenericService {
 
   // Configuration LLM pour la génération de logos et variations
   // Optimisée pour qualité maximale avec vitesse préservée
-private static readonly LOGO_LLM_CONFIG = {
-  provider: LLMProvider.GEMINI,
-  modelName: 'gemini-3-pro-preview',
-  llmOptions: {
-    maxOutputTokens: 2048, // SVG complet sans troncature (path + text + defs)
-    temperature: 0.7,      // Variance créative — évite la convergence cercle-bleu
-    topP: 0.95,            // Pool de sampling légèrement élargi pour les couleurs et concepts
-    topK: 40,              // Sweet spot Gemini — au-delà, le JSON se dégrade
-  },
-};
+  private static readonly LOGO_LLM_CONFIG = {
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-pro-preview',
+    llmOptions: {
+      maxOutputTokens: 2048, // SVG complet sans troncature (path + text + defs)
+      temperature: 0.7, // Variance créative — évite la convergence cercle-bleu
+      topP: 0.95, // Pool de sampling légèrement élargi pour les couleurs et concepts
+      topK: 40, // Sweet spot Gemini — au-delà, le JSON se dégrade
+    },
+  };
 
-// Configuration LLM optimisée pour la vitesse — génération de couleurs
-private static readonly COLORS_LLM_CONFIG = {
-  provider: LLMProvider.GEMINI,
-  modelName: 'gemini-3.1-flash-lite-preview',
-  llmOptions: {
-    maxOutputTokens: 1200, // réduit fortement la latence
-    temperature: 0.05, // réponses plus déterministes
-    topP: 0.8,
-    topK: 20,
-  },
-};
+  // Configuration LLM optimisée pour la vitesse — génération de couleurs
+  private static readonly COLORS_LLM_CONFIG = {
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
+    llmOptions: {
+      maxOutputTokens: 1200, // réduit fortement la latence
+      temperature: 0.05, // réponses plus déterministes
+      topP: 0.8,
+      topK: 20,
+    },
+  };
 
-// Configuration LLM optimisée pour la vitesse — génération de typographies
-private static readonly TYPOGRAPHY_LLM_CONFIG = {
-  provider: LLMProvider.GEMINI,
-  modelName: 'gemini-3.1-flash-lite-preview',
-  llmOptions: {
-    maxOutputTokens: 1800, // suffisant pour du JSON structuré
-    temperature: 0.3, // équilibre vitesse/cohérence
-    topP: 0.8,
-    topK: 20,
-  },
-};
-
+  // Configuration LLM optimisée pour la vitesse — génération de typographies
+  private static readonly TYPOGRAPHY_LLM_CONFIG = {
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
+    llmOptions: {
+      maxOutputTokens: 1800, // suffisant pour du JSON structuré
+      temperature: 0.3, // équilibre vitesse/cohérence
+      topP: 0.8,
+      topK: 20,
+    },
+  };
 
   constructor(promptService: PromptService) {
     super(promptService);
@@ -860,7 +859,10 @@ private static readonly TYPOGRAPHY_LLM_CONFIG = {
 
     const steps: IPromptStep[] = [
       {
-        promptConstant: projectDescription + COLORS_GENERATION_PROMPT,
+        promptConstant: COLORS_GENERATION_PROMPT.replace(
+          '{{PROJECT_DESCRIPTION}}',
+          projectDescription
+        ),
         stepName: 'Colors Generation',
         modelParser: (content) => {
           try {

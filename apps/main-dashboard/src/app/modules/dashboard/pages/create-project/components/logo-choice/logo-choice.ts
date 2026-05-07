@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { LogoImportComponent } from '../logo-import/logo-import';
-import { Loader } from '../../../../../../shared/components/loader/loader';
 import { ProjectModel } from '../../../../models/project.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 
@@ -16,7 +15,7 @@ import { BrandingService } from '../../../../services/ai-agents/branding.service
 @Component({
   selector: 'app-logo-choice',
   standalone: true,
-  imports: [CommonModule, TranslateModule, LogoImportComponent, Loader],
+  imports: [CommonModule, TranslateModule, LogoImportComponent],
   templateUrl: './logo-choice.html',
   styleUrl: './logo-choice.css',
 })
@@ -70,10 +69,9 @@ export class LogoChoiceComponent {
    */
   protected onSvgImported(svg: string): void {
     this.importedSvg.set(svg);
-    // Trigger branding generation if we have both SVG and colors
-    if (this.importedColors().length > 0) {
-      this.continueWithImportedLogo();
-    }
+    // Emit completion status to parent
+    this.logoImportComplete.emit(this.isLogoImportComplete());
+    // Ne PAS déclencher automatiquement la génération - attendre le clic sur Next
   }
 
   /**
@@ -83,52 +81,56 @@ export class LogoChoiceComponent {
     this.importedColors.set(colors);
     // Emit completion status to parent
     this.logoImportComplete.emit(this.isLogoImportComplete());
-    // Trigger branding generation if we have both SVG and colors
-    if (this.importedSvg()) {
-      this.continueWithImportedLogo();
-    }
+    // Ne PAS déclencher automatiquement la génération - attendre le clic sur Next
   }
 
   /**
-   * After importing, trigger AI generation of colors and typography from logo,
-   * then proceed to the colors selection step.
+   * Sauvegarde le logo importé dans le projet (sans navigation)
    */
-  private continueWithImportedLogo(): void {
+  public saveImportedLogo(): void {
     const svg = this.importedSvg();
     const colors = this.importedColors();
     const currentProject = this.project();
 
-    if (!svg || !currentProject || colors.length === 0) return;
-    // Prevent duplicate calls
-    if (this.isGeneratingBranding()) return;
+    if (!svg || !currentProject || colors.length === 0) {
+      console.warn('Cannot save logo - missing data');
+      return;
+    }
 
-    // Trigger AI generation of colors and typography from logo colors
-    this.isGeneratingBranding.set(true);
-    this.generationError.set(null);
-
-    this.brandingService
-      .generateColorsAndTypographyFromLogo(currentProject, svg, colors)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response) => {
-          console.log('Colors and typography from logo generated:', response);
-
-          // Use the full project from the API response (includes logo with variations, colors, typography)
-          this.projectUpdate.emit({
-            id: response.project.id,
-            analysisResultModel: response.project.analysisResultModel,
-          } as Partial<ProjectModel>);
-
-          this.isGeneratingBranding.set(false);
-          // Proceed to the colors selection step
-          this.nextStep.emit();
+    // Sauvegarder le logo importé et les couleurs extraites dans le projet
+    const projectUpdate = {
+      analysisResultModel: {
+        ...currentProject.analysisResultModel,
+        branding: {
+          ...currentProject.analysisResultModel?.branding,
+          logo: {
+            id: `imported-${Date.now()}`,
+            name: 'Imported Logo',
+            svg: svg,
+            concept: 'User-imported logo',
+            colors: colors,
+            fonts: [],
+          },
+          // Marquer qu'on vient du workflow import
+          importedLogoColors: colors,
         },
-        error: (error) => {
-          console.error('Error generating colors from logo:', error);
-          this.isGeneratingBranding.set(false);
-          this.generationError.set('Failed to generate colors and typography. Please try again.');
-        },
-      });
+      },
+    } as Partial<ProjectModel>;
+
+    console.log('🔵 Saving imported logo:', projectUpdate);
+    this.projectUpdate.emit(projectUpdate);
+  }
+
+  /**
+   * Appelé quand l'utilisateur clique sur Next après avoir importé le logo.
+   * Sauvegarde le logo et les couleurs dans le projet, puis passe à l'étape suivante.
+   * La génération des couleurs sera faite dans color-selection.
+   */
+  public continueWithImportedLogo(): void {
+    this.saveImportedLogo();
+    // Passer à l'étape de sélection des couleurs
+    console.log('🔵 Emitting nextStep');
+    this.nextStep.emit();
   }
 
   /**
