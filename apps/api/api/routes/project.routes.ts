@@ -117,6 +117,49 @@ projectRoutes.get('/', authenticate, projectController.getAllProjects);
  */
 projectRoutes.get('/:projectId', authenticate, projectController.getProjectById);
 
+// Check project branding completion status
+/**
+ * @openapi
+ * /projects/{projectId}/branding/completion:
+ *   get:
+ *     tags:
+ *       - Projects
+ *     summary: Check if project branding is complete
+ *     description: Returns completion status and list of missing branding elements
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID
+ *     responses:
+ *       '200':
+ *         description: Branding completion status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 isComplete:
+ *                   type: boolean
+ *                 missingElements:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       '404':
+ *         description: Project not found
+ *       '500':
+ *         description: Internal server error
+ */
+projectRoutes.get(
+  '/:projectId/branding/completion',
+  authenticate,
+  projectController.checkBrandingCompletion
+);
+
 // Update a specific project by ID
 /**
  * @openapi

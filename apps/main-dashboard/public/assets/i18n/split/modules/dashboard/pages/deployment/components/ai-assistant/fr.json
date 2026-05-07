@@ -1,73 +1,77 @@
 {
-  "initialGreeting": "Bonjour ! Je suis votre assistant IA. Décrivez l'infrastructure que vous souhaitez déployer.",
-  "architectureAccepted": "Super ! L'architecture a été acceptée. Laissez-moi maintenant vérifier si des variables sensibles sont nécessaires pour ce déploiement...",
-  "architectureAcceptedMessage": "L'architecture a été acceptée. Veuillez analyser les composants et m'indiquer si des variables sensibles (clés API, mots de passe, informations d'identification de base de données, etc.) sont nécessaires pour ce déploiement.",
-  "greeting": "Bonjour ! {{userName}}, je suis l'assistant DevOps d'IDEM. Je peux générer et déployer votre projet ou votre infrastructure pour vous, et gérer les déploiements réactifs. Comment puis-je vous aider aujourd'hui ?",
-  "buttons": {
-    "enterSensitiveVariables": "Saisir les variables sensibles",
-    "submitVariables": "Soumettre les variables",
-    "acceptArchitecture": "Accepter l'architecture",
-    "saveConfiguration": "Enregistrer la configuration",
-    "saveAndContinue": "Enregistrer et continuer",
-    "validateFields": "Valider les champs"
-  },
-  "sensitiveVariables": {
-    "title": "Variables sensibles requises",
-    "description": "L'IA a besoin de certaines informations sensibles pour terminer la configuration de votre déploiement. Ces valeurs seront stockées de manière sécurisée et chiffrée.",
-    "validated": "✅ Variables sensibles validées et prêtes à être soumises. Vous pouvez maintenant cliquer sur le bouton \"Soumettre les variables\" pour les stocker en toute sécurité.",
-    "storedSuccessfully": "✅ {{count}} variables sensibles stockées avec succès en toute sécurité. Votre configuration de déploiement est maintenant terminée.",
-    "creatingAndStoring": "🔄 Création du déploiement et stockage sécurisé des variables sensibles...",
-    "dialogTitle": "Configuration des variables sécurisées",
-    "securityNotice": {
-      "title": "Avis de sécurité",
-      "body": "Ces valeurs sensibles seront chiffrées et stockées en toute sécurité. Elles ne seront utilisées que pour la configuration de votre déploiement et ne seront jamais enregistrées ou exposées."
+  "dashboard": {
+    "aiAssistant": {
+      "initialGreeting": "Bonjour ! Je suis votre assistant IA. Décrivez l'infrastructure que vous souhaitez déployer.",
+      "architectureAccepted": "Super ! L'architecture a été acceptée. Laissez-moi maintenant vérifier si des variables sensibles sont nécessaires pour ce déploiement...",
+      "architectureAcceptedMessage": "L'architecture a été acceptée. Veuillez analyser les composants et m'indiquer si des variables sensibles (clés API, mots de passe, informations d'identification de base de données, etc.) sont nécessaires pour ce déploiement.",
+      "greeting": "Bonjour ! {{userName}}, je suis l'assistant DevOps d'IDEM. Je peux générer et déployer votre projet ou votre infrastructure pour vous, et gérer les déploiements réactifs. Comment puis-je vous aider aujourd'hui ?",
+      "buttons": {
+        "enterSensitiveVariables": "Saisir les variables sensibles",
+        "submitVariables": "Soumettre les variables",
+        "acceptArchitecture": "Accepter l'architecture",
+        "saveConfiguration": "Enregistrer la configuration",
+        "saveAndContinue": "Enregistrer et continuer",
+        "validateFields": "Valider les champs"
+      },
+      "sensitiveVariables": {
+        "title": "Variables sensibles requises",
+        "description": "L'IA a besoin de certaines informations sensibles pour terminer la configuration de votre déploiement. Ces valeurs seront stockées de manière sécurisée et chiffrée.",
+        "validated": "✅ Variables sensibles validées et prêtes à être soumises. Vous pouvez maintenant cliquer sur le bouton \"Soumettre les variables\" pour les stocker en toute sécurité.",
+        "storedSuccessfully": "✅ {{count}} variables sensibles stockées avec succès en toute sécurité. Votre configuration de déploiement est maintenant terminée.",
+        "creatingAndStoring": "🔄 Création du déploiement et stockage sécurisé des variables sensibles...",
+        "dialogTitle": "Configuration des variables sécurisées",
+        "securityNotice": {
+          "title": "Avis de sécurité",
+          "body": "Ces valeurs sensibles seront chiffrées et stockées en toute sécurité. Elles ne seront utilisées que pour la configuration de votre déploiement et ne seront jamais enregistrées ou exposées."
+        }
+      },
+      "architecture": {
+        "title": "Architecture proposée",
+        "diagram": "Diagramme d'architecture"
+      },
+      "placeholders": {
+        "prompt": "Décrivez vos besoins en infrastructure..."
+      },
+      "pressEnterToSend": "Appuyez sur Entrée pour envoyer",
+      "configure": {
+        "title": "Configurer {{componentName}}"
+      },
+      "deploymentConfig": {
+        "title": "Configuration du déploiement",
+        "fields": {
+          "name": "Nom du déploiement",
+          "environment": "Environnement"
+        },
+        "placeholders": {
+          "name": "Mon application générée par l'IA"
+        },
+        "environments": {
+          "development": "Développement",
+          "staging": "Pré-production",
+          "production": "Production"
+        },
+        "git": {
+          "title": "Dépôt Git (Optionnel)",
+          "repoUrl": "URL du dépôt",
+          "branch": "Branche"
+        }
+      },
+      "errors": {
+        "noProjectSelected": "Aucun projet sélectionné. Veuillez d'abord sélectionner un projet.",
+        "requestProcessing": "Désolé, une erreur est survenue lors du traitement de votre demande. Veuillez réessayer.",
+        "apiError": "Échec de l'obtention de la réponse de l'IA",
+        "noInteraction": "Veuillez interagir avec l'assistant IA avant de créer un déploiement",
+        "formNotInitialized": "Formulaire non initialisé.",
+        "fillRequiredFields": "Veuillez remplir correctement tous les champs obligatoires.",
+        "validationFailed": "Échec de la validation : ",
+        "formHasErrors": "Le formulaire contient des erreurs de validation. ",
+        "variablesNotValidated": "Variables non validées. ",
+        "failedToCreateDeployment": "Échec de la création du déploiement",
+        "failedToStoreVariables": "Échec du stockage des variables sensibles : formulaire ou ID de déploiement manquant",
+        "failedToStoreSecurely": "Échec du stockage sécurisé des variables sensibles",
+        "communicationFailed": "Échec de la communication avec l'assistant IA",
+        "configureComponents": "Veuillez configurer tous les {{count}} composant(s) avant d'accepter l'architecture"
+      }
     }
-  },
-  "architecture": {
-    "title": "Architecture proposée",
-    "diagram": "Diagramme d'architecture"
-  },
-  "placeholders": {
-    "prompt": "Décrivez vos besoins en infrastructure..."
-  },
-  "pressEnterToSend": "Appuyez sur Entrée pour envoyer",
-  "configure": {
-    "title": "Configurer {{componentName}}"
-  },
-  "deploymentConfig": {
-    "title": "Configuration du déploiement",
-    "fields": {
-      "name": "Nom du déploiement",
-      "environment": "Environnement"
-    },
-    "placeholders": {
-      "name": "Mon application générée par l'IA"
-    },
-    "environments": {
-      "development": "Développement",
-      "staging": "Pré-production",
-      "production": "Production"
-    },
-    "git": {
-      "title": "Dépôt Git (Optionnel)",
-      "repoUrl": "URL du dépôt",
-      "branch": "Branche"
-    }
-  },
-  "errors": {
-    "noProjectSelected": "Aucun projet sélectionné. Veuillez d'abord sélectionner un projet.",
-    "requestProcessing": "Désolé, une erreur est survenue lors du traitement de votre demande. Veuillez réessayer.",
-    "apiError": "Échec de l'obtention de la réponse de l'IA",
-    "noInteraction": "Veuillez interagir avec l'assistant IA avant de créer un déploiement",
-    "formNotInitialized": "Formulaire non initialisé.",
-    "fillRequiredFields": "Veuillez remplir correctement tous les champs obligatoires.",
-    "validationFailed": "Échec de la validation : ",
-    "formHasErrors": "Le formulaire contient des erreurs de validation. ",
-    "variablesNotValidated": "Variables non validées. ",
-    "failedToCreateDeployment": "Échec de la création du déploiement",
-    "failedToStoreVariables": "Échec du stockage des variables sensibles : formulaire ou ID de déploiement manquant",
-    "failedToStoreSecurely": "Échec du stockage sécurisé des variables sensibles",
-    "communicationFailed": "Échec de la communication avec l'assistant IA",
-    "configureComponents": "Veuillez configurer tous les {{count}} composant(s) avant d'accepter l'architecture"
   }
 }

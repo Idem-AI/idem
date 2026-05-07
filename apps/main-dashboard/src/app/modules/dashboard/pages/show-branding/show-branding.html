@@ -56,6 +56,14 @@
   } @else if (hasProjectData() || hasBrandingData()) {
     <!-- Main Branding Overview -->
     <div class="max-w-7xl mx-auto space-y-8">
+      <!-- Incomplete Project Banner -->
+      @if (currentProject() && !isBrandingComplete()) {
+        <app-incomplete-project-banner
+          [project]="currentProject()!"
+          (completeProject)="navigateToBrandingGeneration()"
+        />
+      }
+
       <!-- Header Section -->
       <div class="glass-card p-6">
         <div class="flex items-center justify-between mb-6">

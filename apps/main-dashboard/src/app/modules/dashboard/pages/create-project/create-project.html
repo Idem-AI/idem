@@ -78,61 +78,14 @@
         ></app-project-details>
       }
       @if (isStepActive(2)) {
-        <app-logo-choice
-          [project]="project()"
-          (nextStep)="goToNextStep()"
-          (previousStep)="goToPreviousStep()"
-          (projectUpdate)="onProjectUpdate($event)"
-          (logoChoiceMade)="onLogoChoiceMade($event)"
-          (logoImportComplete)="onLogoImportComplete($event)"
-        ></app-logo-choice>
-      }
-      @if (isStepActive(3)) {
-        <app-color-selection
-          [project]="project()"
-          (nextStep)="goToNextStep()"
-          (previousStep)="goToPreviousStep()"
-          (projectUpdate)="onProjectUpdate($event)"
-        ></app-color-selection>
-      }
-      @if (isStepActive(4)) {
-        <app-typography-selection
-          [project]="project()"
-          (projectUpdate)="onProjectUpdate($event)"
-          (typographySelectionChanged)="onTypographySelectionChanged($event)"
-        ></app-typography-selection>
-      }
-      @if (isStepActive(5)) {
-        <app-logo-selection
-          [projectId]="project().id"
-          [project]="project()"
-          [logos]="
-            project().analysisResultModel.branding.generatedLogos
-              ? project().analysisResultModel.branding.generatedLogos
-              : []
-          "
-          (logoSelected)="onLogoSelected($event)"
-          (projectUpdate)="onProjectUpdate($event)"
-          (nextStep)="goToNextStep()"
-        ></app-logo-selection>
-      }
-      @if (isStepActive(6)) {
-        <app-logo-variations
-          [selectedLogo]="project().analysisResultModel?.branding?.logo!"
-          [project]="project()"
-          (projectUpdate)="onProjectUpdate($event)"
-          (nextStep)="goToNextStep()"
-        ></app-logo-variations>
-      }
-      @if (isStepActive(7)) {
         <app-project-summary
           [project]="project()"
-          [selectedLogo]="project().analysisResultModel?.branding?.logo?.id || ''"
-          [selectedColor]="project().analysisResultModel?.branding?.colors?.id || ''"
-          [selectedTypography]="project().analysisResultModel?.branding?.typography?.id || ''"
-          [logos]="project().analysisResultModel?.branding?.generatedLogos || []"
-          [colorPalettes]="project().analysisResultModel?.branding?.generatedColors || []"
-          [typographyOptions]="project().analysisResultModel?.branding?.generatedTypography || []"
+          [selectedLogo]="''"
+          [selectedColor]="''"
+          [selectedTypography]="''"
+          [logos]="[]"
+          [colorPalettes]="[]"
+          [typographyOptions]="[]"
           [privacyPolicyAccepted]="acceptances().privacy"
           [termsOfServiceAccepted]="acceptances().terms"
           [betaPolicyAccepted]="acceptances().beta"

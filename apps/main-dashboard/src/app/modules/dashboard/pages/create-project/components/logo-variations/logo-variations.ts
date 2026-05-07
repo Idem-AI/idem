@@ -12,7 +12,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
 import { LogoModel, LogoVariations } from '../../../../models/logo.model';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
 
 import { Subject, takeUntil } from 'rxjs';

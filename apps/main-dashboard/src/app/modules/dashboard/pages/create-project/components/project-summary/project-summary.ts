@@ -2,7 +2,7 @@ import { Component, input, output, computed, signal, inject, OnInit } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
 import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
 import { LogoModel } from '../../../../models/logo.model';
@@ -75,14 +75,6 @@ export class ProjectSummaryComponent implements OnInit {
 
   protected readonly formattedTargets = computed(() => {
     const targets = this.project().targets;
-    if (typeof targets === 'object' && targets !== null) {
-      if (Array.isArray(targets)) {
-        return targets
-          .map((t) => (typeof t === 'object' ? (t as any).name || JSON.stringify(t) : t))
-          .join(', ');
-      }
-      return (targets as any).name || JSON.stringify(targets);
-    }
     return targets || 'Non spécifié';
   });
 

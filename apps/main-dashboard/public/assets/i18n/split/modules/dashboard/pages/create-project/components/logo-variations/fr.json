@@ -1,93 +1,97 @@
 {
-  "initial": {
-    "title": "Variations du logo",
-    "subtitle": "Nous allons créer plusieurs variations de votre logo sélectionné pour différents contextes d'utilisation."
-  },
-  "features": {
-    "lightBackground": {
-      "title": "Fond clair",
-      "description": "Optimisé pour les fonds blancs et clairs"
-    },
-    "darkBackground": {
-      "title": "Fond sombre",
-      "description": "Optimisé pour les fonds sombres et modernes"
-    },
-    "monochrome": {
-      "title": "Monochrome",
-      "description": "Version en noir et blanc pour toutes les utilisations"
-    },
-    "multipleFormats": {
-      "title": "Formats multiples",
-      "description": "Avec texte et icône seuls pour tous les contextes"
+  "dashboard": {
+    "logoVariations": {
+      "initial": {
+        "title": "Variations du logo",
+        "subtitle": "Nous allons créer plusieurs variations de votre logo sélectionné pour différents contextes d'utilisation."
+      },
+      "features": {
+        "lightBackground": {
+          "title": "Fond clair",
+          "description": "Optimisé pour les fonds blancs et clairs"
+        },
+        "darkBackground": {
+          "title": "Fond sombre",
+          "description": "Optimisé pour les fonds sombres et modernes"
+        },
+        "monochrome": {
+          "title": "Monochrome",
+          "description": "Version en noir et blanc pour toutes les utilisations"
+        },
+        "multipleFormats": {
+          "title": "Formats multiples",
+          "description": "Avec texte et icône seuls pour tous les contextes"
+        }
+      },
+      "buttons": {
+        "generate": "Générer les variations",
+        "clickToSelect": "Cliquez pour sélectionner",
+        "proceed": "Continuer avec la sélection",
+        "retry": "Réessayer",
+        "continueToSummary": "Continuer vers le résumé"
+      },
+      "estimatedTime": "Temps estimé : {{time}}",
+      "generating": {
+        "title": "Génération des variations de logo...",
+        "subtitle": "Création de différentes versions de votre logo pour divers cas d'utilisation."
+      },
+      "progress": {
+        "label": "Progression",
+        "initializing": "Initialisation de la génération des variations de logo...",
+        "analyzing": "Analyse du design du logo sélectionné...",
+        "generatingLight": "Génération de la variation pour fond clair...",
+        "generatingDark": "Création de la version pour fond sombre...",
+        "generatingMonochrome": "Production de la variante monochrome...",
+        "optimizing": "Optimisation des sorties SVG...",
+        "finalizing": "Finalisation des variations...",
+        "completed": "Génération terminée !"
+      },
+      "errors": {
+        "title": "Erreur de génération",
+        "generationFailed": "Échec de la génération des variations de logo. Veuillez réessayer.",
+        "selectAtLeastOne": "Veuillez sélectionner au moins une variation pour continuer"
+      },
+      "success": {
+        "title": "Variations du logo",
+        "subtitle": "Sélectionnez les variations que vous souhaitez conserver pour votre projet.",
+        "completed": "Variations générées avec succès !",
+        "reviewAndProceed": "Examinez vos variations et continuez quand vous êtes prêt."
+      },
+      "status": {
+        "generated": "Généré",
+        "processing": "Traitement des variations...",
+        "preparingNext": "Préparation de l'étape suivante...",
+        "allGenerated": "Toutes les variations générées avec succès !",
+        "readyToProceed": "Prêt à passer à l'étape suivante.",
+        "advancing": "Passage à l'étape suivante..."
+      },
+      "categories": {
+        "withText": "Avec texte",
+        "iconOnly": "Icône uniquement"
+      },
+      "labels": {
+        "withTextLight": "Avec texte - Fond clair",
+        "withTextDark": "Avec texte - Fond sombre",
+        "withTextMonochrome": "Avec texte - Monochrome",
+        "iconOnlyLight": "Icône uniquement - Fond clair",
+        "iconOnlyDark": "Icône uniquement - Fond sombre",
+        "iconOnlyMonochrome": "Icône uniquement - Monochrome",
+        "lightBackground": "Fond clair",
+        "darkBackground": "Fond sombre",
+        "monochrome": "Monochrome"
+      },
+      "descriptions": {
+        "withTextLight": "Logo complet optimisé pour les fonds clairs",
+        "withTextDark": "Logo complet optimisé pour les fonds sombres",
+        "withTextMonochrome": "Logo complet en version monochrome",
+        "iconOnlyLight": "Icône uniquement optimisée pour les fonds clairs",
+        "iconOnlyDark": "Icône uniquement optimisée pour les fonds sombres",
+        "iconOnlyMonochrome": "Icône uniquement en version monochrome",
+        "lightBackground": "Optimisé pour les fonds blancs et clairs",
+        "darkBackground": "Optimisé pour les fonds sombres et modernes",
+        "monochrome": "Version en noir et blanc pour toutes les utilisations"
+      },
+      "selectionsMade": "{{count}} sélection(s) faite(s)"
     }
-  },
-  "buttons": {
-    "generate": "Générer les variations",
-    "clickToSelect": "Cliquez pour sélectionner",
-    "proceed": "Continuer avec la sélection",
-    "retry": "Réessayer",
-    "continueToSummary": "Continuer vers le résumé"
-  },
-  "estimatedTime": "Temps estimé : {{time}}",
-  "generating": {
-    "title": "Génération des variations de logo...",
-    "subtitle": "Création de différentes versions de votre logo pour divers cas d'utilisation."
-  },
-  "progress": {
-    "label": "Progression",
-    "initializing": "Initialisation de la génération des variations de logo...",
-    "analyzing": "Analyse du design du logo sélectionné...",
-    "generatingLight": "Génération de la variation pour fond clair...",
-    "generatingDark": "Création de la version pour fond sombre...",
-    "generatingMonochrome": "Production de la variante monochrome...",
-    "optimizing": "Optimisation des sorties SVG...",
-    "finalizing": "Finalisation des variations...",
-    "completed": "Génération terminée !"
-  },
-  "errors": {
-    "title": "Erreur de génération",
-    "generationFailed": "Échec de la génération des variations de logo. Veuillez réessayer.",
-    "selectAtLeastOne": "Veuillez sélectionner au moins une variation pour continuer"
-  },
-  "success": {
-    "title": "Variations du logo",
-    "subtitle": "Sélectionnez les variations que vous souhaitez conserver pour votre projet.",
-    "completed": "Variations générées avec succès !",
-    "reviewAndProceed": "Examinez vos variations et continuez quand vous êtes prêt."
-  },
-  "status": {
-    "generated": "Généré",
-    "processing": "Traitement des variations...",
-    "preparingNext": "Préparation de l'étape suivante...",
-    "allGenerated": "Toutes les variations générées avec succès !",
-    "readyToProceed": "Prêt à passer à l'étape suivante.",
-    "advancing": "Passage à l'étape suivante..."
-  },
-  "categories": {
-    "withText": "Avec texte",
-    "iconOnly": "Icône uniquement"
-  },
-  "labels": {
-    "withTextLight": "Avec texte - Fond clair",
-    "withTextDark": "Avec texte - Fond sombre",
-    "withTextMonochrome": "Avec texte - Monochrome",
-    "iconOnlyLight": "Icône uniquement - Fond clair",
-    "iconOnlyDark": "Icône uniquement - Fond sombre",
-    "iconOnlyMonochrome": "Icône uniquement - Monochrome",
-    "lightBackground": "Fond clair",
-    "darkBackground": "Fond sombre",
-    "monochrome": "Monochrome"
-  },
-  "descriptions": {
-    "withTextLight": "Logo complet optimisé pour les fonds clairs",
-    "withTextDark": "Logo complet optimisé pour les fonds sombres",
-    "withTextMonochrome": "Logo complet en version monochrome",
-    "iconOnlyLight": "Icône uniquement optimisée pour les fonds clairs",
-    "iconOnlyDark": "Icône uniquement optimisée pour les fonds sombres",
-    "iconOnlyMonochrome": "Icône uniquement en version monochrome",
-    "lightBackground": "Optimisé pour les fonds blancs et clairs",
-    "darkBackground": "Optimisé pour les fonds sombres et modernes",
-    "monochrome": "Version en noir et blanc pour toutes les utilisations"
-  },
-  "selectionsMade": "{{count}} sélection(s) faite(s)"
+  }
 }

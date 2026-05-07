@@ -1,5 +1,9 @@
 {
-  "loading": "Chargement du PDF...",
-  "wait": "Veuillez patienter pendant le chargement de votre document",
-  "noContent": "Aucun PDF à afficher"
+  "dashboard": {
+    "pdfViewer": {
+      "loading": "Chargement du PDF...",
+      "wait": "Veuillez patienter pendant le chargement de votre document",
+      "noContent": "Aucun PDF à afficher"
+    }
+  }
 }

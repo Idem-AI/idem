@@ -1,8 +1,10 @@
 {
-  "dashboard": "Dashboard",
-  "projects": "Projects",
-  "teams": "Teams",
-  "profile": "Profile",
-  "settings": "Settings",
-  "logout": "Logout"
+  "navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "teams": "Teams",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  }
 }

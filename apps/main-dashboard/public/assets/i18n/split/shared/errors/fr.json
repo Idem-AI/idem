@@ -1,6 +1,8 @@
 {
-  "generic": "Une erreur est survenue",
-  "notFound": "Non trouvé",
-  "unauthorized": "Non autorisé",
-  "serverError": "Erreur du serveur"
+  "errors": {
+    "generic": "Une erreur est survenue",
+    "notFound": "Non trouvé",
+    "unauthorized": "Non autorisé",
+    "serverError": "Erreur du serveur"
+  }
 }

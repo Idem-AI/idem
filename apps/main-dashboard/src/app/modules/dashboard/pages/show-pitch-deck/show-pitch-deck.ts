@@ -17,6 +17,9 @@ import { PitchDeckService } from '../../services/ai-agents/pitch-deck.service';
 import { PitchDeckModel } from '../../models/pitchDeck.model';
 import { SSEStepEvent } from '../../../../shared/models/sse-step.model';
 import { PitchDeckPdfViewer } from './pitch-deck-pdf-viewer/pitch-deck-pdf-viewer';
+import { BrandingValidationService } from '../../services/branding-validation.service';
+import { BrandingRequiredBlockerComponent } from '../../components/branding-required-blocker/branding-required-blocker';
+import { ProjectService } from '../../services/project.service';
 
 interface GenerationStep {
   name: string;
@@ -40,7 +43,13 @@ const PITCH_DECK_STEP_NAMES = [
 @Component({
   selector: 'app-show-pitch-deck',
   standalone: true,
-  imports: [CommonModule, TranslateModule, Loader, PitchDeckPdfViewer],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    Loader,
+    PitchDeckPdfViewer,
+    BrandingRequiredBlockerComponent,
+  ],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -48,6 +57,8 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
   private readonly pitchDeckService = inject(PitchDeckService);
   private readonly cookieService = inject(CookieService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly brandingValidation = inject(BrandingValidationService);
+  private readonly projectService = inject(ProjectService);
   private readonly translate = inject(TranslateService);
 
   protected readonly projectId = signal<string | null>(null);
@@ -60,6 +71,10 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly pdfBlob = signal<Blob | null>(null);
   protected readonly pdfLoading = signal(false);
+
+  // Branding validation
+  protected readonly isBrandingComplete = signal<boolean>(false);
+  protected readonly brandingMissingElements = signal<string[]>([]);
 
   protected readonly slideNames = computed<string[]>(() => {
     const deck = this.pitchDeck();
@@ -80,7 +95,34 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
       this.isLoading.set(false);
       return;
     }
-    this.loadPitchDeck(pid);
+    this.checkBrandingCompletion(pid);
+  }
+
+  /**
+   * Check if project branding is complete before loading content
+   */
+  private checkBrandingCompletion(projectId: string): void {
+    this.projectService.getProjectById(projectId).subscribe({
+      next: (project) => {
+        const { isComplete, missingElements } =
+          this.brandingValidation.checkBrandingCompletion(project);
+
+        this.isBrandingComplete.set(isComplete);
+        this.brandingMissingElements.set(missingElements);
+
+        // Only load pitch deck if branding is complete
+        if (isComplete) {
+          this.loadPitchDeck(projectId);
+        } else {
+          this.isLoading.set(false);
+        }
+      },
+      error: (error) => {
+        console.error('Error checking branding completion:', error);
+        this.isLoading.set(false);
+        this.errorMessage.set('Erreur lors de la vérification du projet');
+      },
+    });
   }
 
   ngOnDestroy(): void {

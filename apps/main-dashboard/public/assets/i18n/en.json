@@ -1701,11 +1701,16 @@
         "activityDescription": "Business activity",
         "founders": "Founders / shareholders",
         "addFounder": "Add founder",
-        "noFounders": "No founder yet. Add at least one."
+        "noFounders": "No founder yet. Add at least one.",
+        "founderName": "Full name",
+        "founderShares": "Shares (%)",
+        "founderRole": "Role"
       },
       "actions": {
         "generate": "Generate selected documents",
-        "download": "Download PDF"
+        "download": "Download PDF",
+        "downloadAll": "Download all",
+        "regenerate": "Regenerate"
       },
       "generating": {
         "title": "Generating documents"
@@ -1717,6 +1722,10 @@
       "errors": {
         "catalog": "Unable to load the document catalog.",
         "generation": "Generation failed. Try again."
+      },
+      "status": {
+        "generating": "Generating…",
+        "ready": "Ready"
       }
     },
     "advisor": {
@@ -1841,6 +1850,22 @@
       "loading": "Loading PDF...",
       "wait": "Please wait while we load your document",
       "noContent": "No PDF to display"
+    },
+    "brandingBlocker": {
+      "dashboard": {
+        "brandingBlocker": {
+          "title": "Brand Identity Required",
+          "description": "To access {{featureName}}, you must first complete your project's brand identity.",
+          "missingElements": "Missing elements:",
+          "backButton": "Back to Dashboard",
+          "completeButton": "Complete Brand Identity"
+        }
+      },
+      "title": "Brand Identity Required",
+      "description": "To access {{featureName}}, you must first complete your project's brand identity.",
+      "missingElements": "Missing elements:",
+      "backButton": "Back to Dashboard",
+      "completeButton": "Complete Brand Identity"
     }
   },
   "logoCreation": {

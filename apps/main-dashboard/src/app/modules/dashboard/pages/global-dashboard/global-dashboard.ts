@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { TeamModel } from '../../models/team.model';
 import { ProjectService } from '../../services/project.service';
 import { TeamService } from '../../services/team.service';

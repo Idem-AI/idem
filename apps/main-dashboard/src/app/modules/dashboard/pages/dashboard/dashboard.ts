@@ -2,15 +2,23 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { CommonModule, DatePipe } from '@angular/common';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { ProjectService } from '../../services/project.service';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, Loader, TranslateModule],
+  imports: [
+    CommonModule,
+    RouterLink,
+    DatePipe,
+    Loader,
+    TranslateModule,
+    IncompleteProjectBannerComponent,
+  ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -92,5 +100,17 @@ export class DashboardComponent implements OnInit {
    */
   protected getStepStatus(isCompleted: boolean): string {
     return isCompleted ? 'step-card completed' : 'step-card';
+  }
+
+  /**
+   * Navigate to branding completion workflow
+   */
+  protected onCompleteProject(): void {
+    const projectId = this.project()?.id;
+    if (projectId) {
+      // TODO: Créer une route pour le workflow de complétion
+      // Pour l'instant, on redirige vers la page de création avec le projet existant
+      this.router.navigate(['/console/branding/complete', projectId]);
+    }
   }
 }

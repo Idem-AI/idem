@@ -1,17 +1,21 @@
 {
-  "loading": {
-    "checking": "Vérification de vos diagrammes..."
-  },
-  "buttons": {
-    "generate": "Générer les diagrammes",
-    "selectProject": "Sélectionner un projet"
-  },
-  "empty": {
-    "title": "Aucun diagramme pour le moment",
-    "subtitle": "Générez des diagrammes d'architecture système pour votre projet",
-    "noProject": {
-      "title": "Aucun projet sélectionné",
-      "subtitle": "Veuillez sélectionner un projet pour voir ou générer ses diagrammes"
+  "dashboard": {
+    "showDiagrams": {
+      "loading": {
+        "checking": "Vérification de vos diagrammes..."
+      },
+      "buttons": {
+        "generate": "Générer les diagrammes",
+        "selectProject": "Sélectionner un projet"
+      },
+      "empty": {
+        "title": "Aucun diagramme pour le moment",
+        "subtitle": "Générez des diagrammes d'architecture système pour votre projet",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Veuillez sélectionner un projet pour voir ou générer ses diagrammes"
+        }
+      }
     }
   }
 }

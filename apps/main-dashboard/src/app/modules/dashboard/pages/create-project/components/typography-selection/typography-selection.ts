@@ -22,7 +22,7 @@ import { ProjectService } from '../../../../services/project.service';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 import { Subject, of } from 'rxjs';
 import { TypographyPreviewComponent } from './typography-preview/typography-preview';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 
 // Import new sub-components
@@ -155,7 +155,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       };
 
       // Add custom typography to the list if not already present
-      const existingCustomIndex = updatedGeneratedTypography.findIndex((t) =>
+      const existingCustomIndex = updatedGeneratedTypography.findIndex((t: TypographyModel) =>
         t.id.startsWith('custom-'),
       );
       if (existingCustomIndex >= 0) {

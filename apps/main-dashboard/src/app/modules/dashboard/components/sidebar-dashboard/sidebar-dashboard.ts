@@ -17,7 +17,7 @@ import { AuthService } from '../../../auth/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { trigger, transition, style, animate, state } from '@angular/animations';
 import { ProjectService } from '../../services/project.service';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { SelectElement } from '../../pages/create-project/datas';
 import { FormsModule } from '@angular/forms';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';

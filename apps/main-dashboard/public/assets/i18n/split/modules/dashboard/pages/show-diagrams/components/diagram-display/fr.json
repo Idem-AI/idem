@@ -1,13 +1,17 @@
 {
-  "actions": {
-    "add": "Ajouter un diagramme",
-    "addNew": "Ajouter un nouveau diagramme",
-    "download": "Télécharger",
-    "downloadPdf": "Télécharger en PDF",
-    "edit": "Modifier",
-    "editDiagrams": "Modifier les diagrammes"
-  },
-  "available": {
-    "title": "Diagrammes disponibles"
+  "dashboard": {
+    "diagramDisplay": {
+      "actions": {
+        "add": "Ajouter un diagramme",
+        "addNew": "Ajouter un nouveau diagramme",
+        "download": "Télécharger",
+        "downloadPdf": "Télécharger en PDF",
+        "edit": "Modifier",
+        "editDiagrams": "Modifier les diagrammes"
+      },
+      "available": {
+        "title": "Diagrammes disponibles"
+      }
+    }
   }
 }

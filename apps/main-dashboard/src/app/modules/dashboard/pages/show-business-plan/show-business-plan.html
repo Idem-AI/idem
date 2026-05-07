@@ -10,6 +10,12 @@
         <p class="text-gray-600">{{ 'dashboard.showBusinessPlan.loading.checking' | translate }}</p>
       </div>
     </div>
+  } @else if (!isLoading() && !isBrandingComplete()) {
+    <!-- Branding Required Blocker -->
+    <app-branding-required-blocker
+      [missingElements]="brandingMissingElements()"
+      [featureName]="'le Business Plan'"
+    />
   } @else if (existingBusinessPlan()) {
     <!-- Display existing business plan -->
     <app-business-plan-display [businessPlan]="existingBusinessPlan()!"></app-business-plan-display>

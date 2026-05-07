@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { initEmptyObject } from '../../../../utils/init-empty-object';
@@ -35,11 +35,6 @@ interface Step {
     SkeletonModule,
     ProjectDescriptionComponent,
     ProjectDetailsComponent,
-    LogoSelectionComponent,
-    LogoChoiceComponent,
-    ColorSelectionComponent,
-    TypographySelectionComponent,
-    LogoVariationsComponent,
     ProjectSummaryComponent,
     TranslateModule,
     Loader,
@@ -76,31 +71,6 @@ export class CreateProjectComponent implements OnInit {
         id: 'details',
         title: this.translate.instant('dashboard.createProject.steps.details'),
         component: 'details',
-      },
-      {
-        id: 'logo-choice',
-        title: this.translate.instant('dashboard.createProject.steps.logoChoice'),
-        component: 'logo-choice',
-      },
-      {
-        id: 'colors',
-        title: this.translate.instant('dashboard.createProject.steps.colors'),
-        component: 'colors',
-      },
-      {
-        id: 'typography',
-        title: this.translate.instant('dashboard.createProject.steps.typography'),
-        component: 'typography',
-      },
-      {
-        id: 'logo',
-        title: this.translate.instant('dashboard.createProject.steps.logo'),
-        component: 'logo',
-      },
-      {
-        id: 'variations',
-        title: this.translate.instant('dashboard.createProject.steps.variations'),
-        component: 'variations',
       },
       {
         id: 'summary',
@@ -223,21 +193,6 @@ export class CreateProjectComponent implements OnInit {
         return !!project.description?.trim();
       case 'details':
         return !!project.name?.trim() && !!project.type;
-      case 'colors':
-        return !!project.analysisResultModel?.branding?.generatedColors?.length;
-      case 'typography':
-        return this.typographySelectionValid();
-      case 'logo-choice':
-        // For import choice, require logo to be imported and vectorized with colors extracted
-        if (this.logoChoice() === 'import') {
-          return this.logoImportComplete();
-        }
-        // For AI choice, just need the choice to be made
-        return this.logoChoice() === 'ai';
-      case 'logo':
-        return !!project.analysisResultModel?.branding?.logo;
-      case 'variations':
-        return !!project.analysisResultModel?.branding?.logo?.variations;
       case 'summary':
         const acceptances = this.acceptances();
         return acceptances.privacy && acceptances.terms && acceptances.beta;
@@ -269,45 +224,13 @@ export class CreateProjectComponent implements OnInit {
    * Navigate to next step
    */
   protected async goToNextStep(): Promise<void> {
-    // For logo-choice step with import, save logo data before proceeding
-    if (
-      this.currentStepIndex() === 2 &&
-      this.logoChoice() === 'import' &&
-      this.logoChoiceComponent
-    ) {
-      console.log('💾 Saving imported logo before navigation');
-      this.logoChoiceComponent.saveImportedLogo();
-    }
-
-    // For typography step, prepare and save typography data before proceeding
-    if (this.currentStepIndex() === 4 && this.typographyComponent) {
-      // Typography step (index shifted by logo-choice step)
-      const typographyData = this.typographyComponent.prepareTypographyData();
-      if (typographyData) {
-        this.onProjectUpdate(typographyData);
-      }
-    }
-
     // After completing the "details" step (index 1), create the project in the database
     if (this.currentStepIndex() === 1 && !this.project().id) {
       await this.createProjectInDatabase();
     }
 
     if (this.canGoNext()) {
-      let nextIndex = this.currentStepIndex() + 1;
-
-      // If user imported a logo, skip the AI logo generation step (index 5)
-      // and the logo variations step (index 6) — go straight to summary
-      if (this.logoChoice() === 'import') {
-        const nextStep = this.steps[nextIndex];
-        if (nextStep?.id === 'logo' || nextStep?.id === 'variations') {
-          // Skip to the step after variations (summary)
-          const summaryIndex = this.steps.findIndex((s) => s.id === 'summary');
-          if (summaryIndex !== -1) {
-            nextIndex = summaryIndex;
-          }
-        }
-      }
+      const nextIndex = this.currentStepIndex() + 1;
 
       if (nextIndex < this.steps.length) {
         this.navigateToStep(nextIndex);

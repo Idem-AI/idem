@@ -2,7 +2,7 @@ import { Component, input, output, signal, computed, OnInit, inject } from '@ang
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { environment } from '../../../../../../../environments/environment';
 import { AuthService } from '../../../../../auth/services/auth.service';
 
