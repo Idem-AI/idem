@@ -150,6 +150,7 @@
 
       <!-- Logo import component -->
       <app-logo-import
+        [projectId]="project()?.id"
         (svgImported)="onSvgImported($event)"
         (colorsExtracted)="onColorsExtracted($event)"
       ></app-logo-import>

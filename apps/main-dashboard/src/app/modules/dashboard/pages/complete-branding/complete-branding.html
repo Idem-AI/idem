@@ -52,11 +52,11 @@
         ></app-typography-selection>
       }
 
-      <!-- STEP 3 (IA only) : Logo Variations -->
+      <!-- STEP 3 : Logo Variations (import AND IA) -->
       @if (isStepActive('logo-variations')) {
-        @if (selectedLogo) {
+        @if (selectedLogo?.svg) {
           <app-logo-variations
-            [selectedLogo]="selectedLogo"
+            [selectedLogo]="selectedLogo!"
             [project]="project()!"
             (variationsGenerated)="onVariationsGenerated()"
             (projectUpdate)="onProjectFullUpdate($event)"
@@ -117,39 +117,44 @@
             }
           </div>
 
-          <!-- Next / Finish -->
-          @if (!isLastStep()) {
-            <button
-              (click)="goToNextStep()"
-              [disabled]="!canGoNext()"
-              class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {{ 'common.next' | translate }}
-              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                ></path>
-              </svg>
-            </button>
+          <!-- Next / Finish — masqué sur l'étape logo-variations (le composant gère lui-même la progression) -->
+          @if (!isStepActive('logo-variations')) {
+            @if (!isLastStep()) {
+              <button
+                (click)="goToNextStep()"
+                [disabled]="!canGoNext()"
+                class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ 'common.next' | translate }}
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  ></path>
+                </svg>
+              </button>
+            } @else {
+              <button
+                (click)="finalize()"
+                [disabled]="isFinalizing()"
+                class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                @if (isFinalizing()) {
+                  <span
+                    class="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"
+                  ></span>
+                  {{ 'common.saving' | translate }}
+                } @else {
+                  <i class="pi pi-check mr-2"></i>
+                  {{ 'dashboard.completeBranding.finish' | translate }}
+                }
+              </button>
+            }
           } @else {
-            <button
-              (click)="finalize()"
-              [disabled]="isFinalizing()"
-              class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              @if (isFinalizing()) {
-                <span
-                  class="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"
-                ></span>
-                {{ 'common.saving' | translate }}
-              } @else {
-                <i class="pi pi-check mr-2"></i>
-                {{ 'dashboard.completeBranding.finish' | translate }}
-              }
-            </button>
+            <!-- Placeholder pour garder le layout flex équilibré -->
+            <div class="w-24"></div>
           }
 
         </div>

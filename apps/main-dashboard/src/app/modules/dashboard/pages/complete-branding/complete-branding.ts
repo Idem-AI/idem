@@ -90,14 +90,11 @@ export class CompleteBrandingPage implements OnInit {
         id: 'typography',
         label: this.translate.instant('dashboard.completeBranding.steps.typography'),
       },
-    ];
-
-    if (this.logoChoice() === 'ai') {
-      base.push({
+      {
         id: 'logo-variations',
         label: this.translate.instant('dashboard.completeBranding.steps.logoVariations'),
-      });
-    }
+      },
+    ];
 
     return base;
   }
