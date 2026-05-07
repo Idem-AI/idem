@@ -21,6 +21,7 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
+import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
 
 @Component({
   selector: 'app-show-branding',
@@ -33,6 +34,7 @@ import { IncompleteProjectBannerComponent } from '../../components/incomplete-pr
     ButtonModule,
     TranslateModule,
     IncompleteProjectBannerComponent,
+    SafeHtmlPipe,
   ],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',

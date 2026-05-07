@@ -107,6 +107,7 @@ export class LogoChoiceComponent {
             id: `imported-${Date.now()}`,
             name: 'Imported Logo',
             svg: svg,
+            iconSvg: svg, // Nécessaire pour generateLogoVariations
             concept: 'User-imported logo',
             colors: colors,
             fonts: [],

@@ -1,4 +1,4 @@
-import { Component, inject, output, signal, computed } from '@angular/core';
+import { Component, inject, input, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { LogoImportService, LogoUploadProgress } from '../../../../services/logo-import.service';
@@ -19,6 +19,8 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
 export class LogoImportComponent {
   // Services
   private readonly logoImportService = inject(LogoImportService);
+  // Inputs
+  readonly projectId = input<string | undefined>(undefined);
   // Outputs
   readonly svgImported = output<string>();
   readonly colorsExtracted = output<string[]>();
@@ -130,7 +132,7 @@ export class LogoImportComponent {
     this.errorMessage.set(null);
     this.uploadProgress.set(0);
 
-    this.logoImportService.uploadLogo(file).subscribe({
+    this.logoImportService.uploadLogo(file, this.projectId()).subscribe({
       next: (event: LogoUploadProgress) => {
         switch (event.type) {
           case 'progress':
@@ -147,14 +149,16 @@ export class LogoImportComponent {
             this.uploadProgress.set(100);
 
             if (event.result) {
-              this.importedSvg.set(event.result.svg);
+              // Prefer MinIO URL over inline SVG when available
+              const svgRef = event.result.logoUrl || event.result.svg;
+              this.importedSvg.set(event.result.svg); // Keep inline SVG for local preview
               this.importedWidth.set(event.result.width);
               this.importedHeight.set(event.result.height);
               // Keep only top 2 colors (primary and secondary)
               const topColors = (event.result.extractedColors || []).slice(0, 2);
               this.extractedColors.set(topColors);
-              // Emit the SVG and extracted colors to parent
-              this.svgImported.emit(event.result.svg);
+              // Emit the best available reference (URL or inline SVG)
+              this.svgImported.emit(svgRef);
               this.colorsExtracted.emit(topColors);
             }
             break;

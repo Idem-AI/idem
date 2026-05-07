@@ -383,13 +383,23 @@
           ) {
             <!-- Real Logo Data -->
             <div class="space-y-4">
+
               @if (existingBranding()!.logo!.svg) {
                 <!-- Selected Logo -->
                 <div class="glass-card p-4 text-center">
                   <div
-                    class="w-24 h-24 mx-auto mb-3 bg-white rounded-lg flex items-center justify-center p-2"
+                    class="w-24 h-24 mx-auto mb-3 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                   >
-                    <img [src]="existingBranding()!.logo.svg" class="w-full h-full" />
+                    @if (existingBranding()!.logo.svg.startsWith('<')) {
+                      <!-- Raw SVG inline -->
+                      <div
+                        class="w-full h-full flex items-center justify-center svg-logo"
+                        [innerHTML]="existingBranding()!.logo.svg | safeHtml"
+                      ></div>
+                    } @else {
+                      <!-- URL -->
+                      <img [src]="existingBranding()!.logo.svg" class="w-full h-full object-contain" />
+                    }
                   </div>
                   <p class="text-white font-medium">
                     {{
@@ -406,66 +416,133 @@
               <!-- Logo Variations -->
               @if (existingBranding()!.logo!.variations) {
                 <div class="grid grid-cols-2 gap-3">
-                  @if (existingBranding()!.logo!.variations!.withText!.lightBackground) {
+
+                  <!-- withText · light -->
+                  @if (existingBranding()!.logo!.variations!.withText?.lightBackground) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1"
+                        class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1 overflow-hidden"
                       >
-                        <img
-                          [src]="existingBranding()!.logo!.variations!.withText!.lightBackground"
-                          class="w-full h-full"
-                        />
+                        @if (existingBranding()!.logo!.variations!.withText!.lightBackground!.startsWith('<')) {
+                          <div
+                            class="w-full h-full svg-logo"
+                            [innerHTML]="existingBranding()!.logo!.variations!.withText!.lightBackground! | safeHtml"
+                          ></div>
+                        } @else {
+                          <img [src]="existingBranding()!.logo!.variations!.withText!.lightBackground" class="w-full h-full object-contain" />
+                        }
                       </div>
                       <p class="text-white text-xs">
                         {{ 'dashboard.showBranding.sections.logos.lightBg' | translate }}
                       </p>
                     </div>
                   }
-                  @if (existingBranding()!.logo.variations!.withText!.darkBackground) {
+
+                  <!-- withText · dark -->
+                  @if (existingBranding()!.logo!.variations!.withText?.darkBackground) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-gray-800/50 rounded flex items-center justify-center p-1"
+                        class="w-16 h-16 mx-auto mb-2 bg-gray-800/50 rounded flex items-center justify-center p-1 overflow-hidden"
                       >
-                        <img
-                          [src]="existingBranding()!.logo.variations!.withText!.darkBackground"
-                          class="w-full h-full"
-                        />
+                        @if (existingBranding()!.logo!.variations!.withText!.darkBackground!.startsWith('<')) {
+                          <div
+                            class="w-full h-full svg-logo"
+                            [innerHTML]="existingBranding()!.logo!.variations!.withText!.darkBackground! | safeHtml"
+                          ></div>
+                        } @else {
+                          <img [src]="existingBranding()!.logo!.variations!.withText!.darkBackground" class="w-full h-full object-contain" />
+                        }
                       </div>
                       <p class="text-white text-xs">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }}
                       </p>
                     </div>
                   }
-                  @if (existingBranding()!.logo.variations!.iconOnly!.lightBackground!) {
+
+                  <!-- withText · monochrome -->
+                  @if (existingBranding()!.logo!.variations!.withText?.monochrome) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1"
+                        class="w-16 h-16 mx-auto mb-2 bg-white/10 rounded flex items-center justify-center p-1 overflow-hidden"
                       >
-                        <img
-                          [src]="existingBranding()!.logo.variations!.iconOnly!.lightBackground"
-                          class="w-full h-full"
-                        />
-                      </div>
-                      <p class="text-white text-xs">
-                        {{ 'dashboard.showBranding.sections.logos.iconOnly' | translate }}
-                      </p>
-                    </div>
-                  }
-                  @if (existingBranding()!.logo.variations!.withText?.monochrome) {
-                    <div class="glass-card p-3 text-center">
-                      <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white/10 rounded flex items-center justify-center p-1"
-                      >
-                        <img
-                          [src]="existingBranding()!.logo.variations!.withText!.monochrome"
-                          class="w-full h-full"
-                        />
+                        @if (existingBranding()!.logo!.variations!.withText!.monochrome!.startsWith('<')) {
+                          <div
+                            class="w-full h-full svg-logo"
+                            [innerHTML]="existingBranding()!.logo!.variations!.withText!.monochrome! | safeHtml"
+                          ></div>
+                        } @else {
+                          <img [src]="existingBranding()!.logo!.variations!.withText!.monochrome" class="w-full h-full object-contain" />
+                        }
                       </div>
                       <p class="text-white text-xs">
                         {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }}
                       </p>
                     </div>
                   }
+
+                  <!-- iconOnly · light -->
+                  @if (existingBranding()!.logo!.variations!.iconOnly?.lightBackground) {
+                    <div class="glass-card p-3 text-center">
+                      <div
+                        class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1 overflow-hidden"
+                      >
+                        @if (existingBranding()!.logo!.variations!.iconOnly!.lightBackground!.startsWith('<')) {
+                          <div
+                            class="w-full h-full svg-logo"
+                            [innerHTML]="existingBranding()!.logo!.variations!.iconOnly!.lightBackground! | safeHtml"
+                          ></div>
+                        } @else {
+                          <img [src]="existingBranding()!.logo!.variations!.iconOnly!.lightBackground" class="w-full h-full object-contain" />
+                        }
+                      </div>
+                      <p class="text-white text-xs">
+                        {{ 'dashboard.showBranding.sections.logos.iconOnly' | translate }}
+                      </p>
+                    </div>
+                  }
+
+                  <!-- iconOnly · dark -->
+                  @if (existingBranding()!.logo!.variations!.iconOnly?.darkBackground) {
+                    <div class="glass-card p-3 text-center">
+                      <div
+                        class="w-16 h-16 mx-auto mb-2 bg-gray-800/50 rounded flex items-center justify-center p-1 overflow-hidden"
+                      >
+                        @if (existingBranding()!.logo!.variations!.iconOnly!.darkBackground!.startsWith('<')) {
+                          <div
+                            class="w-full h-full svg-logo"
+                            [innerHTML]="existingBranding()!.logo!.variations!.iconOnly!.darkBackground! | safeHtml"
+                          ></div>
+                        } @else {
+                          <img [src]="existingBranding()!.logo!.variations!.iconOnly!.darkBackground" class="w-full h-full object-contain" />
+                        }
+                      </div>
+                      <p class="text-white text-xs">
+                        {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }} (icon)
+                      </p>
+                    </div>
+                  }
+
+                  <!-- iconOnly · monochrome -->
+                  @if (existingBranding()!.logo!.variations!.iconOnly?.monochrome) {
+                    <div class="glass-card p-3 text-center">
+                      <div
+                        class="w-16 h-16 mx-auto mb-2 bg-white/10 rounded flex items-center justify-center p-1 overflow-hidden"
+                      >
+                        @if (existingBranding()!.logo!.variations!.iconOnly!.monochrome!.startsWith('<')) {
+                          <div
+                            class="w-full h-full svg-logo"
+                            [innerHTML]="existingBranding()!.logo!.variations!.iconOnly!.monochrome! | safeHtml"
+                          ></div>
+                        } @else {
+                          <img [src]="existingBranding()!.logo!.variations!.iconOnly!.monochrome" class="w-full h-full object-contain" />
+                        }
+                      </div>
+                      <p class="text-white text-xs">
+                        {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }} (icon)
+                      </p>
+                    </div>
+                  }
+
                 </div>
               }
             </div>
