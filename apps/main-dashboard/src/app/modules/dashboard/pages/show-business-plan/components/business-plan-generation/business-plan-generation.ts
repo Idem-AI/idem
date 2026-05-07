@@ -21,7 +21,7 @@ import {
   SSEConnectionConfig,
 } from '../../../../../../shared/models/sse-step.model';
 import { BusinessPlanModel } from '../../../../models/businessPlan.model';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { AdditionalInfoFormComponent } from '../additional-info-form/additional-info-form';
 import { environment } from '../../../../../../../environments/environment';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';

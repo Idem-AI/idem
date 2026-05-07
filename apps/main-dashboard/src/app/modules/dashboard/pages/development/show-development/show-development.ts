@@ -7,13 +7,16 @@ import { DevelopmentConfigsModel, LandingPageConfig } from '../../../models/deve
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { catchError, finalize, of, tap } from 'rxjs';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { BrandingValidationService } from '../../../services/branding-validation.service';
+import { BrandingRequiredBlockerComponent } from '../../../components/branding-required-blocker/branding-required-blocker';
+import { ProjectService } from '../../../services/project.service';
 
 import { environment } from '../../../../../../environments/environment';
 
 @Component({
   selector: 'app-show-development',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, Loader],
+  imports: [CommonModule, RouterModule, TranslateModule, Loader, BrandingRequiredBlockerComponent],
   templateUrl: './show-development.html',
   styleUrls: ['./show-development.css'],
 })
@@ -21,12 +24,18 @@ export class ShowDevelopment implements OnInit {
   // Services
   private readonly developmentService = inject(DevelopmentService);
   private readonly cookieService = inject(CookieService);
+  private readonly brandingValidation = inject(BrandingValidationService);
+  private readonly projectService = inject(ProjectService);
 
   // State management using signals
   protected readonly developmentConfigs = signal<DevelopmentConfigsModel | null>(null);
   protected readonly loading = signal<boolean>(false);
   protected readonly error = signal<string | null>(null);
   protected readonly projectId = signal<string>('');
+
+  // Branding validation
+  protected readonly isBrandingComplete = signal<boolean>(false);
+  protected readonly brandingMissingElements = signal<string[]>([]);
   protected readonly router = inject(Router);
   protected readonly webgenUrl = environment.services.webgen.url;
 
@@ -54,10 +63,38 @@ export class ShowDevelopment implements OnInit {
     const storedProjectId = this.cookieService.get('projectId');
     if (storedProjectId) {
       this.projectId.set(storedProjectId);
-      this.fetchDevelopmentConfigs(storedProjectId);
+      this.checkBrandingCompletion(storedProjectId);
     } else {
       this.error.set('No project ID found. Please select a project first.');
     }
+  }
+
+  /**
+   * Check if project branding is complete before loading content
+   */
+  private checkBrandingCompletion(projectId: string): void {
+    this.loading.set(true);
+    this.projectService.getProjectById(projectId).subscribe({
+      next: (project) => {
+        const { isComplete, missingElements } =
+          this.brandingValidation.checkBrandingCompletion(project);
+
+        this.isBrandingComplete.set(isComplete);
+        this.brandingMissingElements.set(missingElements);
+
+        // Only load development configs if branding is complete
+        if (isComplete) {
+          this.fetchDevelopmentConfigs(projectId);
+        } else {
+          this.loading.set(false);
+        }
+      },
+      error: (error) => {
+        console.error('Error checking branding completion:', error);
+        this.loading.set(false);
+        this.error.set('Erreur lors de la vérification du projet');
+      },
+    });
   }
 
   private fetchDevelopmentConfigs(projectId: string): void {

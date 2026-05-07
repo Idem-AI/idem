@@ -4,7 +4,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';

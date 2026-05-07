@@ -5,7 +5,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { FloatLabel } from 'primeng/floatlabel';
 import { Select } from 'primeng/select';
 import { MultiSelectModule } from 'primeng/multiselect';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { SelectElement } from '../../datas';
 import { TranslateModule } from '@ngx-translate/core';
 

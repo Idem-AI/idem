@@ -9,7 +9,7 @@ import {
   GenerationType,
   LandingPageConfig,
 } from '../../models/development.model';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 
 // Define a basic interface for Development items
 export interface DevelopmentItem {

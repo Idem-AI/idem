@@ -1,0 +1,78 @@
+<!-- Backdrop -->
+<div
+  class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+  (click)="onClose()"
+>
+  <!-- Modal -->
+  <div
+    class="bg-gray-900 rounded-2xl border border-gray-800 max-w-md w-full p-6 shadow-2xl"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Icon -->
+    <div class="flex justify-center mb-4">
+      <div class="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center">
+        <svg
+          class="w-8 h-8 text-orange-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <h3 class="text-xl font-bold text-white text-center mb-2">
+      Projet incomplet
+    </h3>
+
+    <!-- Message -->
+    <p class="text-gray-400 text-center mb-4">
+      Veuillez d'abord compléter l'identité de marque de votre projet avant d'accéder à cette
+      fonctionnalité.
+    </p>
+
+    <!-- Missing elements -->
+    @if (missingElements().length > 0) {
+      <div class="bg-gray-800/50 rounded-lg p-4 mb-6">
+        <p class="text-sm text-gray-400 mb-2">Éléments manquants :</p>
+        <ul class="space-y-1">
+          @for (element of missingElements(); track element) {
+            <li class="flex items-center gap-2 text-sm text-orange-400">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              {{ element }}
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Actions -->
+    <div class="flex gap-3">
+      <button
+        (click)="onClose()"
+        class="flex-1 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors font-medium"
+      >
+        Annuler
+      </button>
+      <button
+        (click)="onCompleteBranding()"
+        class="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-primary-600 to-accent-600 text-white hover:from-primary-500 hover:to-accent-500 transition-all font-medium shadow-lg shadow-primary-500/25"
+      >
+        Compléter le projet
+      </button>
+    </div>
+  </div>
+</div>

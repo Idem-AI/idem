@@ -1,0 +1,20 @@
+{
+  "dashboard": {
+    "brandingBlocker": {
+      "dashboard": {
+        "brandingBlocker": {
+          "title": "Brand Identity Required",
+          "description": "To access {{featureName}}, you must first complete your project's brand identity.",
+          "missingElements": "Missing elements:",
+          "backButton": "Back to Dashboard",
+          "completeButton": "Complete Brand Identity"
+        }
+      },
+      "title": "Brand Identity Required",
+      "description": "To access {{featureName}}, you must first complete your project's brand identity.",
+      "missingElements": "Missing elements:",
+      "backButton": "Back to Dashboard",
+      "completeButton": "Complete Brand Identity"
+    }
+  }
+}

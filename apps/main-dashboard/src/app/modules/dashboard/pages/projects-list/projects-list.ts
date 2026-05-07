@@ -7,7 +7,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { AsyncPipe } from '@angular/common';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';

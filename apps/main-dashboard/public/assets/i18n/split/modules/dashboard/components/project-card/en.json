@@ -1,4 +1,8 @@
 {
-  "logoAlt": "Logo",
-  "open": "Open"
+  "dashboard": {
+    "projectCard": {
+      "logoAlt": "Logo",
+      "open": "Open"
+    }
+  }
 }

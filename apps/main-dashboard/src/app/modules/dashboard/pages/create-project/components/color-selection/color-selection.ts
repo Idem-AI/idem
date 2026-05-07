@@ -1,7 +1,7 @@
 import { Component, input, output, signal, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
 import { Subject, takeUntil } from 'rxjs';

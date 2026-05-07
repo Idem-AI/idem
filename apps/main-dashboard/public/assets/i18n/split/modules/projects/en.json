@@ -1,7 +1,9 @@
 {
-  "title": "Projects",
-  "createNew": "Create New Project",
-  "myProjects": "My Projects",
-  "noProjects": "No projects found",
-  "projectDetails": "Project Details"
+  "projects": {
+    "title": "Projects",
+    "createNew": "Create New Project",
+    "myProjects": "My Projects",
+    "noProjects": "No projects found",
+    "projectDetails": "Project Details"
+  }
 }

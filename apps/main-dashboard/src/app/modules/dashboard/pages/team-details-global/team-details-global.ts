@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { TeamModel, TeamMemberModel, ProjectTeamModel } from '../../models/team.model';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { TeamService } from '../../services/team.service';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';

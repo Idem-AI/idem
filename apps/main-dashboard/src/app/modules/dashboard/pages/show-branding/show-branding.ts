@@ -13,17 +13,27 @@ import { BrandingService } from '../../services/ai-agents/branding.service';
 import { ProjectService } from '../../services/project.service';
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { LogoModel } from '../../models/logo.model';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { PdfViewerModule } from 'ng2-pdf-viewer';
 import { Dialog } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { BrandingValidationService } from '../../services/branding-validation.service';
+import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 
 @Component({
   selector: 'app-show-branding',
   standalone: true,
-  imports: [CommonModule, Loader, PdfViewerModule, Dialog, ButtonModule, TranslateModule],
+  imports: [
+    CommonModule,
+    Loader,
+    PdfViewerModule,
+    Dialog,
+    ButtonModule,
+    TranslateModule,
+    IncompleteProjectBannerComponent,
+  ],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,6 +44,7 @@ export class ShowBrandingComponent implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+  private readonly brandingValidation = inject(BrandingValidationService);
 
   // Loading and error states
   protected readonly isLoading = signal<boolean>(true);
@@ -45,6 +56,10 @@ export class ShowBrandingComponent implements OnInit {
   protected readonly projectIdFromCookie = signal<string | null>(null);
   protected readonly currentProject = signal<ProjectModel | null>(null);
   protected readonly existingBranding = signal<BrandIdentityModel | null>(null);
+
+  // Branding validation
+  protected readonly isBrandingComplete = signal<boolean>(false);
+  protected readonly brandingMissingElements = signal<string[]>([]);
 
   // Dialog state for logo download
   protected visible = false;
@@ -98,6 +113,13 @@ export class ShowBrandingComponent implements OnInit {
     this.projectService.getProjectById(projectId).subscribe({
       next: (project) => {
         this.currentProject.set(project);
+
+        // Check branding completion
+        const { isComplete, missingElements } =
+          this.brandingValidation.checkBrandingCompletion(project);
+        this.isBrandingComplete.set(isComplete);
+        this.brandingMissingElements.set(missingElements);
+
         // Then load branding data
         this.loadExistingBranding(project!);
       },
@@ -241,6 +263,13 @@ export class ShowBrandingComponent implements OnInit {
   protected generateBranding(): void {
     console.log('Navigating to branding generation page');
     this.router.navigate(['/project/branding/generate']);
+  }
+
+  /**
+   * Navigate to branding generation (alias for banner)
+   */
+  protected navigateToBrandingGeneration(): void {
+    this.generateBranding();
   }
 
   /**

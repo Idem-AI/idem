@@ -63,7 +63,7 @@ export interface ProjectModel {
 
   // Propriétaire et équipes
   userId: string; // Propriétaire du projet
-  teams: ProjectTeam[]; // Équipes associées avec leurs rôles
+  teams?: ProjectTeam[]; // Équipes associées avec leurs rôles (optionnel)
 
   // Phases et analyse
   selectedPhases: string[];
@@ -80,7 +80,7 @@ export interface ProjectModel {
   // Métadonnées
   createdAt: Date;
   updatedAt: Date;
-  isActive: boolean;
+  isActive?: boolean; // Optionnel, par défaut true
 }
 
 /**

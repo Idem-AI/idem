@@ -21,7 +21,7 @@ import { LogoCreationSimulatorComponent } from '../logo-creation-simulator/logo-
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 
 @Component({
   selector: 'app-logo-selection',

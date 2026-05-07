@@ -118,10 +118,10 @@ class ProjectController {
       }
       const { name, description, ...otherUpdatedData } = req.body;
       const updatedData: Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>> =
-        { 
+        {
           ...(name !== undefined && { name }),
           ...(description !== undefined && { description }),
-          ...otherUpdatedData 
+          ...otherUpdatedData,
         };
       if (!projectId) {
         res.status(400).json({ message: 'Project ID is required' });
@@ -378,6 +378,57 @@ class ProjectController {
     } catch (error: any) {
       logger.error(
         `Error in getProjectCode controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      next(error);
+    }
+  }
+
+  async checkBrandingCompletion(
+    req: CustomRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+
+    logger.info(`Checking branding completion for projectId ${projectId}, userId ${userId}`);
+
+    try {
+      if (!userId) {
+        logger.warn('Check branding completion attempt failed: User ID not found in token.');
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+
+      if (!projectId) {
+        logger.warn(
+          `Check branding completion attempt failed for userId ${userId}: Missing projectId.`
+        );
+        res.status(400).json({ message: 'Project ID is required' });
+        return;
+      }
+
+      const project = await projectService.getUserProjectById(userId, projectId);
+
+      if (!project) {
+        logger.warn(
+          `Check branding completion attempt failed for userId ${userId}: Project ${projectId} not found.`
+        );
+        res.status(404).json({ message: 'Project not found' });
+        return;
+      }
+
+      const completionStatus = projectService.checkBrandingCompletion(project);
+
+      logger.info(
+        `Branding completion check successful for projectId ${projectId}, userId ${userId}. Complete: ${completionStatus.isComplete}`
+      );
+
+      res.status(200).json(completionStatus);
+    } catch (error: any) {
+      logger.error(
+        `Error in checkBrandingCompletion controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
         { stack: error.stack, details: error }
       );
       next(error);

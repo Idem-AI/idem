@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -16,13 +23,16 @@ import {
   FlyerFormat,
   StrategyBlock,
 } from '../../models/communication.model';
+import { BrandingValidationService } from '../../services/branding-validation.service';
+import { BrandingRequiredBlockerComponent } from '../../components/branding-required-blocker/branding-required-blocker';
+import { ProjectService } from '../../services/project.service';
 
 type Tab = 'strategy' | 'calendar';
 
 @Component({
   selector: 'app-show-communication',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BrandingRequiredBlockerComponent],
   templateUrl: './show-communication.html',
   styleUrls: ['./show-communication.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,6 +42,8 @@ export class ShowCommunication implements OnInit {
   private readonly cookies = inject(CookieService);
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly brandingValidation = inject(BrandingValidationService);
+  private readonly projectService = inject(ProjectService);
 
   // ---------------- state
   protected readonly projectId = signal<string | null>(null);
@@ -47,6 +59,10 @@ export class ShowCommunication implements OnInit {
 
   // SSE status
   protected readonly streamStatus = signal<string>('');
+
+  // Branding validation
+  protected readonly isBrandingComplete = signal<boolean>(false);
+  protected readonly brandingMissingElements = signal<string[]>([]);
 
   // Content selection + flyer preview
   protected readonly selectedContent = signal<ContentIdea | null>(null);
@@ -114,7 +130,34 @@ export class ShowCommunication implements OnInit {
       this.isLoading.set(false);
       return;
     }
-    this.loadModel();
+    this.checkBrandingCompletion(projectId);
+  }
+
+  /**
+   * Check if project branding is complete before loading content
+   */
+  private checkBrandingCompletion(projectId: string): void {
+    this.projectService.getProjectById(projectId).subscribe({
+      next: (project) => {
+        const { isComplete, missingElements } =
+          this.brandingValidation.checkBrandingCompletion(project);
+
+        this.isBrandingComplete.set(isComplete);
+        this.brandingMissingElements.set(missingElements);
+
+        // Only load communication if branding is complete
+        if (isComplete) {
+          this.loadModel();
+        } else {
+          this.isLoading.set(false);
+        }
+      },
+      error: (error) => {
+        console.error('Error checking branding completion:', error);
+        this.isLoading.set(false);
+        this.errorMessage.set('Erreur lors de la vérification du projet');
+      },
+    });
   }
 
   // ---------------- loaders
@@ -304,9 +347,12 @@ export class ShowCommunication implements OnInit {
   private loadFlyerImage(flyer: Flyer): void {
     const projectId = this.projectId();
     if (!projectId || !flyer.id) return;
-    
+
     // Check if it's already an object URL (starts with blob:) or is a base64
-    if (flyer.imageUrl && (flyer.imageUrl.startsWith('blob:') || flyer.imageUrl.startsWith('data:'))) {
+    if (
+      flyer.imageUrl &&
+      (flyer.imageUrl.startsWith('blob:') || flyer.imageUrl.startsWith('data:'))
+    ) {
       return;
     }
 
@@ -322,7 +368,7 @@ export class ShowCommunication implements OnInit {
       error: (err) => {
         console.error('Failed to load flyer image blob', err);
         this.isDownloadingImage.set(false);
-      }
+      },
     });
   }
 
@@ -351,9 +397,7 @@ export class ShowCommunication implements OnInit {
 
   private findExistingFlyer(content: ContentIdea, format: FlyerFormat): Flyer | null {
     const flyers = this.model()?.flyers || [];
-    return (
-      flyers.find((f) => f.contentId === content.id && f.format === format) || null
-    );
+    return flyers.find((f) => f.contentId === content.id && f.format === format) || null;
   }
 
   private pushFlyerToModel(flyer: Flyer): void {

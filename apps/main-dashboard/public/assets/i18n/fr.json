@@ -1701,11 +1701,16 @@
         "activityDescription": "Activité (objet social)",
         "founders": "Associés / fondateurs",
         "addFounder": "Ajouter un associé",
-        "noFounders": "Aucun associé ajouté. Ajoutez-en au moins un."
+        "noFounders": "Aucun associé ajouté. Ajoutez-en au moins un.",
+        "founderName": "Nom complet",
+        "founderShares": "Parts (%)",
+        "founderRole": "Rôle"
       },
       "actions": {
         "generate": "Générer les documents sélectionnés",
-        "download": "Télécharger le PDF"
+        "download": "Télécharger le PDF",
+        "downloadAll": "Tout télécharger",
+        "regenerate": "Régénérer"
       },
       "generating": {
         "title": "Génération des documents"
@@ -1717,6 +1722,10 @@
       "errors": {
         "catalog": "Impossible de charger le catalogue de documents.",
         "generation": "La génération a échoué. Réessayez."
+      },
+      "status": {
+        "generating": "Génération en cours…",
+        "ready": "Prêt"
       }
     },
     "advisor": {
@@ -1841,6 +1850,22 @@
       "loading": "Chargement du PDF...",
       "wait": "Veuillez patienter pendant le chargement de votre document",
       "noContent": "Aucun PDF à afficher"
+    },
+    "brandingBlocker": {
+      "dashboard": {
+        "brandingBlocker": {
+          "title": "Identité de marque requise",
+          "description": "Pour accéder à {{featureName}}, vous devez d'abord compléter l'identité de marque de votre projet.",
+          "missingElements": "Éléments manquants :",
+          "backButton": "Retour au tableau de bord",
+          "completeButton": "Compléter l'identité de marque"
+        }
+      },
+      "title": "Identité de marque requise",
+      "description": "Pour accéder à {{featureName}}, vous devez d'abord compléter l'identité de marque de votre projet.",
+      "missingElements": "Éléments manquants :",
+      "backButton": "Retour au tableau de bord",
+      "completeButton": "Compléter l'identité de marque"
     }
   },
   "common": {

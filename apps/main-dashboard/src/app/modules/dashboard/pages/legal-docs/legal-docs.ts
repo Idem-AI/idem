@@ -22,6 +22,9 @@ import {
   LegalDocumentType,
 } from '../../models/legalDocs.model';
 import { SSEStepEvent } from '../../../../shared/models/sse-step.model';
+import { BrandingValidationService } from '../../services/branding-validation.service';
+import { BrandingRequiredBlockerComponent } from '../../components/branding-required-blocker/branding-required-blocker';
+import { ProjectService } from '../../services/project.service';
 
 type RequiredFieldKey =
   | 'country'
@@ -38,7 +41,7 @@ type RequiredFieldKey =
 @Component({
   selector: 'app-legal-docs',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, Loader],
+  imports: [CommonModule, FormsModule, TranslateModule, Loader, BrandingRequiredBlockerComponent],
   templateUrl: './legal-docs.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -47,6 +50,8 @@ export class LegalDocsPage implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly translate = inject(TranslateService);
+  private readonly brandingValidation = inject(BrandingValidationService);
+  private readonly projectService = inject(ProjectService);
 
   protected readonly projectId = signal<string | null>(null);
   protected readonly isLoading = signal(true);
@@ -54,8 +59,14 @@ export class LegalDocsPage implements OnInit {
   protected readonly selected = signal<Set<LegalDocumentType>>(new Set());
   protected readonly legalDocs = signal<LegalDocsModel | null>(null);
   protected readonly isGenerating = signal(false);
-  protected readonly stepStatuses = signal<Record<string, 'pending' | 'in-progress' | 'completed'>>({});
+  protected readonly stepStatuses = signal<Record<string, 'pending' | 'in-progress' | 'completed'>>(
+    {},
+  );
   protected readonly errorMessage = signal<string | null>(null);
+
+  // Branding validation
+  protected readonly isBrandingComplete = signal<boolean>(false);
+  protected readonly brandingMissingElements = signal<string[]>([]);
 
   protected readonly context = signal<LegalDocsContext>({
     country: '',
@@ -115,7 +126,34 @@ export class LegalDocsPage implements OnInit {
       this.isLoading.set(false);
       return;
     }
-    this.loadInitialData(pid);
+    this.checkBrandingCompletion(pid);
+  }
+
+  /**
+   * Check if project branding is complete before loading content
+   */
+  private checkBrandingCompletion(projectId: string): void {
+    this.projectService.getProjectById(projectId).subscribe({
+      next: (project) => {
+        const { isComplete, missingElements } =
+          this.brandingValidation.checkBrandingCompletion(project);
+
+        this.isBrandingComplete.set(isComplete);
+        this.brandingMissingElements.set(missingElements);
+
+        // Only load legal docs if branding is complete
+        if (isComplete) {
+          this.loadInitialData(projectId);
+        } else {
+          this.isLoading.set(false);
+        }
+      },
+      error: (error) => {
+        console.error('Error checking branding completion:', error);
+        this.isLoading.set(false);
+        this.errorMessage.set('Erreur lors de la vérification du projet');
+      },
+    });
   }
 
   private loadInitialData(projectId: string): void {
@@ -140,9 +178,7 @@ export class LegalDocsPage implements OnInit {
         },
         error: (err) => {
           console.error('Error loading legal docs catalog:', err);
-          this.errorMessage.set(
-            this.translate.instant('dashboard.legalDocs.errors.catalog'),
-          );
+          this.errorMessage.set(this.translate.instant('dashboard.legalDocs.errors.catalog'));
           this.isLoading.set(false);
         },
       });
@@ -207,9 +243,7 @@ export class LegalDocsPage implements OnInit {
         next: (event: SSEStepEvent) => this.handleSseEvent(event),
         error: (err) => {
           console.error('Legal docs generation error:', err);
-          this.errorMessage.set(
-            this.translate.instant('dashboard.legalDocs.errors.generation'),
-          );
+          this.errorMessage.set(this.translate.instant('dashboard.legalDocs.errors.generation'));
           this.isGenerating.set(false);
         },
         complete: () => {
