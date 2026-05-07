@@ -134,6 +134,9 @@ export class CreateProjectComponent implements OnInit {
   // ViewChild to access typography component
   @ViewChild(TypographySelectionComponent) typographyComponent?: TypographySelectionComponent;
 
+  // ViewChild to access logo-choice component
+  @ViewChild(LogoChoiceComponent) logoChoiceComponent?: LogoChoiceComponent;
+
   // Static data
   protected readonly projectTypes = CreateProjectDatas.groupedProjectTypes;
   protected readonly targets = CreateProjectDatas.groupedTargets;
@@ -266,6 +269,16 @@ export class CreateProjectComponent implements OnInit {
    * Navigate to next step
    */
   protected async goToNextStep(): Promise<void> {
+    // For logo-choice step with import, save logo data before proceeding
+    if (
+      this.currentStepIndex() === 2 &&
+      this.logoChoice() === 'import' &&
+      this.logoChoiceComponent
+    ) {
+      console.log('💾 Saving imported logo before navigation');
+      this.logoChoiceComponent.saveImportedLogo();
+    }
+
     // For typography step, prepare and save typography data before proceeding
     if (this.currentStepIndex() === 4 && this.typographyComponent) {
       // Typography step (index shifted by logo-choice step)
@@ -370,6 +383,13 @@ export class CreateProjectComponent implements OnInit {
    * Handle project updates from child components
    */
   protected onProjectUpdate(updates: Partial<ProjectModel>): void {
+    console.log('🟢 onProjectUpdate received:', updates);
+    console.log('🟢 Logo in update:', updates.analysisResultModel?.branding?.logo);
+    console.log(
+      '🟢 Imported colors in update:',
+      updates.analysisResultModel?.branding?.importedLogoColors,
+    );
+
     this.project.update((current) => ({
       ...current,
       ...updates,

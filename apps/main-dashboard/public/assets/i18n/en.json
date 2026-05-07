@@ -688,7 +688,9 @@
       "result": {
         "title": "Vectorized Logo",
         "changeFile": "Choose another file",
-        "extractedColors": "Main Colors"
+        "extractedColors": "Main Colors",
+        "primaryColor": "Primary Color",
+        "secondaryColor": "Secondary Color"
       }
     },
     "createTeam": {

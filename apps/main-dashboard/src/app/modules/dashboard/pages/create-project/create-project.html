@@ -118,7 +118,7 @@
       }
       @if (isStepActive(6)) {
         <app-logo-variations
-          [selectedLogo]="project().analysisResultModel.branding.logo"
+          [selectedLogo]="project().analysisResultModel?.branding?.logo!"
           [project]="project()"
           (projectUpdate)="onProjectUpdate($event)"
           (nextStep)="goToNextStep()"
@@ -127,12 +127,12 @@
       @if (isStepActive(7)) {
         <app-project-summary
           [project]="project()"
-          [selectedLogo]="project().analysisResultModel.branding.logo.id || ''"
-          [selectedColor]="project().analysisResultModel.branding.colors.id || ''"
-          [selectedTypography]="project().analysisResultModel!.branding!.typography!.id || ''"
-          [logos]="project().analysisResultModel.branding.generatedLogos || []"
-          [colorPalettes]="project().analysisResultModel.branding.generatedColors || []"
-          [typographyOptions]="project().analysisResultModel.branding.generatedTypography || []"
+          [selectedLogo]="project().analysisResultModel?.branding?.logo?.id || ''"
+          [selectedColor]="project().analysisResultModel?.branding?.colors?.id || ''"
+          [selectedTypography]="project().analysisResultModel?.branding?.typography?.id || ''"
+          [logos]="project().analysisResultModel?.branding?.generatedLogos || []"
+          [colorPalettes]="project().analysisResultModel?.branding?.generatedColors || []"
+          [typographyOptions]="project().analysisResultModel?.branding?.generatedTypography || []"
           [privacyPolicyAccepted]="acceptances().privacy"
           [termsOfServiceAccepted]="acceptances().terms"
           [betaPolicyAccepted]="acceptances().beta"

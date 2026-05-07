@@ -1,27 +1,36 @@
 export const COLORS_GENERATION_PROMPT = `
-Generate 3 premium color palettes. Return JSON only:
+You are a senior brand identity color expert. Generate 3 premium color palettes that reflect the project's industry, values, and target audience.
+
+PROJECT CONTEXT:
+{{PROJECT_DESCRIPTION}}
+
+Return JSON only:
 
 {
   "colors": [
     {
       "id": "color-scheme-1",
-      "name": "Dégradé Premium",
-      "url": "palette/degrade-premium",
+      "name": "[Descriptive name based on project industry/values]",
+      "url": "palette/[url-slug]",
       "colors": {
-        "primary": "#6a11cb",
-        "secondary": "#2575fc",
-        "accent": "#ff5858",
+        "primary": "#...",
+        "secondary": "#...",
+        "accent": "#...",
         "background": "#ffffff",
-        "text": "#191970"
+        "text": "#1a1a2e"
       }
     }
-    // ... 2 more unique palettes
+    // ... 2 more unique palettes with different moods
   ]
 }
 
 Rules:
-- First palette: exactly "Dégradé Premium" with colors above
-- 2 more unique premium tech palettes
-- Valid hex codes, descriptive names
+- Generate 3 UNIQUE palettes with different color moods (e.g., vibrant, professional, elegant)
+- Names should reflect the project's industry and values (e.g., "Tech Innovation", "Santé Moderne", "Énergie Créative")
+- Each palette should have distinct primary, secondary, and accent colors
+- At least 2 palettes should have light backgrounds (#ffffff or near-white)
+- One palette can have a dark background for variety
+- All colors must have good contrast (WCAG AA)
+- Valid hex codes, descriptive French names
 - Single line JSON, no explanations
 `;
