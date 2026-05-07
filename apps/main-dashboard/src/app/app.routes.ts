@@ -88,6 +88,15 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/complete-branding',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/complete-branding/complete-branding').then(
+        (m) => m.CompleteBrandingPage,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty' },
+  },
+  {
     path: 'project/branding/display',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-branding/components/branding-display/branding-display').then(
