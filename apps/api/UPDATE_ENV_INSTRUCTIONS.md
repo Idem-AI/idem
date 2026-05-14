@@ -61,10 +61,12 @@ gcloud projects add-iam-policy-binding lexis-ia \
 
 ### MongoDB
 ```bash
-docker exec -it mongodb mongosh -u admin -p admin123
-use admin
-db.changeUserPassword("admin", "soSG6tGidwpbbgLPzPOsN0rIfX42NkgE")
-exit
+docker exec -it idem-mongodb-dev mongosh -u admin -p admin123 --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('admin', 'soSG6tGidwpbbgLPzPOsN0rIfX42NkgE')"
+```
+
+### MINIO
+```bash
+docker run -d --name idem-minio-dev -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=fBlKwe9w7bmWP1F/Lhap9b3U+yzcR8ZG minio/minio server /data --console-address ":9001"
 ```
 
 ### Redis
