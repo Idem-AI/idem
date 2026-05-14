@@ -52,6 +52,14 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.*
+!.env.example
+!.env.production.example
+# Service account JSONs must NEVER be committed
+firebase-admin.json
+**/serviceAccount*.json
+**/firebase-admin*.json
+gcp-credentials*.json
 
 # next.js build output
 .next/

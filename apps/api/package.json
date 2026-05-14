@@ -8,11 +8,15 @@
     "dev": "nodemon api/index.ts",
     "build": "tsc",
     "start": "ts-node api/index.ts",
-    "vercel-build": "tsc"
+    "vercel-build": "tsc",
+    "secrets:upload": "bash scripts/upload-secrets.sh",
+    "secrets:rotate": "bash scripts/rotate-secret.sh",
+    "secrets:purge-history": "bash scripts/purge-env-from-history.sh"
   },
   "author": "arolleaguekeng",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.2",
     "@google/genai": "^1.1.0",
     "@google/generative-ai": "^0.21.0",
     "@idem/shared-models": "^1.0.0",
@@ -32,6 +36,8 @@
     "file-type": "^16.5.4",
     "firebase-admin": "^13.2.0",
     "fs-extra": "^11.0.4",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "ioredis": "^5.4.1",
     "jszip": "^3.10.1",
     "minio": "^8.0.2",
@@ -57,6 +63,7 @@
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.1",
     "@types/fs-extra": "^11.0.4",
+    "@types/hpp": "^0.2.7",
     "@types/ioredis": "^5.0.0",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.13.11",
