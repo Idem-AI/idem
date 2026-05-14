@@ -1,5 +1,7 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// IMPORTANT: secrets must be loaded BEFORE any other module that reads
+// process.env at import time. We therefore load them inside an async
+// bootstrap() function and gate the rest of the wiring behind it.
+import { loadSecrets } from './config/secrets';
 
 import express, { Express, Request, Response } from 'express';
 import morgan from 'morgan';
@@ -9,6 +11,9 @@ import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { applySecurity, auditLogger } from './middleware/security.middleware';
+import { buildCorsOptions } from './config/cors.config';
+import { rateLimitByIP, burstProtection } from './middleware/rate-limit.middleware';
 import mongoDBConnection from './config/mongodb.config';
 import { storageService } from './services/storage.service';
 import { User } from './schemas/user.schema';
@@ -19,31 +24,34 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import swaggerOptions from './config/swagger.config';
 
-// Firebase Auth initialization (kept for authentication only - backward compatibility)
-const serviceAccountFromEnv = {
-  type: 'service_account',
-  project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-  token_uri: 'https://oauth2.googleapis.com/token',
-  auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
-};
+function initFirebase(): void {
+  // Firebase Auth initialization (kept for authentication only - backward compatibility)
+  const serviceAccountFromEnv = {
+    type: 'service_account',
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+    // Newlines already normalised by loadSecrets(), but keep this safe for
+    // values pulled from a raw shell env.
+    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    client_id: process.env.FIREBASE_CLIENT_ID,
+    auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+    token_uri: 'https://oauth2.googleapis.com/token',
+    auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+    client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+  };
 
-if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccountFromEnv as admin.ServiceAccount),
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    // Note: storageBucket removed - using MinIO instead
-  });
-  console.log('Firebase Admin SDK initialized successfully (Auth only).');
-} else {
-  console.error(
-    'Firebase Admin SDK initialization failed: Missing credentials in environment variables.'
-  );
+  if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccountFromEnv as admin.ServiceAccount),
+      projectId: process.env.FIREBASE_PROJECT_ID,
+    });
+    console.log('Firebase Admin SDK initialized successfully (Auth only).');
+  } else {
+    console.error(
+      'Firebase Admin SDK initialization failed: Missing credentials in environment variables.'
+    );
+  }
 }
 
 import { projectRoutes } from './routes/project.routes';
@@ -75,64 +83,37 @@ import appgenRoutes from './routes/appgen.routes';
 import { communicationRoutes } from './routes/communication.routes';
 
 const app: Express = express();
+const port = process.env.PORT || 3001;
+
+// Hardening (helmet, hpp, trust proxy, hide X-Powered-By).
+applySecurity(app);
 
 // Prometheus metrics middleware (must be before routes)
 app.use(metricsMiddleware);
 
 // HTTP request logging middleware
 app.use(morgan('combined', { stream: loggerStream }));
-const port = process.env.PORT || 3001;
 app.use(cookieParser());
 
-app.use(express.json());
+// Body size limits prevent trivial DoS via huge payloads.
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '1mb' }));
 
-// Parse CORS allowed origins from environment variable
-const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
-  ? process.env.CORS_ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
-  : [];
+// Strict CORS (env-driven, no localhost in prod).
+app.use(cors(buildCorsOptions()));
 
-console.log(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
-
+// Burst protection + global IP rate limit (in addition to per-route limits).
+app.use(burstProtection({ maxBurst: 30, burstWindowMs: 1000 }));
 app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      if (origin.startsWith(`http://localhost:${port}`)) {
-        callback(null, true);
-        return;
-      }
-
-      // Vérifier si l'origin est dans la liste autorisée
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`CORS: Origin not allowed: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Cache-Control',
-      'Accept',
-      'Accept-Language',
-      'Accept-Encoding',
-      'Connection',
-      'User-Agent',
-      'Referer',
-      'Origin',
-      'X-Requested-With',
-      'X-API-Key',
-    ],
-    exposedHeaders: ['Content-Type', 'Cache-Control', 'Connection', 'X-Accel-Buffering'],
+  rateLimitByIP({
+    windowMs: 15 * 60 * 1000,
+    maxRequests: Number(process.env.GLOBAL_RATE_LIMIT_MAX || 600),
+    keyPrefix: 'ratelimit:global',
   })
 );
+
+// Audit log for sensitive routes.
+app.use(auditLogger);
 
 app.use('/projects', projectRoutes);
 app.use('/project', brandingRoutes);
@@ -209,77 +190,83 @@ app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
   res.status(500).send('Something broke!');
 });
 
-const server = app.listen(port, async () => {
-  console.log(`Server running on port ${port}`);
+async function bootstrap() {
+  await loadSecrets();
+  initFirebase();
+  return startServer();
+}
 
-  // Initialize MongoDB connection
-  try {
-    await mongoDBConnection.connect();
-    console.log('MongoDB connection established successfully');
+function startServer() {
+  return app.listen(port, async () => {
+    console.log(`Server running on port ${port}`);
 
-    // Initialize Mongoose models and create indexes
-    console.log('Initializing MongoDB indexes...');
-    await Promise.all([
-      User.init(), // Creates all indexes defined in UserSchema
-      Project.init(), // Creates all indexes defined in ProjectSchema
-    ]);
-    console.log('MongoDB indexes created successfully');
-  } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
-    process.exit(1);
-  }
+    // Initialize MongoDB connection
+    try {
+      await mongoDBConnection.connect();
+      console.log('MongoDB connection established successfully');
 
-  // Initialize MinIO storage
-  try {
-    await storageService.initialize();
-    console.log('MinIO storage initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize MinIO storage:', error);
-  }
-
-  // Initialiser le PdfService au démarrage pour optimiser les performances
-  try {
-    await PdfService.initialize();
-    console.log('PdfService initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize PdfService:', error);
-  }
-
-  // Tester la connexion Redis au démarrage
-  try {
-    const redisConnected = await RedisConnection.testConnection();
-    if (redisConnected) {
-      console.log('Redis connection established successfully');
-    } else {
-      console.warn('Redis connection test failed - cache will be disabled');
+      // Initialize Mongoose models and create indexes
+      console.log('Initializing MongoDB indexes...');
+      await Promise.all([
+        User.init(), // Creates all indexes defined in UserSchema
+        Project.init(), // Creates all indexes defined in ProjectSchema
+      ]);
+      console.log('MongoDB indexes created successfully');
+    } catch (error) {
+      console.error('Failed to connect to MongoDB:', error);
+      process.exit(1);
     }
-  } catch (error) {
-    console.error('Redis connection error:', error);
-  }
+
+    // Initialize MinIO storage
+    try {
+      await storageService.initialize();
+      console.log('MinIO storage initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize MinIO storage:', error);
+    }
+
+    // Initialiser le PdfService au démarrage pour optimiser les performances
+    try {
+      await PdfService.initialize();
+      console.log('PdfService initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize PdfService:', error);
+    }
+
+    // Tester la connexion Redis au démarrage
+    try {
+      const redisConnected = await RedisConnection.testConnection();
+      if (redisConnected) {
+        console.log('Redis connection established successfully');
+      } else {
+        console.warn('Redis connection test failed - cache will be disabled');
+      }
+    } catch (error) {
+      console.error('Redis connection error:', error);
+    }
+  });
+}
+
+const serverPromise = bootstrap().catch((err) => {
+  console.error('Fatal bootstrap error:', err);
+  process.exit(1);
 });
+
+async function shutdown(signal: string) {
+  console.log(`${signal} received, shutting down gracefully...`);
+  const server = await serverPromise;
+  await PdfService.closeBrowser();
+  await RedisConnection.disconnect();
+  await mongoDBConnection.disconnect();
+  server?.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+}
 
 // Gestion propre de l'arrêt de l'application
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  await PdfService.closeBrowser();
-  await RedisConnection.disconnect();
-  await mongoDBConnection.disconnect();
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  await PdfService.closeBrowser();
-  await RedisConnection.disconnect();
-  await mongoDBConnection.disconnect();
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 export { admin };
 
