@@ -10,6 +10,11 @@ export interface LogoImportResponse {
   success: boolean;
   svg: string;
   logoUrl?: string; // MinIO URL if uploaded
+  /** Programmatic SVG variations (light/dark/monochrome) from the API */
+  variations?: {
+    withText: { lightBackground: string; darkBackground: string; monochrome: string };
+    iconOnly: { lightBackground: string; darkBackground: string; monochrome: string };
+  };
   width: number;
   height: number;
   extractedColors: string[];

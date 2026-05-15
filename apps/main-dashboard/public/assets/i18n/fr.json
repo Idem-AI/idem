@@ -2011,7 +2011,17 @@
         "logoChoice": "Logo",
         "colors": "Couleurs",
         "typography": "Typographie",
-        "logoVariations": "Variations"
+        "logoPreferences": "Préférences",
+        "logoSelection": "Génération",
+        "logoVariations": "Déclinaisons",
+        "overview": "Aperçu"
+      },
+      "overview": {
+        "title": "Votre identité de marque est prête !",
+        "subtitle": "Vérifiez les éléments sélectionnés avant de terminer.",
+        "logo": "Logo",
+        "colors": "Palette de couleurs",
+        "typography": "Typographie"
       }
     },
     "incompleteBanner": {

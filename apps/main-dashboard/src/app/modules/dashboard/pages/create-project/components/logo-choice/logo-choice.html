@@ -153,6 +153,7 @@
         [projectId]="project()?.id"
         (svgImported)="onSvgImported($event)"
         (colorsExtracted)="onColorsExtracted($event)"
+        (variationsEmitted)="onVariationsReceived($event)"
       ></app-logo-import>
     </div>
   }

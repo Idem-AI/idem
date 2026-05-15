@@ -17,17 +17,23 @@ import { LogoChoiceComponent } from '../create-project/components/logo-choice/lo
 import { ColorSelectionComponent } from '../create-project/components/color-selection/color-selection';
 import { TypographySelectionComponent } from '../create-project/components/typography-selection/typography-selection';
 import { LogoVariationsComponent } from '../create-project/components/logo-variations/logo-variations';
-import { LogoModel } from '../../models/logo.model';
+import { LogoSelectionComponent } from '../create-project/components/logo-selection/logo-selection';
+import { LogoPreferences } from '../create-project/components/logo-preferences/logo-preferences';
+import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
+
+import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
 import { ColorModel, TypographyModel } from '../../models/brand-identity.model';
 
 /**
- * Workflow de complétion de la marque (depuis le branding-required-blocker).
+ * Workflow de complétion de la marque.
  *
- * Si l'utilisateur importe son logo :
- *   logo-choice → colors → typography → Dashboard
+ * Workflow A — Import :
+ *   logo-choice → colors → typography → overview → dashboard
  *
- * Si l'utilisateur génère avec l'IA :
- *   logo-choice → colors → typography → logo-variations → Dashboard
+ * Workflow B — IA :
+ *   logo-choice → colors → typography → logo-preferences → logo-selection → logo-variations → overview → dashboard
+ *
+ * Un aperçu (overview) est présent dans les deux workflows avec le bouton "Terminer".
  */
 @Component({
   selector: 'app-complete-branding',
@@ -35,10 +41,13 @@ import { ColorModel, TypographyModel } from '../../models/brand-identity.model';
   imports: [
     CommonModule,
     TranslateModule,
+    SafeHtmlPipe,
     LogoChoiceComponent,
     ColorSelectionComponent,
     TypographySelectionComponent,
     LogoVariationsComponent,
+    LogoSelectionComponent,
+    LogoPreferences,
   ],
   templateUrl: './complete-branding.html',
   styleUrl: './complete-branding.css',
@@ -50,63 +59,89 @@ export class CompleteBrandingPage implements OnInit {
   private readonly translate = inject(TranslateService);
 
   @ViewChild(LogoChoiceComponent) logoChoiceComponent?: LogoChoiceComponent;
-  @ViewChild(TypographySelectionComponent)
-  typographyComponent?: TypographySelectionComponent;
+  @ViewChild(TypographySelectionComponent) typographyComponent?: TypographySelectionComponent;
 
   // ─── State ──────────────────────────────────────────────────────────────────
 
   protected readonly currentStepIndex = signal<number>(0);
   protected readonly project = signal<ProjectModel | null>(null);
   protected readonly isLoading = signal<boolean>(true);
+  protected readonly isFinalizing = signal<boolean>(false);
 
-  /** 'import' | 'ai' | null — défini quand l'utilisateur fait son choix */
+  /** 'import' | 'ai' | null — défini dès le premier choix */
   protected readonly logoChoice = signal<'import' | 'ai' | null>(null);
 
-  /** true dès que le logo importé est prêt (SVG + couleurs extraites) */
+  /** true dès que le logo importé est prêt (SVG + couleurs) */
   protected readonly logoImportComplete = signal<boolean>(false);
 
+  /** true dès qu'une couleur est sélectionnée */
+  protected readonly colorSelected = signal<boolean>(false);
+
   /** true dès qu'une typographie est sélectionnée */
-  protected readonly typographySelectionValid = signal<boolean>(false);
+  protected readonly typographySelected = signal<boolean>(false);
 
-  // ─── Steps (dynamiques selon le choix logo) ─────────────────────────────────
+  // ─── Steps dynamiques selon le workflow ─────────────────────────────────────
 
-  /**
-   * La liste des steps dépend du workflow choisi :
-   * - import  : logo-choice | colors | typography
-   * - ai      : logo-choice | colors | typography | logo-variations
-   * - inconnu : logo-choice seulement
-   */
   protected get steps(): { id: string; label: string }[] {
-    const base = [
-      {
-        id: 'logo-choice',
-        label: this.translate.instant('dashboard.completeBranding.steps.logoChoice'),
-      },
-      {
-        id: 'colors',
-        label: this.translate.instant('dashboard.completeBranding.steps.colors'),
-      },
-      {
-        id: 'typography',
-        label: this.translate.instant('dashboard.completeBranding.steps.typography'),
-      },
-      {
-        id: 'logo-variations',
-        label: this.translate.instant('dashboard.completeBranding.steps.logoVariations'),
-      },
-    ];
+    const choice = this.logoChoice();
 
-    return base;
+    if (choice === 'import') {
+      return [
+        { id: 'logo-choice',  label: this.t('steps.logoChoice') },
+        { id: 'colors',       label: this.t('steps.colors') },
+        { id: 'typography',   label: this.t('steps.typography') },
+        { id: 'overview',     label: this.t('steps.overview') },
+      ];
+    }
+
+    if (choice === 'ai') {
+      return [
+        { id: 'logo-choice',       label: this.t('steps.logoChoice') },
+        { id: 'colors',            label: this.t('steps.colors') },
+        { id: 'typography',        label: this.t('steps.typography') },
+        { id: 'logo-preferences',  label: this.t('steps.logoPreferences') },
+        { id: 'logo-selection',    label: this.t('steps.logoSelection') },
+        { id: 'logo-variations',   label: this.t('steps.logoVariations') },
+        { id: 'overview',          label: this.t('steps.overview') },
+      ];
+    }
+
+    // Avant le choix : une seule étape
+    return [{ id: 'logo-choice', label: this.t('steps.logoChoice') }];
+  }
+
+  private t(key: string): string {
+    return this.translate.instant(`dashboard.completeBranding.${key}`);
   }
 
   // ─── Computed ───────────────────────────────────────────────────────────────
 
   protected readonly currentStep = computed(() => this.steps[this.currentStepIndex()]);
   protected readonly canGoPrevious = computed(() => this.currentStepIndex() > 0);
-  protected readonly isLastStep = computed(
-    () => this.currentStepIndex() === this.steps.length - 1,
-  );
+  protected readonly isLastStep = computed(() => this.currentStepIndex() === this.steps.length - 1);
+  protected readonly isOverviewStep = computed(() => this.currentStep()?.id === 'overview');
   protected readonly canGoNext = computed(() => this.isCurrentStepValid());
+
+  /** Logo sélectionné (import ou IA) */
+  protected get selectedLogo(): LogoModel | null {
+    return this.project()?.analysisResultModel?.branding?.logo ?? null;
+  }
+
+  /** Couleur sélectionnée */
+  protected get selectedColor(): ColorModel | null {
+    return this.project()?.analysisResultModel?.branding?.colors ?? null;
+  }
+
+  /** Typographie sélectionnée */
+  protected get selectedTypography(): TypographyModel | null {
+    return this.project()?.analysisResultModel?.branding?.typography ?? null;
+  }
+
+  /** SVG du logo — détecte si inline ou URL */
+  protected readonly logoIsInline = computed(() => {
+    const svg = this.selectedLogo?.svg;
+    return !!svg && svg.trimStart().startsWith('<');
+  });
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -138,15 +173,18 @@ export class CompleteBrandingPage implements OnInit {
   private isCurrentStepValid(): boolean {
     switch (this.currentStep()?.id) {
       case 'logo-choice':
-        // Valide si import complet OU choix IA fait
         return this.logoImportComplete() || this.logoChoice() === 'ai';
       case 'colors':
-        // La color-selection gère elle-même la génération ; on laisse toujours passer
-        return true;
+        return true; // color-selection gère elle-même la génération
       case 'typography':
-        return this.typographySelectionValid();
+        return this.typographySelected();
+      case 'logo-preferences':
+        return true; // logo-preferences se valide en émettant preferencesSelected
+      case 'logo-selection':
+        return !!this.selectedLogo;
       case 'logo-variations':
-        // Dernier step IA : on finalize manuellement
+        return true;
+      case 'overview':
         return true;
       default:
         return true;
@@ -163,20 +201,16 @@ export class CompleteBrandingPage implements OnInit {
   }
 
   protected goToNextStep(): void {
-    // Sur l'étape logo-choice avec import, on déclenche le save du logo d'abord
-    if (this.currentStep()?.id === 'logo-choice' && this.logoChoice() === 'import') {
+    const stepId = this.currentStep()?.id;
+
+    if (stepId === 'logo-choice' && this.logoChoice() === 'import') {
+      // Sauvegarder le logo + variations importés avant d'avancer
       this.logoChoiceComponent?.continueWithImportedLogo();
-      return;
+      return; // La navigation est déclenchée par l'event (nextStep) de logo-choice
     }
 
-    // Sur l'étape typography, on sauvegarde la sélection
-    if (this.currentStep()?.id === 'typography') {
+    if (stepId === 'typography') {
       this.saveTypographySelection();
-    }
-
-    if (this.isLastStep()) {
-      this.finalize();
-      return;
     }
 
     this.navigateToStep(this.currentStepIndex() + 1);
@@ -188,132 +222,113 @@ export class CompleteBrandingPage implements OnInit {
     }
   }
 
-  protected readonly isFinalizing = signal<boolean>(false);
+  // ─── Finalization ────────────────────────────────────────────────────────────
 
   protected finalize(): void {
-    const current = this.project();
-    if (!current?.id || this.isFinalizing()) return;
+    const proj = this.project();
+    if (!proj?.id || this.isFinalizing()) return;
 
-    // ── 1. Sauvegarder la typo si pas encore fait ──
-    if (!current.analysisResultModel?.branding?.typography) {
-      const data = this.typographyComponent?.prepareTypographyData();
-      if (data) {
-        this.onProjectUpdate(data);
-      }
-    }
-
-    // ── 2. Récupérer le projet mis à jour après l'éventuel update ci-dessus ──
-    const proj = this.project()!;
     const branding = proj.analysisResultModel?.branding;
 
-    // ── 3. Auto-sélectionner la première couleur si aucune n'est choisie ──
-    const missingColor = !branding?.colors && branding?.generatedColors?.length;
-    const autoColor = missingColor ? branding!.generatedColors![0] : null;
+    // Auto-sélectionner la première couleur si aucune
+    const autoColor = !branding?.colors && branding?.generatedColors?.length
+      ? branding.generatedColors[0]
+      : null;
 
-    // ── 4. Auto-sélectionner la première typographie si aucune n'est choisie ──
-    const missingTypo = !branding?.typography && branding?.generatedTypography?.length;
-    const autoTypo = missingTypo ? branding!.generatedTypography![0] : null;
+    // Auto-sélectionner la première typo si aucune
+    const autoTypo = !branding?.typography && branding?.generatedTypography?.length
+      ? branding.generatedTypography[0]
+      : null;
 
-    // ── 5. Construire le patch final ──
-    const brandingPatch: Record<string, unknown> = {};
-    if (autoColor) brandingPatch['colors'] = autoColor;
-    if (autoTypo) brandingPatch['typography'] = autoTypo;
-
-    const hasPatch = Object.keys(brandingPatch).length > 0;
+    const patch: Record<string, unknown> = {};
+    if (autoColor) patch['colors'] = autoColor;
+    if (autoTypo) patch['typography'] = autoTypo;
 
     this.isFinalizing.set(true);
 
+    const hasPatch = Object.keys(patch).length > 0;
+
+    const doNavigate = () => {
+      this.isFinalizing.set(false);
+      this.router.navigate(['/project/dashboard']);
+    };
+
     if (hasPatch) {
-      // Mettre à jour le signal local
-      this.project.set({
+      const updated = {
         ...proj,
         analysisResultModel: {
           ...proj.analysisResultModel,
-          branding: {
-            ...branding,
-            ...brandingPatch,
-          },
+          branding: { ...branding, ...patch },
         },
-      } as ProjectModel);
+      } as ProjectModel;
+      this.project.set(updated);
 
-      const patch: Partial<ProjectModel> = {
-        analysisResultModel: {
-          ...proj.analysisResultModel,
-          branding: {
-            ...branding,
-            ...brandingPatch,
-          },
-        },
-      };
-
-      this.projectService.updateProject(proj.id!, patch).subscribe({
-        next: () => {
-          this.isFinalizing.set(false);
-          this.router.navigate(['/project/dashboard']);
-        },
-        error: (err) => {
-          console.error('Failed to finalize branding:', err);
-          this.isFinalizing.set(false);
-          // On redirige quand même pour ne pas bloquer l'utilisateur
-          this.router.navigate(['/project/dashboard']);
-        },
-      });
+      this.projectService.updateProject(proj.id!, {
+        analysisResultModel: updated.analysisResultModel,
+      }).subscribe({ next: doNavigate, error: doNavigate });
     } else {
-      // Rien à patcher, on redirige directement
-      this.isFinalizing.set(false);
-      this.router.navigate(['/project/dashboard']);
+      doNavigate();
     }
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
-  private saveTypographySelection(): void {
-    const data = this.typographyComponent?.prepareTypographyData();
-    if (data) {
-      this.onProjectUpdate(data);
-    }
-  }
-
   protected isStepActive(id: string): boolean {
     return this.currentStep()?.id === id;
   }
 
-  protected get selectedLogo(): LogoModel | null {
-    return this.project()?.analysisResultModel?.branding?.logo ?? null;
+  private saveTypographySelection(): void {
+    const data = this.typographyComponent?.prepareTypographyData();
+    if (data) this.onProjectUpdate(data);
   }
 
-  // ─── Child component handlers ───────────────────────────────────────────────
+  // ─── Child component handlers ────────────────────────────────────────────────
 
-  /** Appelé par logo-choice quand l'utilisateur clique sur une des deux cartes */
+  /** Utilisateur choisit import ou IA */
   protected onLogoChoiceMade(choice: 'import' | 'ai'): void {
     this.logoChoice.set(choice);
-
     if (choice === 'ai') {
-      // Choix IA : aller directement à la step suivante (colors)
+      // Pour l'IA, on avance directement vers colors
       this.navigateToStep(1);
     }
-    // Choix import : l'utilisateur doit uploader son logo, on reste sur l'étape
   }
 
-  /** Appelé par logo-choice quand le logo importé est prêt (SVG + couleurs) */
-  protected onLogoImportComplete(isComplete: boolean): void {
-    this.logoImportComplete.set(isComplete);
+  /** Import complet (SVG + couleurs prêts) */
+  protected onLogoImportComplete(complete: boolean): void {
+    this.logoImportComplete.set(complete);
   }
 
-  /**
-   * Appelé par logo-choice quand il émet nextStep (après continueWithImportedLogo).
-   * On avance manuellement vers colors.
-   */
+  /** logo-choice émet nextStep après continueWithImportedLogo */
   protected onLogoChoiceNextStep(): void {
     this.navigateToStep(1);
   }
 
-  /** Appelé par logo-variations quand les variations sont générées */
-  protected onVariationsGenerated(): void {
-    // On laisse l'utilisateur voir les variations, le bouton "Terminer" est visible
+  /** Couleur choisie */
+  protected onColorSelected(_colorId: string): void {
+    this.colorSelected.set(true);
   }
 
-  /** Mise à jour du projet depuis n'importe quel step enfant */
+  /** Typographie valide / invalide */
+  protected onTypographySelectionChanged(valid: boolean): void {
+    this.typographySelected.set(valid);
+  }
+
+  /** Préférences logo AI sélectionnées → avancer automatiquement */
+  protected onLogoPreferencesSelected(_prefs: LogoPreferencesModel): void {
+    this.navigateToStep(this.currentStepIndex() + 1);
+  }
+
+  /** Logo AI généré et sélectionné */
+  protected onLogoSelected(_logoId: string): void {
+    // Le projet est mis à jour via onProjectFullUpdate depuis logo-selection
+  }
+
+  /** Variations générées */
+  protected onVariationsGenerated(): void {
+    // Le composant logo-variations appelle (nextStep) → finalize() ou avancer
+  }
+
+  /** Mise à jour partielle du projet (branding patch) */
   protected onProjectUpdate(updates: Partial<ProjectModel>): void {
     const current = this.project();
     if (!current) return;
@@ -334,11 +349,12 @@ export class CompleteBrandingPage implements OnInit {
 
     if (current.id) {
       this.projectService.updateProject(current.id, updates).subscribe({
-        error: (err) => console.error('Failed to update project branding:', err),
+        error: (err) => console.error('Failed to update project:', err),
       });
     }
   }
 
+  /** Mise à jour complète du projet (depuis logo-selection / logo-variations) */
   protected onProjectFullUpdate(updated: ProjectModel): void {
     this.project.set(updated);
     if (updated.id) {
@@ -346,13 +362,5 @@ export class CompleteBrandingPage implements OnInit {
         error: (err) => console.error('Failed to update project:', err),
       });
     }
-  }
-
-  protected onColorSelected(_colorId: string): void {
-    // optionnel : tracking local
-  }
-
-  protected onTypographySelectionChanged(isValid: boolean): void {
-    this.typographySelectionValid.set(isValid);
   }
 }
