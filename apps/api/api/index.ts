@@ -81,6 +81,7 @@ import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
 import { communicationRoutes } from './routes/communication.routes';
+import { financeRoutes } from './routes/finance.routes';
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
@@ -156,6 +157,9 @@ app.use('/appgen', appgenRoutes);
 app.use('/metrics', metricsRouter);
 // Communication routes (strategy / calendar / flyers on demand)
 app.use('/project', communicationRoutes);
+
+// Finance module (Prévisions financières — module dédié)
+app.use('/project', financeRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

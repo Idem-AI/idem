@@ -9,6 +9,7 @@ import { AdvisorConversationModel } from './advisor.model';
 import { WebContainerModel } from './webcontainer.model';
 import { DevelopmentConfigsModel } from './development.model';
 import { CommunicationModel } from './communication.model';
+import { FinanceModel } from './finance.model';
 
 /**
  * @openapi
@@ -60,6 +61,7 @@ export interface AnalysisResultModel {
   legalDocs?: LegalDocsModel;
   advisorConversation?: AdvisorConversationModel;
   communication?: CommunicationModel;
+  finance?: FinanceModel;
   design: DiagramModel;
   development: {
     configs: DevelopmentConfigsModel;
