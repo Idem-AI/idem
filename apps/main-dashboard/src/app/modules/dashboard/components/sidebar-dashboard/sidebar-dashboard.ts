@@ -123,6 +123,8 @@ export class SidebarDashboard implements OnInit {
       route: string;
       isActive: boolean;
       isNew?: boolean;
+      isExpanded?: boolean;
+      children?: Array<{ labelKey: string; route: string; icon: string; isActive: boolean }>;
     }>
   >([
     {
@@ -142,6 +144,82 @@ export class SidebarDashboard implements OnInit {
       icon: 'pi pi-calendar',
       route: 'project/business-plan',
       isActive: false,
+    },
+    {
+      labelKey: 'dashboard.sidebar.finance',
+      icon: 'pi pi-chart-pie',
+      route: 'project/finance',
+      isActive: false,
+      isNew: true,
+      isExpanded: false,
+      children: [
+        {
+          labelKey: 'dashboard.finance.sections.overview',
+          route: 'project/finance',
+          icon: 'pi pi-chart-pie',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.products',
+          route: 'project/finance/products',
+          icon: 'pi pi-tag',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.sales',
+          route: 'project/finance/sales',
+          icon: 'pi pi-shopping-cart',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.charges',
+          route: 'project/finance/charges',
+          icon: 'pi pi-wallet',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.investments',
+          route: 'project/finance/investments',
+          icon: 'pi pi-briefcase',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.amortization',
+          route: 'project/finance/amortization',
+          icon: 'pi pi-history',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.financing',
+          route: 'project/finance/financing',
+          icon: 'pi pi-money-bill',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.exploitation',
+          route: 'project/finance/exploitation',
+          icon: 'pi pi-chart-line',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.bilan',
+          route: 'project/finance/bilan',
+          icon: 'pi pi-book',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.cashflow',
+          route: 'project/finance/cashflow',
+          icon: 'pi pi-arrow-right-arrow-left',
+          isActive: false,
+        },
+        {
+          labelKey: 'dashboard.finance.sections.ratios',
+          route: 'project/finance/ratios',
+          icon: 'pi pi-percentage',
+          isActive: false,
+        },
+      ],
     },
     {
       labelKey: 'dashboard.sidebar.pitchDeck',
@@ -190,6 +268,14 @@ export class SidebarDashboard implements OnInit {
       isActive: false,
     },
   ]);
+
+  /** Toggle d'expansion d'un item parent (Finances) */
+  toggleExpand(item: { route: string }): void {
+    const items = this.navigationItems();
+    this.navigationItems.set(
+      items.map((i) => (i.route === item.route ? { ...i, isExpanded: !i.isExpanded } : i)),
+    );
+  }
 
   // Signals for UI State
   isLoading = signal(true);
@@ -484,10 +570,21 @@ export class SidebarDashboard implements OnInit {
     const currentPath = this.currentRoute();
     const items = this.navigationItems();
 
-    const updatedItems = items.map((item) => ({
-      ...item,
-      isActive: currentPath.includes(`/${item.route}`),
-    }));
+    const updatedItems = items.map((item) => {
+      const childrenActive = item.children?.some((c) => currentPath.includes(`/${c.route}`));
+      const isActive = currentPath.includes(`/${item.route}`) || !!childrenActive;
+      return {
+        ...item,
+        isActive,
+        // Expand automatiquement si une route enfant est active
+        isExpanded: childrenActive ? true : item.isExpanded,
+        children: item.children?.map((c) => ({
+          ...c,
+          // Active uniquement si la route correspond exactement (évite que /finance matche tout)
+          isActive: currentPath === `/${c.route}` || currentPath.startsWith(`/${c.route}/`),
+        })),
+      };
+    });
 
     this.navigationItems.set(updatedItems);
   }

@@ -1,0 +1,295 @@
+@if (isLoading()) {
+  <div class="flex items-center justify-center min-h-[60vh]">
+    <div class="text-center">
+      <div class="inline-block w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      <p class="mt-4 text-gray-400">{{ 'dashboard.finance.loading' | translate }}</p>
+    </div>
+  </div>
+} @else if (error()) {
+  <div class="glass-card p-8 text-center max-w-2xl mx-auto mt-12">
+    <i class="pi pi-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+    <h2 class="text-xl font-semibold text-white mb-2">{{ 'dashboard.finance.errors.title' | translate }}</h2>
+    <p class="text-gray-400">{{ error() }}</p>
+  </div>
+} @else {
+  <div class="space-y-6 p-4 md:p-2">
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+          <i class="pi pi-chart-pie text-primary"></i>
+          {{ 'dashboard.finance.title' | translate }}
+        </h1>
+        <p class="text-gray-400 mt-1 text-sm">{{ 'dashboard.finance.subtitle' | translate }}</p>
+      </div>
+      <app-ai-fill-button
+        variant="section"
+        [loading]="aiGlobalLoading()"
+        labelKey="dashboard.finance.aiFill.global"
+        (triggered)="onAutoFillGlobal()"
+      />
+    </header>
+
+    <!-- Empty state si aucune donnée finance -->
+    @if (!finance() || !finance()!.computed) {
+      <div class="glass-card p-10 text-center">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+          <i class="pi pi-sparkles text-primary text-2xl"></i>
+        </div>
+        <h2 class="text-xl font-semibold text-white mb-2">{{ 'dashboard.finance.empty.title' | translate }}</h2>
+        <p class="text-gray-400 max-w-xl mx-auto mb-6">
+          {{ 'dashboard.finance.empty.description' | translate }}
+        </p>
+        <app-ai-fill-button
+          variant="section"
+          [loading]="aiGlobalLoading()"
+          labelKey="dashboard.finance.empty.cta"
+          (triggered)="onAutoFillGlobal()"
+        />
+      </div>
+    } @else {
+      <!-- AI Alerts -->
+      @if (summary() && summary()!.alerts.length > 0) {
+        <div class="glass-card p-5 border-l-4 border-amber-400">
+          <div class="flex items-start gap-3">
+            <i class="pi pi-bell text-amber-400 text-xl mt-1"></i>
+            <div class="flex-1">
+              <h3 class="text-white font-semibold mb-2">{{ 'dashboard.finance.alerts.title' | translate }}</h3>
+              <ul class="space-y-1.5">
+                @for (alert of summary()!.alerts; track alert) {
+                  <li class="text-sm text-gray-300 flex items-start gap-2">
+                    <i class="pi pi-circle-fill text-amber-400 text-[6px] mt-2 shrink-0"></i>
+                    <span>{{ alert }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- KPIs -->
+      <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.caY1' | translate }}</div>
+          <div class="text-xl font-bold text-white truncate">{{ formatCurrency(summary()!.caY1) }}</div>
+          <div class="flex gap-3 mt-2 text-[11px] text-gray-500">
+            <span>An2: {{ formatCurrency(summary()!.caY2) }}</span>
+            <span>An3: {{ formatCurrency(summary()!.caY3) }}</span>
+          </div>
+        </div>
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.resultatNet' | translate }}</div>
+          <div
+            class="text-xl font-bold truncate"
+            [class.text-emerald-400]="summary()!.resultatNetY3 >= 0"
+            [class.text-red-400]="summary()!.resultatNetY3 < 0"
+          >
+            {{ formatCurrency(summary()!.resultatNetY3) }}
+          </div>
+          <div class="text-[11px] text-gray-500 mt-2">{{ 'dashboard.finance.kpi.year3' | translate }}</div>
+        </div>
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.margeBrute' | translate }}</div>
+          <div class="text-xl font-bold text-white">{{ formatPercent(summary()!.margeBrutePct) }}</div>
+        </div>
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.tresorerieY1' | translate }}</div>
+          <div
+            class="text-xl font-bold truncate"
+            [class.text-emerald-400]="summary()!.tresorerieClotureY1 >= 0"
+            [class.text-red-400]="summary()!.tresorerieClotureY1 < 0"
+          >
+            {{ formatCurrency(summary()!.tresorerieClotureY1) }}
+          </div>
+        </div>
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.pointMort' | translate }}</div>
+          <div class="text-xl font-bold text-white">{{ formatDays(summary()!.pointMortJours) }}</div>
+        </div>
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.bfr' | translate }}</div>
+          <div class="text-xl font-bold text-white truncate">{{ formatCurrency(summary()!.bfr) }}</div>
+        </div>
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.coutTotal' | translate }}</div>
+          <div class="text-xl font-bold text-white truncate">{{ formatCurrency(summary()!.coutTotalProjet) }}</div>
+        </div>
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.tri' | translate }}</div>
+          <div class="text-xl font-bold text-white">{{ formatPercent(summary()!.tri) }}</div>
+        </div>
+        <div class="glass-card p-4">
+          <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ 'dashboard.finance.kpi.van' | translate }}</div>
+          <div
+            class="text-xl font-bold truncate"
+            [class.text-emerald-400]="summary()!.van >= 0"
+            [class.text-red-400]="summary()!.van < 0"
+          >
+            {{ formatCurrency(summary()!.van) }}
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts -->
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- CA mensuel 36 mois -->
+        <div class="glass-card p-5 lg:col-span-2">
+          <h3 class="text-sm font-semibold text-white mb-1">{{ 'dashboard.finance.charts.revenue36' | translate }}</h3>
+          <p class="text-xs text-gray-400 mb-4">{{ 'dashboard.finance.charts.revenue36Sub' | translate }}</p>
+          @if (revenueChartPoints()) {
+            <svg viewBox="0 0 600 130" class="w-full h-32" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.4" />
+                  <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <polyline
+                [attr.points]="'0,130 ' + revenueChartPoints() + ' 600,130'"
+                fill="url(#revGrad)"
+              />
+              <polyline
+                [attr.points]="revenueChartPoints()"
+                fill="none"
+                stroke="var(--color-primary)"
+                stroke-width="2"
+              />
+            </svg>
+          } @else {
+            <div class="h-32 flex items-center justify-center text-gray-500 text-sm">
+              {{ 'dashboard.finance.charts.noData' | translate }}
+            </div>
+          }
+        </div>
+
+        <!-- Donut charges fixes/variables -->
+        <div class="glass-card p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">{{ 'dashboard.finance.charts.chargesMix' | translate }}</h3>
+          @if (chargesDonutData().fixed + chargesDonutData().variable > 0) {
+            <div class="flex items-center gap-4">
+              <svg viewBox="0 0 42 42" class="w-24 h-24 -rotate-90">
+                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="rgba(255,255,255,0.1)" stroke-width="4" />
+                <circle
+                  cx="21" cy="21" r="15.9" fill="transparent"
+                  stroke="var(--color-primary)" stroke-width="4"
+                  [attr.stroke-dasharray]="chargesDonutData().fixedPct + ' ' + (100 - chargesDonutData().fixedPct)"
+                  stroke-dashoffset="0"
+                />
+                <circle
+                  cx="21" cy="21" r="15.9" fill="transparent"
+                  stroke="var(--color-accent)" stroke-width="4"
+                  [attr.stroke-dasharray]="chargesDonutData().variablePct + ' ' + (100 - chargesDonutData().variablePct)"
+                  [attr.stroke-dashoffset]="-chargesDonutData().fixedPct"
+                />
+              </svg>
+              <div class="flex-1 space-y-2 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-sm bg-primary"></span>
+                  <span class="text-gray-300 flex-1">{{ 'dashboard.finance.charts.fixed' | translate }}</span>
+                  <span class="text-white font-semibold">{{ formatPercent(chargesDonutData().fixedPct) }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-sm bg-accent"></span>
+                  <span class="text-gray-300 flex-1">{{ 'dashboard.finance.charts.variable' | translate }}</span>
+                  <span class="text-white font-semibold">{{ formatPercent(chargesDonutData().variablePct) }}</span>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="h-24 flex items-center justify-center text-gray-500 text-sm">
+              {{ 'dashboard.finance.charts.noData' | translate }}
+            </div>
+          }
+        </div>
+
+        <!-- Trésorerie 3 ans -->
+        <div class="glass-card p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">{{ 'dashboard.finance.charts.treasury' | translate }}</h3>
+          @if (treasuryChartPoints()) {
+            <svg viewBox="0 0 300 110" class="w-full h-28" preserveAspectRatio="none">
+              <polyline
+                [attr.points]="treasuryChartPoints()"
+                fill="none"
+                stroke="var(--color-accent)"
+                stroke-width="2"
+              />
+            </svg>
+          } @else {
+            <div class="h-28 flex items-center justify-center text-gray-500 text-sm">
+              {{ 'dashboard.finance.charts.noData' | translate }}
+            </div>
+          }
+        </div>
+
+        <!-- Résultat net An 1 → An 3 (bar chart) -->
+        <div class="glass-card p-5 lg:col-span-2">
+          <h3 class="text-sm font-semibold text-white mb-4">{{ 'dashboard.finance.charts.netResult' | translate }}</h3>
+          @if (netResults().length > 0) {
+            <div class="flex items-end gap-6 h-32">
+              @for (r of netResults(); track r.year) {
+                <div class="flex-1 flex flex-col items-center gap-2">
+                  <div class="text-xs font-semibold" [class.text-emerald-400]="r.value >= 0" [class.text-red-400]="r.value < 0">
+                    {{ formatCurrency(r.value) }}
+                  </div>
+                  <div class="w-full bg-white/5 rounded-md overflow-hidden flex flex-col justify-end" style="height: 80px;">
+                    <div
+                      class="rounded-md transition-all duration-500"
+                      [class.bg-emerald-500]="r.value >= 0"
+                      [class.bg-red-500]="r.value < 0"
+                      [style.height.%]="(r.value === 0 ? 0 : (((r.value > 0 ? r.value : -r.value) / maxNetResult()) * 100))"
+                    ></div>
+                  </div>
+                  <div class="text-xs text-gray-400">An {{ r.year }}</div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="h-32 flex items-center justify-center text-gray-500 text-sm">
+              {{ 'dashboard.finance.charts.noData' | translate }}
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Section cards -->
+    <section>
+      <h2 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.finance.sections.title' | translate }}</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (card of sectionCards(); track trackByKey($index, card)) {
+          <div class="glass-card p-5 hover:border-primary/40 transition-colors duration-200 flex flex-col">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
+                <i [class]="card.icon" class="text-primary"></i>
+              </div>
+              <span
+                class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md border"
+                [ngClass]="statusBadgeClass(card.status)"
+              >
+                {{ statusLabelKey(card.status) | translate }}
+              </span>
+            </div>
+            <h3 class="text-base font-semibold text-white mb-4 flex-1">{{ card.labelKey | translate }}</h3>
+            <div class="flex items-center gap-2 mt-auto">
+              <a
+                [routerLink]="['/project/finance', card.route]"
+                class="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm transition-colors"
+              >
+                {{ 'dashboard.finance.sections.open' | translate }}
+                <i class="pi pi-arrow-right ml-2 text-xs"></i>
+              </a>
+              @if (card.editable) {
+                <app-ai-fill-button
+                  variant="field"
+                  [loading]="sectionLoading(card.key)"
+                  (triggered)="onAutoFillSection(card.key)"
+                />
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+}

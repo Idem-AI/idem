@@ -276,6 +276,109 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
 
+  // ============================================
+  // FINANCE MODULE ROUTES (layout: 'dashboard')
+  // ============================================
+  {
+    path: 'project/finance',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-overview/finance-overview').then(
+        (m) => m.FinanceOverviewComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/finance/products',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'products' },
+  },
+  {
+    path: 'project/finance/sales',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'salesObjectives' },
+  },
+  {
+    path: 'project/finance/charges',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'variableCharges' },
+  },
+  {
+    path: 'project/finance/investments',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'investments' },
+  },
+  {
+    path: 'project/finance/amortization',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'amortization' },
+  },
+  {
+    path: 'project/finance/financing',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'financing' },
+  },
+  {
+    path: 'project/finance/exploitation',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'compteExploitation' },
+  },
+  {
+    path: 'project/finance/bilan',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'bilan' },
+  },
+  {
+    path: 'project/finance/cashflow',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'fluxTresorerie' },
+  },
+  {
+    path: 'project/finance/ratios',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'ratios' },
+  },
+
   // Project creation route
   {
     path: 'create-project',
