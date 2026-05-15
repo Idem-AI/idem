@@ -108,9 +108,7 @@ export class DashboardComponent implements OnInit {
   protected onCompleteProject(): void {
     const projectId = this.project()?.id;
     if (projectId) {
-      // TODO: Créer une route pour le workflow de complétion
-      // Pour l'instant, on redirige vers la page de création avec le projet existant
-      this.router.navigate(['/console/branding/complete', projectId]);
+      this.router.navigate(['/console/project/branding/generate']);
     }
   }
 }

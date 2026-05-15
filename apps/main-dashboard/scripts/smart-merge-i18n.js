@@ -2,13 +2,13 @@
 
 /**
  * Script intelligent de fusion bidirectionnelle des traductions
- * 
+ *
  * Ce script fusionne intelligemment les traductions en :
  * - Préservant les traductions existantes
  * - Ajoutant les nouvelles clés
  * - Mettant à jour les clés modifiées
  * - Fonctionnant dans les deux sens (split ↔ complet)
- * 
+ *
  * Usage: node scripts/smart-merge-i18n.js
  */
 
@@ -34,6 +34,7 @@ const CONFIG = {
     'modules/dashboard/components/add-team-member-modal': 'dashboard.addMemberModal',
     'modules/dashboard/components/add-team-to-project-modal': 'dashboard.addTeamToProjectModal',
     'modules/dashboard/components/branding-required-blocker': 'dashboard.brandingBlocker',
+    'modules/dashboard/components/incomplete-project-banner': 'dashboard.incompleteBanner',
     'modules/dashboard/components/project-card': 'dashboard.projectCard',
     'modules/dashboard/components/sidebar-dashboard': 'dashboard.sidebar',
     'modules/dashboard/components/sidebar-global': 'dashboard.sidebarGlobal',
@@ -227,10 +228,10 @@ function smartMergeTranslations(lang) {
       }
 
       const content = JSON.parse(fileContent);
-      
+
       // Extraire le contenu à la clé spécifiée
       const extractedContent = getNestedValue(content, key);
-      
+
       if (extractedContent) {
         // Vérifier si c'est une nouvelle clé ou une mise à jour
         const existingValue = getNestedValue(existingTranslations, key);
