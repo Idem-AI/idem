@@ -50,6 +50,37 @@ export const clearAdvisorConversationController = async (
   }
 };
 
+export const confirmAdvisorFinanceIntentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  const { messageId, accepted } = req.body || {};
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId || !messageId || typeof accepted !== 'boolean') {
+      res.status(400).json({ message: 'projectId, messageId and accepted(boolean) are required' });
+      return;
+    }
+    const result = await advisorService.confirmFinanceIntent(
+      userId,
+      projectId as string,
+      messageId,
+      accepted
+    );
+    res.status(200).json(result);
+  } catch (error: any) {
+    logger.error(`confirmAdvisorFinanceIntentController error: ${error.message}`, {
+      stack: error.stack,
+    });
+    res.status(500).json({ message: error.message || 'Failed to confirm finance intent' });
+  }
+};
+
 export const sendAdvisorMessageController = async (
   req: CustomRequest,
   res: Response

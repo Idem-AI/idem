@@ -72,6 +72,36 @@
                   <div class="whitespace-pre-wrap break-words">{{ msg.content }}</div>
                 } @else {
                   <markdown [data]="msg.content" class="markdown-content"></markdown>
+                  @if (msg.pendingFinanceIntent) {
+                    <div class="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
+                      <button
+                        type="button"
+                        [disabled]="pendingAssistant()"
+                        (click)="confirmFinanceIntent(msg.id, true)"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary hover:bg-primary/80 text-white text-xs font-semibold transition-all disabled:opacity-50"
+                      >
+                        <i class="pi pi-check text-[10px]"></i>
+                        {{ 'dashboard.advisor.financeIntent.confirm' | translate }}
+                      </button>
+                      <button
+                        type="button"
+                        [disabled]="pendingAssistant()"
+                        (click)="confirmFinanceIntent(msg.id, false)"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-all disabled:opacity-50"
+                      >
+                        <i class="pi pi-times text-[10px]"></i>
+                        {{ 'dashboard.advisor.financeIntent.cancel' | translate }}
+                      </button>
+                    </div>
+                  }
+                  @if (msg.appliedFinanceIntent) {
+                    <div
+                      class="mt-3 pt-3 border-t border-white/10 flex items-center gap-2 text-emerald-400 text-xs"
+                    >
+                      <i class="pi pi-check-circle"></i>
+                      <span>{{ 'dashboard.advisor.financeIntent.applied' | translate }}</span>
+                    </div>
+                  }
                 }
               </div>
             </div>

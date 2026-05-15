@@ -1,15 +1,22 @@
 import { Router } from 'express';
 import { authenticate } from '../services/auth.service';
 import {
+  aiFillAllController,
+  aiFillSectionController,
+  applyChatIntentController,
   appendAISuggestionsController,
   deleteFinanceController,
+  generateFinancePdfController,
   getFinanceController,
   getFinanceSummaryController,
+  parseChatIntentController,
   recomputeFinanceController,
   replaceFinanceController,
   simulateFinanceController,
   updateFinanceSectionController,
 } from '../controllers/finance.controller';
+import { checkQuota } from '../middleware/quota.middleware';
+import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 
 export const financeRoutes = Router();
 
@@ -41,11 +48,7 @@ financeRoutes.get(`/${resource}/:projectId`, authenticate, getFinanceController)
  *     summary: Résumé synthétique pour le dashboard et le business advisor
  *     security: [{ bearerAuth: [] }]
  */
-financeRoutes.get(
-  `/${resource}/:projectId/summary`,
-  authenticate,
-  getFinanceSummaryController
-);
+financeRoutes.get(`/${resource}/:projectId/summary`, authenticate, getFinanceSummaryController);
 
 /**
  * @openapi
@@ -104,11 +107,7 @@ financeRoutes.post(
  *     summary: Force un recalcul complet des sorties financières
  *     security: [{ bearerAuth: [] }]
  */
-financeRoutes.post(
-  `/${resource}/:projectId/recompute`,
-  authenticate,
-  recomputeFinanceController
-);
+financeRoutes.post(`/${resource}/:projectId/recompute`, authenticate, recomputeFinanceController);
 
 /**
  * @openapi
@@ -129,3 +128,90 @@ financeRoutes.post(`/${resource}/simulate`, authenticate, simulateFinanceControl
  *     security: [{ bearerAuth: [] }]
  */
 financeRoutes.delete(`/${resource}/:projectId`, authenticate, deleteFinanceController);
+
+// =====================================================================
+// IA — auto-fill + chat conversationnel
+// =====================================================================
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/ai-fill-all:
+ *   post:
+ *     tags: [Finance]
+ *     summary: Auto-fill IA global de toutes les sections cohérentes ensemble
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.post(
+  `/${resource}/:projectId/ai-fill-all`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  aiFillAllController
+);
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/ai-fill/{section}:
+ *   post:
+ *     tags: [Finance]
+ *     summary: Auto-fill IA d'une section précise
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.post(
+  `/${resource}/:projectId/ai-fill/:section`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  aiFillSectionController
+);
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/chat/parse:
+ *   post:
+ *     tags: [Finance]
+ *     summary: Parse une intention finance depuis un message utilisateur (sans appliquer)
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.post(
+  `/${resource}/:projectId/chat/parse`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  parseChatIntentController
+);
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/chat/apply:
+ *   post:
+ *     tags: [Finance]
+ *     summary: Applique une intention de modification précédemment confirmée
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.post(`/${resource}/:projectId/chat/apply`, authenticate, applyChatIntentController);
+
+// =====================================================================
+// Rapport PDF
+// =====================================================================
+
+const pdfTimeout = (req: any, res: any, next: any) => {
+  req.setTimeout(180000);
+  res.setTimeout(180000);
+  next();
+};
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/pdf:
+ *   get:
+ *     tags: [Finance]
+ *     summary: Génère et télécharge le rapport financier PDF complet
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.get(
+  `/${resource}/:projectId/pdf`,
+  authenticate,
+  pdfTimeout,
+  generateFinancePdfController
+);

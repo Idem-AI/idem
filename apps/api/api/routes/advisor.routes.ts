@@ -3,6 +3,7 @@ import {
   getAdvisorConversationController,
   clearAdvisorConversationController,
   sendAdvisorMessageController,
+  confirmAdvisorFinanceIntentController,
 } from '../controllers/advisor.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -28,4 +29,11 @@ advisorRoutes.post(
   checkPolicyAcceptance,
   checkQuota,
   sendAdvisorMessageController
+);
+
+/** Confirm or cancel a pending finance intent attached to an assistant message */
+advisorRoutes.post(
+  `/${resourceName}/:projectId/finance-intent/confirm`,
+  authenticate,
+  confirmAdvisorFinanceIntentController
 );
