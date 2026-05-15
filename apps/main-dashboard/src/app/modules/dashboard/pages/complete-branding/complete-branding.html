@@ -1,26 +1,24 @@
 @if (isLoading()) {
-  <!-- Loading State -->
+  <!-- Loading -->
   <div class="h-screen w-full flex items-center justify-center">
     <div class="text-center space-y-4">
-      <div
-        class="w-12 h-12 mx-auto border-2 border-primary border-t-transparent rounded-full animate-spin"
-      ></div>
+      <div class="w-12 h-12 mx-auto border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       <p class="text-gray-400">{{ 'dashboard.completeBranding.loading' | translate }}</p>
     </div>
   </div>
+
 } @else if (!project()) {
   <!-- Project not found -->
   <div class="h-screen w-full flex items-center justify-center">
-    <div class="text-center">
-      <p class="text-gray-400">{{ 'dashboard.completeBranding.projectNotFound' | translate }}</p>
-    </div>
+    <p class="text-gray-400">{{ 'dashboard.completeBranding.projectNotFound' | translate }}</p>
   </div>
+
 } @else {
   <div class="w-full min-h-screen">
-    <!-- ───────────────── Step Content ───────────────── -->
+    <!-- ─── Step content ─── -->
     <div class="pt-24 pb-24">
 
-      <!-- STEP 0 : Logo Choice (import ou IA) -->
+      <!-- STEP : Logo Choice -->
       @if (isStepActive('logo-choice')) {
         <app-logo-choice
           [project]="project()!"
@@ -32,7 +30,7 @@
         ></app-logo-choice>
       }
 
-      <!-- STEP 1 : Colors & Typography generation -->
+      <!-- STEP : Colors (seed depuis logo importé si dispo) -->
       @if (isStepActive('colors')) {
         <app-color-selection
           [project]="project()!"
@@ -43,7 +41,7 @@
         ></app-color-selection>
       }
 
-      <!-- STEP 2 : Typography selection -->
+      <!-- STEP : Typography -->
       @if (isStepActive('typography')) {
         <app-typography-selection
           [project]="project()!"
@@ -52,7 +50,26 @@
         ></app-typography-selection>
       }
 
-      <!-- STEP 3 : Logo Variations (import AND IA) -->
+      <!-- STEP : Logo Preferences (workflow IA uniquement) -->
+      @if (isStepActive('logo-preferences')) {
+        <app-logo-preferences
+          (preferencesSelected)="onLogoPreferencesSelected($event)"
+        ></app-logo-preferences>
+      }
+
+      <!-- STEP : Logo Selection / Generation (workflow IA uniquement) -->
+      @if (isStepActive('logo-selection')) {
+        <app-logo-selection
+          [project]="project()!"
+          [logos]="project()!.analysisResultModel?.branding?.generatedLogos ?? []"
+          [projectId]="project()!.id!"
+          (logoSelected)="onLogoSelected($event)"
+          (projectUpdate)="onProjectFullUpdate($event)"
+          (nextStep)="goToNextStep()"
+        ></app-logo-selection>
+      }
+
+      <!-- STEP : Logo Variations (workflow IA uniquement) -->
       @if (isStepActive('logo-variations')) {
         @if (selectedLogo?.svg) {
           <app-logo-variations
@@ -60,15 +77,12 @@
             [project]="project()!"
             (variationsGenerated)="onVariationsGenerated()"
             (projectUpdate)="onProjectFullUpdate($event)"
-            (nextStep)="finalize()"
+            (nextStep)="goToNextStep()"
           ></app-logo-variations>
         } @else {
-          <!-- Fallback : aucun logo disponible -->
           <div class="flex items-center justify-center min-h-[60vh]">
             <div class="text-center space-y-4">
-              <p class="text-gray-400">
-                {{ 'dashboard.completeBranding.noLogoSelected' | translate }}
-              </p>
+              <p class="text-gray-400">{{ 'dashboard.completeBranding.noLogoSelected' | translate }}</p>
               <button
                 (click)="navigateToStep(0)"
                 class="px-6 py-3 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors"
@@ -80,85 +94,168 @@
           </div>
         }
       }
-    </div>
 
-    <!-- ───────────────── Fixed Navigation Bar ───────────────── -->
-    <div
-      class="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700"
-    >
-      <div class="max-w-4xl mx-auto px-4 py-4">
-        <div class="flex justify-between items-center">
-
-          <!-- Previous -->
-          <button
-            (click)="goToPreviousStep()"
-            [disabled]="!canGoPrevious()"
-            class="flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"
-              ></path>
-            </svg>
-            {{ 'common.previous' | translate }}
-          </button>
-
-          <!-- Step dots -->
-          <div class="flex items-center space-x-2">
-            @for (step of steps; track step.id; let i = $index) {
-              <div
-                class="w-2 h-2 rounded-full transition-colors"
-                [class.bg-primary]="i <= currentStepIndex()"
-                [class.bg-gray-600]="i > currentStepIndex()"
-              ></div>
-            }
+      <!-- STEP : Overview (les deux workflows) -->
+      @if (isStepActive('overview')) {
+        <div class="max-w-2xl mx-auto px-4 space-y-6">
+          <!-- Header -->
+          <div class="text-center space-y-2">
+            <div class="w-16 h-16 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
+              <i class="pi pi-check text-3xl text-green-400"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-white">
+              {{ 'dashboard.completeBranding.overview.title' | translate }}
+            </h1>
+            <p class="text-gray-400">
+              {{ 'dashboard.completeBranding.overview.subtitle' | translate }}
+            </p>
           </div>
 
-          <!-- Next / Finish — masqué sur l'étape logo-variations (le composant gère lui-même la progression) -->
-          @if (!isStepActive('logo-variations')) {
-            @if (!isLastStep()) {
-              <button
-                (click)="goToNextStep()"
-                [disabled]="!canGoNext()"
-                class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {{ 'common.next' | translate }}
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  ></path>
-                </svg>
-              </button>
-            } @else {
-              <button
-                (click)="finalize()"
-                [disabled]="isFinalizing()"
-                class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                @if (isFinalizing()) {
-                  <span
-                    class="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"
-                  ></span>
-                  {{ 'common.saving' | translate }}
-                } @else {
-                  <i class="pi pi-check mr-2"></i>
-                  {{ 'dashboard.completeBranding.finish' | translate }}
-                }
-              </button>
-            }
-          } @else {
-            <!-- Placeholder pour garder le layout flex équilibré -->
-            <div class="w-24"></div>
+          <!-- Logo -->
+          @if (selectedLogo?.svg) {
+            <div class="glass-card p-6">
+              <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                {{ 'dashboard.completeBranding.overview.logo' | translate }}
+              </h2>
+              <div class="flex items-center space-x-4">
+                <div class="w-20 h-20 bg-white rounded-xl flex items-center justify-center p-2 overflow-hidden flex-shrink-0">
+                  @if (logoIsInline()) {
+                    <div class="w-full h-full svg-logo" [innerHTML]="selectedLogo!.svg | safeHtml"></div>
+                  } @else {
+                    <img [src]="selectedLogo!.svg" class="w-full h-full object-contain" />
+                  }
+                </div>
+                <div>
+                  <p class="text-white font-medium">{{ selectedLogo!.name || 'Logo' }}</p>
+                  @if (selectedLogo!.concept) {
+                    <p class="text-gray-400 text-sm">{{ selectedLogo!.concept }}</p>
+                  }
+                </div>
+              </div>
+            </div>
           }
 
+          <!-- Colors -->
+          @if (selectedColor) {
+            <div class="glass-card p-6">
+              <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                {{ 'dashboard.completeBranding.overview.colors' | translate }}
+              </h2>
+              <div class="flex items-center space-x-3">
+                @if (selectedColor.colors?.primary) {
+                  <div class="text-center">
+                    <div class="w-12 h-12 rounded-lg shadow-md" [style.background-color]="selectedColor.colors.primary"></div>
+                    <p class="text-gray-400 text-xs mt-1">{{ 'dashboard.showBranding.sections.colors.primary' | translate }}</p>
+                  </div>
+                }
+                @if (selectedColor.colors?.secondary) {
+                  <div class="text-center">
+                    <div class="w-12 h-12 rounded-lg shadow-md" [style.background-color]="selectedColor.colors.secondary"></div>
+                    <p class="text-gray-400 text-xs mt-1">{{ 'dashboard.showBranding.sections.colors.secondary' | translate }}</p>
+                  </div>
+                }
+                @if (selectedColor.colors?.accent) {
+                  <div class="text-center">
+                    <div class="w-12 h-12 rounded-lg shadow-md" [style.background-color]="selectedColor.colors.accent"></div>
+                    <p class="text-gray-400 text-xs mt-1">Accent</p>
+                  </div>
+                }
+                <div class="ml-4">
+                  <p class="text-white font-medium">{{ selectedColor.name }}</p>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Typography -->
+          @if (selectedTypography) {
+            <div class="glass-card p-6">
+              <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                {{ 'dashboard.completeBranding.overview.typography' | translate }}
+              </h2>
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <i class="pi pi-font text-primary text-xl"></i>
+                </div>
+                <div>
+                  <p class="text-white font-medium">{{ selectedTypography.name }}</p>
+                  <p class="text-gray-400 text-sm">
+                    {{ selectedTypography.primaryFont }}
+                    @if (selectedTypography.secondaryFont) {
+                      · {{ selectedTypography.secondaryFont }}
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Bouton Terminer -->
+          <div class="flex justify-center pt-4">
+            <button
+              (click)="finalize()"
+              [disabled]="isFinalizing()"
+              class="flex items-center px-8 py-3 text-base font-semibold text-white inner-button rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              @if (isFinalizing()) {
+                <span class="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                <i class="pi pi-check mr-2"></i>
+                {{ 'dashboard.completeBranding.finish' | translate }}
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+    </div><!-- /step content -->
+
+    <!-- ─── Fixed navigation bar (masquée sur overview et logo-variations) ─── -->
+    @if (!isStepActive('overview') && !isStepActive('logo-variations') && !isStepActive('logo-preferences') && !isStepActive('logo-selection')) {
+      <div class="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700">
+        <div class="max-w-4xl mx-auto px-4 py-4">
+          <div class="flex justify-between items-center">
+
+            <!-- Previous -->
+            <button
+              (click)="goToPreviousStep()"
+              [disabled]="!canGoPrevious()"
+              class="flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              {{ 'common.previous' | translate }}
+            </button>
+
+            <!-- Step dots -->
+            <div class="flex items-center space-x-2">
+              @for (step of steps; track step.id; let i = $index) {
+                <div
+                  class="w-2 h-2 rounded-full transition-colors"
+                  [class.bg-primary]="i <= currentStepIndex()"
+                  [class.bg-gray-600]="i > currentStepIndex()"
+                ></div>
+              }
+            </div>
+
+            <!-- Next -->
+            <button
+              (click)="goToNextStep()"
+              [disabled]="!canGoNext()"
+              class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {{ 'common.next' | translate }}
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+
+          </div>
         </div>
       </div>
-    </div>
+    }
+
   </div>
 }

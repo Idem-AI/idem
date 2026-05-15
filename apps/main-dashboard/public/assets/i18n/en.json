@@ -2008,7 +2008,17 @@
         "logoChoice": "Logo",
         "colors": "Colors",
         "typography": "Typography",
-        "logoVariations": "Variations"
+        "logoPreferences": "Preferences",
+        "logoSelection": "Generation",
+        "logoVariations": "Variations",
+        "overview": "Overview"
+      },
+      "overview": {
+        "title": "Your brand identity is ready!",
+        "subtitle": "Review your selections before finishing.",
+        "logo": "Logo",
+        "colors": "Color Palette",
+        "typography": "Typography"
       }
     },
     "incompleteBanner": {

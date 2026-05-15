@@ -1,14 +1,10 @@
 import { Component, inject, input, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
-import { LogoImportService, LogoUploadProgress } from '../../../../services/logo-import.service';
+import { LogoImportService, LogoImportResponse, LogoUploadProgress } from '../../../../services/logo-import.service';
+import { LogoVariations } from '../../../../models/logo.model';
 import { Loader } from '../../../../../../shared/components/loader/loader';
 
-/**
- * Component for importing an existing logo file.
- * Supports drag & drop, file input fallback, local preview,
- * upload with progress, and sanitized SVG display.
- */
 @Component({
   selector: 'app-logo-import',
   standalone: true,
@@ -24,6 +20,8 @@ export class LogoImportComponent {
   // Outputs
   readonly svgImported = output<string>();
   readonly colorsExtracted = output<string[]>();
+  /** Fires when the API returns programmatic logo variations (import workflow) */
+  readonly variationsEmitted = output<LogoVariations>();
 
   // State
   protected readonly isDragOver = signal(false);
@@ -160,6 +158,10 @@ export class LogoImportComponent {
               // Emit the best available reference (URL or inline SVG)
               this.svgImported.emit(svgRef);
               this.colorsExtracted.emit(topColors);
+              // Emit programmatic variations if present
+              if (event.result.variations) {
+                this.variationsEmitted.emit(event.result.variations as any);
+              }
             }
             break;
 

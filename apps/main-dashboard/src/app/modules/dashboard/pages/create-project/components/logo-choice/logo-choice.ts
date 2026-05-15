@@ -1,10 +1,11 @@
 import { Component, inject, input, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject } from 'rxjs';
 import { LogoImportComponent } from '../logo-import/logo-import';
 import { ProjectModel } from '@idem/shared-models';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
+import { LogoVariations } from '../../../../models/logo.model';
 
 /**
  * Logo choice step in the create-project wizard.
@@ -38,6 +39,7 @@ export class LogoChoiceComponent {
   protected readonly choice = signal<'import' | 'ai' | null>(null);
   protected readonly importedSvg = signal<string | null>(null);
   protected readonly importedColors = signal<string[]>([]);
+  protected readonly importedVariations = signal<LogoVariations | null>(null);
   protected readonly isGeneratingBranding = signal(false);
   protected readonly generationError = signal<string | null>(null);
 
@@ -74,14 +76,15 @@ export class LogoChoiceComponent {
     // Ne PAS déclencher automatiquement la génération - attendre le clic sur Next
   }
 
-  /**
-   * Called when the LogoImportComponent emits extracted colors
-   */
+  /** Called when the LogoImportComponent emits extracted colors */
   protected onColorsExtracted(colors: string[]): void {
     this.importedColors.set(colors);
-    // Emit completion status to parent
     this.logoImportComplete.emit(this.isLogoImportComplete());
-    // Ne PAS déclencher automatiquement la génération - attendre le clic sur Next
+  }
+
+  /** Called when the LogoImportComponent emits programmatic variations */
+  protected onVariationsReceived(variations: LogoVariations): void {
+    this.importedVariations.set(variations);
   }
 
   /**
@@ -90,6 +93,7 @@ export class LogoChoiceComponent {
   public saveImportedLogo(): void {
     const svg = this.importedSvg();
     const colors = this.importedColors();
+    const variations = this.importedVariations();
     const currentProject = this.project();
 
     if (!svg || !currentProject || colors.length === 0) {
@@ -97,7 +101,6 @@ export class LogoChoiceComponent {
       return;
     }
 
-    // Sauvegarder le logo importé et les couleurs extraites dans le projet
     const projectUpdate = {
       analysisResultModel: {
         ...currentProject.analysisResultModel,
@@ -107,18 +110,19 @@ export class LogoChoiceComponent {
             id: `imported-${Date.now()}`,
             name: 'Imported Logo',
             svg: svg,
-            iconSvg: svg, // Nécessaire pour generateLogoVariations
+            iconSvg: svg,
             concept: 'User-imported logo',
             colors: colors,
             fonts: [],
+            // Include programmatic variations if available
+            ...(variations ? { variations } : {}),
           },
-          // Marquer qu'on vient du workflow import
           importedLogoColors: colors,
         },
       },
     } as Partial<ProjectModel>;
 
-    console.log('🔵 Saving imported logo:', projectUpdate);
+    console.log('🔵 Saving imported logo with variations:', !!variations);
     this.projectUpdate.emit(projectUpdate);
   }
 

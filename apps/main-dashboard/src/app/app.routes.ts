@@ -115,6 +115,33 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/branding/logo-variations',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/create-project/components/logo-variations/logo-variations').then(
+        (m) => m.LogoVariationsComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/branding/select-colors',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/create-project/components/color-selection/color-selection').then(
+        (m) => m.ColorSelectionComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/branding/select-typography',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/create-project/components/typography-selection/typography-selection').then(
+        (m) => m.TypographySelectionComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
     path: 'project/business-plan',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-business-plan/show-business-plan').then(
