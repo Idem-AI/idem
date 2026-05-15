@@ -1,0 +1,14 @@
+{
+  "dashboard": {
+    "incompleteBanner": {
+      "title": "Complétez votre identité de marque",
+      "description": "Pour débloquer toutes les fonctionnalités, veuillez compléter votre identité de marque en ajoutant les éléments manquants ci-dessous.",
+      "elements": {
+        "logo": "Logo",
+        "colors": "Couleurs",
+        "typography": "Typographies"
+      },
+      "completeButton": "Compléter l'identité de marque"
+    }
+  }
+}

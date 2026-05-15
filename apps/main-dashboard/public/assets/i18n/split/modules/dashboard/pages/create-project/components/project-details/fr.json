@@ -1,6 +1,9 @@
 {
   "dashboard": {
     "projectDetails": {
+      "backToProjects": "Retour aux projets",
+      "generate": "Générer le plan d'affaires",
+      "selectProject": "Sélectionner un projet",
       "title": "Avant de continuer, nous avons besoin de plus d'informations sur votre projet",
       "sections": {
         "details": "Détails du projet",

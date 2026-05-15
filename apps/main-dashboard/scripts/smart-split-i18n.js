@@ -2,13 +2,13 @@
 
 /**
  * Script intelligent de split des traductions (inverse du merge)
- * 
+ *
  * Ce script prend les fichiers complets (en.json, fr.json) et les divise
  * intelligemment dans les fichiers split en :
  * - Préservant les traductions existantes dans les fichiers split
  * - Ajoutant les nouvelles clés depuis le fichier complet
  * - Mettant à jour les clés modifiées
- * 
+ *
  * Usage: node scripts/smart-split-i18n.js
  */
 
@@ -34,6 +34,7 @@ const CONFIG = {
     'modules/dashboard/components/add-team-member-modal': 'dashboard.addMemberModal',
     'modules/dashboard/components/add-team-to-project-modal': 'dashboard.addTeamToProjectModal',
     'modules/dashboard/components/branding-required-blocker': 'dashboard.brandingBlocker',
+    'modules/dashboard/components/incomplete-project-banner': 'dashboard.incompleteBanner',
     'modules/dashboard/components/project-card': 'dashboard.projectCard',
     'modules/dashboard/components/sidebar-dashboard': 'dashboard.sidebar',
     'modules/dashboard/components/sidebar-global': 'dashboard.sidebarGlobal',
@@ -150,10 +151,10 @@ function smartSplitTranslations(lang) {
   // 2. Pour chaque mapping, extraire et sauvegarder dans le fichier split
   for (const [relativePath, key] of Object.entries(CONFIG.pathToKeyMapping)) {
     const splitFilePath = path.join(CONFIG.splitDir, relativePath, `${lang}.json`);
-    
+
     // Extraire la valeur du fichier complet
     const value = getNestedValue(completeTranslations, key);
-    
+
     if (!value) {
       // Pas de valeur pour cette clé, on skip
       continue;
@@ -173,7 +174,7 @@ function smartSplitTranslations(lang) {
     try {
       const fileExists = fs.existsSync(splitFilePath);
       fs.writeFileSync(splitFilePath, JSON.stringify(splitContent, null, 2), 'utf8');
-      
+
       if (fileExists) {
         updatedCount++;
         console.log(`  🔄 ${key} → ${relativePath}`);

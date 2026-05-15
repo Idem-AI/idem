@@ -21,6 +21,11 @@
       },
       "errors": {
         "send": "Impossible d’envoyer le message. Réessayez."
+      },
+      "financeIntent": {
+        "confirm": "Appliquer",
+        "cancel": "Annuler",
+        "applied": "Modification appliquée à vos finances."
       }
     }
   }
