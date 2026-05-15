@@ -63,6 +63,7 @@
           [project]="project()!"
           [logos]="project()!.analysisResultModel?.branding?.generatedLogos ?? []"
           [projectId]="project()!.id!"
+          [initialPreferences]="aiLogoPreferences()"
           (logoSelected)="onLogoSelected($event)"
           (projectUpdate)="onProjectFullUpdate($event)"
           (nextStep)="goToNextStep()"

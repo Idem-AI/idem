@@ -128,12 +128,9 @@ export const generateLogoConceptsController = async (
   res: Response
 ): Promise<void> => {
   const { projectId } = req.params;
-  const { selectedColors, selectedTypography, logoType, useAIGeneration, customDescription } =
-    req.body;
   const userId = req.user?.uid;
   logger.info(
-    `generateLogoConceptsController called - UserId: ${userId}, ProjectId: ${projectId}`,
-    { body: req.body, logoType, useAIGeneration, customDescription }
+    `generateLogoConceptsController called - UserId: ${userId}, ProjectId: ${projectId}`
   );
   try {
     if (!userId) {
@@ -149,14 +146,7 @@ export const generateLogoConceptsController = async (
 
     const logos = await brandingService.generateLogoConcepts(
       userId,
-      projectId as string,
-      selectedColors,
-      selectedTypography,
-      {
-        type: logoType || 'name',
-        useAIGeneration: useAIGeneration !== false,
-        customDescription,
-      }
+      projectId as string
     );
 
     if (!logos) {
@@ -166,7 +156,7 @@ export const generateLogoConceptsController = async (
     }
 
     logger.info(
-      `Successfully generated logo concepts - UserId: ${userId}, ProjectId: ${projectId}, LogoType: ${logoType}`
+      `Successfully generated logo concepts - UserId: ${userId}, ProjectId: ${projectId}`
     );
     userService.incrementUsage(userId, 5);
     res.status(200).json(logos);

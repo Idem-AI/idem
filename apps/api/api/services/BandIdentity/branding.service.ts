@@ -1236,10 +1236,7 @@ export class BrandingService extends GenericService {
    */
   async generateLogoConcepts(
     userId: string,
-    projectId: string,
-    selectedColors: ColorModel,
-    selectedTypography: TypographyModel,
-    preferences?: LogoPreferences
+    projectId: string
   ): Promise<{
     logos: LogoModel[];
   }> {
@@ -1255,6 +1252,15 @@ export class BrandingService extends GenericService {
     const project = await this.getProjectOptimized(userId, projectId);
     if (!project) {
       throw new Error(`Project not found with ID: ${projectId}`);
+    }
+
+    const branding = project.analysisResultModel?.branding;
+    const selectedColors = branding?.colors;
+    const selectedTypography = branding?.typography;
+    const preferences = branding?.logoPreferences;
+
+    if (!selectedColors || !selectedTypography) {
+      throw new Error(`Project is missing colors or typography. Cannot generate logos.`);
     }
 
     // Étape 2: Préparation du prompt optimisé (une seule fois)

@@ -136,13 +136,7 @@ export class BrandingService {
     return this.http
       .post<{
         logos: LogoModel[];
-      }>(`${this.apiUrl}/generate/logo-concepts/${projectId}`, {
-        selectedColors: selectedColor,
-        selectedTypography: selectedTypography,
-        logoType: preferences.type,
-        useAIGeneration: preferences.useAIGeneration,
-        customDescription: preferences.customDescription,
-      })
+      }>(`${this.apiUrl}/generate/logo-concepts/${projectId}`, {})
       .pipe(
         tap((response) => console.log('generateLogosWithPreferences response:', response)),
         catchError((error) => {
