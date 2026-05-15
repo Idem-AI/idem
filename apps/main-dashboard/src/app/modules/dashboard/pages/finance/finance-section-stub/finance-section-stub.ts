@@ -1,10 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { FinanceService } from '../../../services/finance.service';
-import { FINANCE_SECTIONS, FinanceModel } from '../../../models/finance.model';
+import { FINANCE_SECTIONS, FinanceModel, FinanceSectionKey } from '../../../models/finance.model';
 import { AiFillButtonComponent } from '../../../components/ai-fill-button/ai-fill-button';
 
 /**
@@ -64,17 +71,31 @@ export class FinanceSectionStubComponent implements OnInit {
   }
 
   protected onAutoFill(): void {
+    const projectId = this.cookieService.get('projectId');
+    const key = this.sectionKey() as FinanceSectionKey;
+    const AUTOFILLABLE: FinanceSectionKey[] = [
+      'products',
+      'salesObjectives',
+      'revenueParams',
+      'variableCharges',
+      'fixedCharges',
+      'taxesParams',
+      'investments',
+      'financing',
+      'ratiosParams',
+    ];
+    if (!projectId || !AUTOFILLABLE.includes(key)) return;
+
     this.aiLoading.set(true);
-    // TODO Phase 3: appeler l'endpoint IA pour cette section précise.
-    setTimeout(() => {
-      this.aiLoading.set(false);
-      // recharger
-      const projectId = this.cookieService.get('projectId');
-      if (projectId) {
-        this.financeService.getFinance(projectId).subscribe({
-          next: (f) => this.finance.set(f),
-        });
-      }
-    }, 1200);
+    this.financeService.autoFillSection(projectId, key).subscribe({
+      next: (result) => {
+        this.finance.set(result.finance);
+        this.aiLoading.set(false);
+      },
+      error: (err) => {
+        console.error(`[FinanceSectionStub] autoFill(${key}) failed`, err);
+        this.aiLoading.set(false);
+      },
+    });
   }
 }

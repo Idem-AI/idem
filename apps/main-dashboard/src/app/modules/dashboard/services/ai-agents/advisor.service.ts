@@ -2,10 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
-import {
-  AdvisorConversationModel,
-  AdvisorReplyResult,
-} from '../../models/advisor.model';
+import { AdvisorConversationModel, AdvisorReplyResult } from '../../models/advisor.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdvisorService {
@@ -21,9 +18,18 @@ export class AdvisorService {
   }
 
   sendMessage(projectId: string, content: string): Observable<AdvisorReplyResult> {
+    return this.http.post<AdvisorReplyResult>(`${this.apiUrl}/${projectId}/messages`, { content });
+  }
+
+  /** Confirme (ou annule) une intention finance en attente */
+  confirmFinanceIntent(
+    projectId: string,
+    messageId: string,
+    accepted: boolean,
+  ): Observable<AdvisorReplyResult> {
     return this.http.post<AdvisorReplyResult>(
-      `${this.apiUrl}/${projectId}/messages`,
-      { content },
+      `${this.apiUrl}/${projectId}/finance-intent/confirm`,
+      { messageId, accepted },
     );
   }
 }

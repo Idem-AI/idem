@@ -14,6 +14,7 @@ import { FinanceService } from '../../../services/finance.service';
 import {
   FINANCE_SECTIONS,
   FinanceModel,
+  FinanceSectionKey,
   FinanceSummary,
   FinanceSummaryResponse,
   SectionCompletionStatus,
@@ -49,6 +50,7 @@ export class FinanceOverviewComponent implements OnInit {
   protected readonly summary = signal<FinanceSummary | null>(null);
   protected readonly aiGlobalLoading = signal<boolean>(false);
   protected readonly aiSectionLoading = signal<Record<string, boolean>>({});
+  protected readonly pdfLoading = signal<boolean>(false);
 
   /** Devise utilisée pour l'affichage des montants */
   protected readonly currency = computed(() => this.finance()?.meta.currency || 'XAF');
@@ -94,7 +96,12 @@ export class FinanceOverviewComponent implements OnInit {
   });
 
   /** Donut: répartition charges fixes / variables (An 1) */
-  protected readonly chargesDonutData = computed<{ fixed: number; variable: number; fixedPct: number; variablePct: number }>(() => {
+  protected readonly chargesDonutData = computed<{
+    fixed: number;
+    variable: number;
+    fixedPct: number;
+    variablePct: number;
+  }>(() => {
     const f = this.finance();
     if (!f?.computed) return { fixed: 0, variable: 0, fixedPct: 0, variablePct: 0 };
     const y1 = f.computed.compteExploitation[0];
@@ -183,25 +190,76 @@ export class FinanceOverviewComponent implements OnInit {
   // -------------------------------------------------------------------
 
   protected onAutoFillGlobal(): void {
+    const projectId = this.cookieService.get('projectId');
+    if (!projectId) return;
     this.aiGlobalLoading.set(true);
-    // TODO Phase 3: appeler l'endpoint IA réel.
-    setTimeout(() => {
-      this.aiGlobalLoading.set(false);
-      this.loadSummary();
-    }, 1500);
+    this.financeService.autoFillAll(projectId).subscribe({
+      next: () => {
+        this.aiGlobalLoading.set(false);
+        this.loadSummary();
+      },
+      error: (err) => {
+        console.error('[FinanceOverview] autoFillAll failed', err);
+        this.aiGlobalLoading.set(false);
+        this.error.set(
+          this.translate.instant('dashboard.finance.errors.aiFillFailed') || 'AI auto-fill failed',
+        );
+      },
+    });
   }
 
   protected onAutoFillSection(sectionKey: string): void {
+    const projectId = this.cookieService.get('projectId');
+    if (!projectId) return;
+    // Mapping: les clés "computed" ne sont pas auto-fillables, on ignore.
+    const AUTOFILLABLE: FinanceSectionKey[] = [
+      'products',
+      'salesObjectives',
+      'revenueParams',
+      'variableCharges',
+      'fixedCharges',
+      'taxesParams',
+      'investments',
+      'financing',
+      'ratiosParams',
+    ];
+    if (!AUTOFILLABLE.includes(sectionKey as FinanceSectionKey)) return;
+
     this.aiSectionLoading.update((m) => ({ ...m, [sectionKey]: true }));
-    // TODO Phase 3: appeler l'endpoint IA pour cette section uniquement.
-    setTimeout(() => {
-      this.aiSectionLoading.update((m) => ({ ...m, [sectionKey]: false }));
-      this.loadSummary();
-    }, 1200);
+    this.financeService.autoFillSection(projectId, sectionKey as FinanceSectionKey).subscribe({
+      next: () => {
+        this.aiSectionLoading.update((m) => ({ ...m, [sectionKey]: false }));
+        this.loadSummary();
+      },
+      error: (err) => {
+        console.error(`[FinanceOverview] autoFillSection(${sectionKey}) failed`, err);
+        this.aiSectionLoading.update((m) => ({ ...m, [sectionKey]: false }));
+      },
+    });
   }
 
   protected sectionLoading(key: string): boolean {
     return !!this.aiSectionLoading()[key];
+  }
+
+  // -------------------------------------------------------------------
+  // PDF report
+  // -------------------------------------------------------------------
+
+  protected onDownloadPdf(): void {
+    const projectId = this.cookieService.get('projectId');
+    if (!projectId || this.pdfLoading()) return;
+    this.pdfLoading.set(true);
+    this.financeService.downloadFinancePdf(projectId).subscribe({
+      next: (blob) => {
+        FinanceService.triggerPdfDownload(blob, `rapport-financier-${projectId}.pdf`);
+        this.pdfLoading.set(false);
+      },
+      error: (err) => {
+        console.error('[FinanceOverview] downloadFinancePdf failed', err);
+        this.pdfLoading.set(false);
+      },
+    });
   }
 
   // -------------------------------------------------------------------

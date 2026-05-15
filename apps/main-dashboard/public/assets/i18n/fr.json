@@ -144,7 +144,11 @@
       "errors": {
         "title": "Impossible de charger",
         "noProjectSelected": "Veuillez d'abord sélectionner un projet.",
-        "failedToLoad": "Échec du chargement des données financières."
+        "failedToLoad": "Échec du chargement des données financières.",
+        "aiFillFailed": "Le remplissage IA a échoué. Veuillez réessayer."
+      },
+      "pdf": {
+        "download": "Télécharger le rapport PDF"
       }
     },
     "sidebar": {
@@ -1822,6 +1826,11 @@
       },
       "errors": {
         "send": "Impossible d’envoyer le message. Réessayez."
+      },
+      "financeIntent": {
+        "confirm": "Appliquer",
+        "cancel": "Annuler",
+        "applied": "Modification appliquée à vos finances."
       }
     },
     "diagramDisplay": {

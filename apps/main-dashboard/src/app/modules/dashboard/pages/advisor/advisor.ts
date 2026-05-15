@@ -131,6 +131,39 @@ export class AdvisorPage implements OnInit, AfterViewChecked {
       });
   }
 
+  /** Confirme ou annule une intention finance proposée par l'assistant. */
+  protected confirmFinanceIntent(messageId: string, accepted: boolean): void {
+    const pid = this.projectId();
+    if (!pid || this.pendingAssistant()) return;
+    this.pendingAssistant.set(true);
+    this.advisorService
+      .confirmFinanceIntent(pid, messageId, accepted)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          // Retire le pending intent du message original, ajoute les nouveaux messages
+          this.messages.update((msgs) => {
+            const updated = msgs.map((m) =>
+              m.id === messageId
+                ? {
+                    ...m,
+                    pendingFinanceIntent: undefined,
+                    appliedFinanceIntent: accepted ? m.pendingFinanceIntent : undefined,
+                  }
+                : m,
+            );
+            return [...updated, result.userMessage, result.assistantMessage];
+          });
+          this.pendingAssistant.set(false);
+        },
+        error: (err) => {
+          console.error('Advisor confirm intent error:', err);
+          this.errorMessage.set(this.translate.instant('dashboard.advisor.errors.send'));
+          this.pendingAssistant.set(false);
+        },
+      });
+  }
+
   protected clearConversation(): void {
     const pid = this.projectId();
     if (!pid) return;

@@ -144,7 +144,11 @@
       "errors": {
         "title": "Unable to load",
         "noProjectSelected": "Please select a project first.",
-        "failedToLoad": "Failed to load financial data."
+        "failedToLoad": "Failed to load financial data.",
+        "aiFillFailed": "AI auto-fill failed. Please try again."
+      },
+      "pdf": {
+        "download": "Download PDF report"
       }
     },
     "sidebar": {
@@ -1822,6 +1826,11 @@
       },
       "errors": {
         "send": "Could not send the message. Try again."
+      },
+      "financeIntent": {
+        "confirm": "Apply",
+        "cancel": "Cancel",
+        "applied": "Modification applied to your finances."
       }
     },
     "diagramDisplay": {
