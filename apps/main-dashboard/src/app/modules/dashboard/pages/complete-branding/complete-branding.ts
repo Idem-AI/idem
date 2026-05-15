@@ -80,6 +80,9 @@ export class CompleteBrandingPage implements OnInit {
   /** true dès qu'une typographie est sélectionnée */
   protected readonly typographySelected = signal<boolean>(false);
 
+  /** Préférences IA (stockées avant de passer à la génération) */
+  protected readonly aiLogoPreferences = signal<LogoPreferencesModel | null>(null);
+
   // ─── Steps dynamiques selon le workflow ─────────────────────────────────────
 
   protected get steps(): { id: string; label: string }[] {
@@ -314,7 +317,18 @@ export class CompleteBrandingPage implements OnInit {
   }
 
   /** Préférences logo AI sélectionnées → avancer automatiquement */
-  protected onLogoPreferencesSelected(_prefs: LogoPreferencesModel): void {
+  protected onLogoPreferencesSelected(prefs: LogoPreferencesModel): void {
+    this.aiLogoPreferences.set(prefs);
+    
+    // Sauvegarder les préférences dans le projet pour que le backend puisse les lire
+    this.onProjectUpdate({
+      analysisResultModel: {
+        branding: {
+          logoPreferences: prefs
+        } as any
+      }
+    });
+
     this.navigateToStep(this.currentStepIndex() + 1);
   }
 

@@ -42,14 +42,17 @@ import { SectionModel } from './section.model';
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/SectionModel'
+ *         logoPreferences:
+ *           type: object
+ *           nullable: true
  *       required:
  *         - logo
  *         - generatedLogos
  *         - colors
  *         - generatedColors
- *         - typography
  *         - generatedTypography
  *         - sections
+ *         - logoPreferences
  */
 export interface BrandIdentityModel {
   id?: string;
@@ -62,6 +65,7 @@ export interface BrandIdentityModel {
   typography: TypographyModel;
   generatedTypography: TypographyModel[];
   sections: SectionModel[];
+  logoPreferences?: LogoPreferences;
   pdfFormat?: string; // Format PDF choisi (A4_PORTRAIT ou SLIDE_16_9)
 }
 
