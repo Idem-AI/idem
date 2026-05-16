@@ -22,6 +22,7 @@ import {
   FluxTresorerieRow,
   SeuilRentabiliteRow,
 } from '../../models/finance.model';
+import { TypographyModel } from '../../models/brand-identity.model';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
 
 interface BrandPalette {
@@ -60,12 +61,14 @@ export class FinancePdfService {
     }
 
     const palette = this.extractPalette(project);
+    const typography = this.extractTypography(project);
+    const logoSvg = this.extractLogoSvg(project);
     const companyName = project.name || 'Projet';
     const interpretation = await this.generateInterpretation(project, finance);
 
     // Construit les sections HTML
     const sections: SectionModel[] = [
-      this.buildCoverSection(companyName, palette),
+      this.buildCoverSection(companyName, palette, logoSvg),
       this.buildSummarySection(finance, palette),
       this.buildProductsSection(finance, palette),
       this.buildExploitationSection(finance.computed.compteExploitation, palette),
@@ -82,6 +85,7 @@ export class FinancePdfService {
       projectDescription: project.description || '',
       sections,
       footerText: `Rapport financier — ${companyName} — Généré par Idem`,
+      typography: typography,
     });
   }
 
@@ -101,6 +105,14 @@ export class FinancePdfService {
     };
   }
 
+  private extractTypography(project: ProjectModel): TypographyModel | undefined {
+    return project.analysisResultModel?.branding?.typography;
+  }
+
+  private extractLogoSvg(project: ProjectModel): string | null {
+    return project.analysisResultModel?.branding?.logo?.svg || null;
+  }
+
   private fmt(value: number): string {
     if (!Number.isFinite(value)) return '—';
     const rounded = Math.round(value);
@@ -115,13 +127,20 @@ export class FinancePdfService {
   // Section builders (chaque section retourne un SectionModel)
   // -----------------------------------------------------------------
 
-  private buildCoverSection(companyName: string, p: BrandPalette): SectionModel {
+  private buildCoverSection(companyName: string, p: BrandPalette, logoSvg: string | null): SectionModel {
     const today = new Date().toLocaleDateString('fr-FR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-    const html = `<div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:linear-gradient(135deg,${p.primary} 0%,${p.secondary} 100%);color:#fff;padding:48px;font-family:'Helvetica Neue',Arial,sans-serif;">
+    
+    let logoHtml = '';
+    if (logoSvg) {
+      logoHtml = `<div style="max-width: 250px; max-height: 250px; margin-bottom: 32px; display: flex; justify-content: center; align-items: center;">${logoSvg}</div>`;
+    }
+
+    const html = `<div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:linear-gradient(135deg,${p.primary} 0%,${p.secondary} 100%);color:#fff;padding:48px;font-family: 'primary', sans-serif;">
+      ${logoHtml}
       <div style="opacity:0.7;letter-spacing:6px;font-size:14px;text-transform:uppercase;">Rapport financier</div>
       <h1 style="font-size:56px;font-weight:800;margin:24px 0 12px;text-align:center;">${this.esc(companyName)}</h1>
       <p style="font-size:18px;opacity:0.9;">Prévisions financières sur 3 ans</p>
@@ -159,6 +178,23 @@ export class FinancePdfService {
         ${kpi('TRI', this.pct(ratios.tri), p.accent)}
         ${kpi('VAN', this.fmt(ratios.van), ratios.van >= 0 ? p.accent : '#EF4444')}
       </div>
+
+      <div style="margin-bottom: 28px; width: 100%; height: 250px;">
+        <canvas id="caChart"></canvas>
+      </div>
+      <script>
+        new Chart(document.getElementById('caChart'), {
+          type: 'bar',
+          data: {
+            labels: ['An 1', 'An 2', 'An 3'],
+            datasets: [
+              { label: "Chiffre d'affaires", data: [${c.compteExploitation.map(r => r.chiffreAffaires).join(',')}], backgroundColor: '${p.primary}' },
+              { label: 'Résultat net', data: [${c.compteExploitation.map(r => r.resultatNet).join(',')}], backgroundColor: '${p.accent}' }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false, animation: false }
+        });
+      </script>
 
       <h3 style="font-size:18px;font-weight:700;margin:24px 0 12px;color:${p.primary};">Évolution sur 3 ans</h3>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -247,6 +283,30 @@ export class FinancePdfService {
     const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
       <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Compte d'exploitation prévisionnel</h2>
       <p style="color:#64748B;margin:0 0 28px;">Cascade des résultats sur ${rows.length} ans</p>
+
+      <div style="margin-bottom: 28px; width: 100%; height: 250px; display: flex; justify-content: center;">
+        <canvas id="chargesChart"></canvas>
+      </div>
+      <script>
+        new Chart(document.getElementById('chargesChart'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Charges Variables (An 1)', 'Charges Fixes (An 1)', 'Rémunérations (An 1)', 'Impôts & Taxes (An 1)'],
+            datasets: [{
+              data: [${rows[0]?.chargesVariables || 0}, ${rows[0]?.chargesFixes || 0}, ${rows[0]?.remunerations || 0}, ${rows[0]?.impotsTaxes || 0}],
+              backgroundColor: ['${p.primary}', '${p.secondary}', '${p.accent}', '#F59E0B']
+            }]
+          },
+          options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            animation: false,
+            plugins: {
+              legend: { position: 'right' }
+            }
+          }
+        });
+      </script>
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead>
           <tr style="background:${p.primary};color:#fff;">
@@ -350,6 +410,29 @@ export class FinancePdfService {
     const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
       <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Flux de trésorerie</h2>
       <p style="color:#64748B;margin:0 0 28px;">Méthode OEC sur ${rows.length} ans</p>
+
+      <div style="margin-bottom: 28px; width: 100%; height: 250px;">
+        <canvas id="cashflowChart"></canvas>
+      </div>
+      <script>
+        new Chart(document.getElementById('cashflowChart'), {
+          type: 'line',
+          data: {
+            labels: ['An 1', 'An 2', 'An 3'],
+            datasets: [
+              { 
+                label: 'Trésorerie clôture', 
+                data: [${rows.map(r => r.tresorerieCloture).join(',')}], 
+                borderColor: '${p.primary}',
+                backgroundColor: '${p.primary}33',
+                fill: true,
+                tension: 0.4
+              }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false, animation: false }
+        });
+      </script>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
           <tr style="background:${p.primary};color:#fff;">
