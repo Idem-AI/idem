@@ -1,4 +1,4 @@
-import { LogoModel } from './logo.model';
+import { LogoModel, LogoPreferences } from './logo.model';
 import { SectionModel } from './section.model';
 
 /**
