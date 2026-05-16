@@ -1240,12 +1240,6 @@ export class BrandingService extends GenericService {
   ): Promise<{
     logos: LogoModel[];
   }> {
-    logger.info(
-      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
-        preferences?.type || 'name'
-      }`
-    );
-
     const totalStartTime = Date.now();
 
     // Étape 1: Récupération optimisée du projet avec fallback gracieux
@@ -1262,6 +1256,12 @@ export class BrandingService extends GenericService {
     if (!selectedColors || !selectedTypography) {
       throw new Error(`Project is missing colors or typography. Cannot generate logos.`);
     }
+
+    logger.info(
+      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
+        preferences?.type || 'name'
+      }`
+    );
 
     // Étape 2: Préparation du prompt optimisé (une seule fois)
     const projectDescription = this.extractProjectDescription(project);
