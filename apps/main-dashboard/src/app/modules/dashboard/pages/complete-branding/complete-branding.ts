@@ -67,6 +67,7 @@ export class CompleteBrandingPage implements OnInit {
   protected readonly project = signal<ProjectModel | null>(null);
   protected readonly isLoading = signal<boolean>(true);
   protected readonly isFinalizing = signal<boolean>(false);
+  protected readonly isSaving = signal<boolean>(false);
 
   /** 'import' | 'ai' | null — défini dès le premier choix */
   protected readonly logoChoice = signal<'import' | 'ai' | null>(null);
@@ -316,20 +317,55 @@ export class CompleteBrandingPage implements OnInit {
     this.typographySelected.set(valid);
   }
 
-  /** Préférences logo AI sélectionnées → avancer automatiquement */
+  /** Préférences logo AI sélectionnées → avancer automatiquement après sauvegarde */
   protected onLogoPreferencesSelected(prefs: LogoPreferencesModel): void {
     this.aiLogoPreferences.set(prefs);
     
     // Sauvegarder les préférences dans le projet pour que le backend puisse les lire
-    this.onProjectUpdate({
+    const current = this.project();
+    if (!current || !current.id) {
+      this.navigateToStep(this.currentStepIndex() + 1);
+      return;
+    }
+
+    const updates: Partial<ProjectModel> = {
       analysisResultModel: {
         branding: {
           logoPreferences: prefs
         } as any
       }
-    });
+    };
 
-    this.navigateToStep(this.currentStepIndex() + 1);
+    // Mettre à jour l'état local immédiatement
+    const updated: ProjectModel = {
+      ...current,
+      ...updates,
+      analysisResultModel: {
+        ...current.analysisResultModel,
+        ...updates.analysisResultModel,
+        branding: {
+          ...current.analysisResultModel?.branding,
+          ...updates.analysisResultModel?.branding,
+        },
+      },
+    };
+    this.project.set(updated);
+
+    // Persister et attendre la fin de la requête avant de naviguer
+    // pour éviter les conditions de course avec la génération
+    this.isSaving.set(true);
+    this.projectService.updateProject(current.id, updated).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.navigateToStep(this.currentStepIndex() + 1);
+      },
+      error: (err) => {
+        console.error('Failed to update project with preferences:', err);
+        this.isSaving.set(false);
+        // Continue anyway
+        this.navigateToStep(this.currentStepIndex() + 1);
+      },
+    });
   }
 
   /** Logo AI généré et sélectionné */
@@ -362,7 +398,7 @@ export class CompleteBrandingPage implements OnInit {
     this.project.set(updated);
 
     if (current.id) {
-      this.projectService.updateProject(current.id, updates).subscribe({
+      this.projectService.updateProject(current.id, updated).subscribe({
         error: (err) => console.error('Failed to update project:', err),
       });
     }

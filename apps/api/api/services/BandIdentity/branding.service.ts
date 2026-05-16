@@ -55,9 +55,9 @@ export class BrandingService extends GenericService {
   // Optimisée pour qualité maximale avec vitesse préservée
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-pro-preview',
+    modelName: 'gemini-3-flash-preview',
     llmOptions: {
-      maxOutputTokens: 2048, // SVG complet sans troncature (path + text + defs)
+      maxOutputTokens: 1048, // SVG complet sans troncature (path + text + defs)
       temperature: 0.7, // Variance créative — évite la convergence cercle-bleu
       topP: 0.95, // Pool de sampling légèrement élargi pour les couleurs et concepts
       topK: 40, // Sweet spot Gemini — au-delà, le JSON se dégrade
