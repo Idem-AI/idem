@@ -343,6 +343,33 @@ export const routes: Routes = [
     data: { layout: 'dashboard', sectionKey: 'variableCharges' },
   },
   {
+    path: 'project/finance/fixed-charges',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'fixedCharges' },
+  },
+  {
+    path: 'project/finance/taxes',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'taxesParams' },
+  },
+  {
+    path: 'project/finance/revenue',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'revenueParams' },
+  },
+  {
     path: 'project/finance/investments',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
@@ -368,6 +395,15 @@ export const routes: Routes = [
       ),
     canActivate: [authGuard],
     data: { layout: 'dashboard', sectionKey: 'financing' },
+  },
+  {
+    path: 'project/finance/ratios-params',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'ratiosParams' },
   },
   {
     path: 'project/finance/exploitation',

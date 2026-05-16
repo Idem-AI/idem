@@ -397,7 +397,7 @@ export type FinanceSectionKey =
 /** Métadonnées de navigation pour les sections du module Finance */
 export interface FinanceSectionDescriptor {
   /** Clé technique (utilisée pour completionStatus et update) */
-  key: keyof FinanceMetadata['completionStatus'] | 'overview' | 'amortization' | 'compteExploitation' | 'bilan' | 'fluxTresorerie' | 'ratios';
+  key: keyof FinanceMetadata['completionStatus'] | 'overview' | 'amortization' | 'compteExploitation' | 'bilan' | 'fluxTresorerie' | 'ratios' | 'revenueParams' | 'taxesParams' | 'ratiosParams' | 'fixedCharges';
   /** Route Angular (relative au préfixe /project/finance) */
   route: string;
   /** Clé i18n du libellé */
@@ -412,10 +412,14 @@ export const FINANCE_SECTIONS: FinanceSectionDescriptor[] = [
   { key: 'overview', route: '', labelKey: 'dashboard.finance.sections.overview', icon: 'pi pi-chart-pie', editable: false },
   { key: 'products', route: 'products', labelKey: 'dashboard.finance.sections.products', icon: 'pi pi-tag', editable: true },
   { key: 'salesObjectives', route: 'sales', labelKey: 'dashboard.finance.sections.sales', icon: 'pi pi-shopping-cart', editable: true },
+  { key: 'revenueParams', route: 'revenue', labelKey: 'dashboard.finance.sections.revenue', icon: 'pi pi-calculator', editable: true },
   { key: 'variableCharges', route: 'charges', labelKey: 'dashboard.finance.sections.charges', icon: 'pi pi-wallet', editable: true },
+  { key: 'fixedCharges', route: 'fixed-charges', labelKey: 'dashboard.finance.sections.fixedCharges', icon: 'pi pi-building', editable: true },
+  { key: 'taxesParams', route: 'taxes', labelKey: 'dashboard.finance.sections.taxes', icon: 'pi pi-receipt', editable: true },
   { key: 'investments', route: 'investments', labelKey: 'dashboard.finance.sections.investments', icon: 'pi pi-briefcase', editable: true },
   { key: 'amortization', route: 'amortization', labelKey: 'dashboard.finance.sections.amortization', icon: 'pi pi-history', editable: false },
   { key: 'financing', route: 'financing', labelKey: 'dashboard.finance.sections.financing', icon: 'pi pi-money-bill', editable: true },
+  { key: 'ratiosParams', route: 'ratios-params', labelKey: 'dashboard.finance.sections.ratiosParams', icon: 'pi pi-sliders-h', editable: true },
   { key: 'compteExploitation', route: 'exploitation', labelKey: 'dashboard.finance.sections.exploitation', icon: 'pi pi-chart-line', editable: false },
   { key: 'bilan', route: 'bilan', labelKey: 'dashboard.finance.sections.bilan', icon: 'pi pi-book', editable: false },
   { key: 'fluxTresorerie', route: 'cashflow', labelKey: 'dashboard.finance.sections.cashflow', icon: 'pi pi-arrow-right-arrow-left', editable: false },
