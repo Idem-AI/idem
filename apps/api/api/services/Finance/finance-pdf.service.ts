@@ -24,6 +24,9 @@ import {
 } from '../../models/finance.model';
 import { TypographyModel } from '../../models/brand-identity.model';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { cacheService } from '../cache.service';
+import * as crypto from 'crypto';
+import { AGENT_FINANCE_COVER_PROMPT } from './prompts/agent-finance-cover.prompt';
 
 interface BrandPalette {
   primary: string;
@@ -64,11 +67,15 @@ export class FinancePdfService {
     const typography = this.extractTypography(project);
     const logoSvg = this.extractLogoSvg(project);
     const companyName = project.name || 'Projet';
-    const interpretation = await this.generateInterpretation(project, finance);
+    
+    const [interpretation, coverSection] = await Promise.all([
+      this.generateInterpretation(project, finance),
+      this.generateAICover(project, finance, palette, logoSvg)
+    ]);
 
     // Construit les sections HTML
     const sections: SectionModel[] = [
-      this.buildCoverSection(companyName, palette, logoSvg),
+      coverSection,
       this.buildSummarySection(finance, palette),
       this.buildProductsSection(finance, palette),
       this.buildExploitationSection(finance.computed.compteExploitation, palette),
@@ -110,7 +117,11 @@ export class FinancePdfService {
   }
 
   private extractLogoSvg(project: ProjectModel): string | null {
-    return project.analysisResultModel?.branding?.logo?.svg || null;
+    let svg = project.analysisResultModel?.branding?.logo?.svg || null;
+    if (svg) {
+      svg = svg.replace(/```(xml|svg)?/gi, '').replace(/```/g, '').trim();
+    }
+    return svg;
   }
 
   private fmt(value: number): string {
@@ -127,7 +138,77 @@ export class FinancePdfService {
   // Section builders (chaque section retourne un SectionModel)
   // -----------------------------------------------------------------
 
-  private buildCoverSection(companyName: string, p: BrandPalette, logoSvg: string | null): SectionModel {
+  private async generateAICover(project: ProjectModel, finance: FinanceModel, p: BrandPalette, logoSvg: string | null): Promise<SectionModel> {
+    const today = new Date().toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const companyName = project.name || 'Projet';
+
+    // Generate cache key for this project's cover
+    const contentHash = (project.description || '') + (logoSvg || '') + JSON.stringify(p);
+    const hashHex = crypto.createHash('sha256').update(contentHash).digest('hex');
+    const cacheKey = cacheService.generateAIKey('finance-pdf-cover', project.id!, hashHex);
+    
+    // Check cache first
+    const cachedCoverHtml = await cacheService.get<string>(cacheKey, { prefix: 'ai', ttl: 86400 * 7 });
+    if (cachedCoverHtml) {
+      return { name: 'Couverture', type: 'cover', data: cachedCoverHtml, summary: '' };
+    }
+
+    const summary = [
+      `Projet: ${companyName}`,
+      `Type: ${project.type}`,
+      `Description: ${project.description || ''}`,
+    ].join('\n');
+
+    const brandContext = `Brand Name: ${companyName}\nBrand Colors: ${JSON.stringify(p)}`;
+
+    const promptText = `${summary}\n${AGENT_FINANCE_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`;
+
+    const messages: AIChatMessage[] = [
+      { role: 'user', content: promptText }
+    ];
+
+    const config: PromptConfig = {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'finance-cover-generation',
+      llmOptions: { temperature: 0.7, maxOutputTokens: 2000 },
+    };
+
+    try {
+      let html = await this.promptService.runPrompt(config, messages);
+      html = this.promptService.getCleanAIText(html).trim();
+
+      // Ensure no markdown block
+      html = html.replace(/^```(html)?/i, '').replace(/```$/i, '').trim();
+
+      // Replace placeholders
+      html = html.replace(/{{companyName}}/g, this.esc(companyName));
+      html = html.replace(/{{currentDate}}/g, today);
+      
+      if (logoSvg) {
+        const responsiveSvg = logoSvg.replace('<svg ', '<svg style="width:100%; height:100%;" ');
+        const logoHtml = `<div style="max-width: 250px; max-height: 250px; display: flex; justify-content: center; align-items: center; margin-bottom: 2rem; z-index: 50; position: relative;">${responsiveSvg}</div>`;
+        html = html.replace(/{{logoSvg}}/g, logoHtml);
+      } else {
+        html = html.replace(/{{logoSvg}}/g, ''); // Remove placeholder if no logo
+      }
+
+      // Cache the generated cover html
+      await cacheService.set(cacheKey, html, { prefix: 'ai', ttl: 86400 * 7 }); // Cache for 7 days
+
+      return { name: 'Couverture', type: 'cover', data: html, summary: '' };
+    } catch (err: any) {
+      logger.warn(`FinancePdf.generateAICover failed: ${err?.message}`);
+      // Fallback to the programmatic cover if AI fails
+      return this.buildFallbackCoverSection(companyName, p, logoSvg, project.id!);
+    }
+  }
+
+  private buildFallbackCoverSection(companyName: string, p: BrandPalette, logoSvg: string | null, projectId: string): SectionModel {
     const today = new Date().toLocaleDateString('fr-FR', {
       year: 'numeric',
       month: 'long',
@@ -136,17 +217,80 @@ export class FinancePdfService {
     
     let logoHtml = '';
     if (logoSvg) {
-      logoHtml = `<div style="max-width: 250px; max-height: 250px; margin-bottom: 32px; display: flex; justify-content: center; align-items: center;">${logoSvg}</div>`;
+      let responsiveSvg = logoSvg.replace('<svg ', '<svg style="width:100%; height:100%;" ');
+      logoHtml = `<div style="width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; margin-bottom: 2rem;">
+        ${responsiveSvg}
+      </div>`;
     }
 
-    const html = `<div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:linear-gradient(135deg,${p.primary} 0%,${p.secondary} 100%);color:#fff;padding:48px;font-family: 'primary', sans-serif;">
-      ${logoHtml}
-      <div style="opacity:0.7;letter-spacing:6px;font-size:14px;text-transform:uppercase;">Rapport financier</div>
-      <h1 style="font-size:56px;font-weight:800;margin:24px 0 12px;text-align:center;">${this.esc(companyName)}</h1>
-      <p style="font-size:18px;opacity:0.9;">Prévisions financières sur 3 ans</p>
-      <div style="position:absolute;bottom:48px;font-size:13px;opacity:0.7;">${today}</div>
+    // Deterministic random for this project to make it unique
+    const rand = this.getSeededRandom(projectId);
+    
+    // Generate 3 to 5 random blobs
+    const blobCount = 3 + Math.floor(rand() * 3);
+    let blobsHtml = '';
+    const colors = [p.primary, p.secondary, p.accent];
+    for (let i = 0; i < blobCount; i++) {
+      const size = 400 + rand() * 500; // 400 to 900px
+      const top = -20 + rand() * 100; // -20% to 80%
+      const left = -20 + rand() * 100; // -20% to 80%
+      const color = colors[i % colors.length];
+      const opacity = 0.15 + rand() * 0.25; // 0.15 to 0.40
+      blobsHtml += `<div style="position: absolute; width: ${size}px; height: ${size}px; top: ${top}%; left: ${left}%; background-color: ${color}; border-radius: 50%; filter: blur(120px); opacity: ${opacity}; z-index: 1; pointer-events: none;"></div>`;
+    }
+
+    const isLightBackground = p.background.toUpperCase() === '#FFFFFF' || p.background.toUpperCase() === '#FFF' || p.background.toUpperCase() === '#F8FAFC';
+    const cardBg = isLightBackground ? 'rgba(255, 255, 255, 0.65)' : 'rgba(255, 255, 255, 0.05)';
+    const cardBorder = isLightBackground ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.1)';
+    const cardShadow = isLightBackground ? '0 25px 50px -12px rgba(0, 0, 0, 0.1)' : '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+
+    const html = `
+    <div style="width: 210mm; height: 297mm; position: relative; overflow: hidden; background-color: ${isLightBackground ? '#F1F5F9' : p.background}; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'primary', sans-serif;">
+      <!-- Dynamic Mesh Gradient Blobs -->
+      ${blobsHtml}
+
+      <!-- Glassmorphism Card -->
+      <div style="position: relative; z-index: 10; width: 85%; max-width: 800px; background: ${cardBg}; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid ${cardBorder}; border-radius: 32px; padding: 64px; box-shadow: ${cardShadow}; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        
+        ${logoHtml}
+
+        <div style="text-transform: uppercase; letter-spacing: 0.4em; font-size: 14px; font-weight: 700; color: ${p.primary}; margin-bottom: 24px; font-family: 'secondary', sans-serif;">
+          Rapport Financier Stratégique
+        </div>
+        
+        <h1 style="font-size: 64px; font-weight: 900; margin: 0 0 32px 0; color: ${p.text}; line-height: 1.1; letter-spacing: -0.02em;">
+          ${this.esc(companyName)}
+        </h1>
+        
+        <div style="width: 120px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, ${p.primary}, ${p.secondary}); margin-bottom: 40px;"></div>
+
+        <p style="font-size: 20px; color: ${p.text}; opacity: 0.8; max-width: 600px; line-height: 1.6; margin: 0; font-family: 'secondary', sans-serif; font-weight: 300;">
+          Prévisions financières, compte d'exploitation et analyse de rentabilité sur 3 ans
+        </p>
+      </div>
+
+      <!-- Footer elements -->
+      <div style="position: absolute; bottom: 48px; left: 48px; color: ${p.text}; opacity: 0.5; font-size: 14px; font-family: 'secondary', sans-serif; z-index: 10;">
+        Généré le ${today}
+      </div>
+      <div style="position: absolute; bottom: 48px; right: 48px; color: ${p.text}; opacity: 0.5; font-size: 14px; font-family: 'secondary', sans-serif; z-index: 10; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">
+        Document Confidentiel
+      </div>
     </div>`;
+    
     return { name: 'Couverture', type: 'cover', data: html, summary: '' };
+  }
+
+  private getSeededRandom(seed: string): () => number {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash << 5) - hash + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    return () => {
+      const x = Math.sin(hash++) * 10000;
+      return x - Math.floor(x);
+    };
   }
 
   private buildSummarySection(finance: FinanceModel, p: BrandPalette): SectionModel {
