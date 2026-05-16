@@ -231,6 +231,12 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     this.isCompleted.set(true);
   }
 
+  protected onNextStep(): void {
+    if (this.isCompleted()) {
+      this.nextStep.emit();
+    }
+  }
+
   private simulateProgress(): void {
     const steps = [
       {

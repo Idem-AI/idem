@@ -198,6 +198,12 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected onNextStep(): void {
+    if (this.selectedLogoId()) {
+      this.nextStep.emit();
+    }
+  }
+
   protected goToNextStep(): void {
     this.nextStep.emit();
   }
