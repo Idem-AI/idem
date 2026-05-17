@@ -60,31 +60,35 @@ export interface AIResponse {
 }
 
 export class PromptService {
-  private genAIClient: GoogleGenAI;
-  private openaiClient!: OpenAI; // Using definite assignment assertion as client may be conditionally initialized
+  private _genAIClient?: GoogleGenAI;
+  private _openaiClient?: OpenAI;
 
   constructor() {
     logger.info('Initializing PromptService...');
+  }
 
-    // Initialize Gemini client
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    if (!geminiApiKey) {
-      logger.error('GEMINI_API_KEY is not set in environment variables.');
-      throw new Error('GEMINI_API_KEY is not set in environment variables.');
+  private get genAIClient(): GoogleGenAI {
+    if (!this._genAIClient) {
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        logger.error('GEMINI_API_KEY is not set in environment variables.');
+        throw new Error('GEMINI_API_KEY is not set in environment variables.');
+      }
+      this._genAIClient = new GoogleGenAI({ apiKey: geminiApiKey });
+      logger.info('GoogleGenAI client initialized successfully lazily.');
     }
-    this.genAIClient = new GoogleGenAI({ apiKey: geminiApiKey });
-    logger.info('GoogleGenAI client initialized successfully.');
+    return this._genAIClient;
+  }
 
-    // Initialize OpenAI client
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      logger.warn(
-        'OPENAI_API_KEY is not set in environment variables. OpenAI features will not be available.'
-      );
-    } else {
-      this.openaiClient = new OpenAI({ apiKey: openaiApiKey });
-      logger.info('OpenAI client initialized successfully.');
+  private get openaiClient(): OpenAI | undefined {
+    if (!this._openaiClient) {
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+      if (openaiApiKey) {
+        this._openaiClient = new OpenAI({ apiKey: openaiApiKey });
+        logger.info('OpenAI client initialized successfully lazily.');
+      }
     }
+    return this._openaiClient;
   }
 
   private toGeminiMessages(messages: AIChatMessage[]): Content[] {
@@ -233,7 +237,8 @@ export class PromptService {
     llmOptions: LLMOptions,
     fileInput?: { localPath: string; mimeType?: string }
   ): Promise<string> {
-    if (!this.openaiClient) {
+    const client = this.openaiClient;
+    if (!client) {
       const error = new Error(
         'OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable.'
       );
@@ -284,7 +289,7 @@ export class PromptService {
       }
 
       // Create chat completion
-      const response = await this.openaiClient.chat.completions.create({
+      const response = await client.chat.completions.create({
         model: modelName,
         messages: openaiMessages,
         ...generationParams,
