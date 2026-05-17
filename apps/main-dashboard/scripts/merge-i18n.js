@@ -30,6 +30,7 @@ const CONFIG = {
     // Dashboard components
     'modules/dashboard/components/add-team-member-modal': 'dashboard.addMemberModal',
     'modules/dashboard/components/add-team-to-project-modal': 'dashboard.addTeamToProjectModal',
+    'modules/dashboard/components/branding-required-blocker': 'dashboard.brandingBlocker',
     'modules/dashboard/components/project-card': 'dashboard.projectCard',
     'modules/dashboard/components/sidebar-dashboard': 'dashboard.sidebar',
     'modules/dashboard/components/sidebar-global': 'dashboard.sidebarGlobal',
@@ -97,6 +98,11 @@ const CONFIG = {
     // Dashboard pages - Development
     'modules/dashboard/pages/development/create-development': 'dashboard.createDevelopment',
     'modules/dashboard/pages/development/show-development': 'dashboard.showDevelopment',
+
+    // Dashboard pages - Pitch Deck, Legal Docs, Advisor
+    'modules/dashboard/pages/show-pitch-deck': 'dashboard.showPitchDeck',
+    'modules/dashboard/pages/legal-docs': 'dashboard.legalDocs',
+    'modules/dashboard/pages/advisor': 'dashboard.advisor',
 
     // Shared components
     'shared/components/not-found': 'notFound',

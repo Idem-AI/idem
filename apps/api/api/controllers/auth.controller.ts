@@ -5,6 +5,8 @@ import { userService } from '../services/user.service';
 import { UserModel } from '../models/userModel';
 import { refreshTokenService } from '../services/refreshToken.service';
 import { CustomRequest } from '../interfaces/express.interface';
+import { v4 as uuidv4 } from 'uuid';
+import RedisConnection from '../config/redis.config';
 export const sessionLoginController = async (req: Request, res: Response): Promise<void> => {
   const token = req.body.token;
   const user = req.body.user;
@@ -378,5 +380,101 @@ export const getRefreshTokensController = async (
       message: 'Error retrieving refresh tokens.',
       error: error.message,
     });
+  }
+};
+
+const IDEPLOY_TOKEN_PREFIX = 'ideploy:token:';
+const IDEPLOY_TOKEN_TTL = 5 * 60; // 5 minutes
+
+/**
+ * POST /auth/ideploy-token
+ * Generates a short-lived one-time token for iDeploy SSO.
+ * Called by main-dashboard after Firebase login when redirect=ideploy.
+ */
+export const generateIdeployTokenController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const uid = req.user?.uid;
+  const email = req.user?.email;
+
+  if (!uid) {
+    res.status(401).json({ success: false, message: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    const firebaseUser = await admin.auth().getUser(uid);
+    const token = uuidv4();
+
+    const payload = {
+      uid,
+      email: email || firebaseUser.email,
+      displayName: firebaseUser.displayName || null,
+      photoURL: firebaseUser.photoURL || null,
+      createdAt: new Date().toISOString(),
+    };
+
+    const redis = RedisConnection.getInstance();
+    await redis.set(
+      `${IDEPLOY_TOKEN_PREFIX}${token}`,
+      JSON.stringify(payload),
+      'EX',
+      IDEPLOY_TOKEN_TTL
+    );
+
+    logger.info('iDeploy SSO token generated', { uid });
+    res.status(201).json({ success: true, token });
+  } catch (error: any) {
+    logger.error('Error generating iDeploy token:', { uid, message: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to generate token', error: error.message });
+  }
+};
+
+/**
+ * POST /auth/ideploy-token/validate
+ * Validates a one-time iDeploy SSO token and returns user data.
+ * Called by iDeploy Laravel backend to verify the token.
+ * Protected by IDEPLOY_SHARED_SECRET header.
+ */
+export const validateIdeployTokenController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const sharedSecret = process.env.IDEPLOY_SHARED_SECRET;
+  const providedSecret = req.headers['x-ideploy-secret'];
+
+  if (sharedSecret && providedSecret !== sharedSecret) {
+    res.status(403).json({ success: false, message: 'Invalid secret' });
+    return;
+  }
+
+  const { token } = req.body;
+  if (!token) {
+    res.status(400).json({ success: false, message: 'Token is required' });
+    return;
+  }
+
+  try {
+    const redis = RedisConnection.getInstance();
+    const raw = await redis.get(`${IDEPLOY_TOKEN_PREFIX}${token}`);
+
+    if (!raw) {
+      res.status(401).json({ success: false, message: 'Token not found or expired' });
+      return;
+    }
+
+    await redis.del(`${IDEPLOY_TOKEN_PREFIX}${token}`);
+    const userData = JSON.parse(raw);
+
+    logger.info('iDeploy SSO token validated', { uid: userData.uid });
+    res.status(200).json({ success: true, user: userData });
+  } catch (error: any) {
+    logger.error('Error validating iDeploy token:', { message: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to validate token', error: error.message });
   }
 };

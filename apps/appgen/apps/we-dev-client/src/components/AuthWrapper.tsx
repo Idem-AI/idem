@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { getCurrentUser } from "../api/persistence/db";
-import { Loading } from "./loading";
+import React, { useEffect, useState } from 'react';
+import { getCurrentUser } from '../api/persistence/db';
+import { Loading } from './loading';
+import { redirectToLogin } from '../hooks/useAuth';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
+  intent?: string;
 }
 
-const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
+const AuthWrapper: React.FC<AuthWrapperProps> = ({ children, intent }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -16,7 +18,7 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
         const user = await getCurrentUser();
         setIsAuthenticated(!!user);
       } catch (error) {
-        console.error("Authentication check failed:", error);
+        console.error('Authentication check failed:', error);
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
@@ -27,19 +29,17 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // Redirect to login if not authenticated
     if (isAuthenticated === false) {
-      console.log("Redirecting to login");
-      // window.location.href = "http://localhost:4200/login";
+      redirectToLogin(intent);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, intent]);
 
   if (isLoading) {
     return <Loading />;
   }
 
   if (!isAuthenticated) {
-    return null; // Will redirect, so don't render anything
+    return null;
   }
 
   return <>{children}</>;

@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { userService } from '../services/user.service';
-import betaRestrictionsService from '../services/betaRestrictions.service';
+import restrictionsService from '../services/restrictions.service';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 
@@ -14,13 +14,6 @@ export class QuotaController {
       logger.info(`Getting quota info for user: ${userId}`);
 
       const quotaInfo = await userService.getQuotaInfo(userId!);
-      const betaInfo = betaRestrictionsService.isBetaMode()
-        ? {
-            isBeta: true,
-            limitations: betaRestrictionsService.getBetaLimitationsMessage(),
-            restrictions: betaRestrictionsService.getRestrictions(),
-          }
-        : null;
 
       logger.info(`Successfully retrieved quota info for user ${userId}`);
 
@@ -31,6 +24,7 @@ export class QuotaController {
         weeklyLimit: quotaInfo.weeklyLimit,
         remainingDaily: quotaInfo.remainingDaily,
         remainingWeekly: quotaInfo.remainingWeekly,
+        limitations: restrictionsService.getLimitationsMessage(),
       });
     } catch (error) {
       logger.error(`Error getting quota info for user ${req.user?.uid}:`, error);
@@ -59,7 +53,6 @@ export class QuotaController {
         remainingWeekly: quotaCheck.remainingWeekly,
         message: quotaCheck.message,
         limits: userService.getCurrentLimits(),
-        isBeta: userService.isBetaMode(),
       });
     } catch (error) {
       logger.error(`Error checking quota for user ${req.user?.uid}:`, error);
@@ -71,70 +64,27 @@ export class QuotaController {
   }
 
   /**
-   * Get beta restrictions and limitations
+   * Get system restrictions and limitations
    */
-  async getBetaInfo(req: CustomRequest, res: Response): Promise<void> {
+  async getSystemInfo(req: CustomRequest, res: Response): Promise<void> {
     try {
-      logger.info('Getting beta information');
+      logger.info('Getting system information');
 
-      const betaInfo = {
-        isBeta: betaRestrictionsService.isBetaMode(),
-        limitations: betaRestrictionsService.getBetaLimitationsMessage(),
-        restrictions: betaRestrictionsService.getRestrictions(),
+      const systemInfo = {
+        limitations: restrictionsService.getLimitationsMessage(),
+        restrictions: restrictionsService.getRestrictions(),
         quotaLimits: userService.getCurrentLimits(),
       };
 
       res.json({
         success: true,
-        data: betaInfo,
+        data: systemInfo,
       });
     } catch (error) {
-      logger.error('Error getting beta info:', error);
+      logger.error('Error getting system info:', error);
       res.status(500).json({
         error: 'Internal server error',
-        message: 'Failed to retrieve beta information',
-      });
-    }
-  }
-
-  /**
-   * Validate a feature for the current user
-   */
-  async validateFeature(req: CustomRequest, res: Response): Promise<void> {
-    try {
-      const { featureName } = req.params;
-      const userId = req.user?.uid;
-
-      logger.info(`Validating feature '${featureName}' for user: ${userId}`);
-
-      if (!featureName) {
-        res.status(400).json({
-          error: 'Bad request',
-          message: 'Feature name is required',
-        });
-        return;
-      }
-
-      const featureValidation = betaRestrictionsService.validateFeature(featureName as string);
-      const quotaCheck = await userService.checkQuota(userId!);
-
-      res.json({
-        success: true,
-        data: {
-          featureAllowed: featureValidation.allowed,
-          featureMessage: featureValidation.message,
-          quotaAllowed: quotaCheck.allowed,
-          quotaMessage: quotaCheck.message,
-          remainingDaily: quotaCheck.remainingDaily,
-          remainingWeekly: quotaCheck.remainingWeekly,
-          isBeta: betaRestrictionsService.isBetaMode(),
-        },
-      });
-    } catch (error) {
-      logger.error(`Error validating feature for user ${req.user?.uid}:`, error);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to validate feature',
+        message: 'Failed to retrieve system information',
       });
     }
   }
@@ -163,10 +113,7 @@ export class QuotaController {
           remaining: quotaInfo.remainingWeekly,
           percentage: Math.round((quotaInfo.weeklyUsage / limits.weekly) * 100),
         },
-        isBeta: quotaInfo.isBeta,
-        betaLimitations: betaRestrictionsService.isBetaMode()
-          ? betaRestrictionsService.getBetaLimitationsMessage()
-          : null,
+        limitations: restrictionsService.getLimitationsMessage(),
       };
 
       logger.info(`Successfully retrieved usage stats for user ${userId}`);

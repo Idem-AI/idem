@@ -9,6 +9,12 @@ import { environment } from '../../../../environments/environment';
 export interface LogoImportResponse {
   success: boolean;
   svg: string;
+  logoUrl?: string; // MinIO URL if uploaded
+  /** Programmatic SVG variations (light/dark/monochrome) from the API */
+  variations?: {
+    withText: { lightBackground: string; darkBackground: string; monochrome: string };
+    iconOnly: { lightBackground: string; darkBackground: string; monochrome: string };
+  };
   width: number;
   height: number;
   extractedColors: string[];
@@ -49,10 +55,14 @@ export class LogoImportService {
   /**
    * Upload a logo file with progress tracking.
    * The API will detect the file type, optimize SVGs, or vectorize raster images.
+   * Optionally pass projectId and userId to also upload to MinIO.
    */
-  uploadLogo(file: File): Observable<LogoUploadProgress> {
+  uploadLogo(file: File, projectId?: string): Observable<LogoUploadProgress> {
     const formData = new FormData();
     formData.append('logo', file, file.name);
+    if (projectId) {
+      formData.append('projectId', projectId);
+    }
 
     const req = new HttpRequest('POST', `${this.apiUrl}/import`, formData, {
       reportProgress: true,

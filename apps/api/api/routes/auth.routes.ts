@@ -6,6 +6,8 @@ import {
   logoutAllController,
   getRefreshTokensController,
   verifySessionController,
+  generateIdeployTokenController,
+  validateIdeployTokenController,
 } from '../controllers/auth.controller';
 import { authenticate } from '../services/auth.service';
 
@@ -259,3 +261,8 @@ authRoutes.get('/refresh-tokens', authenticate, getRefreshTokensController);
  *         description: Invalid API key
  */
 authRoutes.post('/verify-session', verifySessionController);
+
+// iDeploy SSO — generate a one-time token (requires authenticated session)
+authRoutes.post('/ideploy-token', authenticate, generateIdeployTokenController);
+// iDeploy SSO — validate a one-time token (called by iDeploy Laravel backend)
+authRoutes.post('/ideploy-token/validate', validateIdeployTokenController);

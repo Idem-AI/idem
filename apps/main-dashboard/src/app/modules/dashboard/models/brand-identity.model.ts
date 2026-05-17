@@ -1,4 +1,4 @@
-import { LogoModel } from './logo.model';
+import { LogoModel, LogoPreferencesModel } from './logo.model';
 import { SectionModel } from './section.model';
 
 export interface BrandIdentityModel {
@@ -12,7 +12,9 @@ export interface BrandIdentityModel {
   typography: TypographyModel;
   generatedTypography: TypographyModel[];
   sections: SectionModel[];
+  logoPreferences?: LogoPreferencesModel;
   pdfBlob?: Blob; // Optional PDF blob for optimized loading
+  importedLogoColors?: string[]; // Couleurs extraites du logo importé (workflow import)
 }
 
 export interface TypographyModel {

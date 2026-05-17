@@ -1,0 +1,66 @@
+@if (variant() === 'section') {
+  <button
+    type="button"
+    [disabled]="disabled() || loading()"
+    (click)="onClick($event)"
+    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-linear-to-r from-primary/20 to-accent/20 hover:from-primary/30 hover:to-accent/30 border border-primary/40 text-white text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/10"
+  >
+    @if (loading()) {
+      <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="3"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+    } @else {
+      <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          d="M9.05 3.05A4.95 4.95 0 0114 8a.75.75 0 001.5 0A6.45 6.45 0 009.05 1.55a.75.75 0 000 1.5zm-.7 2.122a.75.75 0 011.06 0L11.06 6.82a.75.75 0 11-1.06 1.06L8.35 6.232a.75.75 0 010-1.06zM4.93 10a5.07 5.07 0 015.07-5.07.75.75 0 000-1.5A6.57 6.57 0 003.43 10a.75.75 0 001.5 0zM10 18.5A8.5 8.5 0 011.5 10a.75.75 0 011.5 0A7 7 0 0010 17a.75.75 0 010 1.5zM18 9.25a.75.75 0 00-.75.75 7.25 7.25 0 01-7.25 7.25.75.75 0 000 1.5A8.75 8.75 0 0018.75 10a.75.75 0 00-.75-.75z"
+        ></path>
+        <path d="M14.5 11.5l-2 .5.5-2 4.5-4.5a1.06 1.06 0 011.5 1.5l-4.5 4.5z"></path>
+      </svg>
+    }
+    <span>{{ labelKey() | translate }}</span>
+  </button>
+} @else {
+  <button
+    type="button"
+    [disabled]="disabled() || loading()"
+    (click)="onClick($event)"
+    [title]="tooltipKey() | translate"
+    class="inline-flex items-center justify-center w-7 h-7 rounded-md text-primary/70 hover:text-primary hover:bg-primary/10 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+  >
+    @if (loading()) {
+      <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="3"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+        ></path>
+      </svg>
+    } @else {
+      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          d="M10 2a1 1 0 011 1v1.586l1.293-1.293a1 1 0 011.414 1.414L11.414 7H13a1 1 0 110 2h-1.586l1.293 1.293a1 1 0 11-1.414 1.414L11 10.414V12a1 1 0 11-2 0v-1.586l-1.293 1.293a1 1 0 11-1.414-1.414L7.586 9H6a1 1 0 110-2h1.586L6.293 5.707a1 1 0 011.414-1.414L9 5.586V3a1 1 0 011-1z"
+        ></path>
+      </svg>
+    }
+  </button>
+}

@@ -7,7 +7,7 @@ import { DatabaseConfigComponent } from './components/database-config/database-c
 import { environment } from '../../../../../../environments/environment';
 import { initEmptyObject } from '../../../../../utils/init-empty-object';
 import { AuthService } from '../../../../auth/services/auth.service';
-import { ProjectModel } from '../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../../services/project.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 

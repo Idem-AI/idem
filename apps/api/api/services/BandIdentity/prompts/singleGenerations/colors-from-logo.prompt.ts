@@ -22,8 +22,8 @@ Return JSON only:
   "colors": [
     {
       "id": "color-scheme-1",
-      "name": "Logo Harmony",
-      "url": "palette/logo-harmony",
+      "name": "[Descriptive name based on project industry/values and logo colors]",
+      "url": "palette/[url-slug]",
       "colors": {
         "primary": "{{PRIMARY_FROM_LOGO}}",
         "secondary": "{{SECONDARY_FROM_LOGO}}",
@@ -40,6 +40,7 @@ Rules:
 - "primary" in ALL 3 palettes MUST be exactly "{{PRIMARY_FROM_LOGO}}" — never change it
 - "secondary" in ALL 3 palettes MUST be exactly "{{SECONDARY_FROM_LOGO}}" — never change it
 - You ONLY propose "accent", "background", and "text" colors
+- Names should reflect the project's industry, values, AND the logo colors (e.g., "Bleu Corporate", "Énergie Verte", "Tech Moderne")
 - First palette: accent that complements primary+secondary, light background
 - Second palette: different accent mood (warmer or cooler), light background
 - Third palette: bold/contrasting accent, can use a dark background

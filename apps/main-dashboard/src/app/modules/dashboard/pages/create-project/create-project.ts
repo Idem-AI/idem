@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { ProjectModel } from '../../models/project.model';
+import { Router, ActivatedRoute } from '@angular/router';
+import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { initEmptyObject } from '../../../../utils/init-empty-object';
@@ -35,11 +35,6 @@ interface Step {
     SkeletonModule,
     ProjectDescriptionComponent,
     ProjectDetailsComponent,
-    LogoSelectionComponent,
-    LogoChoiceComponent,
-    ColorSelectionComponent,
-    TypographySelectionComponent,
-    LogoVariationsComponent,
     ProjectSummaryComponent,
     TranslateModule,
     Loader,
@@ -51,8 +46,13 @@ export class CreateProjectComponent implements OnInit {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly cookieService = inject(CookieService);
   private readonly translate = inject(TranslateService);
+
+  // AppGen handoff
+  protected readonly fromAppGen = signal<boolean>(false);
+  protected readonly appgenHandoff = signal<any>(null);
 
   // Core state
   protected readonly currentStepIndex = signal<number>(0);
@@ -71,31 +71,6 @@ export class CreateProjectComponent implements OnInit {
         id: 'details',
         title: this.translate.instant('dashboard.createProject.steps.details'),
         component: 'details',
-      },
-      {
-        id: 'logo-choice',
-        title: this.translate.instant('dashboard.createProject.steps.logoChoice'),
-        component: 'logo-choice',
-      },
-      {
-        id: 'colors',
-        title: this.translate.instant('dashboard.createProject.steps.colors'),
-        component: 'colors',
-      },
-      {
-        id: 'typography',
-        title: this.translate.instant('dashboard.createProject.steps.typography'),
-        component: 'typography',
-      },
-      {
-        id: 'logo',
-        title: this.translate.instant('dashboard.createProject.steps.logo'),
-        component: 'logo',
-      },
-      {
-        id: 'variations',
-        title: this.translate.instant('dashboard.createProject.steps.variations'),
-        component: 'variations',
       },
       {
         id: 'summary',
@@ -121,12 +96,16 @@ export class CreateProjectComponent implements OnInit {
 
   // Step-specific validation state
   protected readonly typographySelectionValid = signal(false);
+  protected readonly logoImportComplete = signal(false);
 
   // Logo choice: 'import' means user imported a logo, 'ai' means generate with AI
   protected readonly logoChoice = signal<'import' | 'ai' | null>(null);
 
   // ViewChild to access typography component
   @ViewChild(TypographySelectionComponent) typographyComponent?: TypographySelectionComponent;
+
+  // ViewChild to access logo-choice component
+  @ViewChild(LogoChoiceComponent) logoChoiceComponent?: LogoChoiceComponent;
 
   // Static data
   protected readonly projectTypes = CreateProjectDatas.groupedProjectTypes;
@@ -135,6 +114,45 @@ export class CreateProjectComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDraftProject();
+    this.loadAppGenHandoff();
+  }
+
+  /**
+   * Load AppGen handoff context from URL params or sessionStorage
+   */
+  private loadAppGenHandoff(): void {
+    const params = this.route.snapshot.queryParams;
+    if (params['from'] !== 'appgen') return;
+
+    this.fromAppGen.set(true);
+
+    // Pre-fill name and description from URL
+    const name = params['name'] ? decodeURIComponent(params['name']) : null;
+    const description = params['description'] ? decodeURIComponent(params['description']) : null;
+
+    // Read full handoff payload from sessionStorage
+    let handoff: any = null;
+    try {
+      const raw = sessionStorage.getItem('appgen_handoff');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.expiresAt && new Date(parsed.expiresAt) > new Date()) {
+          handoff = parsed;
+          sessionStorage.removeItem('appgen_handoff');
+        }
+      }
+    } catch (e) {
+      console.warn('Could not read AppGen handoff:', e);
+    }
+
+    this.appgenHandoff.set(handoff);
+
+    // Pre-fill project from handoff data
+    this.project.update((current) => ({
+      ...current,
+      name: name || handoff?.appName || current.name,
+      description: description || handoff?.description || current.description,
+    }));
   }
 
   /**
@@ -175,16 +193,6 @@ export class CreateProjectComponent implements OnInit {
         return !!project.description?.trim();
       case 'details':
         return !!project.name?.trim() && !!project.type;
-      case 'colors':
-        return !!project.analysisResultModel?.branding?.generatedColors?.length;
-      case 'typography':
-        return this.typographySelectionValid();
-      case 'logo-choice':
-        return this.logoChoice() !== null;
-      case 'logo':
-        return !!project.analysisResultModel?.branding?.logo;
-      case 'variations':
-        return !!project.analysisResultModel?.branding?.logo?.variations;
       case 'summary':
         const acceptances = this.acceptances();
         return acceptances.privacy && acceptances.terms && acceptances.beta;
@@ -215,37 +223,42 @@ export class CreateProjectComponent implements OnInit {
   /**
    * Navigate to next step
    */
-  protected goToNextStep(): void {
-    // For typography step, prepare and save typography data before proceeding
-    if (this.currentStepIndex() === 4 && this.typographyComponent) {
-      // Typography step (index shifted by logo-choice step)
-      const typographyData = this.typographyComponent.prepareTypographyData();
-      if (typographyData) {
-        this.onProjectUpdate(typographyData);
-      }
+  protected async goToNextStep(): Promise<void> {
+    // After completing the "details" step (index 1), create the project in the database
+    if (this.currentStepIndex() === 1 && !this.project().id) {
+      await this.createProjectInDatabase();
     }
 
     if (this.canGoNext()) {
-      let nextIndex = this.currentStepIndex() + 1;
-
-      // If user imported a logo, skip the AI logo generation step (index 5)
-      // and the logo variations step (index 6) — go straight to summary
-      if (this.logoChoice() === 'import') {
-        const nextStep = this.steps[nextIndex];
-        if (nextStep?.id === 'logo' || nextStep?.id === 'variations') {
-          // Skip to the step after variations (summary)
-          const summaryIndex = this.steps.findIndex((s) => s.id === 'summary');
-          if (summaryIndex !== -1) {
-            nextIndex = summaryIndex;
-          }
-        }
-      }
+      const nextIndex = this.currentStepIndex() + 1;
 
       if (nextIndex < this.steps.length) {
         this.navigateToStep(nextIndex);
       } else {
         this.finalizeProject();
       }
+    }
+  }
+
+  /**
+   * Create project in database after details step
+   */
+  private async createProjectInDatabase(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+      const currentProject = this.project();
+
+      const projectId = await this.projectService.createProject(currentProject).toPromise();
+
+      if (projectId) {
+        this.project.update((p: ProjectModel) => ({ ...p, id: projectId }));
+        this.cookieService.set('projectId', projectId);
+        this.saveDraftProject();
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+    } finally {
+      this.isLoading.set(false);
     }
   }
 
@@ -293,6 +306,13 @@ export class CreateProjectComponent implements OnInit {
    * Handle project updates from child components
    */
   protected onProjectUpdate(updates: Partial<ProjectModel>): void {
+    console.log('🟢 onProjectUpdate received:', updates);
+    console.log('🟢 Logo in update:', updates.analysisResultModel?.branding?.logo);
+    console.log(
+      '🟢 Imported colors in update:',
+      updates.analysisResultModel?.branding?.importedLogoColors,
+    );
+
     this.project.update((current) => ({
       ...current,
       ...updates,
@@ -326,6 +346,13 @@ export class CreateProjectComponent implements OnInit {
       // The logo-choice component already emits nextStep for AI
     }
     // For 'import', the logo-choice component handles the flow internally
+  }
+
+  /**
+   * Handle logo import completion status
+   */
+  protected onLogoImportComplete(isComplete: boolean): void {
+    this.logoImportComplete.set(isComplete);
   }
 
   /**

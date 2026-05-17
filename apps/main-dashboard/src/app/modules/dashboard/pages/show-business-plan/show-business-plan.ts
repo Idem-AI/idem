@@ -7,11 +7,20 @@ import { BusinessPlanModel } from '../../models/businessPlan.model';
 import { BusinessPlanDisplayComponent } from './components/business-plan-display/business-plan-display';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { BrandingValidationService } from '../../services/branding-validation.service';
+import { BrandingRequiredBlockerComponent } from '../../components/branding-required-blocker/branding-required-blocker';
+import { ProjectService } from '../../services/project.service';
 
 @Component({
   selector: 'app-show-business-plan',
   standalone: true,
-  imports: [CommonModule, BusinessPlanDisplayComponent, Loader, TranslateModule],
+  imports: [
+    CommonModule,
+    BusinessPlanDisplayComponent,
+    Loader,
+    TranslateModule,
+    BrandingRequiredBlockerComponent,
+  ],
   templateUrl: './show-business-plan.html',
   styleUrls: ['./show-business-plan.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +31,8 @@ export class ShowBusinessPlan implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+  private readonly brandingValidation = inject(BrandingValidationService);
+  private readonly projectService = inject(ProjectService);
 
   // Signals for state management
   protected readonly isLoading = signal<boolean>(true);
@@ -31,16 +42,49 @@ export class ShowBusinessPlan implements OnInit {
   protected readonly errorMessage = signal<string>('');
   protected readonly isRetryable = signal<boolean>(false);
 
+  // Branding validation
+  protected readonly isBrandingComplete = signal<boolean>(false);
+  protected readonly brandingMissingElements = signal<string[]>([]);
+
   ngOnInit(): void {
     // Get project ID from cookies
     const projectId = this.cookieService.get('projectId');
     this.projectIdFromCookie.set(projectId);
 
     if (projectId) {
-      this.loadExistingBusinessPlan(projectId);
+      // First check branding completion
+      this.checkBrandingCompletion(projectId);
     } else {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Check if project branding is complete before loading content
+   */
+  private checkBrandingCompletion(projectId: string): void {
+    this.projectService.getProjectById(projectId).subscribe({
+      next: (project) => {
+        const { isComplete, missingElements } =
+          this.brandingValidation.checkBrandingCompletion(project);
+
+        this.isBrandingComplete.set(isComplete);
+        this.brandingMissingElements.set(missingElements);
+
+        // Only load business plan if branding is complete
+        if (isComplete) {
+          this.loadExistingBusinessPlan(projectId);
+        } else {
+          this.isLoading.set(false);
+        }
+      },
+      error: (error) => {
+        console.error('Error checking branding completion:', error);
+        this.isLoading.set(false);
+        this.hasError.set(true);
+        this.errorMessage.set('Erreur lors de la vérification du projet');
+      },
+    });
   }
 
   /**

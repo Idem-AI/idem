@@ -1,9 +1,8 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { PromptRequest, PromptService } from '../services/prompt.service';
+import { PromptRequest, promptService } from '../services/prompt.service';
 
 class PromptController {
-  constructor(private readonly promptService: PromptService) {}
   async handlePromptRequest(req: CustomRequest, res: Response): Promise<void> {
     try {
       const requestBody: PromptRequest = req.body;
@@ -18,7 +17,7 @@ class PromptController {
       const config = requestBody;
 
       // Pass the runPrompt function from the service to tryGenerateFullJSON
-      const jsonResponse = await this.promptService.runPrompt(config, messages);
+      const jsonResponse = await promptService.runPrompt(config, messages);
       res.status(200).json(jsonResponse);
     } catch (error: any) {
       console.error('Error in PromptController:', error);
@@ -29,4 +28,4 @@ class PromptController {
   }
 }
 
-export const promptController = new PromptController(new PromptService());
+export const promptController = new PromptController();

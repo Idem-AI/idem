@@ -37,9 +37,11 @@
       <p class="text-gray-600 mb-8">
         {{ 'dashboard.showDiagrams.empty.subtitle' | translate }}
       </p>
-      <button class="inner-button" (click)="generateDiagrams()">
-        {{ 'dashboard.showDiagrams.buttons.generate' | translate }}
-      </button>
+      <div class="flex justify-center">
+        <button class="inner-button" (click)="generateDiagrams()">
+          {{ 'dashboard.showDiagrams.buttons.generate' | translate }}
+        </button>
+      </div>
     </div>
   } @else {
     <!-- Empty State - No project ID -->
@@ -65,9 +67,11 @@
       <p class="text-gray-600 mb-4">
         {{ 'dashboard.showDiagrams.empty.noProject.subtitle' | translate }}
       </p>
-      <button class="inner-button" (click)="goToProjects()">
-        {{ 'dashboard.showDiagrams.buttons.selectProject' | translate }}
-      </button>
+      <div class="flex justify-center">
+        <button class="inner-button" (click)="goToProjects()">
+          {{ 'dashboard.showDiagrams.buttons.selectProject' | translate }}
+        </button>
+      </div>
     </div>
   }
 </div>

@@ -82,15 +82,35 @@ class DeployTrafficLoggerJob implements ShouldQueue
 
             ray("Traffic Logger will connect to: {$iDeployPublicUrl}");
 
+            // Get or generate CrowdSec bouncer key for traffic logger
+            $crowdsecBouncerKey = $this->server->crowdsec_bouncer_key ?? '';
+            if (empty($crowdsecBouncerKey)) {
+                try {
+                    $rawOutput = instant_remote_process([
+                        "docker exec crowdsec-live cscli bouncers delete traffic-logger-watcher 2>/dev/null || true",
+                        "docker exec crowdsec-live cscli bouncers add traffic-logger-watcher 2>&1 | grep -oP '(?<=key:\n\n   )\S+' || docker exec crowdsec-live cscli bouncers add traffic-logger-watcher 2>&1"
+                    ], $this->server);
+                    // Extract the API key from cscli output
+                    if (preg_match('/([A-Za-z0-9+\/=]{20,})/', $rawOutput, $matches)) {
+                        $crowdsecBouncerKey = trim($matches[1]);
+                        $this->server->update(['crowdsec_bouncer_key' => $crowdsecBouncerKey]);
+                        ray("✅ Generated and saved new bouncer key");
+                    }
+                } catch (\Exception $e) {
+                    ray("⚠️ Could not generate bouncer key: " . $e->getMessage());
+                }
+            }
+
             instant_remote_process([
                 "docker run -d --name traffic-logger \\
-                    --network ideploy \\
+                    --network coolify \\
                     --restart unless-stopped \\
                     -v /data/ideploy/proxy:/var/log/traefik:ro \\
                     -v /opt/traffic-logger:/app \\
                     -e IDEPLOY_API_URL={$iDeployPublicUrl}/api/internal/traffic-metrics \\
                     -e IDEPLOY_API_KEY={$apiKey} \\
                     -e CROWDSEC_LAPI_URL=http://crowdsec-live:8080 \\
+                    -e CROWDSEC_API_KEY={$crowdsecBouncerKey} \\
                     python:3.11-slim \\
                     sh -c 'cd /app && pip install -r requirements.txt && python logger.py'"
             ], $this->server);

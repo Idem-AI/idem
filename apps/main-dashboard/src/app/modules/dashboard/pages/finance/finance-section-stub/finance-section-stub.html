@@ -1,0 +1,552 @@
+<div class="p-4 md:p-2 space-y-6">
+  <!-- Breadcrumb + header -->
+  <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <nav class="text-xs text-gray-400 mb-2 flex items-center gap-2">
+        <a routerLink="/project/finance" class="hover:text-primary transition-colors">
+          {{ 'dashboard.finance.title' | translate }}
+        </a>
+        <i class="pi pi-chevron-right text-[10px]"></i>
+        <span class="text-white">
+          @if (descriptor()) {
+            {{ descriptor()!.labelKey | translate }}
+          }
+        </span>
+      </nav>
+      <h1 class="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+        @if (descriptor()) {
+          <i [class]="descriptor()!.icon" class="text-primary"></i>
+          {{ descriptor()!.labelKey | translate }}
+        }
+      </h1>
+    </div>
+    @if (descriptor()?.editable) {
+      <div class="flex items-center gap-3">
+        <app-ai-fill-button variant="section" [loading]="aiLoading()" (triggered)="onAutoFill()" />
+        <button class="inner-button button-sm" [disabled]="!dirty() || saving()" (click)="saveSection()">
+          @if (saving()) { <i class="pi pi-spin pi-spinner mr-2"></i> }
+          {{ 'common.save' | translate }}
+        </button>
+      </div>
+    }
+  </header>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center min-h-[40vh]">
+      <div class="inline-block w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+    </div>
+  } @else {
+    <div class="glass-card p-6">
+      <!-- Toolbar for year-based sections -->
+      @if (['salesObjectives', 'amortization', 'compteExploitation', 'bilan', 'fluxTresorerie'].includes(sectionKey())) {
+        <div class="flex items-center gap-2 mb-6">
+          <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold mr-2">Année :</span>
+          <div class="year-tabs">
+            @for (year of yearLabels(); track $index) {
+              <button class="year-tab" [class.active]="selectedYear() === $index" (click)="selectYear($index)">
+                {{ year }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      @switch (sectionKey()) {
+        <!-- ============================================== PRODUCTS ============================================== -->
+        @case ('products') {
+          <div class="mb-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-white">Produits & Services</h3>
+            <button class="outer-button button-sm" (click)="addProduct()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
+          </div>
+          <div class="finance-table-wrap">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  @for (year of yearLabels(); track $index) {
+                    <th class="col-num">Prix {{ year }}</th>
+                    <th class="col-num">Coût Unit. {{ year }}</th>
+                  }
+                  <th class="text-center w-10">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (product of products(); track trackById($index, product)) {
+                  <tr>
+                    <td><input type="text" class="cell-input !text-left !max-w-[200px]" [(ngModel)]="product.name" (ngModelChange)="markDirty()"></td>
+                    @for (year of yearLabels(); track $index) {
+                      <td class="col-num"><input type="number" class="cell-input" [(ngModel)]="product.prices[$index]" (ngModelChange)="markDirty()"></td>
+                      <td class="col-num"><input type="number" class="cell-input" [(ngModel)]="product.unitCosts[$index]" (ngModelChange)="markDirty()"></td>
+                    }
+                    <td class="text-center"><button class="row-action danger" (click)="removeProduct($index)"><i class="pi pi-trash"></i></button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- ============================================== SALES OBJECTIVES ============================================== -->
+        @case ('salesObjectives') {
+          <div class="finance-table-wrap">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  @for (m of yearMonths(); track $index) { <th class="col-num">{{ monthLabel(m) }}</th> }
+                </tr>
+              </thead>
+              <tbody>
+                @for (sale of salesObjectives(); track sale.productId) {
+                  <tr>
+                    <td class="font-semibold">{{ productNameById(sale.productId) }}</td>
+                    @for (m of yearMonths(); track $index) {
+                      <td class="col-num"><input type="number" class="cell-input" [(ngModel)]="sale.monthlyQuantities[m]" (ngModelChange)="markDirty()"></td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- ============================================== VARIABLE CHARGES ============================================== -->
+        @case ('variableCharges') {
+          <div class="mb-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-white">Charges Variables</h3>
+            <button class="outer-button button-sm" (click)="addVariableChargeLine()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
+          </div>
+          <div class="finance-table-wrap mb-8">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Catégorie</th>
+                  <th>Libellé</th>
+                  <th class="col-num">Moyenne / Mois</th>
+                  <th class="text-center w-10">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of variableCharges()?.lines || []; track trackById($index, line)) {
+                  <tr>
+                    <td>
+                      <select class="cell-input !text-left !max-w-[180px]" [(ngModel)]="line.category" (ngModelChange)="markDirty()">
+                        <option value="achatsMatierePremiere">Matières premières</option>
+                        <option value="achatsMarchandises">Marchandises</option>
+                        <option value="sousTraitance">Sous-traitance</option>
+                        <option value="fraisExpedition">Frais d'expédition</option>
+                        <option value="commissions">Commissions</option>
+                        <option value="autresChargesExternes">Autres charges</option>
+                      </select>
+                    </td>
+                    <td><input type="text" class="cell-input !text-left !max-w-[200px]" [(ngModel)]="line.label" (ngModelChange)="markDirty()"></td>
+                    <td class="col-num">
+                      <div class="monthly-scroll max-w-[300px] ml-auto">
+                        @for (m of months(); track $index) {
+                          <input type="number" class="cell-input !w-[80px]" [(ngModel)]="line.monthlyValues[m]" (ngModelChange)="markDirty()">
+                        }
+                      </div>
+                    </td>
+                    <td class="text-center"><button class="row-action danger" (click)="removeVariableChargeLine($index)"><i class="pi pi-trash"></i></button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="param-grid border-t border-white/10 pt-6">
+            <div class="param-field">
+              <label>Taux de dette Fournisseurs (%)</label>
+              <input type="number" [(ngModel)]="variableCharges()!.supplierDebtRatePct" (ngModelChange)="markDirty()">
+            </div>
+          </div>
+        }
+
+        <!-- ============================================== FIXED CHARGES ============================================== -->
+        @case ('fixedCharges') {
+          <div class="mb-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-white">Charges Fixes (Fonctionnement)</h3>
+            <button class="outer-button button-sm" (click)="addFixedChargeLine()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
+          </div>
+          <div class="finance-table-wrap mb-8">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Catégorie</th>
+                  <th>Libellé</th>
+                  <th class="col-num">Valeurs Mensuelles</th>
+                  <th class="text-center w-10">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of fixedCharges()?.lines || []; track trackById($index, line)) {
+                  <tr>
+                    <td>
+                      <select class="cell-input !text-left !max-w-[180px]" [(ngModel)]="line.category" (ngModelChange)="markDirty()">
+                        <option value="locations">Locations</option>
+                        <option value="assurances">Assurances</option>
+                        <option value="honoraires">Honoraires</option>
+                        <option value="marketing">Marketing/Pub</option>
+                        <option value="fraisBancaires">Frais Bancaires</option>
+                        <option value="logiciels">Logiciels/Abo</option>
+                        <option value="autres">Autres</option>
+                      </select>
+                    </td>
+                    <td><input type="text" class="cell-input !text-left !max-w-[200px]" [(ngModel)]="line.label" (ngModelChange)="markDirty()"></td>
+                    <td class="col-num">
+                      <div class="monthly-scroll max-w-[300px] ml-auto">
+                        @for (m of months(); track $index) { <input type="number" class="cell-input !w-[80px]" [(ngModel)]="line.monthlyValues[m]" (ngModelChange)="markDirty()"> }
+                      </div>
+                    </td>
+                    <td class="text-center"><button class="row-action danger" (click)="removeFixedChargeLine($index)"><i class="pi pi-trash"></i></button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mb-4 flex justify-between items-center border-t border-white/10 pt-6">
+            <h3 class="text-lg font-semibold text-white">Salaires & Personnel</h3>
+            <button class="outer-button button-sm" (click)="addSalary()"><i class="pi pi-plus mr-2"></i> Ajouter Salaire</button>
+          </div>
+          <div class="finance-table-wrap mb-8">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Poste</th>
+                  <th class="col-num">Salaire Brut Mensuel</th>
+                  <th class="text-center w-10">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (salary of fixedCharges()?.salaries || []; track trackById($index, salary)) {
+                  <tr>
+                    <td><input type="text" class="cell-input !text-left !max-w-[200px]" [(ngModel)]="salary.position" (ngModelChange)="markDirty()"></td>
+                    <td class="col-num">
+                      <div class="monthly-scroll max-w-[300px] ml-auto">
+                        @for (m of months(); track $index) { <input type="number" class="cell-input !w-[80px]" [(ngModel)]="salary.monthlyValues[m]" (ngModelChange)="markDirty()"> }
+                      </div>
+                    </td>
+                    <td class="text-center"><button class="row-action danger" (click)="removeSalary($index)"><i class="pi pi-trash"></i></button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="param-grid border-t border-white/10 pt-6">
+            <div class="param-field">
+              <label>Taux Charges Patronales (%)</label>
+              <input type="number" [(ngModel)]="fixedCharges()!.socialChargesRatePct" (ngModelChange)="markDirty()">
+            </div>
+            <div class="param-field">
+              <label>Taux TUS (%)</label>
+              <input type="number" [(ngModel)]="fixedCharges()!.tusRatePct" (ngModelChange)="markDirty()">
+            </div>
+          </div>
+        }
+        <!-- ============================================== INVESTMENTS ============================================== -->
+        @case ('investments') {
+          <div class="mb-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-white">Investissements (CAPEX)</h3>
+            <button class="outer-button button-sm" (click)="addInvestment()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
+          </div>
+          <div class="finance-table-wrap">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Catégorie</th>
+                  <th>Amortissement</th>
+                  <th>Libellé</th>
+                  <th class="col-num">Décaissements Mensuels</th>
+                  <th class="text-center w-10">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (inv of investments(); track trackById($index, inv)) {
+                  <tr>
+                    <td>
+                      <select class="cell-input !text-left !max-w-[150px]" [(ngModel)]="inv.category" (ngModelChange)="markDirty()">
+                        <option value="logiciels">Logiciels</option>
+                        <option value="materielInfo">Matériel Info.</option>
+                        <option value="mobilier">Mobilier</option>
+                        <option value="amenagements">Aménagements</option>
+                        <option value="vehicules">Véhicules</option>
+                        <option value="brevets">Brevets/Marques</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cell-input !text-left !max-w-[140px]" [(ngModel)]="inv.amortGroup" (ngModelChange)="markDirty()">
+                        <option value="incorporelles">Incorporelles</option>
+                        <option value="corporelles">Corporelles</option>
+                        <option value="nonAmortissable">Non Amort.</option>
+                      </select>
+                    </td>
+                    <td><input type="text" class="cell-input !text-left !max-w-[150px]" [(ngModel)]="inv.label" (ngModelChange)="markDirty()"></td>
+                    <td class="col-num">
+                      <div class="monthly-scroll max-w-[250px] ml-auto">
+                        @for (m of months(); track $index) { <input type="number" class="cell-input !w-[80px]" [(ngModel)]="inv.monthlyValues[m]" (ngModelChange)="markDirty()"> }
+                      </div>
+                    </td>
+                    <td class="text-center"><button class="row-action danger" (click)="removeInvestment($index)"><i class="pi pi-trash"></i></button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- ============================================== FINANCING ============================================== -->
+        @case ('financing') {
+          <div class="financing-cards">
+            <!-- Apports -->
+            <div class="glass p-4 rounded-xl">
+              <h4 class="font-bold mb-4 text-primary">Apports</h4>
+              <div class="space-y-4">
+                <div class="param-field">
+                  <label>Capital Social</label>
+                  <input type="number" [(ngModel)]="financing()!.apportCapital" (ngModelChange)="markDirty()">
+                </div>
+                <div class="param-field">
+                  <label>Comptes Courants Associés</label>
+                  <input type="number" [(ngModel)]="financing()!.compteCourantAssocies.amount" (ngModelChange)="markDirty()">
+                </div>
+                <div class="param-field">
+                  <label>Subventions d'Investissement</label>
+                  <input type="number" [(ngModel)]="financing()!.subvention" (ngModelChange)="markDirty()">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Emprunt -->
+            <div class="glass p-4 rounded-xl">
+              <h4 class="font-bold mb-4 text-primary">Emprunt Bancaire (CMT)</h4>
+              <div class="space-y-4">
+                <div class="param-field">
+                  <label>Montant Emprunté</label>
+                  <input type="number" [(ngModel)]="financing()!.cmt.amount" (ngModelChange)="markDirty()">
+                </div>
+                <div class="param-field">
+                  <label>Taux d'Intérêt Annuel (%)</label>
+                  <input type="number" [(ngModel)]="financing()!.cmt.ratePct" (ngModelChange)="markDirty()">
+                </div>
+                <div class="param-field">
+                  <label>Durée (Mois)</label>
+                  <input type="number" [(ngModel)]="financing()!.cmt.duration" (ngModelChange)="markDirty()">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Autres -->
+            <div class="glass p-4 rounded-xl">
+              <h4 class="font-bold mb-4 text-primary">Crédit-Bail</h4>
+              <div class="space-y-4">
+                <div class="param-field">
+                  <label>Montant</label>
+                  <input type="number" [(ngModel)]="financing()!.creditBail.amount" (ngModelChange)="markDirty()">
+                </div>
+                <div class="param-field">
+                  <label>Durée (Mois)</label>
+                  <input type="number" [(ngModel)]="financing()!.creditBail.duration" (ngModelChange)="markDirty()">
+                </div>
+                <div class="param-field">
+                  <label>Taux (%)</label>
+                  <input type="number" [(ngModel)]="financing()!.creditBail.ratePct" (ngModelChange)="markDirty()">
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ============================================== PARAMS (Revenue, Taxes, Ratios) ============================================== -->
+        @case ('revenueParams') {
+          <div class="param-grid">
+            <div class="param-field">
+              <label>Taux de Créances Clients (%)</label>
+              <input type="number" [(ngModel)]="revenueParams()!.clientReceivablesRatePct" (ngModelChange)="markDirty()">
+            </div>
+          </div>
+        }
+        @case ('taxesParams') {
+          <div class="param-grid">
+            <div class="param-field">
+              <label>Régime Fiscal</label>
+              <select [(ngModel)]="taxesParams()!.regimeType" (ngModelChange)="markDirty()">
+                <option value="reel">Réel</option>
+                <option value="forfait">Forfaitaire</option>
+                <option value="auto">Auto-entrepreneur</option>
+              </select>
+            </div>
+            <div class="param-field">
+              <label>Taux Impôt sur les Sociétés (IS) (%)</label>
+              <input type="number" [(ngModel)]="taxesParams()!.isRatePct" (ngModelChange)="markDirty()">
+            </div>
+          </div>
+        }
+        @case ('ratiosParams') {
+          <div class="param-grid">
+            <div class="param-field">
+              <label>Taux d'Actualisation (VAN) (%)</label>
+              <input type="number" [(ngModel)]="ratiosParams()!.vanDiscountRatePct" (ngModelChange)="markDirty()">
+            </div>
+            <div class="param-field">
+              <label>Taux de Croissance Perpétuelle (%)</label>
+              <input type="number" [(ngModel)]="ratiosParams()!.perpetualGrowthRatePct" (ngModelChange)="markDirty()">
+            </div>
+            <div class="param-field">
+              <label>Taux de Distribution des Dividendes (%)</label>
+              <input type="number" [(ngModel)]="ratiosParams()!.dividendDistributionRatePct" (ngModelChange)="markDirty()">
+            </div>
+            <div class="param-field">
+              <label>CMPC / WACC (%)</label>
+              <input type="number" [(ngModel)]="ratiosParams()!.cmpcPct" (ngModelChange)="markDirty()">
+            </div>
+          </div>
+        }
+
+        <!-- ============================================== COMPUTED SECTIONS (Read Only) ============================================== -->
+        @case ('amortization') {
+          <div class="finance-table-wrap">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Catégorie</th>
+                  <th>Groupe</th>
+                  <th class="col-num">Base</th>
+                  <th class="col-num">Taux</th>
+                  <th class="col-num">Dotation {{ yearLabels()[selectedYear()] }}</th>
+                  <th class="col-num">Cumul</th>
+                  <th class="col-num">VNA</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (amort of computedData()?.amortization?.rows || []; track trackByCategory($index, amort)) {
+                  <tr>
+                    <td>{{ amort.category }}</td>
+                    <td>-</td>
+                    <td class="col-num">{{ formatCurrency(amort.base) }}</td>
+                    <td class="col-num">{{ formatPercent(amort.ratePct) }}</td>
+                    <td class="col-num">{{ formatCurrency(amort.annualDotations[selectedYear()]) }}</td>
+                    <td class="col-num text-gray-400">{{ formatCurrency(amort.cumulative[selectedYear()]) }}</td>
+                    <td class="col-num text-white">{{ formatCurrency(amort.vna[selectedYear()]) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('compteExploitation') {
+          <div class="finance-table-wrap">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Rubrique</th>
+                  <th class="col-num">{{ yearLabels()[selectedYear()] }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (computedData()?.compteExploitation; as plArr) {
+                  @if (plArr[selectedYear()]; as pl) {
+                    <tr><td>Chiffre d'Affaires</td><td class="col-num val-positive">{{ formatCurrency(pl.chiffreAffaires) }}</td></tr>
+                    <tr><td>Charges Variables</td><td class="col-num val-negative">{{ formatCurrency(pl.chargesVariables) }}</td></tr>
+                    <tr class="row-total"><td>Marge sur Coûts Variables</td><td class="col-num">{{ formatCurrency(pl.margeBrute) }}</td></tr>
+                    <tr><td>Charges Fixes (hors salaires)</td><td class="col-num val-negative">{{ formatCurrency(pl.chargesFixes) }}</td></tr>
+                    <tr><td>Salaires et Charges</td><td class="col-num val-negative">{{ formatCurrency(pl.remunerations) }}</td></tr>
+                    <tr class="row-total"><td>EBE (EBITDA)</td><td class="col-num">{{ formatCurrency(pl.ebe) }}</td></tr>
+                    <tr><td>Dotations aux Amortissements</td><td class="col-num val-negative">{{ formatCurrency(pl.dotationsAmortissements) }}</td></tr>
+                    <tr class="row-total"><td>Résultat d'Exploitation (EBIT)</td><td class="col-num">{{ formatCurrency(pl.resultatExploitation) }}</td></tr>
+                    <tr><td>Charges Financières</td><td class="col-num val-negative">{{ formatCurrency(pl.chargesFinancieres) }}</td></tr>
+                    <tr><td>Impôt sur les Sociétés</td><td class="col-num val-negative">{{ formatCurrency(pl.is) }}</td></tr>
+                    <tr class="row-total text-primary"><td class="text-base">RÉSULTAT NET</td><td class="col-num text-base font-bold">{{ formatCurrency(pl.resultatNet) }}</td></tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('bilan') {
+          <div class="grid md:grid-cols-2 gap-6">
+            <!-- Actif -->
+            <div class="finance-table-wrap">
+              <h4 class="font-bold mb-3 text-white">ACTIF</h4>
+              <table class="finance-table">
+                <tbody>
+                  @if (computedData()?.bilan; as bsArr) {
+                    @if (bsArr[selectedYear()]; as bs) {
+                      <tr><td>Actif Immobilisé Net</td><td class="col-num">{{ formatCurrency(bs.vnc) }}</td></tr>
+                      <tr><td>Créances Clients</td><td class="col-num">{{ formatCurrency(bs.creancesClients) }}</td></tr>
+                      <tr><td>Stocks</td><td class="col-num">{{ formatCurrency(bs.stocks) }}</td></tr>
+                      <tr><td>Trésorerie Disponible</td><td class="col-num">{{ formatCurrency(bs.tresorerie) }}</td></tr>
+                      <tr class="row-total"><td>TOTAL ACTIF</td><td class="col-num text-primary">{{ formatCurrency(bs.totalActif) }}</td></tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+            <!-- Passif -->
+            <div class="finance-table-wrap">
+              <h4 class="font-bold mb-3 text-white">PASSIF</h4>
+              <table class="finance-table">
+                <tbody>
+                  @if (computedData()?.bilan; as bsArr) {
+                    @if (bsArr[selectedYear()]; as bs) {
+                      <tr><td>Capitaux Propres</td><td class="col-num">{{ formatCurrency(bs.fondsPropres) }}</td></tr>
+                      <tr><td>Emprunts</td><td class="col-num">{{ formatCurrency(bs.emprunts) }}</td></tr>
+                      <tr><td>Dettes Fournisseurs</td><td class="col-num">{{ formatCurrency(bs.dettesFournisseurs) }}</td></tr>
+                      <tr><td>Dettes Fiscales/Sociales</td><td class="col-num">{{ formatCurrency(bs.dettesFiscalesSociales) }}</td></tr>
+                      <tr class="row-total"><td>TOTAL PASSIF</td><td class="col-num text-primary">{{ formatCurrency(bs.totalPassif) }}</td></tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+        @case ('fluxTresorerie') {
+          <div class="finance-table-wrap">
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Rubrique</th>
+                  <th class="col-num">{{ yearLabels()[selectedYear()] }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (computedData()?.fluxTresorerie; as cfArr) {
+                  @if (cfArr[selectedYear()]; as cf) {
+                    <tr><td>Trésorerie Ouverture</td><td class="col-num">{{ formatCurrency(cf.tresorerieOuverture) }}</td></tr>
+                    <tr class="row-total"><td>Flux net d'Exploitation</td><td class="col-num val-positive">{{ formatCurrency(cf.fluxExploitation) }}</td></tr>
+                    <tr><td>Flux Investissement (CAPEX)</td><td class="col-num val-negative">{{ formatCurrency(cf.fluxInvestissement) }}</td></tr>
+                    <tr><td>Flux Financement</td><td class="col-num val-positive">{{ formatCurrency(cf.fluxFinancement) }}</td></tr>
+                    <tr class="row-total"><td>Variation de Trésorerie nette</td><td class="col-num">{{ formatCurrency(cf.variationTresorerie) }}</td></tr>
+                    <tr class="row-total text-primary"><td class="text-base">Trésorerie Fin de Période</td><td class="col-num text-base">{{ formatCurrency(cf.tresorerieCloture) }}</td></tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('ratios') {
+          <div class="grid md:grid-cols-3 gap-6">
+            @if (computedData()?.ratios; as ratios) {
+              <div class="glass p-5 rounded-xl text-center">
+                <div class="text-xs text-gray-400 uppercase tracking-wide mb-2">Valeur Actuelle Nette (VAN)</div>
+                <div class="text-2xl font-bold text-white">{{ formatCurrency(ratios.van) }}</div>
+              </div>
+              <div class="glass p-5 rounded-xl text-center">
+                <div class="text-xs text-gray-400 uppercase tracking-wide mb-2">Taux de Rentabilité Interne (TRI)</div>
+                <div class="text-2xl font-bold text-white">{{ formatPercent(ratios.tri) }}</div>
+              </div>
+              <div class="glass p-5 rounded-xl text-center">
+                <div class="text-xs text-gray-400 uppercase tracking-wide mb-2">Délai de Récupération (DRCI)</div>
+                <div class="text-2xl font-bold text-white">{{ ratios.drci }} ans</div>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

@@ -29,25 +29,9 @@ const router = Router();
  *         remainingWeekly:
  *           type: integer
  *           description: Remaining requests for this week
- *         isBeta:
- *           type: boolean
- *           description: Whether beta mode is active
- *
- *     BetaInfo:
- *       type: object
- *       properties:
- *         isBeta:
- *           type: boolean
- *           description: Whether beta mode is active
  *         limitations:
  *           type: string
- *           description: Beta limitations message
- *         restrictions:
- *           type: object
- *           description: Beta restrictions configuration
- *         quotaLimits:
- *           type: object
- *           description: Current quota limits
+ *           description: System limitations message
  *
  *     UsageStats:
  *       type: object
@@ -74,11 +58,8 @@ const router = Router();
  *               type: integer
  *             percentage:
  *               type: integer
- *         isBeta:
- *           type: boolean
- *         betaLimitations:
+ *         limitations:
  *           type: string
- *           nullable: true
  */
 
 /**
@@ -100,13 +81,7 @@ const router = Router();
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: object
- *                   properties:
- *                     quota:
- *                       $ref: '#/components/schemas/QuotaInfo'
- *                     beta:
- *                       $ref: '#/components/schemas/BetaInfo'
- *                       nullable: true
+ *                   $ref: '#/components/schemas/QuotaInfo'
  *       401:
  *         description: Authentication required
  *       500:
@@ -148,8 +123,6 @@ router.get('/info', authenticate, (req: Request, res: Response) =>
  *                       nullable: true
  *                     limits:
  *                       type: object
- *                     isBeta:
- *                       type: boolean
  *       401:
  *         description: Authentication required
  *       500:
@@ -161,47 +134,13 @@ router.get('/check', authenticate, (req: Request, res: Response) =>
 
 /**
  * @swagger
- * /quota/beta:
+ * /quota/system-info:
  *   get:
- *     summary: Get beta restrictions and limitations
+ *     summary: Get system restrictions and limitations
  *     tags: [Quota]
  *     responses:
  *       200:
- *         description: Beta information retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/BetaInfo'
- *       500:
- *         description: Internal server error
- */
-router.get('/beta', authenticate, (req: Request, res: Response) =>
-  quotaController.getBetaInfo(req as any, res)
-);
-
-/**
- * @swagger
- * /quota/validate/{featureName}:
- *   get:
- *     summary: Validate if a feature is available for the user
- *     tags: [Quota]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: featureName
- *         required: true
- *         schema:
- *           type: string
- *         description: Name of the feature to validate
- *     responses:
- *       200:
- *         description: Feature validation completed
+ *         description: System information retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -211,32 +150,11 @@ router.get('/beta', authenticate, (req: Request, res: Response) =>
  *                   type: boolean
  *                 data:
  *                   type: object
- *                   properties:
- *                     featureAllowed:
- *                       type: boolean
- *                     featureMessage:
- *                       type: string
- *                       nullable: true
- *                     quotaAllowed:
- *                       type: boolean
- *                     quotaMessage:
- *                       type: string
- *                       nullable: true
- *                     remainingDaily:
- *                       type: integer
- *                     remainingWeekly:
- *                       type: integer
- *                     isBeta:
- *                       type: boolean
- *       400:
- *         description: Feature name is required
- *       401:
- *         description: Authentication required
  *       500:
  *         description: Internal server error
  */
-router.get('/validate/:featureName', authenticate, (req: Request, res: Response) =>
-  quotaController.validateFeature(req as any, res)
+router.get('/system-info', authenticate, (req: Request, res: Response) =>
+  quotaController.getSystemInfo(req as any, res)
 );
 
 /**

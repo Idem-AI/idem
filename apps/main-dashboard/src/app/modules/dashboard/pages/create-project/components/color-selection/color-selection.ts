@@ -1,7 +1,7 @@
 import { Component, input, output, signal, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
 import { Subject, takeUntil } from 'rxjs';
@@ -93,6 +93,13 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Détecte si on vient du workflow import logo
+   */
+  private isFromLogoImport(): boolean {
+    return !!this.project().analysisResultModel?.branding?.importedLogoColors;
+  }
+
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
@@ -104,56 +111,97 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
     this.generationProgress.set(0);
 
     try {
-      // Use actual service call instead of mockups
-      this.brandingService
-        .generateColorsAndTypography(this.project())
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (response) => {
-            console.log('Colors and typography generated:', response);
-            this.colorPalettes.set(response.colors);
-            this.typographyOptions.set(response.typography);
-            this.colorsGenerated.emit(response.colors);
+      // Détecter le workflow : import logo ou normal
+      const isFromImport = this.isFromLogoImport();
 
-            // Emit typography as well
-            this.typographyGenerated.emit(response.typography);
+      if (isFromImport) {
+        // Workflow import logo : utiliser generateColorsAndTypographyFromLogo
+        const logoSvg = this.project().analysisResultModel?.branding?.logo?.svg;
+        const logoColors = this.project().analysisResultModel?.branding?.importedLogoColors;
 
-            // Emit both colors and typography together
-            this.colorsAndTypographyGenerated.emit({
-              colors: response.colors,
-              typography: response.typography,
-              project: this.project(),
-            });
+        console.log('Generating colors from imported logo:', logoColors);
 
-            // Update project with both colors and typography
-            this.projectUpdate.emit({
-              id: response.project.id, // Include the project ID from the response
-              analysisResultModel: {
-                ...this.project().analysisResultModel,
-                branding: {
-                  ...this.project().analysisResultModel?.branding,
-                  generatedColors: response.colors,
-                  generatedTypography: response.typography,
-                },
-              },
-            });
+        this.brandingService
+          .generateColorsAndTypographyFromLogo(this.project(), logoSvg!, logoColors!)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (response) => {
+              console.log('Colors and typography from logo generated:', response);
+              this.handleGenerationResponse(response);
+            },
+            error: (error) => {
+              console.error('Error generating colors from logo:', error);
+              this.error.set(
+                this.translate.instant('dashboard.colorSelection.errors.generationFailed'),
+              );
+              this.isGenerating.set(false);
+            },
+          });
+      } else {
+        // Workflow normal : utiliser generateColorsAndTypography
+        console.log('Generating colors normally');
 
-            this.hasGenerated.set(true);
-            this.isGenerating.set(false);
-          },
-          error: (error) => {
-            console.error('Error generating colors and typography:', error);
-            this.error.set(
-              this.translate.instant('dashboard.colorSelection.errors.generationFailed'),
-            );
-            this.isGenerating.set(false);
-          },
-        });
+        this.brandingService
+          .generateColorsAndTypography(this.project())
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (response) => {
+              console.log('Colors and typography generated:', response);
+              this.handleGenerationResponse(response);
+            },
+            error: (error) => {
+              console.error('Error generating colors and typography:', error);
+              this.error.set(
+                this.translate.instant('dashboard.colorSelection.errors.generationFailed'),
+              );
+              this.isGenerating.set(false);
+            },
+          });
+      }
     } catch (error) {
       console.error('Error in color generation:', error);
       this.error.set(this.translate.instant('dashboard.colorSelection.errors.generationFailed'));
       this.isGenerating.set(false);
     }
+  }
+
+  /**
+   * Gère la réponse de génération (commune aux deux workflows)
+   */
+  private handleGenerationResponse(response: {
+    colors: ColorModel[];
+    typography: TypographyModel[];
+    project: ProjectModel;
+  }): void {
+    this.colorPalettes.set(response.colors);
+    this.typographyOptions.set(response.typography);
+    this.colorsGenerated.emit(response.colors);
+
+    // Emit typography as well
+    this.typographyGenerated.emit(response.typography);
+
+    // Emit both colors and typography together
+    this.colorsAndTypographyGenerated.emit({
+      colors: response.colors,
+      typography: response.typography,
+      project: this.project(),
+    });
+
+    // Update project with both colors and typography
+    this.projectUpdate.emit({
+      id: response.project.id, // Include the project ID from the response
+      analysisResultModel: {
+        ...this.project().analysisResultModel,
+        branding: {
+          ...this.project().analysisResultModel?.branding,
+          generatedColors: response.colors,
+          generatedTypography: response.typography,
+        },
+      },
+    });
+
+    this.hasGenerated.set(true);
+    this.isGenerating.set(false);
   }
 
   protected selectColor(colorId: string): void {

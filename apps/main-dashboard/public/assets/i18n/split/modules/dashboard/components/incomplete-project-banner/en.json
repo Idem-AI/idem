@@ -1,0 +1,14 @@
+{
+  "dashboard": {
+    "incompleteBanner": {
+      "title": "Complete Your Brand Identity",
+      "description": "To unlock all features, please complete your brand identity by adding the missing elements below.",
+      "elements": {
+        "logo": "Logo",
+        "colors": "Colors",
+        "typography": "Typography"
+      },
+      "completeButton": "Complete Brand Identity"
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { Component, inject, input } from '@angular/core';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { CookieService } from '../../../../shared/services/cookie.service';

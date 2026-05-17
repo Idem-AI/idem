@@ -2,6 +2,7 @@ export interface LogoModel {
   id: string;
   name: string;
   svg: string; // Main SVG logo (default full version)
+  iconSvg?: string; // Icon-only SVG (used for variations generation)
   concept: string; // Branding story or meaning behind the logo
   colors: string[]; // Array of HEX color codes used in the logo
   fonts: string[]; // Fonts used in the logo (if any)

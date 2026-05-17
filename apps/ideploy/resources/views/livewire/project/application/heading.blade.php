@@ -1,7 +1,7 @@
 <nav wire:poll.10000ms="checkStatus" class="pb-6">
     <x-resources.breadcrumbs :resource="$application" :parameters="$parameters" :title="$lastDeploymentInfo" :lastDeploymentLink="$lastDeploymentLink" />
-    <div class="navbar-main">
-        <nav class="flex shrink-0 gap-3 items-center whitespace-nowrap scrollbar min-h-10">
+    <div class="flex items-center justify-between gap-4 flex-wrap">
+        <nav class="flex shrink-0 gap-6 items-center whitespace-nowrap scrollbar min-h-10">
             <a class="nav-link {{ request()->routeIs('project.application.configuration') ? 'nav-link-active' : '' }}"
                 href="{{ route('project.application.configuration', $parameters) }}">
                 Configuration
@@ -136,7 +136,7 @@
                                 <path stroke="none" d="M0 0h24v24H0z" fill="none" />
                                 <path d="M7 4v16l13 -8z" />
                             </svg>
-                            <span>▶️ DEPLOY</span>
+                            <span>DEPLOY</span>
                             <span wire:loading wire:target="deploy" class="ml-1">
                                 <svg class="w-4 h-4 inline-block animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>

@@ -58,8 +58,8 @@ class PollTrafficLoggerJob implements ShouldQueue
     
     private function collectTrafficLogs(): array
     {
-        // Collecter les logs des 2 dernières minutes
-        $since = now()->subMinutes(2)->format('Y-m-d H:i:s');
+        // Collecter les logs des 2 dernières minutes (format ISO8601 requis par Docker)
+        $since = now()->subMinutes(2)->utc()->format('Y-m-d\TH:i:s') . 'Z';
         
         $command = "docker logs traffic-logger --since '{$since}' 2>/dev/null | grep 'TRAFFIC_LOG:' | tail -100";
         
@@ -96,23 +96,23 @@ class PollTrafficLoggerJob implements ShouldQueue
     {
         $controller = new TrafficLoggerController();
         
-        // Grouper par app_uuid pour batch insert
-        $logsByApp = [];
+        // Grouper par host (le X-App-UUID n'est pas accessible en ForwardAuth)
+        $logsByHost = [];
         foreach ($logs as $log) {
-            $appUuid = $log['app_uuid'] ?? 'unknown';
-            if (!isset($logsByApp[$appUuid])) {
-                $logsByApp[$appUuid] = [];
+            $host = $log['host'] ?? 'unknown';
+            if (!isset($logsByHost[$host])) {
+                $logsByHost[$host] = [];
             }
-            $logsByApp[$appUuid][] = $log;
+            $logsByHost[$host][] = $log;
         }
         
-        // Traiter chaque app séparément
-        foreach ($logsByApp as $appUuid => $appLogs) {
+        // Traiter chaque host séparément
+        foreach ($logsByHost as $host => $hostLogs) {
             try {
-                $controller->storeBatch($appUuid, $appLogs);
-                ray("Stored " . count($appLogs) . " logs for app {$appUuid}");
+                $controller->storeBatchByHost($host, $hostLogs);
+                ray("Stored " . count($hostLogs) . " logs for host {$host}");
             } catch (\Exception $e) {
-                ray("Failed to store logs for app {$appUuid}: " . $e->getMessage());
+                ray("Failed to store logs for host {$host}: " . $e->getMessage());
             }
         }
     }

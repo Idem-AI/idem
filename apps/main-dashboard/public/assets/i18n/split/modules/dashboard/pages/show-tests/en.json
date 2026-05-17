@@ -1,3 +1,7 @@
 {
-  "works": "Show tests works!"
+  "dashboard": {
+    "showTests": {
+      "works": "Show tests works!"
+    }
+  }
 }

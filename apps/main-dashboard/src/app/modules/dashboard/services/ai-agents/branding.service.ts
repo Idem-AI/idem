@@ -4,7 +4,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
-import { ProjectModel } from '../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
@@ -136,13 +136,7 @@ export class BrandingService {
     return this.http
       .post<{
         logos: LogoModel[];
-      }>(`${this.apiUrl}/generate/logo-concepts/${projectId}`, {
-        selectedColors: selectedColor,
-        selectedTypography: selectedTypography,
-        logoType: preferences.type,
-        useAIGeneration: preferences.useAIGeneration,
-        customDescription: preferences.customDescription,
-      })
+      }>(`${this.apiUrl}/generate/logo-concepts/${projectId}`, {})
       .pipe(
         tap((response) => console.log('generateLogosWithPreferences response:', response)),
         catchError((error) => {

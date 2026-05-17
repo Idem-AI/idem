@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { ProjectModel } from '../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 
 @Injectable({
   providedIn: 'root',
