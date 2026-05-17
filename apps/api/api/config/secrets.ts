@@ -71,14 +71,16 @@ export async function loadSecrets(): Promise<void> {
   if (loaded) return;
   loaded = true;
 
+  // Always load local .env first to populate host configuration
+  // and support local overrides for Secret Manager variables.
+  loadFromDotenv();
+
   const useSecretManager =
     process.env.USE_SECRET_MANAGER === 'true' ||
     (process.env.NODE_ENV === 'production' && process.env.USE_SECRET_MANAGER !== 'false');
 
   if (useSecretManager) {
     await loadFromSecretManager();
-  } else {
-    loadFromDotenv();
   }
 
   validateRequired();
@@ -125,10 +127,14 @@ async function loadFromSecretManager(): Promise<void> {
   const results = await Promise.allSettled(
     allNames.map(async (name) => {
       const secretId = `${SECRET_PREFIX}${name}`;
-      const resourceName = `projects/${projectId}/secrets/${secretId}/versions/latest`;
-      const [version] = await client.accessSecretVersion({ name: resourceName });
-      const payload = version.payload?.data?.toString();
-      return { name, payload };
+      try {
+        const resourceName = `projects/${projectId}/secrets/${secretId}/versions/latest`;
+        const [version] = await client.accessSecretVersion({ name: resourceName });
+        const payload = version.payload?.data?.toString();
+        return { name, payload, secretId };
+      } catch (error: any) {
+        throw { name, secretId, error };
+      }
     })
   );
 
@@ -142,8 +148,8 @@ async function loadFromSecretManager(): Promise<void> {
       }
       loadedCount++;
     } else if (r.status === 'rejected') {
-      // We do not log the secret name at error level to avoid disclosing config.
-      console.warn('[secrets] Failed to fetch a secret from Secret Manager.');
+      const { name, secretId, error } = r.reason as { name: string; secretId: string; error: any };
+      console.warn(`[secrets] Failed to fetch secret "${secretId}" (${name}) from Secret Manager:`, error?.message || error);
     }
   }
 
