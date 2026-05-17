@@ -16,7 +16,7 @@ import logger from '../config/logger';
  */
 export const getFinanceController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -46,7 +46,7 @@ export const getFinanceSummaryController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -76,7 +76,7 @@ export const replaceFinanceController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -120,7 +120,8 @@ export const updateFinanceSectionController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId, section } = req.params;
+  const projectId = req.params.projectId as string;
+  const section = req.params.section as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -161,7 +162,7 @@ export const appendAISuggestionsController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -196,7 +197,7 @@ export const recomputeFinanceController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -250,7 +251,8 @@ export const simulateFinanceController = async (
  */
 export const aiFillSectionController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId, section } = req.params;
+  const projectId = req.params.projectId as string;
+  const section = req.params.section as string;
   const ALLOWED: AISectionKey[] = [
     'products',
     'salesObjectives',
@@ -296,7 +298,7 @@ export const aiFillSectionController = async (req: CustomRequest, res: Response)
  */
 export const aiFillAllController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -325,7 +327,7 @@ export const parseChatIntentController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const { message } = req.body || {};
   try {
     if (!userId) {
@@ -354,7 +356,7 @@ export const applyChatIntentController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -393,7 +395,7 @@ export const generateFinancePdfController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -428,7 +430,7 @@ export const generateFinancePdfController = async (
  */
 export const deleteFinanceController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });

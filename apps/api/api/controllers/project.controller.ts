@@ -409,7 +409,7 @@ class ProjectController {
         return;
       }
 
-      const project = await projectService.getUserProjectById(userId, projectId);
+      const project = await projectService.getUserProjectById(userId, projectId as string);
 
       if (!project) {
         logger.warn(
