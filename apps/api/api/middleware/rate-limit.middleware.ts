@@ -21,15 +21,31 @@ class RateLimiter {
   private redisClient: Redis | null = null;
   private fallbackStore: Map<string, { count: number; resetTime: number }> = new Map();
   private isRedisAvailable = false;
+  private isInitialized = false;
 
-  constructor() {
-    this.initializeRedis();
-  }
+  constructor() {}
 
-  private async initializeRedis() {
+  private initializeRedis() {
+    if (this.isInitialized) return;
+    this.isInitialized = true;
+
     try {
-      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-      this.redisClient = new Redis(redisUrl);
+      const redisHost = process.env.REDIS_HOST || 'localhost';
+      const redisPort = process.env.REDIS_PORT || '6379';
+      const redisPassword = process.env.REDIS_PASSWORD;
+      
+      let redisUrl = process.env.REDIS_URL;
+      if (!redisUrl) {
+        if (redisPassword) {
+          redisUrl = `redis://:${redisPassword}@${redisHost}:${redisPort}`;
+        } else {
+          redisUrl = `redis://${redisHost}:${redisPort}`;
+        }
+      }
+
+      this.redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 3,
+      });
 
       this.redisClient.on('error', (err: Error) => {
         logger.error('Redis Client Error:', err);
@@ -50,6 +66,7 @@ class RateLimiter {
    * Check and increment rate limit
    */
   async checkLimit(key: string, config: RateLimitConfig): Promise<RateLimitInfo> {
+    this.initializeRedis();
     const now = Date.now();
     const windowStart = now - config.windowMs;
     const resetTime = now + config.windowMs;
@@ -155,6 +172,7 @@ class RateLimiter {
    * Reset rate limit for a key
    */
   async resetLimit(key: string, prefix: string): Promise<void> {
+    this.initializeRedis();
     if (this.isRedisAvailable && this.redisClient) {
       await this.redisClient.del(`${prefix}:${key}`);
     } else {
