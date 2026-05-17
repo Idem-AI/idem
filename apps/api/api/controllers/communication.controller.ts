@@ -33,7 +33,7 @@ function requireAuth(req: CustomRequest, res: Response): string | null {
 }
 
 function requireProjectId(req: CustomRequest, res: Response): string | null {
-  const projectId = req.params.projectId;
+  const projectId = req.params.projectId as string;
   if (!projectId) {
     res.status(400).json({ message: 'Project ID is required' });
     return null;
@@ -197,7 +197,7 @@ export const updateCalendarItemController = async (
   if (!userId) return;
   const projectId = requireProjectId(req, res);
   if (!projectId) return;
-  const contentId = req.params.contentId;
+  const contentId = req.params.contentId as string;
   if (!contentId) {
     res.status(400).json({ message: 'Content ID is required' });
     return;
@@ -232,7 +232,7 @@ export const generateFlyerController = async (
   if (!userId) return;
   const projectId = requireProjectId(req, res);
   if (!projectId) return;
-  const contentId = req.params.contentId;
+  const contentId = req.params.contentId as string;
   if (!contentId) {
     res.status(400).json({ message: 'Content ID is required' });
     return;
@@ -264,7 +264,7 @@ export const regenerateFlyerController = async (
   if (!userId) return;
   const projectId = requireProjectId(req, res);
   if (!projectId) return;
-  const contentId = req.params.contentId;
+  const contentId = req.params.contentId as string;
   if (!contentId) {
     res.status(400).json({ message: 'Content ID is required' });
     return;
@@ -290,7 +290,7 @@ export const getFlyerImageController = async (
 ): Promise<void> => {
   const projectId = requireProjectId(req, res);
   if (!projectId) return;
-  const flyerId = req.params.flyerId;
+  const flyerId = req.params.flyerId as string;
   if (!flyerId) {
     res.status(400).json({ message: 'Flyer ID is required' });
     return;
