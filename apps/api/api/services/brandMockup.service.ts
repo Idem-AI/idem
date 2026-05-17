@@ -36,18 +36,20 @@ export interface MockupGenerationResult {
 }
 
 export class GeminiMockupService {
-  private readonly geminiAI: GoogleGenAI;
+  private _geminiAI?: GoogleGenAI;
   private readonly storageService: StorageService;
 
   constructor() {
-    this.geminiAI = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY || '',
-    });
     this.storageService = new StorageService();
+  }
 
-    if (!process.env.GEMINI_API_KEY) {
-      logger.warn('GEMINI_API_KEY not configured, mockup generation will use placeholders');
+  private get geminiAI(): GoogleGenAI {
+    if (!this._geminiAI) {
+      this._geminiAI = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY || '',
+      });
     }
+    return this._geminiAI;
   }
   /**
    * Génère les mockups pour un projet (nombre configurable via MOCKUP_CONFIG)

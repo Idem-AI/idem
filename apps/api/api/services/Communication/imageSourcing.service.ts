@@ -55,10 +55,15 @@ Rules: subject<=80 chars describing "${searchQuery}", mood=1-3 adjectives, domin
 
 export class ImageSourcingService {
   private readonly storage = new StorageService();
-  private readonly geminiAI: GoogleGenAI;
+  private _geminiAI?: GoogleGenAI;
 
-  constructor() {
-    this.geminiAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+  constructor() {}
+
+  private get geminiAI(): GoogleGenAI {
+    if (!this._geminiAI) {
+      this._geminiAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+    }
+    return this._geminiAI;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
