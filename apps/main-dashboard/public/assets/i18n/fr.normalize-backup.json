@@ -1,0 +1,2110 @@
+{
+  "common": {
+    "new": "Nouveau",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "loading": "Chargement...",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "export": "Exporter",
+    "import": "Importer",
+    "refresh": "Actualiser",
+    "adding": "Ajout en cours...",
+    "optional": "Optionnel",
+    "creating": "Création en cours...",
+    "completed": "Terminé",
+    "ready": "Prêt",
+    "submitting": "Soumission en cours...",
+    "saving": "Enregistrement en cours...",
+    "deploying": "Déploiement en cours...",
+    "oops": "Oups !",
+    "complete": "Terminé",
+    "progress": "En cours",
+    "retry": "Réessayer",
+    "selected": "Sélectionné",
+    "notAvailable": "N/A",
+    "noDescription": "Aucune description",
+    "error": "Erreur",
+    "notSpecified": "Non spécifié",
+    "uploading": "Téléversement en cours...",
+    "downloading": "Téléchargement en cours...",
+    "download": "Télécharger",
+    "send": "Envoyer",
+    "pdf": "PDF",
+    "inProgress": "En cours...",
+    "generating": "Génération en cours...",
+    "noContent": "Aucun contenu disponible",
+    "understood": "Compris",
+    "page": "Page",
+    "of": "sur",
+    "changeLanguage": "Changer de langue",
+    "continue": "Continuer",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser"
+  },
+  "dashboard": {
+    "addMemberModal": {
+      "title": "Ajouter un membre à l'équipe",
+      "fields": {
+        "email": "Adresse e-mail",
+        "displayName": "Nom d'affichage",
+        "role": "Rôle"
+      },
+      "placeholders": {
+        "email": "membre@example.com",
+        "displayName": "John Doe"
+      },
+      "roles": {
+        "admin": {
+          "label": "Admin",
+          "description": "Peut gérer l'équipe et les membres"
+        },
+        "member": {
+          "label": "Membre",
+          "description": "Peut voir et contribuer"
+        },
+        "viewer": {
+          "label": "Lecteur",
+          "description": "Peut seulement voir"
+        }
+      },
+      "invitationInfo": "Une invitation sera envoyée à l'adresse e-mail du membre.",
+      "addMemberButton": "Ajouter le membre",
+      "errors": {
+        "failedToAddMember": "Échec de l'ajout du membre"
+      }
+    },
+    "addTeamToProjectModal": {
+      "title": "Ajouter une équipe au projet",
+      "subtitle": "Choisissez une équipe existante ou créez-en une nouvelle à ajouter à ce projet",
+      "tabs": {
+        "existingTeam": "Équipe existante",
+        "createNewTeam": "Créer une nouvelle équipe"
+      },
+      "fields": {
+        "selectTeam": "Sélectionner une équipe",
+        "projectRoles": "Rôles dans le projet",
+        "teamName": "Nom de l'équipe",
+        "description": "Description"
+      },
+      "placeholders": {
+        "chooseTeam": "Choisissez une équipe...",
+        "teamName": "ex: Équipe Frontend",
+        "description": "Brève description de l'objectif de l'équipe..."
+      },
+      "noTeamsAvailable": "Aucune équipe disponible",
+      "createNewTeamSuggestion": "Créez une nouvelle équipe pour commencer",
+      "buttons": {
+        "addTeam": "Ajouter l'équipe",
+        "createAndAdd": "Créer et ajouter l'équipe"
+      },
+      "newTeamInfo": "L'équipe sera créée et immédiatement ajoutée à ce projet avec les rôles sélectionnés.",
+      "errors": {
+        "failedToLoadTeams": "Échec du chargement des équipes",
+        "failedToAddTeam": "Échec de l'ajout de l'équipe au projet",
+        "teamCreatedButFailedToAdd": "L'équipe a été créée mais n'a pas pu être ajoutée au projet",
+        "failedToCreateTeam": "Échec de la création de l'équipe"
+      },
+      "roles": {
+        "project-owner": "Propriétaire du projet",
+        "project-admin": "Administrateur du projet",
+        "developer": "Développeur",
+        "designer": "Designer",
+        "viewer": "Lecteur",
+        "contributor": "Contributeur"
+      }
+    },
+    "projectCard": {
+      "logoAlt": "Logo",
+      "open": "Ouvrir"
+    },
+    "finance": {
+      "title": "Prévisions financières",
+      "subtitle": "Vue d'ensemble de la santé financière de votre projet",
+      "loading": "Chargement des données financières...",
+      "empty": {
+        "title": "Commencez avec l'IA",
+        "description": "Aucune donnée financière pour l'instant. Laissez l'IA analyser votre projet et générer des prévisions cohérentes, que vous pourrez ensuite ajuster.",
+        "cta": "Générer avec l'IA"
+      },
+      "aiFill": {
+        "button": "Remplir avec l'IA",
+        "global": "Tout remplir avec l'IA",
+        "section": "Remplir cette section avec l'IA",
+        "tooltip": "Suggérer une valeur avec l'IA"
+      },
+      "alerts": {
+        "title": "Recommandations IA"
+      },
+      "kpi": {
+        "caY1": "CA An 1",
+        "resultatNet": "Résultat net",
+        "year3": "An 3",
+        "margeBrute": "Marge brute",
+        "tresorerieY1": "Trésorerie clôture An 1",
+        "pointMort": "Point mort (jours)",
+        "bfr": "BFR",
+        "coutTotal": "Coût total du projet",
+        "tri": "TRI",
+        "van": "VAN"
+      },
+      "charts": {
+        "revenue36": "Chiffre d'affaires mensuel (36 mois)",
+        "revenue36Sub": "Progression prévisionnelle sur 3 ans",
+        "chargesMix": "Répartition des charges (An 1)",
+        "treasury": "Trésorerie (3 ans)",
+        "netResult": "Résultat net An 1 → An 3",
+        "fixed": "Charges fixes",
+        "variable": "Charges variables",
+        "noData": "Aucune donnée disponible"
+      },
+      "sections": {
+        "title": "Sections financières",
+        "open": "Ouvrir",
+        "overview": "Vue d'ensemble",
+        "products": "Produits & Prix",
+        "sales": "Objectifs de ventes",
+        "charges": "Charges",
+        "investments": "Investissements",
+        "amortization": "Amortissements",
+        "financing": "Financement",
+        "exploitation": "Compte d'exploitation",
+        "bilan": "Bilan prévisionnel",
+        "cashflow": "Flux de trésorerie",
+        "ratios": "Ratios & Indicateurs"
+      },
+      "status": {
+        "empty": "Vide",
+        "inProgress": "En cours",
+        "completed": "Complété",
+        "computed": "Calculé"
+      },
+      "stub": {
+        "title": "Section en cours d'implémentation",
+        "description": "Cette section sera éditable entièrement dans la prochaine phase. En attendant, utilisez l'IA pour pré-remplir des valeurs que vous pourrez ajuster ensuite.",
+        "computed": "Cette section est calculée automatiquement à partir de vos données."
+      },
+      "errors": {
+        "title": "Impossible de charger",
+        "noProjectSelected": "Veuillez d'abord sélectionner un projet.",
+        "failedToLoad": "Échec du chargement des données financières.",
+        "aiFillFailed": "Le remplissage IA a échoué. Veuillez réessayer."
+      },
+      "pdf": {
+        "download": "Télécharger le rapport PDF"
+      }
+    },
+    "sidebar": {
+      "projectHome": "Accueil du projet",
+      "teams": "Équipes",
+      "branding": "Image de marque",
+      "businessPlan": "Business Plan",
+      "finance": "Finances",
+      "pitchDeck": "Pitch Deck",
+      "legalDocs": "Documents juridiques",
+      "advisor": "Conseiller",
+      "diagrams": "Diagrammes",
+      "development": "Développement",
+      "deploymentOverview": "Aperçu du déploiement",
+      "deployment": "Déploiement",
+      "viewAllProjects": "Voir tous les projets",
+      "communication": "Communication",
+      "sr": {
+        "openMobileMenu": "Ouvrir le menu mobile",
+        "toggleSidebar": "Basculer la barre latérale"
+      },
+      "logoAlt": "Lexi",
+      "selectProject": "Sélectionner un projet",
+      "userAvatarAlt": "Avatar",
+      "userMenu": {
+        "profile": "Profil",
+        "globalDashboard": "Tableau de bord global",
+        "settings": "Paramètres",
+        "logout": "Déconnexion"
+      },
+      "poweredBy": "Propulsé par",
+      "mobile": {
+        "currentProject": "Projet actuel",
+        "navigation": "Navigation"
+      },
+      "errors": {
+        "projectNotFound": "L'ID de projet '{{cookieId}}' du cookie est introuvable. Utilisation du premier projet à la place.",
+        "initialProjectNotFound": "L'ID de projet initial '{{initialCookieId}}' est introuvable. Navigation vers le tableau de bord global."
+      }
+    },
+    "sidebarGlobal": {
+      "dashboard": "Tableau de bord",
+      "projects": "Projets",
+      "teams": "Équipes",
+      "sr": {
+        "openMobileMenu": "Ouvrir le menu mobile",
+        "toggleSidebar": "Basculer la barre latérale"
+      },
+      "logoAlt": "Lexi",
+      "userAvatarAlt": "Avatar",
+      "userMenu": {
+        "profile": "Profil",
+        "settings": "Paramètres",
+        "logout": "Déconnexion"
+      },
+      "poweredBy": "Propulsé par",
+      "mobile": {
+        "navigation": "Navigation"
+      }
+    },
+    "addTeamToProject": {
+      "backToProjectTeams": "Retour aux équipes du projet",
+      "title": "Ajouter une équipe au projet",
+      "subtitle": "Sélectionnez une équipe et attribuez des rôles pour ce projet",
+      "selectTeam": "Sélectionner une équipe",
+      "assignRoles": "Attribuer des rôles de projet",
+      "assignRolesDescription": "Sélectionnez un ou plusieurs rôles pour",
+      "inThisProject": "dans ce projet",
+      "noTeamsYet": "Vous n'avez pas encore d'équipes",
+      "createTeamButton": "Créer une équipe",
+      "members": "membres",
+      "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
+      "cancel": "Annuler",
+      "addingTeam": "Ajout de l'équipe...",
+      "addTeamToProject": "Ajouter l'équipe au projet",
+      "loading": "Chargement...",
+      "error": "Erreur",
+      "roles": {
+        "project-owner": {
+          "label": "Propriétaire du projet",
+          "description": "Contrôle total sur le projet"
+        },
+        "project-admin": {
+          "label": "Administrateur du projet",
+          "description": "Gérer les paramètres et les membres du projet"
+        },
+        "developer": {
+          "label": "Développeur",
+          "description": "Écrire et réviser le code"
+        },
+        "designer": {
+          "label": "Designer",
+          "description": "Créer et gérer les designs"
+        },
+        "viewer": {
+          "label": "Lecteur",
+          "description": "Voir le contenu du projet uniquement"
+        },
+        "contributor": {
+          "label": "Contributeur",
+          "description": "Contribuer aux tâches du projet"
+        }
+      }
+    },
+    "colorCustomizer": {
+      "title": "Modifier les couleurs",
+      "pick": "Choisir",
+      "hex": "HEX",
+      "hexPlaceholder": "#000000",
+      "preview": "Aperçu",
+      "tip": "Cliquez sur un cercle de couleur pour ouvrir le sélecteur. Les couleurs associées s'ajustent automatiquement pour l'harmonie.",
+      "labels": {
+        "primary": "Couleur primaire",
+        "secondary": "Couleur secondaire",
+        "accent": "Couleur d'accentuation",
+        "background": "Couleur de fond",
+        "text": "Couleur du texte"
+      },
+      "descriptions": {
+        "primary": "Couleur principale de la marque utilisée pour les boutons et les éléments clés",
+        "secondary": "Couleur de soutien qui complète votre couleur primaire",
+        "accent": "Couleur de mise en évidence pour les appels à l'action",
+        "background": "Couleur de fond de base pour vos créations",
+        "text": "Couleur de texte principale pour la lisibilité"
+      }
+    },
+    "colorSelection": {
+      "generating": {
+        "title": "Génération des palettes de couleurs...",
+        "whileYouWait": "Pendant que vous attendez...",
+        "tip": "Notre IA analyse les exigences de votre projet pour créer des palettes de couleurs harmonieuses qui reflètent la personnalité de votre marque et votre public cible. Ce processus garantit que chaque palette est optimisée pour l'accessibilité et l'impact visuel."
+      },
+      "errors": {
+        "title": "Échec de la génération",
+        "generationFailed": "Échec de la génération des palettes de couleurs. Veuillez réessayer.",
+        "noOptions": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs."
+      },
+      "success": {
+        "title": "Sélectionnez les couleurs de votre marque",
+        "subtitle": "Choisissez la palette de couleurs qui représente le mieux la personnalité et les valeurs de votre marque.",
+        "greatChoice": "Excellent choix ! Cliquez sur Suivant pour passer à l'étape suivante."
+      },
+      "buttons": {
+        "customize": "Personnaliser les couleurs sélectionnées"
+      },
+      "tooltips": {
+        "primary": "Couleur primaire",
+        "secondary": "Couleur secondaire",
+        "accent": "Couleur d'accentuation",
+        "background": "Couleur de fond"
+      },
+      "preview": {
+        "sampleText": "Exemple de texte",
+        "primary": "Primaire",
+        "accent": "Accentuation"
+      },
+      "auth": {
+        "header": "Authentification requise",
+        "title": "Veuillez vous connecter",
+        "message": "Vous devez être authentifié pour générer des palettes de couleurs. Veuillez vous connecter pour continuer."
+      }
+    },
+    "logoEditor": {
+      "title": "Assistant d'édition de logo",
+      "subtitle": "Modifications de logo assistées par l'IA",
+      "initialGreeting": "Voici le logo que vous avez sélectionné. Vous pouvez me demander de le modifier !",
+      "welcomeMessage": "Dites-moi quelles modifications vous souhaitez apporter. Par exemple : \"Rends-le plus moderne\", \"Change les couleurs en bleu\", \"Ajoute un effet de dégradé\", etc.",
+      "workingMessage": "Travail en cours sur vos modifications...",
+      "modifiedLogo": "Voici votre logo modifié !",
+      "pressEnterToSend": "Appuyez sur Entrée pour envoyer",
+      "buttons": {
+        "choose": "Choisir ce logo"
+      },
+      "placeholders": {
+        "prompt": "Décrivez les changements que vous souhaitez... (Appuyez sur Entrée pour envoyer)"
+      },
+      "quickSuggestions": {
+        "title": "Suggestions rapides :",
+        "modern": "Plus moderne",
+        "gradient": "Ajouter un dégradé",
+        "simplify": "Simplifier",
+        "professional": "Plus professionnel"
+      },
+      "errors": {
+        "noLogoToEdit": "Aucun logo à modifier n'a été trouvé",
+        "modificationFailed": "Désolé, j'ai rencontré une erreur lors de la modification du logo. Veuillez réessayer avec une autre instruction.",
+        "failedToEdit": "Échec de la modification du logo"
+      }
+    },
+    "logoPreferences": {
+      "steps": {
+        "type": {
+          "title": "Choisissez le type de logo",
+          "subtitle": "Sélectionnez un type de logo"
+        },
+        "mode": {
+          "title": "Comment créer votre logo ?",
+          "subtitle": "Génération par IA ou description personnalisée"
+        },
+        "description": {
+          "title": "Décrivez votre logo",
+          "subtitle": "Dites-nous ce que vous voulez"
+        }
+      },
+      "types": {
+        "icon": {
+          "title": "Basé sur une icône",
+          "description": "Une forme facile à mémoriser au centre de la conception de votre logo",
+          "example": "Apple, Nike, Twitter"
+        },
+        "name": {
+          "title": "Basé sur le nom",
+          "description": "Le nom de votre entreprise comme élément clé de la conception de votre logo",
+          "example": "Coca-Cola, Google, FedEx"
+        },
+        "initial": {
+          "title": "Basé sur les initiales",
+          "description": "Les initiales comme élément principal de la conception de votre logo",
+          "example": "IBM, HP, CNN"
+        },
+        "examplesLabel": "Ex :"
+      },
+      "modes": {
+        "ai": {
+          "title": "Génération par IA",
+          "description": "L'IA crée des logos uniques basés sur votre marque",
+          "badge": "Recommandé",
+          "features": {
+            "smart": "Design intelligent",
+            "multiple": "Plusieurs options",
+            "fast": "Résultats instantanés"
+          }
+        },
+        "custom": {
+          "title": "Description personnalisée",
+          "description": "Décrivez exactement comment vous voulez votre logo",
+          "features": {
+            "control": "Contrôle total",
+            "precise": "Vision précise",
+            "unique": "Résultat unique"
+          }
+        }
+      },
+      "fields": {
+        "description": {
+          "label": "Description du logo",
+          "placeholder": "Exemple : Logo minimaliste avec un sommet de montagne, couleurs bleu et blanc, aventure et confiance...",
+          "charCount": "caractères",
+          "tip": "Soyez précis sur les couleurs, formes, style et ambiance. Plus vous donnez de détails, mieux le résultat correspondra à votre vision."
+        }
+      },
+      "buttons": {
+        "generate": "Générer les logos"
+      }
+    },
+    "logoSelection": {
+      "generating": {
+        "title": "Génération de vos logos...",
+        "subtitle": "Création de logos personnalisés en fonction des préférences de votre marque.",
+        "whileYouWait": "Pendant que vous attendez...",
+        "tip": "Notre IA analyse votre palette de couleurs et votre typographie pour créer des logos qui correspondent parfaitement à l'identité de votre marque."
+      },
+      "errors": {
+        "title": "Échec de la génération",
+        "colorAndTypographyRequired": "La couleur et la typographie doivent être sélectionnées avant de générer les logos.",
+        "generationFailed": "Échec de la génération des logos. Veuillez réessayer.",
+        "preferencesNotFound": "Préférences de logo non trouvées. Veuillez redémarrer le processus de génération."
+      },
+      "success": {
+        "title": "Choisissez votre logo parfait",
+        "subtitle": "Sélectionnez le logo qui représente le mieux l'identité de votre marque",
+        "greatChoice": "Excellent choix ! Cliquez sur Suivant pour passer à l'étape suivante."
+      },
+      "buttons": {
+        "editWithAI": "Modifier avec l'assistant IA",
+        "regenerate": "Régénérer les logos"
+      },
+      "cards": {
+        "colors": "Couleurs"
+      }
+    },
+    "logoVariations": {
+      "initial": {
+        "title": "Variations du logo",
+        "subtitle": "Nous allons créer plusieurs variations de votre logo sélectionné pour différents contextes d'utilisation."
+      },
+      "features": {
+        "lightBackground": {
+          "title": "Fond clair",
+          "description": "Optimisé pour les fonds blancs et clairs"
+        },
+        "darkBackground": {
+          "title": "Fond sombre",
+          "description": "Optimisé pour les fonds sombres et modernes"
+        },
+        "monochrome": {
+          "title": "Monochrome",
+          "description": "Version en noir et blanc pour toutes les utilisations"
+        },
+        "multipleFormats": {
+          "title": "Formats multiples",
+          "description": "Avec texte et icône seuls pour tous les contextes"
+        }
+      },
+      "buttons": {
+        "generate": "Générer les variations",
+        "clickToSelect": "Cliquez pour sélectionner",
+        "proceed": "Continuer avec la sélection",
+        "retry": "Réessayer",
+        "continueToSummary": "Continuer vers le résumé"
+      },
+      "estimatedTime": "Temps estimé : {{time}}",
+      "generating": {
+        "title": "Génération des variations de logo...",
+        "subtitle": "Création de différentes versions de votre logo pour divers cas d'utilisation."
+      },
+      "progress": {
+        "label": "Progression",
+        "initializing": "Initialisation de la génération des variations de logo...",
+        "analyzing": "Analyse du design du logo sélectionné...",
+        "generatingLight": "Génération de la variation pour fond clair...",
+        "generatingDark": "Création de la version pour fond sombre...",
+        "generatingMonochrome": "Production de la variante monochrome...",
+        "optimizing": "Optimisation des sorties SVG...",
+        "finalizing": "Finalisation des variations...",
+        "completed": "Génération terminée !"
+      },
+      "errors": {
+        "title": "Erreur de génération",
+        "generationFailed": "Échec de la génération des variations de logo. Veuillez réessayer.",
+        "selectAtLeastOne": "Veuillez sélectionner au moins une variation pour continuer"
+      },
+      "success": {
+        "title": "Variations du logo",
+        "subtitle": "Sélectionnez les variations que vous souhaitez conserver pour votre projet.",
+        "completed": "Variations générées avec succès !",
+        "reviewAndProceed": "Examinez vos variations et continuez quand vous êtes prêt."
+      },
+      "status": {
+        "generated": "Généré",
+        "processing": "Traitement des variations...",
+        "preparingNext": "Préparation de l'étape suivante...",
+        "allGenerated": "Toutes les variations générées avec succès !",
+        "readyToProceed": "Prêt à passer à l'étape suivante.",
+        "advancing": "Passage à l'étape suivante..."
+      },
+      "categories": {
+        "withText": "Avec texte",
+        "iconOnly": "Icône uniquement"
+      },
+      "labels": {
+        "withTextLight": "Avec texte - Fond clair",
+        "withTextDark": "Avec texte - Fond sombre",
+        "withTextMonochrome": "Avec texte - Monochrome",
+        "iconOnlyLight": "Icône uniquement - Fond clair",
+        "iconOnlyDark": "Icône uniquement - Fond sombre",
+        "iconOnlyMonochrome": "Icône uniquement - Monochrome",
+        "lightBackground": "Fond clair",
+        "darkBackground": "Fond sombre",
+        "monochrome": "Monochrome"
+      },
+      "descriptions": {
+        "withTextLight": "Logo complet optimisé pour les fonds clairs",
+        "withTextDark": "Logo complet optimisé pour les fonds sombres",
+        "withTextMonochrome": "Logo complet en version monochrome",
+        "iconOnlyLight": "Icône uniquement optimisée pour les fonds clairs",
+        "iconOnlyDark": "Icône uniquement optimisée pour les fonds sombres",
+        "iconOnlyMonochrome": "Icône uniquement en version monochrome",
+        "lightBackground": "Optimisé pour les fonds blancs et clairs",
+        "darkBackground": "Optimisé pour les fonds sombres et modernes",
+        "monochrome": "Version en noir et blanc pour toutes les utilisations"
+      },
+      "selectionsMade": "{{count}} sélection(s) faite(s)"
+    },
+    "projectDescription": {
+      "hello": "Bonjour",
+      "whatToBuild": "Que voulez-vous construire ?",
+      "tellUsMore": "Dites-nous en plus sur votre idée de projet",
+      "placeholder": "Une application qui génère des poèmes à partir de photos",
+      "buttons": {
+        "improvePrompt": "Améliorer l'invite",
+        "feelingLucky": "J'ai de la chance",
+        "continue": "Continuer"
+      },
+      "needInspiration": "Besoin d'inspiration ?",
+      "examples": {
+        "mpesa": {
+          "name": "Clone de M-Pesa",
+          "description": "Un service de transfert d'argent mobile et de microfinancement pour les marchés africains",
+          "prompt": "Une plateforme d'argent mobile comme M-Pesa avec des transactions sécurisées, la gestion du réseau d'agents et des fonctionnalités d'inclusion financière pour les communautés rurales en Afrique"
+        },
+        "agritech": {
+          "name": "Plateforme Agri-Tech",
+          "description": "Système de gestion agricole pour les petits agriculteurs africains",
+          "prompt": "Une plateforme de gestion agricole pour les petits agriculteurs africains avec prévisions météorologiques, détection des maladies des cultures par l'IA et une place de marché pour vendre les produits directement aux acheteurs"
+        },
+        "solar": {
+          "name": "Solaire prépayé",
+          "description": "Système de paiement et de gestion de l'énergie solaire",
+          "prompt": "Un système de gestion de l'énergie solaire prépayé pour les communautés hors réseau en Afrique avec des paiements mobiles, un suivi de l'utilisation et des alertes de maintenance"
+        },
+        "health": {
+          "name": "Passeport Santé",
+          "description": "Dossiers de santé numériques pour les communautés mal desservies",
+          "prompt": "Une application de passeport de santé numérique pour les communautés africaines mal desservies qui fonctionne hors ligne, stocke les dossiers de vaccination et met en relation les patients avec les prestataires de soins de santé locaux"
+        },
+        "artisan": {
+          "name": "Marché des artisans africains",
+          "description": "Plateforme de commerce électronique pour les artisans africains",
+          "prompt": "Une plateforme de commerce électronique reliant directement les artisans africains aux acheteurs mondiaux, avec des paiements sécurisés, une gestion de la logistique et une narration culturelle pour chaque produit"
+        },
+        "edtech": {
+          "name": "EdTech pour faible bande passante",
+          "description": "Plateforme éducative optimisée pour une faible connectivité",
+          "prompt": "Une plateforme éducative conçue pour les régions africaines à faible bande passante avec mise en cache de contenu hors ligne, modules d'apprentissage par SMS et programme d'études localisé dans plusieurs langues africaines"
+        }
+      }
+    },
+    "projectDetails": {
+      "backToProjects": "Retour aux projets",
+      "generate": "Générer le plan d'affaires",
+      "selectProject": "Sélectionner un projet",
+      "title": "Avant de continuer, nous avons besoin de plus d'informations sur votre projet",
+      "sections": {
+        "details": "Détails du projet",
+        "businessOptions": "Options commerciales"
+      },
+      "fields": {
+        "projectName": "Nom du projet",
+        "projectType": "Type de projet",
+        "projectScope": "Portée du projet",
+        "projectTarget": "Cible principale du projet"
+      },
+      "placeholders": {
+        "selectType": "Sélectionnez un type",
+        "selectScope": "Sélectionnez une portée",
+        "selectTarget": "Sélectionnez une cible"
+      }
+    },
+    "projectSummary": {
+      "loading": "Finalisation de votre projet...",
+      "title": "Vérifiez tous vos choix et finalisez votre projet",
+      "sections": {
+        "projectInfo": "Informations sur le projet",
+        "visualIdentity": "Identité visuelle",
+        "legal": "Légal et confidentialité"
+      },
+      "subsections": {
+        "details": "Détails du projet",
+        "businessInfo": "Informations commerciales",
+        "logo": "Logo",
+        "colorPalette": "Palette de couleurs",
+        "typography": "Typographie"
+      },
+      "fields": {
+        "name": "Nom",
+        "type": "Type",
+        "teamSize": "Taille de l'équipe",
+        "scope": "Portée",
+        "budget": "Budget",
+        "target": "Cible"
+      },
+      "agreements": {
+        "iAgreeTo": "J'accepte les",
+        "privacyPolicy": "Politique de confidentialité",
+        "termsOfService": "Conditions d'utilisation",
+        "betaTerms": "Conditions du programme bêta",
+        "marketing": "J'accepte de recevoir des communications marketing sur les produits, services et promotions"
+      },
+      "errors": {
+        "requiredFields": "Les champs obligatoires doivent être acceptés pour continuer"
+      },
+      "buttons": {
+        "create": "Créer le projet",
+        "acceptPolicies": "Accepter les politiques requises"
+      }
+    },
+    "typographySelection": {
+      "title": "Sélection de la typographie",
+      "subtitle": "Choisissez la typographie parfaite qui reflète la personnalité de votre marque et améliore la lisibilité.",
+      "error": {
+        "title": "Typographie non disponible",
+        "description": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs.",
+        "retry": "Réessayer"
+      },
+      "errors": {
+        "title": "Typographie non disponible",
+        "noOptions": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs."
+      },
+      "loading": {
+        "title": "Chargement des options de typographie",
+        "subtitle": "Veuillez patienter pendant que nous préparons vos sélections de typographie..."
+      },
+      "success": {
+        "title": "Choisissez votre typographie",
+        "subtitle": "Sélectionnez le style de typographie qui complète le mieux la voix et la personnalité de votre marque.",
+        "perfectChoice": "Choix parfait ! Cliquez sur Suivant pour passer à l'étape suivante."
+      },
+      "popular": {
+        "title": "Collections de typographie populaires",
+        "subtitle": "Combinaisons de typographie sélectionnées et aimées par les designers du monde entier."
+      },
+      "tabs": {
+        "generated": "Généré par l'IA",
+        "popular": "Collections populaires",
+        "custom": "Mélange personnalisé"
+      },
+      "preview": {
+        "brandName": "Le nom de votre marque",
+        "subtitle": "Voici à quoi ressemblera votre contenu avec cette combinaison de typographie.",
+        "primary": "Primaire",
+        "secondary": "Secondaire",
+        "livePreview": "Aperçu en direct",
+        "tryText": "Essayez votre texte :",
+        "headingExample": "L'avenir du design numérique",
+        "bodyTitle": "Détails de la typographie",
+        "bodyText": "La typographie est l'art et la technique d'organiser les caractères pour rendre le langage écrit lisible, compréhensible et attrayant à l'affichage. L'organisation des caractères implique de sélectionner les polices, les tailles de points, les longueurs de ligne, l'espacement des lignes et l'espacement des lettres.",
+        "buttonPrimary": "Commencer",
+        "buttonSecondary": "En savoir plus",
+        "fontPrimary": "Police primaire",
+        "fontSecondary": "Police secondaire",
+        "launchingSoon": "Lancement bientôt",
+        "heroSubtitle": "Créez une expérience numérique inoubliable avec notre nouvelle identité visuelle. L'innovation commence ici.",
+        "getStarted": "Commencer",
+        "learnMore": "En savoir plus",
+        "cardTitle1": "Design moderne",
+        "cardText1": "Une approche minimaliste qui met en évidence l'essentiel de votre contenu sans distractions inutiles.",
+        "cardTitle2": "Expérience intuitive",
+        "cardText2": "Des interactions fluides et naturelles conçues pour engager vos utilisateurs dès le premier clic.",
+        "quote": "Le design n'est pas seulement ce qu'il paraît et ce qu'il ressent. Le design, c'est comment ça marche.",
+        "author": "Steve Jobs"
+      },
+      "generated": {
+        "title": "Typographie générée par l'IA",
+        "empty": {
+          "title": "Aucune typographie générée",
+          "description": "Nous n'avons pas pu générer d'options de typographie pour votre projet. Cliquez sur régénérer pour réessayer avec des paramètres différents."
+        },
+        "regenerate": "Régénérer"
+      },
+      "actions": {
+        "back": "Retour",
+        "saveAsDraft": "Enregistrer comme brouillon",
+        "continue": "Continuer"
+      },
+      "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
+      "searching": "Recherche de polices...",
+      "noResults": "Aucune police trouvée pour votre recherche",
+      "searchHint": "Commencez à taper pour rechercher dans Google Fonts",
+      "selectToPreview": "Sélectionnez les polices pour prévisualiser votre mélange de typographie personnalisé",
+      "custom": {
+        "title": "Vos mélanges personnalisés",
+        "createNew": "Créer un nouveau mélange",
+        "searchLabel": "RECHERCHER GOOGLE FONTS",
+        "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
+        "setPrimary": "Définir comme primaire",
+        "setSecondary": "Définir comme secondaire",
+        "primaryFont": "POLICE PRIMAIRE",
+        "secondaryFont": "POLICE SECONDAIRE",
+        "notSelected": "Non sélectionné",
+        "addButton": "Ajouter un mélange personnalisé"
+      }
+    },
+    "createProject": {
+      "loading": {
+        "title": "Création de votre projet",
+        "subtitle": "Veuillez patienter pendant que nous finalisons votre projet..."
+      },
+      "steps": {
+        "description": "Description du projet",
+        "details": "Détails du projet",
+        "logoChoice": "Logo",
+        "colors": "Sélection des couleurs",
+        "typography": "Sélection de la typographie",
+        "logo": "Sélection du logo",
+        "variations": "Variations du logo",
+        "summary": "Résumé"
+      },
+      "ai": {
+        "initialGreeting": "Bonjour ! Décrivez-moi l'infrastructure que vous souhaitez.",
+        "recommendation": "Excellent ! Basé sur votre demande \"{{prompt}}\", je recommande une architecture avec AWS EC2, RDS et CloudFront."
+      },
+      "errors": {
+        "noActiveProject": "Aucun projet actif trouvé. Veuillez d'abord sélectionner un projet."
+      }
+    },
+    "logoChoice": {
+      "title": "Avez-vous déjà un logo ?",
+      "subtitle": "Vous pouvez importer votre logo existant ou laisser notre IA en créer un pour vous",
+      "import": {
+        "title": "J'ai déjà un logo",
+        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre."
+      },
+      "ai": {
+        "title": "Créer avec l'IA",
+        "description": "Laissez notre IA générer des concepts de logo uniques basés sur l'identité de votre projet.",
+        "badge": "Propulsé par l'IA"
+      },
+      "backToChoice": "Retour aux options",
+      "continueWithLogo": "Continuer avec ce logo",
+      "extractedColors": "Couleurs détectées dans votre logo",
+      "colorsUsedAsPrimary": "Ces couleurs seront utilisées comme couleurs primaires. Notre IA proposera des palettes complémentaires.",
+      "generatingBranding": "Génération de votre identité visuelle...",
+      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo."
+    },
+    "logoImport": {
+      "dropzone": {
+        "title": "Glissez-déposez votre logo ici",
+        "subtitle": "ou cliquez pour parcourir les fichiers",
+        "maxSize": "Taille maximale : 10 Mo"
+      },
+      "upload": {
+        "button": "Importer et vectoriser",
+        "uploading": "Envoi en cours...",
+        "processing": "Traitement et vectorisation de votre logo..."
+      },
+      "result": {
+        "title": "Logo vectorisé",
+        "changeFile": "Choisir un autre fichier",
+        "extractedColors": "Couleurs principales",
+        "primaryColor": "Couleur primaire",
+        "secondaryColor": "Couleur secondaire"
+      }
+    },
+    "createTeam": {
+      "backToTeams": "Retour aux équipes",
+      "title": "Créer une nouvelle équipe",
+      "subtitle": "Créez une équipe pour collaborer avec d'autres sur vos projets",
+      "fields": {
+        "name": "Nom de l'équipe",
+        "description": "Description"
+      },
+      "placeholders": {
+        "name": "Entrez le nom de l'équipe",
+        "description": "Décrivez l'objectif et les buts de votre équipe"
+      },
+      "info": {
+        "afterCreationTitle": "Après la création de l'équipe",
+        "afterCreationBody": "Vous pouvez ajouter des membres et assigner l'équipe à des projets."
+      },
+      "buttons": {
+        "create": "Créer l'équipe"
+      },
+      "errors": {
+        "failedToCreate": "Échec de la création de l'équipe"
+      }
+    },
+    "dashboard": {
+      "loading": "Chargement de votre tableau de bord...",
+      "viewAllProjects": "Voir tous les projets",
+      "openFeature": "Ouvrir la fonctionnalité",
+      "progressOverview": "Aperçu de la progression",
+      "projectInformation": "Informations du projet",
+      "pending": "En attente",
+      "hero": {
+        "activeProject": "Projet actif",
+        "defaultDescription": "Transformez vos idées en réalité avec nos outils complets de gestion de projet",
+        "stats": {
+          "created": "Créé",
+          "team": "Équipe",
+          "scope": "Portée"
+        }
+      },
+      "milestones": {
+        "brandIdentity": "Identité de marque",
+        "businessPlan": "Plan d'affaires",
+        "systemDesign": "Conception système",
+        "development": "Développement",
+        "launch": "Lancement"
+      },
+      "journey": {
+        "yourPath": "Votre parcours",
+        "title": "Parcours du projet",
+        "subtitle": "{{completed}} sur {{total}} étapes terminées"
+      },
+      "steps": {
+        "brand": {
+          "title": "Identité de marque",
+          "description": "Définissez l'identité visuelle, les couleurs et la typographie de votre marque",
+          "alt": "Identité de marque"
+        },
+        "business": {
+          "title": "Plan d'affaires",
+          "description": "Créez une stratégie commerciale et une feuille de route complètes",
+          "alt": "Plan d'affaires"
+        },
+        "design": {
+          "title": "Conception système",
+          "description": "Concevez l'architecture de votre système et les spécifications techniques",
+          "alt": "Conception système"
+        },
+        "development": {
+          "title": "Développement",
+          "description": "Construisez et implémentez votre projet avec des technologies modernes",
+          "alt": "Développement"
+        },
+        "launch": {
+          "title": "Lancement et déploiement",
+          "description": "Déployez votre projet et rendez-le accessible au monde entier",
+          "alt": "Lancement"
+        },
+        "comingUp": "À venir",
+        "almostThere": "Presque terminé",
+        "finalStep": "Dernière étape",
+        "startNow": "Commencer maintenant",
+        "nextStep": "Étape suivante"
+      },
+      "info": {
+        "created": "Créé",
+        "team": "Équipe",
+        "scope": "Portée",
+        "lastUpdate": "Dernière mise à jour"
+      },
+      "empty": {
+        "title": "Aucun projet actif",
+        "description": "Sélectionnez un projet pour commencer votre parcours",
+        "goToProjects": "Aller aux projets"
+      },
+      "errors": {
+        "noProjectSelected": "Aucun projet sélectionné",
+        "projectNotFound": "Projet introuvable : {{projectId}}",
+        "failedToLoad": "Échec du chargement des données du projet"
+      },
+      "quotaWarning": {
+        "title": "Avertissement de quota",
+        "daily": "Quotidien",
+        "weekly": "Hebdomadaire",
+        "messages": {
+          "approaching": "Vous approchez de votre limite de quota",
+          "daily": "Vous approchez de votre limite de quota quotidien",
+          "weekly": "Vous approchez de votre limite de quota hebdomadaire",
+          "dailyAndWeekly": "Vous approchez de vos limites de quota quotidien et hebdomadaire"
+        },
+        "buttons": {
+          "viewDetails": "Voir les détails"
+        }
+      }
+    },
+    "aiAssistant": {
+      "initialGreeting": "Bonjour ! Je suis votre assistant IA. Décrivez l'infrastructure que vous souhaitez déployer.",
+      "architectureAccepted": "Super ! L'architecture a été acceptée. Laissez-moi maintenant vérifier si des variables sensibles sont nécessaires pour ce déploiement...",
+      "architectureAcceptedMessage": "L'architecture a été acceptée. Veuillez analyser les composants et m'indiquer si des variables sensibles (clés API, mots de passe, informations d'identification de base de données, etc.) sont nécessaires pour ce déploiement.",
+      "greeting": "Bonjour ! {{userName}}, je suis l'assistant DevOps d'IDEM. Je peux générer et déployer votre projet ou votre infrastructure pour vous, et gérer les déploiements réactifs. Comment puis-je vous aider aujourd'hui ?",
+      "buttons": {
+        "enterSensitiveVariables": "Saisir les variables sensibles",
+        "submitVariables": "Soumettre les variables",
+        "acceptArchitecture": "Accepter l'architecture",
+        "saveConfiguration": "Enregistrer la configuration",
+        "saveAndContinue": "Enregistrer et continuer",
+        "validateFields": "Valider les champs"
+      },
+      "sensitiveVariables": {
+        "title": "Variables sensibles requises",
+        "description": "L'IA a besoin de certaines informations sensibles pour terminer la configuration de votre déploiement. Ces valeurs seront stockées de manière sécurisée et chiffrée.",
+        "validated": "✅ Variables sensibles validées et prêtes à être soumises. Vous pouvez maintenant cliquer sur le bouton \"Soumettre les variables\" pour les stocker en toute sécurité.",
+        "storedSuccessfully": "✅ {{count}} variables sensibles stockées avec succès en toute sécurité. Votre configuration de déploiement est maintenant terminée.",
+        "creatingAndStoring": "🔄 Création du déploiement et stockage sécurisé des variables sensibles...",
+        "dialogTitle": "Configuration des variables sécurisées",
+        "securityNotice": {
+          "title": "Avis de sécurité",
+          "body": "Ces valeurs sensibles seront chiffrées et stockées en toute sécurité. Elles ne seront utilisées que pour la configuration de votre déploiement et ne seront jamais enregistrées ou exposées."
+        }
+      },
+      "architecture": {
+        "title": "Architecture proposée",
+        "diagram": "Diagramme d'architecture"
+      },
+      "placeholders": {
+        "prompt": "Décrivez vos besoins en infrastructure..."
+      },
+      "pressEnterToSend": "Appuyez sur Entrée pour envoyer",
+      "configure": {
+        "title": "Configurer {{componentName}}"
+      },
+      "deploymentConfig": {
+        "title": "Configuration du déploiement",
+        "fields": {
+          "name": "Nom du déploiement",
+          "environment": "Environnement"
+        },
+        "placeholders": {
+          "name": "Mon application générée par l'IA"
+        },
+        "environments": {
+          "development": "Développement",
+          "staging": "Pré-production",
+          "production": "Production"
+        },
+        "git": {
+          "title": "Dépôt Git (Optionnel)",
+          "repoUrl": "URL du dépôt",
+          "branch": "Branche"
+        }
+      },
+      "errors": {
+        "noProjectSelected": "Aucun projet sélectionné. Veuillez d'abord sélectionner un projet.",
+        "requestProcessing": "Désolé, une erreur est survenue lors du traitement de votre demande. Veuillez réessayer.",
+        "apiError": "Échec de l'obtention de la réponse de l'IA",
+        "noInteraction": "Veuillez interagir avec l'assistant IA avant de créer un déploiement",
+        "formNotInitialized": "Formulaire non initialisé.",
+        "fillRequiredFields": "Veuillez remplir correctement tous les champs obligatoires.",
+        "validationFailed": "Échec de la validation : ",
+        "formHasErrors": "Le formulaire contient des erreurs de validation. ",
+        "variablesNotValidated": "Variables non validées. ",
+        "failedToCreateDeployment": "Échec de la création du déploiement",
+        "failedToStoreVariables": "Échec du stockage des variables sensibles : formulaire ou ID de déploiement manquant",
+        "failedToStoreSecurely": "Échec du stockage sécurisé des variables sensibles",
+        "communicationFailed": "Échec de la communication avec l'assistant IA",
+        "configureComponents": "Veuillez configurer tous les {{count}} composant(s) avant d'accepter l'architecture"
+      }
+    },
+    "expertDeployment": {
+      "yourArchitecture": "Votre architecture",
+      "notConfigured": "Non configuré",
+      "buttons": {
+        "saveConfigs": "Enregistrer les configurations"
+      },
+      "empty": {
+        "startBuilding": "Commencer à construire",
+        "addComponents": "Ajoutez des composants depuis le catalogue."
+      },
+      "properties": {
+        "title": "Propriétés",
+        "selectComponent": "Sélectionnez un composant pour le configurer."
+      },
+      "dialog": {
+        "header": "Saisir le nom du déploiement"
+      },
+      "fields": {
+        "name": "Nom du déploiement",
+        "branch": "Branche"
+      },
+      "placeholders": {
+        "name": "Saisissez un nom pour votre déploiement",
+        "repoUrl": "https://github.com/nomdutilisateur/depot.git",
+        "branch": "Sélectionnez une branche"
+      },
+      "tooltips": {
+        "repoUrl": "Saisissez une URL de dépôt Git valide pour récupérer les branches disponibles"
+      },
+      "repoValidated": "Dépôt validé avec succès",
+      "errors": {
+        "noBranches": "Aucune branche trouvée ou dépôt non accessible",
+        "failedToCreate": "Échec de la création du déploiement"
+      }
+    },
+    "modeSelector": {
+      "quick": {
+        "title": "Déploiement rapide",
+        "description": "Le moyen le plus simple : un lien de dépôt, une branche, et c'est parti.",
+        "button": "Lancement rapide"
+      },
+      "ai": {
+        "title": "Assistant IA",
+        "description": "Décrivez vos besoins en infrastructure en langage naturel.",
+        "button": "Démarrer le chat"
+      },
+      "templates": {
+        "title": "Modèles d'architecture",
+        "description": "Commencez avec des architectures éprouvées et prêtes pour la production.",
+        "button": "Parcourir les modèles"
+      },
+      "expert": {
+        "title": "Mode Expert",
+        "description": "Construisez votre architecture personnalisée avec un contrôle total.",
+        "button": "Construire l'architecture"
+      }
+    },
+    "quickDeployment": {
+      "title": "Déploiement rapide",
+      "subtitle": "Configuration de déploiement rapide et simple",
+      "fields": {
+        "name": "Nom du déploiement",
+        "environment": "Environnement",
+        "branch": "Branche"
+      },
+      "placeholders": {
+        "name": "Mon déploiement rapide",
+        "repoUrl": "https://github.com/utilisateur/depot.git",
+        "branch": "main"
+      },
+      "environments": {
+        "development": "Développement",
+        "staging": "Pré-production",
+        "production": "Production"
+      },
+      "git": {
+        "title": "Dépôt Git (Optionnel)",
+        "repoUrl": "URL du dépôt"
+      },
+      "buttons": {
+        "create": "Créer le déploiement"
+      },
+      "errors": {
+        "noProjectSelected": "Aucun projet sélectionné. Veuillez d'abord sélectionner un projet.",
+        "invalidRepoUrl": "Veuillez saisir une URL de dépôt valide",
+        "fillRequiredFields": "Veuillez remplir tous les champs obligatoires.",
+        "failedToCreate": "Échec de la création du déploiement rapide"
+      }
+    },
+    "templateDeployment": {
+      "template": "Modèle",
+      "fields": {
+        "name": "Nom du déploiement",
+        "environment": "Environnement",
+        "branch": "Branche"
+      },
+      "placeholders": {
+        "name": "Mon déploiement de modèle",
+        "repoUrl": "https://github.com/utilisateur/depot.git",
+        "branch": "main"
+      },
+      "environments": {
+        "development": "Développement",
+        "staging": "Pré-production",
+        "production": "Production"
+      },
+      "git": {
+        "title": "Dépôt Git (Optionnel)",
+        "repoUrl": "URL du dépôt"
+      },
+      "buttons": {
+        "changeTemplate": "Changer de modèle",
+        "save": "Enregistrer le modèle"
+      },
+      "errors": {
+        "noProjectSelected": "Aucun projet sélectionné. Veuillez d'abord sélectionner un projet.",
+        "noTemplateSelected": "Veuillez sélectionner un modèle d'architecture",
+        "fillRequiredFields": "Veuillez remplir tous les champs obligatoires.",
+        "failedToCreate": "Échec de la création du déploiement de modèle"
+      }
+    },
+    "terraformFiles": {
+      "title": "Configuration de Terraform",
+      "subtitle": "Modifiez votre fichier de variables Terraform directement dans l'application. Les modifications peuvent être téléchargées ou enregistrées dans votre déploiement."
+    },
+    "createDeployment": {
+      "title": "Créer un déploiement",
+      "subtitle": "Déployez votre application dans le cloud",
+      "modes": {
+        "beginner": "Déploiement rapide",
+        "ai-assistant": "Déploiement assisté par IA",
+        "template": "Déploiement basé sur un modèle",
+        "expert": "Mode expert"
+      }
+    },
+    "deploymentList": {
+      "title": "Déploiements",
+      "subtitle": "Gérez vos déploiements d'application",
+      "loading": "Chargement des déploiements...",
+      "buttons": {
+        "new": "Nouveau déploiement",
+        "create": "Créer le premier déploiement"
+      },
+      "empty": {
+        "title": "Aucun déploiement pour le moment",
+        "subtitle": "Créez votre premier déploiement pour commencer l'hébergement cloud"
+      },
+      "table": {
+        "name": "Nom",
+        "environment": "Environnement",
+        "status": "Statut",
+        "version": "Version",
+        "url": "URL",
+        "created": "Créé",
+        "lastUpdated": "Dernière mise à jour",
+        "actions": "Actions"
+      },
+      "actions": {
+        "viewDetails": "Voir les détails",
+        "viewLogs": "Voir les journaux",
+        "redeploy": "Redéployer"
+      }
+    },
+    "createDevelopment": {
+      "title": "Configuration du développement",
+      "subtitle": "Configurez les paramètres de développement de votre application",
+      "errors": {
+        "submissionTitle": "Il y a eu des erreurs avec votre soumission"
+      },
+      "modeSelection": {
+        "title": "Choisissez votre mode de développement",
+        "subtitle": "Sélectionnez comment vous voulez configurer votre application",
+        "quick": {
+          "title": "Rapide",
+          "subtitle": "Configuration pré-établie avec React, Express.js et Supabase",
+          "features": {
+            "react": "React",
+            "express": "Express.js"
+          }
+        },
+        "advanced": {
+          "title": "Avancé",
+          "subtitle": "Contrôle total sur tous les choix technologiques et paramètres",
+          "features": {
+            "custom": "Personnalisé",
+            "fullControl": "Contrôle total"
+          }
+        }
+      },
+      "generationType": {
+        "title": "Que voulez-vous générer ?",
+        "subtitle": "Choisissez le type d'application que vous voulez créer",
+        "landing": {
+          "title": "Landing",
+          "subtitle": "Un beau site web marketing autonome pour présenter votre produit ou service",
+          "badge": "Marketing"
+        },
+        "app": {
+          "title": "Application Web",
+          "subtitle": "Une application web complète avec authentification utilisateur et base de données",
+          "badge": "App"
+        },
+        "integrated": {
+          "title": "Intégré",
+          "subtitle": "Page de destination intégrée dans l'application web pour une expérience utilisateur fluide",
+          "badge": "Unifié"
+        },
+        "both": {
+          "title": "Complet",
+          "subtitle": "Page de destination + application web séparées pour une flexibilité et évolutivité maximales",
+          "badge": "Full Stack"
+        }
+      },
+      "configuration": {
+        "title": "Résumé de la configuration",
+        "subtitle": "Vérifiez vos paramètres de génération rapide",
+        "generationType": "Type de génération",
+        "techStack": "Stack technologique",
+        "features": {
+          "react": "Frontend React",
+          "express": "Backend Express.js",
+          "supabase": "Base de données Supabase"
+        },
+        "buttons": {
+          "generate": "Générer l'application",
+          "save": "Enregistrer les configurations"
+        }
+      },
+      "advanced": {
+        "title": "Configuration avancée",
+        "subtitle": "Configurez tous les aspects de votre application",
+        "tabs": {
+          "frontend": "Frontend",
+          "backend": "Backend",
+          "database": "Base de données",
+          "deployment": "Déploiement"
+        }
+      }
+    },
+    "showDevelopment": {
+      "title": "Configuration prête",
+      "subtitle": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
+      "landingPage": {
+        "title": "Votre Landing Page est Prête à Générer",
+        "subtitle": "Votre configuration est finalisée. Lancez la génération pour créer votre landing page professionnelle et moderne en quelques minutes.",
+        "cta": "Générer ma Landing Page",
+        "features": {
+          "modern": {
+            "title": "Design Moderne",
+            "description": "Interface élégante et responsive"
+          },
+          "seo": {
+            "title": "Optimisé SEO",
+            "description": "Référencement naturel optimisé"
+          },
+          "customizable": {
+            "title": "Personnalisable",
+            "description": "Facilement modifiable selon vos besoins"
+          }
+        }
+      },
+      "buttons": {
+        "generate": "Générer l'application",
+        "preview": "Aperçu",
+        "export": "Exporter la configuration",
+        "edit": "Modifier la configuration"
+      },
+      "sections": {
+        "frontend": "Frontend",
+        "backend": "Backend",
+        "database": "Base de données",
+        "projectConfig": "Configuration du projet",
+        "constraints": "Contraintes"
+      },
+      "techStack": {
+        "styling": "Style",
+        "stateManagement": "Gestion d'état",
+        "features": "Fonctionnalités",
+        "orm": "ORM",
+        "noFeatures": "Aucune fonctionnalité configurée"
+      },
+      "projectFeatures": {
+        "seo": "SEO",
+        "contactForm": "Formulaire de contact",
+        "analytics": "Analytique",
+        "i18n": "i18n",
+        "performance": "Performance",
+        "authentication": "Authentification",
+        "authorization": "Autorisation",
+        "uiTheme": "Thème UI",
+        "payment": "Paiement",
+        "enabled": "Activé",
+        "disabled": "Désactivé",
+        "optimized": "Optimisé",
+        "standard": "Standard",
+        "integrated": "Intégré",
+        "notIntegrated": "Non intégré",
+        "modern": "Moderne"
+      },
+      "customOptions": "Options personnalisées",
+      "technicalDetails": "Détails techniques"
+    },
+    "globalDashboard": {
+      "title": "Tableau de bord",
+      "tabs": {
+        "projects": "Projets",
+        "teams": "Équipes"
+      },
+      "sections": {
+        "recentProjects": "Projets récents",
+        "allProjects": "Tous les projets",
+        "recentTeams": "Équipes récentes",
+        "allTeams": "Toutes les équipes"
+      },
+      "cards": {
+        "createProject": {
+          "title": "Créer un nouveau projet",
+          "subtitle": "Commencez à construire quelque chose d'incroyable"
+        },
+        "createTeam": {
+          "title": "Créer une nouvelle équipe",
+          "subtitle": "Construisez l'équipe de vos rêves"
+        }
+      },
+      "empty": {
+        "noProjects": "Aucun projet pour le moment",
+        "noTeams": "Aucune équipe pour le moment",
+        "noDescription": "Aucune description"
+      },
+      "buttons": {
+        "createProject": "Créer votre premier projet",
+        "createTeam": "Créer votre première équipe"
+      },
+      "members": "membres"
+    },
+    "myTeams": {
+      "title": "Mes équipes",
+      "subtitle": "Gérez et collaborez avec vos équipes",
+      "buttons": {
+        "create": "Créer une équipe",
+        "createNew": "Créer une nouvelle équipe"
+      },
+      "sections": {
+        "recent": "Équipes récentes",
+        "all": "Toutes les équipes"
+      },
+      "cards": {
+        "create": {
+          "title": "Créez votre première équipe"
+        }
+      },
+      "empty": {
+        "noTeams": "Vous n'avez pas encore d'équipes. Créez-en une pour commencer !"
+      },
+      "members": "membres"
+    },
+    "profile": {
+      "title": "Profil",
+      "subtitle": "Gérez les paramètres et préférences de votre compte",
+      "alt": {
+        "profilePicture": " photo de profil de"
+      },
+      "sections": {
+        "personalInfo": "Informations personnelles",
+        "betaAccess": "Accès bêta",
+        "quotaUsage": "Utilisation du quota"
+      },
+      "fields": {
+        "name": "Nom",
+        "email": "Email",
+        "accountType": "Type de compte",
+        "memberSince": "Membre depuis"
+      },
+      "accountTypes": {
+        "free": "Gratuit",
+        "premium": "Premium"
+      },
+      "beta": {
+        "message": "Vous faites partie de notre programme bêta avec un accès spécial et des limitations.",
+        "limitations": "Limitations bêta",
+        "maxStyles": "Maximum {{count}} styles par génération",
+        "resolution": "Résolution maximale {{resolution}}",
+        "maxTokens": "Maximum {{count}} tokens de sortie"
+      },
+      "quota": {
+        "daily": "Quota quotidien",
+        "weekly": "Quota hebdomadaire",
+        "usedToday": "Utilisé aujourd'hui : {{count}} requêtes",
+        "usedThisWeek": "Utilisé cette semaine : {{count}} requêtes",
+        "warning": "Vous approchez de votre limite de quota. Envisagez de passer à la version premium pour un accès illimité.",
+        "exceeded": "Vous avez dépassé votre limite de quota. Veuillez passer à la version premium ou attendre la prochaine réinitialisation."
+      },
+      "buttons": {
+        "upgrade": "Passer à Premium",
+        "settings": "Paramètres du compte"
+      }
+    },
+    "projectTeams": {
+      "title": "Équipes du projet",
+      "subtitle": "Gérez les équipes assignées à ce projet",
+      "buttons": {
+        "addTeam": "Ajouter une équipe",
+        "addTeamToProject": "Ajouter une équipe au projet"
+      },
+      "cards": {
+        "members": "{{count}} membres",
+        "projectRoles": "Rôles du projet"
+      },
+      "empty": {
+        "noTeams": "Aucune équipe assignée à ce projet pour le moment"
+      }
+    },
+    "projectsList": {
+      "sections": {
+        "recent": "Projets récents",
+        "all": "Tous les projets"
+      },
+      "cards": {
+        "create": {
+          "title": "Créer un nouveau projet",
+          "subtitle": "Commencez à construire quelque chose d'incroyable"
+        }
+      },
+      "empty": {
+        "noProjects": "Aucun projet pour le moment. Créez votre premier projet pour commencer !"
+      },
+      "buttons": {
+        "create": "Créer votre premier projet"
+      }
+    },
+    "brandingDisplay": {
+      "title": "Document d'identité de marque",
+      "loading": "Préparation du contenu de branding...",
+      "empty": {
+        "title": "Créez votre identité de marque",
+        "subtitle": "Générez une identité de marque complète avec logos, couleurs et typographie pour votre projet"
+      },
+      "features": {
+        "colors": {
+          "title": "Palette de couleurs",
+          "description": "Schémas de couleurs professionnels"
+        },
+        "logo": {
+          "title": "Variations de logo",
+          "description": "Multiples formats de logo"
+        },
+        "typography": {
+          "title": "Typographie",
+          "description": "Recommandations de polices"
+        }
+      },
+      "buttons": {
+        "generate": "Générer l'identité de marque"
+      },
+      "generationTime": "La génération prend 2-3 minutes"
+    },
+    "brandingGeneration": {
+      "finalizing": "Finalisation du Branding",
+      "generating": "Génération du Branding",
+      "creating": "Création de votre identité de marque...",
+      "processing": "Traitement : {{steps}}",
+      "stepsCompleted": "Étapes Terminées",
+      "lastStep": "Dernière étape",
+      "progress": "Progression",
+      "savingData": "Sauvegarde des Données",
+      "wait": "Veuillez patienter pendant que nous finalisons vos données de branding...",
+      "stepCompletedAt": "Terminé à {{time}}",
+      "buttons": {
+        "cancel": "Annuler"
+      },
+      "errors": {
+        "title": "Échec de la Génération"
+      }
+    },
+    "showBranding": {
+      "title": "Identité de marque",
+      "loading": {
+        "checking": "Vérification de votre identité de marque..."
+      },
+      "showBranding": {
+        "title": "Identité de Marque",
+        "empty": {
+          "noProject": {
+            "title": "Aucun projet sélectionné",
+            "subtitle": "Veuillez sélectionner un projet pour voir son identité de marque"
+          }
+        },
+        "buttons": {
+          "selectProject": "Sélectionner un projet"
+        }
+      },
+      "buttons": {
+        "backToOverview": "Retour à l'aperçu",
+        "backToProjects": "Retour aux projets",
+        "getCharter": "Obtenir la charte graphique",
+        "downloadZip": "Télécharger tous les logos en ZIP",
+        "selectProject": "Sélectionner un projet",
+        "generate": "Générer l'identité de marque",
+        "viewIdentity": "Voir mon identité visuelle",
+        "generateIdentity": "Générer mon identité visuelle"
+      },
+      "tooltips": {
+        "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
+      },
+      "sections": {
+        "logos": {
+          "title": "Logos",
+          "subtitle": "Variations de votre logo",
+          "main": "Logo principal",
+          "selected": "Sélectionné",
+          "lightBg": "Fond clair",
+          "darkBg": "Fond sombre",
+          "iconOnly": "Icône seule",
+          "monochrome": "Monochrome"
+        },
+        "colors": {
+          "title": "Palette de couleurs",
+          "subtitle": "Les couleurs de votre marque",
+          "selected": "Palette sélectionnée",
+          "primary": "Primaire",
+          "secondary": "Secondaire",
+          "accent": "Accent",
+          "background": "Arrière-plan"
+        },
+        "typography": {
+          "title": "Typographie",
+          "subtitle": "Les polices de votre marque",
+          "heading": "Police de titre",
+          "body": "Police de corps",
+          "selected": "Typographie sélectionnée",
+          "primary": "Police Principale",
+          "secondary": "Police Secondaire"
+        }
+      },
+      "empty": {
+        "noLogos": "Aucun logo disponible",
+        "noColors": "Aucune palette de couleurs définie",
+        "noTypography": "Aucune typographie définie",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Veuillez sélectionner un projet pour voir son identité de marque"
+        },
+        "title": "Créez votre identité de marque",
+        "subtitle": "Générez une identité de marque complète avec logos, couleurs et typographie pour votre projet"
+      },
+      "identityCard": {
+        "existing": {
+          "title": "Votre identité visuelle est prête !",
+          "subtitle": "Découvrez votre charte graphique complète avec logos, couleurs et typographie.",
+          "features": [
+            "Charte graphique PDF",
+            "Logos en plusieurs formats",
+            "Palette de couleurs",
+            "Guide typographique"
+          ]
+        },
+        "generate": {
+          "title": "Créez votre identité visuelle unique",
+          "subtitle": "Générez une identité de marque professionnelle adaptée à votre projet.",
+          "features": [
+            "IA créative avancée",
+            "Logos personnalisés",
+            "Couleurs harmonieuses",
+            "Typographie adaptée"
+          ],
+          "estimatedTime": "Temps estimé : 2-3 minutes"
+        }
+      },
+      "features": {
+        "colors": {
+          "title": "Palette de couleurs",
+          "description": "Schémas de couleurs professionnels"
+        },
+        "logo": {
+          "title": "Variations de logo",
+          "description": "Multiples formats de logo"
+        },
+        "typography": {
+          "title": "Typographie",
+          "description": "Recommandations de polices"
+        }
+      },
+      "generationTime": "La génération prend 2-3 minutes",
+      "status": {
+        "ready": "Prêt",
+        "pending": "En attente"
+      },
+      "brandingDisplay": {
+        "title": "Document d'identité de marque",
+        "loading": "Préparation du contenu de branding..."
+      },
+      "dialog": {
+        "title": "Télécharger les Logos",
+        "subtitle": "Choisissez le format que vous souhaitez télécharger :",
+        "preparing": "Préparation du téléchargement...",
+        "wait": "Cela peut prendre quelques instants",
+        "formats": {
+          "svg": {
+            "name": "Format SVG",
+            "description": "Format vectoriel, redimensionnable"
+          },
+          "png": {
+            "name": "Format PNG",
+            "description": "Image raster haute qualité"
+          },
+          "psd": {
+            "name": "Format PSD",
+            "description": "Fichier éditable Photoshop"
+          }
+        }
+      },
+      "formatSelector": {
+        "title": "Choisir le format PDF",
+        "description": "Sélectionnez le format pour votre charte graphique PDF",
+        "a4Portrait": {
+          "title": "A4 Portrait",
+          "description": "Format document classique"
+        },
+        "landscape": {
+          "title": "Paysage 16:9",
+          "description": "Format présentation moderne"
+        },
+        "startGeneration": "Lancer la génération"
+      }
+    },
+    "additionalInfoForm": {
+      "title": "Informations complémentaires",
+      "subtitle": "Aidez-nous à créer un plan d'affaires plus précis en fournissant des détails supplémentaires",
+      "sections": {
+        "company": "Informations sur l'entreprise",
+        "team": "Membres de l'équipe",
+        "social": "Liens sociaux"
+      },
+      "fields": {
+        "email": "Email",
+        "phone": "Téléphone",
+        "address": "Adresse",
+        "city": "Ville",
+        "country": "Pays",
+        "zipCode": "Code postal",
+        "fullName": "Nom complet",
+        "role": "Rôle",
+        "bio": "Biographie",
+        "profilePicture": "Photo de Profil"
+      },
+      "placeholders": {
+        "email": "entreprise@exemple.com",
+        "phone": "+33 1 23 45 67 89",
+        "address": "123 Rue Principale",
+        "city": "Paris",
+        "country": "France",
+        "zipCode": "75001",
+        "fullName": "Jean Dupont",
+        "memberEmail": "jean@exemple.com",
+        "role": "CEO",
+        "bio": "Brève description de ce membre de l'équipe",
+        "linkedin": "https://linkedin.com/in/nomutilisateur",
+        "github": "https://github.com/nomutilisateur",
+        "twitter": "https://twitter.com/nomutilisateur"
+      },
+      "buttons": {
+        "addMember": "Ajouter un membre",
+        "chooseImage": "Choisir une image",
+        "continue": "Continuer"
+      },
+      "member": "Membre de l'équipe {{index}}",
+      "alt": {
+        "profilePicture": "Photo de profil"
+      }
+    },
+    "businessPlanDisplay": {
+      "title": "PDF du Plan d'Affaires",
+      "loading": "Préparation du contenu du plan d'affaires...",
+      "empty": {
+        "title": "Aucun Plan d'Affaires Disponible",
+        "subtitle": "Aucun contenu de plan d'affaires disponible."
+      }
+    },
+    "businessPlanGeneration": {
+      "saving": {
+        "title": "Enregistrement de votre plan d'affaires",
+        "subtitle": "Veuillez patienter pendant l'enregistrement de votre plan d'affaires..."
+      },
+      "finalizing": "Finalisation de votre plan d'affaires",
+      "generating": "Génération de votre plan d'affaires",
+      "creating": "Création d'un plan d'affaires complet pour votre projet",
+      "processing": "Traitement : {{steps}}",
+      "stepsCompleted": "étapes terminées",
+      "lastStep": "Dernière étape",
+      "savingData": "Enregistrement des données",
+      "wait": "Veuillez patienter pendant la finalisation de votre plan d'affaires...",
+      "stepCompletedAt": "Terminé à {{time}}",
+      "errors": {
+        "title": "Échec de la génération",
+        "failed": "Échec de la génération du plan d'affaires",
+        "saveAdditionalInfo": "Échec de l'enregistrement des informations supplémentaires",
+        "projectIdNotFound": "ID du projet non trouvé"
+      },
+      "postProcessing": "Finalisation de la génération du plan d'affaires...",
+      "cancelled": "Génération du plan d'affaires annulée",
+      "empty": {
+        "title": "Aucun plan d'affaires pour le moment",
+        "subtitle": "Commencez à générer votre plan d'affaires complet",
+        "buttons": {
+          "generate": "Générer le plan d'affaires"
+        }
+      },
+      "buttons": {
+        "generate": "Générer le plan d'affaires",
+        "cancel": "Annuler"
+      },
+      "progress": "Progrès"
+    },
+    "showBusinessPlan": {
+      "loading": {
+        "checking": "Vérification de votre plan d'affaires..."
+      },
+      "buttons": {
+        "backToProjects": "Retour aux projets",
+        "generate": "Générer le plan d'affaires",
+        "selectProject": "Sélectionner un projet"
+      },
+      "empty": {
+        "title": "Aucun plan d'affaires pour le moment",
+        "subtitle": "Générez un plan d'affaires complet pour votre projet",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
+        }
+      }
+    },
+    "showPitchDeck": {
+      "loading": "Chargement de votre pitch deck…",
+      "title": "Pitch Deck",
+      "slide": "Diapositive",
+      "allSlides": "Toutes les diapositives",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour générer ou consulter son pitch deck."
+      },
+      "empty": {
+        "title": "Aucun pitch deck pour le moment",
+        "subtitle": "Générez un deck minimaliste de qualité investisseur à partir des données de votre projet. 11 slides : couverture, problème, solution, marché, produit, business model, traction, concurrence, équipe, financier, demande."
+      },
+      "generating": {
+        "title": "Génération de votre deck",
+        "subtitle": "Chaque slide est produite indépendamment — patientez.",
+        "slides": "slides"
+      },
+      "status": {
+        "inProgress": "En cours"
+      },
+      "actions": {
+        "generate": "Générer le deck",
+        "regenerate": "Regénérer",
+        "download": "Télécharger le PDF"
+      },
+      "slides": {
+        "Cover": "Couverture",
+        "Problem": "Problème",
+        "Solution": "Solution",
+        "Market": "Marché",
+        "Product": "Produit",
+        "Business Model": "Business Model",
+        "Traction": "Traction",
+        "Competition": "Concurrence",
+        "Team": "Équipe",
+        "Financials": "Financier",
+        "Ask": "Demande"
+      },
+      "errors": {
+        "generation": "Une erreur est survenue pendant la génération du deck.",
+        "download": "Impossible de télécharger le PDF.",
+        "pdfLoad": "Impossible de charger l’aperçu PDF."
+      },
+      "loadingPdf": "Chargement de l’aperçu PDF…"
+    },
+    "legalDocs": {
+      "title": "Documents juridiques",
+      "subtitle": "Générez des brouillons de documents juridiques adaptés au contexte africain (zone OHADA + pays de common law). Chaque document doit être relu par un juriste avant usage.",
+      "selected": "sélectionné(s)",
+      "addMore": "Ajouter d’autres documents",
+      "missingFields": "Champs requis manquants",
+      "missingFieldsShort": "champ(s) requis manquant(s)",
+      "stepper": {
+        "select": "Choisir",
+        "context": "Contexte",
+        "generate": "Générer"
+      },
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour choisir et générer ses documents juridiques."
+      },
+      "steps": {
+        "selection": {
+          "title": "1 — Choisissez les documents nécessaires",
+          "subtitle": "Seuls les champs requis par votre sélection seront demandés."
+        },
+        "context": {
+          "title": "2 — Contexte de l’entreprise",
+          "subtitle": "L’IA utilise ces données comme source de vérité. Elle n’invente rien."
+        }
+      },
+      "groups": {
+        "company": "Structure sociétaire",
+        "contracts": "Contrats",
+        "customers": "Clients & public",
+        "internal": "Interne"
+      },
+      "fields": {
+        "country": "Pays",
+        "legalForm": "Forme juridique",
+        "capital": "Capital social",
+        "currency": "Devise",
+        "headOffice": "Siège social",
+        "companyEmail": "Email de l’entreprise",
+        "companyPhone": "Téléphone de l’entreprise",
+        "website": "Site web",
+        "activityDescription": "Activité (objet social)",
+        "founders": "Associés / fondateurs",
+        "addFounder": "Ajouter un associé",
+        "noFounders": "Aucun associé ajouté. Ajoutez-en au moins un.",
+        "founderName": "Nom complet",
+        "founderShares": "Parts (%)",
+        "founderRole": "Rôle"
+      },
+      "actions": {
+        "generate": "Générer les documents sélectionnés",
+        "download": "Télécharger le PDF",
+        "downloadAll": "Tout télécharger",
+        "regenerate": "Régénérer"
+      },
+      "generating": {
+        "title": "Génération des documents"
+      },
+      "generated": {
+        "title": "Documents générés",
+        "count": "document(s) prêts"
+      },
+      "errors": {
+        "catalog": "Impossible de charger le catalogue de documents.",
+        "generation": "La génération a échoué. Réessayez."
+      },
+      "status": {
+        "generating": "Génération en cours…",
+        "ready": "Prêt"
+      }
+    },
+    "advisor": {
+      "title": "Conseiller",
+      "subtitle": "Conseil IA pour la création d’entreprise en Afrique — ancré sur votre projet.",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour que le conseiller analyse son contexte."
+      },
+      "empty": {
+        "title": "Comment puis-je vous aider ?",
+        "subtitle": "Posez vos questions sur la forme juridique, les démarches, le financement, la fiscalité… Je poserai des questions complémentaires si besoin."
+      },
+      "composer": {
+        "placeholder": "Posez votre question… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
+        "send": "Envoyer",
+        "hint": "Les réponses sont des conseils générés par IA et ne constituent pas un conseil juridique ou financier."
+      },
+      "actions": {
+        "clear": "Effacer la conversation"
+      },
+      "errors": {
+        "send": "Impossible d’envoyer le message. Réessayez."
+      },
+      "financeIntent": {
+        "confirm": "Appliquer",
+        "cancel": "Annuler",
+        "applied": "Modification appliquée à vos finances."
+      }
+    },
+    "diagramDisplay": {
+      "actions": {
+        "add": "Ajouter un diagramme",
+        "addNew": "Ajouter un nouveau diagramme",
+        "download": "Télécharger",
+        "downloadPdf": "Télécharger en PDF",
+        "edit": "Modifier",
+        "editDiagrams": "Modifier les diagrammes"
+      },
+      "available": {
+        "title": "Diagrammes disponibles"
+      }
+    },
+    "diagramGeneration": {
+      "inProgress": {
+        "title": "Génération des diagrammes",
+        "stepsCompleted": "étapes terminées",
+        "current": "En cours : {{steps}}"
+      },
+      "steps": {
+        "analyzing": "Analyse de la structure du projet",
+        "architecture": "Création du diagramme d'architecture",
+        "database": "Conception du schéma de base de données",
+        "api": "Cartographie des points de terminaison API",
+        "deployment": "Planification de la stratégie de déploiement",
+        "security": "Définition des mesures de sécurité"
+      },
+      "stepCompletedAt": "Terminé à {{time}}",
+      "errors": {
+        "title": "Échec de la génération",
+        "failed": "Échec de la génération des diagrammes"
+      },
+      "cancelled": "Génération des diagrammes annulée",
+      "available": {
+        "title": "Diagrammes disponibles"
+      }
+    },
+    "showDiagrams": {
+      "loading": {
+        "checking": "Vérification de vos diagrammes..."
+      },
+      "buttons": {
+        "generate": "Générer les diagrammes",
+        "selectProject": "Sélectionner un projet"
+      },
+      "empty": {
+        "title": "Aucun diagramme pour le moment",
+        "subtitle": "Générez des diagrammes d'architecture système pour votre projet",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Veuillez sélectionner un projet pour voir ou générer ses diagrammes"
+        }
+      }
+    },
+    "showTests": {
+      "works": "Les tests fonctionnent !"
+    },
+    "teamDetailsGlobal": {
+      "backToTeams": "Retour aux équipes",
+      "assignedProjects": "Projets assignés",
+      "projects": "projets",
+      "teamMembers": "Membres de l'équipe",
+      "members": "membres",
+      "buttons": {
+        "addMember": "Ajouter un membre",
+        "addFirstMember": "Ajouter le premier membre",
+        "remove": "Retirer"
+      },
+      "cards": {
+        "teamRoles": "Rôles de l'équipe",
+        "teamRole": "Rôle dans l'équipe",
+        "joined": "Rejoint le {{date}}"
+      },
+      "empty": {
+        "noProjects": "Cette équipe n'est assignée à aucun projet pour le moment",
+        "noMembers": "Aucun membre dans cette équipe pour le moment"
+      }
+    },
+    "teamDetailsProject": {
+      "backToTeams": "Retour aux équipes du projet",
+      "sections": {
+        "teamMembers": "Membres de l'équipe"
+      },
+      "cards": {
+        "teamRole": "Rôle dans l'équipe",
+        "joined": "Rejoint le {{date}}"
+      },
+      "buttons": {
+        "remove": "Retirer"
+      },
+      "empty": {
+        "noMembers": "Aucun membre dans cette équipe"
+      },
+      "members": "membres"
+    },
+    "pdfViewer": {
+      "loading": "Chargement du PDF...",
+      "wait": "Veuillez patienter pendant le chargement de votre document",
+      "noContent": "Aucun PDF à afficher"
+    },
+    "brandingBlocker": {
+      "dashboard": {
+        "brandingBlocker": {
+          "title": "Identité de marque requise",
+          "description": "Pour accéder à {{featureName}}, vous devez d'abord compléter l'identité de marque de votre projet.",
+          "missingElements": "Éléments manquants :",
+          "backButton": "Retour au tableau de bord",
+          "completeButton": "Compléter l'identité de marque"
+        }
+      },
+      "title": "Identité de marque requise",
+      "description": "Pour accéder à {{featureName}}, vous devez d'abord compléter l'identité de marque de votre projet.",
+      "missingElements": "Éléments manquants :",
+      "backButton": "Retour au tableau de bord",
+      "completeButton": "Compléter l'identité de marque"
+    },
+    "completeBranding": {
+      "loading": "Chargement de votre projet...",
+      "projectNotFound": "Projet introuvable.",
+      "noLogoSelected": "Aucun logo sélectionné. Veuillez retourner à l'étape précédente.",
+      "backToLogoChoice": "Retour au choix du logo",
+      "finish": "Terminer",
+      "steps": {
+        "logoChoice": "Logo",
+        "colors": "Couleurs",
+        "typography": "Typographie",
+        "logoVariations": "Variations"
+      }
+    },
+    "incompleteBanner": {
+      "title": "Complétez votre identité de marque",
+      "description": "Pour débloquer toutes les fonctionnalités, veuillez compléter votre identité de marque en ajoutant les éléments manquants ci-dessous.",
+      "elements": {
+        "logo": "Logo",
+        "colors": "Couleurs",
+        "typography": "Typographies"
+      },
+      "completeButton": "Compléter l'identité de marque"
+    }
+  },
+  "deployment": {
+    "title": "Aperçu du déploiement",
+    "subtitle": "Surveillez et gérez le déploiement de votre application",
+    "deployedAt": "Déployé le",
+    "version": "Version",
+    "openApp": "Ouvrir l'application",
+    "manageOnIdeploy": "Gérer sur iDeploy",
+    "noDeployment": {
+      "title": "Aucun déploiement",
+      "description": "Déployez votre application avec iDeploy pour voir les statistiques et le monitoring ici.",
+      "cta": "Déployer avec iDeploy"
+    },
+    "stats": {
+      "uptime": "Disponibilité",
+      "requests": "Requêtes totales",
+      "responseTime": "Temps de réponse moyen",
+      "errorRate": "Taux d'erreur"
+    },
+    "monitoring": {
+      "title": "Surveillance",
+      "health": "Santé de l'application",
+      "healthy": "En bonne santé",
+      "ssl": "Certificat SSL",
+      "active": "Actif",
+      "autoscaling": "Auto-scaling",
+      "enabled": "Activé"
+    }
+  },
+  "errors": {
+    "generic": "Une erreur est survenue",
+    "notFound": "Non trouvé",
+    "unauthorized": "Non autorisé",
+    "serverError": "Erreur du serveur"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "projects": "Projets",
+    "teams": "Équipes",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "subtitle": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "buttons": {
+      "home": "Aller à l'accueil",
+      "dashboard": "Aller au tableau de bord"
+    }
+  },
+  "projects": {
+    "title": "Projets",
+    "createNew": "Créer un nouveau projet",
+    "myProjects": "Mes projets",
+    "noProjects": "Aucun projet trouvé",
+    "projectDetails": "Détails du projet"
+  },
+  "teams": {
+    "title": "Équipes",
+    "createNew": "Créer une nouvelle équipe",
+    "myTeams": "Mes équipes",
+    "noTeams": "Aucune équipe trouvée",
+    "teamDetails": "Détails de l'équipe"
+  },
+  "validation": {
+    "required": "{{fieldName}} est requis",
+    "email": "Veuillez entrer une adresse e-mail valide",
+    "minLength": "Minimum {{min}} caractères requis",
+    "maxLength": "Maximum {{max}} caractères autorisés",
+    "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
+    "teamNameMinLength": "Le nom de l'équipe doit contenir au moins {{min}} caractères",
+    "deploymentName": "Le nom du déploiement est requis (minimum {{min}} caractères)",
+    "invalid": "Champ invalide"
+  },
+  "empty": {
+    "title": "Aucun plan d'affaires pour le moment",
+    "subtitle": "Générez un plan d'affaires complet pour votre projet",
+    "noProject": {
+      "title": "Aucun projet sélectionné",
+      "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
+    }
+  }
+}

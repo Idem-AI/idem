@@ -123,19 +123,23 @@ export class FirestoreRepository<T extends { id?: string; createdAt?: Date; upda
     }
   }
 
-  async findById(id: string, collectionPath: string): Promise<T | null> {
+  async findById(id: string, collectionPath: string, options?: { bypassCache?: boolean }): Promise<T | null> {
     // Generate cache key for this specific document
     const cacheKey = cacheService.generateDBKey(collectionPath.replace(/\//g, ':'), 'system', id);
 
-    // Try to get from cache first
-    const cached = await cacheService.get<T>(cacheKey, {
-      prefix: 'db',
-      ttl: 1800, // 30 minutes
-    });
+    // Try to get from cache first (unless bypassed)
+    if (!options?.bypassCache) {
+      const cached = await cacheService.get<T>(cacheKey, {
+        prefix: 'db',
+        ttl: 1800, // 30 minutes
+      });
 
-    if (cached) {
-      logger.debug(`Database cache hit for ${collectionPath}/${id}`);
-      return cached;
+      if (cached) {
+        logger.debug(`Database cache hit for ${collectionPath}/${id}`);
+        return cached;
+      }
+    } else {
+      logger.info(`Bypassing database cache for ${collectionPath}/${id}`);
     }
 
     logger.info(`FirestoreRepository.findById called for ${collectionPath}, id: ${id}`);
@@ -279,4 +283,86 @@ export class FirestoreRepository<T extends { id?: string; createdAt?: Date; upda
       throw error;
     }
   }
+
+  async findOne(query: Record<string, any>, collectionPath: string): Promise<T | null> {
+    logger.info(`FirestoreRepository.findOne called for ${collectionPath}`);
+
+    try {
+      const collectionRef = this.getCollection(collectionPath);
+      let firestoreQuery: admin.firestore.Query = collectionRef;
+
+      for (const [key, value] of Object.entries(query)) {
+        firestoreQuery = firestoreQuery.where(key, '==', value);
+      }
+
+      const snapshot = await firestoreQuery.limit(1).get();
+
+      if (snapshot.empty) {
+        return null;
+      }
+
+      const doc = snapshot.docs[0];
+      return {
+        id: doc.id,
+        ...this.fromFirestore(doc.data()),
+      } as T;
+    } catch (error: any) {
+      logger.error(`Error in findOne for ${collectionPath}: ${error.message}`, {
+        stack: error.stack,
+      });
+      throw error;
+    }
+  }
+
+  async find(query: Record<string, any>, collectionPath: string): Promise<T[]> {
+    logger.info(`FirestoreRepository.find called for ${collectionPath}`);
+
+    try {
+      const collectionRef = this.getCollection(collectionPath);
+      let firestoreQuery: admin.firestore.Query = collectionRef;
+
+      for (const [key, value] of Object.entries(query)) {
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          // Handle operators like { $gte: ..., $lte: ... }
+          for (const [op, opValue] of Object.entries(value)) {
+            switch (op) {
+              case '$gte':
+                firestoreQuery = firestoreQuery.where(key, '>=', opValue);
+                break;
+              case '$lte':
+                firestoreQuery = firestoreQuery.where(key, '<=', opValue);
+                break;
+              case '$gt':
+                firestoreQuery = firestoreQuery.where(key, '>', opValue);
+                break;
+              case '$lt':
+                firestoreQuery = firestoreQuery.where(key, '<', opValue);
+                break;
+              default:
+                firestoreQuery = firestoreQuery.where(key, '==', opValue);
+            }
+          }
+        } else {
+          firestoreQuery = firestoreQuery.where(key, '==', value);
+        }
+      }
+
+      const snapshot = await firestoreQuery.get();
+
+      if (snapshot.empty) {
+        return [];
+      }
+
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...this.fromFirestore(doc.data()),
+      } as T));
+    } catch (error: any) {
+      logger.error(`Error in find for ${collectionPath}: ${error.message}`, {
+        stack: error.stack,
+      });
+      throw error;
+    }
+  }
 }
+

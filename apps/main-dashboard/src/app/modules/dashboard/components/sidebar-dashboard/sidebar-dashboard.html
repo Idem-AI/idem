@@ -182,49 +182,112 @@
   </button>
 
   <!-- Navigation Menu -->
-  <nav class="flex-1 px-4 py-6 space-y-2">
+  <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
     @for (item of navigationItems(); track item.route) {
-      <a
-        [routerLink]="item.route"
-        class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden"
-        [class.bg-primary]="item.isActive"
-        [class.text-white]="item.isActive"
-        [class.text-gray-300]="!item.isActive"
-        [class.hover:bg-primary]="!item.isActive"
-        [class.hover:text-white]="!item.isActive"
-        [class.justify-center]="isSidebarCollapsed()"
-        [class.px-3]="!isSidebarCollapsed()"
-        [class.px-2]="isSidebarCollapsed()"
-      >
-        <!-- Active indicator -->
-        @if (item.isActive) {
-          <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"></div>
-        }
-
-        <!-- Icon -->
-        <div class="shrink-0 relative">
-          <i [class]="item.icon" class="text-lg transition-all duration-200"></i>
-          @if (item.isActive) {
-            <div class="absolute inset-0 bg-primary/20 rounded-lg -z-10 animate-pulse"></div>
-          }
-        </div>
-
-        <!-- Label -->
-        @if (!isSidebarCollapsed()) {
-          <span class="font-medium transition-all duration-200 group-hover:translate-x-1">
-            {{ item.labelKey | translate }}
-          </span>
-        }
-
-        <!-- Tooltip for collapsed state -->
-        @if (isSidebarCollapsed()) {
-          <div
-            class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50"
+      <div>
+        <!-- Parent item: a link if no children, a button if has children -->
+        @if (item.children && item.children.length > 0) {
+          <button
+            type="button"
+            (click)="toggleExpand(item)"
+            class="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden"
+            [ngClass]="{
+              'bg-primary/15 text-white border border-primary/30': item.isActive,
+              'text-gray-300 hover:bg-primary hover:text-white': !item.isActive,
+              'justify-center': isSidebarCollapsed(),
+            }"
           >
-            {{ item.labelKey | translate }}
-          </div>
+            <div class="shrink-0 relative">
+              <i [class]="item.icon" class="text-lg"></i>
+            </div>
+            @if (!isSidebarCollapsed()) {
+              <span class="font-medium flex-1 text-left">{{ item.labelKey | translate }}</span>
+              @if (item.isNew) {
+                <span
+                  class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
+                >
+                  {{ 'common.new' | translate }}
+                </span>
+              }
+              <i
+                class="pi pi-chevron-down text-xs transition-transform duration-200"
+                [class.rotate-180]="item.isExpanded"
+              ></i>
+            } @else if (item.isNew) {
+              <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary"></span>
+            }
+          </button>
+          <!-- Children (only visible when expanded and not collapsed) -->
+          @if (item.isExpanded && !isSidebarCollapsed()) {
+            <div class="mt-1 ml-3 pl-3 border-l border-white/10 space-y-1">
+              @for (child of item.children; track child.route) {
+                <a
+                  [routerLink]="child.route"
+                  class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-150"
+                  [ngClass]="{
+                    'bg-primary text-white shadow-sm': child.isActive,
+                    'text-gray-400 hover:text-white hover:bg-white/5': !child.isActive,
+                  }"
+                >
+                  <i [class]="child.icon" class="text-xs opacity-70"></i>
+                  <span class="font-medium">{{ child.labelKey | translate }}</span>
+                </a>
+              }
+            </div>
+          }
+        } @else {
+          <a
+            [routerLink]="item.route"
+            class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden"
+            [ngClass]="{
+              'bg-primary text-white shadow-lg shadow-primary/30': item.isActive,
+              'text-gray-300 hover:bg-primary hover:text-white hover:shadow-lg hover:shadow-primary/30':
+                !item.isActive,
+              'justify-center': isSidebarCollapsed(),
+            }"
+          >
+            @if (item.isActive) {
+              <div class="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full"></div>
+            }
+            <div class="shrink-0 relative">
+              <i [class]="item.icon" class="text-lg transition-all duration-200"></i>
+              @if (item.isActive) {
+                <div class="absolute inset-0 bg-primary/20 rounded-lg -z-10 animate-pulse"></div>
+              }
+            </div>
+            @if (!isSidebarCollapsed()) {
+              <span
+                class="font-medium transition-all duration-200 group-hover:translate-x-1 flex-1"
+              >
+                {{ item.labelKey | translate }}
+              </span>
+              @if (item.isNew) {
+                <span
+                  class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
+                >
+                  {{ 'common.new' | translate }}
+                </span>
+              }
+            } @else if (item.isNew) {
+              <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary"></span>
+            }
+            @if (isSidebarCollapsed()) {
+              <div
+                class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 flex items-center gap-2"
+              >
+                {{ item.labelKey | translate }}
+                @if (item.isNew) {
+                  <span
+                    class="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-primary/20 text-primary"
+                  >
+                    {{ 'common.new' | translate }}
+                  </span>
+                }
+              </div>
+            }
+          </a>
         }
-      </a>
+      </div>
     }
   </nav>
 
@@ -325,18 +388,69 @@
           </h3>
           <nav class="space-y-2">
             @for (item of navigationItems(); track item.route) {
-              <a
-                [routerLink]="item.route"
-                (click)="toggleMobileDrawer()"
-                class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200"
-                [class.bg-primary]="item.isActive"
-                [class.text-white]="item.isActive"
-                [class.text-white]="!item.isActive"
-                [class.hover:bg-white]="!item.isActive"
-              >
-                <i [class]="item.icon" class="text-lg"></i>
-                <span class="font-medium">{{ item.labelKey | translate }}</span>
-              </a>
+              @if (item.children && item.children.length > 0) {
+                <button
+                  type="button"
+                  (click)="toggleExpand(item)"
+                  class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left"
+                  [ngClass]="{
+                    'bg-primary/15 text-white border border-primary/30': item.isActive,
+                    'text-white hover:bg-white/5': !item.isActive,
+                  }"
+                >
+                  <i [class]="item.icon" class="text-lg"></i>
+                  <span class="font-medium flex-1">{{ item.labelKey | translate }}</span>
+                  @if (item.isNew) {
+                    <span
+                      class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
+                    >
+                      {{ 'common.new' | translate }}
+                    </span>
+                  }
+                  <i
+                    class="pi pi-chevron-down text-xs transition-transform"
+                    [class.rotate-180]="item.isExpanded"
+                  ></i>
+                </button>
+                @if (item.isExpanded) {
+                  <div class="ml-3 pl-3 border-l border-white/10 space-y-1">
+                    @for (child of item.children; track child.route) {
+                      <a
+                        [routerLink]="child.route"
+                        (click)="toggleMobileDrawer()"
+                        class="flex items-center gap-2 p-2 rounded-lg text-sm transition-all duration-150"
+                        [ngClass]="{
+                          'bg-primary text-white': child.isActive,
+                          'text-gray-300 hover:text-white hover:bg-white/5': !child.isActive,
+                        }"
+                      >
+                        <i [class]="child.icon" class="text-xs opacity-70"></i>
+                        <span class="font-medium">{{ child.labelKey | translate }}</span>
+                      </a>
+                    }
+                  </div>
+                }
+              } @else {
+                <a
+                  [routerLink]="item.route"
+                  (click)="toggleMobileDrawer()"
+                  class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200"
+                  [ngClass]="{
+                    'bg-primary text-white': item.isActive,
+                    'text-white hover:bg-white/5': !item.isActive,
+                  }"
+                >
+                  <i [class]="item.icon" class="text-lg"></i>
+                  <span class="font-medium flex-1">{{ item.labelKey | translate }}</span>
+                  @if (item.isNew) {
+                    <span
+                      class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
+                    >
+                      {{ 'common.new' | translate }}
+                    </span>
+                  }
+                </a>
+              }
             }
           </nav>
         </div>

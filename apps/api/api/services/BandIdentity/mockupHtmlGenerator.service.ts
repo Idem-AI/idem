@@ -8,7 +8,7 @@ import { MOCKUP_HTML_GENERATION_PROMPT } from './prompts/mockup-html-generation.
  */
 export class MockupHtmlGeneratorService {
   private geminiAI: GoogleGenerativeAI;
-  private readonly MODEL_NAME = 'gemini-3.1-flash-lite-preview';
+  private readonly MODEL_NAME = 'gemini-3-flash-preview';
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;

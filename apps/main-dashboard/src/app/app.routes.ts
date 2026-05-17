@@ -88,6 +88,15 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/complete-branding',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/complete-branding/complete-branding').then(
+        (m) => m.CompleteBrandingPage,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty' },
+  },
+  {
     path: 'project/branding/display',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-branding/components/branding-display/branding-display').then(
@@ -101,6 +110,33 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./modules/dashboard/pages/show-branding/branding-generation/branding-generation-page').then(
         (m) => m.BrandingGenerationPage,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/branding/logo-variations',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/create-project/components/logo-variations/logo-variations').then(
+        (m) => m.LogoVariationsComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/branding/select-colors',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/create-project/components/color-selection/color-selection').then(
+        (m) => m.ColorSelectionComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/branding/select-typography',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/create-project/components/typography-selection/typography-selection').then(
+        (m) => m.TypographySelectionComponent,
       ),
     canActivate: [authGuard],
     data: { layout: 'dashboard' },
@@ -120,6 +156,38 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-business-plan/business-plan-generation/business-plan-generation-page').then(
         (m) => m.BusinessPlanGenerationPage,
       ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/communication',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-communication/show-communication').then(
+        (m) => m.ShowCommunication,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/pitch-deck',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-pitch-deck/show-pitch-deck').then(
+        (m) => m.ShowPitchDeck,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/legal-docs',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/legal-docs/legal-docs').then((m) => m.LegalDocsPage),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/advisor',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/advisor/advisor').then((m) => m.AdvisorPage),
     canActivate: [authGuard],
     data: { layout: 'dashboard' },
   },
@@ -233,6 +301,145 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/profile/profile').then((m) => m.ProfileComponent),
     canActivate: [authGuard],
     data: { layout: 'dashboard' },
+  },
+
+  // ============================================
+  // FINANCE MODULE ROUTES (layout: 'dashboard')
+  // ============================================
+  {
+    path: 'project/finance',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-overview/finance-overview').then(
+        (m) => m.FinanceOverviewComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/finance/products',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'products' },
+  },
+  {
+    path: 'project/finance/sales',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'salesObjectives' },
+  },
+  {
+    path: 'project/finance/charges',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'variableCharges' },
+  },
+  {
+    path: 'project/finance/fixed-charges',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'fixedCharges' },
+  },
+  {
+    path: 'project/finance/taxes',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'taxesParams' },
+  },
+  {
+    path: 'project/finance/revenue',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'revenueParams' },
+  },
+  {
+    path: 'project/finance/investments',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'investments' },
+  },
+  {
+    path: 'project/finance/amortization',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'amortization' },
+  },
+  {
+    path: 'project/finance/financing',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'financing' },
+  },
+  {
+    path: 'project/finance/ratios-params',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'ratiosParams' },
+  },
+  {
+    path: 'project/finance/exploitation',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'compteExploitation' },
+  },
+  {
+    path: 'project/finance/bilan',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'bilan' },
+  },
+  {
+    path: 'project/finance/cashflow',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'fluxTresorerie' },
+  },
+  {
+    path: 'project/finance/ratios',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard', sectionKey: 'ratios' },
   },
 
   // Project creation route

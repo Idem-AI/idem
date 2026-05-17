@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
-import { processLogoImport, convertSvgToPng } from '../services/logo-import.service';
+import { processLogoImport, convertSvgToPng, generateLogoVariationsFromSvg } from '../services/logo-import.service';
+import { storageService } from '../services/storage.service';
 import logger from '../config/logger';
 
 /**
  * POST /api/logo/import
  * Accepts a multipart/form-data upload with field "logo".
- * Detects file type, processes (SVG optimize or raster vectorize), returns clean SVG.
+ * Returns: svg, logoUrl (MinIO if projectId provided), variations (programmatic), extractedColors.
  */
 export const importLogoController = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -28,9 +29,35 @@ export const importLogoController = async (req: Request, res: Response): Promise
       `Logo import: success - ${result.width}x${result.height}, SVG length: ${result.svg.length}, extracted ${result.extractedColors.length} colors`
     );
 
+    // Generate programmatic variations from the processed SVG (synchronous)
+    const variations = generateLogoVariationsFromSvg(result.svg);
+
+    // Optional MinIO upload when projectId is provided
+    let logoUrl: string | undefined;
+    const projectId = req.body?.projectId as string | undefined;
+    const userId = (req as any).user?.uid as string | undefined;
+
+    if (projectId && userId) {
+      try {
+        const folderPath = `users/${userId}/projects/${projectId}/logos`;
+        const uploadResult = await storageService.uploadFile(
+          result.svg,
+          `logo-imported-${Date.now()}.svg`,
+          folderPath,
+          'image/svg+xml'
+        );
+        logoUrl = uploadResult.downloadURL;
+        logger.info(`Logo import: uploaded to MinIO - ${logoUrl}`);
+      } catch (uploadErr: any) {
+        logger.warn(`Logo import: MinIO upload failed (non-critical): ${uploadErr.message}`);
+      }
+    }
+
     res.status(200).json({
       success: true,
       svg: result.svg,
+      logoUrl,
+      variations,
       width: result.width,
       height: result.height,
       extractedColors: result.extractedColors,
@@ -38,7 +65,6 @@ export const importLogoController = async (req: Request, res: Response): Promise
   } catch (error: any) {
     logger.error(`Logo import error: ${error.message}`, { stack: error.stack });
 
-    // Determine appropriate status code based on error type
     let statusCode = 500;
     if (
       error.message.includes('Unsupported file format') ||
@@ -58,6 +84,8 @@ export const importLogoController = async (req: Request, res: Response): Promise
     });
   }
 };
+
+
 
 /**
  * POST /api/logo/export/png

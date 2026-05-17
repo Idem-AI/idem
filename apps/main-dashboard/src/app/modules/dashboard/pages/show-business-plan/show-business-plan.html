@@ -10,6 +10,12 @@
         <p class="text-gray-600">{{ 'dashboard.showBusinessPlan.loading.checking' | translate }}</p>
       </div>
     </div>
+  } @else if (!isLoading() && !isBrandingComplete()) {
+    <!-- Branding Required Blocker -->
+    <app-branding-required-blocker
+      [missingElements]="brandingMissingElements()"
+      [featureName]="'le Business Plan'"
+    />
   } @else if (existingBusinessPlan()) {
     <!-- Display existing business plan -->
     <app-business-plan-display [businessPlan]="existingBusinessPlan()!"></app-business-plan-display>
@@ -69,9 +75,11 @@
       <p class="text-gray-600 mb-8">
         {{ 'dashboard.showBusinessPlan.empty.subtitle' | translate }}
       </p>
-      <button class="inner-button" (click)="generateBusinessPlan()">
-        {{ 'dashboard.showBusinessPlan.buttons.generate' | translate }}
-      </button>
+      <div class="flex justify-center">
+        <button class="inner-button" (click)="generateBusinessPlan()">
+          {{ 'dashboard.showBusinessPlan.buttons.generate' | translate }}
+        </button>
+      </div>
     </div>
   } @else {
     <!-- Empty State - No project ID -->

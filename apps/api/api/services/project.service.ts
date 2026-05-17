@@ -617,6 +617,65 @@ class ProjectService {
       return null;
     }
   }
+
+  /**
+   * Check if project branding is complete
+   * Returns an object with completion status and missing elements
+   */
+  checkBrandingCompletion(project: ProjectModel): {
+    isComplete: boolean;
+    missingElements: string[];
+  } {
+    const missingElements: string[] = [];
+    const branding = project.analysisResultModel?.branding;
+
+    // Check for logo
+    if (!branding?.logo || !branding?.logo?.svg) {
+      missingElements.push('logo');
+    }
+
+    // Check for colors
+    if (!branding?.colors || !branding?.generatedColors || branding.generatedColors.length === 0) {
+      missingElements.push('colors');
+    }
+
+    // Check for typography
+    if (
+      !branding?.typography ||
+      !branding?.generatedTypography ||
+      branding.generatedTypography.length === 0
+    ) {
+      missingElements.push('typography');
+    }
+
+    return {
+      isComplete: missingElements.length === 0,
+      missingElements,
+    };
+  }
+
+  /**
+   * Validate that project has complete branding before allowing generation
+   * Throws error if branding is incomplete
+   */
+  validateBrandingComplete(project: ProjectModel, operationName: string): void {
+    const { isComplete, missingElements } = this.checkBrandingCompletion(project);
+
+    if (!isComplete) {
+      const missingStr = missingElements.join(', ');
+      logger.warn(
+        `Cannot perform ${operationName} - Project branding incomplete. Missing: ${missingStr}`,
+        {
+          projectId: project.id,
+          userId: project.userId,
+          missingElements,
+        }
+      );
+      throw new Error(
+        `Veuillez d'abord compléter l'identité de marque de votre projet (${missingStr}) avant de générer ${operationName}.`
+      );
+    }
+  }
 }
 
 export const projectService = new ProjectService();

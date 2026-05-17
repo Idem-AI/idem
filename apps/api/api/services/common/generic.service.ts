@@ -86,7 +86,7 @@ export class GenericService {
    * @param project Project model
    * @param includeProjectInfo Whether to include project details in the prompt
    * @param userId User ID for quota tracking
-   * @param promptType Type of prompt for beta restrictions
+
    * @returns Generated content for the step
    */
   protected async runStepAndAppend(
@@ -99,7 +99,7 @@ export class GenericService {
     contextFromPreviousSteps: string = '',
     promptConfig: PromptConfig = {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-flash-lite-preview',
+      modelName: 'gemini-3-flash-preview',
       userId,
       promptType: promptType || step.stepName,
     }

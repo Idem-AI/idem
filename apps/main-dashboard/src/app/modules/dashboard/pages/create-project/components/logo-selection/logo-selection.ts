@@ -21,7 +21,7 @@ import { LogoCreationSimulatorComponent } from '../logo-creation-simulator/logo-
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 
 @Component({
   selector: 'app-logo-selection',
@@ -52,6 +52,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   readonly logos = input<LogoModel[]>();
   readonly selectedLogo = input<string>();
   readonly project = input<ProjectModel>();
+  readonly initialPreferences = input<LogoPreferencesModel | null | undefined>(null);
 
   // Outputs
   readonly logoSelected = output<string>();
@@ -128,9 +129,18 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const hasNoLogos = !this.logos() || this.logos()?.length === 0;
 
-    // Don't auto-start, wait for preferences
     if (hasNoLogos && !this.hasStartedGeneration()) {
-      this.showPreferences.set(true);
+      const initialPrefs = this.initialPreferences();
+      if (initialPrefs) {
+        // Parent provided preferences, auto-start generation
+        this.logoPreferences.set(initialPrefs);
+        this.showPreferences.set(false);
+        // Start generation slightly delayed to ensure component is fully initialized
+        setTimeout(() => this.startLogoGeneration(), 100);
+      } else {
+        // No preferences provided, show internal preferences form
+        this.showPreferences.set(true);
+      }
     } else if (this.logos() && this.logos()!.length > 0) {
       this.showPreferences.set(false);
       this.generatedLogos.set(this.logos()!);
@@ -185,6 +195,12 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
           branding: updatedBranding,
         },
       } as ProjectModel);
+    }
+  }
+
+  protected onNextStep(): void {
+    if (this.selectedLogoId()) {
+      this.nextStep.emit();
     }
   }
 
@@ -363,7 +379,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   }
 
   protected regenerateAllLogos(): void {
-    const preferences = this.logoPreferences();
+    const preferences = this.logoPreferences() || this.initialPreferences();
     console.log('🔄 Regenerate clicked. Current preferences:', preferences);
 
     if (!preferences) {

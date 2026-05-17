@@ -63,4 +63,9 @@ export type SSEEventType =
 /**
  * SSE Service Event Types
  */
-export type SSEServiceEventType = 'diagram' | 'branding' | 'business-plan';
+export type SSEServiceEventType =
+  | 'diagram'
+  | 'branding'
+  | 'business-plan'
+  | 'pitch-deck'
+  | 'legal-docs';

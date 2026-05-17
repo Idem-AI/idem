@@ -1,14 +1,10 @@
-import { Component, inject, output, signal, computed } from '@angular/core';
+import { Component, inject, input, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
-import { LogoImportService, LogoUploadProgress } from '../../../../services/logo-import.service';
+import { LogoImportService, LogoImportResponse, LogoUploadProgress } from '../../../../services/logo-import.service';
+import { LogoVariations } from '../../../../models/logo.model';
 import { Loader } from '../../../../../../shared/components/loader/loader';
 
-/**
- * Component for importing an existing logo file.
- * Supports drag & drop, file input fallback, local preview,
- * upload with progress, and sanitized SVG display.
- */
 @Component({
   selector: 'app-logo-import',
   standalone: true,
@@ -19,9 +15,13 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
 export class LogoImportComponent {
   // Services
   private readonly logoImportService = inject(LogoImportService);
+  // Inputs
+  readonly projectId = input<string | undefined>(undefined);
   // Outputs
   readonly svgImported = output<string>();
   readonly colorsExtracted = output<string[]>();
+  /** Fires when the API returns programmatic logo variations (import workflow) */
+  readonly variationsEmitted = output<LogoVariations>();
 
   // State
   protected readonly isDragOver = signal(false);
@@ -93,6 +93,9 @@ export class LogoImportComponent {
 
     // Generate local preview
     this.generateLocalPreview(file);
+
+    // Auto-upload for better UX
+    setTimeout(() => this.uploadFile(), 100);
   }
 
   private generateLocalPreview(file: File): void {
@@ -127,7 +130,7 @@ export class LogoImportComponent {
     this.errorMessage.set(null);
     this.uploadProgress.set(0);
 
-    this.logoImportService.uploadLogo(file).subscribe({
+    this.logoImportService.uploadLogo(file, this.projectId()).subscribe({
       next: (event: LogoUploadProgress) => {
         switch (event.type) {
           case 'progress':
@@ -144,13 +147,21 @@ export class LogoImportComponent {
             this.uploadProgress.set(100);
 
             if (event.result) {
-              this.importedSvg.set(event.result.svg);
+              // Prefer MinIO URL over inline SVG when available
+              const svgRef = event.result.logoUrl || event.result.svg;
+              this.importedSvg.set(event.result.svg); // Keep inline SVG for local preview
               this.importedWidth.set(event.result.width);
               this.importedHeight.set(event.result.height);
-              this.extractedColors.set(event.result.extractedColors || []);
-              // Emit the SVG and extracted colors to parent
-              this.svgImported.emit(event.result.svg);
-              this.colorsExtracted.emit(event.result.extractedColors || []);
+              // Keep only top 2 colors (primary and secondary)
+              const topColors = (event.result.extractedColors || []).slice(0, 2);
+              this.extractedColors.set(topColors);
+              // Emit the best available reference (URL or inline SVG)
+              this.svgImported.emit(svgRef);
+              this.colorsExtracted.emit(topColors);
+              // Emit programmatic variations if present
+              if (event.result.variations) {
+                this.variationsEmitted.emit(event.result.variations as any);
+              }
             }
             break;
 

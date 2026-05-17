@@ -18,12 +18,10 @@
 
   <div class="flex flex-wrap gap-2 text-xs mb-3">
     <span class="bg-secondary-500/20 text-secondary-500 px-2 py-1 rounded font-medium">
-      {{ project()?.type?.name }}
+      {{ project()?.type }}
     </span>
-    <span class="bg-gray-700 px-2 py-1 rounded text-gray-300"
-      >🎯 {{ project()?.targets?.name }}</span
-    >
-    <span class="bg-gray-700 px-2 py-1 rounded text-gray-300">💼 {{ project()?.scope?.name }}</span>
+    <span class="bg-gray-700 px-2 py-1 rounded text-gray-300">🎯 {{ project()?.targets }}</span>
+    <span class="bg-gray-700 px-2 py-1 rounded text-gray-300">💼 {{ project()?.scope }}</span>
   </div>
 
   <div class="flex justify-between items-center mt-4 text-xs text-gray-500">

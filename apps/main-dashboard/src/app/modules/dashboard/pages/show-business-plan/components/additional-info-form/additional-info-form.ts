@@ -18,7 +18,7 @@ import { DividerModule } from 'primeng/divider';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { TeamMember, ProjectModel } from '../../../../models/project.model';
+import { ProjectModel, ProjectTeamMember } from '@idem/shared-models';
 import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 
@@ -124,6 +124,8 @@ export class AdditionalInfoFormComponent implements OnInit {
   }
 
   private populateForm(additionalInfos: ProjectModel['additionalInfos']): void {
+    if (!additionalInfos) return;
+
     // Populate basic info
     this.additionalInfoForm.patchValue({
       email: additionalInfos.email || '',
@@ -139,7 +141,7 @@ export class AdditionalInfoFormComponent implements OnInit {
     teamMembersArray.clear();
 
     if (additionalInfos.teamMembers?.length > 0) {
-      additionalInfos.teamMembers.forEach((member: TeamMember) => {
+      additionalInfos.teamMembers.forEach((member: ProjectTeamMember) => {
         const memberForm = this.createTeamMemberForm();
         memberForm.patchValue({
           name: member.name,

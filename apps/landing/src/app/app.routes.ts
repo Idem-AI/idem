@@ -36,11 +36,6 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
-    path: 'challenge',
-    loadComponent: () => import('./pages/challenge/challenge').then((m) => m.ChallengeComponent),
-    data: { layout: 'public' },
-  },
-  {
     path: 'pricing',
     loadComponent: () => import('./pages/pricing-page/pricing-page').then((m) => m.PricingPage),
     data: { layout: 'public' },
@@ -59,6 +54,16 @@ export const routes: Routes = [
   {
     path: 'contact',
     loadComponent: () => import('./pages/contact-page/contact-page').then((m) => m.ContactPage),
+    data: { layout: 'public' },
+  },
+  {
+    path: 'idev',
+    loadComponent: () => import('./pages/idev-page/idev-page').then((m) => m.IdevPage),
+    data: { layout: 'public' },
+  },
+  {
+    path: 'ideploy',
+    loadComponent: () => import('./pages/ideploy-page/ideploy-page').then((m) => m.IdeployPage),
     data: { layout: 'public' },
   },
   {

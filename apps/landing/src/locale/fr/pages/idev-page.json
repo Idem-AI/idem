@@ -1,0 +1,25 @@
+{
+  "locale": "fr",
+  "translations": {
+    "idev.step1.title": "Décrivez Votre Idée",
+    "idev.step1.description": "Dites à IDEV ce que vous voulez construire. Décrivez votre application en langage naturel — aucune expertise technique requise.",
+    "idev.step2.title": "L'IA Génère le Code",
+    "idev.step2.description": "Nos agents IA analysent votre idée et génèrent une application complète et prête pour la production avec frontend, backend et base de données.",
+    "idev.step3.title": "Itérer et Déployer",
+    "idev.step3.description": "Visualisez votre application en temps réel, apportez des modifications par simple conversation et déployez instantanément avec iDeploy.",
+    "idev.feature1.title": "Génération Full-Stack",
+    "idev.feature1.description": "Applications React/Next.js complètes avec routes API, modèles de base de données et authentification.",
+    "idev.feature2.title": "Aperçu en Temps Réel",
+    "idev.feature2.description": "Voyez votre application prendre vie à mesure que l'IA la construit, avec un aperçu instantané (hot-reload).",
+    "idev.feature3.title": "Itération Pilotée par l'IA",
+    "idev.feature3.description": "Affinez votre application via le langage naturel. Décrivez simplement les changements et l'IA les applique.",
+    "idev.feature4.title": "Stack Technique Moderne",
+    "idev.feature4.description": "Construit avec les standards de l'industrie : React, Next.js, TypeScript, Tailwind CSS, et plus.",
+    "idev.feature5.title": "Exporter et Posséder",
+    "idev.feature5.description": "Exportez votre code source complet. Vous possédez tout — pas de verrouillage fournisseur, aucune restriction.",
+    "idev.feature6.title": "Intégration iDeploy",
+    "idev.feature6.description": "Déployez votre application générée en un clic via la plateforme iDeploy.",
+    "idev.seo.title": "IDEV — AI App Generator & Code Builder by Idem",
+    "idev.seo.description": "Transformer votre idée en application SaaS ou mobile avec IDEV. Le générateur d'applications intelligent de l'écosystème Idem. Code React/Next.js propre, souveraineté numérique et déploiement instantané."
+  }
+}

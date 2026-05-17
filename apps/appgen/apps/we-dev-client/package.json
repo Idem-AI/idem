@@ -8,8 +8,8 @@
     "email": "your.email@example.com"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "vite --port 5174",
+    "build": "vite build ",
     "tsc": "tsc",
     "start": "vite preview --host 0.0.0.0"
   },

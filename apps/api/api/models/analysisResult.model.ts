@@ -3,8 +3,13 @@ import { BrandIdentityModel } from './brand-identity.model';
 import { DiagramModel } from './diagram.model';
 import { LandingModel } from './landing.model';
 import { BusinessPlanModel } from './businessPlan.model';
+import { PitchDeckModel } from './pitchDeck.model';
+import { LegalDocsModel } from './legalDocs.model';
+import { AdvisorConversationModel } from './advisor.model';
 import { WebContainerModel } from './webcontainer.model';
 import { DevelopmentConfigsModel } from './development.model';
+import { CommunicationModel } from './communication.model';
+import { FinanceModel } from './finance.model';
 
 /**
  * @openapi
@@ -52,6 +57,11 @@ export interface AnalysisResultModel {
   id?: string;
   architectures: ArchitectureModel[];
   businessPlan?: BusinessPlanModel;
+  pitchDeck?: PitchDeckModel;
+  legalDocs?: LegalDocsModel;
+  advisorConversation?: AdvisorConversationModel;
+  communication?: CommunicationModel;
+  finance?: FinanceModel;
   design: DiagramModel;
   development: {
     configs: DevelopmentConfigsModel;

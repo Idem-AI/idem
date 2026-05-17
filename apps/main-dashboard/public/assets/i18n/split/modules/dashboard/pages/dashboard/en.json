@@ -1,67 +1,95 @@
 {
-  "loading": "Loading your dashboard...",
-  "hero": {
-    "activeProject": "Active Project",
-    "defaultDescription": "Transform your ideas into reality with our comprehensive project management tools",
-    "stats": {
-      "created": "Created",
-      "team": "Team",
-      "scope": "Scope"
+  "dashboard": {
+    "dashboard": {
+      "loading": "Loading your dashboard...",
+      "viewAllProjects": "View All Projects",
+      "openFeature": "Open Feature",
+      "progressOverview": "Progress Overview",
+      "projectInformation": "Project Information",
+      "pending": "Pending",
+      "hero": {
+        "activeProject": "Active Project",
+        "defaultDescription": "Transform your ideas into reality with our comprehensive project management tools",
+        "stats": {
+          "created": "Created",
+          "team": "Team",
+          "scope": "Scope"
+        }
+      },
+      "milestones": {
+        "brandIdentity": "Brand Identity",
+        "businessPlan": "Business Plan",
+        "systemDesign": "System Design",
+        "development": "Development",
+        "launch": "Launch"
+      },
+      "journey": {
+        "yourPath": "Your Path",
+        "title": "Project Journey",
+        "subtitle": "{{completed}} of {{total}} steps completed"
+      },
+      "steps": {
+        "brand": {
+          "title": "Brand Identity",
+          "description": "Define your brand's visual identity, colors, and typography",
+          "alt": "Brand Identity"
+        },
+        "business": {
+          "title": "Business Plan",
+          "description": "Create a comprehensive business strategy and roadmap",
+          "alt": "Business Plan"
+        },
+        "design": {
+          "title": "System Design",
+          "description": "Design your system architecture and technical specifications",
+          "alt": "System Design"
+        },
+        "development": {
+          "title": "Development",
+          "description": "Build and implement your project with modern technologies",
+          "alt": "Development"
+        },
+        "launch": {
+          "title": "Launch & Deploy",
+          "description": "Deploy your project and make it live for the world",
+          "alt": "Launch"
+        },
+        "comingUp": "Coming Up",
+        "almostThere": "Almost There",
+        "finalStep": "Final Step",
+        "startNow": "Start Now",
+        "nextStep": "Next Step"
+      },
+      "info": {
+        "created": "Created",
+        "team": "Team",
+        "scope": "Scope",
+        "lastUpdate": "Last Update"
+      },
+      "empty": {
+        "title": "No Active Project",
+        "description": "Select a project to get started with your journey",
+        "goToProjects": "Go to Projects"
+      },
+      "errors": {
+        "noProjectSelected": "No project selected",
+        "projectNotFound": "Project not found: {{projectId}}",
+        "failedToLoad": "Failed to load project data"
+      },
+      "quotaWarning": {
+        "title": "Quota Warning",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "messages": {
+          "approaching": "You are approaching your quota limit",
+          "daily": "You are approaching your daily quota limit",
+          "weekly": "You are approaching your weekly quota limit",
+          "dailyAndWeekly": "You are approaching both your daily and weekly quota limits"
+        },
+        "buttons": {
+          "viewDetails": "View Details"
+        }
+      }
     }
-  },
-  "milestones": {
-    "brandIdentity": "Brand Identity",
-    "businessPlan": "Business Plan",
-    "systemDesign": "System Design",
-    "development": "Development",
-    "launch": "Launch"
-  },
-  "journey": {
-    "yourPath": "Your Path",
-    "title": "Project Journey",
-    "subtitle": "{{completed}} of {{total}} steps completed"
-  },
-  "steps": {
-    "brand": {
-      "title": "Brand Identity",
-      "description": "Define your brand's visual identity, colors, and typography",
-      "alt": "Brand Identity"
-    },
-    "business": {
-      "title": "Business Plan",
-      "description": "Create a comprehensive business strategy and roadmap",
-      "alt": "Business Plan"
-    },
-    "design": {
-      "title": "System Design",
-      "description": "Design your system architecture and technical specifications",
-      "alt": "System Design"
-    },
-    "development": {
-      "title": "Development",
-      "description": "Build and implement your project with modern technologies",
-      "alt": "Development"
-    },
-    "launch": {
-      "title": "Launch & Deploy",
-      "description": "Deploy your project and make it live for the world",
-      "alt": "Launch"
-    },
-    "comingUp": "Coming Up",
-    "almostThere": "Almost There",
-    "finalStep": "Final Step",
-    "startNow": "Start Now",
-    "nextStep": "Next Step"
-  },
-  "info": {
-    "created": "Created",
-    "team": "Team",
-    "scope": "Scope",
-    "lastUpdate": "Last Update"
-  },
-  "empty": {
-    "title": "No Active Project",
-    "description": "Select a project to get started with your journey",
-    "goToProjects": "Go to Projects"
   }
 }

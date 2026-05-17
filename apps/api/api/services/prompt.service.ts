@@ -2,7 +2,7 @@ import { GoogleGenAI, createPartFromUri, Content, File } from '@google/genai';
 import dotenv from 'dotenv';
 import * as fs from 'fs-extra';
 import logger from '../config/logger';
-import betaRestrictionsService from './betaRestrictions.service';
+import restrictionsService from './restrictions.service';
 import OpenAI from 'openai';
 import { userService } from './user.service';
 dotenv.config();
@@ -436,64 +436,38 @@ export class PromptService {
       );
     }
 
-    // Beta restrictions validation
+    // Restrictions validation
     if (promptType) {
-      const featureValidation = betaRestrictionsService.validateFeature(promptType);
-      if (!featureValidation.allowed) {
-        logger.warn(`Feature ${promptType} not allowed in beta: ${featureValidation.message}`);
-        throw new Error(featureValidation.message || 'Feature not available in beta');
-      }
-
-      // Validate and adjust prompt parameters for beta
-      const paramValidation = betaRestrictionsService.validatePromptParams(promptType, {
+      // Validate and adjust prompt parameters
+      const paramValidation = restrictionsService.validatePromptParams(promptType, {
         llmOptions,
         ...request,
       });
       if (!paramValidation.allowed) {
-        logger.warn(`Prompt parameters not allowed in beta: ${paramValidation.message}`);
-        throw new Error(paramValidation.message || 'Parameters not allowed in beta');
+        logger.warn(`Prompt parameters not allowed: ${paramValidation.message}`);
+        throw new Error(paramValidation.message || 'Parameters not allowed');
       }
 
       // Apply adjusted parameters if any
       if (paramValidation.adjustedParams) {
         Object.assign(request, paramValidation.adjustedParams);
-        logger.info(`Applied beta parameter adjustments for ${promptType}`);
+        logger.info(`Applied parameter adjustments for ${promptType}`);
       }
     }
 
-    // Input validation for user content
-    // if (userId && messages.length > 0) {
-    //   const userMessage = messages.find((msg) => msg.role === "user");
-
-    //   console.log("userMessage", userMessage);
-    //   console.log("messages", messages);
-    //   if (userMessage) {
-    //     const inputValidation = betaRestrictionsService.validateInput(
-    //       userMessage.content
-    //     );
-    //     console.log("inputValidation", inputValidation);
-    //     if (!inputValidation.allowed) {
-    //       logger.warn(
-    //         `Invalid input from user ${userId}: ${inputValidation.message}`
-    //       );
-    //       throw new Error(inputValidation.message || "Invalid input");
-    //     }
-    //   }
-    // }
-
-    // Apply beta prompt modifications if needed
+    // Apply prompt modifications if needed
     let modifiedMessages = messages;
-    if (betaRestrictionsService.isBetaMode() && messages.length > 0) {
+    if (messages.length > 0) {
       modifiedMessages = messages.map((msg) => {
         if (msg.role === 'user' || msg.role === 'system') {
           return {
             ...msg,
-            content: betaRestrictionsService.applyBetaPromptModifications(msg.content),
+            content: restrictionsService.applyPromptModifications(msg.content),
           };
         }
         return msg;
       });
-      logger.info('Applied beta prompt modifications');
+      logger.info('Applied prompt modifications');
     }
 
     try {
@@ -520,6 +494,7 @@ export class PromptService {
       // Increment quota after successful API call
       if (userId && !skipQuotaCheck) {
         try {
+          await userService.incrementUsage(userId, 1);
           logger.info(`Incremented quota usage for user ${userId}`);
         } catch (quotaError) {
           logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
@@ -569,3 +544,5 @@ export class PromptService {
       .trim();
   }
 }
+
+export const promptService = new PromptService();

@@ -134,69 +134,43 @@ class FirewallOverview extends Component
             return;
         }
         
-        // Load REAL traffic metrics from Traefik access logs (cached 1 min for real-time feel)
-        $traefikCacheKey = "traefik_metrics_{$this->application->id}_{$this->timeRange}";
-        $traefikMetrics = \Cache::remember($traefikCacheKey, now()->addMinutes(1), function() {
-            $traefikService = app(\App\Services\Security\TraefikAccessLogService::class);
-            $hours = match($this->timeRange) {
-                '1h' => 1,
-                '24h' => 24,
-                '7d' => 168, // 7 * 24
-                '30d' => 720, // 30 * 24
-                default => 24
-            };
-            return $traefikService->getMetrics($this->application, $hours);
-        });
-        
-        // Load CrowdSec metrics for blocked traffic details (cached 2 min)
-        $cacheKey = "firewall_metrics_{$this->config->id}_{$this->timeRange}";
-        $crowdsecMetrics = \Cache::remember($cacheKey, now()->addMinutes(2), function() {
-            $metricsService = app(\App\Services\Security\CrowdSecMetricsService::class);
-            return $metricsService->getMetrics($this->config);
-        });
-        
-        // Combine metrics: Traefik for REAL total/allowed, CrowdSec for firewall-specific denied
-        $traefikDenied = $traefikMetrics['total_denied'] ?? 0;
-        $crowdSecBlocked = count($crowdsecMetrics['active_decisions'] ?? []);
-        
+        // Load metrics from firewall_traffic_logs table (populated by PollTrafficLoggerJob every minute)
+        $hours = match($this->timeRange) {
+            '1h' => 1, '24h' => 24, '7d' => 168, '30d' => 720, default => 24
+        };
+        $since = now()->subHours($hours);
+
+        $logs = $this->config->trafficLogs()
+            ->where('timestamp', '>=', $since)
+            ->get();
+
+        $allowed   = $logs->where('decision', 'allow')->count();
+        $denied    = $logs->whereIn('decision', ['block', 'ban'])->count();
+        $challenged = $logs->where('decision', 'captcha')->count();
+
         $this->stats = [
-            'all_traffic' => $traefikMetrics['total_requests'],
-            'allowed' => $traefikMetrics['total_allowed'],
-            'denied' => max($traefikDenied, $crowdSecBlocked), // Use the higher count for accuracy
-            'challenged' => 0, // TODO: implement captcha tracking when AppSec supports it
+            'all_traffic' => $logs->count(),
+            'allowed'     => $allowed,
+            'denied'      => $denied,
+            'challenged'  => $challenged,
         ];
-        
-        // Load hourly data from Traefik (real traffic patterns)
-        $this->hourlyTrafficData = $traefikMetrics['hourly_data'] ?? [];
-        
-        // Combine recent events from both sources
-        $traefikEvents = $traefikMetrics['recent_events'] ?? [];
-        $crowdsecEvents = collect($crowdsecMetrics['recent_alerts'] ?? [])
-            ->map(fn($alert) => [
-                'ip' => $alert['source_ip'] ?? 'Unknown',
-                'method' => 'BLOCKED',
-                'path' => $alert['scenario'] ?? 'Firewall Rule',
-                'status' => 403,
-                'action' => 'denied',
-                'timestamp' => Carbon::parse($alert['created_at'] ?? now()),
+
+        // Hourly data for chart
+        $this->hourlyTrafficData = $this->getHourlyTrafficData();
+
+        // Recent events from traffic logs
+        $this->recentEvents = $this->config->trafficLogs()
+            ->where('timestamp', '>=', now()->subHours(24))
+            ->orderByDesc('timestamp')
+            ->limit(10)
+            ->get()
+            ->map(fn($log) => [
+                'ip'        => $log->ip_address,
+                'reason'    => ($log->method ?? 'GET') . ' ' . ($log->uri ?? '/'),
+                'action'    => $log->decision,
+                'timestamp' => $log->timestamp,
             ])
             ->toArray();
-        
-        // Merge and sort by timestamp
-        $allEvents = array_merge($traefikEvents, $crowdsecEvents);
-        usort($allEvents, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
-        
-        $this->recentEvents = collect(array_slice($allEvents, 0, 10))
-            ->map(fn($event) => [
-                'ip' => $event['ip'],
-                'reason' => ($event['method'] ?? 'GET') . ' ' . ($event['path'] ?? '/') . ' (' . ($event['status'] ?? 200) . ')',
-                'action' => $event['action'],
-                'timestamp' => $event['timestamp'],
-            ])
-            ->toArray();
-        
-        // Dispatch background job to refresh metrics
-        dispatch(new \App\Jobs\Security\RefreshFirewallMetricsJob($this->config));
         
         // Load active alerts
         $this->activeAlerts = $this->config->alerts()

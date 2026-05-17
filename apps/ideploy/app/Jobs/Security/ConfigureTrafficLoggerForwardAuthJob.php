@@ -32,38 +32,10 @@ class ConfigureTrafficLoggerForwardAuthJob implements ShouldQueue
             }
         }
         
-        // Ajouter les middlewares à la liste existante (ne pas écraser)
-        $middlewareKey = "traefik.http.routers.{$uuid}.middlewares=";
-        $lines = explode("\n", $currentLabels);
-        $middlewareLineFound = false;
+        // NOTE: No need to manually add middlewares to the router.
+        // fqdnLabelsForTraefik() auto-discovers middlewares from custom_labels via $middlewares_from_labels
+        // and appends them to every generated HTTPS/HTTP router automatically.
         
-        foreach ($lines as $index => $line) {
-            if (str_starts_with($line, $middlewareKey)) {
-                $middlewareLineFound = true;
-                // Extraire les middlewares existants
-                $existingMiddlewares = trim(str_replace($middlewareKey, '', $line));
-                $middlewaresArray = array_filter(array_map('trim', explode(',', $existingMiddlewares)));
-                
-                // Ajouter nos nouveaux middlewares s'ils n'existent pas déjà
-                if (!in_array("app-uuid-{$uuid}", $middlewaresArray)) {
-                    $middlewaresArray[] = "app-uuid-{$uuid}";
-                }
-                if (!in_array("traffic-logger-{$uuid}", $middlewaresArray)) {
-                    $middlewaresArray[] = "traffic-logger-{$uuid}";
-                }
-                
-                // Reconstruire la ligne
-                $lines[$index] = $middlewareKey . implode(',', $middlewaresArray);
-                break;
-            }
-        }
-        
-        // Si la ligne n'existe pas, l'ajouter
-        if (!$middlewareLineFound) {
-            $lines[] = $middlewareKey . "app-uuid-{$uuid},traffic-logger-{$uuid}";
-        }
-        
-        $currentLabels = implode("\n", $lines);
         $this->application->update(['custom_labels' => trim($currentLabels)]);
         ray("ForwardAuth configured for {$this->application->name}");
     }

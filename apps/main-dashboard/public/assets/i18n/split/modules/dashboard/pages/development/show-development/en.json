@@ -1,63 +1,67 @@
 {
-  "title": "Configuration Ready",
-  "subtitle": "Your tech stack is configured. Launch the generation to create your full application.",
-  "landingPage": {
-    "title": "Your Landing Page is Ready to Generate",
-    "subtitle": "Your configuration is complete. Start the generation to create your professional and modern landing page in minutes.",
-    "cta": "Generate My Landing Page",
-    "features": {
-      "modern": {
-        "title": "Modern Design",
-        "description": "Elegant and responsive interface"
+  "dashboard": {
+    "showDevelopment": {
+      "title": "Configuration Ready",
+      "subtitle": "Your tech stack is configured. Launch the generation to create your full application.",
+      "landingPage": {
+        "title": "Your Landing Page is Ready to Generate",
+        "subtitle": "Your configuration is complete. Start the generation to create your professional and modern landing page in minutes.",
+        "cta": "Generate My Landing Page",
+        "features": {
+          "modern": {
+            "title": "Modern Design",
+            "description": "Elegant and responsive interface"
+          },
+          "seo": {
+            "title": "SEO Optimized",
+            "description": "Natural search engine optimization"
+          },
+          "customizable": {
+            "title": "Customizable",
+            "description": "Easily modifiable to your needs"
+          }
+        }
       },
-      "seo": {
-        "title": "SEO Optimized",
-        "description": "Natural search engine optimization"
+      "buttons": {
+        "generate": "Generate Application",
+        "preview": "Preview",
+        "export": "Export Config",
+        "edit": "Edit Config"
       },
-      "customizable": {
-        "title": "Customizable",
-        "description": "Easily modifiable to your needs"
-      }
+      "sections": {
+        "frontend": "Frontend",
+        "backend": "Backend",
+        "database": "Database",
+        "projectConfig": "Project Configuration",
+        "constraints": "Constraints"
+      },
+      "techStack": {
+        "styling": "Styling",
+        "stateManagement": "State Management",
+        "features": "Features",
+        "orm": "ORM",
+        "noFeatures": "No features configured"
+      },
+      "projectFeatures": {
+        "seo": "SEO",
+        "contactForm": "Contact Form",
+        "analytics": "Analytics",
+        "i18n": "i18n",
+        "performance": "Performance",
+        "authentication": "Authentication",
+        "authorization": "Authorization",
+        "uiTheme": "UI Theme",
+        "payment": "Payment",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "optimized": "Optimized",
+        "standard": "Standard",
+        "integrated": "Integrated",
+        "notIntegrated": "Not Integrated",
+        "modern": "Modern"
+      },
+      "customOptions": "Custom Options",
+      "technicalDetails": "Technical Details"
     }
-  },
-  "buttons": {
-    "generate": "Generate Application",
-    "preview": "Preview",
-    "export": "Export Config",
-    "edit": "Edit Config"
-  },
-  "sections": {
-    "frontend": "Frontend",
-    "backend": "Backend",
-    "database": "Database",
-    "projectConfig": "Project Configuration",
-    "constraints": "Constraints"
-  },
-  "techStack": {
-    "styling": "Styling",
-    "stateManagement": "State Management",
-    "features": "Features",
-    "orm": "ORM",
-    "noFeatures": "No features configured"
-  },
-  "projectFeatures": {
-    "seo": "SEO",
-    "contactForm": "Contact Form",
-    "analytics": "Analytics",
-    "i18n": "i18n",
-    "performance": "Performance",
-    "authentication": "Authentication",
-    "authorization": "Authorization",
-    "uiTheme": "UI Theme",
-    "payment": "Payment",
-    "enabled": "Enabled",
-    "disabled": "Disabled",
-    "optimized": "Optimized",
-    "standard": "Standard",
-    "integrated": "Integrated",
-    "notIntegrated": "Not Integrated",
-    "modern": "Modern"
-  },
-  "customOptions": "Custom Options",
-  "technicalDetails": "Technical Details"
+  }
 }

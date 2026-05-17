@@ -1,8 +1,8 @@
-import { Component, input, output, computed, signal, inject } from '@angular/core';
+import { Component, input, output, computed, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ProjectModel } from '../../../../models/project.model';
+import { ProjectModel } from '@idem/shared-models';
 import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
 import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
 import { LogoModel } from '../../../../models/logo.model';
@@ -20,7 +20,7 @@ import { switchMap } from 'rxjs';
   templateUrl: './project-summary.html',
   styleUrl: './project-summary.css',
 })
-export class ProjectSummaryComponent {
+export class ProjectSummaryComponent implements OnInit {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
@@ -75,14 +75,6 @@ export class ProjectSummaryComponent {
 
   protected readonly formattedTargets = computed(() => {
     const targets = this.project().targets;
-    if (typeof targets === 'object' && targets !== null) {
-      if (Array.isArray(targets)) {
-        return targets
-          .map((t) => (typeof t === 'object' ? (t as any).name || JSON.stringify(t) : t))
-          .join(', ');
-      }
-      return (targets as any).name || JSON.stringify(targets);
-    }
     return targets || 'Non spécifié';
   });
 
@@ -98,25 +90,43 @@ export class ProjectSummaryComponent {
     return budget || 'Non spécifié';
   });
 
-  protected getSelectedLogo(): LogoModel | undefined {
-    const logo = this.logos().find((logo) => logo.id === this.selectedLogo());
-    console.log('Selected logo', logo);
-    return logo;
-  }
-
-  protected getSelectedColor(): ColorModel | undefined {
-    const color = this.colorPalettes().find((color) => color.id === this.selectedColor());
-    console.log('Selected color', color);
-    return color;
-  }
-
-  protected getSelectedTypography(): TypographyModel | undefined {
-    const typography = this.typographyOptions().find(
-      (typo) => typo.id === this.selectedTypography(),
+  ngOnInit(): void {
+    console.log('=== PROJECT SUMMARY DEBUG ===');
+    console.log('Project:', this.project());
+    console.log('Selected Logo ID:', this.selectedLogo());
+    console.log('Logos array:', this.logos());
+    console.log('Branding logo:', this.project().analysisResultModel?.branding?.logo);
+    console.log(
+      'Imported logo colors:',
+      this.project().analysisResultModel?.branding?.importedLogoColors,
     );
-    console.log('Selected typography', typography);
-    return typography;
+    console.log('============================');
   }
+
+  // ✅ Computed signals pour éviter les boucles infinies
+  protected readonly selectedLogoData = computed<LogoModel | undefined>(() => {
+    // D'abord chercher dans la liste des logos générés
+    const logo = this.logos().find((logo) => logo.id === this.selectedLogo());
+    if (logo) {
+      return logo;
+    }
+
+    // Si pas trouvé, c'est peut-être un logo importé
+    const importedLogo = this.project().analysisResultModel?.branding?.logo;
+    if (importedLogo) {
+      return importedLogo;
+    }
+
+    return undefined;
+  });
+
+  protected readonly selectedColorData = computed<ColorModel | undefined>(() => {
+    return this.colorPalettes().find((color) => color.id === this.selectedColor());
+  });
+
+  protected readonly selectedTypographyData = computed<TypographyModel | undefined>(() => {
+    return this.typographyOptions().find((typo) => typo.id === this.selectedTypography());
+  });
 
   protected onPrivacyPolicyChange(event: Event): void {
     const checkbox = event.target as HTMLInputElement;
@@ -149,7 +159,6 @@ export class ProjectSummaryComponent {
         marketingAccepted: this.marketingConsentAccepted(),
       };
 
-      // First, persist the user's branding selections to the backend
       const brandingUpdate: Partial<ProjectModel> = {
         analysisResultModel: this.project().analysisResultModel,
       };

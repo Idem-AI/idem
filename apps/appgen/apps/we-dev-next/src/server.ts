@@ -4,10 +4,12 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import { corsMiddleware } from './middleware/cors.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { metricsMiddleware, register } from './middleware/metrics.js';
 import chatRouter from './routes/chat.js';
 import deployRouter from './routes/deploy.js';
 import enhancedPromptRouter from './routes/enhancedPrompt.js';
 import modelRouter from './routes/model.js';
+import handoffRouter from './routes/handoff.js';
 
 dotenv.config();
 
@@ -22,6 +24,9 @@ app.use(
 );
 
 app.use(morgan('combined'));
+
+// Prometheus metrics middleware
+app.use(metricsMiddleware);
 
 app.use(corsMiddleware);
 
@@ -55,6 +60,18 @@ app.use('/api/chat', chatRouter);
 app.use('/api/deploy', deployRouter);
 app.use('/api/enhancedPrompt', enhancedPromptRouter);
 app.use('/api/model', modelRouter);
+app.use('/api/handoff', handoffRouter);
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (req: Request, res: Response) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    const metrics = await register.metrics();
+    res.end(metrics);
+  } catch (error) {
+    res.status(500).end('Error collecting metrics');
+  }
+});
 
 app.use(errorHandler);
 
@@ -82,6 +99,8 @@ app.listen(PORT, () => {
   console.log(`   GET    /api/model             - Get available models`);
   console.log(`   GET    /api/model/config      - Get model configuration`);
   console.log(`   GET    /api/model/default     - Get default model`);
+  console.log(`   POST   /api/handoff           - Store AppGen context for handoff`);
+  console.log(`   GET    /api/handoff/:id       - Retrieve AppGen handoff by ID`);
   console.log(`   GET    /health                - Health check`);
   console.log('='.repeat(80));
   console.log('\n');

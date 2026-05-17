@@ -1,0 +1,651 @@
+<div class="w-full min-h-screen md:p-6 relative">
+  @if (isLoading()) {
+    <div class="max-w-6xl mx-auto text-center py-20">
+      <p class="text-gray-400">Chargement...</p>
+    </div>
+  } @else if (!isLoading() && !isBrandingComplete()) {
+    <!-- Branding Required Blocker -->
+    <app-branding-required-blocker
+      [missingElements]="brandingMissingElements()"
+      [featureName]="'la Communication'"
+    />
+  } @else {
+    <!-- HEADER -->
+    <div class="max-w-7xl mx-auto mb-6">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <div class="text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-500)]">
+            Communication Engine
+          </div>
+          <h1 class="text-3xl font-bold text-[var(--color-text-primary)] mt-1">
+            Strategy &amp; editorial calendar
+          </h1>
+          <p class="text-[var(--color-text-secondary)] mt-1 text-sm">
+            Strategy, editorial calendar, and on-demand visuals for your project.
+          </p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="glass inline-flex rounded-full p-1 w-fit">
+          <button
+            type="button"
+            class="px-5 py-2 rounded-full text-sm font-semibold transition-all uppercase tracking-wider"
+            [class.inner-button]="activeTab() === 'strategy'"
+            [class.text-\[var\(--color-text-secondary\)\]]="activeTab() !== 'strategy'"
+            (click)="setActiveTab('strategy')"
+          >
+            <i class="pi pi-compass mr-2"></i> Strategy
+          </button>
+          <button
+            type="button"
+            class="px-5 py-2 rounded-full text-sm font-semibold transition-all uppercase tracking-wider"
+            [class.inner-button]="activeTab() === 'calendar'"
+            [class.text-\[var\(--color-text-secondary\)\]]="activeTab() !== 'calendar'"
+            (click)="setActiveTab('calendar')"
+          >
+            <i class="pi pi-calendar mr-2"></i> Calendar
+          </button>
+        </div>
+      </div>
+
+      @if (streamStatus() && (isGeneratingStrategy() || isGeneratingCalendar())) {
+        <div
+          class="glass mt-4 flex items-center gap-2 text-sm text-[var(--color-accent-500)] px-3 py-2 rounded-xl"
+        >
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>{{ streamStatus() }}</span>
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <div
+          class="glass mt-4 flex items-center gap-2 text-sm text-[var(--color-danger)] px-3 py-2 rounded-xl border border-[var(--color-danger)]/40"
+        >
+          <i class="pi pi-exclamation-triangle"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- LOADING / EMPTY STATE -->
+    @if (isLoading()) {
+      <div class="max-w-7xl mx-auto text-center py-20">
+        <i class="pi pi-spin pi-spinner text-3xl text-[var(--color-accent-500)]"></i>
+        <p class="mt-3 text-[var(--color-text-secondary)]">Loading communication engine…</p>
+      </div>
+    } @else if (!projectId()) {
+      <div class="glass-card max-w-3xl mx-auto text-center py-16 px-8">
+        <i class="pi pi-info-circle text-5xl text-[var(--color-text-tertiary)]"></i>
+        <h3 class="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">
+          Select a project
+        </h3>
+        <p class="mt-2 text-[var(--color-text-secondary)]">
+          Choose a project from your list to start generating communication assets.
+        </p>
+        <div class="flex justify-center mt-6">
+          <button class="inner-button" (click)="goToProjects()">
+            <i class="pi pi-arrow-right"></i> Go to my projects
+          </button>
+        </div>
+      </div>
+    } @else {
+      <!-- STRATEGY TAB -->
+      @if (activeTab() === 'strategy') {
+        <div class="max-w-7xl mx-auto">
+          @if (!strategy()) {
+            <div
+              class="glass-card text-center py-16 px-8 border border-dashed border-[var(--glass-border-medium)]"
+            >
+              <i class="pi pi-compass text-5xl text-[var(--color-accent-500)]"></i>
+              <h3 class="mt-4 text-xl font-semibold text-[var(--color-text-primary)]">
+                Generate your communication strategy
+              </h3>
+              <p class="mt-2 text-[var(--color-text-secondary)] max-w-lg mx-auto">
+                We extract a compact context from your project, pull lightweight trend signals, and
+                produce a structured, editable strategy.
+              </p>
+              <div class="flex justify-center mt-6">
+                <button
+                  class="inner-button"
+                  [disabled]="isGeneratingStrategy()"
+                  (click)="generateStrategy(false)"
+                >
+                  @if (isGeneratingStrategy()) {
+                    <i class="pi pi-spin pi-spinner"></i>
+                  } @else {
+                    <i class="pi pi-sparkles"></i>
+                  }
+                  Generate strategy
+                </button>
+              </div>
+            </div>
+          } @else {
+            <!-- Context chip -->
+            @if (context()) {
+              <div class="glass mb-6 rounded-2xl p-4 flex flex-wrap gap-2 text-sm">
+                <span
+                  class="px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--color-text-secondary)]"
+                >
+                  <strong class="text-[var(--color-text-primary)]">Brand:</strong>
+                  {{ context()!.brandName }}
+                </span>
+                <span
+                  class="px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--color-text-secondary)]"
+                >
+                  <strong class="text-[var(--color-text-primary)]">Type:</strong>
+                  {{ context()!.businessType }}
+                </span>
+                <span
+                  class="px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--color-text-secondary)]"
+                >
+                  <strong class="text-[var(--color-text-primary)]">Tone:</strong>
+                  {{ context()!.tone }}
+                </span>
+                @for (ch of context()!.channels; track ch) {
+                  <span
+                    class="px-3 py-1 rounded-full border border-[var(--color-accent-500)]/40 text-[var(--color-accent-500)]"
+                  >
+                    <i class="pi pi-hashtag text-xs mr-1"></i>{{ ch }}
+                  </span>
+                }
+              </div>
+            }
+
+            <!-- Summary -->
+            <div class="glass-card p-6 mb-6">
+              <label
+                class="block text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)] mb-2"
+              >
+                Strategy summary
+              </label>
+              <textarea
+                rows="3"
+                [ngModel]="strategy()!.summary"
+                (ngModelChange)="updateStrategySummary($event)"
+              ></textarea>
+            </div>
+
+            <!-- Blocks grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              @for (block of strategy()!.blocks; track block.id) {
+                <div class="glass-card p-5 flex flex-col gap-3">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent-500)] border border-[var(--color-accent-500)]/40 px-2 py-1 rounded-full"
+                    >
+                      {{ block.kind }}
+                    </span>
+                    <input
+                      class="font-semibold text-[var(--color-text-primary)] bg-transparent border-0 focus:outline-none focus:ring-0 flex-1"
+                      style="padding: 0; box-shadow: none"
+                      [ngModel]="block.title"
+                      (ngModelChange)="updateStrategyBlock(block.id, { title: $event })"
+                    />
+                  </div>
+                  <textarea
+                    rows="5"
+                    [ngModel]="block.body"
+                    (ngModelChange)="updateStrategyBlock(block.id, { body: $event })"
+                  ></textarea>
+                </div>
+              }
+            </div>
+
+            <div class="mt-6 flex flex-wrap gap-3 justify-end">
+              <button
+                class="outer-button button-sm"
+                (click)="generateStrategy(true)"
+                [disabled]="isGeneratingStrategy()"
+              >
+                <i class="pi pi-refresh mr-2"></i> Regenerate
+              </button>
+              <button class="inner-button button-sm" (click)="saveStrategy()">
+                <i class="pi pi-save mr-2"></i> Save changes
+              </button>
+            </div>
+
+            <!-- Trends row -->
+            @if (trends().length > 0) {
+              <div class="mt-8">
+                <h3
+                  class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)] mb-3"
+                >
+                  Trend signals used
+                </h3>
+                <div class="flex flex-wrap gap-2">
+                  @for (t of trends(); track t.id) {
+                    <span
+                      class="text-xs px-3 py-1 rounded-full border border-[var(--color-warning)]/40 text-[var(--color-warning)] bg-[var(--color-warning)]/10"
+                      [attr.title]="t.description"
+                    >
+                      <i class="pi pi-chart-line mr-1"></i>{{ t.label }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- CALENDAR TAB -->
+      @if (activeTab() === 'calendar') {
+        <div class="max-w-7xl mx-auto">
+          @if (!calendar()) {
+            <div
+              class="glass-card text-center py-16 px-8 border border-dashed border-[var(--glass-border-medium)]"
+            >
+              <i class="pi pi-calendar text-5xl text-[var(--color-accent-500)]"></i>
+              <h3 class="mt-4 text-xl font-semibold text-[var(--color-text-primary)]">
+                Build your editorial calendar
+              </h3>
+              <p class="mt-2 text-[var(--color-text-secondary)] max-w-lg mx-auto">
+                We'll produce 4 weeks of content ideas — titles, hooks, formats, channels — so you
+                can pick what to publish. Visuals are only generated on demand.
+              </p>
+              <div class="flex justify-center mt-6">
+                <button
+                  class="inner-button"
+                  [disabled]="isGeneratingCalendar() || !strategy()"
+                  (click)="generateCalendar(false)"
+                >
+                  @if (isGeneratingCalendar()) {
+                    <i class="pi pi-spin pi-spinner"></i>
+                  } @else {
+                    <i class="pi pi-sparkles"></i>
+                  }
+                  Generate calendar
+                </button>
+              </div>
+              @if (!strategy()) {
+                <p class="mt-3 text-xs text-[var(--color-text-tertiary)]">
+                  Generate a strategy first to produce a more relevant calendar.
+                </p>
+              }
+            </div>
+          } @else {
+            <!-- Filters -->
+            <div class="flex flex-wrap gap-3 items-end mb-6">
+              <div>
+                <label>Channel</label>
+                <select [ngModel]="filterChannel()" (ngModelChange)="setFilterChannel($event)">
+                  <option value="all">All channels</option>
+                  @for (ch of channels; track ch) {
+                    <option [value]="ch">{{ ch }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label>Format</label>
+                <select [ngModel]="filterFormat()" (ngModelChange)="setFilterFormat($event)">
+                  <option value="all">All formats</option>
+                  @for (fm of formats; track fm) {
+                    <option [value]="fm">{{ fm }}</option>
+                  }
+                </select>
+              </div>
+              <div class="ml-auto">
+                <button
+                  class="outer-button button-sm"
+                  (click)="generateCalendar(true)"
+                  [disabled]="isGeneratingCalendar()"
+                >
+                  <i class="pi pi-refresh mr-2"></i> Regenerate calendar
+                </button>
+              </div>
+            </div>
+
+            <!-- Weeks -->
+            <div class="space-y-8">
+              @for (weekGroup of calendarWeeks(); track weekGroup.week) {
+                <div>
+                  <div class="flex items-center gap-3 mb-3">
+                    <div
+                      class="h-8 w-8 rounded-full glow-primary bg-[var(--color-primary-500)] text-white flex items-center justify-center text-sm font-bold"
+                    >
+                      {{ weekGroup.week }}
+                    </div>
+                    <h2 class="text-lg font-semibold text-[var(--color-text-primary)]">
+                      Week {{ weekGroup.week }}
+                    </h2>
+                    <span class="text-xs text-[var(--color-text-tertiary)]"
+                      >{{ weekGroup.items.length }} ideas</span
+                    >
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    @for (item of weekGroup.items; track item.id) {
+                      <div class="glass-card p-4 flex flex-col">
+                        <div class="flex items-start justify-between gap-2">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span
+                              class="text-[10px] uppercase tracking-[0.15em] text-[var(--color-accent-500)] border border-[var(--color-accent-500)]/40 px-2 py-0.5 rounded"
+                            >
+                              {{ item.channel }}
+                            </span>
+                            <span
+                              class="text-[10px] uppercase tracking-[0.15em] text-[var(--color-primary-400)] border border-[var(--color-primary-500)]/40 px-2 py-0.5 rounded"
+                            >
+                              {{ item.format }}
+                            </span>
+                            <span class="text-[10px] text-[var(--color-text-tertiary)]">
+                              {{ item.scheduledFor }}
+                            </span>
+                          </div>
+                          @if (item.flyerIds && item.flyerIds.length > 0) {
+                            <span
+                              class="text-[10px] text-[var(--color-success)] border border-[var(--color-success)]/40 bg-[var(--color-success)]/10 px-2 py-0.5 rounded inline-flex items-center gap-1"
+                            >
+                              <i class="pi pi-image text-[10px]"></i>
+                              {{ item.flyerIds.length }}
+                            </span>
+                          }
+                        </div>
+                        <h3
+                          class="mt-3 font-semibold text-[var(--color-text-primary)] line-clamp-2"
+                        >
+                          {{ item.title }}
+                        </h3>
+                        <p class="mt-1 text-sm text-[var(--color-text-secondary)] line-clamp-2">
+                          {{ item.hook }}
+                        </p>
+                        <p class="mt-2 text-sm text-[var(--color-text-secondary)] line-clamp-3">
+                          {{ item.description }}
+                        </p>
+
+                        @if (item.hashtags.length > 0) {
+                          <div class="mt-2 flex flex-wrap gap-1">
+                            @for (tag of item.hashtags; track tag) {
+                              <span class="text-[10px] text-[var(--color-text-tertiary)]"
+                                >#{{ tag }}</span
+                              >
+                            }
+                          </div>
+                        }
+
+                        <div class="mt-auto pt-4 flex items-center justify-between">
+                          <span class="text-xs text-[var(--color-text-secondary)]">
+                            <i class="pi pi-megaphone mr-1"></i>{{ item.callToAction }}
+                          </span>
+                          <button class="inner-button button-sm" (click)="openFlyerModal(item)">
+                            <i class="pi pi-image"></i>
+                            Visual
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- FLYER MODAL (on-demand generation) -->
+    @if (isFlyerModalOpen() && selectedContent()) {
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px)"
+        (click)="closeFlyerModal()"
+      >
+        <div
+          class="glass-dark rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col"
+          style="background: var(--glass-bg-intense)"
+          (click)="$event.stopPropagation()"
+        >
+          <!-- Modal header -->
+          <div class="flex items-start justify-between p-5 border-b border-[var(--glass-border)]">
+            <div>
+              <div class="text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-500)]">
+                Visual for content
+              </div>
+              <h2 class="text-xl font-bold text-[var(--color-text-primary)] mt-1">
+                {{ selectedContent()!.title }}
+              </h2>
+              <p class="text-sm text-[var(--color-text-secondary)] mt-1">
+                {{ selectedContent()!.hook }}
+              </p>
+            </div>
+            <button class="button-icon" (click)="closeFlyerModal()">
+              <i class="pi pi-times text-lg"></i>
+            </button>
+          </div>
+
+          <!-- Format selector -->
+          <div
+            class="flex items-center gap-2 px-5 py-3 border-b border-[var(--glass-border)] overflow-x-auto"
+            style="background: var(--glass-bg-subtle)"
+          >
+            <span
+              class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)] mr-2"
+            >
+              Format:
+            </span>
+            @for (fmt of flyerFormats; track fmt) {
+              <button
+                class="px-3 py-1.5 rounded-full text-xs font-semibold transition-all uppercase tracking-wider"
+                [class.inner-button]="selectedFormat() === fmt"
+                [class.outer-button]="selectedFormat() !== fmt"
+                (click)="setFlyerFormat(fmt)"
+              >
+                {{ fmt }}
+              </button>
+            }
+          </div>
+
+          <!-- Body -->
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-0 flex-1 overflow-auto">
+            <!-- Preview -->
+            <div
+              class="md:col-span-3 p-6 min-h-[400px] flex items-center justify-center"
+              style="background: var(--color-bg-darker)"
+            >
+              @if (isGeneratingFlyer()) {
+                <div class="text-center">
+                  <i class="pi pi-spin pi-spinner text-4xl text-[var(--color-accent-500)]"></i>
+                  <p class="mt-3 text-sm text-[var(--color-text-secondary)]">
+                    Sourcing image, scanning, composing visual…
+                  </p>
+                </div>
+              } @else if (isDownloadingImage()) {
+                <div class="text-center">
+                  <i class="pi pi-spin pi-spinner text-4xl text-[var(--color-accent-500)]"></i>
+                  <p class="mt-3 text-sm text-[var(--color-text-secondary)]">
+                    Loading rendered image...
+                  </p>
+                </div>
+              } @else if (currentFlyer()?.imageUrl) {
+                <img
+                  [src]="currentFlyer()!.imageUrl"
+                  [alt]="currentFlyer()!.marketingText.headline"
+                  class="max-w-full max-h-[60vh] rounded-xl shadow-2xl"
+                  style="box-shadow: var(--glass-shadow-xl)"
+                />
+              } @else if (currentFlyer()) {
+                <!-- Fallback: HTML render if PNG missing -->
+                <div class="text-center text-[var(--color-text-secondary)] text-sm">
+                  <i class="pi pi-image text-3xl"></i>
+                  <p class="mt-2">Visual generated but not yet rendered as PNG.</p>
+                </div>
+              } @else {
+                <div class="text-center max-w-sm">
+                  <i class="pi pi-image text-5xl text-[var(--color-text-tertiary)]"></i>
+                  <h3 class="mt-3 text-lg font-semibold text-[var(--color-text-primary)]">
+                    No visual yet
+                  </h3>
+                  <p class="mt-2 text-sm text-[var(--color-text-secondary)]">
+                    Click <strong>Generate visual</strong> to create a flyer. We'll search free
+                    stock libraries first, then fall back to AI generation.
+                  </p>
+                </div>
+              }
+            </div>
+
+            <!-- Concept / text -->
+            <div
+              class="md:col-span-2 p-6 border-l border-[var(--glass-border)] space-y-4 overflow-y-auto"
+            >
+              @if (currentFlyer()) {
+                @if (currentFlyer()!.imageSource) {
+                  <div class="flex items-center gap-2 text-xs">
+                    <span
+                      class="px-2 py-1 rounded-full uppercase tracking-wider font-semibold"
+                      [class.bg-\[var\(--color-success\)\]\/20]="
+                        currentFlyer()!.imageSource === 'stock'
+                      "
+                      [class.text-\[var\(--color-success\)\]]="
+                        currentFlyer()!.imageSource === 'stock'
+                      "
+                      [class.bg-\[var\(--color-accent-500\)\]\/20]="
+                        currentFlyer()!.imageSource === 'generated'
+                      "
+                      [class.text-\[var\(--color-accent-500\)\]]="
+                        currentFlyer()!.imageSource === 'generated'
+                      "
+                    >
+                      <i
+                        class="pi mr-1"
+                        [class.pi-images]="currentFlyer()!.imageSource === 'stock'"
+                        [class.pi-sparkles]="currentFlyer()!.imageSource === 'generated'"
+                      ></i>
+                      {{ currentFlyer()!.imageSource === 'stock' ? 'Stock photo' : 'AI generated' }}
+                    </span>
+                    @if (currentFlyer()!.imageAttribution?.author) {
+                      <span class="text-[var(--color-text-tertiary)]">
+                        by {{ currentFlyer()!.imageAttribution!.author }}
+                      </span>
+                    }
+                  </div>
+                }
+                @if (currentFlyer()!.imageAnalysis?.subject) {
+                  <div>
+                    <div
+                      class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
+                    >
+                      Image scan
+                    </div>
+                    <p class="mt-1 text-sm text-[var(--color-text-primary)]">
+                      {{ currentFlyer()!.imageAnalysis!.subject }}
+                    </p>
+                    @if (currentFlyer()!.imageAnalysis!.mood) {
+                      <p class="mt-1 text-xs text-[var(--color-text-secondary)]">
+                        Mood: {{ currentFlyer()!.imageAnalysis!.mood }}
+                      </p>
+                    }
+                  </div>
+                }
+                <div>
+                  <div
+                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
+                  >
+                    Concept
+                  </div>
+                  <p class="mt-1 text-sm text-[var(--color-text-primary)]">
+                    {{ currentFlyer()!.concept }}
+                  </p>
+                </div>
+                <div>
+                  <div
+                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
+                  >
+                    Layout notes
+                  </div>
+                  <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+                    {{ currentFlyer()!.layoutNotes }}
+                  </p>
+                </div>
+                <div class="border-t border-[var(--glass-border)] pt-4">
+                  <div
+                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
+                  >
+                    Headline
+                  </div>
+                  <p class="mt-1 text-sm font-semibold text-[var(--color-text-primary)]">
+                    {{ currentFlyer()!.marketingText.headline }}
+                  </p>
+                </div>
+                @if (currentFlyer()!.marketingText.subheadline) {
+                  <div>
+                    <div
+                      class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
+                    >
+                      Subheadline
+                    </div>
+                    <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+                      {{ currentFlyer()!.marketingText.subheadline }}
+                    </p>
+                  </div>
+                }
+                <div>
+                  <div
+                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
+                  >
+                    Body
+                  </div>
+                  <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+                    {{ currentFlyer()!.marketingText.body }}
+                  </p>
+                </div>
+                <div>
+                  <div
+                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
+                  >
+                    CTA
+                  </div>
+                  <p class="mt-1 text-sm font-semibold text-[var(--color-accent-500)]">
+                    {{ currentFlyer()!.marketingText.cta }}
+                  </p>
+                </div>
+              } @else {
+                <p class="text-sm text-[var(--color-text-tertiary)]">
+                  Marketing text and concept will appear here after generation.
+                </p>
+              }
+            </div>
+          </div>
+
+          <!-- Modal footer -->
+          <div
+            class="flex items-center justify-end gap-2 p-5 border-t border-[var(--glass-border)]"
+            style="background: var(--glass-bg-subtle)"
+          >
+            <button class="outer-button button-sm" (click)="closeFlyerModal()">Close</button>
+            @if (currentFlyer()?.imageUrl) {
+              <a
+                class="outer-button button-sm"
+                [href]="currentFlyer()!.imageUrl"
+                [download]="currentFlyer()!.id + '.png'"
+                target="_blank"
+              >
+                <i class="pi pi-download mr-2"></i> Download PNG
+              </a>
+            }
+            @if (currentFlyer()) {
+              <button
+                class="outer-button button-sm"
+                [disabled]="isGeneratingFlyer()"
+                (click)="triggerFlyerGeneration(true)"
+              >
+                <i class="pi pi-refresh mr-2"></i> Regenerate
+              </button>
+            } @else {
+              <button
+                class="inner-button button-sm"
+                [disabled]="isGeneratingFlyer()"
+                (click)="triggerFlyerGeneration(false)"
+              >
+                @if (isGeneratingFlyer()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                } @else {
+                  <i class="pi pi-sparkles"></i>
+                }
+                Generate visual
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

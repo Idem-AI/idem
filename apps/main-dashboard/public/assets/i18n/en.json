@@ -1,4 +1,53 @@
 {
+  "common": {
+    "new": "New",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "adding": "Adding...",
+    "optional": "Optional",
+    "creating": "Creating...",
+    "completed": "Completed",
+    "ready": "Ready",
+    "submitting": "Submitting...",
+    "saving": "Saving...",
+    "deploying": "Deploying...",
+    "oops": "Oops!",
+    "complete": "Complete",
+    "progress": "Progress",
+    "retry": "Retry",
+    "selected": "Selected",
+    "notAvailable": "N/A",
+    "noDescription": "No description",
+    "error": "Error",
+    "notSpecified": "Not specified",
+    "uploading": "Uploading...",
+    "downloading": "Downloading...",
+    "download": "Download",
+    "send": "Send",
+    "pdf": "PDF",
+    "inProgress": "In Progress...",
+    "generating": "Generating...",
+    "noContent": "No content available",
+    "understood": "Understood",
+    "page": "Page",
+    "of": "of",
+    "changeLanguage": "Change language",
+    "continue": "Continue",
+    "apply": "Apply",
+    "reset": "Reset"
+  },
   "dashboard": {
     "addMemberModal": {
       "title": "Add Team Member",
@@ -75,16 +124,101 @@
       "logoAlt": "Logo",
       "open": "Open"
     },
+    "finance": {
+      "title": "Financial Forecasts",
+      "subtitle": "Overview of your project's financial health",
+      "loading": "Loading financial data...",
+      "empty": {
+        "title": "Get started with AI",
+        "description": "No financial data yet. Let the AI analyze your project and generate consistent forecasts, then adjust freely.",
+        "cta": "Generate with AI"
+      },
+      "aiFill": {
+        "button": "Fill with AI",
+        "global": "Fill all with AI",
+        "section": "Fill this section with AI",
+        "tooltip": "Suggest a value with AI"
+      },
+      "alerts": {
+        "title": "AI Insights"
+      },
+      "kpi": {
+        "caY1": "Revenue Y1",
+        "resultatNet": "Net Result",
+        "year3": "Year 3",
+        "margeBrute": "Gross Margin",
+        "tresorerieY1": "Closing Cash Y1",
+        "pointMort": "Break-even (days)",
+        "bfr": "Working Capital",
+        "coutTotal": "Total Project Cost",
+        "tri": "IRR",
+        "van": "NPV"
+      },
+      "charts": {
+        "revenue36": "Monthly Revenue (36 months)",
+        "revenue36Sub": "Forecasted progression over 3 years",
+        "chargesMix": "Cost Structure (Y1)",
+        "treasury": "Cash Position (3 years)",
+        "netResult": "Net Result Y1 → Y3",
+        "fixed": "Fixed costs",
+        "variable": "Variable costs",
+        "noData": "No data available"
+      },
+      "sections": {
+        "title": "Financial Sections",
+        "open": "Open",
+        "overview": "Overview",
+        "products": "Products & Pricing",
+        "sales": "Sales Objectives",
+        "revenue": "Revenue Parameters",
+        "charges": "Variable Costs",
+        "fixedCharges": "Fixed Costs & Salaries",
+        "taxes": "Taxes",
+        "investments": "Investments",
+        "amortization": "Amortization",
+        "financing": "Financing",
+        "ratiosParams": "Ratios Parameters",
+        "exploitation": "P&L Statement",
+        "bilan": "Balance Sheet",
+        "cashflow": "Cash Flow",
+        "ratios": "Ratios & KPIs"
+      },
+      "status": {
+        "empty": "Empty",
+        "inProgress": "In progress",
+        "completed": "Completed",
+        "computed": "Computed"
+      },
+      "stub": {
+        "title": "Section coming soon",
+        "description": "This section will be fully editable in the next phase. In the meantime, use AI to pre-fill values that you can adjust later.",
+        "computed": "This section is automatically computed from your inputs."
+      },
+      "errors": {
+        "title": "Unable to load",
+        "noProjectSelected": "Please select a project first.",
+        "failedToLoad": "Failed to load financial data.",
+        "aiFillFailed": "AI auto-fill failed. Please try again."
+      },
+      "pdf": {
+        "download": "Download PDF report"
+      }
+    },
     "sidebar": {
       "projectHome": "Project Home",
       "teams": "Teams",
       "branding": "Branding",
       "businessPlan": "Business Plan",
+      "finance": "Finances",
+      "pitchDeck": "Pitch Deck",
+      "legalDocs": "Legal Documents",
+      "advisor": "Business Advisor",
       "diagrams": "Diagrams",
       "development": "Development",
       "deploymentOverview": "Deployment Overview",
       "deployment": "Deployment",
       "viewAllProjects": "View All Projects",
+      "communication": "Communication",
       "sr": {
         "openMobileMenu": "Open mobile menu",
         "toggleSidebar": "Toggle sidebar"
@@ -683,7 +817,10 @@
       },
       "result": {
         "title": "Vectorized Logo",
-        "changeFile": "Choose another file"
+        "changeFile": "Choose another file",
+        "extractedColors": "Main Colors",
+        "primaryColor": "Primary Color",
+        "secondaryColor": "Secondary Color"
       }
     },
     "createTeam": {
@@ -1604,6 +1741,151 @@
         }
       }
     },
+    "showPitchDeck": {
+      "loading": "Loading your pitch deck…",
+      "title": "Pitch Deck",
+      "slide": "Slide",
+      "allSlides": "All slides",
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project to generate or view its pitch deck."
+      },
+      "empty": {
+        "title": "No pitch deck yet",
+        "subtitle": "Generate a minimalist investor-grade deck from your project data. Eleven slides: cover, problem, solution, market, product, business model, traction, competition, team, financials, ask."
+      },
+      "generating": {
+        "title": "Generating your deck",
+        "subtitle": "Each slide is crafted independently — hang tight.",
+        "slides": "slides"
+      },
+      "status": {
+        "inProgress": "Working"
+      },
+      "actions": {
+        "generate": "Generate deck",
+        "regenerate": "Regenerate",
+        "download": "Download PDF"
+      },
+      "slides": {
+        "Cover": "Cover",
+        "Problem": "Problem",
+        "Solution": "Solution",
+        "Market": "Market",
+        "Product": "Product",
+        "Business Model": "Business Model",
+        "Traction": "Traction",
+        "Competition": "Competition",
+        "Team": "Team",
+        "Financials": "Financials",
+        "Ask": "The Ask"
+      },
+      "errors": {
+        "generation": "Something went wrong while generating the deck.",
+        "download": "Could not download the PDF.",
+        "pdfLoad": "Could not load the PDF preview."
+      },
+      "loadingPdf": "Loading PDF preview…"
+    },
+    "legalDocs": {
+      "title": "Legal Documents",
+      "subtitle": "Generate draft legal documents tailored to the African reality (OHADA zone + common-law). Each document is reviewable and should be validated by a lawyer.",
+      "selected": "selected",
+      "addMore": "Add more documents",
+      "missingFields": "Missing required fields",
+      "missingFieldsShort": "required field(s) missing",
+      "stepper": {
+        "select": "Select",
+        "context": "Context",
+        "generate": "Generate"
+      },
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project to pick and generate its legal documents."
+      },
+      "steps": {
+        "selection": {
+          "title": "1 — Pick the documents you need",
+          "subtitle": "Only the fields required by your selection will be asked."
+        },
+        "context": {
+          "title": "2 — Company context",
+          "subtitle": "The AI uses this data as the single source of truth. Never invents."
+        }
+      },
+      "groups": {
+        "company": "Company structure",
+        "contracts": "Contracts",
+        "customers": "Customers & public",
+        "internal": "Internal"
+      },
+      "fields": {
+        "country": "Country",
+        "legalForm": "Legal form",
+        "capital": "Share capital",
+        "currency": "Currency",
+        "headOffice": "Registered office",
+        "companyEmail": "Company email",
+        "companyPhone": "Company phone",
+        "website": "Website",
+        "activityDescription": "Business activity",
+        "founders": "Founders / shareholders",
+        "addFounder": "Add founder",
+        "noFounders": "No founder yet. Add at least one.",
+        "founderName": "Full name",
+        "founderShares": "Shares (%)",
+        "founderRole": "Role"
+      },
+      "actions": {
+        "generate": "Generate selected documents",
+        "download": "Download PDF",
+        "downloadAll": "Download all",
+        "regenerate": "Regenerate"
+      },
+      "generating": {
+        "title": "Generating documents"
+      },
+      "generated": {
+        "title": "Generated documents",
+        "count": "document(s) ready"
+      },
+      "errors": {
+        "catalog": "Unable to load the document catalog.",
+        "generation": "Generation failed. Try again."
+      },
+      "status": {
+        "generating": "Generating…",
+        "ready": "Ready"
+      }
+    },
+    "advisor": {
+      "title": "Business advisor",
+      "subtitle": "AI-powered guidance for starting a company in Africa — grounded in your project.",
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project so the advisor can analyze its context."
+      },
+      "empty": {
+        "title": "How can I help?",
+        "subtitle": "Ask about legal form, administrative steps, financing, tax or anything else. I will ask follow-up questions when needed."
+      },
+      "composer": {
+        "placeholder": "Ask the advisor… (Enter to send, Shift+Enter for new line)",
+        "send": "Send",
+        "hint": "Responses are AI-generated guidance and not legal or financial advice."
+      },
+      "actions": {
+        "clear": "Clear conversation"
+      },
+      "errors": {
+        "send": "Could not send the message. Try again."
+      },
+      "financeIntent": {
+        "confirm": "Apply",
+        "cancel": "Cancel",
+        "applied": "Modification applied to your finances."
+      }
+    },
     "diagramDisplay": {
       "actions": {
         "add": "Add Diagram",
@@ -1703,7 +1985,90 @@
       "loading": "Loading PDF...",
       "wait": "Please wait while we load your document",
       "noContent": "No PDF to display"
+    },
+    "brandingBlocker": {
+      "dashboard": {
+        "brandingBlocker": {
+          "title": "Brand Identity Required",
+          "description": "To access {{featureName}}, you must first complete your project's brand identity.",
+          "missingElements": "Missing elements:",
+          "backButton": "Back to Dashboard",
+          "completeButton": "Complete Brand Identity"
+        }
+      },
+      "title": "Brand Identity Required",
+      "description": "To access {{featureName}}, you must first complete your project's brand identity.",
+      "missingElements": "Missing elements:",
+      "backButton": "Back to Dashboard",
+      "completeButton": "Complete Brand Identity"
+    },
+    "completeBranding": {
+      "loading": "Loading your project...",
+      "projectNotFound": "Project not found.",
+      "noLogoSelected": "No logo selected. Please go back to the previous step.",
+      "backToLogoChoice": "Back to logo choice",
+      "finish": "Finish",
+      "steps": {
+        "logoChoice": "Logo",
+        "colors": "Colors",
+        "typography": "Typography",
+        "logoPreferences": "Preferences",
+        "logoSelection": "Generation",
+        "logoVariations": "Variations",
+        "overview": "Overview"
+      },
+      "overview": {
+        "title": "Your brand identity is ready!",
+        "subtitle": "Review your selections before finishing.",
+        "logo": "Logo",
+        "colors": "Color Palette",
+        "typography": "Typography"
+      }
+    },
+    "incompleteBanner": {
+      "title": "Complete Your Brand Identity",
+      "description": "To unlock all features, please complete your brand identity by adding the missing elements below.",
+      "elements": {
+        "logo": "Logo",
+        "colors": "Colors",
+        "typography": "Typography"
+      },
+      "completeButton": "Complete Brand Identity"
     }
+  },
+  "deployment": {
+    "title": "Deployment Overview",
+    "subtitle": "Monitor and manage your application deployment",
+    "deployedAt": "Deployed at",
+    "version": "Version",
+    "openApp": "Open Application",
+    "manageOnIdeploy": "Manage on iDeploy",
+    "noDeployment": {
+      "title": "No Deployment Yet",
+      "description": "Deploy your application with iDeploy to see monitoring and statistics here.",
+      "cta": "Deploy with iDeploy"
+    },
+    "stats": {
+      "uptime": "Uptime",
+      "requests": "Total Requests",
+      "responseTime": "Avg Response Time",
+      "errorRate": "Error Rate"
+    },
+    "monitoring": {
+      "title": "Monitoring",
+      "health": "Application Health",
+      "healthy": "Healthy",
+      "ssl": "SSL Certificate",
+      "active": "Active",
+      "autoscaling": "Auto-scaling",
+      "enabled": "Enabled"
+    }
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized",
+    "serverError": "Server error"
   },
   "logoCreation": {
     "title": "Creating Your Logo",
@@ -1750,6 +2115,22 @@
       }
     }
   },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "teams": "Teams",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "notFound": {
+    "title": "Page Not Found",
+    "subtitle": "The page you're looking for doesn't exist or has been moved.",
+    "buttons": {
+      "home": "Go Home",
+      "dashboard": "Go to Dashboard"
+    }
+  },
   "projects": {
     "title": "Projects",
     "createNew": "Create New Project",
@@ -1764,76 +2145,6 @@
     "noTeams": "No teams found",
     "teamDetails": "Team Details"
   },
-  "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "create": "Create",
-    "back": "Back",
-    "next": "Next",
-    "previous": "Previous",
-    "loading": "Loading...",
-    "search": "Search",
-    "filter": "Filter",
-    "export": "Export",
-    "import": "Import",
-    "refresh": "Refresh",
-    "adding": "Adding...",
-    "optional": "Optional",
-    "creating": "Creating...",
-    "completed": "Completed",
-    "ready": "Ready",
-    "submitting": "Submitting...",
-    "saving": "Saving...",
-    "deploying": "Deploying...",
-    "oops": "Oops!",
-    "complete": "Complete",
-    "progress": "Progress",
-    "retry": "Retry",
-    "selected": "Selected",
-    "notAvailable": "N/A",
-    "noDescription": "No description",
-    "error": "Error",
-    "notSpecified": "Not specified",
-    "uploading": "Uploading...",
-    "downloading": "Downloading...",
-    "download": "Download",
-    "send": "Send",
-    "pdf": "PDF",
-    "inProgress": "In Progress...",
-    "generating": "Generating...",
-    "noContent": "No content available",
-    "understood": "Understood",
-    "page": "Page",
-    "of": "of",
-    "changeLanguage": "Change language",
-    "continue": "Continue",
-    "apply": "Apply",
-    "reset": "Reset"
-  },
-  "notFound": {
-    "title": "Page Not Found",
-    "subtitle": "The page you're looking for doesn't exist or has been moved.",
-    "buttons": {
-      "home": "Go Home",
-      "dashboard": "Go to Dashboard"
-    }
-  },
-  "errors": {
-    "generic": "An error occurred",
-    "notFound": "Not found",
-    "unauthorized": "Unauthorized",
-    "serverError": "Server error"
-  },
-  "navigation": {
-    "dashboard": "Dashboard",
-    "projects": "Projects",
-    "teams": "Teams",
-    "profile": "Profile",
-    "settings": "Settings",
-    "logout": "Logout"
-  },
   "validation": {
     "required": "{{fieldName}} is required",
     "email": "Please enter a valid email address",
@@ -1843,33 +2154,5 @@
     "teamNameMinLength": "Team name must be at least {{min}} characters",
     "deploymentName": "Deployment name is required (minimum {{min}} characters)",
     "invalid": "Invalid field"
-  },
-  "deployment": {
-    "title": "Deployment Overview",
-    "subtitle": "Monitor and manage your application deployment",
-    "deployedAt": "Deployed at",
-    "version": "Version",
-    "openApp": "Open Application",
-    "manageOnIdeploy": "Manage on iDeploy",
-    "noDeployment": {
-      "title": "No Deployment Yet",
-      "description": "Deploy your application with iDeploy to see monitoring and statistics here.",
-      "cta": "Deploy with iDeploy"
-    },
-    "stats": {
-      "uptime": "Uptime",
-      "requests": "Total Requests",
-      "responseTime": "Avg Response Time",
-      "errorRate": "Error Rate"
-    },
-    "monitoring": {
-      "title": "Monitoring",
-      "health": "Application Health",
-      "healthy": "Healthy",
-      "ssl": "SSL Certificate",
-      "active": "Active",
-      "autoscaling": "Auto-scaling",
-      "enabled": "Enabled"
-    }
   }
 }

@@ -16,6 +16,8 @@ class ByIp extends Component
 {
     use AuthorizesRequests;
 
+    public int $step = 1;
+
     #[Locked]
     public $private_keys;
 
@@ -63,6 +65,8 @@ class ByIp extends Component
     public int $max_applications = 50;
     public bool $is_available = true;
 
+    public bool $is_admin = false;
+
     #[Locked]
     public Collection $swarm_managers;
     
@@ -77,41 +81,67 @@ class ByIp extends Component
         if ($this->swarm_managers->count() > 0) {
             $this->selected_swarm_cluster = $this->swarm_managers->first()->id;
         }
-        
-        // Charger la liste des pays africains
         $this->african_countries = ServerSchedulingService::getAfricanCountries();
+        $user = auth()->user();
+        $this->is_admin = $user && $user->idem_role === 'admin';
+    }
+
+    protected function stepRules(): array
+    {
+        $rules = [
+            1 => [
+                'name' => ValidationPatterns::nameRules(),
+                'description' => ValidationPatterns::descriptionRules(),
+            ],
+            2 => [
+                'ip' => 'required|string',
+                'port' => 'required|integer|between:1,65535',
+                'user' => 'required|string',
+                'private_key_id' => 'nullable|integer',
+            ],
+            3 => [
+                'is_build_server' => 'required|boolean',
+                'is_swarm_manager' => 'required|boolean',
+                'is_swarm_worker' => 'required|boolean',
+                'selected_swarm_cluster' => 'nullable|integer',
+            ],
+        ];
+
+        if ($this->is_admin) {
+            $rules[4] = [
+                'country' => 'nullable|string|max:255',
+                'country_code' => 'nullable|string|size:2',
+                'region' => 'nullable|string|max:255',
+                'city' => 'nullable|string|max:255',
+                'latitude' => 'nullable|numeric|between:-90,90',
+                'longitude' => 'nullable|numeric|between:-180,180',
+                'cpu_cores' => 'nullable|integer|min:1',
+                'ram_mb' => 'nullable|integer|min:512',
+                'disk_gb' => 'nullable|integer|min:10',
+                'max_applications' => 'required|integer|min:1',
+                'is_available' => 'required|boolean',
+            ];
+        }
+
+        return $rules;
     }
 
     protected function rules(): array
     {
-        return [
-            'private_key_id' => 'nullable|integer',
-            'new_private_key_name' => 'nullable|string',
-            'new_private_key_description' => 'nullable|string',
-            'new_private_key_value' => 'nullable|string',
-            'name' => ValidationPatterns::nameRules(),
-            'description' => ValidationPatterns::descriptionRules(),
-            'ip' => 'required|string',
-            'user' => 'required|string',
-            'port' => 'required|integer|between:1,65535',
-            'is_swarm_manager' => 'required|boolean',
-            'is_swarm_worker' => 'required|boolean',
-            'selected_swarm_cluster' => 'nullable|integer',
-            'is_build_server' => 'required|boolean',
-            // Géolocalisation
-            'country' => 'nullable|string|max:255',
-            'country_code' => 'nullable|string|size:2',
-            'region' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            // Spécifications
-            'cpu_cores' => 'nullable|integer|min:1',
-            'ram_mb' => 'nullable|integer|min:512',
-            'disk_gb' => 'nullable|integer|min:10',
-            'max_applications' => 'required|integer|min:1',
-            'is_available' => 'required|boolean',
-        ];
+        return array_merge(...array_values($this->stepRules()));
+    }
+
+    public function nextStep(): void
+    {
+        $this->validate($this->stepRules()[$this->step]);
+        $this->step++;
+    }
+
+    public function prevStep(): void
+    {
+        if ($this->step > 1) {
+            $this->step--;
+        }
     }
 
     protected function messages(): array

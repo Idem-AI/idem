@@ -4,6 +4,12 @@
   <!-- Loading state -->
   @if (loading()) {
     <app-loader />
+  } @else if (!loading() && !isBrandingComplete()) {
+    <!-- Branding Required Blocker -->
+    <app-branding-required-blocker
+      [missingElements]="brandingMissingElements()"
+      [featureName]="'le Développement'"
+    />
   }
 
   <!-- Error state -->

@@ -938,7 +938,7 @@ export class PdfService {
               <!-- Center section: Idem logo -->
               <div class="flex flex-col items-center space-y-6">
                 <img
-                  src="https://idem.africa/assets/icons/logo_white.webp"
+                  src="https://idem.africa/assets/icons/logo.png"
                   alt="Idem Logo"
                   class="h-16 w-auto"
                 />

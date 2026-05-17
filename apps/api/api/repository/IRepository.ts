@@ -4,7 +4,7 @@ export interface IRepository<T extends { id?: string; createdAt?: Date; updatedA
     collectionPath: string,
     id?: string
   ): Promise<T>; // collectionPath is the full Firestore path, id for custom document ID
-  findById(id: string, collectionPath: string): Promise<T | null>;
+  findById(id: string, collectionPath: string, options?: { bypassCache?: boolean }): Promise<T | null>;
   findAll(collectionPath: string): Promise<T[]>;
   update(
     id: string,
@@ -12,4 +12,9 @@ export interface IRepository<T extends { id?: string; createdAt?: Date; updatedA
     collectionPath: string
   ): Promise<T | null>;
   delete(id: string, collectionPath: string): Promise<boolean>;
+
+  /** Find a single document matching a query filter */
+  findOne(query: Record<string, any>, collectionPath: string): Promise<T | null>;
+  /** Find all documents matching a query filter */
+  find(query: Record<string, any>, collectionPath: string): Promise<T[]>;
 }

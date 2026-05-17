@@ -1,3 +1,7 @@
 {
-  "works": "Les tests fonctionnent !"
+  "dashboard": {
+    "showTests": {
+      "works": "Les tests fonctionnent !"
+    }
+  }
 }
