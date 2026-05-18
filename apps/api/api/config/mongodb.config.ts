@@ -21,7 +21,25 @@ export class MongoDBConnection {
     }
 
     try {
-      const mongoUri = process.env.MONGODB_URI || 'mongodb://admin:admin123@localhost:27017/idem?authSource=admin';
+      let mongoUri = process.env.MONGODB_URI;
+      
+      if (!mongoUri) {
+        const host = process.env.MONGODB_HOST || 'localhost';
+        const port = process.env.MONGODB_PORT || '27017';
+        const database = process.env.MONGODB_DATABASE || 'idem';
+        const username = process.env.MONGODB_USERNAME || 'admin';
+        const password = process.env.MONGODB_PASSWORD || 'admin123';
+        
+        // Construction de l'URI complète avec encodage sécurisé
+        mongoUri = `mongodb://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}?authSource=admin`;
+      }
+      
+      // Masquer le mot de passe pour les logs (sécurité)
+      const maskedUri = mongoUri.replace(/\/\/[^:]+:[^@]+@/, `//${process.env.MONGODB_USERNAME || 'admin'}:***@`);
+      logger.info(`Attempting to connect to MongoDB with URI: ${maskedUri}`);
+      
+      // Décommentez temporairement cette ligne en LOCAL uniquement si vous devez vraiment vérifier le mot de passe en clair :
+      // console.log(`[DEBUG] CLEAR TEXT MONGODB URI:`, mongoUri);
       
       await mongoose.connect(mongoUri, {
         maxPoolSize: 10,
