@@ -46,7 +46,6 @@ const REQUIRED_SECRETS = [
  * a warning but do not abort.
  */
 const OPTIONAL_SECRETS = [
-  'MONGODB_URI',
   'FIREBASE_PRIVATE_KEY_ID',
   'FIREBASE_CLIENT_ID',
   'FIREBASE_APP_ID',
