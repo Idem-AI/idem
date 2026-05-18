@@ -13,7 +13,7 @@ export class MinIOConnection {
     const accessKey = process.env.MINIO_ACCESS_KEY || 'minioadmin';
     const secretKey = process.env.MINIO_SECRET_KEY || 'minioadmin';
     const region = process.env.MINIO_REGION || 'us-east-1';
-    this.bucketName = process.env.MINIO_BUCKET_NAME || 'idem-storage2';
+    this.bucketName = process.env.MINIO_BUCKET_NAME || 'idem-storage';
 
     this.client = new Minio.Client({
       endPoint,
