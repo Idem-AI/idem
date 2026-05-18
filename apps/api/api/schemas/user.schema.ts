@@ -90,11 +90,10 @@ const UserSchema = new Schema<UserDocument>(
 // INDEX POUR AUTHENTIFICATION
 // ============================================
 
-// Recherche par Firebase UID (requête la plus fréquente) - unique index
-UserSchema.index({ uid: 1 }, { unique: true });
-
-// Recherche par email (login, vérification unicité) - unique index
-UserSchema.index({ email: 1 }, { unique: true });
+// Note: Unique indexes for uid and email are already defined directly on the schema fields below:
+// - uid: { type: String, required: true, unique: true }
+// - email: { type: String, required: true, unique: true }
+// Declaring them here as well causes duplicate schema index warnings.
 
 // Recherche par displayName (recherche utilisateur)
 UserSchema.index({ displayName: 1 });
