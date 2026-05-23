@@ -3,12 +3,10 @@
   min-height: 100vh;
 }
 
-/* Base custom styles to complement Tailwind utility classes */
 button {
   outline: none;
 }
 
-/* Ensure ultra-smooth subpixel rendering for scale effects */
 img {
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
@@ -16,7 +14,6 @@ img {
   -webkit-backface-visibility: hidden;
 }
 
-/* Custom scrollbar styling for the horizontal journey path */
 .overflow-x-auto::-webkit-scrollbar {
   height: 4px;
 }
