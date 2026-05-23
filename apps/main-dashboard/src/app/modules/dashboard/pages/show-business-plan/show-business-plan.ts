@@ -8,8 +8,9 @@ import { BusinessPlanDisplayComponent } from './components/business-plan-display
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
-import { BrandingRequiredBlockerComponent } from '../../components/branding-required-blocker/branding-required-blocker';
+import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
+import { ProjectModel } from '@idem/shared-models';
 
 @Component({
   selector: 'app-show-business-plan',
@@ -19,7 +20,7 @@ import { ProjectService } from '../../services/project.service';
     BusinessPlanDisplayComponent,
     Loader,
     TranslateModule,
-    BrandingRequiredBlockerComponent,
+    IncompleteProjectBannerComponent,
   ],
   templateUrl: './show-business-plan.html',
   styleUrls: ['./show-business-plan.css'],
@@ -45,6 +46,7 @@ export class ShowBusinessPlan implements OnInit {
   // Branding validation
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
+  protected readonly project = signal<ProjectModel | null>(null);
 
   ngOnInit(): void {
     // Get project ID from cookies
@@ -65,6 +67,7 @@ export class ShowBusinessPlan implements OnInit {
   private checkBrandingCompletion(projectId: string): void {
     this.projectService.getProjectById(projectId).subscribe({
       next: (project) => {
+        this.project.set(project);
         const { isComplete, missingElements } =
           this.brandingValidation.checkBrandingCompletion(project);
 

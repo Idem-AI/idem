@@ -11,10 +11,9 @@
       </div>
     </div>
   } @else if (!isLoading() && !isBrandingComplete()) {
-    <!-- Branding Required Blocker -->
-    <app-branding-required-blocker
-      [missingElements]="brandingMissingElements()"
-      [featureName]="'le Business Plan'"
+    <!-- Incomplete Project Banner -->
+    <app-incomplete-project-banner
+      [project]="project()!"
     />
   } @else if (existingBusinessPlan()) {
     <!-- Display existing business plan -->

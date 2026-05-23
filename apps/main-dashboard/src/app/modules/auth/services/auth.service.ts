@@ -96,27 +96,39 @@ export class AuthService {
     return from(promise);
   }
 
-  async loginWithGithub() {
+  async loginWithGithub(): Promise<User | null> {
     const provider = new GithubAuthProvider();
-    if (this.isMobile()) {
-      await signInWithRedirect(this.auth, provider);
-    } else {
+    try {
       const result = await signInWithPopup(this.auth, provider);
       await this.postLogin(result.user);
+      return result.user;
+    } catch (error) {
+      console.error('Error in loginWithGithub popup:', error);
+      if (this.isMobile()) {
+        console.log('Falling back to signInWithRedirect on mobile...');
+        await signInWithRedirect(this.auth, provider);
+      } else {
+        throw error;
+      }
+      return null;
     }
   }
 
   async loginWithGoogle(): Promise<User | null> {
     const provider = new GoogleAuthProvider();
-    if (this.isMobile()) {
-      // Mobile: use redirect flow (popup is unreliable on mobile browsers)
-      await signInWithRedirect(this.auth, provider);
-      // Page will reload — postLogin is handled in handleRedirectResult()
-      return null; // Redirect flow - page will reload
-    } else {
+    try {
       const result = await signInWithPopup(this.auth, provider);
       await this.postLogin(result.user);
-      return result.user; // Popup flow - return user immediately
+      return result.user;
+    } catch (error) {
+      console.error('Error in loginWithGoogle popup:', error);
+      if (this.isMobile()) {
+        console.log('Falling back to signInWithRedirect on mobile...');
+        await signInWithRedirect(this.auth, provider);
+      } else {
+        throw error;
+      }
+      return null;
     }
   }
 

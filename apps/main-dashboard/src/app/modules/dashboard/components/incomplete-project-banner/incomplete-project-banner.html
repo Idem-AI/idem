@@ -1,49 +1,59 @@
 @if (isIncomplete) {
-  <div class="glass-card border-l-4 border-yellow-500 p-6 mb-6">
-    <div class="flex items-start gap-4">
-      <!-- Icon -->
-      <div class="flex-shrink-0">
-        <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-        </svg>
-      </div>
+  <div
+    class="relative overflow-hidden flex items-stretch rounded-3xl border border-white/10 backdrop-blur-xl mb-8 min-h-[260px]"
+    style="background: var(--glass-bg-medium); box-shadow: var(--glass-shadow-lg), 0 0 80px rgba(20,71,230,0.10);"
+  >
+    <!-- Ambient glow blobs -->
+    <div class="absolute -top-24 right-36 size-80 rounded-full bg-blue-600/20 blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-20 left-[5%] size-72 rounded-full bg-cyan-400/15 blur-3xl pointer-events-none"></div>
 
-      <!-- Content -->
-      <div class="flex-1">
-        <h3 class="text-lg font-semibold text-gray-100 mb-2">
-          {{ 'dashboard.incompleteBanner.title' | translate }}
-        </h3>
-        <p class="text-gray-300 mb-3">
-          {{ 'dashboard.incompleteBanner.description' | translate }}
-        </p>
-        
-        <!-- Missing elements list -->
-        <div class="flex flex-wrap gap-2 mb-4">
-          @for (element of missingElements; track element) {
-            <span class="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">
-              {{ element }}
+    <!-- Content -->
+    <div class="relative z-10 flex-1 flex flex-col justify-center gap-4 py-8 px-10">
+
+  
+
+      <!-- Title -->
+      <h2 class="text-2xl font-bold leading-tight text-white max-w-md m-0">
+        {{ 'dashboard.incompleteBanner.title' | translate }}
+      </h2>
+
+      <!-- Description -->
+      <p class="text-sm leading-relaxed text-white/60 max-w-sm m-0">
+        {{ 'dashboard.incompleteBanner.description' | translate }}
+      </p>
+
+      <!-- Missing items — pulsing dot checklist -->
+      <div class="flex flex-col gap-2.5">
+        @for (element of missingElements; track element) {
+          <div class="flex items-center gap-3">
+            <!-- Pulsing dot (Tailwind animate-ping) -->
+            <span class="relative flex size-2.5 shrink-0">
+              <span class="animate-ping absolute inline-flex size-full rounded-full bg-cyan-400 opacity-60"></span>
+              <span
+                class="relative inline-flex size-2.5 rounded-full bg-cyan-400"
+                style="box-shadow: 0 0 8px rgba(34,211,238,0.8);"
+              ></span>
             </span>
-          }
-        </div>
-
-        <!-- Action button -->
-        <button
-          (click)="onCompleteClick()"
-          class="inner-button"
-        >
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
-          {{ 'dashboard.incompleteBanner.completeButton' | translate }}
-        </button>
+            <span class="text-sm font-semibold text-white/90 tracking-wide">{{ element }}</span>
+          </div>
+        }
       </div>
 
-      <!-- Close button (optional) -->
-      <button class="flex-shrink-0 text-gray-400 hover:text-gray-200 transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
+      <!-- CTA -->
+      <button (click)="onCompleteClick()" class="inner-button self-start mt-1">
+        {{ 'dashboard.incompleteBanner.completeButton' | translate }}
       </button>
+    </div>
+
+    <!-- Character — contained in card, anchored to bottom -->
+    <div class="relative z-10 shrink-0 w-64 flex items-end justify-center pb-0 pr-4">
+      <img
+        src="assets/images/character-wave.png"
+        alt="Friendly guide"
+        class="w-full h-full object-cover select-none"
+        style="filter: drop-shadow(0 20px 40px rgba(20,71,230,0.4));"
+        draggable="false"
+      />
     </div>
   </div>
 }
