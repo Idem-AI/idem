@@ -34,10 +34,10 @@ export class LoginCardComponent implements OnInit {
     try {
       this.isLoading.set(true);
       const result = await this.authService.loginWithGoogle();
-      // Only emit loginSuccess if we got a result (popup flow)
-      // For redirect flow (mobile), the page will reload and ngOnInit will handle it
       if (result) {
         this.loginSuccess.emit();
+      } else {
+        // If result is null (e.g. redirect flow), keep loading while browser redirects
       }
     } catch (error) {
       console.error('Error logging in with Google:', error);
@@ -48,11 +48,14 @@ export class LoginCardComponent implements OnInit {
   protected async loginWithGithub(): Promise<void> {
     try {
       this.isLoading.set(true);
-      await this.authService.loginWithGithub();
-      this.loginSuccess.emit();
+      const result = await this.authService.loginWithGithub();
+      if (result) {
+        this.loginSuccess.emit();
+      } else {
+        // If result is null (e.g. redirect flow), keep loading while browser redirects
+      }
     } catch (error) {
       console.error('Error logging in with GitHub:', error);
-    } finally {
       this.isLoading.set(false);
     }
   }
