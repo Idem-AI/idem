@@ -23,8 +23,9 @@ import {
 } from '../../models/legalDocs.model';
 import { SSEStepEvent } from '../../../../shared/models/sse-step.model';
 import { BrandingValidationService } from '../../services/branding-validation.service';
-import { BrandingRequiredBlockerComponent } from '../../components/branding-required-blocker/branding-required-blocker';
+import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
+import { ProjectModel } from '@idem/shared-models';
 
 type RequiredFieldKey =
   | 'country'
@@ -41,7 +42,7 @@ type RequiredFieldKey =
 @Component({
   selector: 'app-legal-docs',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, Loader, BrandingRequiredBlockerComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, Loader, IncompleteProjectBannerComponent],
   templateUrl: './legal-docs.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -67,6 +68,7 @@ export class LegalDocsPage implements OnInit {
   // Branding validation
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
+  protected readonly project = signal<ProjectModel | null>(null);
 
   protected readonly context = signal<LegalDocsContext>({
     country: '',
@@ -135,6 +137,7 @@ export class LegalDocsPage implements OnInit {
   private checkBrandingCompletion(projectId: string): void {
     this.projectService.getProjectById(projectId).subscribe({
       next: (project) => {
+        this.project.set(project);
         const { isComplete, missingElements } =
           this.brandingValidation.checkBrandingCompletion(project);
 

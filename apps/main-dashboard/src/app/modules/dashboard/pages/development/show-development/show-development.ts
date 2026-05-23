@@ -8,15 +8,16 @@ import { CookieService } from '../../../../../shared/services/cookie.service';
 import { catchError, finalize, of, tap } from 'rxjs';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { BrandingValidationService } from '../../../services/branding-validation.service';
-import { BrandingRequiredBlockerComponent } from '../../../components/branding-required-blocker/branding-required-blocker';
+import { IncompleteProjectBannerComponent } from '../../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../../services/project.service';
+import { ProjectModel } from '@idem/shared-models';
 
 import { environment } from '../../../../../../environments/environment';
 
 @Component({
   selector: 'app-show-development',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, Loader, BrandingRequiredBlockerComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, Loader, IncompleteProjectBannerComponent],
   templateUrl: './show-development.html',
   styleUrls: ['./show-development.css'],
 })
@@ -36,6 +37,7 @@ export class ShowDevelopment implements OnInit {
   // Branding validation
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
+  protected readonly project = signal<ProjectModel | null>(null);
   protected readonly router = inject(Router);
   protected readonly webgenUrl = environment.services.webgen.url;
 
@@ -76,6 +78,7 @@ export class ShowDevelopment implements OnInit {
     this.loading.set(true);
     this.projectService.getProjectById(projectId).subscribe({
       next: (project) => {
+        this.project.set(project);
         const { isComplete, missingElements } =
           this.brandingValidation.checkBrandingCompletion(project);
 

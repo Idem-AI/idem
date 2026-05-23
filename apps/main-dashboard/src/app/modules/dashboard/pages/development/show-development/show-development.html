@@ -5,10 +5,9 @@
   @if (loading()) {
     <app-loader />
   } @else if (!loading() && !isBrandingComplete()) {
-    <!-- Branding Required Blocker -->
-    <app-branding-required-blocker
-      [missingElements]="brandingMissingElements()"
-      [featureName]="'le Développement'"
+    <!-- Incomplete Project Banner -->
+    <app-incomplete-project-banner
+      [project]="project()!"
     />
   }
 
