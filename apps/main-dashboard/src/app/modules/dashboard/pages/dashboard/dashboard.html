@@ -29,13 +29,11 @@
 } @else {
   <div class="max-w-7xl mx-auto px-4 py-8">
     @if (project(); as currentProject) {
-      <!-- Incomplete Project Banner -->
       <app-incomplete-project-banner
         [project]="currentProject"
         (completeProject)="onCompleteProject()"
       />
 
-      <!-- Project Header -->
       <div class="bg-slate-900/30 backdrop-blur border border-white/5 rounded-3xl p-8 mb-8 relative overflow-hidden">
         <div class="relative z-10">
           <div class="flex items-center gap-3 mb-3">
