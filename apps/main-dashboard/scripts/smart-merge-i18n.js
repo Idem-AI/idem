@@ -33,7 +33,6 @@ const CONFIG = {
     // Dashboard components
     'modules/dashboard/components/add-team-member-modal': 'dashboard.addMemberModal',
     'modules/dashboard/components/add-team-to-project-modal': 'dashboard.addTeamToProjectModal',
-    'modules/dashboard/components/branding-required-blocker': 'dashboard.brandingBlocker',
     'modules/dashboard/components/incomplete-project-banner': 'dashboard.incompleteBanner',
     'modules/dashboard/components/project-card': 'dashboard.projectCard',
     'modules/dashboard/components/sidebar-dashboard': 'dashboard.sidebar',

@@ -18,8 +18,9 @@ import { PitchDeckModel } from '../../models/pitchDeck.model';
 import { SSEStepEvent } from '../../../../shared/models/sse-step.model';
 import { PitchDeckPdfViewer } from './pitch-deck-pdf-viewer/pitch-deck-pdf-viewer';
 import { BrandingValidationService } from '../../services/branding-validation.service';
-import { BrandingRequiredBlockerComponent } from '../../components/branding-required-blocker/branding-required-blocker';
+import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
+import { ProjectModel } from '@idem/shared-models';
 
 interface GenerationStep {
   name: string;
@@ -48,7 +49,7 @@ const PITCH_DECK_STEP_NAMES = [
     TranslateModule,
     Loader,
     PitchDeckPdfViewer,
-    BrandingRequiredBlockerComponent,
+    IncompleteProjectBannerComponent,
   ],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -75,6 +76,7 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
   // Branding validation
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
+  protected readonly project = signal<ProjectModel | null>(null);
 
   protected readonly slideNames = computed<string[]>(() => {
     const deck = this.pitchDeck();
@@ -104,6 +106,7 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
   private checkBrandingCompletion(projectId: string): void {
     this.projectService.getProjectById(projectId).subscribe({
       next: (project) => {
+        this.project.set(project);
         const { isComplete, missingElements } =
           this.brandingValidation.checkBrandingCompletion(project);
 

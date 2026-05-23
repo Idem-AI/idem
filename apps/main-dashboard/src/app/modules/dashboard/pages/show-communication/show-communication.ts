@@ -24,15 +24,16 @@ import {
   StrategyBlock,
 } from '../../models/communication.model';
 import { BrandingValidationService } from '../../services/branding-validation.service';
-import { BrandingRequiredBlockerComponent } from '../../components/branding-required-blocker/branding-required-blocker';
+import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
+import { ProjectModel } from '@idem/shared-models';
 
 type Tab = 'strategy' | 'calendar';
 
 @Component({
   selector: 'app-show-communication',
   standalone: true,
-  imports: [CommonModule, FormsModule, BrandingRequiredBlockerComponent],
+  imports: [CommonModule, FormsModule, IncompleteProjectBannerComponent],
   templateUrl: './show-communication.html',
   styleUrls: ['./show-communication.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,6 +64,7 @@ export class ShowCommunication implements OnInit {
   // Branding validation
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
+  protected readonly project = signal<ProjectModel | null>(null);
 
   // Content selection + flyer preview
   protected readonly selectedContent = signal<ContentIdea | null>(null);
@@ -139,6 +141,7 @@ export class ShowCommunication implements OnInit {
   private checkBrandingCompletion(projectId: string): void {
     this.projectService.getProjectById(projectId).subscribe({
       next: (project) => {
+        this.project.set(project);
         const { isComplete, missingElements } =
           this.brandingValidation.checkBrandingCompletion(project);
 
