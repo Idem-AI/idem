@@ -79,9 +79,10 @@ export class DashboardComponent implements OnInit {
 
     if (analysis.branding?.sections?.length > 0) completed++;
     if (analysis.businessPlan) completed++;
+    if (analysis.pitchDeck) completed++;
+    if (analysis.finance) completed++;
     if (analysis.design) completed++;
     if (analysis.development) completed++;
-    // Deployment is always pending for now
 
     return completed;
   }
@@ -91,7 +92,7 @@ export class DashboardComponent implements OnInit {
    */
   protected getProgressOffset(): number {
     const circumference = 2 * Math.PI * 85; // radius = 85 for new circular progress
-    const progress = this.getCompletedSteps() / 5;
+    const progress = this.getCompletedSteps() / 6;
     return circumference * (1 - progress);
   }
 
