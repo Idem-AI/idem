@@ -2,6 +2,7 @@ import { Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectModel } from '@idem/shared-models';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-incomplete-project-banner',
@@ -12,7 +13,7 @@ import { ProjectModel } from '@idem/shared-models';
 })
 export class IncompleteProjectBannerComponent {
   private readonly translate = inject(TranslateService);
-
+  private readonly router = inject(Router);
   readonly project = input.required<ProjectModel>();
   readonly completeProject = output<void>();
 
@@ -38,6 +39,6 @@ export class IncompleteProjectBannerComponent {
   }
 
   protected onCompleteClick(): void {
-    this.completeProject.emit();
+    this.router.navigate(['/project/complete-branding']);
   }
 }
