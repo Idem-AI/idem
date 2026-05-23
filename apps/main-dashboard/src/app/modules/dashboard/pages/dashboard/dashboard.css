@@ -3,43 +3,34 @@
   min-height: 100vh;
 }
 
-/* Feature Cards with Glassmorphism Effect */
-.feature-card {
-  min-height: 280px;
-  cursor: pointer;
-  will-change: transform;
+/* Base custom styles to complement Tailwind utility classes */
+button {
+  outline: none;
 }
 
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+/* Ensure ultra-smooth subpixel rendering for scale effects */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-/* Smooth transitions for all interactive elements */
-.feature-card * {
-  transition-property: transform, opacity, color, background-color, border-color;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+/* Custom scrollbar styling for the horizontal journey path */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 4px;
 }
 
-/* Ensure proper stacking context */
-.feature-card > div {
-  pointer-events: none;
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 9999px;
 }
 
-.feature-card > div:last-child {
-  pointer-events: auto;
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
 }
 
-/* Shimmer animation for progress bar */
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.animate-shimmer {
-  animation: shimmer 10s linear infinite;
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

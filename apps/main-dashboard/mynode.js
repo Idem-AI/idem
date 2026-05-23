@@ -3,7 +3,7 @@ const path = require('path');
 
 // Déterminer l'environnement (production ou development)
 const isProduction = process.env.NODE_ENV === 'production';
-const envFile = isProduction ? '.env' : '.env.development';
+const envFile = isProduction ? '.env' : '.env';
 const envPath = path.join(__dirname, envFile);
 
 // Charger les variables d'environnement depuis le bon fichier
@@ -59,17 +59,17 @@ export const environment = {
   services: {
     domain: '${process.env.SERVICES_DOMAIN || 'https://idem.africa'}',
     api: {
-      url: '${process.env.SERVICES_API_URL || (isProduction ? 'https://api.idem.africa' : 'http://localhost:3001')}',
+      url: '${process.env.SERVICES_API_URL || (isProduction ? 'https://api.idem.africa' : 'https://api.idem.africa')}',
     },
     ideploy: {
-      url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://ideploy.idem.africa' : 'http://localhost:8000')}',
+      url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://ideploy.idem.africa' : 'https://ideploy.idem.africa')}',
       apiToken: '${process.env.IDEPLOY_API_TOKEN}',
     },
     webgen: {
-      url: '${process.env.SERVICES_WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:5173')}',
+      url: '${process.env.SERVICES_WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'https://webgen.idem.africa')}',
     },
     diagen: {
-      url: '${process.env.SERVICES_DIAGEN_URL || (isProduction ? 'https://diagen.idem.africa' : 'http://localhost:5174')}',
+      url: '${process.env.SERVICES_DIAGEN_URL || (isProduction ? 'https://diagen.idem.africa' : 'https://diagen.idem.africa')}',
     },
   },
 };
@@ -85,7 +85,7 @@ if (!fs.existsSync(envDir)) {
 }
 
 // Définir le chemin du fichier de sortie
-const targetFileName = isProduction ? 'environment.ts' : 'environment.development.ts';
+const targetFileName = isProduction ? 'environment.ts' : 'environment.ts';
 const targetPath = path.join(envDir, targetFileName);
 
 // Écrire le fichier (toujours écraser pour garantir la synchronisation avec .env)
