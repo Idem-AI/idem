@@ -18,19 +18,18 @@ COPY .env ./apps/main-dashboard/.env
 # 5. Installer toutes les dépendances depuis la racine
 RUN npm install --legacy-peer-deps --ignore-scripts
 
-# 6. Nettoyer les caches de build (évite les problèmes composite/tsbuildinfo dans Docker)
+# 6. Nettoyer les caches de build
 RUN rm -rf packages/shared-models/dist packages/shared-models/tsconfig.tsbuildinfo \
            packages/shared-auth-client/dist packages/shared-auth-client/tsconfig.tsbuildinfo
 
-# 7. Builder shared-models avec --build (génère dist + tsconfig.tsbuildinfo)
+# 7. Builder shared-models
 RUN cd packages/shared-models && npx tsc --build
 
-# 8. Builder shared-auth-client avec --build (trouve maintenant le tsbuildinfo de shared-models)
-#    On ignore les erreurs Svelte (svelte/store non installé, pas utilisé par main-dashboard)
-RUN cd packages/shared-auth-client && npx tsc --build --noEmitOnError false || true
+# 8. Builder shared-auth-client en ignorant les erreurs Svelte (pas utilisé par main-dashboard)
+#    Note: --noEmitOnError est incompatible avec --build, on utilise tsc direct
+RUN cd packages/shared-auth-client && npx tsc --noEmitOnError false || true
 
-# 9. Builder shared-styles
-RUN npm run build:shared-styles
+# 9. shared-styles n'a pas de build TS (CSS/SCSS only), rien à compiler
 
 # 10. Aller dans l'app
 WORKDIR /app/apps/main-dashboard
