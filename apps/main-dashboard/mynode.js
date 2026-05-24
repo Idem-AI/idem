@@ -16,7 +16,7 @@ if (!fs.existsSync(envPath)) {
   process.exit(1);
 }
 
-// Charger les variables d'environnement depuis .env
+
 require('dotenv').config({ path: envPath });
 
 // Variables requises
