@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Déterminer l'environnement (production ou development)
+
 const isProduction = process.env.NODE_ENV === 'production';
 const envFile = '.env';
 const envPath = path.join(__dirname, envFile);
