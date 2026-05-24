@@ -28,7 +28,7 @@ const requiredVars = [
   'IDEPLOY_API_TOKEN'
 ];
 
-// Vérifier que toutes les variables requises sont présentes et configurées
+// Vérifier que toutes les variables requises sont présentes
 const missing = requiredVars.filter(v => !process.env[v] || process.env[v].includes('your_'));
 if (missing.length > 0) {
   console.error(`\n❌ Variables d'environnement manquantes ou non configurées:`);
