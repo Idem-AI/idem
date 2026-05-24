@@ -3,13 +3,10 @@ const path = require('path');
 
 // Déterminer l'environnement (production ou development)
 const isProduction = process.env.NODE_ENV === 'production';
-const envFile = isProduction ? '.env' : '.env';
+const envFile = '.env';
 const envPath = path.join(__dirname, envFile);
 
-// Charger les variables d'environnement depuis le bon fichier
-require('dotenv').config({ path: envPath });
-
-// Vérifier que le fichier .env existe
+// Vérifier que le fichier .env existe AVANT de charger dotenv
 if (!fs.existsSync(envPath)) {
   console.error(`\n❌ Fichier ${envFile} introuvable!`);
   console.error(`📝 Copiez ${envFile}.example vers ${envFile} et remplissez les valeurs.\n`);
@@ -18,6 +15,9 @@ if (!fs.existsSync(envPath)) {
   console.error(`  nano ${envFile}\n`);
   process.exit(1);
 }
+
+// Charger les variables d'environnement depuis .env
+require('dotenv').config({ path: envPath });
 
 // Variables requises
 const requiredVars = [
@@ -41,7 +41,6 @@ if (missing.length > 0) {
 const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
 // Ce fichier est généré depuis ${envFile} par mynode.js
 // Pour modifier la configuration, éditez ${envFile} puis relancez: npm run env:${isProduction ? 'prod' : 'dev'}
-
 export const environment = {
   environment: '${isProduction ? 'prod' : 'dev'}',
   isBeta: ${process.env.IS_BETA || 'true'},
@@ -85,7 +84,7 @@ if (!fs.existsSync(envDir)) {
 }
 
 // Définir le chemin du fichier de sortie
-const targetFileName = isProduction ? 'environment.ts' : 'environment.ts';
+const targetFileName = 'environment.ts';
 const targetPath = path.join(envDir, targetFileName);
 
 // Écrire le fichier (toujours écraser pour garantir la synchronisation avec .env)
