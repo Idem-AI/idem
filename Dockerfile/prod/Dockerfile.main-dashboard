@@ -18,27 +18,29 @@ COPY .env ./apps/main-dashboard/.env
 # 5. Installer toutes les dépendances depuis la racine
 RUN npm install --legacy-peer-deps --ignore-scripts
 
-# 6. Builder shared-models (force clean pour éviter les problèmes de composite/tsbuildinfo)
-RUN cd packages/shared-models && rm -rf dist tsconfig.tsbuildinfo && npx tsc
+# 6. Nettoyer les caches de build (évite les problèmes composite/tsbuildinfo dans Docker)
+RUN rm -rf packages/shared-models/dist packages/shared-models/tsconfig.tsbuildinfo \
+           packages/shared-auth-client/dist packages/shared-auth-client/tsconfig.tsbuildinfo
 
-# Debug: confirmer que les .d.ts sont générés
-RUN ls /app/packages/shared-models/dist/
+# 7. Builder shared-models avec --build (génère dist + tsconfig.tsbuildinfo)
+RUN cd packages/shared-models && npx tsc --build
 
-# 7. Builder shared-auth-client en ignorant les erreurs Svelte
+# 8. Builder shared-auth-client avec --build (trouve maintenant le tsbuildinfo de shared-models)
+#    On ignore les erreurs Svelte (svelte/store non installé, pas utilisé par main-dashboard)
 RUN cd packages/shared-auth-client && npx tsc --build --noEmitOnError false || true
 
-# 8. Builder shared-styles
+# 9. Builder shared-styles
 RUN npm run build:shared-styles
 
-# 9. Aller dans l'app
+# 10. Aller dans l'app
 WORKDIR /app/apps/main-dashboard
 
 RUN npm run postinstall
 
-# 10. Générer environment.ts
+# 11. Générer environment.ts
 RUN NODE_ENV=production node mynode.js
 
-# 11. Builder Angular
+# 12. Builder Angular
 RUN npm run build
 
 # --- Stage de production ---
