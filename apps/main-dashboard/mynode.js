@@ -74,7 +74,6 @@ export const environment = {
 };
 `;
 
-// Définir le chemin du dossier
 const envDir = path.join(__dirname, './src/environments');
 
 // Vérifier et créer le dossier s'il n'existe pas
