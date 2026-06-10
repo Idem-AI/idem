@@ -63,6 +63,10 @@ An AI-powered application generator that supports browser-based debugging with W
 
 The backend API built with Express.js and TypeScript. Integrates with Firebase/Firestore for data storage, Google's Gemini and OpenAI for AI generation, and implements a flexible repository pattern for database abstraction.
 
+### idem-ideploy (PHP & React)
+
+An open-source and self-hostable alternative to Heroku / Netlify / Vercel. Built with Laravel (PHP), Livewire/React (Vite), Redis, PostgreSQL, Traefik, and CrowdSec. It provides one-click deployments, automatic environment configurations, custom firewall rule management, and real-time monitoring metrics.
+
 ## 🛠️ Tech Stack
 
 - **npm workspaces** - Native monorepo management
@@ -75,6 +79,8 @@ The backend API built with Express.js and TypeScript. Integrates with Firebase/F
 - **Mermaid.js** - Diagram generation and rendering
 - **Firebase/Firestore** - Data storage and authentication
 - **AI Services** - Google Gemini & OpenAI integration
+- **Databases & Cache** - PostgreSQL, MongoDB, Redis
+- **Security & Infrastructure** - Traefik reverse proxy, CrowdSec threat detection, MinIO S3-compatible storage, Mailpit SMTP testing
 
 ## 🏁 Quick Start
 
@@ -82,8 +88,9 @@ The backend API built with Express.js and TypeScript. Integrates with Firebase/F
 
 - **Node.js** >= 18.0.0 ([Download](https://nodejs.org))
 - **npm** >= 9.0.0 (included with Node.js)
-- **pnpm** >= 8.15.4 (for idem-ai-chart and idem-appgen)
+- **pnpm** >= 8.15.4 (for diagram editor and app generator)
 - **Git** for version control
+- **Docker** and **Docker Compose** (recommended for running the full dev stack)
 
 ### Installation
 
@@ -110,21 +117,50 @@ cd idem
 npm install
 
 # Install project-specific dependencies
-cd apps/idem-ai && npm install && cd ../..
-cd apps/idemAI-api && npm install && cd ../..
-cd apps/idem-ai-chart && pnpm install && cd ../..
-cd apps/idem-appgen && pnpm install && cd ../..
+cd apps/main-dashboard && npm install && cd ../..
+cd apps/api && npm install && cd ../..
+cd apps/chart && pnpm install && cd ../..
+cd apps/appgen && pnpm install && cd ../..
 ```
 
 ### Running Applications
 
+#### Option A: Docker Compose (Recommended)
+
+To spin up all services, databases, caching layer, and security services:
+
+```bash
+# Start all containers in background
+docker compose -f docker-compose.dev.yml up --build -d
+
+# Check status
+docker compose -f docker-compose.dev.yml ps
+
+# View logs for a specific service
+docker compose -f docker-compose.dev.yml logs -f [service_name]
+```
+
+The services will be accessible at:
+- **Main Dashboard**: http://localhost:4200
+- **Landing Page**: http://localhost:4201
+- **API Backend**: http://localhost:3001
+- **Diagram Editor (Chart)**: http://localhost:3004
+- **App Generator (Appgen)**: http://localhost:3003
+- **iDeploy**: http://localhost:8000
+- **Mailpit Web UI**: http://localhost:8025
+- **MinIO Console**: http://localhost:9001
+
+#### Option B: Running Individually
+
+If running without Docker, ensure local instances of MongoDB, Redis, and PostgreSQL are running:
+
 ```bash
 # Run individual projects
-npm run dev:ai        # Angular application (http://localhost:4200)
-npm run dev:chart     # Svelte diagram editor (http://localhost:5173)
-npm run dev:appgen    # React app generator (http://localhost:3000)
-npm run dev:api       # Express API (http://localhost:3001)
-
+npm run dev:dashboard        # Main Angular application (http://localhost:4200)
+npm run dev:landing          # Angular Landing page (http://localhost:4201)
+npm run dev:api              # Express API backend (http://localhost:3001)
+npm run dev:chart            # Svelte diagram editor (http://localhost:3004)
+npm run dev:appgen-client    # React App Generator client (http://localhost:3000)
 ```
 
 ## 🔧 Main Commands
@@ -132,20 +168,30 @@ npm run dev:api       # Express API (http://localhost:3001)
 ### Development
 
 ```bash
-npm run dev:ai          # Launch idem-ai
-npm run dev:chart       # Launch idem-ai-chart
-npm run dev:appgen      # Launch idem-appgen
-npm run dev:api         # Launch idem-api
+npm run dev:dashboard   # Launch Angular Dashboard UI
+npm run dev:landing     # Launch Angular Landing Page
+npm run dev:api         # Launch Express API
+npm run dev:chart       # Launch Svelte Diagram Editor
+npm run dev:appgen-client # Launch React App Generator Client
+```
+
+### Docker Compose Commands
+
+```bash
+docker compose -f docker-compose.dev.yml up -d      # Start dev environment
+docker compose -f docker-compose.dev.yml build      # Build dev environment
+docker compose -f docker-compose.dev.yml down       # Stop environment and clean network
+docker compose -f docker-compose.dev.yml down -v    # Stop and delete databases volumes
 ```
 
 ### Build
 
 ```bash
-npm run build:ai        # Build idem-ai
-npm run build:chart     # Build idem-ai-chart
-npm run build:appgen    # Build idem-appgen
-npm run build:api       # Build idem-api
-npm run build:all       # Build all projects
+npm run build:dashboard # Build Angular Dashboard UI
+npm run build:landing   # Build Angular Landing Page
+npm run build:api       # Build Express API
+npm run build:chart     # Build Svelte Diagram Editor
+npm run build:all       # Build all shared packages & projects
 ```
 
 ### Tests & Quality
@@ -169,27 +215,30 @@ npm run clean           # Clean all projects
 ```
 idem/
 ├── apps/
-│   ├── idem-ai/              # Angular application
-│   │   ├── src/
+│   ├── api/                  # Express API Backend
+│   │   ├── api/
 │   │   └── package.json
-│   ├── idem-ai-chart/        # Svelte application
-│   │   ├── src/
-│   │   └── package.json
-│   ├── idem-appgen/          # React applications
+│   ├── appgen/               # React Application Generator
 │   │   ├── apps/
 │   │   │   ├── we-dev-next/
 │   │   │   ├── we-dev-admin/
 │   │   │   └── we-dev-client/
 │   │   └── package.json
-│   └── idemAI-api/           # Express API
-│       ├── api/
+│   ├── chart/                # Svelte Diagram Editor
+│   │   ├── src/
+│   │   └── package.json
+│   ├── ideploy/              # PHP & React deployment platform (iDeploy)
+│   │   ├── app/
+│   │   └── package.json
+│   ├── landing/              # Angular landing page UI
+│   │   ├── src/
+│   │   └── package.json
+│   └── main-dashboard/       # Angular main dashboard UI
+│       ├── src/
 │       └── package.json
 ├── scripts/
 │   ├── setup.sh              # Installation script
 │   └── clean.sh              # Cleanup script
-├── documentation/
-│   ├── INSTALLATION.md       # Detailed installation guide
-│   └── NPM_WORKSPACES_GUIDE.md  # npm workspaces guide
 ├── package.json              # Workspace dependencies
 ├── tsconfig.base.json        # Shared TypeScript config
 ├── .eslintrc.json            # Shared ESLint config
@@ -294,13 +343,12 @@ npm ls --workspaces
 ## 📚 Documentation
 
 - **[QUICKSTART.md](./QUICKSTART.md)** - Quick start guide
-- **[documentation/README.md](./documentation/README.md)** - Documentation index
-- **[documentation/SMART_DEPLOY.md](./documentation/SMART_DEPLOY.md)** - Smart Deploy system guide
-- **[documentation/NPM_WORKSPACES_GUIDE.md](./documentation/NPM_WORKSPACES_GUIDE.md)** - npm workspaces guide
-- **[apps/idem-ai/README.md](./apps/idem-ai/README.md)** - idem-ai documentation
-- **[apps/idem-ai-chart/README.md](./apps/idem-ai-chart/README.md)** - idem-ai-chart documentation
-- **[apps/idem-appgen/README.md](./apps/idem-appgen/README.md)** - idem-appgen documentation
-- **[apps/idemAI-api/README.md](./apps/idemAI-api/README.md)** - idem-api documentation
+- **[apps/main-dashboard/README.md](./apps/main-dashboard/README.md)** - Main dashboard documentation
+- **[apps/landing/README.md](./apps/landing/README.md)** - Landing page documentation
+- **[apps/chart/README.md](./apps/chart/README.md)** - Diagram editor documentation
+- **[apps/appgen/README.md](./apps/appgen/README.md)** - App generator documentation
+- **[apps/api/README.md](./apps/api/README.md)** - API documentation
+- **[apps/ideploy/README.md](./apps/ideploy/README.md)** - iDeploy documentation
 
 ## 🐛 Troubleshooting
 
