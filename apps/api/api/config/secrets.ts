@@ -71,20 +71,31 @@ export async function loadSecrets(): Promise<void> {
   if (loaded) return;
   loaded = true;
 
-  // Always load local .env first to populate host configuration
-  // and support local overrides for Secret Manager variables.
+  // Always load local env first to populate host configuration.
   loadFromDotenv();
 
   const useSecretManager =
-    process.env.USE_SECRET_MANAGER === 'true' ||
-    (process.env.NODE_ENV === 'production' && process.env.USE_SECRET_MANAGER !== 'false');
+    process.env.NODE_ENV !== 'development' &&
+    (process.env.USE_SECRET_MANAGER === 'true' ||
+      (process.env.NODE_ENV === 'production' && process.env.USE_SECRET_MANAGER !== 'false'));
 
   if (useSecretManager) {
     await loadFromSecretManager();
   }
 
+  expandEnvVars();
   validateRequired();
   normalize();
+}
+
+function expandEnvVars(): void {
+  for (const key in process.env) {
+    let value = process.env[key];
+    if (value && value.includes('${')) {
+      value = value.replace(/\${([^}]+)}/g, (_, name) => process.env[name] || '');
+      process.env[key] = value;
+    }
+  }
 }
 
 function loadFromDotenv(): void {
@@ -99,6 +110,16 @@ function loadFromDotenv(): void {
     // Do NOT log the path in production-shaped logs.
     if (process.env.NODE_ENV !== 'test') {
       console.log(`[secrets] Loaded local .env from ${envPath}`);
+    }
+
+    // Load local secrets if .env.secret exists alongside the .env file
+    const envDirectory = path.dirname(envPath);
+    const secretPath = path.resolve(envDirectory, '.env.secret');
+    if (fs.existsSync(secretPath)) {
+      dotenv.config({ path: secretPath });
+      if (process.env.NODE_ENV !== 'test') {
+        console.log(`[secrets] Loaded local secrets from ${secretPath}`);
+      }
     }
   } else {
     console.warn('[secrets] No local .env file found; relying on shell env vars only.');
