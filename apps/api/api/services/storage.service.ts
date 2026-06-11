@@ -22,8 +22,12 @@ export interface LogoVariationsUpload {
 }
 
 export class StorageService {
-  private client = minioConnection.getClient();
-  private bucketName = minioConnection.getBucketName();
+  private get client() {
+    return minioConnection.getClient();
+  }
+  private get bucketName() {
+    return minioConnection.getBucketName();
+  }
 
   constructor() {
     logger.info('StorageService initialized with MinIO');
