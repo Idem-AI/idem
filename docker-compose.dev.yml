@@ -231,13 +231,12 @@ services:
       NODE_ENV: development
       PORT: 3000
       CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:3003,http://localhost:3004,http://localhost:8000'
-      # MongoDB Configuration
-      MONGODB_URI: 'mongodb://${MONGODB_USERNAME:-admin}:${MONGODB_PASSWORD:-admin123}@mongodb:27017/${MONGODB_DATABASE:-idem}?authSource=admin'
+      MONGODB_URI: 'mongodb://$${MONGODB_USERNAME}:$${MONGODB_PASSWORD}@mongodb:27017/$${MONGODB_DATABASE}?authSource=admin'
       # MinIO Configuration
       MINIO_ENDPOINT: 'minio'
       MINIO_PORT: '9000'
-      MINIO_ACCESS_KEY: '${MINIO_ROOT_USER:-minioadmin}'
-      MINIO_SECRET_KEY: '${MINIO_ROOT_PASSWORD:-minioadmin123}'
+      MINIO_ACCESS_KEY: '$${MINIO_ROOT_USER}'
+      MINIO_SECRET_KEY: '$${MINIO_ROOT_PASSWORD}'
       MINIO_USE_SSL: 'false'
     volumes:
       - ./apps/api:/app/apps/api:cached
