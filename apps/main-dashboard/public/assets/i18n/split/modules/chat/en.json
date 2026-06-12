@@ -94,7 +94,8 @@
       "downloadStarted": "Your {{title}} download has started. 📄",
       "downloadUnavailable": "The PDF for your {{title}} is not available yet. Generate it first:",
       "exportDone": "Export complete: {{count}} document(s) downloaded.",
-      "exportNothing": "No documents are available to export yet. Generate your deliverables first."
+      "exportNothing": "No documents are available to export yet. Generate your deliverables first.",
+      "openGenerator": "Opening the generation editor for your {{title}}."
     },
     "status": {
       "intro": "Here is where **{{name}}** stands:",
@@ -111,11 +112,63 @@
       "exportAll": "Export all",
       "show": {
         "businessPlan": "Show my business plan",
-        "branding": "Show my brand identity",
+        "branding": "Show my brand guidelines",
         "pitchDeck": "Show my pitch deck",
         "diagrams": "Show my diagrams",
         "legalDocs": "Show my legal documents",
         "finance": "Show my financial report"
+      },
+      "generate": {
+        "businessPlan": "Write my business plan",
+        "branding": "Generate my brand guidelines",
+        "pitchDeck": "Generate my pitch deck",
+        "diagrams": "Generate my diagrams",
+        "legalDocs": "Create my legal documents",
+        "finance": "Complete my finances"
+      }
+    },
+    "bp": {
+      "intro": "Great, let's write your **business plan**! For a more complete result, I can include your contact and team information. How would you like to provide it?",
+      "formIntro": "Fill in this mini-form — only the fields you complete will be used:",
+      "freeTextPrompt": "Write your information freely (team, roles, contact…) and I will structure it. For example: *\"We are two: Alice (CEO) and Bob (CTO). Contact: hello@start.up, +237 6 12 34 56 78, Douala, Cameroon.\"*",
+      "parsedSummary": "Here is what I understood:",
+      "parseFailed": "I could not structure that information. Try the form instead, or generate without it.",
+      "chips": {
+        "fillForm": "Fill in the form",
+        "freeText": "Write it as free text",
+        "skipInfos": "Generate without this info",
+        "generateNow": "Looks good, start generating",
+        "fixForm": "Fix via the form"
+      }
+    },
+    "infoForm": {
+      "title": "Additional information",
+      "subtitle": "Contact and team for the business plan",
+      "email": "Email",
+      "phone": "Phone",
+      "city": "City",
+      "country": "Country",
+      "address": "Address",
+      "team": "Team",
+      "memberName": "Name",
+      "memberRole": "Role (e.g. CEO)",
+      "memberEmail": "Email (optional)",
+      "addMember": "Add a member",
+      "removeMember": "Remove this member",
+      "submit": "Confirm and generate",
+      "skip": "Skip",
+      "submitted": "Information saved",
+      "submittedAs": "I filled in the information form",
+      "contact": "Contact"
+    },
+    "generation": {
+      "start": "Here we go! Preparing your {{title}}… ⏳",
+      "inProgress": "Generating your {{title}}",
+      "done": "✅ Your {{title}} is ready!",
+      "failed": "❌ Generating your {{title}} failed.",
+      "retryHint": "Would you like to retry?",
+      "chips": {
+        "retry": "Retry generation"
       }
     },
     "recap": {
@@ -155,7 +208,10 @@
       "describeLogo": "Describe the logo you imagine in a few words — shapes, mood, symbols… (optional)",
       "generatingLogos": "I'm generating your **logo concepts**… This can take a minute. ⏳",
       "chooseLogo": "Here are your logo concepts. Which one do you choose?",
-      "complete": "🎉 Your **brand identity is complete**! Logo, colors and typography are saved. You can generate logo variations in the editor, or move on.",
+      "generatingVariations": "Great pick! Now generating your **logo variations** (light background, dark background, monochrome)… ⏳",
+      "zipStarted": "Your logos (ZIP) download has started. 📦",
+      "zipUnavailable": "The logo pack is not available yet.",
+      "complete": "🎉 Your **brand identity is complete**! Logo, variations, colors and typography are saved. Next step: generate your brand guidelines.",
       "alreadyComplete": "Your brand identity is already complete. Here it is:",
       "thisPalette": "This palette",
       "thisTypography": "This typography",
@@ -172,7 +228,8 @@
         "retry": "Retry",
         "complete": "Complete my brand identity",
         "skipDescription": "Skip",
-        "variationsEditor": "Logo variations (editor)"
+        "variationsEditor": "Logo variations (editor)",
+        "downloadZip": "Download my logos (ZIP)"
       },
       "cards": {
         "colorsTitle": "Color palettes",

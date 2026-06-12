@@ -80,7 +80,12 @@ export type ChatChipAction =
   | 'branding-import'
   | 'branding-later'
   | 'branding-logo-type'
-  | 'branding-skip-description';
+  | 'branding-skip-description'
+  | 'generate'
+  | 'bp-fill-form'
+  | 'bp-free-text'
+  | 'bp-generate'
+  | 'download-logos-zip';
 
 export interface ChatChip {
   /** Clé i18n du label (prioritaire sur label) */
@@ -120,6 +125,8 @@ export interface ChatMessageModel {
   logoOptions?: LogoModel[];
   /** Option choisie dans une carte de sélection (fige la carte) */
   selectedOptionId?: string;
+  /** Mini-formulaire d'informations supplémentaires (business plan) */
+  infoForm?: boolean;
 }
 
 /** Étapes de l'onboarding conversationnel */
