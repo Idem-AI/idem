@@ -1,0 +1,62 @@
+<div class="min-h-dvh">
+  <!-- Sidebar (desktop fixe + drawer mobile) -->
+  <app-chat-sidebar
+    [mobileOpen]="isMobileSidebarOpen()"
+    (closeMobile)="isMobileSidebarOpen.set(false)"
+  />
+
+  <!-- Colonne principale -->
+  <div class="md:ml-[280px] h-dvh flex flex-col">
+    <!-- Header : projet actif + actions contextuelles -->
+    <header
+      class="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 glass"
+    >
+      <div class="flex items-center gap-3 min-w-0">
+        <button
+          type="button"
+          class="md:hidden p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+          (click)="toggleMobileSidebar()"
+        >
+          <i class="pi pi-bars"></i>
+        </button>
+        <div class="min-w-0">
+          <h1 class="text-sm font-semibold text-white truncate">
+            {{ session.activeProject()?.name || ('chat.header.newProject' | translate) }}
+          </h1>
+          <p class="text-[11px] text-gray-500">{{ 'chat.header.subtitle' | translate }}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        @if (session.activeProjectId()) {
+          <button
+            type="button"
+            (click)="exportAll()"
+            [disabled]="isExporting()"
+            class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-semibold transition-all duration-200 disabled:opacity-50"
+          >
+            @if (isExporting()) {
+              <i class="pi pi-spinner pi-spin text-[11px]"></i>
+            } @else {
+              <i class="pi pi-download text-[11px]"></i>
+            }
+            {{ 'chat.header.exportAll' | translate }}
+          </button>
+        }
+        <button
+          type="button"
+          (click)="switchToAdvanced()"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-semibold transition-all duration-200"
+        >
+          <i class="pi pi-table text-[11px]"></i>
+          <span class="hidden sm:inline">{{ 'chat.header.advancedMode' | translate }}</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Contenu (la page chat occupe tout l'espace restant) -->
+    <main class="flex-1 min-h-0">
+      <ng-content></ng-content>
+    </main>
+  </div>
+</div>
