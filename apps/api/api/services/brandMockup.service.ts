@@ -430,22 +430,41 @@ export class GeminiMockupService {
 
   async urlToBase64(url: string) {
     try {
-      const response = await fetch(url);
+      const input = (url || '').trim();
+      let buffer: Buffer;
+      let mimeType: string;
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch file: ${response.statusText}`);
+      if (input.startsWith('<svg') || input.startsWith('<?xml')) {
+        // Le logo est du SVG inline (markup), pas une URL : pas de fetch
+        buffer = Buffer.from(input, 'utf8');
+        mimeType = 'image/svg+xml';
+      } else if (input.startsWith('data:')) {
+        // Data URL : décodage direct
+        const match = input.match(/^data:([^;,]+)?(;base64)?,([\s\S]*)$/);
+        if (!match) {
+          throw new Error('Invalid data URL for logo');
+        }
+        mimeType = match[1] || 'application/octet-stream';
+        buffer = match[2]
+          ? Buffer.from(match[3], 'base64')
+          : Buffer.from(decodeURIComponent(match[3]), 'utf8');
+      } else {
+        const response = await fetch(input);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch file: ${response.statusText}`);
+        }
+
+        mimeType = response.headers.get('content-type') || 'application/octet-stream';
+        const arrayBuffer = await response.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
       }
 
-      let mimeType = response.headers.get('content-type') || 'application/octet-stream';
-
-      const arrayBuffer = await response.arrayBuffer();
-      let buffer: Buffer = Buffer.from(arrayBuffer);
-
-      // ✅ si SVG → conversion PNG
-      if (mimeType.includes('image/svg')) {
+      // ✅ si SVG → conversion PNG (densité élevée pour un rendu net dans les mockups)
+      if (mimeType.includes('image/svg') || mimeType.includes('text/xml')) {
         console.log('⚡ SVG detected → converting to PNG...');
 
-        buffer = (await sharp(buffer)
+        buffer = (await sharp(buffer, { density: 300 })
           .png({
             compressionLevel: 9,
             quality: 100,
