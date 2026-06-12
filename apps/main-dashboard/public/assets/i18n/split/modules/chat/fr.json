@@ -124,6 +124,49 @@
         "confirm": "Créer le projet"
       }
     },
+    "branding": {
+      "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
+      "importRedirect": "Très bien — l'import de logo s'ouvre dans l'éditeur. Vous pourrez revenir au mode Chat ensuite.",
+      "laterOk": "Pas de souci, on pourra y revenir quand vous voulez. Dites simplement « complète mon identité de marque ».",
+      "generatingPalettes": "Je prépare des propositions de **couleurs et de typographies** adaptées à votre projet… ⏳",
+      "choosePalette": "Voici mes propositions de palettes. Laquelle vous ressemble le plus ?",
+      "chooseTypography": "Très bon choix ! 🎨 Maintenant, choisissez votre **typographie** :",
+      "chooseLogoType": "Parfait. Quel **style de logo** imaginez-vous ?",
+      "describeLogo": "Décrivez en quelques mots le logo que vous imaginez — formes, ambiance, symboles… (optionnel)",
+      "generatingLogos": "Je génère vos **concepts de logos**… Cela peut prendre une minute. ⏳",
+      "chooseLogo": "Voici vos concepts de logos. Lequel choisissez-vous ?",
+      "complete": "🎉 Votre **identité de marque est complète** ! Logo, couleurs et typographie sont enregistrés. Vous pouvez générer les variations du logo dans l'éditeur, ou passer à la suite.",
+      "alreadyComplete": "Votre identité de marque est déjà complète. La voici :",
+      "thisPalette": "Cette palette",
+      "thisTypography": "Cette typographie",
+      "thisLogo": "Ce logo",
+      "logoTypes": {
+        "icon": "Icône / symbole",
+        "name": "Nom stylisé",
+        "initial": "Initiales"
+      },
+      "chips": {
+        "ai": "Générer avec l'IA",
+        "import": "Importer mon logo",
+        "later": "Plus tard",
+        "retry": "Réessayer",
+        "complete": "Compléter mon identité de marque",
+        "skipDescription": "Passer",
+        "variationsEditor": "Variations du logo (éditeur)"
+      },
+      "cards": {
+        "colorsTitle": "Palettes de couleurs",
+        "colorsSubtitle": "Cliquez pour choisir votre palette",
+        "typographyTitle": "Typographies",
+        "typographySubtitle": "Cliquez pour choisir votre duo de polices",
+        "logosTitle": "Concepts de logos",
+        "logosSubtitle": "Cliquez pour choisir votre logo"
+      },
+      "errors": {
+        "generation": "La génération a échoué. On réessaie ?",
+        "save": "Impossible d'enregistrer votre choix. Réessayez."
+      }
+    },
     "onboarding": {
       "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
       "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",

@@ -19,6 +19,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MarkdownModule } from 'ngx-markdown';
 import { firstValueFrom } from 'rxjs';
+import { ProjectModel } from '@idem/shared-models';
 
 import { Loader } from '../../../../shared/components/loader/loader';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
@@ -28,13 +29,20 @@ import { ChatConversationStoreService } from '../../services/chat-conversation-s
 import { ChatIntentService, ChatIntent } from '../../services/chat-intent.service';
 import { ChatDeliverablesService } from '../../services/chat-deliverables.service';
 import { ChatOnboardingService } from '../../services/chat-onboarding.service';
+import { ChatBrandingService } from '../../services/chat-branding.service';
 import { DeliverableCardComponent } from '../../components/deliverable-card/deliverable-card';
 import { RecapCardComponent } from '../../components/recap-card/recap-card';
 import { SuggestionChipsComponent } from '../../components/suggestion-chips/suggestion-chips';
 import { PreviewPanelComponent } from '../../components/preview-panel/preview-panel';
+import { ColorOptionsCardComponent } from '../../components/color-options-card/color-options-card';
+import { TypographyOptionsCardComponent } from '../../components/typography-options-card/typography-options-card';
+import { LogoOptionsCardComponent } from '../../components/logo-options-card/logo-options-card';
+import { ColorModel, TypographyModel } from '../../../dashboard/models/brand-identity.model';
+import { LogoModel, LogoType } from '../../../dashboard/models/logo.model';
 import {
   ChatChip,
   ChatMessageModel,
+  DeliverableCardData,
   DeliverableKind,
   OnboardingPolicyAcceptances,
   OnboardingState,
@@ -67,6 +75,9 @@ let chatMessageCounter = 0;
     RecapCardComponent,
     SuggestionChipsComponent,
     PreviewPanelComponent,
+    ColorOptionsCardComponent,
+    TypographyOptionsCardComponent,
+    LogoOptionsCardComponent,
   ],
   templateUrl: './chat-home.html',
   // Réutilise les styles markdown de l'advisor (classe .advisor-message)
@@ -82,6 +93,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private readonly advisor = inject(AdvisorService);
   private readonly intents = inject(ChatIntentService);
   private readonly onboarding = inject(ChatOnboardingService);
+  private readonly branding = inject(ChatBrandingService);
 
   protected readonly session = inject(ChatSessionService);
   protected readonly store = inject(ChatConversationStoreService);
@@ -97,10 +109,15 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected readonly isCreatingProject = signal(false);
   protected readonly cardBusy = signal(false);
   protected readonly preview = signal<PreviewState | null>(null);
+  /** Sélection branding en cours de persistance */
+  protected readonly brandingBusy = signal(false);
+  /** La prochaine saisie texte répond à « décrivez votre logo » */
+  protected readonly awaitingLogoDescription = signal(false);
 
   private onboardingState: OnboardingState | null = null;
   private loadedProjectId: string | null = null;
   private previewBlob: Blob | null = null;
+  private pendingLogoType: LogoType | null = null;
 
   protected readonly messages = this.store.messages;
   protected readonly isEmpty = computed(() => this.messages().length === 0);
@@ -132,6 +149,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     const isOnboardingRoute = this.route.snapshot.data['onboarding'] === true;
+    // Attend le chargement des traductions (loader HTTP asynchrone) : les
+    // messages du fil sont construits avec translate.instant().
+    await firstValueFrom(this.translate.get('chat.onboarding.welcome'));
     await this.session.loadProjects();
 
     if (isOnboardingRoute) {
@@ -202,6 +222,12 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     if (!this.session.activeProjectId()) return;
     this.appendUser(content);
 
+    // Réponse à « décrivez le logo que vous imaginez » (flux branding)
+    if (this.awaitingLogoDescription()) {
+      void this.finalizeLogoPreferences(content);
+      return;
+    }
+
     const intent = this.intents.detect(content);
     if (intent) {
       void this.handleIntent(intent);
@@ -266,6 +292,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       case 'export-all':
         await this.respondWithExportAll();
         break;
+      case 'complete-branding':
+        await this.advanceBrandingFlow();
+        break;
     }
   }
 
@@ -289,6 +318,13 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     pdfSupported: boolean,
   ): ChatChip[] {
     const chips: ChatChip[] = [];
+    if (kind === 'branding' && !this.branding.isComplete(this.session.activeProject())) {
+      chips.push({
+        labelKey: 'chat.branding.chips.complete',
+        icon: 'pi pi-sparkles',
+        action: 'branding-start',
+      });
+    }
     if (available && pdfSupported) {
       chips.push({
         labelKey: 'chat.chips.downloadPdf',
@@ -448,6 +484,42 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       case 'new-project':
         this.router.navigate(['/chat/new']);
         break;
+      case 'branding-start':
+      case 'branding-ai':
+        this.appendUser(this.chipLabel(chip));
+        void this.advanceBrandingFlow();
+        break;
+      case 'branding-import':
+        this.appendUser(this.chipLabel(chip));
+        this.appendAssistant({ content: this.translate.instant('chat.branding.importRedirect') });
+        this.uiMode.openInEditor('/project/complete-branding');
+        break;
+      case 'branding-later':
+        this.appendUser(this.chipLabel(chip));
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.laterOk'),
+          chips: this.genericChips(),
+        });
+        break;
+      case 'branding-logo-type':
+        this.appendUser(this.chipLabel(chip));
+        this.pendingLogoType = (chip.payload as LogoType) ?? 'icon';
+        this.awaitingLogoDescription.set(true);
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.describeLogo'),
+          chips: [
+            {
+              labelKey: 'chat.branding.chips.skipDescription',
+              icon: 'pi pi-forward',
+              action: 'branding-skip-description',
+            },
+          ],
+        });
+        break;
+      case 'branding-skip-description':
+        this.appendUser(this.translate.instant('chat.onboarding.actions.skipped'));
+        void this.finalizeLogoPreferences(undefined);
+        break;
     }
   }
 
@@ -457,8 +529,13 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.uiMode.openInEditor(editorRoute);
   }
 
-  protected openGenerate(route: string | undefined, fallback: string): void {
-    this.uiMode.openInEditor(route ?? fallback);
+  protected openGenerateFor(card: DeliverableCardData): void {
+    // L'identité de marque se complète directement dans le chat
+    if (card.kind === 'branding') {
+      void this.advanceBrandingFlow();
+      return;
+    }
+    this.uiMode.openInEditor(card.generateRoute ?? card.editorRoute);
   }
 
   protected async downloadFromCard(kind: DeliverableKind): Promise<void> {
@@ -531,6 +608,219 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.previewBlob = null;
   }
 
+  // ─────────────────────────────────────────────── Identité de marque (flux conversationnel)
+
+  /** Chips d'invitation à compléter l'identité de marque. */
+  private brandingInviteChips(): ChatChip[] {
+    return [
+      { labelKey: 'chat.branding.chips.ai', icon: 'pi pi-sparkles', action: 'branding-ai' },
+      { labelKey: 'chat.branding.chips.import', icon: 'pi pi-upload', action: 'branding-import' },
+      { labelKey: 'chat.branding.chips.later', icon: 'pi pi-clock', action: 'branding-later' },
+    ];
+  }
+
+  private brandingRetryChips(): ChatChip[] {
+    return [
+      { labelKey: 'chat.branding.chips.retry', icon: 'pi pi-refresh', action: 'branding-start' },
+    ];
+  }
+
+  /**
+   * Avance le flux de complétion d'identité : l'étape est dérivée de l'état
+   * réel du projet, le flux reprend donc toujours exactement où il en est.
+   */
+  private async advanceBrandingFlow(): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId) return;
+
+    let project = this.session.activeProject();
+    if (!project?.analysisResultModel) {
+      project = await this.session.fetchActiveProjectDetails();
+    }
+    if (!project) return;
+
+    const step = this.branding.nextStep(project);
+
+    switch (step) {
+      case 'colors-generate': {
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.generatingPalettes'),
+        });
+        this.pendingAssistant.set(true);
+        try {
+          project = await this.branding.generateColorsAndTypography(project);
+          this.appendAssistant({
+            content: this.translate.instant('chat.branding.choosePalette'),
+            colorOptions: this.branding.generatedColors(project),
+          });
+        } catch (error) {
+          console.error('Chat branding: colors generation failed', error);
+          this.appendAssistant({
+            content: this.translate.instant('chat.branding.errors.generation'),
+            chips: this.brandingRetryChips(),
+          });
+        } finally {
+          this.pendingAssistant.set(false);
+        }
+        break;
+      }
+      case 'colors-pick':
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.choosePalette'),
+          colorOptions: this.branding.generatedColors(project),
+        });
+        break;
+      case 'typography-pick':
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.chooseTypography'),
+          typographyOptions: this.branding.generatedTypography(project),
+        });
+        break;
+      case 'logo-type':
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.chooseLogoType'),
+          chips: [
+            { labelKey: 'chat.branding.logoTypes.icon', icon: 'pi pi-star', action: 'branding-logo-type', payload: 'icon' },
+            { labelKey: 'chat.branding.logoTypes.name', icon: 'pi pi-pencil', action: 'branding-logo-type', payload: 'name' },
+            { labelKey: 'chat.branding.logoTypes.initial', icon: 'pi pi-bookmark', action: 'branding-logo-type', payload: 'initial' },
+          ],
+        });
+        break;
+      case 'logos-generate':
+        await this.generateLogoConcepts(project);
+        break;
+      case 'logos-pick':
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.chooseLogo'),
+          logoOptions: this.branding.generatedLogos(project),
+        });
+        break;
+      case 'complete': {
+        const card = this.deliverables.buildCard('branding', project);
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.alreadyComplete'),
+          card,
+          chips: this.buildCardChips('branding', card.available, card.pdfSupported),
+        });
+        break;
+      }
+    }
+  }
+
+  /** Persiste les préférences logo puis lance la génération des concepts. */
+  private async finalizeLogoPreferences(description: string | undefined): Promise<void> {
+    this.awaitingLogoDescription.set(false);
+    const project = this.session.activeProject();
+    if (!project) return;
+
+    this.pendingAssistant.set(true);
+    try {
+      const updated = await this.branding.saveLogoPreferences(project, {
+        type: this.pendingLogoType ?? 'icon',
+        useAIGeneration: true,
+        customDescription: description?.trim() || undefined,
+      });
+      this.pendingAssistant.set(false);
+      await this.generateLogoConcepts(updated);
+    } catch (error) {
+      console.error('Chat branding: saving logo preferences failed', error);
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.branding.errors.generation'),
+        chips: this.brandingRetryChips(),
+      });
+    }
+  }
+
+  private async generateLogoConcepts(project: ProjectModel): Promise<void> {
+    this.appendAssistant({ content: this.translate.instant('chat.branding.generatingLogos') });
+    this.pendingAssistant.set(true);
+    try {
+      const updated = await this.branding.generateLogos(project);
+      this.appendAssistant({
+        content: this.translate.instant('chat.branding.chooseLogo'),
+        logoOptions: this.branding.generatedLogos(updated),
+      });
+    } catch (error) {
+      console.error('Chat branding: logo generation failed', error);
+      this.appendAssistant({
+        content: this.translate.instant('chat.branding.errors.generation'),
+        chips: this.brandingRetryChips(),
+      });
+    } finally {
+      this.pendingAssistant.set(false);
+    }
+  }
+
+  protected async onColorPicked(messageId: string, color: ColorModel): Promise<void> {
+    const project = this.session.activeProject();
+    if (!project || this.brandingBusy()) return;
+    this.brandingBusy.set(true);
+    this.store.patch(messageId, { selectedOptionId: color.id });
+    this.appendUser(color.name || this.translate.instant('chat.branding.thisPalette'));
+    try {
+      await this.branding.selectColor(project, color);
+      await this.advanceBrandingFlow();
+    } catch (error) {
+      console.error('Chat branding: color selection failed', error);
+      this.appendAssistant({
+        content: this.translate.instant('chat.branding.errors.save'),
+        chips: this.brandingRetryChips(),
+      });
+    } finally {
+      this.brandingBusy.set(false);
+    }
+  }
+
+  protected async onTypographyPicked(messageId: string, typography: TypographyModel): Promise<void> {
+    const project = this.session.activeProject();
+    if (!project || this.brandingBusy()) return;
+    this.brandingBusy.set(true);
+    this.store.patch(messageId, { selectedOptionId: typography.id });
+    this.appendUser(typography.name || this.translate.instant('chat.branding.thisTypography'));
+    try {
+      await this.branding.selectTypography(project, typography);
+      await this.advanceBrandingFlow();
+    } catch (error) {
+      console.error('Chat branding: typography selection failed', error);
+      this.appendAssistant({
+        content: this.translate.instant('chat.branding.errors.save'),
+        chips: this.brandingRetryChips(),
+      });
+    } finally {
+      this.brandingBusy.set(false);
+    }
+  }
+
+  protected async onLogoPicked(messageId: string, logo: LogoModel): Promise<void> {
+    const project = this.session.activeProject();
+    if (!project || this.brandingBusy()) return;
+    this.brandingBusy.set(true);
+    this.store.patch(messageId, { selectedOptionId: logo.id });
+    this.appendUser(logo.name || this.translate.instant('chat.branding.thisLogo'));
+    try {
+      const updated = await this.branding.selectLogo(project, logo);
+      const card = this.deliverables.buildCard('branding', updated);
+      this.appendAssistant({
+        content: this.translate.instant('chat.branding.complete'),
+        card,
+        chips: [
+          { labelKey: 'chat.branding.chips.variationsEditor', icon: 'pi pi-arrow-up-right', action: 'editor', payload: 'branding' },
+          { labelKey: 'chat.chips.show.businessPlan', icon: 'pi pi-calendar', action: 'show', payload: 'businessPlan' },
+          { labelKey: 'chat.chips.status', icon: 'pi pi-compass', action: 'status' },
+        ],
+      });
+    } catch (error) {
+      console.error('Chat branding: logo selection failed', error);
+      this.appendAssistant({
+        content: this.translate.instant('chat.branding.errors.save'),
+        chips: this.brandingRetryChips(),
+      });
+    } finally {
+      this.brandingBusy.set(false);
+    }
+  }
+
   // ─────────────────────────────────────────────── Onboarding conversationnel
 
   private handleOnboardingInput(value: string, displayText: string, viaSkip: boolean): void {
@@ -571,14 +861,16 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       this.loadedProjectId = projectId;
       this.onboardingState = null;
       await this.store.load(projectId);
+      // Enchaîne directement sur la complétion de l'identité de marque :
+      // les chips restent actionnables après le rechargement de la route.
       this.appendAssistant({
-        content: this.translate.instant('chat.onboarding.success', {
-          name: state.answers.name ?? '',
-        }),
-        chips: [
-          { labelKey: 'chat.chips.show.businessPlan', icon: 'pi pi-calendar', action: 'show', payload: 'businessPlan' },
-          { labelKey: 'chat.chips.status', icon: 'pi pi-compass', action: 'status' },
-        ],
+        content:
+          this.translate.instant('chat.onboarding.success', {
+            name: state.answers.name ?? '',
+          }) +
+          '\n\n' +
+          this.translate.instant('chat.branding.invite'),
+        chips: this.brandingInviteChips(),
       });
       this.router.navigate(['/chat'], { replaceUrl: true });
     } catch (error) {

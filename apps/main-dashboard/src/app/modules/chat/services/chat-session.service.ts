@@ -68,18 +68,24 @@ export class ChatSessionService {
     try {
       const project = await firstValueFrom(this.projectService.getProjectById(id));
       if (project) {
-        this.projects.update((list) => {
-          const index = list.findIndex((p) => p.id === id);
-          if (index === -1) return [...list, project];
-          const next = [...list];
-          next[index] = project;
-          return next;
-        });
+        this.upsertProject(project);
       }
       return project ?? null;
     } catch (error) {
       console.error('ChatSession: error fetching project details', error);
       return null;
     }
+  }
+
+  /** Met à jour (ou ajoute) un projet dans la liste locale. */
+  upsertProject(project: ProjectModel): void {
+    if (!project.id) return;
+    this.projects.update((list) => {
+      const index = list.findIndex((p) => p.id === project.id);
+      if (index === -1) return [...list, project];
+      const next = [...list];
+      next[index] = project;
+      return next;
+    });
   }
 }

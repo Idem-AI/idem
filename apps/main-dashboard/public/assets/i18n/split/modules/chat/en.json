@@ -124,6 +124,49 @@
         "confirm": "Create project"
       }
     },
+    "branding": {
+      "invite": "Now let's work on your **brand identity** (logo, colors, typography). Do you want to generate it with AI, or import your own logo?",
+      "importRedirect": "Alright — the logo import opens in the editor. You can come back to Chat mode afterwards.",
+      "laterOk": "No problem, we can come back to it anytime. Just say \"complete my brand identity\".",
+      "generatingPalettes": "I'm preparing **color and typography** proposals tailored to your project… ⏳",
+      "choosePalette": "Here are my palette proposals. Which one feels most like you?",
+      "chooseTypography": "Great choice! 🎨 Now pick your **typography**:",
+      "chooseLogoType": "Perfect. What **logo style** do you have in mind?",
+      "describeLogo": "Describe the logo you imagine in a few words — shapes, mood, symbols… (optional)",
+      "generatingLogos": "I'm generating your **logo concepts**… This can take a minute. ⏳",
+      "chooseLogo": "Here are your logo concepts. Which one do you choose?",
+      "complete": "🎉 Your **brand identity is complete**! Logo, colors and typography are saved. You can generate logo variations in the editor, or move on.",
+      "alreadyComplete": "Your brand identity is already complete. Here it is:",
+      "thisPalette": "This palette",
+      "thisTypography": "This typography",
+      "thisLogo": "This logo",
+      "logoTypes": {
+        "icon": "Icon / symbol",
+        "name": "Styled name",
+        "initial": "Initials"
+      },
+      "chips": {
+        "ai": "Generate with AI",
+        "import": "Import my logo",
+        "later": "Later",
+        "retry": "Retry",
+        "complete": "Complete my brand identity",
+        "skipDescription": "Skip",
+        "variationsEditor": "Logo variations (editor)"
+      },
+      "cards": {
+        "colorsTitle": "Color palettes",
+        "colorsSubtitle": "Click to choose your palette",
+        "typographyTitle": "Typographies",
+        "typographySubtitle": "Click to choose your font pairing",
+        "logosTitle": "Logo concepts",
+        "logosSubtitle": "Click to choose your logo"
+      },
+      "errors": {
+        "generation": "Generation failed. Shall we retry?",
+        "save": "Could not save your choice. Please try again."
+      }
+    },
     "onboarding": {
       "welcome": "Hi! 👋 Let's create your project together, step by step. First question: **describe your idea in a few sentences.** What do you want to build, and what problem does it solve?",
       "resume": "Welcome back! 👋 Let's pick up your project creation exactly where you left off.",

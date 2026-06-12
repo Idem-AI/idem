@@ -82,6 +82,16 @@ export class ChatConversationStoreService {
     }
   }
 
+  /** Met à jour un message existant (ex. figer une carte de sélection). */
+  patch(messageId: string, patch: Partial<ChatMessageModel>): void {
+    this.messages.update((msgs) =>
+      msgs.map((m) => (m.id === messageId ? { ...m, ...patch } : m)),
+    );
+    if (this.currentProjectId) {
+      this.persist(this.currentProjectId);
+    }
+  }
+
   remove(messageId: string): void {
     this.messages.update((msgs) => msgs.filter((m) => m.id !== messageId));
     if (this.currentProjectId) {
@@ -112,7 +122,12 @@ export class ChatConversationStoreService {
 
   private persist(projectId: string): void {
     try {
-      const toStore = this.messages().slice(-MAX_PERSISTED_MESSAGES);
+      const toStore = this.messages()
+        .slice(-MAX_PERSISTED_MESSAGES)
+        // Les SVG des concepts de logos sont trop lourds pour localStorage :
+        // la carte n'est pas restaurée au rechargement (le flux branding est
+        // reprenable à tout moment depuis l'état du projet).
+        .map((m) => (m.logoOptions ? { ...m, logoOptions: undefined } : m));
       localStorage.setItem(this.storageKey(projectId), JSON.stringify(toStore));
     } catch {
       // Quota localStorage dépassé : la conversation reste en mémoire
