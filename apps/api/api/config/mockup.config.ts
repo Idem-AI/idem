@@ -24,7 +24,7 @@ export const MOCKUP_CONFIG = {
    * Configuration Gemini pour la génération d'images
    */
   GEMINI_CONFIG: {
-    model: 'gemini-3.1-flash-image-preview',
+    model: 'gemini-3.1-flash-image',
     responseModalities: ['TEXT', 'IMAGE'] as const,
   },
 
