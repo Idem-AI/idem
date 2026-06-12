@@ -1,6 +1,7 @@
 {
   "language": "fr",
   "components": [
+    "modules/chat",
     "modules/dashboard/components/add-team-member-modal",
     "modules/dashboard/components/add-team-to-project-modal",
     "modules/dashboard/components/project-card",
