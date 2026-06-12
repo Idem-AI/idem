@@ -170,12 +170,16 @@ class Controller extends BaseController
         try {
             // Call Idem API to validate the token
             $apiUrl = rtrim(config('idem.api_url', env('IDEM_API_URL', 'http://localhost:3001')), '/');
-            $sharedSecret = env('IDEPLOY_SHARED_SECRET');
+            $sharedSecret = config('idem.shared_secret', env('IDEPLOY_SHARED_SECRET'));
 
-            $response = Http::withHeaders([
+            $headers = [
                 'Content-Type' => 'application/json',
-                'X-Ideploy-Secret' => $sharedSecret,
-            ])->post("{$apiUrl}/auth/ideploy-token/validate", [
+            ];
+            if ($sharedSecret) {
+                $headers['X-Ideploy-Secret'] = $sharedSecret;
+            }
+
+            $response = Http::withHeaders($headers)->post("{$apiUrl}/auth/ideploy-token/validate", [
                 'token' => $token,
             ]);
 
@@ -187,25 +191,29 @@ class Controller extends BaseController
             $email = $userData['email'];
             $uid = $userData['uid'];
 
-            // Find or create user
-            $user = User::whereEmail($email)->first();
+            // Find or create user — search by idem_uid first, then by email
+            $user = User::where('idem_uid', $uid)->first()
+                ?? User::whereEmail($email)->first();
+
             if (!$user) {
-                // Create new user from Idem data
+                // User::created hook automatically creates a personal team and attaches as owner
                 $user = User::create([
                     'name' => $userData['displayName'] ?? explode('@', $email)[0],
                     'email' => $email,
-                    'password' => Hash::make(Str::random(32)), // Random password, user logs in via Idem
+                    'idem_uid' => $uid,
+                    'password' => Hash::make(Str::random(32)),
                     'email_verified_at' => now(),
                 ]);
-
-                // Create default team
-                $team = $user->teams()->create([
-                    'name' => "{$user->name}'s Team",
-                    'personal_team' => true,
-                ]);
-                $user->teams()->attach($team->id, ['role' => 'owner']);
             } else {
-                $team = $user->teams()->first();
+                // Keep idem_uid in sync for existing users
+                if (empty($user->idem_uid)) {
+                    $user->update(['idem_uid' => $uid]);
+                }
+            }
+
+            $team = $user->teams()->first();
+            if (!$team) {
+                $team = $user->recreate_personal_team();
             }
 
             // Log the user in
