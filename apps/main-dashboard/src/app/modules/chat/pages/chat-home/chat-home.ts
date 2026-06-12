@@ -30,6 +30,7 @@ import { SSEGenerationState } from '../../../../shared/models/sse-step.model';
 import { AdvisorService } from '../../../dashboard/services/ai-agents/advisor.service';
 import { BusinessPlanService } from '../../../dashboard/services/ai-agents/business-plan.service';
 import { BrandingService } from '../../../dashboard/services/ai-agents/branding.service';
+import { PitchDeckService } from '../../../dashboard/services/ai-agents/pitch-deck.service';
 import { ChatSessionService } from '../../services/chat-session.service';
 import { ChatConversationStoreService } from '../../services/chat-conversation-store.service';
 import { ChatIntentService, ChatIntent } from '../../services/chat-intent.service';
@@ -113,6 +114,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private readonly generationService = inject(GenerationService);
   private readonly businessPlanService = inject(BusinessPlanService);
   private readonly brandingApiService = inject(BrandingService);
+  private readonly pitchDeckService = inject(PitchDeckService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly session = inject(ChatSessionService);
@@ -145,7 +147,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private previewBlob: Blob | null = null;
   private pendingLogoType: LogoType | null = null;
   private pendingBpInfos: AdditionalInfos | null = null;
-  private activeGenerationType: 'business-plan' | 'branding' | null = null;
+  private activeGenerationType: 'business-plan' | 'branding' | 'pitch-deck' | null = null;
 
   protected readonly messages = this.store.messages;
   protected readonly isEmpty = computed(() => this.messages().length === 0);
@@ -803,6 +805,15 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     );
   }
 
+  /** « Générer maintenant » depuis le panneau de prévisualisation. */
+  protected generateFromPreview(): void {
+    const current = this.preview();
+    if (!current) return;
+    this.closePreview();
+    this.appendUser(this.translate.instant('chat.preview.generateNow'));
+    void this.startGeneration(current.kind);
+  }
+
   private revokePreviewUrl(): void {
     const current = this.preview();
     if (current?.url) {
@@ -1086,6 +1097,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       case 'businessPlan':
         this.startBusinessPlanFlow();
         break;
+      case 'pitchDeck':
+        await this.runSseGeneration('pitchDeck');
+        break;
       default: {
         // Les autres générations restent dans l'éditeur (porte de sortie)
         const config = this.deliverables.config(kind);
@@ -1180,7 +1194,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
    * chat : un message de progression est mis à jour à chaque étape.
    */
   private async runSseGeneration(
-    kind: 'businessPlan' | 'branding',
+    kind: 'businessPlan' | 'branding' | 'pitchDeck',
     infos?: AdditionalInfos,
   ): Promise<void> {
     const projectId = this.session.activeProjectId();
@@ -1200,8 +1214,11 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     const connection =
       kind === 'businessPlan'
         ? this.businessPlanService.createBusinessplanItem(projectId, infos)
-        : this.brandingApiService.createBrandIdentityModel(projectId);
-    const serviceType = kind === 'businessPlan' ? 'business-plan' : ('branding' as const);
+        : kind === 'pitchDeck'
+          ? this.pitchDeckService.generatePitchDeck(projectId)
+          : this.brandingApiService.createBrandIdentityModel(projectId);
+    const serviceType: 'business-plan' | 'branding' | 'pitch-deck' =
+      kind === 'businessPlan' ? 'business-plan' : kind === 'pitchDeck' ? 'pitch-deck' : 'branding';
     this.activeGenerationType = serviceType;
 
     let finished = false;
@@ -1247,7 +1264,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private async finishGeneration(
-    kind: 'businessPlan' | 'branding',
+    kind: 'businessPlan' | 'branding' | 'pitchDeck',
     progressId: string,
     title: string,
   ): Promise<void> {
@@ -1265,7 +1282,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private failGeneration(
-    kind: 'businessPlan' | 'branding',
+    kind: 'businessPlan' | 'branding' | 'pitchDeck',
     progressId: string,
     title: string,
   ): void {

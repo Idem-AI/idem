@@ -2210,7 +2210,8 @@
       "download": "Télécharger",
       "close": "Fermer",
       "loading": "Chargement du document…",
-      "notAvailable": "Ce document n'est pas encore disponible. Générez-le d'abord."
+      "notAvailable": "Ce document n'est pas encore disponible.",
+      "generateNow": "Générer maintenant"
     },
     "responses": {
       "showCard": "Voici votre {{title}} :",

@@ -208,7 +208,9 @@
     [pdfUrl]="previewState.url"
     [isLoading]="previewState.isLoading"
     [error]="previewState.error"
+    [canGenerate]="!isGenerating()"
     (closed)="closePreview()"
     (downloadRequested)="downloadFromPreview()"
+    (generateRequested)="generateFromPreview()"
   />
 }
