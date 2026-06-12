@@ -1,11 +1,27 @@
-<!-- Sidebar desktop -->
+<!-- Sidebar desktop (repliable) -->
 <aside
-  class="hidden md:flex flex-col fixed left-0 top-0 h-dvh w-[280px] glass border-r border-white/10 z-40"
+  class="hidden md:flex flex-col fixed left-0 top-0 h-dvh glass border-r border-white/10 z-40 transition-all duration-300"
+  [ngClass]="collapsed() ? 'w-[76px]' : 'w-[280px]'"
 >
-  <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+  <!-- Bouton replier / déployer -->
+  <button
+    type="button"
+    (click)="toggleCollapsed()"
+    class="absolute -right-3 top-20 w-6 h-6 glass-card hover:bg-primary/20 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border border-white/20 group z-50"
+    [title]="(collapsed() ? 'chat.sidebar.expand' : 'chat.sidebar.collapse') | translate"
+  >
+    <i
+      class="pi text-xs transition-transform duration-300 group-hover:text-primary"
+      [ngClass]="collapsed() ? 'pi-chevron-right' : 'pi-chevron-left'"
+    ></i>
+  </button>
+
+  <ng-container
+    *ngTemplateOutlet="sidebarContent; context: { collapsed: collapsed() }"
+  ></ng-container>
 </aside>
 
-<!-- Drawer mobile -->
+<!-- Drawer mobile (toujours déployé) -->
 @if (mobileOpen()) {
   <div class="fixed inset-0 z-50 md:hidden">
     <div
@@ -13,108 +29,232 @@
       (click)="closeMobile.emit()"
       aria-hidden="true"
     ></div>
-    <div class="fixed left-0 top-0 bottom-0 w-80 glass border-r border-white/10 flex flex-col shadow-2xl">
-      <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+    <div
+      class="fixed left-0 top-0 bottom-0 w-80 glass border-r border-white/10 flex flex-col shadow-2xl"
+    >
+      <ng-container
+        *ngTemplateOutlet="sidebarContent; context: { collapsed: false }"
+      ></ng-container>
     </div>
   </div>
 }
 
-<ng-template #sidebarContent>
+<ng-template #sidebarContent let-isCollapsed="collapsed">
   <!-- Logo -->
-  <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
-    <a href="/console" class="flex items-center gap-2">
-      <img
-        src="/assets/icons/logo_white.png"
-        [alt]="'dashboard.sidebar.logoAlt' | translate"
-        class="w-[100px] h-auto"
-      />
-      <app-beta-badge></app-beta-badge>
-    </a>
-    <button
-      type="button"
-      class="md:hidden p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
-      (click)="closeMobile.emit()"
-    >
-      <i class="pi pi-times"></i>
-    </button>
-  </div>
-
-  <!-- Nouveau projet -->
-  <div class="p-3 shrink-0">
-    <button
-      type="button"
-      (click)="newProject()"
-      class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary hover:bg-primary/80 text-white text-sm font-semibold transition-all duration-200 shadow-lg shadow-primary/20"
-    >
-      <i class="pi pi-plus text-xs"></i>
-      {{ 'chat.sidebar.newProject' | translate }}
-    </button>
-  </div>
-
-  <!-- Projets (conversations) -->
-  <div class="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
-    <p class="px-2 pt-2 pb-1.5 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
-      {{ 'chat.sidebar.projects' | translate }}
-    </p>
-    @if (session.isLoadingProjects()) {
-      <div class="space-y-2 px-2 pt-1">
-        <div class="h-9 rounded-lg bg-white/5 animate-pulse"></div>
-        <div class="h-9 rounded-lg bg-white/5 animate-pulse"></div>
-        <div class="h-9 rounded-lg bg-white/5 animate-pulse"></div>
-      </div>
-    } @else if (session.projects().length === 0) {
-      <p class="px-2 text-xs text-gray-500">{{ 'chat.sidebar.noProjects' | translate }}</p>
+  <div
+    class="flex items-center p-4 border-b border-white/10 shrink-0"
+    [class.justify-between]="!isCollapsed"
+    [class.justify-center]="isCollapsed"
+  >
+    @if (!isCollapsed) {
+      <a href="/console" class="flex items-center gap-2">
+        <img
+          src="/assets/icons/logo_white.png"
+          [alt]="'dashboard.sidebar.logoAlt' | translate"
+          class="w-[100px] h-auto"
+        />
+        <app-beta-badge></app-beta-badge>
+      </a>
+      <button
+        type="button"
+        class="md:hidden p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+        (click)="closeMobile.emit()"
+      >
+        <i class="pi pi-times"></i>
+      </button>
     } @else {
-      <nav class="space-y-1">
-        @for (project of session.projects(); track project.id) {
+      <a
+        href="/console"
+        class="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm"
+        [title]="'dashboard.sidebar.logoAlt' | translate"
+      >
+        Id
+      </a>
+    }
+  </div>
+
+  <!-- Sélecteur de projet courant -->
+  @if (!isCollapsed) {
+    <div class="px-3 pt-3 relative chat-project-selector shrink-0">
+      <button
+        type="button"
+        (click)="toggleProjectSelector()"
+        class="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/5 transition-all duration-200"
+      >
+        <span class="flex items-center gap-2 min-w-0">
+          <span class="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0"></span>
+          <span class="text-xs font-medium text-white truncate">
+            {{ session.activeProject()?.name || ('dashboard.sidebar.selectProject' | translate) }}
+          </span>
+        </span>
+        <i
+          class="pi pi-chevron-down text-gray-500 text-[10px] transition-transform duration-200 shrink-0"
+          [class.rotate-180]="isProjectSelectorOpen()"
+        ></i>
+      </button>
+
+      @if (isProjectSelectorOpen()) {
+        <div
+          class="absolute left-3 right-3 top-full mt-1 glass-card border border-white/10 rounded-xl shadow-xl z-50 py-1 max-h-56 overflow-y-auto"
+        >
+          @for (project of session.projects(); track project.id) {
+            <button
+              type="button"
+              (click)="selectProject(project.id)"
+              class="w-full flex items-center gap-2 px-3 py-2 text-left text-xs transition-all duration-150"
+              [ngClass]="{
+                'bg-primary text-white': session.activeProjectId() === project.id,
+                'text-gray-300 hover:bg-white/5 hover:text-white':
+                  session.activeProjectId() !== project.id,
+              }"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>
+              <span class="truncate font-medium">{{ project.name }}</span>
+            </button>
+          }
+          <div class="border-t border-white/10 my-1"></div>
           <button
             type="button"
-            (click)="selectProject(project.id)"
-            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-sm transition-all duration-200 group"
-            [ngClass]="{
-              'bg-primary text-white shadow-lg shadow-primary/20': session.activeProjectId() === project.id,
-              'text-gray-300 hover:bg-white/5 hover:text-white': session.activeProjectId() !== project.id,
-            }"
+            (click)="newProject()"
+            class="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-primary hover:bg-primary/10 transition-all duration-150"
           >
-            <i
-              class="pi pi-comment text-xs shrink-0"
-              [class.text-white]="session.activeProjectId() === project.id"
-              [class.text-gray-500]="session.activeProjectId() !== project.id"
-            ></i>
-            <span class="truncate font-medium">{{ project.name }}</span>
+            <i class="pi pi-plus text-[10px]"></i>
+            <span class="font-semibold">{{ 'chat.sidebar.newProject' | translate }}</span>
           </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Nouvelle conversation -->
+  <div class="p-3 shrink-0">
+    @if (!isCollapsed) {
+      <button
+        type="button"
+        (click)="newConversation()"
+        class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary hover:bg-primary/80 text-white text-sm font-semibold transition-all duration-200 shadow-lg shadow-primary/20"
+      >
+        <i class="pi pi-plus text-xs"></i>
+        {{ 'chat.sidebar.newConversation' | translate }}
+      </button>
+    } @else {
+      <button
+        type="button"
+        (click)="newConversation()"
+        class="w-10 h-10 mx-auto flex items-center justify-center rounded-xl bg-primary hover:bg-primary/80 text-white transition-all duration-200 shadow-lg shadow-primary/20"
+        [title]="'chat.sidebar.newConversation' | translate"
+      >
+        <i class="pi pi-plus text-sm"></i>
+      </button>
+    }
+  </div>
+
+  <!-- Conversations rangées par catégorie -->
+  <div class="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
+    @if (!isCollapsed) {
+      @if (store.isLoading()) {
+        <div class="space-y-2 px-2 pt-1">
+          <div class="h-9 rounded-lg bg-white/5 animate-pulse"></div>
+          <div class="h-9 rounded-lg bg-white/5 animate-pulse"></div>
+          <div class="h-9 rounded-lg bg-white/5 animate-pulse"></div>
+        </div>
+      } @else if (groupedConversations().length === 0) {
+        <p class="px-2 pt-2 text-xs text-gray-500">
+          {{ 'chat.sidebar.noConversations' | translate }}
+        </p>
+      } @else {
+        @for (group of groupedConversations(); track group.category) {
+          <div class="mb-2">
+            <p
+              class="flex items-center gap-1.5 px-2 pt-3 pb-1.5 text-[10px] uppercase tracking-wider text-gray-500 font-semibold"
+            >
+              <i [class]="group.icon" class="text-[10px]"></i>
+              {{ 'chat.categories.' + group.category | translate }}
+            </p>
+            <nav class="space-y-0.5">
+              @for (conversation of group.conversations; track conversation.id) {
+                <div
+                  class="group/conv relative flex items-center rounded-xl transition-all duration-200"
+                  [ngClass]="{
+                    'bg-primary shadow-lg shadow-primary/20':
+                      store.activeConversationId() === conversation.id,
+                    'hover:bg-white/5': store.activeConversationId() !== conversation.id,
+                  }"
+                >
+                  <button
+                    type="button"
+                    (click)="selectConversation(conversation.id)"
+                    class="flex-1 min-w-0 flex items-center gap-2 px-3 py-2 text-left text-sm"
+                    [ngClass]="{
+                      'text-white': store.activeConversationId() === conversation.id,
+                      'text-gray-300 group-hover/conv:text-white':
+                        store.activeConversationId() !== conversation.id,
+                    }"
+                  >
+                    <span class="truncate font-medium text-xs">
+                      {{ conversation.title || ('chat.sidebar.untitled' | translate) }}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="deleteConversation($event, conversation.id)"
+                    class="shrink-0 p-1.5 mr-1 rounded-lg text-gray-500 opacity-0 group-hover/conv:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+                    [title]="'chat.sidebar.deleteConversation' | translate"
+                  >
+                    <i class="pi pi-trash text-[10px]"></i>
+                  </button>
+                </div>
+              }
+            </nav>
+          </div>
         }
-      </nav>
+      }
     }
   </div>
 
   <!-- Pied : switch de mode + utilisateur -->
   <div class="p-3 border-t border-white/10 space-y-3 shrink-0">
-    <app-mode-toggle [current]="'chat'" />
-    <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2 min-w-0">
+    @if (!isCollapsed) {
+      <app-mode-toggle [current]="'chat'" />
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          @if (user()?.photoURL) {
+            <img
+              [src]="user()!.photoURL"
+              [alt]="'dashboard.sidebar.userAvatarAlt' | translate"
+              class="w-7 h-7 rounded-full border border-white/20 shrink-0"
+            />
+          } @else {
+            <div class="w-7 h-7 rounded-full bg-white/10 shrink-0"></div>
+          }
+          <span class="text-xs text-gray-300 truncate">{{ user()?.displayName }}</span>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <app-language-selector />
+          <button
+            type="button"
+            (click)="logout()"
+            class="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+            [title]="'dashboard.sidebar.userMenu.logout' | translate"
+          >
+            <i class="pi pi-sign-out text-xs"></i>
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="flex flex-col items-center gap-3">
+        <app-mode-toggle [current]="'chat'" [collapsed]="true" />
         @if (user()?.photoURL) {
           <img
             [src]="user()!.photoURL"
             [alt]="'dashboard.sidebar.userAvatarAlt' | translate"
-            class="w-7 h-7 rounded-full border border-white/20 shrink-0"
+            class="w-8 h-8 rounded-full border border-white/20"
+            [title]="user()?.displayName ?? ''"
           />
         } @else {
-          <div class="w-7 h-7 rounded-full bg-white/10 shrink-0"></div>
+          <div class="w-8 h-8 rounded-full bg-white/10"></div>
         }
-        <span class="text-xs text-gray-300 truncate">{{ user()?.displayName }}</span>
       </div>
-      <div class="flex items-center gap-1 shrink-0">
-        <app-language-selector />
-        <button
-          type="button"
-          (click)="logout()"
-          class="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
-          [title]="'dashboard.sidebar.userMenu.logout' | translate"
-        >
-          <i class="pi pi-sign-out text-xs"></i>
-        </button>
-      </div>
-    </div>
+    }
   </div>
 </ng-template>

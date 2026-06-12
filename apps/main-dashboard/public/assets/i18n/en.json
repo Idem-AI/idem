@@ -2176,7 +2176,13 @@
     "sidebar": {
       "newProject": "New project",
       "projects": "Projects",
-      "noProjects": "No projects yet. Let's get started!"
+      "noProjects": "No projects yet. Let's get started!",
+      "newConversation": "New conversation",
+      "noConversations": "No conversations for this project yet.",
+      "untitled": "New conversation",
+      "deleteConversation": "Delete conversation",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar"
     },
     "header": {
       "newProject": "New project",
@@ -2402,6 +2408,15 @@
       "title": "Complete your brand identity",
       "missing": "Missing:",
       "cta": "Complete now"
+    },
+    "categories": {
+      "business": "Business",
+      "marketing": "Marketing",
+      "finance": "Finance",
+      "legal": "Legal",
+      "branding": "Brand",
+      "tech": "Tech",
+      "general": "General"
     }
   }
 }

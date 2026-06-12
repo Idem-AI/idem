@@ -167,6 +167,26 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         }
       });
     });
+
+    // Changement de conversation : on réinitialise les états transitoires
+    // (saisie de description de logo, flux branding, erreurs)
+    effect(() => {
+      this.store.activeConversationId();
+      untracked(() => {
+        this.awaitingLogoDescription.set(false);
+        this.brandingFlowEngaged.set(false);
+        this.pendingLogoType = null;
+        this.errorMessage.set(null);
+      });
+    });
+
+    // Fige la sidebar pendant les opérations en cours (une réponse arrivée
+    // après un changement de conversation atterrirait au mauvais endroit)
+    effect(() => {
+      this.store.busy.set(
+        this.pendingAssistant() || this.brandingBusy() || this.isCreatingProject(),
+      );
+    });
   }
 
   async ngOnInit(): Promise<void> {

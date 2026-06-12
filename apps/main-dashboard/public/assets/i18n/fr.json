@@ -2142,7 +2142,13 @@
     "sidebar": {
       "newProject": "Nouveau projet",
       "projects": "Projets",
-      "noProjects": "Aucun projet pour le moment. Lancez-vous !"
+      "noProjects": "Aucun projet pour le moment. Lancez-vous !",
+      "newConversation": "Nouvelle conversation",
+      "noConversations": "Aucune conversation pour ce projet.",
+      "untitled": "Nouvelle conversation",
+      "deleteConversation": "Supprimer la conversation",
+      "collapse": "Replier la barre latérale",
+      "expand": "Déployer la barre latérale"
     },
     "header": {
       "newProject": "Nouveau projet",
@@ -2368,6 +2374,15 @@
       "title": "Complétez votre identité de marque",
       "missing": "Il manque :",
       "cta": "Compléter maintenant"
+    },
+    "categories": {
+      "business": "Business",
+      "marketing": "Marketing",
+      "finance": "Finances",
+      "legal": "Juridique",
+      "branding": "Marque",
+      "tech": "Technique",
+      "general": "Général"
     }
   }
 }
