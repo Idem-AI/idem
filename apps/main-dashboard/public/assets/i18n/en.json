@@ -2244,7 +2244,8 @@
       "download": "Download",
       "close": "Close",
       "loading": "Loading document…",
-      "notAvailable": "This document is not available yet. Generate it first."
+      "notAvailable": "This document is not available yet.",
+      "generateNow": "Generate now"
     },
     "responses": {
       "showCard": "Here is your {{title}}:",
