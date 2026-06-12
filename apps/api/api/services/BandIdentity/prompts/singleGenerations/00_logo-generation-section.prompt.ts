@@ -22,32 +22,37 @@ TYPE SELECTION LOGIC
   If brand name is long, or has visual typography   → NAME type   (60px tall, variable width)
   If user specified a preference                    → honor it strictly
 
-After selecting, apply the full rules for that type:
+After selecting, apply the full construction system from the base (modular grid,
+symmetry mode, proportion scale, optical corrections) plus the type rules below.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ICON TYPE RULES (if selected)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Icon: 2 shapes maximum, left-aligned, 48×48px bounding box
+- Icon: 2 shapes maximum, 48×48px box, own grid u=6, symmetric on its own canvas
+- Icon optical center: (24, totalHeight/2 − 1)
 - Wordmark: right of icon, gap=12px, font-size=28px, weight=700
-- viewBox="0 0 [W] 80"
-- layout.textPosition = "right"
-- Icon must be extractable standalone
+- totalWidth = 48 + 12 + (chars × 28 × 0.62 × 1.12), rounded up to nearest 4px
+- viewBox="0 0 [W] 80" · layout.textPosition = "right"
+- Icon must be extractable standalone (app-icon ready)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 INITIAL TYPE RULES (if selected)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - 2-3 initials only, NO full name, NO separate icon
-- viewBox="0 0 80 80"
-- Container: circle, square, or none based on archetype
-- font-size: 30-34px, weight: 700-800
+- viewBox="0 0 80 80" · container centered on (40, 40) by construction
+- 2 letters at x = 26.5 and 53.5 (equidistant from the axis) · letters shifted 1px up
+- Container: circle (r=36), square/rounded (72×72 at (4,4)), or none — per archetype
+- font-size: 30-34px, weight: 700-800 · exactly ONE advanced technique applied
 - layout.textPosition = "center"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 NAME TYPE RULES (if selected)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - Full brand name, typography only, NO icon
-- viewBox="0 0 [W] 60"
-- Apply one typographic technique (color sequence, hidden element, weight contrast, etc.)
+- viewBox="0 0 [W] 60" · baseline y=38 · descenders stay inside the viewBox
+- totalWidth = ceil((chars × font_size × 0.62 × 1.12 + 40) / 10) × 10
+- Apply one typographic technique (color sequence, hidden element, weight contrast…)
+- Optical kerning: close AV/TO/LY pairs by 1-2px, open HI/IL pairs by 0.5-1px
 - font-size: 30-42px based on name length
 - layout.textPosition = "center"
 
@@ -55,7 +60,7 @@ NAME TYPE RULES (if selected)
 UNIVERSAL QUALITY GATES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   [ ] Logo type is correct for the brand name
-  [ ] All base quality gates pass
-  [ ] Type-specific rules are followed
+  [ ] All base quality gates pass (symmetry equations, grid snap, optical corrections)
+  [ ] Type-specific rules are followed (width math verified — no clipped text)
   [ ] layout dimensions match viewBox exactly
 `;

@@ -219,17 +219,17 @@ export class GeminiMockupService {
 
       // Générer l'image avec Gemini
       logger.info(
-        `[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3.1-flash-image-preview)`,
+        `[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3.1-flash-image)`,
         {
           mockupName,
-          model: 'gemini-3.1-flash-image-preview',
+          model: 'gemini-3.1-flash-image',
           mockupIndex: request.selectedSupport.mockupIndex,
           projectId,
         }
       );
 
       const response = await this.geminiAI.models.generateContent({
-        model: 'gemini-3.1-flash-image-preview',
+        model: 'gemini-3.1-flash-image',
         contents: contents,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],

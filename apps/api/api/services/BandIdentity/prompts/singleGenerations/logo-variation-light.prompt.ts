@@ -1,43 +1,50 @@
 export const LOGO_VARIATION_LIGHT_PROMPT = `
-Generate a professional logo variation optimized for LIGHT BACKGROUNDS with complete SVG code. Extract ONLY the icon part (no text) and adapt colors for light background contrast. Return JSON with complete SVG content:
+You are a senior brand system engineer. Adapt an existing logo icon for LIGHT
+BACKGROUNDS with surgical precision: geometry is frozen, only colors change.
+Return JSON with the complete SVG:
 
 {
   "variation": {
-    "lightBackground": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 80 80\" width=\"80\" height=\"80\"><g id=\"icon\"><circle cx=\"40\" cy=\"40\" r=\"30\" fill=\"#2563EB\"/></g></svg>"
+    "lightBackground": "<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 80 80\\"><g id=\\"icon\\" transform=\\"translate(TX,TY) scale(S)\\"><circle cx=\\"40\\" cy=\\"40\\" r=\\"30\\" fill=\\"#1D4ED8\\"/></g></svg>"
   }
 }
 
-SVG VARIATION GENERATION RULES:
-- GENERATE COMPLETE SVG CODE with proper XML structure
-- Extract ONLY the icon elements from the original logo (remove all text)
-- Use viewBox="0 0 80 80" for square icon format (80x80px minimum)
-- Include proper xmlns="http://www.w3.org/2000/svg" declaration
-- Maintain all original shape complexity and sophistication
-- Preserve geometric relationships and proportional scaling
-- Center the icon within the 80x80 viewBox for optimal presentation
+STEP 1 — PARSE THE ORIGINAL SVG (before any output)
+  - Inventory every shape (path, circle, rect, ellipse, polygon) with its exact
+    fill and stroke values
+  - Identify all <text>/<tspan> elements → they will be REMOVED
+  - Record every transform and the original viewBox
 
-LIGHT BACKGROUND COLOR ADAPTATION:
-- Use darker versions of original colors for excellent contrast on light backgrounds
-- Reduce brightness by 20-40% from original colors
-- Ensure WCAG AA contrast compliance (minimum 4.5:1 ratio)
-- Maintain color harmony and brand consistency
-- Preserve visual hierarchy through strategic color darkening
+STEP 2 — ICON EXTRACTION (fidelity rules)
+  - REMOVE all text elements and text-only groups
+  - KEEP every geometric attribute byte-for-byte: d, cx, cy, r, rx, ry, x, y,
+    width, height, transform, stroke-width, stroke-linecap, stroke-linejoin,
+    fill-rule, opacity — do NOT redraw, simplify or "improve" any path
+  - CENTER mathematically in viewBox="0 0 80 80": from the icon bounding box
+    (bx, by, bw, bh) compute S = 56 / max(bw, bh), TX = 40 − S×(bx + bw/2),
+    TY = 40 − S×(by + bh/2) − 1 (optical centering). Apply on the root <g>.
 
-SVG STRUCTURE REQUIREMENTS:
-- Proper XML declaration and namespace
-- Clean <g id="icon"> grouping for organization
-- Maintain all original path complexity and Bézier curves
-- Preserve opacity values (0.6-1.0) for depth and visual richness
-- Scale coordinates proportionally to fit 80x80 viewBox
-- Center icon elements around cx="40" cy="40" reference point
-- Ensure scalable design that works at any size
+STEP 3 — LIGHT BACKGROUND COLOR RULES (context: #FFFFFF to #F5F5F5)
+  PRIMARY color:
+    - Already dark (luminance < 0.4) → keep or darken 10%
+    - Medium (0.4–0.65)             → darken 25–35%
+    - Light (> 0.65)                → darken 40–55%
+    - Target: contrast ratio ≥ 4.5:1 against #FFFFFF, hue preserved (±5°)
+  SECONDARY/ACCENT: same luminance logic, preserve the hue relationship to primary;
+    never make secondary darker than primary if it was not in the original
+  WHITE/near-white fills: replace with a subtle tint of the primary hue
+    (≈ primary mixed at 12% over white) — pure white is invisible on white
+  TRANSPARENT areas: keep transparent — do not fill
+  STROKES: same darkening rule as the fill of the same shape
+  GRADIENTS: keep structure, recolor each stop with the same rules
 
-COLOR TRANSFORMATION EXAMPLES:
-- Original #3B82F6 (blue) → #1D4ED8 (darker blue for light bg)
-- Original #10B981 (green) → #047857 (darker green for light bg)
-- Original #F59E0B (orange) → #D97706 (darker orange for light bg)
-- Original #8B5CF6 (purple) → #7C3AED (darker purple for light bg)
+QUALITY GATES (verify before output)
+  [ ] Zero <text>/<tspan>, zero <filter> effects, zero <image>/<script>
+  [ ] Every path d="..." identical to the original (colors only changed)
+  [ ] All colors ≥ 4.5:1 contrast on #FFFFFF
+  [ ] Hues preserved (±5°) — the brand stays recognizable
+  [ ] viewBox exactly "0 0 80 80", icon centered via the computed transform
+  [ ] JSON parses (quotes escaped with \\", no trailing commas)
 
-AVOID: Broken XML, missing namespaces, text elements, poor centering, colors too light for contrast
-GOAL: Generate production-ready icon SVG optimized specifically for light background usage with perfect contrast and readability.
+GOAL: production-ready icon for light UI — perfect contrast, zero geometric drift.
 `;

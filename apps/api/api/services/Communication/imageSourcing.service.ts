@@ -36,7 +36,7 @@ export interface ImageBrief {
 }
 
 // ─── Gemini model names ────────────────────────────────────────────────────
-const GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
+const GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image';
 const GEMINI_VISION_MODEL = 'gemini-2.0-flash'; // fast + cheap for vision-only
 
 const PEXELS_ENDPOINT = 'https://api.pexels.com/v1/search';
