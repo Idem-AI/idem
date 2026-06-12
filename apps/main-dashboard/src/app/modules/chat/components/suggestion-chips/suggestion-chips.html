@@ -1,0 +1,15 @@
+<div class="flex flex-wrap gap-2">
+  @for (chip of chips(); track $index) {
+    <button
+      type="button"
+      (click)="select(chip)"
+      [disabled]="disabled()"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.03] text-xs text-gray-300 hover:text-white hover:border-primary/40 hover:bg-primary/10 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      @if (chip.icon) {
+        <i [class]="chip.icon" class="text-[10px]"></i>
+      }
+      <span>{{ chip.labelKey ? (chip.labelKey | translate) : chip.label }}</span>
+    </button>
+  }
+</div>

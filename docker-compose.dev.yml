@@ -130,6 +130,7 @@ services:
       - '${APP_PORT:-8000}:8080'
     extra_hosts:
       - 'soketi:host-gateway'
+      - 'host.docker.internal:host-gateway'
     environment:
       AUTORUN_ENABLED: 'false'
       PUSHER_HOST: 'localhost'
@@ -147,7 +148,7 @@ services:
       SONARQUBE_ADMIN_TOKEN: squ_dc0e5ea5635f3c4b1bdd46d37032485e2ade36f0
       REDIS_HOST: redis
       # IDEM API Configuration
-      IDEM_API_URL: 'http://api:3000'
+      IDEM_API_URL: 'http://host.docker.internal:3001'
       # AI Configuration
       AI_PROVIDER: '${AI_PROVIDER:-gemini}'
       GEMINI_API_KEY: '${GEMINI_API_KEY:-AIzaSyBLz8JVQU2qnf1NoVWQouJ3xnNkXrAfJg4}'
@@ -168,9 +169,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      api:
-        condition: service_started
       soketi:
+        condition: service_started
+      vite-ideploy:
         condition: service_started
 
   soketi:
@@ -231,13 +232,12 @@ services:
       NODE_ENV: development
       PORT: 3000
       CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:3003,http://localhost:3004,http://localhost:8000'
-      # MongoDB Configuration
-      MONGODB_URI: 'mongodb://${MONGODB_USERNAME:-admin}:${MONGODB_PASSWORD:-admin123}@mongodb:27017/${MONGODB_DATABASE:-idem}?authSource=admin'
+      MONGODB_URI: 'mongodb://$${MONGODB_USERNAME}:$${MONGODB_PASSWORD}@mongodb:27017/$${MONGODB_DATABASE}?authSource=admin'
       # MinIO Configuration
       MINIO_ENDPOINT: 'minio'
       MINIO_PORT: '9000'
-      MINIO_ACCESS_KEY: '${MINIO_ROOT_USER:-minioadmin}'
-      MINIO_SECRET_KEY: '${MINIO_ROOT_PASSWORD:-minioadmin123}'
+      MINIO_ACCESS_KEY: '$${MINIO_ROOT_USER}'
+      MINIO_SECRET_KEY: '$${MINIO_ROOT_PASSWORD}'
       MINIO_USE_SSL: 'false'
     volumes:
       - ./apps/api:/app/apps/api:cached

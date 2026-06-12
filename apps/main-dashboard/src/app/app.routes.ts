@@ -69,6 +69,24 @@ export const routes: Routes = [
   },
 
   // ============================================
+  // CHAT MODE ROUTES (layout: 'chat')
+  // ============================================
+  {
+    path: 'chat',
+    loadComponent: () =>
+      import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
+    canActivate: [authGuard],
+    data: { layout: 'chat' },
+  },
+  {
+    path: 'chat/new',
+    loadComponent: () =>
+      import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
+    canActivate: [authGuard],
+    data: { layout: 'chat', onboarding: true },
+  },
+
+  // ============================================
   // PROJECT DASHBOARD ROUTES (layout: 'dashboard')
   // ============================================
   {
