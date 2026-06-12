@@ -23,6 +23,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | iDeploy Shared Secret
+    |--------------------------------------------------------------------------
+    |
+    | Secret partagé entre l'API IDEM et iDeploy pour sécuriser l'endpoint
+    | de validation des tokens SSO (/auth/ideploy-token/validate).
+    | Doit être identique des deux côtés. Laisser vide pour désactiver.
+    |
+    */
+    'shared_secret' => env('IDEPLOY_SHARED_SECRET'),
+
+    /*
+    |--------------------------------------------------------------------------
     | IDEM Dashboard URL
     |--------------------------------------------------------------------------
     |

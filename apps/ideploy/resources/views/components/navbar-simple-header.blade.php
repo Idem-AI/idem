@@ -7,14 +7,7 @@
             </svg>
         </button>
 
-        <img src="{{ asset('logo/logo_white.png') }}" alt="IDEM" class="w-12 h-12 rounded-xl"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center font-black text-white text-xl" style="display:none;">ID</div>
-
-        <div class="flex flex-col">
-            <span class="text-2xl font-bold text-white">IDEM</span>
-            <span class="text-xs font-medium text-gray-400">Ideploy</span>
-        </div>
+        <img src="{{ asset('ideploy-logo.png') }}" alt="iDeploy" class="h-9 w-auto object-contain">
         <span class="ml-auto px-2.5 py-1 text-xs font-semibold bg-orange-500/20 text-orange-400 rounded-full border border-orange-500/30">Beta</span>
     </div>
 </div>

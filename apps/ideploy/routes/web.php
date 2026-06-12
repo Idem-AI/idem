@@ -103,8 +103,8 @@ Route::get('/verify', [Controller::class, 'verify'])->middleware('auth')->name('
 Route::get('/email/verify/{id}/{hash}', [Controller::class, 'email_verify'])->middleware(['auth'])->name('verify.verify');
 Route::middleware(['throttle:login'])->group(function () {
     Route::get('/auth/link', [Controller::class, 'link'])->name('auth.link');
-    Route::get('/auth/idem', [Controller::class, 'idemAuth'])->name('auth.idem');
 });
+Route::get('/auth/idem', [Controller::class, 'idemAuth'])->name('auth.idem')->middleware('throttle:idem-sso');
 
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
