@@ -85,7 +85,9 @@ export type ChatChipAction =
   | 'bp-fill-form'
   | 'bp-free-text'
   | 'bp-generate'
-  | 'download-logos-zip';
+  | 'download-logos-zip'
+  | 'preview'
+  | 'charte-regenerate';
 
 export interface ChatChip {
   /** Clé i18n du label (prioritaire sur label) */
@@ -96,6 +98,16 @@ export interface ChatChip {
   action: ChatChipAction;
   /** Selon l'action : texte à envoyer, kind de livrable, valeur d'onboarding… */
   payload?: string;
+}
+
+/** Progression d'une génération SSE affichée dans le fil */
+export interface GenerationProgressData {
+  /** Titre du livrable (déjà résolu) */
+  title: string;
+  status: 'running' | 'done' | 'error';
+  completedSteps: string[];
+  stepsInProgress: string[];
+  totalSteps?: number;
 }
 
 /** Récapitulatif d'onboarding affiché sous forme de carte avant création du projet */
@@ -127,6 +139,10 @@ export interface ChatMessageModel {
   selectedOptionId?: string;
   /** Mini-formulaire d'informations supplémentaires (business plan) */
   infoForm?: boolean;
+  /** Carte de progression d'une génération SSE */
+  generation?: GenerationProgressData;
+  /** Choix du format de la charte graphique (portrait / paysage) */
+  formatChoice?: boolean;
 }
 
 /** Étapes de l'onboarding conversationnel */

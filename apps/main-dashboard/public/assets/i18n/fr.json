@@ -2366,7 +2366,8 @@
         "complete": "Compléter mon identité de marque",
         "skipDescription": "Passer",
         "variationsEditor": "Variations du logo (éditeur)",
-        "downloadZip": "Télécharger mes logos (ZIP)"
+        "downloadZip": "Télécharger mes logos (ZIP)",
+        "regenerate": "Régénérer la charte"
       },
       "cards": {
         "colorsTitle": "Palettes de couleurs",
@@ -2382,7 +2383,18 @@
       },
       "generatingVariations": "Beau choix ! Je génère maintenant les **déclinaisons de votre logo** (fond clair, fond sombre, monochrome)… ⏳",
       "zipStarted": "Le téléchargement de vos logos (ZIP) est lancé. 📦",
-      "zipUnavailable": "Le pack de logos n'est pas encore disponible."
+      "zipUnavailable": "Le pack de logos n'est pas encore disponible.",
+      "charteExists": "Votre **charte graphique** a déjà été générée. ✨ Que voulez-vous en faire ?",
+      "format": {
+        "title": "Format de la charte graphique",
+        "subtitle": "Cliquez pour choisir le format du document",
+        "question": "Dans quel **format** voulez-vous votre charte graphique ?",
+        "portrait": "Portrait (A4)",
+        "landscape": "Paysage (16:9)",
+        "hint": "Choisissez un format pour continuer",
+        "cancel": "Annuler",
+        "cancelledOk": "Pas de souci, on annule. Dites-moi quand vous voudrez générer votre charte."
+      }
     },
     "banner": {
       "title": "Complétez votre identité de marque",
@@ -2440,7 +2452,11 @@
       "retryHint": "Voulez-vous réessayer ?",
       "chips": {
         "retry": "Réessayer la génération"
-      }
+      },
+      "cardRunning": "Génération de votre {{title}}",
+      "cardDone": "Votre {{title}} est prêt",
+      "cardError": "La génération de votre {{title}} a échoué",
+      "steps": "{{done}}/{{total}} étapes terminées"
     }
   }
 }

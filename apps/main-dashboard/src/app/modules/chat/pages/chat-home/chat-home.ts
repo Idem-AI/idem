@@ -50,6 +50,11 @@ import { TypographyOptionsCardComponent } from '../../components/typography-opti
 import { LogoOptionsCardComponent } from '../../components/logo-options-card/logo-options-card';
 import { BrandingWarningBannerComponent } from '../../components/branding-warning-banner/branding-warning-banner';
 import { InfoFormCardComponent } from '../../components/info-form-card/info-form-card';
+import { GenerationProgressCardComponent } from '../../components/generation-progress-card/generation-progress-card';
+import {
+  ChartePdfFormat,
+  FormatChoiceCardComponent,
+} from '../../components/format-choice-card/format-choice-card';
 import { ColorModel, TypographyModel } from '../../../dashboard/models/brand-identity.model';
 import { LogoModel, LogoType } from '../../../dashboard/models/logo.model';
 import {
@@ -58,6 +63,7 @@ import {
   ChatMessageModel,
   DeliverableCardData,
   DeliverableKind,
+  GenerationProgressData,
   OnboardingPolicyAcceptances,
   OnboardingState,
 } from '../../models/chat.model';
@@ -94,6 +100,8 @@ let chatMessageCounter = 0;
     LogoOptionsCardComponent,
     BrandingWarningBannerComponent,
     InfoFormCardComponent,
+    GenerationProgressCardComponent,
+    FormatChoiceCardComponent,
   ],
   templateUrl: './chat-home.html',
   // Réutilise les styles markdown de l'advisor (classe .advisor-message)
@@ -141,6 +149,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected readonly awaitingBpInfoText = signal(false);
   /** Génération SSE en cours (business plan / charte graphique) */
   protected readonly isGenerating = signal(false);
+  /** Choix du format de la charte en attente : le composer est bloqué */
+  protected readonly awaitingFormatChoice = signal(false);
 
   private onboardingState: OnboardingState | null = null;
   private loadedProjectId: string | null = null;
@@ -201,6 +211,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       untracked(() => {
         this.awaitingLogoDescription.set(false);
         this.awaitingBpInfoText.set(false);
+        this.awaitingFormatChoice.set(false);
         this.brandingFlowEngaged.set(false);
         this.pendingLogoType = null;
         this.pendingBpInfos = null;
@@ -257,7 +268,16 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.loadedProjectId = projectId;
     this.brandingFlowEngaged.set(false);
     this.awaitingLogoDescription.set(false);
+    this.awaitingFormatChoice.set(false);
     await this.store.load(projectId);
+    // Une génération interrompue par un rechargement n'est plus vivante
+    for (const message of this.store.messages()) {
+      if (message.generation?.status === 'running') {
+        this.store.patch(message.id, {
+          generation: { ...message.generation, status: 'error', stepsInProgress: [] },
+        });
+      }
+    }
     // Rafraîchit le détail du projet (sections des livrables) en arrière-plan
     void this.session.fetchActiveProjectDetails();
   }
@@ -289,6 +309,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected send(): void {
     const content = this.draft().trim();
     if (!content || this.pendingAssistant() || this.isCreatingProject()) return;
+    // Choix de format en attente : l'envoi reste bloqué jusqu'au clic
+    if (this.awaitingFormatChoice()) return;
     this.draft.set('');
     this.errorMessage.set(null);
 
@@ -708,6 +730,13 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         void this.downloadLogosZip();
         break;
       }
+      case 'preview':
+        void this.openPreview(chip.payload as DeliverableKind);
+        break;
+      case 'charte-regenerate':
+        this.appendUser(this.chipLabel(chip));
+        this.askCharteFormat();
+        break;
     }
   }
 
@@ -1090,8 +1119,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         // Identité incomplète → flux de complétion ; sinon charte graphique
         if (!this.branding.isComplete(project)) {
           await this.advanceBrandingFlow();
+        } else if (this.branding.hasCharte(project)) {
+          this.respondCharteAlreadyExists();
         } else {
-          await this.runSseGeneration('branding');
+          this.askCharteFormat();
         }
         break;
       case 'businessPlan':
@@ -1111,6 +1142,47 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         this.uiMode.openInEditor(config.generateRoute ?? config.editorRoute);
       }
     }
+  }
+
+  /** La charte existe déjà : on le dit et on propose prévisualiser / télécharger. */
+  private respondCharteAlreadyExists(): void {
+    this.appendAssistant({
+      content: this.translate.instant('chat.branding.charteExists'),
+      chips: [
+        { labelKey: 'chat.card.actions.preview', icon: 'pi pi-eye', action: 'preview', payload: 'branding' },
+        { labelKey: 'chat.chips.downloadPdf', icon: 'pi pi-download', action: 'download', payload: 'branding' },
+        { labelKey: 'chat.branding.chips.regenerate', icon: 'pi pi-refresh', action: 'charte-regenerate' },
+      ],
+    });
+  }
+
+  /** Demande le format (portrait / paysage) avant de générer la charte. */
+  private askCharteFormat(): void {
+    this.awaitingFormatChoice.set(true);
+    this.appendAssistant({
+      content: this.translate.instant('chat.branding.format.question'),
+      formatChoice: true,
+    });
+  }
+
+  protected onFormatPicked(messageId: string, format: ChartePdfFormat): void {
+    this.store.patch(messageId, { selectedOptionId: format });
+    this.awaitingFormatChoice.set(false);
+    this.appendUser(
+      this.translate.instant(
+        format === 'A4_PORTRAIT' ? 'chat.branding.format.portrait' : 'chat.branding.format.landscape',
+      ),
+    );
+    void this.runSseGeneration('branding', undefined, format);
+  }
+
+  protected onFormatCancelled(messageId: string): void {
+    this.store.patch(messageId, { selectedOptionId: 'cancelled' });
+    this.awaitingFormatChoice.set(false);
+    this.appendAssistant({
+      content: this.translate.instant('chat.branding.format.cancelledOk'),
+      chips: this.genericChips(),
+    });
   }
 
   /** Rédaction du business plan : propose d'abord les infos supplémentaires. */
@@ -1196,6 +1268,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private async runSseGeneration(
     kind: 'businessPlan' | 'branding' | 'pitchDeck',
     infos?: AdditionalInfos,
+    pdfFormat?: ChartePdfFormat,
   ): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId || this.isGenerating()) return;
@@ -1205,8 +1278,14 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     const progressMessage: ChatMessageModel = {
       id: progressId,
       role: 'assistant',
-      content: this.translate.instant('chat.generation.start', { title }),
+      content: '',
       createdAt: new Date().toISOString(),
+      generation: {
+        title,
+        status: 'running',
+        completedSteps: [],
+        stepsInProgress: [],
+      },
     };
     this.store.append(progressMessage);
     this.isGenerating.set(true);
@@ -1216,7 +1295,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         ? this.businessPlanService.createBusinessplanItem(projectId, infos)
         : kind === 'pitchDeck'
           ? this.pitchDeckService.generatePitchDeck(projectId)
-          : this.brandingApiService.createBrandIdentityModel(projectId);
+          : this.brandingApiService.createBrandIdentityModel(projectId, pdfFormat ?? 'SLIDE_16_9');
     const serviceType: 'business-plan' | 'branding' | 'pitch-deck' =
       kind === 'businessPlan' ? 'business-plan' : kind === 'pitchDeck' ? 'pitch-deck' : 'branding';
     this.activeGenerationType = serviceType;
@@ -1228,49 +1307,61 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       .subscribe({
         next: (state: SSEGenerationState) => {
           if (finished) return;
-          this.store.patch(progressId, { content: this.buildProgressContent(title, state) });
+          this.store.patch(progressId, {
+            generation: this.toProgressData(title, state),
+          });
           if (state.completed) {
             finished = true;
-            void this.finishGeneration(kind, progressId, title);
+            void this.finishGeneration(kind, progressId, title, state);
           } else if (state.error) {
             finished = true;
-            this.failGeneration(kind, progressId, title);
+            this.failGeneration(kind, progressId, title, state);
           }
         },
         error: (error) => {
           if (finished) return;
           finished = true;
           console.error(`Chat: ${kind} generation failed`, error);
-          this.failGeneration(kind, progressId, title);
+          this.failGeneration(kind, progressId, title, null);
         },
         complete: () => {
           if (!finished) {
             finished = true;
-            void this.finishGeneration(kind, progressId, title);
+            void this.finishGeneration(kind, progressId, title, null);
           }
         },
       });
   }
 
-  private buildProgressContent(title: string, state: SSEGenerationState): string {
-    const lines = [`⏳ **${this.translate.instant('chat.generation.inProgress', { title })}**`, ''];
-    for (const step of state.completedSteps ?? []) {
-      lines.push(`✅ ${step}`);
-    }
-    for (const step of state.stepsInProgress ?? []) {
-      lines.push(`🔄 ${step}`);
-    }
-    return lines.join('\n');
+  private toProgressData(
+    title: string,
+    state: SSEGenerationState,
+    status: GenerationProgressData['status'] = 'running',
+  ): GenerationProgressData {
+    return {
+      title,
+      status,
+      completedSteps: state.completedSteps ?? [],
+      stepsInProgress: state.stepsInProgress ?? [],
+      totalSteps: state.totalSteps || undefined,
+    };
   }
 
   private async finishGeneration(
     kind: 'businessPlan' | 'branding' | 'pitchDeck',
     progressId: string,
     title: string,
+    state: SSEGenerationState | null,
   ): Promise<void> {
     this.isGenerating.set(false);
     this.store.patch(progressId, {
-      content: this.translate.instant('chat.generation.done', { title }),
+      generation: {
+        title,
+        status: 'done',
+        completedSteps: state?.completedSteps ?? [],
+        stepsInProgress: [],
+        totalSteps: state?.totalSteps || undefined,
+      },
     });
     const project = await this.session.fetchActiveProjectDetails();
     const card = this.deliverables.buildCard(kind, project);
@@ -1285,10 +1376,16 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     kind: 'businessPlan' | 'branding' | 'pitchDeck',
     progressId: string,
     title: string,
+    state: SSEGenerationState | null,
   ): void {
     this.isGenerating.set(false);
     this.store.patch(progressId, {
-      content: this.translate.instant('chat.generation.failed', { title }),
+      generation: {
+        title,
+        status: 'error',
+        completedSteps: state?.completedSteps ?? [],
+        stepsInProgress: [],
+      },
     });
     this.appendAssistant({
       content: this.translate.instant('chat.generation.retryHint'),
