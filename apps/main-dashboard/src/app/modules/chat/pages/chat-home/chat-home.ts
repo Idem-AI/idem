@@ -37,6 +37,7 @@ import { PreviewPanelComponent } from '../../components/preview-panel/preview-pa
 import { ColorOptionsCardComponent } from '../../components/color-options-card/color-options-card';
 import { TypographyOptionsCardComponent } from '../../components/typography-options-card/typography-options-card';
 import { LogoOptionsCardComponent } from '../../components/logo-options-card/logo-options-card';
+import { BrandingWarningBannerComponent } from '../../components/branding-warning-banner/branding-warning-banner';
 import { ColorModel, TypographyModel } from '../../../dashboard/models/brand-identity.model';
 import { LogoModel, LogoType } from '../../../dashboard/models/logo.model';
 import {
@@ -78,6 +79,7 @@ let chatMessageCounter = 0;
     ColorOptionsCardComponent,
     TypographyOptionsCardComponent,
     LogoOptionsCardComponent,
+    BrandingWarningBannerComponent,
   ],
   templateUrl: './chat-home.html',
   // Réutilise les styles markdown de l'advisor (classe .advisor-message)
@@ -113,6 +115,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected readonly brandingBusy = signal(false);
   /** La prochaine saisie texte répond à « décrivez votre logo » */
   protected readonly awaitingLogoDescription = signal(false);
+  /** Flux branding en cours dans le fil (masque le bandeau d'avertissement) */
+  protected readonly brandingFlowEngaged = signal(false);
 
   private onboardingState: OnboardingState | null = null;
   private loadedProjectId: string | null = null;
@@ -125,6 +129,24 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     const msgs = this.messages();
     return msgs.length > 0 ? msgs[msgs.length - 1].id : null;
   });
+
+  /** Éléments d'identité de marque manquants sur le projet actif */
+  protected readonly brandingMissing = computed(() => {
+    if (this.mode() !== 'project') return [];
+    const project = this.session.activeProject();
+    // On attend le détail complet du projet pour éviter un faux positif
+    if (!project?.analysisResultModel) return [];
+    return this.branding.missingParts(project);
+  });
+
+  /** Bandeau « identité incomplète » : visible hors flux branding actif */
+  protected readonly showBrandingBanner = computed(
+    () =>
+      !this.isInitializing() &&
+      !this.store.isLoading() &&
+      this.brandingMissing().length > 0 &&
+      !this.brandingFlowEngaged(),
+  );
 
   /** Suggestions du démarrage à froid (fil vide en mode projet) */
   protected readonly heroChips: ChatChip[] = [
@@ -179,6 +201,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private async enterProjectMode(projectId: string): Promise<void> {
     this.mode.set('project');
     this.loadedProjectId = projectId;
+    this.brandingFlowEngaged.set(false);
+    this.awaitingLogoDescription.set(false);
     await this.store.load(projectId);
     // Rafraîchit le détail du projet (sections des livrables) en arrière-plan
     void this.session.fetchActiveProjectDetails();
@@ -279,6 +303,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   // ─────────────────────────────────────────────── Intentions livrables
 
   private async handleIntent(intent: ChatIntent): Promise<void> {
+    // Toute intention hors branding interrompt le flux : le bandeau réapparaît
+    if (intent.type !== 'complete-branding') {
+      this.brandingFlowEngaged.set(false);
+    }
     switch (intent.type) {
       case 'show':
         this.respondWithCard(intent.kind!);
@@ -429,6 +457,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private async askAdvisor(content: string): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId) return;
+    this.brandingFlowEngaged.set(false);
     this.pendingAssistant.set(true);
     try {
       const result = await firstValueFrom(this.advisor.sendMessage(projectId, content));
@@ -625,6 +654,13 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     ];
   }
 
+  /** CTA du bandeau d'avertissement : lance la complétion dans le fil. */
+  protected startBrandingFromBanner(): void {
+    if (this.pendingAssistant() || this.brandingBusy()) return;
+    this.appendUser(this.translate.instant('chat.branding.chips.complete'));
+    void this.advanceBrandingFlow();
+  }
+
   /**
    * Avance le flux de complétion d'identité : l'étape est dérivée de l'état
    * réel du projet, le flux reprend donc toujours exactement où il en est.
@@ -632,6 +668,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private async advanceBrandingFlow(): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId) return;
+    this.brandingFlowEngaged.set(true);
 
     let project = this.session.activeProject();
     if (!project?.analysisResultModel) {
@@ -696,6 +733,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         });
         break;
       case 'complete': {
+        this.brandingFlowEngaged.set(false);
         const card = this.deliverables.buildCard('branding', project);
         this.appendAssistant({
           content: this.translate.instant('chat.branding.alreadyComplete'),
@@ -800,6 +838,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.appendUser(logo.name || this.translate.instant('chat.branding.thisLogo'));
     try {
       const updated = await this.branding.selectLogo(project, logo);
+      this.brandingFlowEngaged.set(false);
       const card = this.deliverables.buildCard('branding', updated);
       this.appendAssistant({
         content: this.translate.instant('chat.branding.complete'),

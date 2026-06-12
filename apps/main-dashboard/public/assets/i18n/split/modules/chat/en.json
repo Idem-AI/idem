@@ -124,6 +124,11 @@
         "confirm": "Create project"
       }
     },
+    "banner": {
+      "title": "Complete your brand identity",
+      "missing": "Missing:",
+      "cta": "Complete now"
+    },
     "branding": {
       "invite": "Now let's work on your **brand identity** (logo, colors, typography). Do you want to generate it with AI, or import your own logo?",
       "importRedirect": "Alright — the logo import opens in the editor. You can come back to Chat mode afterwards.",

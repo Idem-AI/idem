@@ -2397,6 +2397,11 @@
         "generation": "Generation failed. Shall we retry?",
         "save": "Could not save your choice. Please try again."
       }
+    },
+    "banner": {
+      "title": "Complete your brand identity",
+      "missing": "Missing:",
+      "cta": "Complete now"
     }
   }
 }
