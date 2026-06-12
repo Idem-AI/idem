@@ -2363,6 +2363,11 @@
         "generation": "La génération a échoué. On réessaie ?",
         "save": "Impossible d'enregistrer votre choix. Réessayez."
       }
+    },
+    "banner": {
+      "title": "Complétez votre identité de marque",
+      "missing": "Il manque :",
+      "cta": "Compléter maintenant"
     }
   }
 }

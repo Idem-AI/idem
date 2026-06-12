@@ -124,6 +124,11 @@
         "confirm": "Créer le projet"
       }
     },
+    "banner": {
+      "title": "Complétez votre identité de marque",
+      "missing": "Il manque :",
+      "cta": "Compléter maintenant"
+    },
     "branding": {
       "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
       "importRedirect": "Très bien — l'import de logo s'ouvre dans l'éditeur. Vous pourrez revenir au mode Chat ensuite.",

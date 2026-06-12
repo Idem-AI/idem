@@ -48,6 +48,16 @@ export class ChatBrandingService {
     return this.nextStep(project) === 'complete';
   }
 
+  /** Éléments d'identité encore manquants (pour le bandeau d'avertissement). */
+  missingParts(project: ProjectModel | null): Array<'logo' | 'colors' | 'typography'> {
+    const branding = project?.analysisResultModel?.branding;
+    const missing: Array<'logo' | 'colors' | 'typography'> = [];
+    if (!branding?.logo) missing.push('logo');
+    if (!branding?.colors) missing.push('colors');
+    if (!branding?.typography) missing.push('typography');
+    return missing;
+  }
+
   generatedColors(project: ProjectModel | null): ColorModel[] {
     return project?.analysisResultModel?.branding?.generatedColors ?? [];
   }

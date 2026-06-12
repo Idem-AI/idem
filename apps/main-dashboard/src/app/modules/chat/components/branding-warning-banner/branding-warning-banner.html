@@ -1,0 +1,29 @@
+<div
+  class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 to-amber-400/5 shadow-lg shadow-amber-900/10"
+  role="alert"
+>
+  <div class="flex items-center gap-3 flex-1 min-w-0">
+    <div
+      class="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0"
+    >
+      <i class="pi pi-exclamation-triangle text-amber-300"></i>
+    </div>
+    <div class="min-w-0">
+      <p class="text-sm font-semibold text-amber-100">
+        {{ 'chat.banner.title' | translate }}
+      </p>
+      <p class="text-xs text-amber-200/70 truncate">
+        {{ 'chat.banner.missing' | translate }} {{ missingLabels() }}
+      </p>
+    </div>
+  </div>
+  <button
+    type="button"
+    (click)="completeRequested.emit()"
+    [disabled]="busy()"
+    class="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-gray-950 text-xs font-bold transition-all duration-200 shadow-lg shadow-amber-500/20 disabled:opacity-50"
+  >
+    <i class="pi pi-sparkles text-[11px]"></i>
+    {{ 'chat.banner.cta' | translate }}
+  </button>
+</div>
