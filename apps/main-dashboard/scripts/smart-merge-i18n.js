@@ -27,6 +27,7 @@ const CONFIG = {
     'shared/validation': 'validation',
     'shared/navigation': 'navigation',
     'shared/errors': 'errors',
+    'modules/chat': 'chat',
     'modules/projects': 'projects',
     'modules/teams': 'teams',
 
