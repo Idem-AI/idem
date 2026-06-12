@@ -871,7 +871,8 @@
         "pitchDeck": "Pitch Deck",
         "finance": "Prévisions financières",
         "systemDesign": "Conception système",
-        "development": "Développement"
+        "development": "Développement",
+        "launch": "Lancement"
       },
       "journey": {
         "yourPath": "Votre parcours",
@@ -913,7 +914,12 @@
         "almostThere": "Presque terminé",
         "finalStep": "Dernière étape",
         "startNow": "Commencer maintenant",
-        "nextStep": "Étape suivante"
+        "nextStep": "Étape suivante",
+        "launch": {
+          "title": "Lancement et déploiement",
+          "description": "Déployez votre projet et rendez-le accessible au monde entier",
+          "alt": "Lancement"
+        }
       },
       "info": {
         "created": "Créé",
@@ -2125,6 +2131,243 @@
     "noProject": {
       "title": "Aucun projet sélectionné",
       "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
+    }
+  },
+  "chat": {
+    "modeToggle": {
+      "label": "Mode d'affichage",
+      "chat": "Chat",
+      "advanced": "Avancé"
+    },
+    "sidebar": {
+      "newProject": "Nouveau projet",
+      "projects": "Projets",
+      "noProjects": "Aucun projet pour le moment. Lancez-vous !"
+    },
+    "header": {
+      "newProject": "Nouveau projet",
+      "subtitle": "Mode Chat",
+      "exportAll": "Tout exporter",
+      "advancedMode": "Mode avancé"
+    },
+    "export": {
+      "started": "Préparation de vos documents…",
+      "done": "{{count}} document(s) téléchargé(s).",
+      "nothing": "Aucun document disponible à exporter pour le moment."
+    },
+    "empty": {
+      "title": "Que voulez-vous faire sur {{name}} ?",
+      "subtitle": "Demandez un livrable, posez une question ou faites le point sur votre projet."
+    },
+    "composer": {
+      "placeholder": "Posez une question ou demandez un livrable (ex. « montre-moi mon business plan »)…",
+      "placeholderOnboarding": "Répondez ici ou choisissez une suggestion…",
+      "send": "Envoyer",
+      "hint": "Entrée pour envoyer · Maj+Entrée pour une nouvelle ligne"
+    },
+    "errors": {
+      "send": "Impossible d'envoyer le message. Réessayez."
+    },
+    "deliverables": {
+      "businessPlan": "Business Plan",
+      "branding": "Image de marque",
+      "pitchDeck": "Pitch Deck",
+      "diagrams": "Diagrammes",
+      "legalDocs": "Documents juridiques",
+      "finance": "Rapport financier"
+    },
+    "card": {
+      "updatedAt": "Modifié le",
+      "notGenerated": "Pas encore généré",
+      "empty": "Ce livrable n'a pas encore de contenu.",
+      "moreSections": "+ {{count}} autres sections",
+      "status": {
+        "ready": "Rédigé",
+        "inProgress": "En cours",
+        "missing": "Manquant"
+      },
+      "actions": {
+        "preview": "Prévisualiser",
+        "download": "Télécharger PDF",
+        "generate": "Générer",
+        "openEditor": "Ouvrir dans l'éditeur"
+      },
+      "brandingSections": {
+        "logo": "Logo",
+        "colors": "Couleurs",
+        "typography": "Typographie"
+      },
+      "diagramsSection": "Diagrammes d'architecture",
+      "financeSection": "Modèle financier complet"
+    },
+    "preview": {
+      "download": "Télécharger",
+      "close": "Fermer",
+      "loading": "Chargement du document…",
+      "notAvailable": "Ce document n'est pas encore disponible. Générez-le d'abord."
+    },
+    "responses": {
+      "showCard": "Voici votre {{title}} :",
+      "showCardMissing": "Votre {{title}} n'a pas encore été généré. Voici où il en est :",
+      "noPdf": "Le {{title}} n'a pas d'export PDF direct. Vous pouvez le consulter dans l'éditeur :",
+      "downloadStarted": "Le téléchargement de votre {{title}} est lancé. 📄",
+      "downloadUnavailable": "Le PDF de votre {{title}} n'est pas encore disponible. Il faut d'abord le générer :",
+      "exportDone": "Export terminé : {{count}} document(s) téléchargé(s).",
+      "exportNothing": "Aucun document n'est encore disponible à l'export. Générez d'abord vos livrables."
+    },
+    "status": {
+      "intro": "Voici où en est **{{name}}** :",
+      "ready": "✅ complet",
+      "partial": "🟡 {{ready}}/{{total}} sections rédigées",
+      "missing": "⚪ pas encore généré",
+      "openEditor": "📊 disponible dans l'éditeur",
+      "hint": "Demandez-moi un livrable pour voir le détail, ou ouvrez-le dans l'éditeur."
+    },
+    "chips": {
+      "downloadPdf": "Télécharger le PDF",
+      "openEditor": "Ouvrir dans l'éditeur",
+      "status": "Où en est mon projet ?",
+      "exportAll": "Tout exporter",
+      "show": {
+        "businessPlan": "Voir mon business plan",
+        "branding": "Voir mon image de marque",
+        "pitchDeck": "Voir mon pitch deck",
+        "diagrams": "Voir mes diagrammes",
+        "legalDocs": "Voir mes documents juridiques",
+        "finance": "Voir mon rapport financier"
+      }
+    },
+    "recap": {
+      "subtitle": "Récapitulatif de votre projet",
+      "fields": {
+        "type": "Type",
+        "targets": "Cible",
+        "scope": "Portée",
+        "teamSize": "Équipe",
+        "budget": "Budget"
+      },
+      "policies": {
+        "accept": "J'accepte la",
+        "privacy": "politique de confidentialité",
+        "terms": "conditions d'utilisation",
+        "beta": "J'ai compris que la plateforme est en version bêta",
+        "marketing": "J'accepte de recevoir des communications marketing (optionnel)"
+      },
+      "actions": {
+        "restart": "Recommencer",
+        "confirm": "Créer le projet"
+      }
+    },
+    "onboarding": {
+      "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
+      "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",
+      "questions": {
+        "description": "Décrivez votre idée en quelques phrases : que voulez-vous construire, et pour résoudre quel problème ?",
+        "name": "Très bien ! Quel **nom** voulez-vous donner à votre projet ?",
+        "type": "Parfait. Quel **type de projet** est-ce ?",
+        "targets": "Qui est votre **public cible** principal ?",
+        "scope": "Quelle est la **portée géographique** visée ?",
+        "teamSize": "Combien de personnes composent votre **équipe** ?",
+        "budget": "Quelle est votre **fourchette de budget** ?",
+        "recap": "Voici le récapitulatif de votre projet. Vérifiez les informations, acceptez les politiques puis confirmez la création. ✨"
+      },
+      "confirmHint": "Utilisez la carte ci-dessus pour confirmer la création du projet, ou cliquez sur « Recommencer ».",
+      "success": "🎉 Votre projet **{{name}}** est créé ! Vous pouvez maintenant générer vos livrables, me poser des questions ou suivre votre avancement — tout se passe ici.",
+      "errors": {
+        "descriptionTooShort": "Pouvez-vous m'en dire un peu plus ? Quelques phrases suffisent pour bien démarrer.",
+        "nameRequired": "Il me faut un nom pour votre projet. Lequel choisissez-vous ?",
+        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau."
+      },
+      "actions": {
+        "skip": "Passer cette question",
+        "skipped": "(question passée)"
+      },
+      "options": {
+        "type": {
+          "enterprise": "Création d'entreprise",
+          "web": "Application web",
+          "mobile": "Application mobile",
+          "iot": "IoT",
+          "desktop": "Application desktop",
+          "api": "API / Backend",
+          "ai": "IA / ML",
+          "blockchain": "Blockchain"
+        },
+        "targets": {
+          "business": "Entreprises",
+          "students": "Étudiants",
+          "general-public": "Grand public",
+          "government": "Administrations",
+          "healthcare": "Professionnels de santé"
+        },
+        "scope": {
+          "local": "Locale",
+          "departmental": "Départementale",
+          "regional": "Régionale",
+          "national": "Nationale",
+          "international": "Internationale"
+        },
+        "teamSize": {
+          "1": "Solo",
+          "2-5": "2 à 5 personnes",
+          "6-10": "6 à 10 personnes",
+          "10+": "Plus de 10 personnes"
+        },
+        "budget": {
+          "lt-5k": "Moins de 5 000 €",
+          "5k-20k": "5 000 € à 20 000 €",
+          "20k-50k": "20 000 € à 50 000 €",
+          "gt-50k": "Plus de 50 000 €"
+        }
+      }
+    },
+    "branding": {
+      "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
+      "importRedirect": "Très bien — l'import de logo s'ouvre dans l'éditeur. Vous pourrez revenir au mode Chat ensuite.",
+      "laterOk": "Pas de souci, on pourra y revenir quand vous voulez. Dites simplement « complète mon identité de marque ».",
+      "generatingPalettes": "Je prépare des propositions de **couleurs et de typographies** adaptées à votre projet… ⏳",
+      "choosePalette": "Voici mes propositions de palettes. Laquelle vous ressemble le plus ?",
+      "chooseTypography": "Très bon choix ! 🎨 Maintenant, choisissez votre **typographie** :",
+      "chooseLogoType": "Parfait. Quel **style de logo** imaginez-vous ?",
+      "describeLogo": "Décrivez en quelques mots le logo que vous imaginez — formes, ambiance, symboles… (optionnel)",
+      "generatingLogos": "Je génère vos **concepts de logos**… Cela peut prendre une minute. ⏳",
+      "chooseLogo": "Voici vos concepts de logos. Lequel choisissez-vous ?",
+      "complete": "🎉 Votre **identité de marque est complète** ! Logo, couleurs et typographie sont enregistrés. Vous pouvez générer les variations du logo dans l'éditeur, ou passer à la suite.",
+      "alreadyComplete": "Votre identité de marque est déjà complète. La voici :",
+      "thisPalette": "Cette palette",
+      "thisTypography": "Cette typographie",
+      "thisLogo": "Ce logo",
+      "logoTypes": {
+        "icon": "Icône / symbole",
+        "name": "Nom stylisé",
+        "initial": "Initiales"
+      },
+      "chips": {
+        "ai": "Générer avec l'IA",
+        "import": "Importer mon logo",
+        "later": "Plus tard",
+        "retry": "Réessayer",
+        "complete": "Compléter mon identité de marque",
+        "skipDescription": "Passer",
+        "variationsEditor": "Variations du logo (éditeur)"
+      },
+      "cards": {
+        "colorsTitle": "Palettes de couleurs",
+        "colorsSubtitle": "Cliquez pour choisir votre palette",
+        "typographyTitle": "Typographies",
+        "typographySubtitle": "Cliquez pour choisir votre duo de polices",
+        "logosTitle": "Concepts de logos",
+        "logosSubtitle": "Cliquez pour choisir votre logo"
+      },
+      "errors": {
+        "generation": "La génération a échoué. On réessaie ?",
+        "save": "Impossible d'enregistrer votre choix. Réessayez."
+      }
+    },
+    "banner": {
+      "title": "Complétez votre identité de marque",
+      "missing": "Il manque :",
+      "cta": "Compléter maintenant"
     }
   }
 }

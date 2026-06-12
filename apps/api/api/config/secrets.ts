@@ -127,8 +127,6 @@ function loadFromDotenv(): void {
 }
 
 async function loadFromSecretManager(): Promise<void> {
-  // Lazy import so dev installs do not require the GCP SDK
-
   const { SecretManagerServiceClient } = await import('@google-cloud/secret-manager');
   const projectId =
     process.env.GCP_PROJECT_ID ||

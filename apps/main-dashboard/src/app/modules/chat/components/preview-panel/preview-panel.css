@@ -1,0 +1,14 @@
+.preview-panel-slide {
+  animation: preview-slide-in 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@keyframes preview-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

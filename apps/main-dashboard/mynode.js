@@ -50,6 +50,7 @@ export const environment = {
     },
     diagen: {
       url: '${process.env.SERVICES_DIAGEN_URL || process.env.DIAGEN_URL || (isProduction ? 'https://diagen.idem.africa' : 'http://localhost:3004')}',
+
     },
   },
 };

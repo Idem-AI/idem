@@ -11,6 +11,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, Subject } from 'rxjs';
 import { filter, startWith, map, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { DashboardLayoutComponent } from './layouts/dashboard-layout/dashboard-layout';
+import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
 
 @Component({
   selector: 'app-root',
@@ -21,6 +22,7 @@ import { DashboardLayoutComponent } from './layouts/dashboard-layout/dashboard-l
     NotificationContainerComponent,
     QuotaWarningComponent,
     DashboardLayoutComponent,
+    ChatLayoutComponent,
     AsyncPipe,
   ],
   templateUrl: './app.html',
@@ -41,22 +43,27 @@ export class App implements OnInit {
   protected readonly isInitialLoading = signal(true);
 
   /** Layout courant selon la route active */
-  protected readonly currentLayout$: Observable<'public' | 'dashboard' | 'global' | 'empty'> =
-    this.router.events.pipe(
-      filter((event) => event instanceof NavigationEnd),
-      startWith(null),
-      map(() => {
-        let route = this.activatedRoute.firstChild;
-        while (route?.firstChild) {
-          route = route.firstChild;
-        }
-        return (
-          (route?.snapshot.data?.['layout'] as 'public' | 'dashboard' | 'global' | 'empty') ||
-          'public'
-        );
-      }),
-      distinctUntilChanged(),
-    );
+  protected readonly currentLayout$: Observable<
+    'public' | 'dashboard' | 'global' | 'empty' | 'chat'
+  > = this.router.events.pipe(
+    filter((event) => event instanceof NavigationEnd),
+    startWith(null),
+    map(() => {
+      let route = this.activatedRoute.firstChild;
+      while (route?.firstChild) {
+        route = route.firstChild;
+      }
+      return (
+        (route?.snapshot.data?.['layout'] as
+          | 'public'
+          | 'dashboard'
+          | 'global'
+          | 'empty'
+          | 'chat') || 'public'
+      );
+    }),
+    distinctUntilChanged(),
+  );
 
   ngOnInit(): void {
     // Force dark mode only - prevent light mode

@@ -36,6 +36,7 @@ import {
   QuotaStatus,
 } from '../../../../shared/models/quota.model';
 import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/components/language-selector/language-selector';
+import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-toggle';
 
 @Component({
   selector: 'app-sidebar-dashboard',
@@ -50,6 +51,7 @@ import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/co
     QuotaDisplayComponent,
     TranslateModule,
     LanguageSelectorComponent,
+    ModeToggleComponent,
   ],
   animations: [
     trigger('slideInOut', [
