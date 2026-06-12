@@ -25,13 +25,21 @@ import {
   BetaRestrictions,
   QuotaStatus,
 } from '../../../../shared/models/quota.model';
+import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-toggle';
 
 @Component({
   selector: 'app-sidebar-global',
   templateUrl: './sidebar-global.html',
   styleUrls: ['./sidebar-global.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, BetaBadgeComponent, QuotaDisplayComponent, TranslateModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    BetaBadgeComponent,
+    QuotaDisplayComponent,
+    TranslateModule,
+    ModeToggleComponent,
+  ],
   animations: [
     trigger('slideInOut', [
       transition(':enter', [

@@ -1,0 +1,46 @@
+@if (collapsed()) {
+  <!-- Variante repliée : un seul bouton qui bascule vers l'autre mode -->
+  <button
+    type="button"
+    (click)="toggle()"
+    class="w-8 h-8 mx-auto flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-primary/40 hover:bg-primary/10 transition-all duration-200"
+    [title]="(current() === 'chat' ? 'chat.modeToggle.advanced' : 'chat.modeToggle.chat') | translate"
+  >
+    <i class="pi text-sm" [class]="current() === 'chat' ? 'pi pi-table' : 'pi pi-comments'"></i>
+  </button>
+} @else {
+  <div
+    class="flex items-center p-1 rounded-xl bg-white/5 border border-white/10 text-xs font-medium select-none"
+    role="group"
+    [attr.aria-label]="'chat.modeToggle.label' | translate"
+  >
+    <button
+      type="button"
+      (click)="switchTo('chat')"
+      class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+      [class.bg-primary]="current() === 'chat'"
+      [class.text-white]="current() === 'chat'"
+      [class.shadow-lg]="current() === 'chat'"
+      [class.shadow-primary/30]="current() === 'chat'"
+      [class.text-gray-400]="current() !== 'chat'"
+      [class.hover:text-white]="current() !== 'chat'"
+    >
+      <i class="pi pi-comments text-[11px]"></i>
+      <span>{{ 'chat.modeToggle.chat' | translate }}</span>
+    </button>
+    <button
+      type="button"
+      (click)="switchTo('advanced')"
+      class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+      [class.bg-primary]="current() === 'advanced'"
+      [class.text-white]="current() === 'advanced'"
+      [class.shadow-lg]="current() === 'advanced'"
+      [class.shadow-primary/30]="current() === 'advanced'"
+      [class.text-gray-400]="current() !== 'advanced'"
+      [class.hover:text-white]="current() !== 'advanced'"
+    >
+      <i class="pi pi-table text-[11px]"></i>
+      <span>{{ 'chat.modeToggle.advanced' | translate }}</span>
+    </button>
+  </div>
+}

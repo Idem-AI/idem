@@ -1,0 +1,49 @@
+<div
+  class="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20"
+>
+  <div class="flex items-center gap-3 p-4 border-b border-white/5">
+    <div
+      class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
+    >
+      <i class="pi pi-sparkles text-primary text-lg"></i>
+    </div>
+    <div class="min-w-0">
+      <h4 class="text-sm font-semibold text-white">
+        {{ 'chat.branding.cards.logosTitle' | translate }}
+      </h4>
+      <p class="text-[11px] text-gray-500">
+        {{ 'chat.branding.cards.logosSubtitle' | translate }}
+      </p>
+    </div>
+  </div>
+
+  <div class="p-3 grid grid-cols-2 gap-2">
+    @for (option of options(); track option.id) {
+      <button
+        type="button"
+        (click)="pick(option)"
+        [disabled]="disabled() || (!!selectedId() && selectedId() !== option.id)"
+        class="relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        [class.border-primary]="selectedId() === option.id"
+        [class.bg-primary/10]="selectedId() === option.id"
+        [class.border-white/10]="selectedId() !== option.id"
+        [class.hover:border-primary/40]="!selectedId() && !disabled()"
+        [class.hover:bg-white/5]="!selectedId() && !disabled()"
+      >
+        <span
+          class="w-full h-20 flex items-center justify-center rounded-lg bg-white/90 overflow-hidden logo-preview"
+        >
+          @if (isInlineSvg(option)) {
+            <span class="logo-svg" [innerHTML]="option.svg | safeHtml"></span>
+          } @else if (option.svg) {
+            <img [src]="option.svg" [alt]="option.name" class="max-h-16 max-w-full object-contain" />
+          }
+        </span>
+        <span class="text-[11px] text-gray-300 truncate w-full text-center">{{ option.name }}</span>
+        @if (selectedId() === option.id) {
+          <i class="pi pi-check-circle text-primary text-sm absolute top-2 right-2"></i>
+        }
+      </button>
+    }
+  </div>
+</div>

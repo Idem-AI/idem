@@ -1,0 +1,6 @@
+/* Styles propres à la page chat (l'encapsulation est désactivée :
+   préfixer toutes les règles par .chat-home-page) */
+
+.chat-home-page textarea {
+  flex: 1;
+}
