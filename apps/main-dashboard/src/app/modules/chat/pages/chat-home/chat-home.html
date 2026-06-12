@@ -64,8 +64,34 @@
                     [busy]="cardBusy()"
                     (previewRequested)="openPreview(card.kind)"
                     (downloadRequested)="downloadFromCard(card.kind)"
-                    (generateRequested)="openGenerate(card.generateRoute, card.editorRoute)"
+                    (generateRequested)="openGenerateFor(card)"
                     (editorRequested)="openEditor(card.editorRoute)"
+                  />
+                }
+
+                <!-- Cartes de sélection branding (palettes, typographies, logos) -->
+                @if (msg.colorOptions; as colorOptions) {
+                  <app-color-options-card
+                    [options]="colorOptions"
+                    [selectedId]="msg.selectedOptionId ?? null"
+                    [disabled]="brandingBusy() || pendingAssistant()"
+                    (picked)="onColorPicked(msg.id, $event)"
+                  />
+                }
+                @if (msg.typographyOptions; as typographyOptions) {
+                  <app-typography-options-card
+                    [options]="typographyOptions"
+                    [selectedId]="msg.selectedOptionId ?? null"
+                    [disabled]="brandingBusy() || pendingAssistant()"
+                    (picked)="onTypographyPicked(msg.id, $event)"
+                  />
+                }
+                @if (msg.logoOptions; as logoOptions) {
+                  <app-logo-options-card
+                    [options]="logoOptions"
+                    [selectedId]="msg.selectedOptionId ?? null"
+                    [disabled]="brandingBusy() || pendingAssistant()"
+                    (picked)="onLogoPicked(msg.id, $event)"
                   />
                 }
 

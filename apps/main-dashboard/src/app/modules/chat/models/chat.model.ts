@@ -2,6 +2,8 @@
  * Modèles du mode Chat (dual-mode UI).
  * Tout est additif : aucun modèle existant n'est modifié.
  */
+import { ColorModel, TypographyModel } from '../../dashboard/models/brand-identity.model';
+import { LogoModel } from '../../dashboard/models/logo.model';
 
 /** Mode d'interface : 'advanced' = dashboard classique, 'chat' = interface conversationnelle */
 export type UiMode = 'advanced' | 'chat';
@@ -52,7 +54,13 @@ export type ChatChipAction =
   | 'status'
   | 'answer'
   | 'skip'
-  | 'new-project';
+  | 'new-project'
+  | 'branding-start'
+  | 'branding-ai'
+  | 'branding-import'
+  | 'branding-later'
+  | 'branding-logo-type'
+  | 'branding-skip-description';
 
 export interface ChatChip {
   /** Clé i18n du label (prioritaire sur label) */
@@ -86,6 +94,12 @@ export interface ChatMessageModel {
   recap?: OnboardingRecapData;
   /** Suggestions rapides affichées sous le message (uniquement le dernier message assistant) */
   chips?: ChatChip[];
+  /** Cartes de sélection du flux branding conversationnel */
+  colorOptions?: ColorModel[];
+  typographyOptions?: TypographyModel[];
+  logoOptions?: LogoModel[];
+  /** Option choisie dans une carte de sélection (fige la carte) */
+  selectedOptionId?: string;
 }
 
 /** Étapes de l'onboarding conversationnel */

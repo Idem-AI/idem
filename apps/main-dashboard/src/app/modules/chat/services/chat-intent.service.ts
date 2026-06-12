@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DeliverableKind } from '../models/chat.model';
 
-export type ChatIntentType = 'show' | 'download' | 'status' | 'export-all';
+export type ChatIntentType = 'show' | 'download' | 'status' | 'export-all' | 'complete-branding';
 
 export interface ChatIntent {
   type: ChatIntentType;
@@ -32,6 +32,8 @@ const STATUS_PATTERN =
   /o[ùu] en (est|sommes|suis)|statut|status|avancement|progression|progress\b|r[ée]sum[ée] (du|de mon) projet|project (status|summary)|qu'est-ce qui (manque|reste)/i;
 const EXPORT_ALL_PATTERN =
   /tout (exporter|t[ée]l[ée]charger)|exporte(r)? tout|t[ée]l[ée]charge(r)? tout|export all|download (all|everything)/i;
+const COMPLETE_BRANDING_PATTERN =
+  /compl[ée]te(r|z)?\s+(mon|ma|l['’]|mon\s+)?\s*(identit[ée]|marque|branding)|(finir|terminer|finaliser)\s+(mon|ma|l['’])?\s*(identit[ée]|marque|branding)|complete\s+(my\s+)?brand/i;
 
 /**
  * Détection locale des intentions du chat : afficher/télécharger un livrable,
@@ -46,6 +48,10 @@ export class ChatIntentService {
 
     if (EXPORT_ALL_PATTERN.test(text)) {
       return { type: 'export-all' };
+    }
+
+    if (COMPLETE_BRANDING_PATTERN.test(text)) {
+      return { type: 'complete-branding' };
     }
 
     const kind = KIND_PATTERNS.find((entry) => entry.pattern.test(text))?.kind;
