@@ -94,7 +94,8 @@
       "downloadStarted": "Le téléchargement de votre {{title}} est lancé. 📄",
       "downloadUnavailable": "Le PDF de votre {{title}} n'est pas encore disponible. Il faut d'abord le générer :",
       "exportDone": "Export terminé : {{count}} document(s) téléchargé(s).",
-      "exportNothing": "Aucun document n'est encore disponible à l'export. Générez d'abord vos livrables."
+      "exportNothing": "Aucun document n'est encore disponible à l'export. Générez d'abord vos livrables.",
+      "openGenerator": "J'ouvre l'éditeur de génération pour votre {{title}}."
     },
     "status": {
       "intro": "Voici où en est **{{name}}** :",
@@ -111,11 +112,63 @@
       "exportAll": "Tout exporter",
       "show": {
         "businessPlan": "Voir mon business plan",
-        "branding": "Voir mon image de marque",
+        "branding": "Voir ma charte graphique",
         "pitchDeck": "Voir mon pitch deck",
         "diagrams": "Voir mes diagrammes",
         "legalDocs": "Voir mes documents juridiques",
         "finance": "Voir mon rapport financier"
+      },
+      "generate": {
+        "businessPlan": "Rédiger mon business plan",
+        "branding": "Générer ma charte graphique",
+        "pitchDeck": "Générer mon pitch deck",
+        "diagrams": "Générer mes diagrammes",
+        "legalDocs": "Créer mes documents juridiques",
+        "finance": "Compléter mes finances"
+      }
+    },
+    "bp": {
+      "intro": "Très bien, rédigeons votre **business plan** ! Pour un résultat plus complet, je peux y intégrer vos informations de contact et d'équipe. Comment voulez-vous les fournir ?",
+      "formIntro": "Remplissez ce mini-formulaire — seuls les champs renseignés seront utilisés :",
+      "freeTextPrompt": "Écrivez vos informations librement (équipe, rôles, contact…) et je les structurerai. Par exemple : *« Nous sommes deux : Alice (CEO) et Bob (CTO). Contact : hello@start.up, +237 6 12 34 56 78, Douala, Cameroun. »*",
+      "parsedSummary": "Voici ce que j'ai compris :",
+      "parseFailed": "Je n'ai pas réussi à structurer ces informations. Réessayez avec le formulaire, ou générez sans ces infos.",
+      "chips": {
+        "fillForm": "Remplir le formulaire",
+        "freeText": "Écrire en texte libre",
+        "skipInfos": "Générer sans ces infos",
+        "generateNow": "C'est bon, lance la génération",
+        "fixForm": "Corriger via le formulaire"
+      }
+    },
+    "infoForm": {
+      "title": "Informations supplémentaires",
+      "subtitle": "Contact et équipe pour le business plan",
+      "email": "Email",
+      "phone": "Téléphone",
+      "city": "Ville",
+      "country": "Pays",
+      "address": "Adresse",
+      "team": "Équipe",
+      "memberName": "Nom",
+      "memberRole": "Rôle (ex. CEO)",
+      "memberEmail": "Email (optionnel)",
+      "addMember": "Ajouter un membre",
+      "removeMember": "Retirer ce membre",
+      "submit": "Valider et générer",
+      "skip": "Passer",
+      "submitted": "Informations enregistrées",
+      "submittedAs": "J'ai rempli le formulaire d'informations",
+      "contact": "Contact"
+    },
+    "generation": {
+      "start": "C'est parti ! Je prépare votre {{title}}… ⏳",
+      "inProgress": "Génération de votre {{title}} en cours",
+      "done": "✅ Votre {{title}} est prêt !",
+      "failed": "❌ La génération de votre {{title}} a échoué.",
+      "retryHint": "Voulez-vous réessayer ?",
+      "chips": {
+        "retry": "Réessayer la génération"
       }
     },
     "recap": {
@@ -155,7 +208,10 @@
       "describeLogo": "Décrivez en quelques mots le logo que vous imaginez — formes, ambiance, symboles… (optionnel)",
       "generatingLogos": "Je génère vos **concepts de logos**… Cela peut prendre une minute. ⏳",
       "chooseLogo": "Voici vos concepts de logos. Lequel choisissez-vous ?",
-      "complete": "🎉 Votre **identité de marque est complète** ! Logo, couleurs et typographie sont enregistrés. Vous pouvez générer les variations du logo dans l'éditeur, ou passer à la suite.",
+      "generatingVariations": "Beau choix ! Je génère maintenant les **déclinaisons de votre logo** (fond clair, fond sombre, monochrome)… ⏳",
+      "zipStarted": "Le téléchargement de vos logos (ZIP) est lancé. 📦",
+      "zipUnavailable": "Le pack de logos n'est pas encore disponible.",
+      "complete": "🎉 Votre **identité de marque est complète** ! Logo, déclinaisons, couleurs et typographie sont enregistrés. Prochaine étape : générer votre charte graphique.",
       "alreadyComplete": "Votre identité de marque est déjà complète. La voici :",
       "thisPalette": "Cette palette",
       "thisTypography": "Cette typographie",
@@ -172,7 +228,8 @@
         "retry": "Réessayer",
         "complete": "Compléter mon identité de marque",
         "skipDescription": "Passer",
-        "variationsEditor": "Variations du logo (éditeur)"
+        "variationsEditor": "Variations du logo (éditeur)",
+        "downloadZip": "Télécharger mes logos (ZIP)"
       },
       "cards": {
         "colorsTitle": "Palettes de couleurs",

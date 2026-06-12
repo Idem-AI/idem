@@ -1,7 +1,13 @@
 import { Injectable } from '@angular/core';
 import { DeliverableKind } from '../models/chat.model';
 
-export type ChatIntentType = 'show' | 'download' | 'status' | 'export-all' | 'complete-branding';
+export type ChatIntentType =
+  | 'show'
+  | 'download'
+  | 'status'
+  | 'export-all'
+  | 'complete-branding'
+  | 'generate';
 
 export interface ChatIntent {
   type: ChatIntentType;
@@ -28,6 +34,7 @@ const KIND_PATTERNS: Array<{ kind: DeliverableKind; pattern: RegExp }> = [
 
 const SHOW_VERBS = /montre|affiche|voir|ouvr(e|ir)|consulter?|regarde|pr[ée]sente|show|display|open|view|see\b/i;
 const DOWNLOAD_VERBS = /t[ée]l[ée]charge(r|z)?|\bdownload\b|exporte(r|z)?\b(?!.*notion)|\bpdf\b|\bexport\b(?!.*all)/i;
+const GENERATE_VERBS = /g[ée]n[èe]re(r|z)?|cr[ée]e(r|z)?|r[ée]dige(r|z)?|fais(-moi)?|produis|generate|create|write|draft/i;
 const STATUS_PATTERN =
   /o[ùu] en (est|sommes|suis)|statut|status|avancement|progression|progress\b|r[ée]sum[ée] (du|de mon) projet|project (status|summary)|qu'est-ce qui (manque|reste)/i;
 const EXPORT_ALL_PATTERN =
@@ -59,6 +66,9 @@ export class ChatIntentService {
     if (kind) {
       if (DOWNLOAD_VERBS.test(text)) {
         return { type: 'download', kind };
+      }
+      if (GENERATE_VERBS.test(text)) {
+        return { type: 'generate', kind };
       }
       // Verbe d'affichage explicite, ou message court qui ne fait que nommer
       // le livrable ("mon business plan ?") : on affiche la carte.

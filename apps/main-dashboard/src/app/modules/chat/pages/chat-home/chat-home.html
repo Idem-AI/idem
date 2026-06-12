@@ -108,6 +108,16 @@
                   />
                 }
 
+                <!-- Mini-formulaire d'infos supplémentaires (business plan) -->
+                @if (msg.infoForm) {
+                  <app-info-form-card
+                    [submitted]="msg.selectedOptionId === 'submitted'"
+                    [busy]="pendingAssistant() || isGenerating()"
+                    (infosSubmitted)="onInfoFormSubmitted(msg.id, $event)"
+                    (skipped)="onInfoFormSkipped(msg.id)"
+                  />
+                }
+
                 <!-- Carte récapitulative (onboarding) -->
                 @if (msg.recap; as recap) {
                   <app-recap-card
