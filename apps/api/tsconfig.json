@@ -116,5 +116,5 @@
     "skipLibCheck": true
   },
   "include": ["api/**/*"],
-  "files": ["api/types/potrace.d.ts"]
+  "files": ["api/types/potrace.d.ts", "api/types/uuid.d.ts"]
 }
