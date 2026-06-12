@@ -167,6 +167,10 @@
       "inProgress": "Generating your {{title}}",
       "done": "✅ Your {{title}} is ready!",
       "failed": "❌ Generating your {{title}} failed.",
+      "cardRunning": "Generating your {{title}}",
+      "cardDone": "Your {{title}} is ready",
+      "cardError": "Generating your {{title}} failed",
+      "steps": "{{done}}/{{total}} steps completed",
       "retryHint": "Would you like to retry?",
       "chips": {
         "retry": "Retry generation"
@@ -212,6 +216,17 @@
       "generatingVariations": "Great pick! Now generating your **logo variations** (light background, dark background, monochrome)… ⏳",
       "zipStarted": "Your logos (ZIP) download has started. 📦",
       "zipUnavailable": "The logo pack is not available yet.",
+      "charteExists": "Your **brand guidelines** have already been generated. ✨ What would you like to do with them?",
+      "format": {
+        "title": "Brand guidelines format",
+        "subtitle": "Click to choose the document format",
+        "question": "In which **format** do you want your brand guidelines?",
+        "portrait": "Portrait (A4)",
+        "landscape": "Landscape (16:9)",
+        "hint": "Pick a format to continue",
+        "cancel": "Cancel",
+        "cancelledOk": "No problem, cancelled. Tell me whenever you want to generate your guidelines."
+      },
       "complete": "🎉 Your **brand identity is complete**! Logo, variations, colors and typography are saved. Next step: generate your brand guidelines.",
       "alreadyComplete": "Your brand identity is already complete. Here it is:",
       "thisPalette": "This palette",
@@ -230,7 +245,8 @@
         "complete": "Complete my brand identity",
         "skipDescription": "Skip",
         "variationsEditor": "Logo variations (editor)",
-        "downloadZip": "Download my logos (ZIP)"
+        "downloadZip": "Download my logos (ZIP)",
+        "regenerate": "Regenerate guidelines"
       },
       "cards": {
         "colorsTitle": "Color palettes",
