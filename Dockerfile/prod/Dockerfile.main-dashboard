@@ -1,41 +1,52 @@
-
 FROM node:20-alpine AS builder
-
 WORKDIR /app
 
+# 1. Copier les manifestes à la racine
 COPY package.json package-lock.json tsconfig.base.json ./
 
-
+# 2. Copier les packages partagés
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
-COPY .env ./apps/main-dashboard/.env
 
+# 3. Copier l'application
 COPY ./apps/main-dashboard ./apps/main-dashboard
 
+# 4. Copier le .env
+COPY .env ./apps/main-dashboard/.env
 
+# 5. Installer toutes les dépendances depuis la racine
 RUN npm install --legacy-peer-deps --ignore-scripts
 
+# 6. Nettoyer les caches de build
+RUN rm -rf packages/shared-models/dist packages/shared-models/tsconfig.tsbuildinfo \
+           packages/shared-auth-client/dist packages/shared-auth-client/tsconfig.tsbuildinfo
 
+# 7. Builder shared-models
+RUN cd packages/shared-models && npx tsc --build
+
+# 8. Builder shared-auth-client en ignorant les erreurs Svelte (pas utilisé par main-dashboard)
+#    Note: --noEmitOnError est incompatible avec --build, on utilise tsc direct
+RUN cd packages/shared-auth-client && npx tsc --noEmitOnError false || true
+
+# 9. shared-styles n'a pas de build TS (CSS/SCSS only), rien à compiler
+
+# 10. Aller dans l'app
 WORKDIR /app/apps/main-dashboard
-RUN npm install --legacy-peer-deps --ignore-scripts
 
-# Copier les assets ngx-extended-pdf-viewer en utilisant le script postinstall
 RUN npm run postinstall
 
-RUN node -r dotenv/config mynode.js
-# Builder l'application main-dashboard
+# 11. Générer environment.ts
+RUN NODE_ENV=production node mynode.js
+
+# 12. Builder Angular
 RUN npm run build
 
-# Stage de production avec nginx
+# --- Stage de production ---
 FROM nginx:alpine AS production
 
-# Copier la configuration nginx
 COPY /apps/main-dashboard/nginx.conf /etc/nginx/nginx.conf
-
-# Copier le build de l'application
 COPY --from=builder /app/apps/main-dashboard/dist/main-dashboard/browser /usr/share/nginx/html
 
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]

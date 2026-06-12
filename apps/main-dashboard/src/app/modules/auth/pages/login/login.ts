@@ -27,9 +27,13 @@ export class Login implements OnInit {
   // Get waitlist form URL from environment
   protected readonly waitlistFormUrl = signal(environment.waitlistUrl);
   private redirectTarget: string | null = null;
+  private returnUrl: string | null = null;
+  private from: string | null = null;
 
   ngOnInit(): void {
     this.redirectTarget = this.route.snapshot.queryParamMap.get('redirect');
+    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    this.from = this.route.snapshot.queryParamMap.get('from');
     this.setupSeo();
   }
 
@@ -87,6 +91,22 @@ export class Login implements OnInit {
       if (this.redirectTarget === 'ideploy') {
         await this.handleIdeployRedirect();
         return;
+      }
+
+      // Check if we need to redirect to AppGen (webgen)
+      if (this.from === 'appgen' && this.returnUrl) {
+        const appgenUrl = environment.services.webgen.url;
+        const isDev = environment.environment === 'dev';
+        const isValidRedirect = this.returnUrl.startsWith(appgenUrl) || 
+                               (isDev && this.returnUrl.startsWith('http://localhost:5173'));
+        
+        if (isValidRedirect) {
+          console.log('Redirecting back to AppGen:', this.returnUrl);
+          window.location.href = this.returnUrl;
+          return;
+        } else {
+          console.warn('Blocked redirect to untrusted returnUrl:', this.returnUrl);
+        }
       }
 
       // Default: navigate to console
