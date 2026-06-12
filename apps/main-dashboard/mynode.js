@@ -58,17 +58,17 @@ export const environment = {
   services: {
     domain: '${process.env.SERVICES_DOMAIN || 'https://idem.africa'}',
     api: {
-      url: '${process.env.SERVICES_API_URL || (isProduction ? 'https://api.idem.africa' : 'https://api.idem.africa')}',
+      url: '${process.env.SERVICES_API_URL || (isProduction ? 'https://api.idem.africa' : 'http://localhost:3010')}',
     },
     ideploy: {
-      url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://ideploy.idem.africa' : 'https://ideploy.idem.africa')}',
+      url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://ideploy.idem.africa' : 'http://localhost:8000')}',
       apiToken: '${process.env.IDEPLOY_API_TOKEN}',
     },
     webgen: {
-      url: '${process.env.SERVICES_WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'https://webgen.idem.africa')}',
+      url: '${process.env.SERVICES_WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:3003')}',
     },
     diagen: {
-      url: '${process.env.SERVICES_DIAGEN_URL || (isProduction ? 'https://diagen.idem.africa' : 'https://diagen.idem.africa')}',
+      url: '${process.env.SERVICES_DIAGEN_URL || (isProduction ? 'https://diagen.idem.africa' : 'http://localhost:3004')}',
     },
   },
 };
@@ -81,11 +81,12 @@ if (!fs.existsSync(envDir)) {
   fs.mkdirSync(envDir, { recursive: true });
   console.log(`📁 Created directory: ${envDir}`);
 }
-
 // Définir le chemin du fichier de sortie
 const targetFileName = 'environment.ts';
 const targetPath = path.join(envDir, targetFileName);
 
-// Écrire le fichier (toujours écraser pour garantir la synchronisation avec .env)
-fs.writeFileSync(targetPath, envFileContent, 'utf8');
-console.log(`✅ Fichier ${targetFileName} généré avec succès depuis ${envFile}`);
+// Écrire environment.development.ts (requis par angular.json fileReplacements en mode dev)
+if (!isProduction) {
+  fs.writeFileSync(path.join(envDir, 'environment.development.ts'), envFileContent, 'utf8');
+  console.log(`✅ Fichier environment.development.ts généré avec succès depuis ${envFile}`);
+}
