@@ -8,6 +8,26 @@ import { LogoModel } from '../../dashboard/models/logo.model';
 /** Mode d'interface : 'advanced' = dashboard classique, 'chat' = interface conversationnelle */
 export type UiMode = 'advanced' | 'chat';
 
+/** Catégories de rangement intelligent des conversations dans la sidebar */
+export type ChatConversationCategory =
+  | 'business'
+  | 'marketing'
+  | 'finance'
+  | 'legal'
+  | 'branding'
+  | 'tech'
+  | 'general';
+
+/** Métadonnées d'une conversation (plusieurs conversations par projet) */
+export interface ChatConversationMeta {
+  id: string;
+  /** Titre dérivé du premier message utilisateur ('' tant que vide) */
+  title: string;
+  category: ChatConversationCategory;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Livrables affichables sous forme de carte dans le chat */
 export type DeliverableKind =
   | 'businessPlan'
