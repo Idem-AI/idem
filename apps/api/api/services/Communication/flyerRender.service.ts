@@ -68,7 +68,7 @@ export class FlyerRenderService {
    * @param innerHtml  Single-line Tailwind HTML produced by the flyer agent.
    *                   The outer container size MUST match `format`.
    * @param format     Flyer format (drives canvas size).
-   * @param meta       userId / projectId / flyerId for storage path.
+   * @param typography Optional font configuration.
    */
   async renderFlyerToPng(
     innerHtml: string,
@@ -88,7 +88,10 @@ export class FlyerRenderService {
         height: dims.height,
         deviceScaleFactor: dims.deviceScaleFactor,
       });
-      await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+
+      // Fix TS2322: 'networkidle0' a été retiré des types Puppeteer récents.
+      // On utilise 'load' puis on attend manuellement les images ci-dessous.
+      await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
 
       // Wait for any <img> to finish loading so the screenshot is complete.
       await page.evaluate(() => {

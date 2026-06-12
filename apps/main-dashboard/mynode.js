@@ -1,15 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-// Déterminer l'environnement (production ou development)
+
 const isProduction = process.env.NODE_ENV === 'production';
-const envFile = isProduction ? '.env' : '.env';
+const envFile = '.env';
 const envPath = path.join(__dirname, envFile);
 
-// Charger les variables d'environnement depuis le bon fichier
-require('dotenv').config({ path: envPath });
-
-// Vérifier que le fichier .env existe
+// Vérifier que le fichier .env existe AVANT de charger dotenv
 if (!fs.existsSync(envPath)) {
   console.error(`\n❌ Fichier ${envFile} introuvable!`);
   console.error(`📝 Copiez ${envFile}.example vers ${envFile} et remplissez les valeurs.\n`);
@@ -18,6 +15,9 @@ if (!fs.existsSync(envPath)) {
   console.error(`  nano ${envFile}\n`);
   process.exit(1);
 }
+
+
+require('dotenv').config({ path: envPath });
 
 // Variables requises
 const requiredVars = [
@@ -28,7 +28,7 @@ const requiredVars = [
   'IDEPLOY_API_TOKEN'
 ];
 
-// Vérifier que toutes les variables requises sont présentes et configurées
+// Vérifier que toutes les variables requises sont présentes
 const missing = requiredVars.filter(v => !process.env[v] || process.env[v].includes('your_'));
 if (missing.length > 0) {
   console.error(`\n❌ Variables d'environnement manquantes ou non configurées:`);
@@ -41,7 +41,6 @@ if (missing.length > 0) {
 const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
 // Ce fichier est généré depuis ${envFile} par mynode.js
 // Pour modifier la configuration, éditez ${envFile} puis relancez: npm run env:${isProduction ? 'prod' : 'dev'}
-
 export const environment = {
   environment: '${isProduction ? 'prod' : 'dev'}',
   isBeta: ${process.env.IS_BETA || 'true'},
@@ -75,7 +74,6 @@ export const environment = {
 };
 `;
 
-// Définir le chemin du dossier
 const envDir = path.join(__dirname, './src/environments');
 
 // Vérifier et créer le dossier s'il n'existe pas
@@ -83,10 +81,9 @@ if (!fs.existsSync(envDir)) {
   fs.mkdirSync(envDir, { recursive: true });
   console.log(`📁 Created directory: ${envDir}`);
 }
-
-// Écrire environment.ts (base)
-fs.writeFileSync(path.join(envDir, 'environment.ts'), envFileContent, 'utf8');
-console.log(`✅ Fichier environment.ts généré avec succès depuis ${envFile}`);
+// Définir le chemin du fichier de sortie
+const targetFileName = 'environment.ts';
+const targetPath = path.join(envDir, targetFileName);
 
 // Écrire environment.development.ts (requis par angular.json fileReplacements en mode dev)
 if (!isProduction) {

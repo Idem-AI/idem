@@ -41,6 +41,16 @@ function requireProjectId(req: CustomRequest, res: Response): string | null {
   return projectId;
 }
 
+/**
+ * Normalise une valeur de req.query en string simple.
+ * req.query peut renvoyer string | string[] | ParsedQs | ParsedQs[].
+ */
+function queryString(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value) && typeof value[0] === 'string') return value[0] as string;
+  return undefined;
+}
+
 // ---------------------------------------------------------------------------
 // GET /project/communication/:projectId
 // ---------------------------------------------------------------------------
@@ -137,8 +147,10 @@ export const generateCalendarStreamController = async (
 
   openSseStream(res);
   const force = req.query.force === 'true';
-  const rhythm = (req.query.rhythm as 'weekly' | 'biweekly' | 'monthly' | undefined) || 'weekly';
-  const horizonWeeksParam = req.query.horizonWeeks ? Number(req.query.horizonWeeks) : 4;
+  // Fix: utiliser queryString() pour normaliser req.query.rhythm
+  const rhythm = (queryString(req.query.rhythm) as 'weekly' | 'biweekly' | 'monthly' | undefined) || 'weekly';
+  const horizonWeeksRaw = queryString(req.query.horizonWeeks);
+  const horizonWeeksParam = horizonWeeksRaw ? Number(horizonWeeksRaw) : 4;
   const horizonWeeks = Number.isFinite(horizonWeeksParam)
     ? Math.min(Math.max(horizonWeeksParam, 1), 12)
     : 4;
@@ -238,7 +250,8 @@ export const generateFlyerController = async (
     return;
   }
 
-  const format = (req.body?.format || req.query.format || 'square') as FlyerFormat;
+  // Fix: normaliser req.query.format avant de le caster
+  const format = (req.body?.format || queryString(req.query.format) || 'square') as FlyerFormat;
   const force = req.body?.force === true || req.query.force === 'true';
 
   try {
@@ -270,7 +283,8 @@ export const regenerateFlyerController = async (
     return;
   }
 
-  const format = (req.body?.format || req.query.format || 'square') as FlyerFormat;
+  // Fix: normaliser req.query.format avant de le caster
+  const format = (req.body?.format || queryString(req.query.format) || 'square') as FlyerFormat;
 
   try {
     const flyer = await communicationService.regenerateFlyer(userId, projectId, contentId, format);

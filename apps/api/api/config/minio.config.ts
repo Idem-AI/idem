@@ -3,10 +3,21 @@ import logger from './logger';
 
 export class MinIOConnection {
   private static instance: MinIOConnection;
-  private client: Minio.Client;
-  private bucketName: string;
+  private client: Minio.Client | null = null;
+  private bucketName: string | null = null;
 
-  private constructor() {
+  private constructor() {}
+
+  public static getInstance(): MinIOConnection {
+    if (!MinIOConnection.instance) {
+      MinIOConnection.instance = new MinIOConnection();
+    }
+    return MinIOConnection.instance;
+  }
+
+  private initClient(): void {
+    if (this.client) return;
+
     const endPoint = process.env.MINIO_ENDPOINT || 'localhost';
     const port = parseInt(process.env.MINIO_PORT || '9000', 10);
     const useSSL = process.env.MINIO_USE_SSL === 'true';
@@ -33,20 +44,14 @@ export class MinIOConnection {
     });
   }
 
-  public static getInstance(): MinIOConnection {
-    if (!MinIOConnection.instance) {
-      MinIOConnection.instance = new MinIOConnection();
-    }
-    return MinIOConnection.instance;
-  }
-
   public async ensureBucketExists(): Promise<void> {
+    this.initClient();
     try {
-      const exists = await this.client.bucketExists(this.bucketName);
+      const exists = await this.client!.bucketExists(this.bucketName!);
 
       if (!exists) {
         const region = process.env.MINIO_REGION || 'us-east-1';
-        await this.client.makeBucket(this.bucketName, region);
+        await this.client!.makeBucket(this.bucketName!, region);
         logger.info(`Bucket created: ${this.bucketName} in region ${region}`);
       } else {
         logger.info(`Bucket already exists: ${this.bucketName}`);
@@ -65,7 +70,7 @@ export class MinIOConnection {
         ],
       };
 
-      await this.client.setBucketPolicy(this.bucketName, JSON.stringify(policy));
+      await this.client!.setBucketPolicy(this.bucketName!, JSON.stringify(policy));
       logger.info(`Bucket policy set for public read access: ${this.bucketName}`);
     } catch (error: any) {
       logger.error('Error ensuring bucket exists', {
@@ -77,14 +82,17 @@ export class MinIOConnection {
   }
 
   public getClient(): Minio.Client {
-    return this.client;
+    this.initClient();
+    return this.client!;
   }
 
   public getBucketName(): string {
-    return this.bucketName;
+    this.initClient();
+    return this.bucketName!;
   }
 
   public getPublicUrl(objectName: string): string {
+    this.initClient();
     // Use MINIO_PUBLIC_URL if set (for production with custom domain)
     // Otherwise fallback to constructing URL from ENDPOINT and PORT (for local dev)
     const publicUrl = process.env.MINIO_PUBLIC_URL;
