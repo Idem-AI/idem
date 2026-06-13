@@ -1,259 +1,250 @@
-{{-- IDEM Sidebar - Midnight Intelligence Design --}}
-<nav class="flex flex-col flex-1 bg-[#080c18] border-r border-white/[0.06]"
-    x-data="{
+{{-- Sidebar Navigation --}}
+<style>
+    .sbi {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 12px; border-radius: 12px;
+        font-size: 14px; font-weight: 500; text-decoration: none;
+        font-family: 'Jura', sans-serif;
+        transition: all 0.18s ease; color: #9ba3c0; width: 100%;
+        position: relative; overflow: hidden;
+    }
+    .sbi:hover {
+        background: #2563eb;
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(37,99,235,0.28);
+    }
+    .sbi.active {
+        background: #2563eb;
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(37,99,235,0.32);
+    }
+    .sbi.active::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: 3px; border-radius: 0 3px 3px 0;
+        background: #fff;
+    }
+    .sbi .sbi-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 14px; }
+    .sbi-section {
+        font-size: 9px; font-weight: 700; letter-spacing: .12em;
+        text-transform: uppercase; color: rgba(155,163,192,.38); padding: 0 12px;
+        display: block; margin-bottom: 2px; font-family: 'Jura', sans-serif;
+    }
+    .sbi-disabled {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 12px; border-radius: 12px;
+        font-size: 14px; font-weight: 500;
+        font-family: 'Jura', sans-serif;
+        color: rgba(155,163,192,.35); width: 100%;
+        opacity: 1; cursor: not-allowed;
+    }
+    .sbi-badge-soon {
+        font-size: 9px; font-weight: 700; padding: 2px 7px;
+        border-radius: 5px; letter-spacing: .06em; text-transform: uppercase;
+        background: rgba(251,191,36,.12); color: #fbbf24;
+        border: 1px solid rgba(251,191,36,.28);
+    }
+    /* Hide scrollbar */
+    .sidebar-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+    .sidebar-scroll::-webkit-scrollbar { display: none; }
+</style>
+
+<nav class="flex flex-col flex-1 sidebar-scroll"
+     style="background:rgba(2,6,23,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+            border-right:1px solid rgba(255,255,255,0.06); overflow-y:auto;"
+     x-data="{
         switchWidth() {
-            if (this.full === 'full') {
-                localStorage.setItem('pageWidth', 'center');
-            } else {
-                localStorage.setItem('pageWidth', 'full');
-            }
+            if (this.full === 'full') { localStorage.setItem('pageWidth', 'center'); }
+            else { localStorage.setItem('pageWidth', 'full'); }
             window.location.reload();
         },
-        setZoom(zoom) {
-            localStorage.setItem('zoom', zoom);
-            window.location.reload();
-        },
+        setZoom(zoom) { localStorage.setItem('zoom', zoom); window.location.reload(); },
         init() {
             this.full = localStorage.getItem('pageWidth');
             this.zoom = localStorage.getItem('zoom');
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
                 const userSettings = localStorage.getItem('theme');
                 if (userSettings !== 'system') { return; }
-                if (e.matches) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
+                if (e.matches) { document.documentElement.classList.add('dark'); }
+                else { document.documentElement.classList.remove('dark'); }
             });
             this.queryTheme();
             this.checkZoom();
         },
-        setTheme(type) {
-            this.theme = type;
-            localStorage.setItem('theme', type);
-            this.queryTheme();
-        },
+        setTheme(type) { this.theme = type; localStorage.setItem('theme', type); this.queryTheme(); },
         queryTheme() {
             const darkModePreference = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const userSettings = localStorage.getItem('theme') || 'dark';
             localStorage.setItem('theme', userSettings);
-            if (userSettings === 'dark') {
-                document.documentElement.classList.add('dark');
-                this.theme = 'dark';
-            } else if (userSettings === 'light') {
-                document.documentElement.classList.remove('dark');
-                this.theme = 'light';
-            } else if (darkModePreference) {
-                this.theme = 'system';
-                document.documentElement.classList.add('dark');
-            } else if (!darkModePreference) {
-                this.theme = 'system';
-                document.documentElement.classList.remove('dark');
-            }
+            if (userSettings === 'dark') { document.documentElement.classList.add('dark'); this.theme = 'dark'; }
+            else if (userSettings === 'light') { document.documentElement.classList.remove('dark'); this.theme = 'light'; }
+            else if (darkModePreference) { this.theme = 'system'; document.documentElement.classList.add('dark'); }
+            else { this.theme = 'system'; document.documentElement.classList.remove('dark'); }
         },
         checkZoom() {
             if (this.zoom === null) { this.setZoom(100); }
             if (this.zoom === '90') {
                 const style = document.createElement('style');
-                style.textContent = `
-                    html { font-size: 93.75%; }
-                    :root { --vh: 1vh; }
-                    @media (min-width: 1024px) { html { font-size: 87.5%; } }
-                `;
+                style.textContent = `html { font-size: 93.75%; } :root { --vh: 1vh; } @media (min-width: 1024px) { html { font-size: 87.5%; } }`;
                 document.head.appendChild(style);
             }
         }
-    }">
+     }">
 
     {{-- Team Selector --}}
-    <div class="px-4 py-4 border-b border-white/[0.06]">
+    <div style="padding:16px 12px; border-bottom:1px solid rgba(255,255,255,0.06);">
         <livewire:switch-team />
     </div>
 
-    {{-- Navigation --}}
-    <ul role="list" class="flex flex-col flex-1 px-3 py-3 gap-y-0.5 overflow-y-auto custom-scrollbar">
-
-        @if (isSubscribed() || !isCloud())
-
-            {{-- Admin Panel --}}
-            @auth
-                @if(auth()->user()->idem_role === 'admin')
-                    <li>
-                        <a href="{{ route('idem.admin.dashboard') }}"
-                           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('idem/admin*') ? 'bg-red-500/15 text-red-400' : 'text-red-400/70 hover:text-red-400 hover:bg-red-500/10' }}">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
-                            </svg>
-                            <span>Admin Panel</span>
-                            <span class="ml-auto px-1.5 py-0.5 text-[9px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 rounded">ADMIN</span>
-                        </a>
-                    </li>
-                    <li class="my-2">
-                        <div class="h-px bg-red-500/20 mx-3"></div>
-                    </li>
-                @endif
-            @endauth
-
-            {{-- DEPLOY --}}
-            <li class="mt-2 mb-0.5">
-                <span class="px-3 text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Deploy</span>
-            </li>
-
-            <li>
-                <a href="{{ route('dashboard') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('dashboard') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                    </svg>
-                    <span>Dashboard</span>
-                </a>
-            </li>
-
-            <li>
-                <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium opacity-40 cursor-not-allowed text-gray-500">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    <span>AI Smart Deploy</span>
-                    <span class="ml-auto px-1.5 py-0.5 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded font-bold">SOON</span>
+    {{-- Admin Panel --}}
+    @auth
+        @if(auth()->user()->idem_role === 'admin')
+        <div style="padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.06);">
+            <a href="{{ route('idem.admin.dashboard') }}"
+               class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200"
+               style="color:#ffb4ab;"
+               onmouseover="this.style.background='rgba(255,100,80,0.1)';"
+               onmouseout="this.style.background='';">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-shield-halved" style="width:18px;text-align:center;font-size:13px;"></i>
+                    <span style="font-size:14px;font-weight:500;">Admin Panel</span>
                 </div>
-            </li>
-
-            <li>
-                <a href="/projects"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('project/*') || request()->is('projects') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M12 4l-8 4l8 4l8 -4l-8 -4"/>
-                        <path d="M4 12l8 4l8 -4"/>
-                        <path d="M4 16l8 4l8 -4"/>
-                    </svg>
-                    <span>Projects</span>
-                </a>
-            </li>
-
-            {{-- RESOURCES --}}
-            <li class="mt-4 mb-0.5">
-                <span class="px-3 text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Resources</span>
-            </li>
-
-            <li>
-                <a href="/servers"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('server/*') || request()->is('servers') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M3 4m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z"/>
-                        <path d="M15 20h-9a3 3 0 0 1 -3 -3v-2a3 3 0 0 1 3 -3h12"/>
-                        <path d="M7 8v.01"/>
-                        <path d="M7 16v.01"/>
-                        <path d="M20 15l-2 3h3l-2 3"/>
-                    </svg>
-                    <span>Servers</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="{{ route('source.all') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('source*') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 15 15">
-                        <path fill="currentColor" d="m6.793 1.207l.353.354l-.353-.354ZM1.207 6.793l-.353-.354l.353.354Zm0 1.414l.354-.353l-.354.353Zm5.586 5.586l-.354.353l.354-.353Zm1.414 0l-.353-.354l.353.354Zm5.586-5.586l.353.354l-.353-.354Zm0-1.414l-.354.353l.354-.353ZM8.207 1.207l.354-.353l-.354.353ZM6.44.854L.854 6.439l.707.707l5.585-5.585L6.44.854ZM.854 8.56l5.585 5.585l.707-.707l-5.585-5.585l-.707.707Zm7.707 5.585l5.585-5.585l-.707-.707l-5.585 5.585l.707.707Zm5.585-7.707L8.561.854l-.707.707l5.585 5.585l.707-.707Zm0 2.122a1.5 1.5 0 0 0 0-2.122l-.707.707a.5.5 0 0 1 0 .708l.707.707ZM6.44 14.146a1.5 1.5 0 0 0 2.122 0l-.707-.707a.5.5 0 0 1-.708 0l-.707.707ZM.854 6.44a1.5 1.5 0 0 0 0 2.122l.707-.707a.5.5 0 0 1 0-.708L.854 6.44Zm6.292-4.878a.5.5 0 0 1 .708 0L8.56.854a1.5 1.5 0 0 0-2.122 0l.707.707Zm-2 1.293l1 1l.708-.708l-1-1l-.708.708ZM7.5 5a.5.5 0 0 1-.5-.5H6A1.5 1.5 0 0 0 7.5 6V5Zm.5-.5a.5.5 0 0 1-.5.5v1A1.5 1.5 0 0 0 9 4.5H8ZM7.5 4a.5.5 0 0 1 .5.5h1A1.5 1.5 0 0 0 7.5 3v1Zm0-1A1.5 1.5 0 0 0 6 4.5h1a.5.5 0 0 1 .5-.5V3Zm.646 2.854l1.5 1.5l.707-.708l-1.5-1.5l-.707.708ZM10.5 8a.5.5 0 0 1-.5-.5H9A1.5 1.5 0 0 0 10.5 9V8Zm.5-.5a.5.5 0 0 1-.5.5v1A1.5 1.5 0 0 0 12 7.5h-1Zm-.5-.5a.5.5 0 0 1 .5.5h1A1.5 1.5 0 0 0 10.5 6v1Zm0-1A1.5 1.5 0 0 0 9 7.5h1a.5.5 0 0 1 .5-.5V6ZM7 5.5v4h1v-4H7Zm.5 5.5a.5.5 0 0 1-.5-.5H6A1.5 1.5 0 0 0 7.5 12v-1Zm.5-.5a.5.5 0 0 1-.5.5v1A1.5 1.5 0 0 0 9 10.5H8Zm-.5-.5a.5.5 0 0 1 .5.5h1A1.5 1.5 0 0 0 7.5 9v1Zm0-1A1.5 1.5 0 0 0 6 10.5h1a.5.5 0 0 1 .5-.5V9Z"/>
-                    </svg>
-                    <span>Sources</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="{{ route('destination.index') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('destination*') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4L3 8v12l6-3l6 3l6-4V4l-6 3l-6-3zm-2 8.001V12m4 .001V12m3-2l2 2m2 2l-2-2m0 0l2-2m-2 2l-2 2"/>
-                    </svg>
-                    <span>Destinations</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="{{ route('storage.index') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('storages*') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <g stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-                            <path d="M4 6a8 3 0 1 0 16 0A8 3 0 1 0 4 6"/>
-                            <path d="M4 6v6a8 3 0 0 0 16 0V6"/>
-                            <path d="M4 12v6a8 3 0 0 0 16 0v-6"/>
-                        </g>
-                    </svg>
-                    <span>S3 Storages</span>
-                </a>
-            </li>
-
-            {{-- CONFIGURATION --}}
-            <li class="mt-4 mb-0.5">
-                <span class="px-3 text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Configuration</span>
-            </li>
-
-            @auth
-                @if(auth()->user()->idem_role === 'admin')
-                    <li>
-                        <a href="{{ route('settings.index') }}"
-                           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('settings*') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                            <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/>
-                                <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
-                            </svg>
-                            <span>Settings</span>
-                        </a>
-                    </li>
-                @endif
-            @endauth
-
-            <li>
-                <a href="{{ route('shared-variables.index') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('shared-variables*') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <g stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-                            <path d="M5 4C2.5 9 2.5 14 5 20M19 4c2.5 5 2.5 10 0 16M9 9h1c1 0 1 1 2.016 3.527C13 15 13 16 14 16h1"/>
-                            <path d="M8 16c1.5 0 3-2 4-3.5S14.5 9 16 9"/>
-                        </g>
-                    </svg>
-                    <span>Shared Variables</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="{{ route('notifications.email') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('notifications*') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6M9 17v1a3 3 0 0 0 6 0v-1"/>
-                    </svg>
-                    <span>Notifications</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="{{ route('security.private-key.index') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->is('security*') ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1-4.069 0l-.301-.301l-6.558 6.558a2 2 0 0 1-1.239.578L5.172 21H4a1 1 0 0 1-.993-.883L3 20v-1.172a2 2 0 0 1 .467-1.284l.119-.13L4 17h2v-2h2v-2l2.144-2.144l-.301-.301a2.877 2.877 0 0 1 0-4.069l2.643-2.643a2.877 2.877 0 0 1 4.069 0zM15 9h.01"/>
-                    </svg>
-                    <span>Keys & Tokens</span>
-                </a>
-            </li>
-
+                <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(255,180,171,0.12);color:#ffb4ab;border:1px solid rgba(255,180,171,0.28);letter-spacing:.06em;text-transform:uppercase;">ADMIN</span>
+            </a>
+        </div>
         @endif
+    @endauth
+
+    {{-- Navigation --}}
+    @if (isSubscribed() || !isCloud())
+    <ul role="list" class="flex flex-col flex-1 px-3 py-5 gap-y-0.5">
+
+        {{-- Dashboard --}}
+        <li>
+            <a href="{{ route('dashboard') }}"
+               class="sbi {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <i class="fa-solid fa-house sbi-icon"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+
+        {{-- DEPLOY --}}
+        <li style="padding-top:20px; padding-bottom:5px;">
+            <span class="sbi-section">Deploy</span>
+        </li>
+
+        <li>
+            <div class="sbi-disabled" style="justify-content:space-between;">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="width:18px;text-align:center;font-size:14px;"></i>
+                    <span>AI Smart Deploy</span>
+                </div>
+                <span class="sbi-badge-soon">SOON</span>
+            </div>
+        </li>
+
+        <li>
+            <a href="/projects"
+               class="sbi {{ request()->is('project/*') || request()->is('projects') ? 'active' : '' }}">
+                <i class="fa-solid fa-layer-group sbi-icon"></i>
+                <span>Projects</span>
+            </a>
+        </li>
+
+        {{-- RESOURCES --}}
+        <li style="padding-top:20px; padding-bottom:5px;">
+            <span class="sbi-section">Resources</span>
+        </li>
+
+        <li>
+            <a href="/servers"
+               class="sbi {{ request()->is('server/*') || request()->is('servers') ? 'active' : '' }}">
+                <i class="fa-solid fa-server sbi-icon"></i>
+                <span>Servers</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{{ route('source.all') }}"
+               class="sbi {{ request()->is('source*') ? 'active' : '' }}">
+                <i class="fa-brands fa-git-alt sbi-icon"></i>
+                <span>Sources</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{{ route('destination.index') }}"
+               class="sbi {{ request()->is('destination*') ? 'active' : '' }}">
+                <i class="fa-solid fa-network-wired sbi-icon"></i>
+                <span>Destinations</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{{ route('storage.index') }}"
+               class="sbi {{ request()->is('storages*') ? 'active' : '' }}">
+                <i class="fa-solid fa-database sbi-icon"></i>
+                <span>S3 Storages</span>
+            </a>
+        </li>
+
+        {{-- CONFIGURATION --}}
+        <li style="padding-top:20px; padding-bottom:5px;">
+            <span class="sbi-section">Configuration</span>
+        </li>
+
+        @auth
+            @if(auth()->user()->idem_role === 'admin')
+            <li>
+                <a href="{{ route('settings.index') }}"
+                   class="sbi {{ request()->is('settings*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-gear sbi-icon"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+            @endif
+        @endauth
+
+        <li>
+            <a href="{{ route('shared-variables.index') }}"
+               class="sbi {{ request()->is('shared-variables*') ? 'active' : '' }}">
+                <i class="fa-solid fa-code sbi-icon"></i>
+                <span>Shared Variables</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{{ route('notifications.email') }}"
+               class="sbi {{ request()->is('notifications*') ? 'active' : '' }}">
+                <i class="fa-regular fa-bell sbi-icon"></i>
+                <span>Notifications</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{{ route('security.private-key.index') }}"
+               class="sbi {{ request()->is('security*') ? 'active' : '' }}">
+                <i class="fa-solid fa-key sbi-icon"></i>
+                <span>Keys &amp; Tokens</span>
+            </a>
+        </li>
+
     </ul>
+    @endif
 
     {{-- Footer --}}
-    <div class="px-3 py-3 border-t border-white/[0.06]">
-        <div class="flex items-center justify-between">
-            <livewire:settings-dropdown />
-            <button @click="$dispatch('open-global-search')" type="button" title="Search (Press / or ⌘K)"
-                class="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white text-sm border border-white/10 hover:border-white/20">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-                <kbd class="px-1.5 py-0.5 text-xs bg-black/40 border border-white/10 rounded">/</kbd>
-            </button>
-        </div>
+    <div class="flex items-center justify-between px-3 py-3"
+         style="border-top:1px solid rgba(255,255,255,0.06);">
+        <livewire:settings-dropdown />
+        <button @click="$dispatch('open-global-search')" type="button"
+                title="Search (Press / or ⌘K)"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7280;font-size:13px;"
+                onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#e3e1e6';"
+                onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='#6b7280';">
+            <i class="fa-solid fa-magnifying-glass" style="font-size:12px;"></i>
+            <kbd class="px-1.5 py-0.5 text-xs rounded"
+                 style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);">/</kbd>
+        </button>
     </div>
 </nav>
