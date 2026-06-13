@@ -108,6 +108,31 @@
                   />
                 }
 
+                <!-- Mini-formulaire d'infos supplémentaires (business plan) -->
+                @if (msg.infoForm) {
+                  <app-info-form-card
+                    [submitted]="msg.selectedOptionId === 'submitted'"
+                    [busy]="pendingAssistant() || isGenerating()"
+                    (infosSubmitted)="onInfoFormSubmitted(msg.id, $event)"
+                    (skipped)="onInfoFormSkipped(msg.id)"
+                  />
+                }
+
+                <!-- Progression d'une génération (business plan, charte, pitch deck) -->
+                @if (msg.generation; as generation) {
+                  <app-generation-progress-card [data]="generation" />
+                }
+
+                <!-- Choix du format de la charte graphique -->
+                @if (msg.formatChoice) {
+                  <app-format-choice-card
+                    [selected]="msg.selectedOptionId ?? null"
+                    [disabled]="isGenerating()"
+                    (picked)="onFormatPicked(msg.id, $event)"
+                    (cancelled)="onFormatCancelled(msg.id)"
+                  />
+                }
+
                 <!-- Carte récapitulative (onboarding) -->
                 @if (msg.recap; as recap) {
                   <app-recap-card
@@ -179,7 +204,13 @@
           ></textarea>
           <button
             class="inner-button"
-            [disabled]="!draft().trim() || pendingAssistant() || isCreatingProject()"
+            [disabled]="
+              !draft().trim() ||
+              pendingAssistant() ||
+              isCreatingProject() ||
+              awaitingFormatChoice()
+            "
+            [title]="awaitingFormatChoice() ? ('chat.branding.format.hint' | translate) : ''"
             (click)="send()"
           >
             {{ 'chat.composer.send' | translate }}
@@ -198,7 +229,9 @@
     [pdfUrl]="previewState.url"
     [isLoading]="previewState.isLoading"
     [error]="previewState.error"
+    [canGenerate]="!isGenerating()"
     (closed)="closePreview()"
     (downloadRequested)="downloadFromPreview()"
+    (generateRequested)="generateFromPreview()"
   />
 }

@@ -1,0 +1,79 @@
+<div
+  class="w-full max-w-md rounded-2xl border bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20 transition-colors duration-300"
+  [class.border-white/10]="data().status === 'running'"
+  [class.border-emerald-400/30]="data().status === 'done'"
+  [class.border-red-400/30]="data().status === 'error'"
+>
+  <!-- En-tête : état + titre + compteur -->
+  <div class="flex items-center gap-3 p-4">
+    @if (data().status === 'running') {
+      <span class="progress-spinner shrink-0" aria-hidden="true"></span>
+    } @else if (data().status === 'done') {
+      <span
+        class="w-9 h-9 rounded-xl bg-emerald-400/15 border border-emerald-400/30 flex items-center justify-center shrink-0"
+      >
+        <i class="pi pi-check text-emerald-400 text-sm"></i>
+      </span>
+    } @else {
+      <span
+        class="w-9 h-9 rounded-xl bg-red-400/15 border border-red-400/30 flex items-center justify-center shrink-0"
+      >
+        <i class="pi pi-times text-red-400 text-sm"></i>
+      </span>
+    }
+
+    <div class="min-w-0 flex-1">
+      <h4 class="text-sm font-semibold text-white truncate">
+        {{
+          (data().status === 'running'
+            ? 'chat.generation.cardRunning'
+            : data().status === 'done'
+              ? 'chat.generation.cardDone'
+              : 'chat.generation.cardError'
+          ) | translate: { title: data().title }
+        }}
+      </h4>
+      @if (data().status === 'running') {
+        <p class="text-[11px] text-gray-500">
+          {{ 'chat.generation.steps' | translate: { done: completedCount(), total: totalCount() } }}
+        </p>
+      }
+    </div>
+
+    @if (data().status === 'running') {
+      <span class="text-xs font-semibold text-primary shrink-0">{{ percent() }}%</span>
+    }
+  </div>
+
+  <!-- Barre de progression -->
+  @if (data().status !== 'error') {
+    <div class="px-4 pb-3">
+      <div class="h-1 rounded-full bg-white/5 overflow-hidden">
+        <div
+          class="h-full rounded-full transition-all duration-700 ease-out"
+          [class.bg-primary]="data().status === 'running'"
+          [class.bg-emerald-400]="data().status === 'done'"
+          [style.width.%]="percent()"
+        ></div>
+      </div>
+    </div>
+  }
+
+  <!-- Étapes -->
+  @if (data().status === 'running' && (data().stepsInProgress.length || completedCount())) {
+    <div class="px-4 pb-4 space-y-1.5">
+      @for (step of data().stepsInProgress; track step) {
+        <div class="flex items-center gap-2 text-xs text-white">
+          <span class="step-spinner shrink-0" aria-hidden="true"></span>
+          <span class="truncate">{{ step }}</span>
+        </div>
+      }
+      @for (step of data().completedSteps; track step) {
+        <div class="flex items-center gap-2 text-xs text-gray-500">
+          <i class="pi pi-check-circle text-emerald-400/70 text-[11px] shrink-0"></i>
+          <span class="truncate">{{ step }}</span>
+        </div>
+      }
+    </div>
+  }
+</div>

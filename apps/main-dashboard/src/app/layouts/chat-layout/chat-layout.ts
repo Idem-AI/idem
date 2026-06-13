@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ChatSidebarComponent } from '../../modules/chat/components/chat-sidebar/chat-sidebar';
 import { ChatSessionService } from '../../modules/chat/services/chat-session.service';
@@ -14,7 +15,7 @@ import { NotificationService } from '../../shared/services/notification.service'
 @Component({
   selector: 'app-chat-layout',
   standalone: true,
-  imports: [TranslateModule, ChatSidebarComponent],
+  imports: [CommonModule, TranslateModule, ChatSidebarComponent],
   templateUrl: './chat-layout.html',
   styleUrl: './chat-layout.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,9 +29,22 @@ export class ChatLayoutComponent {
 
   protected readonly isMobileSidebarOpen = signal(false);
   protected readonly isExporting = signal(false);
+  protected readonly isSidebarCollapsed = signal(this.readCollapsedState());
+
+  private readCollapsedState(): boolean {
+    try {
+      return localStorage.getItem('chatSidebarCollapsed') === 'true';
+    } catch {
+      return false;
+    }
+  }
 
   protected toggleMobileSidebar(): void {
     this.isMobileSidebarOpen.update((open) => !open);
+  }
+
+  protected onSidebarCollapsedChange(collapsed: boolean): void {
+    this.isSidebarCollapsed.set(collapsed);
   }
 
   protected switchToAdvanced(): void {

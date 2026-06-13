@@ -43,9 +43,19 @@
           <p class="text-xs">{{ 'chat.preview.loading' | translate }}</p>
         </div>
       } @else if (error()) {
-        <div class="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+        <div class="h-full flex flex-col items-center justify-center gap-4 text-center px-6">
           <i class="pi pi-file-excel text-3xl text-gray-600"></i>
           <p class="text-sm text-gray-400">{{ error() }}</p>
+          @if (canGenerate()) {
+            <button
+              type="button"
+              (click)="generateRequested.emit()"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/80 text-white text-sm font-semibold transition-all duration-200 shadow-lg shadow-primary/20"
+            >
+              <i class="pi pi-sparkles text-xs"></i>
+              {{ 'chat.preview.generateNow' | translate }}
+            </button>
+          }
         </div>
       } @else if (pdfUrl()) {
         <app-pdf-viewer [pdfSrc]="pdfUrl()" [title]="title()" [showPagination]="true" />

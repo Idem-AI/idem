@@ -2,6 +2,7 @@ import {
   AfterViewChecked,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnDestroy,
   OnInit,
@@ -13,6 +14,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -23,13 +25,22 @@ import { ProjectModel } from '@idem/shared-models';
 
 import { Loader } from '../../../../shared/components/loader/loader';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { GenerationService } from '../../../../shared/services/generation.service';
+import { SSEGenerationState } from '../../../../shared/models/sse-step.model';
 import { AdvisorService } from '../../../dashboard/services/ai-agents/advisor.service';
+import { BusinessPlanService } from '../../../dashboard/services/ai-agents/business-plan.service';
+import { BrandingService } from '../../../dashboard/services/ai-agents/branding.service';
+import { PitchDeckService } from '../../../dashboard/services/ai-agents/pitch-deck.service';
 import { ChatSessionService } from '../../services/chat-session.service';
 import { ChatConversationStoreService } from '../../services/chat-conversation-store.service';
 import { ChatIntentService, ChatIntent } from '../../services/chat-intent.service';
 import { ChatDeliverablesService } from '../../services/chat-deliverables.service';
 import { ChatOnboardingService } from '../../services/chat-onboarding.service';
 import { ChatBrandingService } from '../../services/chat-branding.service';
+import {
+  AdditionalInfos,
+  ChatAdditionalInfoService,
+} from '../../services/chat-additional-info.service';
 import { DeliverableCardComponent } from '../../components/deliverable-card/deliverable-card';
 import { RecapCardComponent } from '../../components/recap-card/recap-card';
 import { SuggestionChipsComponent } from '../../components/suggestion-chips/suggestion-chips';
@@ -38,13 +49,21 @@ import { ColorOptionsCardComponent } from '../../components/color-options-card/c
 import { TypographyOptionsCardComponent } from '../../components/typography-options-card/typography-options-card';
 import { LogoOptionsCardComponent } from '../../components/logo-options-card/logo-options-card';
 import { BrandingWarningBannerComponent } from '../../components/branding-warning-banner/branding-warning-banner';
+import { InfoFormCardComponent } from '../../components/info-form-card/info-form-card';
+import { GenerationProgressCardComponent } from '../../components/generation-progress-card/generation-progress-card';
+import {
+  ChartePdfFormat,
+  FormatChoiceCardComponent,
+} from '../../components/format-choice-card/format-choice-card';
 import { ColorModel, TypographyModel } from '../../../dashboard/models/brand-identity.model';
 import { LogoModel, LogoType } from '../../../dashboard/models/logo.model';
 import {
   ChatChip,
+  ChatConversationCategory,
   ChatMessageModel,
   DeliverableCardData,
   DeliverableKind,
+  GenerationProgressData,
   OnboardingPolicyAcceptances,
   OnboardingState,
 } from '../../models/chat.model';
@@ -80,6 +99,9 @@ let chatMessageCounter = 0;
     TypographyOptionsCardComponent,
     LogoOptionsCardComponent,
     BrandingWarningBannerComponent,
+    InfoFormCardComponent,
+    GenerationProgressCardComponent,
+    FormatChoiceCardComponent,
   ],
   templateUrl: './chat-home.html',
   // Réutilise les styles markdown de l'advisor (classe .advisor-message)
@@ -96,6 +118,12 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private readonly intents = inject(ChatIntentService);
   private readonly onboarding = inject(ChatOnboardingService);
   private readonly branding = inject(ChatBrandingService);
+  private readonly additionalInfoService = inject(ChatAdditionalInfoService);
+  private readonly generationService = inject(GenerationService);
+  private readonly businessPlanService = inject(BusinessPlanService);
+  private readonly brandingApiService = inject(BrandingService);
+  private readonly pitchDeckService = inject(PitchDeckService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly session = inject(ChatSessionService);
   protected readonly store = inject(ChatConversationStoreService);
@@ -117,11 +145,19 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected readonly awaitingLogoDescription = signal(false);
   /** Flux branding en cours dans le fil (masque le bandeau d'avertissement) */
   protected readonly brandingFlowEngaged = signal(false);
+  /** La prochaine saisie texte = infos supplémentaires du business plan */
+  protected readonly awaitingBpInfoText = signal(false);
+  /** Génération SSE en cours (business plan / charte graphique) */
+  protected readonly isGenerating = signal(false);
+  /** Choix du format de la charte en attente : le composer est bloqué */
+  protected readonly awaitingFormatChoice = signal(false);
 
   private onboardingState: OnboardingState | null = null;
   private loadedProjectId: string | null = null;
   private previewBlob: Blob | null = null;
   private pendingLogoType: LogoType | null = null;
+  private pendingBpInfos: AdditionalInfos | null = null;
+  private activeGenerationType: 'business-plan' | 'branding' | 'pitch-deck' | null = null;
 
   protected readonly messages = this.store.messages;
   protected readonly isEmpty = computed(() => this.messages().length === 0);
@@ -167,6 +203,32 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         }
       });
     });
+
+    // Changement de conversation : on réinitialise les états transitoires
+    // (saisie de description de logo, flux branding, infos BP, erreurs)
+    effect(() => {
+      this.store.activeConversationId();
+      untracked(() => {
+        this.awaitingLogoDescription.set(false);
+        this.awaitingBpInfoText.set(false);
+        this.awaitingFormatChoice.set(false);
+        this.brandingFlowEngaged.set(false);
+        this.pendingLogoType = null;
+        this.pendingBpInfos = null;
+        this.errorMessage.set(null);
+      });
+    });
+
+    // Fige la sidebar pendant les opérations en cours (une réponse arrivée
+    // après un changement de conversation atterrirait au mauvais endroit)
+    effect(() => {
+      this.store.busy.set(
+        this.pendingAssistant() ||
+          this.brandingBusy() ||
+          this.isCreatingProject() ||
+          this.isGenerating(),
+      );
+    });
   }
 
   async ngOnInit(): Promise<void> {
@@ -194,6 +256,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
 
   ngOnDestroy(): void {
     this.revokePreviewUrl();
+    if (this.isGenerating() && this.activeGenerationType) {
+      this.generationService.cancelGeneration(this.activeGenerationType);
+    }
   }
 
   // ─────────────────────────────────────────────── Modes
@@ -203,7 +268,16 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.loadedProjectId = projectId;
     this.brandingFlowEngaged.set(false);
     this.awaitingLogoDescription.set(false);
+    this.awaitingFormatChoice.set(false);
     await this.store.load(projectId);
+    // Une génération interrompue par un rechargement n'est plus vivante
+    for (const message of this.store.messages()) {
+      if (message.generation?.status === 'running') {
+        this.store.patch(message.id, {
+          generation: { ...message.generation, status: 'error', stepsInProgress: [] },
+        });
+      }
+    }
     // Rafraîchit le détail du projet (sections des livrables) en arrière-plan
     void this.session.fetchActiveProjectDetails();
   }
@@ -235,6 +309,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected send(): void {
     const content = this.draft().trim();
     if (!content || this.pendingAssistant() || this.isCreatingProject()) return;
+    // Choix de format en attente : l'envoi reste bloqué jusqu'au clic
+    if (this.awaitingFormatChoice()) return;
     this.draft.set('');
     this.errorMessage.set(null);
 
@@ -249,6 +325,12 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     // Réponse à « décrivez le logo que vous imaginez » (flux branding)
     if (this.awaitingLogoDescription()) {
       void this.finalizeLogoPreferences(content);
+      return;
+    }
+
+    // Infos supplémentaires du business plan en texte libre : l'IA formate
+    if (this.awaitingBpInfoText()) {
+      void this.handleBpFreeText(content);
       return;
     }
 
@@ -323,6 +405,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       case 'complete-branding':
         await this.advanceBrandingFlow();
         break;
+      case 'generate':
+        await this.startGeneration(intent.kind!);
+        break;
     }
   }
 
@@ -385,12 +470,69 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     return chips;
   }
 
+  /** Livrables prioritaires selon la catégorie de la conversation */
+  private static readonly CATEGORY_KINDS: Record<ChatConversationCategory, DeliverableKind[]> = {
+    business: ['businessPlan', 'pitchDeck'],
+    marketing: ['pitchDeck', 'branding'],
+    finance: ['finance', 'businessPlan'],
+    legal: ['legalDocs', 'businessPlan'],
+    branding: ['branding', 'pitchDeck'],
+    tech: ['diagrams', 'businessPlan'],
+    general: ['businessPlan', 'branding'],
+  };
+
+  private activeConversationCategory(): ChatConversationCategory {
+    const id = this.store.activeConversationId();
+    return this.store.conversations().find((c) => c.id === id)?.category ?? 'general';
+  }
+
+  /**
+   * Raccourcis contextuels : selon la catégorie de la conversation et l'état
+   * réel du projet, propose d'afficher un livrable existant ou de générer
+   * un livrable manquant (ex. charte graphique).
+   */
   private genericChips(): ChatChip[] {
-    return [
-      { labelKey: 'chat.chips.show.businessPlan', icon: 'pi pi-calendar', action: 'show', payload: 'businessPlan' },
-      { labelKey: 'chat.chips.status', icon: 'pi pi-compass', action: 'status' },
-      { labelKey: 'chat.chips.show.pitchDeck', icon: 'pi pi-desktop', action: 'show', payload: 'pitchDeck' },
-    ];
+    const project = this.session.activeProject();
+    const kinds = ChatHomePage.CATEGORY_KINDS[this.activeConversationCategory()];
+    const chips = kinds.slice(0, 2).map((kind) => this.deliverableChip(kind, project));
+    chips.push({ labelKey: 'chat.chips.status', icon: 'pi pi-compass', action: 'status' });
+    return chips;
+  }
+
+  /** Chip « Voir X » si le livrable existe, « Générer X » sinon. */
+  private deliverableChip(kind: DeliverableKind, project: ProjectModel | null): ChatChip {
+    if (kind === 'branding') {
+      if (!this.branding.isComplete(project)) {
+        return {
+          labelKey: 'chat.branding.chips.complete',
+          icon: 'pi pi-sparkles',
+          action: 'branding-start',
+        };
+      }
+      if (!this.branding.hasCharte(project)) {
+        return {
+          labelKey: 'chat.chips.generate.branding',
+          icon: 'pi pi-sparkles',
+          action: 'generate',
+          payload: 'branding',
+        };
+      }
+      return {
+        labelKey: 'chat.chips.show.branding',
+        icon: 'pi pi-eye',
+        action: 'show',
+        payload: 'branding',
+      };
+    }
+    const available = this.deliverables.buildCard(kind, project).available;
+    return available
+      ? { labelKey: `chat.chips.show.${kind}`, icon: 'pi pi-eye', action: 'show', payload: kind }
+      : {
+          labelKey: `chat.chips.generate.${kind}`,
+          icon: 'pi pi-sparkles',
+          action: 'generate',
+          payload: kind,
+        };
   }
 
   private async respondWithDownload(kind: DeliverableKind): Promise<void> {
@@ -549,7 +691,70 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         this.appendUser(this.translate.instant('chat.onboarding.actions.skipped'));
         void this.finalizeLogoPreferences(undefined);
         break;
+      case 'generate':
+        this.appendUser(this.chipLabel(chip));
+        void this.startGeneration(chip.payload as DeliverableKind);
+        break;
+      case 'bp-fill-form':
+        this.appendUser(this.chipLabel(chip));
+        this.awaitingBpInfoText.set(false);
+        this.appendAssistant({
+          content: this.translate.instant('chat.bp.formIntro'),
+          infoForm: true,
+        });
+        break;
+      case 'bp-free-text':
+        this.appendUser(this.chipLabel(chip));
+        this.awaitingBpInfoText.set(true);
+        this.appendAssistant({
+          content: this.translate.instant('chat.bp.freeTextPrompt'),
+          chips: [
+            {
+              labelKey: 'chat.bp.chips.skipInfos',
+              icon: 'pi pi-forward',
+              action: 'bp-generate',
+              payload: 'skip',
+            },
+          ],
+        });
+        break;
+      case 'bp-generate': {
+        this.appendUser(this.chipLabel(chip));
+        this.awaitingBpInfoText.set(false);
+        const infos = chip.payload === 'with-infos' ? this.pendingBpInfos : null;
+        void this.runSseGeneration('businessPlan', infos ?? undefined);
+        break;
+      }
+      case 'download-logos-zip': {
+        this.appendUser(this.chipLabel(chip));
+        void this.downloadLogosZip();
+        break;
+      }
+      case 'preview':
+        void this.openPreview(chip.payload as DeliverableKind);
+        break;
+      case 'charte-regenerate':
+        this.appendUser(this.chipLabel(chip));
+        this.askCharteFormat();
+        break;
     }
+  }
+
+  private async downloadLogosZip(): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId) return;
+    this.pendingAssistant.set(true);
+    const ok = await this.branding.downloadLogosZip(
+      projectId,
+      this.session.activeProject()?.name,
+    );
+    this.pendingAssistant.set(false);
+    this.appendAssistant({
+      content: this.translate.instant(
+        ok ? 'chat.branding.zipStarted' : 'chat.branding.zipUnavailable',
+      ),
+      chips: this.genericChips(),
+    });
   }
 
   // ─────────────────────────────────────────────── Cartes : actions
@@ -627,6 +832,15 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       this.previewBlob,
       this.deliverables.downloadFilename(current.kind, this.session.activeProject()?.name),
     );
+  }
+
+  /** « Générer maintenant » depuis le panneau de prévisualisation. */
+  protected generateFromPreview(): void {
+    const current = this.preview();
+    if (!current) return;
+    this.closePreview();
+    this.appendUser(this.translate.instant('chat.preview.generateNow'));
+    void this.startGeneration(current.kind);
   }
 
   private revokePreviewUrl(): void {
@@ -732,6 +946,49 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
           logoOptions: this.branding.generatedLogos(project),
         });
         break;
+      case 'variations-generate': {
+        this.appendAssistant({
+          content: this.translate.instant('chat.branding.generatingVariations'),
+        });
+        this.pendingAssistant.set(true);
+        try {
+          const updated = await this.branding.generateVariations(project);
+          this.pendingAssistant.set(false);
+          this.brandingFlowEngaged.set(false);
+          const card = this.deliverables.buildCard('branding', updated);
+          this.appendAssistant({
+            content: this.translate.instant('chat.branding.complete'),
+            card,
+            chips: [
+              {
+                labelKey: 'chat.branding.chips.downloadZip',
+                icon: 'pi pi-download',
+                action: 'download-logos-zip',
+              },
+              {
+                labelKey: 'chat.chips.generate.branding',
+                icon: 'pi pi-sparkles',
+                action: 'generate',
+                payload: 'branding',
+              },
+              {
+                labelKey: 'chat.chips.show.businessPlan',
+                icon: 'pi pi-calendar',
+                action: 'show',
+                payload: 'businessPlan',
+              },
+            ],
+          });
+        } catch (error) {
+          console.error('Chat branding: variations generation failed', error);
+          this.pendingAssistant.set(false);
+          this.appendAssistant({
+            content: this.translate.instant('chat.branding.errors.generation'),
+            chips: this.brandingRetryChips(),
+          });
+        }
+        break;
+      }
       case 'complete': {
         this.brandingFlowEngaged.set(false);
         const card = this.deliverables.buildCard('branding', project);
@@ -837,18 +1094,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.store.patch(messageId, { selectedOptionId: logo.id });
     this.appendUser(logo.name || this.translate.instant('chat.branding.thisLogo'));
     try {
-      const updated = await this.branding.selectLogo(project, logo);
-      this.brandingFlowEngaged.set(false);
-      const card = this.deliverables.buildCard('branding', updated);
-      this.appendAssistant({
-        content: this.translate.instant('chat.branding.complete'),
-        card,
-        chips: [
-          { labelKey: 'chat.branding.chips.variationsEditor', icon: 'pi pi-arrow-up-right', action: 'editor', payload: 'branding' },
-          { labelKey: 'chat.chips.show.businessPlan', icon: 'pi pi-calendar', action: 'show', payload: 'businessPlan' },
-          { labelKey: 'chat.chips.status', icon: 'pi pi-compass', action: 'status' },
-        ],
-      });
+      await this.branding.selectLogo(project, logo);
+      // Enchaîne sur la génération des déclinaisons du logo
+      await this.advanceBrandingFlow();
     } catch (error) {
       console.error('Chat branding: logo selection failed', error);
       this.appendAssistant({
@@ -858,6 +1106,293 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     } finally {
       this.brandingBusy.set(false);
     }
+  }
+
+  // ─────────────────────────────────────────────── Génération depuis le chat
+
+  /** Point d'entrée « générer X » (chips contextuelles et intentions). */
+  private async startGeneration(kind: DeliverableKind): Promise<void> {
+    const project = this.session.activeProject();
+
+    switch (kind) {
+      case 'branding':
+        // Identité incomplète → flux de complétion ; sinon charte graphique
+        if (!this.branding.isComplete(project)) {
+          await this.advanceBrandingFlow();
+        } else if (this.branding.hasCharte(project)) {
+          this.respondCharteAlreadyExists();
+        } else {
+          this.askCharteFormat();
+        }
+        break;
+      case 'businessPlan':
+        this.startBusinessPlanFlow();
+        break;
+      case 'pitchDeck':
+        await this.runSseGeneration('pitchDeck');
+        break;
+      default: {
+        // Les autres générations restent dans l'éditeur (porte de sortie)
+        const config = this.deliverables.config(kind);
+        this.appendAssistant({
+          content: this.translate.instant('chat.responses.openGenerator', {
+            title: this.translate.instant(config.titleKey),
+          }),
+        });
+        this.uiMode.openInEditor(config.generateRoute ?? config.editorRoute);
+      }
+    }
+  }
+
+  /** La charte existe déjà : on le dit et on propose prévisualiser / télécharger. */
+  private respondCharteAlreadyExists(): void {
+    this.appendAssistant({
+      content: this.translate.instant('chat.branding.charteExists'),
+      chips: [
+        { labelKey: 'chat.card.actions.preview', icon: 'pi pi-eye', action: 'preview', payload: 'branding' },
+        { labelKey: 'chat.chips.downloadPdf', icon: 'pi pi-download', action: 'download', payload: 'branding' },
+        { labelKey: 'chat.branding.chips.regenerate', icon: 'pi pi-refresh', action: 'charte-regenerate' },
+      ],
+    });
+  }
+
+  /** Demande le format (portrait / paysage) avant de générer la charte. */
+  private askCharteFormat(): void {
+    this.awaitingFormatChoice.set(true);
+    this.appendAssistant({
+      content: this.translate.instant('chat.branding.format.question'),
+      formatChoice: true,
+    });
+  }
+
+  protected onFormatPicked(messageId: string, format: ChartePdfFormat): void {
+    this.store.patch(messageId, { selectedOptionId: format });
+    this.awaitingFormatChoice.set(false);
+    this.appendUser(
+      this.translate.instant(
+        format === 'A4_PORTRAIT' ? 'chat.branding.format.portrait' : 'chat.branding.format.landscape',
+      ),
+    );
+    void this.runSseGeneration('branding', undefined, format);
+  }
+
+  protected onFormatCancelled(messageId: string): void {
+    this.store.patch(messageId, { selectedOptionId: 'cancelled' });
+    this.awaitingFormatChoice.set(false);
+    this.appendAssistant({
+      content: this.translate.instant('chat.branding.format.cancelledOk'),
+      chips: this.genericChips(),
+    });
+  }
+
+  /** Rédaction du business plan : propose d'abord les infos supplémentaires. */
+  private startBusinessPlanFlow(): void {
+    this.pendingBpInfos = null;
+    this.appendAssistant({
+      content: this.translate.instant('chat.bp.intro'),
+      chips: [
+        { labelKey: 'chat.bp.chips.fillForm', icon: 'pi pi-list', action: 'bp-fill-form' },
+        { labelKey: 'chat.bp.chips.freeText', icon: 'pi pi-pencil', action: 'bp-free-text' },
+        { labelKey: 'chat.bp.chips.skipInfos', icon: 'pi pi-forward', action: 'bp-generate', payload: 'skip' },
+      ],
+    });
+  }
+
+  /** Soumission du mini-formulaire d'infos supplémentaires. */
+  protected onInfoFormSubmitted(messageId: string, infos: AdditionalInfos): void {
+    this.store.patch(messageId, { selectedOptionId: 'submitted' });
+    this.appendUser(this.translate.instant('chat.infoForm.submittedAs'));
+    void this.runSseGeneration('businessPlan', infos);
+  }
+
+  protected onInfoFormSkipped(messageId: string): void {
+    this.store.patch(messageId, { selectedOptionId: 'submitted' });
+    this.appendUser(this.translate.instant('chat.bp.chips.skipInfos'));
+    void this.runSseGeneration('businessPlan');
+  }
+
+  /** Texte libre : l'IA reformate en données structurées puis demande validation. */
+  private async handleBpFreeText(rawText: string): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId) return;
+    this.awaitingBpInfoText.set(false);
+    this.pendingAssistant.set(true);
+    try {
+      const infos = await this.additionalInfoService.formatViaAI(projectId, rawText);
+      this.pendingAssistant.set(false);
+      if (!infos || !this.additionalInfoService.hasContent(infos)) {
+        this.appendAssistant({
+          content: this.translate.instant('chat.bp.parseFailed'),
+          chips: [
+            { labelKey: 'chat.bp.chips.fillForm', icon: 'pi pi-list', action: 'bp-fill-form' },
+            { labelKey: 'chat.bp.chips.skipInfos', icon: 'pi pi-forward', action: 'bp-generate', payload: 'skip' },
+          ],
+        });
+        return;
+      }
+      this.pendingBpInfos = infos;
+      this.appendAssistant({
+        content: this.buildInfosSummary(infos),
+        chips: [
+          { labelKey: 'chat.bp.chips.generateNow', icon: 'pi pi-check', action: 'bp-generate', payload: 'with-infos' },
+          { labelKey: 'chat.bp.chips.fixForm', icon: 'pi pi-list', action: 'bp-fill-form' },
+        ],
+      });
+    } catch (error) {
+      console.error('Chat BP: free text formatting failed', error);
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.bp.parseFailed'),
+        chips: [{ labelKey: 'chat.bp.chips.fillForm', icon: 'pi pi-list', action: 'bp-fill-form' }],
+      });
+    }
+  }
+
+  /** Récapitulatif markdown des infos extraites par l'IA. */
+  private buildInfosSummary(infos: AdditionalInfos): string {
+    const lines: string[] = [this.translate.instant('chat.bp.parsedSummary'), ''];
+    const contact = [infos.email, infos.phone, [infos.city, infos.country].filter(Boolean).join(', ')]
+      .filter(Boolean)
+      .join(' · ');
+    if (contact) lines.push(`- **${this.translate.instant('chat.infoForm.contact')}** : ${contact}`);
+    for (const member of infos.teamMembers ?? []) {
+      lines.push(`- **${member.name}**${member.role ? ` — ${member.role}` : ''}`);
+    }
+    return lines.join('\n');
+  }
+
+  /**
+   * Génération SSE (business plan / charte graphique) directement dans le
+   * chat : un message de progression est mis à jour à chaque étape.
+   */
+  private async runSseGeneration(
+    kind: 'businessPlan' | 'branding' | 'pitchDeck',
+    infos?: AdditionalInfos,
+    pdfFormat?: ChartePdfFormat,
+  ): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || this.isGenerating()) return;
+
+    const title = this.translate.instant(this.deliverables.config(kind).titleKey);
+    const progressId = this.nextId();
+    const progressMessage: ChatMessageModel = {
+      id: progressId,
+      role: 'assistant',
+      content: '',
+      createdAt: new Date().toISOString(),
+      generation: {
+        title,
+        status: 'running',
+        completedSteps: [],
+        stepsInProgress: [],
+      },
+    };
+    this.store.append(progressMessage);
+    this.isGenerating.set(true);
+
+    const connection =
+      kind === 'businessPlan'
+        ? this.businessPlanService.createBusinessplanItem(projectId, infos)
+        : kind === 'pitchDeck'
+          ? this.pitchDeckService.generatePitchDeck(projectId)
+          : this.brandingApiService.createBrandIdentityModel(projectId, pdfFormat ?? 'SLIDE_16_9');
+    const serviceType: 'business-plan' | 'branding' | 'pitch-deck' =
+      kind === 'businessPlan' ? 'business-plan' : kind === 'pitchDeck' ? 'pitch-deck' : 'branding';
+    this.activeGenerationType = serviceType;
+
+    let finished = false;
+    this.generationService
+      .startGeneration(serviceType, connection)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (state: SSEGenerationState) => {
+          if (finished) return;
+          this.store.patch(progressId, {
+            generation: this.toProgressData(title, state),
+          });
+          if (state.completed) {
+            finished = true;
+            void this.finishGeneration(kind, progressId, title, state);
+          } else if (state.error) {
+            finished = true;
+            this.failGeneration(kind, progressId, title, state);
+          }
+        },
+        error: (error) => {
+          if (finished) return;
+          finished = true;
+          console.error(`Chat: ${kind} generation failed`, error);
+          this.failGeneration(kind, progressId, title, null);
+        },
+        complete: () => {
+          if (!finished) {
+            finished = true;
+            void this.finishGeneration(kind, progressId, title, null);
+          }
+        },
+      });
+  }
+
+  private toProgressData(
+    title: string,
+    state: SSEGenerationState,
+    status: GenerationProgressData['status'] = 'running',
+  ): GenerationProgressData {
+    return {
+      title,
+      status,
+      completedSteps: state.completedSteps ?? [],
+      stepsInProgress: state.stepsInProgress ?? [],
+      totalSteps: state.totalSteps || undefined,
+    };
+  }
+
+  private async finishGeneration(
+    kind: 'businessPlan' | 'branding' | 'pitchDeck',
+    progressId: string,
+    title: string,
+    state: SSEGenerationState | null,
+  ): Promise<void> {
+    this.isGenerating.set(false);
+    this.store.patch(progressId, {
+      generation: {
+        title,
+        status: 'done',
+        completedSteps: state?.completedSteps ?? [],
+        stepsInProgress: [],
+        totalSteps: state?.totalSteps || undefined,
+      },
+    });
+    const project = await this.session.fetchActiveProjectDetails();
+    const card = this.deliverables.buildCard(kind, project);
+    this.appendAssistant({
+      content: this.translate.instant('chat.responses.showCard', { title }),
+      card,
+      chips: this.buildCardChips(kind, card.available, card.pdfSupported),
+    });
+  }
+
+  private failGeneration(
+    kind: 'businessPlan' | 'branding' | 'pitchDeck',
+    progressId: string,
+    title: string,
+    state: SSEGenerationState | null,
+  ): void {
+    this.isGenerating.set(false);
+    this.store.patch(progressId, {
+      generation: {
+        title,
+        status: 'error',
+        completedSteps: state?.completedSteps ?? [],
+        stepsInProgress: [],
+      },
+    });
+    this.appendAssistant({
+      content: this.translate.instant('chat.generation.retryHint'),
+      chips: [
+        { labelKey: 'chat.generation.chips.retry', icon: 'pi pi-refresh', action: 'generate', payload: kind },
+      ],
+    });
   }
 
   // ─────────────────────────────────────────────── Onboarding conversationnel

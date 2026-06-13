@@ -259,18 +259,38 @@
                                         <option value="{{ config('app.url') }}">Use {{ config('app.url') }}</option>
                                     @endif
                                 </x-forms.select>
-                                <x-forms.button isHighlighted
+                                <button type="button"
+                                    style="display:inline-flex;align-items:center;justify-content:center;
+                                           align-self:flex-end;
+                                           padding:12px 24px;
+                                           background:#2563eb;color:#fff;
+                                           font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+                                           white-space:nowrap;border:none;border-radius:10px;cursor:pointer;
+                                           box-shadow:0 4px 14px rgba(37,99,235,.28);
+                                           transition:background .15s;"
+                                    onmouseover="this.style.background='#1d4ed8';"
+                                    onmouseout="this.style.background='#2563eb';"
                                     x-on:click.prevent="createGithubApp('{{ $webhook_endpoint ?? config('app.url') }}','{{ $preview_deployment_permissions }}',{{ $administration }})">
                                     Register Now
-                                </x-forms.button>
+                                </button>
                             </div>
                         @else
                             <div class="flex gap-2">
                                 <h2>Register a GitHub App</h2>
-                                <x-forms.button isHighlighted
+                                <button type="button"
+                                    style="display:inline-flex;align-items:center;justify-content:center;
+                                           align-self:flex-end;
+                                           padding:12px 24px;
+                                           background:#2563eb;color:#fff;
+                                           font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+                                           white-space:nowrap;border:none;border-radius:10px;cursor:pointer;
+                                           box-shadow:0 4px 14px rgba(37,99,235,.28);
+                                           transition:background .15s;"
+                                    onmouseover="this.style.background='#1d4ed8';"
+                                    onmouseout="this.style.background='#2563eb';"
                                     x-on:click.prevent="createGithubApp('{{ $webhook_endpoint ?? config('app.url') }}','{{ $preview_deployment_permissions }}',{{ $administration }})">
                                     Register Now
-                                </x-forms.button>
+                                </button>
                             </div>
                             <div>You need to register a GitHub App before using this source.</div>
                         @endif

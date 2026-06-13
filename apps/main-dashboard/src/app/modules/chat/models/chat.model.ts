@@ -8,6 +8,26 @@ import { LogoModel } from '../../dashboard/models/logo.model';
 /** Mode d'interface : 'advanced' = dashboard classique, 'chat' = interface conversationnelle */
 export type UiMode = 'advanced' | 'chat';
 
+/** Catégories de rangement intelligent des conversations dans la sidebar */
+export type ChatConversationCategory =
+  | 'business'
+  | 'marketing'
+  | 'finance'
+  | 'legal'
+  | 'branding'
+  | 'tech'
+  | 'general';
+
+/** Métadonnées d'une conversation (plusieurs conversations par projet) */
+export interface ChatConversationMeta {
+  id: string;
+  /** Titre dérivé du premier message utilisateur ('' tant que vide) */
+  title: string;
+  category: ChatConversationCategory;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Livrables affichables sous forme de carte dans le chat */
 export type DeliverableKind =
   | 'businessPlan'
@@ -60,7 +80,14 @@ export type ChatChipAction =
   | 'branding-import'
   | 'branding-later'
   | 'branding-logo-type'
-  | 'branding-skip-description';
+  | 'branding-skip-description'
+  | 'generate'
+  | 'bp-fill-form'
+  | 'bp-free-text'
+  | 'bp-generate'
+  | 'download-logos-zip'
+  | 'preview'
+  | 'charte-regenerate';
 
 export interface ChatChip {
   /** Clé i18n du label (prioritaire sur label) */
@@ -71,6 +98,16 @@ export interface ChatChip {
   action: ChatChipAction;
   /** Selon l'action : texte à envoyer, kind de livrable, valeur d'onboarding… */
   payload?: string;
+}
+
+/** Progression d'une génération SSE affichée dans le fil */
+export interface GenerationProgressData {
+  /** Titre du livrable (déjà résolu) */
+  title: string;
+  status: 'running' | 'done' | 'error';
+  completedSteps: string[];
+  stepsInProgress: string[];
+  totalSteps?: number;
 }
 
 /** Récapitulatif d'onboarding affiché sous forme de carte avant création du projet */
@@ -100,6 +137,12 @@ export interface ChatMessageModel {
   logoOptions?: LogoModel[];
   /** Option choisie dans une carte de sélection (fige la carte) */
   selectedOptionId?: string;
+  /** Mini-formulaire d'informations supplémentaires (business plan) */
+  infoForm?: boolean;
+  /** Carte de progression d'une génération SSE */
+  generation?: GenerationProgressData;
+  /** Choix du format de la charte graphique (portrait / paysage) */
+  formatChoice?: boolean;
 }
 
 /** Étapes de l'onboarding conversationnel */

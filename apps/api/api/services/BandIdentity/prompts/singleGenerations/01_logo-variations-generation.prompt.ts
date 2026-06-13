@@ -47,11 +47,19 @@ KEEP UNCHANGED:
 
 VIEWBOX FOR OUTPUT:
   Use viewBox="0 0 80 80" for all variants.
-  If the original icon bounding box differs, apply a uniform scale transform to the
-  root <g> so the icon fills roughly 70% of the 80×80 canvas (leaving ~12px optical
-  padding on each side). Apply this as transform="translate(X,Y) scale(S)" where S
-  and the translation are computed from the original bounding box.
+  Compute the icon bounding box from the inventory: (bx, by, bw, bh).
+  Then center mathematically — never by eye:
+    S  = 56 / max(bw, bh)                  (icon fills 70% of canvas, 12px padding)
+    TX = 40 − S × (bx + bw / 2)
+    TY = 40 − S × (by + bh / 2) − 1        (−1 = optical centering, slightly high)
+  Apply as: <g transform="translate(TX, TY) scale(S)"> (S rounded to 4 decimals).
+  The SAME transform is used in all 3 variants (identical framing).
   Do NOT redraw or approximate any path.
+
+GRADIENTS:
+  If the original uses <linearGradient>, keep the gradient structure and recolor
+  each <stop> using the same per-variant rules below. Never replace a gradient
+  with a flat fill (and never add a gradient that was not there).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP 3 — COLOR TRANSFORMATION SYSTEM
@@ -174,10 +182,12 @@ ALLOWED elements:
 
 ATTRIBUTE RULES:
   - Copy every geometric attribute EXACTLY: d, cx, cy, r, rx, ry, x, y, width, height
-  - Copy every transform EXACTLY
+  - Copy every transform EXACTLY (plus the single computed root centering transform)
   - Copy stroke-width, stroke-linecap, stroke-linejoin, fill-rule EXACTLY
   - Copy opacity and fill-opacity EXACTLY
-  - Only fill and stroke color values may differ from the original
+  - Only fill and stroke color values (and gradient stop-colors) may differ
+  - Fidelity beats optical theory here: do NOT thin strokes for irradiation —
+    geometry is frozen, colors only
 
 COORDINATE PRECISION:
   - All numeric values: preserve original precision (do not round or truncate)
