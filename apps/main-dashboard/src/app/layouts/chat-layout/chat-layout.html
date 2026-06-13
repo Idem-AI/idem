@@ -1,12 +1,16 @@
 <div class="min-h-dvh">
-  <!-- Sidebar (desktop fixe + drawer mobile) -->
+  <!-- Sidebar (desktop repliable + drawer mobile) -->
   <app-chat-sidebar
     [mobileOpen]="isMobileSidebarOpen()"
     (closeMobile)="isMobileSidebarOpen.set(false)"
+    (collapsedChange)="onSidebarCollapsedChange($event)"
   />
 
   <!-- Colonne principale -->
-  <div class="md:ml-[280px] h-dvh flex flex-col">
+  <div
+    class="h-dvh flex flex-col transition-all duration-300"
+    [ngClass]="isSidebarCollapsed() ? 'md:ml-[76px]' : 'md:ml-[280px]'"
+  >
     <!-- Header : projet actif + actions contextuelles -->
     <header
       class="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 glass"

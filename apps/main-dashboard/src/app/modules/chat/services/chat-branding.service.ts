@@ -19,6 +19,7 @@ export type BrandingFlowStep =
   | 'logo-type'
   | 'logos-generate'
   | 'logos-pick'
+  | 'variations-generate'
   | 'complete';
 
 /**
@@ -38,10 +39,18 @@ export class ChatBrandingService {
     if (!branding?.generatedColors?.length) return 'colors-generate';
     if (!branding.colors) return 'colors-pick';
     if (!branding.typography) return 'typography-pick';
-    if (branding.logo) return 'complete';
+    if (branding.logo) {
+      // Déclinaisons du logo (fond clair/sombre, monochrome) après sélection
+      return branding.logo.variations ? 'complete' : 'variations-generate';
+    }
     if (!branding.logoPreferences?.type) return 'logo-type';
     if (!branding.generatedLogos?.length) return 'logos-generate';
     return 'logos-pick';
+  }
+
+  /** La charte graphique (sections branding + PDF) a-t-elle été générée ? */
+  hasCharte(project: ProjectModel | null): boolean {
+    return (project?.analysisResultModel?.branding?.sections?.length ?? 0) > 0;
   }
 
   isComplete(project: ProjectModel | null): boolean {
@@ -135,5 +144,41 @@ export class ChatBrandingService {
 
   async selectLogo(project: ProjectModel, logo: LogoModel): Promise<ProjectModel> {
     return this.persistBranding(project, { logo });
+  }
+
+  /** Génère les déclinaisons du logo sélectionné et les rattache au logo. */
+  async generateVariations(project: ProjectModel): Promise<ProjectModel> {
+    const logo = project.analysisResultModel?.branding?.logo;
+    if (!logo) {
+      throw new Error('A logo must be selected before generating variations');
+    }
+    const response = await firstValueFrom(
+      this.brandingService.generateLogoVariations(logo, project),
+    );
+    const updatedLogo: LogoModel = { ...logo, variations: response.variations };
+    return this.persistBranding(project, { logo: updatedLogo });
+  }
+
+  /** Télécharge le pack de logos (déclinaisons) au format ZIP. */
+  async downloadLogosZip(projectId: string, projectName?: string): Promise<boolean> {
+    try {
+      const blob = await firstValueFrom(this.brandingService.downloadLogosZip(projectId, 'svg'));
+      if (!blob || blob.size === 0) return false;
+      const safeName = (projectName || 'idem-project')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-+|-+$/g, '');
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${safeName}-logos.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

@@ -1,0 +1,152 @@
+<div
+  class="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20"
+  [class.opacity-60]="submitted()"
+>
+  <!-- En-tête -->
+  <div class="flex items-center gap-3 p-4 border-b border-white/5">
+    <div
+      class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
+    >
+      <i class="pi pi-id-card text-primary text-lg"></i>
+    </div>
+    <div class="min-w-0">
+      <h4 class="text-sm font-semibold text-white">{{ 'chat.infoForm.title' | translate }}</h4>
+      <p class="text-[11px] text-gray-500">{{ 'chat.infoForm.subtitle' | translate }}</p>
+    </div>
+  </div>
+
+  <div class="p-4 space-y-3">
+    <!-- Contact -->
+    <div class="grid grid-cols-2 gap-2">
+      <input
+        type="email"
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+        [disabled]="submitted() || busy()"
+        [placeholder]="'chat.infoForm.email' | translate"
+        class="chat-form-input"
+      />
+      <input
+        type="tel"
+        [ngModel]="phone()"
+        (ngModelChange)="phone.set($event)"
+        [disabled]="submitted() || busy()"
+        [placeholder]="'chat.infoForm.phone' | translate"
+        class="chat-form-input"
+      />
+      <input
+        type="text"
+        [ngModel]="city()"
+        (ngModelChange)="city.set($event)"
+        [disabled]="submitted() || busy()"
+        [placeholder]="'chat.infoForm.city' | translate"
+        class="chat-form-input"
+      />
+      <input
+        type="text"
+        [ngModel]="country()"
+        (ngModelChange)="country.set($event)"
+        [disabled]="submitted() || busy()"
+        [placeholder]="'chat.infoForm.country' | translate"
+        class="chat-form-input"
+      />
+      <input
+        type="text"
+        [ngModel]="address()"
+        (ngModelChange)="address.set($event)"
+        [disabled]="submitted() || busy()"
+        [placeholder]="'chat.infoForm.address' | translate"
+        class="chat-form-input col-span-2"
+      />
+    </div>
+
+    <!-- Équipe -->
+    <p class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold pt-1">
+      {{ 'chat.infoForm.team' | translate }}
+    </p>
+    @for (member of members(); track $index) {
+      <div class="rounded-xl border border-white/10 bg-white/[0.02] p-2.5 space-y-2 relative">
+        <div class="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            [ngModel]="member.name"
+            (ngModelChange)="updateMember($index, 'name', $event)"
+            [disabled]="submitted() || busy()"
+            [placeholder]="'chat.infoForm.memberName' | translate"
+            class="chat-form-input"
+          />
+          <input
+            type="text"
+            [ngModel]="member.role"
+            (ngModelChange)="updateMember($index, 'role', $event)"
+            [disabled]="submitted() || busy()"
+            [placeholder]="'chat.infoForm.memberRole' | translate"
+            class="chat-form-input"
+          />
+          <input
+            type="email"
+            [ngModel]="member.email"
+            (ngModelChange)="updateMember($index, 'email', $event)"
+            [disabled]="submitted() || busy()"
+            [placeholder]="'chat.infoForm.memberEmail' | translate"
+            class="chat-form-input col-span-2"
+          />
+        </div>
+        @if (members().length > 1 && !submitted()) {
+          <button
+            type="button"
+            (click)="removeMember($index)"
+            class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white/10 hover:bg-red-500/20 text-gray-400 hover:text-red-400 flex items-center justify-center transition-all duration-150"
+            [title]="'chat.infoForm.removeMember' | translate"
+          >
+            <i class="pi pi-times text-[9px]"></i>
+          </button>
+        }
+      </div>
+    }
+    @if (!submitted()) {
+      <button
+        type="button"
+        (click)="addMember()"
+        [disabled]="busy()"
+        class="inline-flex items-center gap-1.5 text-[11px] text-primary hover:text-primary/80 transition-colors duration-150 disabled:opacity-50"
+      >
+        <i class="pi pi-plus text-[10px]"></i>
+        {{ 'chat.infoForm.addMember' | translate }}
+      </button>
+    }
+  </div>
+
+  <!-- Actions -->
+  @if (!submitted()) {
+    <div class="px-4 pb-4 flex items-center justify-between gap-2">
+      <button
+        type="button"
+        (click)="skipped.emit()"
+        [disabled]="busy()"
+        class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-white transition-colors duration-200 disabled:opacity-50"
+      >
+        <i class="pi pi-forward text-[10px]"></i>
+        {{ 'chat.infoForm.skip' | translate }}
+      </button>
+      <button
+        type="button"
+        (click)="submit()"
+        [disabled]="busy()"
+        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/80 text-white text-xs font-semibold transition-all duration-200 disabled:opacity-50"
+      >
+        @if (busy()) {
+          <i class="pi pi-spinner pi-spin text-[11px]"></i>
+        } @else {
+          <i class="pi pi-check text-[11px]"></i>
+        }
+        {{ 'chat.infoForm.submit' | translate }}
+      </button>
+    </div>
+  } @else {
+    <p class="px-4 pb-4 text-[11px] text-emerald-400 flex items-center gap-1.5">
+      <i class="pi pi-check-circle"></i>
+      {{ 'chat.infoForm.submitted' | translate }}
+    </p>
+  }
+</div>

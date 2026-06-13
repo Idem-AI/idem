@@ -20,7 +20,10 @@ export class PreviewPanelComponent {
   readonly pdfUrl = input<string | null>(null);
   readonly isLoading = input<boolean>(false);
   readonly error = input<string | null>(null);
+  /** Propose « Générer maintenant » quand le document n'existe pas encore */
+  readonly canGenerate = input<boolean>(false);
 
   readonly closed = output<void>();
   readonly downloadRequested = output<void>();
+  readonly generateRequested = output<void>();
 }

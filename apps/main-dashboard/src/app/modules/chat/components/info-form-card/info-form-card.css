@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+.chat-form-input {
+  width: 100%;
+  min-height: 36px;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
+  font-size: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.chat-form-input:focus {
+  border-color: rgba(20, 71, 230, 0.6);
+}
+
+.chat-form-input::placeholder {
+  color: rgba(156, 163, 175, 0.6);
+}
+
+.chat-form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

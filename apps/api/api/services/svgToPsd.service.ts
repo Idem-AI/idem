@@ -611,9 +611,15 @@ export class SvgToPsdService {
    * Convertit une URL SVG en PSD
    */
   static async convertSvgUrlToPsd(svgUrl: string, options: SvgToPsdOptions = {}): Promise<string> {
-    logger.info(`Converting SVG from URL to PSD: ${svgUrl}`);
+    logger.info(`Converting SVG from URL to PSD: ${svgUrl?.slice(0, 80)}`);
 
     try {
+      // Le "URL" peut être du SVG inline : pas de fetch dans ce cas
+      const input = (svgUrl || '').trim();
+      if (input.startsWith('<svg') || input.startsWith('<?xml')) {
+        return await this.convertSvgToPsd(input, options);
+      }
+
       // Télécharger le contenu SVG
       const response = await fetch(svgUrl);
       if (!response.ok) {
