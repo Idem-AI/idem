@@ -1,88 +1,39 @@
-{{-- Contiguous Grid Layout for Step: Deployment Choice --}}
-@if ($current_step === 'deployment-choice')
-    <div class="mb-4">
-        <h2 class="text-sm font-medium text-text-primary">Deployment Target</h2>
-        <p class="text-xs text-text-tertiary mt-0.5">Select the environment infrastructure</p>
-    </div>
-    
-    <div x-data="{ showNoServersModal: false }" class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[rgba(255,255,255,0.05)] mb-8">
-        <div wire:click="chooseIdemManaged" class="group flex-1 p-6 sm:p-8 relative cursor-pointer hover:bg-surface-2 transition-colors flex flex-col">
-            <div class="absolute top-0 left-0 w-full h-[1px] bg-primary-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
-            <header class="flex justify-between items-start mb-6">
-                <h3 class="text-sm font-medium text-text-primary group-hover:text-primary-400 transition-colors">IDEM Managed Infrastructure</h3>
-                <span class="text-[9px] uppercase tracking-widest text-primary-400 border border-primary-500/20 px-1.5 py-0.5 rounded-sm bg-primary-500/10">Recommended</span>
-            </header>
-            <div class="text-xs text-text-tertiary leading-relaxed mb-6 max-w-sm flex-1">
-                <p class="mb-2">Deploy instantly on our pre-configured network.</p>
-                <ul class="space-y-1 text-[11px]">
-                    <li>— Automatic load balancing</li>
-                    <li>— High availability</li>
-                    <li>— Zero server maintenance</li>
-                </ul>
-            </div>
-            <div class="text-[11px] font-medium text-text-secondary group-hover:text-primary-400 transition-colors flex items-center gap-2 mt-auto">
-                <span>Select Path</span>
-                <svg class="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-            </div>
+{{-- Step: No VPS servers (projet VPS sans serveur connecté) --}}
+@if ($current_step === 'no-servers')
+    <div class="border border-orange-500/20 bg-orange-500/5 rounded-glass p-8 mb-8 flex flex-col items-center text-center gap-6">
+        <div class="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+            </svg>
         </div>
-        
-            <div @if(count($servers ?? []) === 0) x-on:click="showNoServersModal = true" @else wire:click="choosePersonalServers" @endif class="group flex-1 p-6 sm:p-8 relative cursor-pointer hover:bg-surface-2 transition-colors flex flex-col">
-            <div class="absolute top-0 left-0 w-full h-[1px] bg-accent-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
-            <header class="flex justify-between items-start mb-6">
-                <h3 class="text-sm font-medium text-text-primary group-hover:text-accent-400 transition-colors">Private Infrastructure</h3>
-            </header>
-            <div class="text-xs text-text-tertiary leading-relaxed mb-6 max-w-sm flex-1">
-                <p class="mb-2">Total control over hardware and networking.</p>
-                <ul class="space-y-1 text-[11px]">
-                    <li>— Connect custom nodes</li>
-                    <li>— Bring your own cloud</li>
-                    <li>— Manual scaling configured by you</li>
-                </ul>
-            </div>
-            <div class="text-[11px] font-medium text-text-secondary group-hover:text-accent-400 transition-colors flex items-center gap-2 mt-auto">
-                <span>Select Path</span>
-                <svg class="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-            </div>
+        <div>
+            <h3 class="text-sm font-semibold text-text-primary mb-2">Aucun VPS connecté</h3>
+            <p class="text-xs text-text-tertiary leading-relaxed max-w-sm">
+                Ce projet est configuré pour un déploiement sur votre propre infrastructure, mais aucun serveur VPS n'a encore été ajouté à votre compte.
+            </p>
         </div>
-
-        {{-- The No Servers Modal --}}
-        <template x-teleport="body">
-            <div x-show="showNoServersModal" class="fixed inset-0 z-[100] flex items-center justify-center px-4" style="display: none;">
-                <div x-show="showNoServersModal" 
-                     x-transition:enter="ease-out duration-300"
-                     x-transition:enter-start="opacity-0"
-                     x-transition:enter-end="opacity-100"
-                     x-transition:leave="ease-in duration-200"
-                     x-transition:leave-start="opacity-100"
-                     x-transition:leave-end="opacity-0"
-                     class="fixed inset-0 bg-black/60 backdrop-blur-sm" x-on:click="showNoServersModal = false"></div>
-                
-                <div x-show="showNoServersModal"
-                     x-transition:enter="ease-out duration-300"
-                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                     x-transition:leave="ease-in duration-200"
-                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     class="relative bg-surface-1 border border-[rgba(255,255,255,0.05)] rounded-glass shadow-2xl p-6 sm:p-8 max-w-md w-full transform transition-all">
-                    
-                    <div class="mb-6 flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
-                        </div>
-                        <div>
-                            <h3 class="text-sm font-medium text-text-primary mb-2">No Private Nodes Detected</h3>
-                            <p class="text-xs text-text-tertiary leading-relaxed">You don't have any personal servers. Please add a server first or choose IDEM Managed Servers.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-3 pt-6 border-t border-[rgba(255,255,255,0.05)]">
-                        <button type="button" x-on:click="showNoServersModal = false" class="text-xs font-medium text-text-tertiary hover:text-text-primary transition-colors px-3">Cancel</button>
-                        <a href="/servers" class="inner-button px-5 py-2 inline-flex items-center justify-center text-xs font-medium">Add Server</a>
-                    </div>
-                </div>
-            </div>
-        </template>
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full max-w-sm">
+            <a href="/servers"
+               class="flex-1 flex items-center justify-center gap-2 px-5 py-2.5
+                      bg-surface-2 border border-[rgba(255,255,255,0.08)]
+                      hover:border-primary-500/40 hover:bg-primary-500/5
+                      rounded-lg text-xs font-medium text-text-primary transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Ajouter un VPS
+            </a>
+            <button wire:click="chooseIdemManaged"
+                    class="flex-1 inner-button flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Déployer sur IDEM SaaS
+            </button>
+        </div>
+        <p class="text-[10px] text-text-tertiary">
+            Déployer sur IDEM SaaS utilise les serveurs gérés par l'administrateur. Vous pouvez ajouter votre VPS plus tard.
+        </p>
     </div>
 @endif
 
@@ -169,64 +120,190 @@
 @endif
 
 @if ($current_step === 'select-postgresql-type')
-    <div x-data="{ selecting: false }">
-        <div class="mb-4">
-            <h2 class="text-sm font-medium text-text-primary">Engine Configuration</h2>
-            <p class="text-xs text-text-tertiary mt-0.5">Select PostgreSQL distribution variant</p>
+    <div x-data="{ selecting: false, chosen: null }">
+        <div class="mb-6">
+            <h2 class="text-sm font-medium text-text-primary">Distribution PostgreSQL</h2>
+            <p class="text-xs text-text-tertiary mt-0.5">Choisissez la variante adaptée à vos besoins</p>
         </div>
-        
-        <div class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1 mb-8">
-            <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[rgba(255,255,255,0.05)]">
-                <div class="group relative p-6 hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
-                    :class="{ 'opacity-50 cursor-not-allowed': selecting }"
-                    x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgres:17-alpine'))">
-                    <div class="absolute inset-y-0 left-0 w-[1px] bg-primary-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
-                    <header class="flex justify-between items-start mb-4">
-                        <h3 class="text-sm font-medium text-text-primary group-hover:text-primary-400 transition-colors">Standard v17</h3>
-                        <span class="text-[9px] uppercase tracking-widest text-text-tertiary border border-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-sm bg-surface-base">Default</span>
-                    </header>
-                    <p class="text-xs text-text-tertiary leading-relaxed mb-2 max-w-sm flex-1">
-                        Base distribution. Light, fast, and secure. Standard performance.
-                    </p>
-                </div>
 
-                <div class="group relative p-6 hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
-                    :class="{ 'opacity-50 cursor-not-allowed': selecting }"
-                    x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('supabase/postgres:17.4.1.032'))">
-                    <div class="absolute inset-y-0 left-0 w-[1px] bg-accent-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
-                    <header class="flex justify-between items-start mb-4">
-                        <h3 class="text-sm font-medium text-text-primary group-hover:text-accent-400 transition-colors">Supabase Pack</h3>
-                    </header>
-                    <p class="text-xs text-text-tertiary leading-relaxed mb-2 max-w-sm flex-1">
-                        Includes PostGIS, pgvector, and cloud extensions pre-installed.
-                    </p>
-                </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
 
-                <div class="group relative p-6 border-t border-[rgba(255,255,255,0.05)] hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
-                    :class="{ 'opacity-50 cursor-not-allowed': selecting }"
-                    x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgis/postgis:17-3.5-alpine'))">
-                    <div class="absolute inset-y-0 left-0 w-[1px] bg-green-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
-                    <header class="flex justify-between items-start mb-4">
-                        <h3 class="text-sm font-medium text-text-primary group-hover:text-green-400 transition-colors">PostGIS</h3>
-                        <span class="text-[9px] uppercase tracking-widest text-text-tertiary border border-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-sm bg-surface-base">AMD only</span>
-                    </header>
-                    <p class="text-xs text-text-tertiary leading-relaxed mb-2 max-w-sm flex-1">
-                        Geospatial extensions built-in for advanced location mapping.
+            {{-- Standard v17 --}}
+            <div class="group relative rounded-xl border cursor-pointer overflow-hidden transition-all duration-200
+                        border-[rgba(255,255,255,0.06)] bg-surface-1
+                        hover:border-blue-500/30 hover:bg-blue-500/[0.04]"
+                 :class="selecting && chosen !== 'standard' ? 'opacity-40 pointer-events-none' : ''"
+                 x-on:click="!selecting && (selecting = true, chosen = 'standard', $wire.setPostgresqlType('postgres:17-alpine'))">
+                {{-- top gradient bar --}}
+                <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/0 via-blue-400 to-blue-500/0
+                            scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center"></div>
+                <div class="p-5 flex flex-col gap-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0">
+                                <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                    <path d="M3 5v14c0 1.657 4.03 3 9 3s9-1.343 9-3V5"/>
+                                    <path d="M3 12c0 1.657 4.03 3 9 3s9-1.343 9-3"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-text-primary group-hover:text-blue-300 transition-colors leading-tight">Standard v17</h3>
+                                <p class="text-[10px] text-text-tertiary">postgres:17-alpine</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] uppercase tracking-widest font-medium text-blue-400 border border-blue-500/25 bg-blue-500/10 px-2 py-0.5 rounded-full">Recommandé</span>
+                    </div>
+                    <p class="text-[11px] text-text-tertiary leading-relaxed">
+                        Distribution officielle légère et rapide. Parfaite pour la majorité des projets.
                     </p>
-                </div>
-
-                <div class="group relative p-6 border-t border-[rgba(255,255,255,0.05)] hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
-                    :class="{ 'opacity-50 cursor-not-allowed': selecting }"
-                    x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('pgvector/pgvector:pg17'))">
-                    <div class="absolute inset-y-0 left-0 w-[1px] bg-purple-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
-                    <header class="flex justify-between items-start mb-4">
-                        <h3 class="text-sm font-medium text-text-primary group-hover:text-purple-400 transition-colors">PGVector v17</h3>
-                    </header>
-                    <p class="text-xs text-text-tertiary leading-relaxed mb-2 max-w-sm flex-1">
-                        Dedicated vector embedding store for AI/ML workloads.
-                    </p>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">Léger</span>
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">Alpine Linux</span>
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">AMD + ARM</span>
+                    </div>
+                    <div class="flex items-center justify-end">
+                        <span class="text-[10px] text-blue-400/0 group-hover:text-blue-400 flex items-center gap-1 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                            Sélectionner
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </span>
+                        <template x-if="selecting && chosen === 'standard'">
+                            <svg class="w-3.5 h-3.5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        </template>
+                    </div>
                 </div>
             </div>
+
+            {{-- Supabase Pack --}}
+            <div class="group relative rounded-xl border cursor-pointer overflow-hidden transition-all duration-200
+                        border-[rgba(255,255,255,0.06)] bg-surface-1
+                        hover:border-emerald-500/30 hover:bg-emerald-500/[0.04]"
+                 :class="selecting && chosen !== 'supabase' ? 'opacity-40 pointer-events-none' : ''"
+                 x-on:click="!selecting && (selecting = true, chosen = 'supabase', $wire.setPostgresqlType('supabase/postgres:17.4.1.032'))">
+                <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500/0 via-emerald-400 to-emerald-500/0
+                            scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center"></div>
+                <div class="p-5 flex flex-col gap-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
+                                <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 6c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-text-primary group-hover:text-emerald-300 transition-colors leading-tight">Supabase Pack</h3>
+                                <p class="text-[10px] text-text-tertiary">supabase/postgres:17</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-text-tertiary leading-relaxed">
+                        Extensions cloud pré-installées : PostGIS, pgvector, pg_cron et bien plus.
+                    </p>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">PostGIS inclus</span>
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">pgvector inclus</span>
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">AMD + ARM</span>
+                    </div>
+                    <div class="flex items-center justify-end">
+                        <span class="text-[10px] text-emerald-400/0 group-hover:text-emerald-400 flex items-center gap-1 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                            Sélectionner
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </span>
+                        <template x-if="selecting && chosen === 'supabase'">
+                            <svg class="w-3.5 h-3.5 text-emerald-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PostGIS --}}
+            <div class="group relative rounded-xl border cursor-pointer overflow-hidden transition-all duration-200
+                        border-[rgba(255,255,255,0.06)] bg-surface-1
+                        hover:border-green-500/30 hover:bg-green-500/[0.04]"
+                 :class="selecting && chosen !== 'postgis' ? 'opacity-40 pointer-events-none' : ''"
+                 x-on:click="!selecting && (selecting = true, chosen = 'postgis', $wire.setPostgresqlType('postgis/postgis:17-3.5-alpine'))">
+                <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-green-500/0 via-green-400 to-green-500/0
+                            scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center"></div>
+                <div class="p-5 flex flex-col gap-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 flex-shrink-0">
+                                <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-text-primary group-hover:text-green-300 transition-colors leading-tight">PostGIS</h3>
+                                <p class="text-[10px] text-text-tertiary">postgis/postgis:17-3.5</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] uppercase tracking-widest font-medium text-amber-400 border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 rounded-full">AMD only</span>
+                    </div>
+                    <p class="text-[11px] text-text-tertiary leading-relaxed">
+                        Extensions géospatiales natives pour la cartographie et l'analyse de données localisées.
+                    </p>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">Géospatial</span>
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">Rasters</span>
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">GEOS/GDAL</span>
+                    </div>
+                    <div class="flex items-center justify-end">
+                        <span class="text-[10px] text-green-400/0 group-hover:text-green-400 flex items-center gap-1 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                            Sélectionner
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </span>
+                        <template x-if="selecting && chosen === 'postgis'">
+                            <svg class="w-3.5 h-3.5 text-green-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PGVector --}}
+            <div class="group relative rounded-xl border cursor-pointer overflow-hidden transition-all duration-200
+                        border-[rgba(255,255,255,0.06)] bg-surface-1
+                        hover:border-purple-500/30 hover:bg-purple-500/[0.04]"
+                 :class="selecting && chosen !== 'pgvector' ? 'opacity-40 pointer-events-none' : ''"
+                 x-on:click="!selecting && (selecting = true, chosen = 'pgvector', $wire.setPostgresqlType('pgvector/pgvector:pg17'))">
+                <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-500/0 via-purple-400 to-purple-500/0
+                            scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center"></div>
+                <div class="p-5 flex flex-col gap-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 flex-shrink-0">
+                                <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-text-primary group-hover:text-purple-300 transition-colors leading-tight">PGVector v17</h3>
+                                <p class="text-[10px] text-text-tertiary">pgvector/pgvector:pg17</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] uppercase tracking-widest font-medium text-purple-400 border border-purple-500/25 bg-purple-500/10 px-2 py-0.5 rounded-full">AI/ML</span>
+                    </div>
+                    <p class="text-[11px] text-text-tertiary leading-relaxed">
+                        Stockage vectoriel natif pour les embeddings et les workloads IA avec recherche de similarité.
+                    </p>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">Embeddings</span>
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">Similarité cosinus</span>
+                        <span class="text-[10px] text-text-tertiary border border-[rgba(255,255,255,0.07)] bg-white/[0.03] px-2 py-0.5 rounded-full">AMD + ARM</span>
+                    </div>
+                    <div class="flex items-center justify-end">
+                        <span class="text-[10px] text-purple-400/0 group-hover:text-purple-400 flex items-center gap-1 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                            Sélectionner
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </span>
+                        <template x-if="selecting && chosen === 'pgvector'">
+                            <svg class="w-3.5 h-3.5 text-purple-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 @endif
