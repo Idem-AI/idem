@@ -69,6 +69,7 @@ async function fetchApplications(teamId: number): Promise<Row[]> {
      JOIN environments e ON e.id = a.environment_id
      JOIN projects     p ON p.id = e.project_id
      WHERE p.team_id = $1
+       AND a.deleted_at IS NULL
      ORDER BY a.updated_at DESC`,
     [teamId]
   );
@@ -111,7 +112,7 @@ async function fetchDatabases(teamId: number): Promise<Row[]> {
 
 async function fetchServices(teamId: number): Promise<Row[]> {
   const { rows } = await pool.query(
-    `SELECT s.uuid, s.name, s.status, s.environment_id,
+    `SELECT s.uuid, s.name, 'unknown'::text AS status, s.environment_id,
             s.created_at, s.updated_at
      FROM services s
      JOIN environments e ON e.id = s.environment_id
@@ -124,9 +125,13 @@ async function fetchServices(teamId: number): Promise<Row[]> {
 
 async function fetchServers(teamId: number): Promise<Row[]> {
   const { rows } = await pool.query(
-    `SELECT s.uuid, s.name, s.ip, s.created_at, s.updated_at
+    `SELECT s.uuid, s.name, s.ip,
+            s.is_available AS is_reachable,
+            s.is_available AS is_usable,
+            s.created_at, s.updated_at
      FROM servers s
-     WHERE s.team_id = $1`,
+     WHERE s.team_id = $1
+       AND s.deleted_at IS NULL`,
     [teamId]
   );
   return rows;
