@@ -1,219 +1,87 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { ideployService } from '../services/ideploy.service';
+import { getIDeploySummaryForUser, checkIDeployPgConnection } from '../services/ideploy-pg.service';
 import logger from '../config/logger';
 
-/**
- * Récupère toutes les applications iDeploy
- */
-export const getApplicationsController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const userId = req.user?.uid;
-
-  logger.info('Fetching iDeploy applications', { userId });
-
+export const getApplicationsController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
   try {
-    const applications = await ideployService.getApplications();
-
-    res.status(200).json({
-      success: true,
-      data: applications,
-    });
+    const summary = await getIDeploySummaryForUser(email);
+    res.status(200).json({ success: true, data: summary.applications });
   } catch (error: any) {
-    logger.error('Error in getApplicationsController:', {
-      userId,
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch applications from iDeploy',
-      error: error.message,
-    });
+    logger.error('getApplicationsController error', { email, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch applications' });
   }
 };
 
-/**
- * Récupère toutes les bases de données iDeploy
- */
-export const getDatabasesController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const userId = req.user?.uid;
-
-  logger.info('Fetching iDeploy databases', { userId });
-
+export const getDatabasesController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
   try {
-    const databases = await ideployService.getDatabases();
-
-    res.status(200).json({
-      success: true,
-      data: databases,
-    });
+    const summary = await getIDeploySummaryForUser(email);
+    res.status(200).json({ success: true, data: summary.databases });
   } catch (error: any) {
-    logger.error('Error in getDatabasesController:', {
-      userId,
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch databases from iDeploy',
-      error: error.message,
-    });
+    logger.error('getDatabasesController error', { email, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch databases' });
   }
 };
 
-/**
- * Récupère tous les services Docker iDeploy
- */
-export const getServicesController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const userId = req.user?.uid;
-
-  logger.info('Fetching iDeploy services', { userId });
-
+export const getServicesController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
   try {
-    const services = await ideployService.getServices();
-
-    res.status(200).json({
-      success: true,
-      data: services,
-    });
+    const summary = await getIDeploySummaryForUser(email);
+    res.status(200).json({ success: true, data: summary.services });
   } catch (error: any) {
-    logger.error('Error in getServicesController:', {
-      userId,
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch services from iDeploy',
-      error: error.message,
-    });
+    logger.error('getServicesController error', { email, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch services' });
   }
 };
 
-/**
- * Récupère tous les serveurs iDeploy
- */
 export const getServersController = async (req: CustomRequest, res: Response): Promise<void> => {
-  const userId = req.user?.uid;
-
-  logger.info('Fetching iDeploy servers', { userId });
-
+  const email = req.user?.email;
+  if (!email) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
   try {
-    const servers = await ideployService.getServers();
-
-    res.status(200).json({
-      success: true,
-      data: servers,
-    });
+    const summary = await getIDeploySummaryForUser(email);
+    res.status(200).json({ success: true, data: summary.servers });
   } catch (error: any) {
-    logger.error('Error in getServersController:', {
-      userId,
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch servers from iDeploy',
-      error: error.message,
-    });
+    logger.error('getServersController error', { email, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch servers' });
   }
 };
 
-/**
- * Récupère tous les projets iDeploy
- */
 export const getProjectsController = async (req: CustomRequest, res: Response): Promise<void> => {
-  const userId = req.user?.uid;
-
-  logger.info('Fetching iDeploy projects', { userId });
-
+  const email = req.user?.email;
+  if (!email) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
   try {
-    const projects = await ideployService.getProjects();
-
-    res.status(200).json({
-      success: true,
-      data: projects,
-    });
+    const summary = await getIDeploySummaryForUser(email);
+    res.status(200).json({ success: true, data: summary.projects });
   } catch (error: any) {
-    logger.error('Error in getProjectsController:', {
-      userId,
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch projects from iDeploy',
-      error: error.message,
-    });
+    logger.error('getProjectsController error', { email, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch projects' });
   }
 };
 
-/**
- * Récupère un résumé complet de toutes les ressources iDeploy
- */
 export const getSummaryController = async (req: CustomRequest, res: Response): Promise<void> => {
-  const userId = req.user?.uid;
-
-  logger.info('Fetching iDeploy summary', { userId });
-
+  const email = req.user?.email;
+  if (!email) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
   try {
-    const summary = await ideployService.getSummary();
-
-    res.status(200).json({
-      success: true,
-      data: summary,
-    });
+    logger.info('Fetching iDeploy summary', { email });
+    const summary = await getIDeploySummaryForUser(email);
+    res.status(200).json({ success: true, data: summary });
   } catch (error: any) {
-    logger.error('Error in getSummaryController:', {
-      userId,
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch summary from iDeploy',
-      error: error.message,
-    });
+    logger.error('getSummaryController error', { email, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch iDeploy summary' });
   }
 };
 
-/**
- * Vérifie la connexion à iDeploy
- */
-export const checkConnectionController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const userId = req.user?.uid;
-
-  logger.info('Checking iDeploy connection', { userId });
-
+export const checkConnectionController = async (req: CustomRequest, res: Response): Promise<void> => {
   try {
-    const isConnected = await ideployService.checkConnection();
-
-    res.status(200).json({
-      success: true,
-      connected: isConnected,
-    });
+    const isConnected = await checkIDeployPgConnection();
+    res.status(200).json({ success: true, connected: isConnected });
   } catch (error: any) {
-    logger.error('Error in checkConnectionController:', {
-      userId,
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check iDeploy connection',
-      error: error.message,
-    });
+    logger.error('checkConnectionController error', { message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to check iDeploy connection' });
   }
 };

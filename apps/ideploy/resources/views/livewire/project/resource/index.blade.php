@@ -1,7 +1,33 @@
-<div class="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1419] to-[#0a0e1a] text-white p-6">
+<div>
     <x-slot:title>
         {{ data_get_str($project, 'name')->limit(10) }} > Resources | Ideploy
     </x-slot>
+
+    <style>
+        /* ── Font helpers (fonts already in base.blade.php) ───────────── */
+        .ic-font-display { font-family: 'Playfair Display', Georgia, serif; }
+        .ic-font-mono    { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+        .ic-font-body    { font-family: 'Hanken Grotesk', 'Inter', sans-serif; }
+
+        /* ── Resource card ────────────────────────────────────────────── */
+        .ic-card {
+            background: #1a2235;
+            border: 1px solid #2a3550;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        .ic-card:hover {
+            border-color: rgba(180,197,255,.3);
+            box-shadow: 0 8px 32px -4px rgba(37,99,235,.15);
+            transform: translateY(-2px);
+        }
+
+        /* ── Status badges ────────────────────────────────────────────── */
+        .ic-badge-exited  { background:#3d1515; color:#f87171; border:1px solid rgba(248,113,113,.3); }
+        .ic-badge-running { background:#0d2a1f; color:#4ade80; border:1px solid rgba(74,222,128,.3);  }
+        .ic-badge-starting{ background:#1a2a0d; color:#facc15; border:1px solid rgba(250,204,21,.3);  }
+        .ic-badge-warn    { background:#2a1a0d; color:#fb923c; border:1px solid rgba(251,146,60,.3);  }
+    </style>
 
     {{-- Header Époustouflant --}}
     <div class="mb-8">
@@ -81,6 +107,7 @@
             </div>
         </div>
     </div>
+
     @if ($environment->isEmpty())
         @can('createAnyResource')
             <div class="flex flex-col items-center justify-center py-16 px-8 text-center">
@@ -119,319 +146,252 @@
         @endcan
     @else
         <div x-data="searchComponent()">
-            {{-- Barre de Recherche Moderne --}}
+
+            {{-- Search Bar --}}
             <div class="relative mb-8">
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                        <svg class="w-5 h-5 text-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                    <input
-                        type="text"
-                        x-model="search"
-                        placeholder="Search for name, domain, or description..."
-                        class="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/10 rounded-xl text-light placeholder-light/40 focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 transition-all backdrop-blur-sm"
-                    />
-                    <div x-show="search.length > 0" class="absolute inset-y-0 right-0 flex items-center pr-4">
-                        <button @click="search = ''" class="p-1 hover:bg-white/10 rounded-lg transition-colors">
-                            <svg class="w-4 h-4 text-light/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                      style="font-size:20px;color:#64748b">search</span>
+                <input
+                    type="text"
+                    x-model="search"
+                    placeholder="Search for name, domain, or description..."
+                    class="w-full pl-11 pr-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 transition-all"
+                    style="background:#1e2533;border:1px solid #2a3550;color:#e2e8f0;font-family:'Hanken Grotesk','Inter',sans-serif"
+                    onfocus="this.style.borderColor='rgba(37,99,235,.5)'"
+                    onblur="this.style.borderColor='#2a3550'"
+                />
+                <button x-show="search.length > 0" @click="search = ''"
+                        class="absolute inset-y-0 right-3 flex items-center">
+                    <span class="material-symbols-outlined" style="font-size:18px;color:#64748b">close</span>
+                </button>
             </div>
-            <template
-                x-if="filteredApplications.length === 0 && filteredDatabases.length === 0 && filteredServices.length === 0">
+
+            {{-- No Results --}}
+            <template x-if="filteredApplications.length === 0 && filteredDatabases.length === 0 && filteredServices.length === 0">
                 <div class="flex flex-col items-center justify-center p-8 text-center">
                     <div x-show="search.length > 0">
-                        <p class="text-neutral-600 dark:text-neutral-400">No resource found with the search term "<span
-                                class="font-semibold" x-text="search"></span>".</p>
-                        <p class="text-sm text-neutral-500 dark:text-neutral-500 mt-1">Try adjusting your search
-                            criteria.</p>
+                        <p style="color:#94a3b8">No resource found for "<span class="font-semibold" x-text="search"></span>".</p>
                     </div>
                     <div x-show="search.length === 0">
-                        <p class="text-neutral-600 dark:text-neutral-400">No resources found in this environment.</p>
-                        @cannot('createAnyResource')
-                            <p class="text-sm text-neutral-500 dark:text-neutral-500 mt-1">Contact your team administrator
-                                to add resources.</p>
-                        @endcannot
+                        <p style="color:#94a3b8">No resources found in this environment.</p>
                     </div>
                 </div>
             </template>
 
+            {{-- ─── Applications ─────────────────────────────────────────── --}}
             <template x-if="filteredApplications.length > 0">
-                <div class="pt-6 pb-4 flex items-center gap-3">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
-                        </svg>
-                    </div>
-                    <h2 class="text-2xl font-bold text-white">Applications</h2>
-                    <span class="px-3 py-1 text-sm font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30" x-text="filteredApplications.length"></span>
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="material-symbols-outlined" style="font-size:24px;color:#60a5fa;font-variation-settings:'FILL' 0">apps</span>
+                    <h2 class="ic-font-display m-0" style="font-size:28px;font-weight:600;color:#e2e8f0">Applications</h2>
+                    <span class="ic-font-mono rounded-full px-2 py-0.5"
+                          style="font-size:11px;background:#1e2533;color:#94a3b8;border:1px solid #2a3550"
+                          x-text="filteredApplications.length"></span>
                 </div>
             </template>
+
             <div x-show="filteredApplications.length > 0"
-                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                 class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 mb-12">
                 <template x-for="item in filteredApplications" :key="item.uuid">
-                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
-                        <div class="relative glass-card p-6 hover:border-blue-500/40 overflow-hidden">
-                            {{-- Header avec icône framework + actions --}}
-                            <div class="flex items-start justify-between gap-4 mb-4">
-                                <div class="flex items-start gap-3 flex-1 min-w-0">
-                                    {{-- Framework Icon --}}
-                                    <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-lg border border-blue-500/30 flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
-                                        </svg>
-                                    </div>
+                    <a :href="item.hrefLink" class="group block">
+                        <div class="ic-card p-5 flex flex-col relative">
 
-                                    {{-- Titre + description --}}
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="text-base font-semibold text-white group-hover:text-blue-400 transition-colors truncate mb-1" x-text="item.name"></h3>
-                                        <p class="text-sm text-gray-500 truncate" x-text="item.fqdn || 'No domain configured'"></p>
+                            {{-- Header: icon + name + badge + 3-dots --}}
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                         style="background:rgba(29,58,110,.35);border:1px solid rgba(96,165,250,.25)">
+                                        <span class="material-symbols-outlined" style="font-size:20px;color:#60a5fa;font-variation-settings:'FILL' 0">settings</span>
                                     </div>
+                                    <h3 class="ic-font-body text-sm font-semibold truncate group-hover:text-[#93c5fd] transition-colors"
+                                        style="color:#e2e8f0;max-width:180px"
+                                        x-text="item.name" :title="item.name"></h3>
                                 </div>
-
-                                {{-- Actions (status + menu) --}}
-                                <div class="flex items-center gap-2 flex-shrink-0">
-                                    {{-- Status Badge --}}
-                                    <template x-if="item.status.startsWith('running')">
-                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                            <span class="text-xs text-green-500 font-medium">Running</span>
-                                        </div>
+                                <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                                    {{-- Status badge inline --}}
+                                    <template x-if="item.status && item.status.startsWith('running')">
+                                        <span class="ic-badge-running ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse"></span>Running
+                                        </span>
                                     </template>
-                                    <template x-if="item.status.startsWith('exited')">
-                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                            <span class="text-xs text-red-500 font-medium">Exited</span>
-                                        </div>
+                                    <template x-if="item.status && item.status.startsWith('exited')">
+                                        <span class="ic-badge-exited ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full" style="background:#f87171"></span>Exited
+                                        </span>
                                     </template>
-                                    <template x-if="item.status.startsWith('starting')">
-                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
-                                            <span class="text-xs text-yellow-500 font-medium">Starting</span>
-                                        </div>
+                                    <template x-if="item.status && item.status.startsWith('starting')">
+                                        <span class="ic-badge-starting ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#facc15] animate-pulse"></span>Starting
+                                        </span>
                                     </template>
-
-                                    {{-- Menu 3 dots --}}
-                                    <button class="p-1.5 hover:bg-gray-800 rounded-md transition-colors" @click.prevent>
-                                        <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 16 16">
-                                            <circle cx="8" cy="3" r="1.5"/>
-                                            <circle cx="8" cy="8" r="1.5"/>
-                                            <circle cx="8" cy="13" r="1.5"/>
-                                        </svg>
+                                    <button class="p-1 rounded hover:bg-white/5 transition-colors" style="color:#64748b" @click.prevent>
+                                        <span class="material-symbols-outlined" style="font-size:18px">more_vert</span>
                                     </button>
                                 </div>
                             </div>
 
-                            {{-- Metadata (git + commit) --}}
-                            <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                                <div class="flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                                    </svg>
-                                    <span class="truncate" x-text="item.git_repository || 'No repository'"></span>
-                                </div>
-                                <div class="flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-                                    </svg>
-                                    <span x-text="item.last_commit || 'Initial commit'"></span>
-                                </div>
+                            {{-- URL in blue --}}
+                            <div class="mb-4">
+                                <p class="ic-font-mono text-xs truncate" style="color:#60a5fa"
+                                   x-text="item.fqdn || 'No domain configured'"></p>
                             </div>
 
-                            {{-- Footer: Date + Branch --}}
-                            <div class="flex items-center justify-between text-xs text-gray-600">
-                                <div class="flex items-center gap-1">
+                            {{-- Footer: git meta + date --}}
+                            <div class="mt-auto flex flex-col gap-1.5 pt-3" style="border-top:1px solid #2a3550">
+                                <div class="flex items-center gap-4 ic-font-mono" style="font-size:10px;color:#94a3b8">
+                                    <span class="flex items-center gap-1 truncate" style="max-width:48%">
+                                        <span class="material-symbols-outlined" style="font-size:14px;flex-shrink:0">code</span>
+                                        <span class="truncate" x-text="item.git_repository || 'No repository'"></span>
+                                    </span>
+                                    <span class="flex items-center gap-1 truncate" style="max-width:48%">
+                                        <span class="material-symbols-outlined" style="font-size:14px;flex-shrink:0">commit</span>
+                                        <span x-text="item.last_commit || 'Initial commit'"></span>
+                                    </span>
+                                </div>
+                                <div class="ic-font-mono" style="font-size:9px;color:#64748b">
                                     <span x-text="item.updated_at || 'Just now'"></span>
-                                    <span>on</span>
-                                    <div class="flex items-center gap-1">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
-                                        </svg>
-                                        <span class="font-medium" x-text="item.git_branch || 'main'"></span>
-                                    </div>
+                                    <span> on ⑂ </span>
+                                    <span x-text="item.git_branch || 'main'"></span>
                                 </div>
                             </div>
                         </div>
                     </a>
                 </template>
             </div>
+
+            {{-- ─── Databases ─────────────────────────────────────────────── --}}
             <template x-if="filteredDatabases.length > 0">
-                <div class="pt-6 pb-4 flex items-center gap-3">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
-                        </svg>
-                    </div>
-                    <h2 class="text-2xl font-bold text-white">Databases</h2>
-                    <span class="px-3 py-1 text-sm font-semibold bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30" x-text="filteredDatabases.length"></span>
+                <div class="flex items-center gap-3 mb-6 pt-6" style="border-top:1px solid #2a3550">
+                    <span class="material-symbols-outlined" style="font-size:24px;color:#a78bfa;font-variation-settings:'FILL' 0">storage</span>
+                    <h2 class="ic-font-display m-0" style="font-size:28px;font-weight:600;color:#e2e8f0">Databases</h2>
+                    <span class="ic-font-mono rounded-full px-2 py-0.5"
+                          style="font-size:11px;background:#1e2533;color:#94a3b8;border:1px solid #2a3550"
+                          x-text="filteredDatabases.length"></span>
                 </div>
             </template>
+
             <div x-show="filteredDatabases.length > 0"
-                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+                 class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 mb-12">
                 <template x-for="item in filteredDatabases" :key="item.uuid">
-                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
-                        <div class="relative glass-card p-6 hover:border-indigo-500/40 overflow-hidden">
-                            {{-- Header avec icône database + actions --}}
-                            <div class="flex items-start justify-between gap-4 mb-4">
-                                <div class="flex items-start gap-3 flex-1 min-w-0">
-                                    {{-- Database Icon --}}
-                                    <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-lg border border-indigo-500/30 flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
-                                        </svg>
-                                    </div>
+                    <a :href="item.hrefLink" class="group block">
+                        <div class="ic-card p-5 flex flex-col relative" style="border-top:2px solid rgba(167,139,250,.3)">
 
-                                    {{-- Titre + type --}}
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="text-base font-semibold text-white group-hover:text-indigo-400 transition-colors truncate mb-1" x-text="item.name"></h3>
-                                        <p class="text-sm text-gray-500 truncate" x-text="item.type || 'Database'"></p>
+                            {{-- Header: icon + name + subtitle + badge + 3-dots --}}
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                         style="background:rgba(88,28,135,.25);border:1px solid rgba(167,139,250,.25)">
+                                        <span class="material-symbols-outlined" style="font-size:20px;color:#a78bfa;font-variation-settings:'FILL' 0">database</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h3 class="ic-font-body text-sm font-semibold truncate group-hover:text-[#c4b5fd] transition-colors"
+                                            style="color:#e2e8f0;max-width:180px"
+                                            x-text="item.name" :title="item.name"></h3>
+                                        <span class="ic-font-mono" style="font-size:10px;color:#64748b" x-text="item.type || 'Database'"></span>
                                     </div>
                                 </div>
-
-                                {{-- Actions (status + menu) --}}
-                                <div class="flex items-center gap-2 flex-shrink-0">
-                                    {{-- Status Badge --}}
+                                <div class="flex items-center gap-2 flex-shrink-0 ml-2">
                                     <template x-if="item.status && item.status.startsWith('running')">
-                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                            <span class="text-xs text-green-500 font-medium">Running</span>
-                                        </div>
+                                        <span class="ic-badge-running ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse"></span>Running
+                                        </span>
                                     </template>
                                     <template x-if="item.status && item.status.startsWith('exited')">
-                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                            <span class="text-xs text-red-500 font-medium">Exited</span>
-                                        </div>
+                                        <span class="ic-badge-exited ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full" style="background:#f87171"></span>Exited
+                                        </span>
                                     </template>
-
-                                    {{-- Menu 3 dots --}}
-                                    <button class="p-1.5 hover:bg-gray-800 rounded-md transition-colors" @click.prevent>
-                                        <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 16 16">
-                                            <circle cx="8" cy="3" r="1.5"/>
-                                            <circle cx="8" cy="8" r="1.5"/>
-                                            <circle cx="8" cy="13" r="1.5"/>
-                                        </svg>
+                                    <template x-if="item.status && item.status.startsWith('starting')">
+                                        <span class="ic-badge-starting ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#facc15] animate-pulse"></span>Starting
+                                        </span>
+                                    </template>
+                                    <template x-if="item.server_status == false">
+                                        <span class="ic-badge-warn ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="material-symbols-outlined" style="font-size:12px">warning</span>Server
+                                        </span>
+                                    </template>
+                                    <button class="p-1 rounded hover:bg-white/5 transition-colors" style="color:#64748b" @click.prevent>
+                                        <span class="material-symbols-outlined" style="font-size:18px">more_vert</span>
                                     </button>
                                 </div>
                             </div>
 
-                            {{-- Metadata --}}
-                            <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                                <div class="flex items-center gap-1.5" x-show="item.fqdn">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
-                                    </svg>
-                                    <span class="truncate" x-text="item.fqdn"></span>
-                                </div>
-                                <template x-if="item.server_status == false">
-                                    <div class="flex items-center gap-1.5 text-red-500">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                        </svg>
-                                        <span>Server issue</span>
-                                    </div>
-                                </template>
-                            </div>
-
-                            {{-- Footer: Updated date --}}
-                            <div class="flex items-center justify-between text-xs text-gray-600">
-                                <span x-text="item.updated_at || 'Just now'"></span>
+                            {{-- Footer: date --}}
+                            <div class="mt-auto pt-3" style="border-top:1px solid #2a3550">
+                                <div class="ic-font-mono" style="font-size:9px;color:#64748b" x-text="item.updated_at || 'Just now'"></div>
                             </div>
                         </div>
                     </a>
                 </template>
             </div>
+
+            {{-- ─── Services ───────────────────────────────────────────────── --}}
             <template x-if="filteredServices.length > 0">
-                <div class="pt-6 pb-4 flex items-center gap-3">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
-                        </svg>
-                    </div>
-                    <h2 class="text-2xl font-bold text-white">Services</h2>
-                    <span class="px-3 py-1 text-sm font-semibold bg-emerald-500/20 text-emerald-400 rounded-full border border-emerald-500/30" x-text="filteredServices.length"></span>
+                <div class="flex items-center gap-3 mb-6 pt-6" style="border-top:1px solid #2a3550">
+                    <span class="material-symbols-outlined" style="font-size:24px;color:#67e8f9;font-variation-settings:'FILL' 0">layers</span>
+                    <h2 class="ic-font-display m-0" style="font-size:28px;font-weight:600;color:#e2e8f0">Services</h2>
+                    <span class="ic-font-mono rounded-full px-2 py-0.5"
+                          style="font-size:11px;background:#1e2533;color:#94a3b8;border:1px solid #2a3550"
+                          x-text="filteredServices.length"></span>
                 </div>
             </template>
-            <div x-show="filteredServices.length > 0"
-                class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
-                <template x-for="item in filteredServices" :key="item.uuid">
-                    <a :href="item.hrefLink" class="group block transform transition-all duration-300 hover:scale-[1.02]">
-                        <div class="relative glass-card p-6 hover:border-emerald-500/40 overflow-hidden">
-                            {{-- Header avec icône service + actions --}}
-                            <div class="flex items-start justify-between gap-4 mb-4">
-                                <div class="flex items-start gap-3 flex-1 min-w-0">
-                                    {{-- Service Icon --}}
-                                    <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 rounded-lg border border-emerald-500/30 flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
-                                        </svg>
-                                    </div>
 
-                                    {{-- Titre + type --}}
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="text-base font-semibold text-white group-hover:text-emerald-400 transition-colors truncate mb-1" x-text="item.name"></h3>
-                                        <p class="text-sm text-gray-500 truncate" x-text="item.type || 'Service'"></p>
+            <div x-show="filteredServices.length > 0"
+                 class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 pb-12">
+                <template x-for="item in filteredServices" :key="item.uuid">
+                    <a :href="item.hrefLink" class="group block">
+                        <div class="ic-card p-5 flex flex-col relative" style="border-top:2px solid rgba(103,232,249,.3)">
+
+                            {{-- Header: icon + name + subtitle + badge + 3-dots --}}
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                         style="background:rgba(21,94,117,.25);border:1px solid rgba(103,232,249,.25)">
+                                        <span class="material-symbols-outlined" style="font-size:20px;color:#67e8f9;font-variation-settings:'FILL' 0">account_balance_wallet</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h3 class="ic-font-body text-sm font-semibold truncate group-hover:text-[#a5f3fc] transition-colors"
+                                            style="color:#e2e8f0;max-width:180px"
+                                            x-text="item.name" :title="item.name"></h3>
+                                        <span class="ic-font-mono" style="font-size:10px;color:#64748b" x-text="item.type || 'Service'"></span>
                                     </div>
                                 </div>
-
-                                {{-- Actions (status + menu) --}}
-                                <div class="flex items-center gap-2 flex-shrink-0">
-                                    {{-- Status Badge --}}
+                                <div class="flex items-center gap-2 flex-shrink-0 ml-2">
                                     <template x-if="item.status && item.status.startsWith('running')">
-                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                            <span class="text-xs text-green-500 font-medium">Running</span>
-                                        </div>
+                                        <span class="ic-badge-running ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse"></span>Running
+                                        </span>
                                     </template>
                                     <template x-if="item.status && item.status.startsWith('exited')">
-                                        <div class="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                            <span class="text-xs text-red-500 font-medium">Exited</span>
-                                        </div>
+                                        <span class="ic-badge-exited ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full" style="background:#f87171"></span>Exited
+                                        </span>
                                     </template>
-
-                                    {{-- Menu 3 dots --}}
-                                    <button class="p-1.5 hover:bg-gray-800 rounded-md transition-colors" @click.prevent>
-                                        <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 16 16">
-                                            <circle cx="8" cy="3" r="1.5"/>
-                                            <circle cx="8" cy="8" r="1.5"/>
-                                            <circle cx="8" cy="13" r="1.5"/>
-                                        </svg>
+                                    <template x-if="item.status && item.status.startsWith('starting')">
+                                        <span class="ic-badge-starting ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#facc15] animate-pulse"></span>Starting
+                                        </span>
+                                    </template>
+                                    <template x-if="item.server_status == false">
+                                        <span class="ic-badge-warn ic-font-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5" style="font-size:10px">
+                                            <span class="material-symbols-outlined" style="font-size:12px">warning</span>Server
+                                        </span>
+                                    </template>
+                                    <button class="p-1 rounded hover:bg-white/5 transition-colors" style="color:#64748b" @click.prevent>
+                                        <span class="material-symbols-outlined" style="font-size:18px">more_vert</span>
                                     </button>
                                 </div>
                             </div>
 
-                            {{-- Metadata --}}
-                            <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                                <div class="flex items-center gap-1.5" x-show="item.fqdn">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
-                                    </svg>
-                                    <span class="truncate" x-text="item.fqdn"></span>
-                                </div>
-                                <template x-if="item.server_status == false">
-                                    <div class="flex items-center gap-1.5 text-red-500">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                        </svg>
-                                        <span>Server issue</span>
-                                    </div>
-                                </template>
-                            </div>
-
-                            {{-- Footer: Updated date --}}
-                            <div class="flex items-center justify-between text-xs text-gray-600">
-                                <span x-text="item.updated_at || 'Just now'"></span>
+                            {{-- Footer: date --}}
+                            <div class="mt-auto pt-3" style="border-top:1px solid #2a3550">
+                                <div class="ic-font-mono" style="font-size:9px;color:#64748b" x-text="item.updated_at || 'Just now'"></div>
                             </div>
                         </div>
                     </a>
                 </template>
             </div>
+
         </div>
     @endif
 
