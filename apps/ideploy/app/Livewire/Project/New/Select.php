@@ -307,34 +307,30 @@ class Select extends Component
             return;
         }
 
-        // IDEM: Si le projet a un serveur assigné lors de sa création, l'utiliser directement
         $project = Project::whereUuid(data_get($this->parameters, 'project_uuid'))->first();
-        if ($project && $project->assigned_server_id) {
-            $assignedServer = Server::find($project->assigned_server_id);
-            if ($assignedServer) {
-                $this->setServer($assignedServer);
-                return;
-            }
+
+        // Projet IDEM SaaS → sélection automatique d'un serveur IDEM managed, aucun choix demandé
+        if (! $project || $project->deployment_type === 'saas') {
+            $this->chooseIdemManaged();
+
+            return;
         }
 
-        // Afficher le choix de déploiement pour TOUS les types (apps, databases, services)
-        $this->current_step = 'deployment-choice';
-        return;
+        // Projet VPS → aller directement à la sélection de serveur personnel
+        $personalServers = Server::ownedByCurrentTeam()
+            ->whereRelation('settings', 'is_reachable', true)
+            ->whereRelation('settings', 'is_usable', true)
+            ->whereRelation('settings', 'force_disabled', false)
+            ->where('idem_managed', false)
+            ->get();
 
-        // Note: Le code ci-dessous ne sera jamais atteint car on redirige toujours vers deployment-choice
-        // Il est conservé pour référence mais pourrait être supprimé
-        if (count($this->servers) === 1) {
-            $server = $this->servers->first();
-            if ($server instanceof Server) {
-                $this->setServer($server);
-            }
+        if ($personalServers->isEmpty()) {
+            // Aucun VPS → inviter à en ajouter ou basculer sur IDEM SaaS
+            $this->current_step = 'no-servers';
+
+            return;
         }
-        if (! is_null($this->server)) {
-            $foundServer = $this->servers->where('id', $this->server->id)->first();
-            if ($foundServer) {
-                return $this->setServer($foundServer);
-            }
-        }
+
         $this->current_step = 'servers';
     }
 
