@@ -2497,7 +2497,9 @@
       },
       "locked": {
         "needsBranding": "Complétez d'abord votre identité de marque."
-      }
+      },
+      "open": "Ouvrir",
+      "brandCalloutHint": "Logo, couleurs et typographie — la base de tous vos livrables."
     }
   }
 }
