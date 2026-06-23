@@ -15,6 +15,7 @@ import axios from 'axios';
 import { GoogleGenAI } from '@google/genai';
 import logger from '../../config/logger';
 import { StorageService } from '../storage.service';
+import { AI_CONFIG } from '../../config/ai.config';
 import {
   FlyerImageAnalysis,
   FlyerImageAttribution,
@@ -36,8 +37,8 @@ export interface ImageBrief {
 }
 
 // ─── Gemini model names ────────────────────────────────────────────────────
-const GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image';
-const GEMINI_VISION_MODEL = 'gemini-2.0-flash'; // fast + cheap for vision-only
+const GEMINI_IMAGE_MODEL = AI_CONFIG.communication.imageSourcing.imageModel;
+const GEMINI_VISION_MODEL = AI_CONFIG.communication.imageSourcing.visionModel; // fast + cheap for vision-only
 
 const PEXELS_ENDPOINT = 'https://api.pexels.com/v1/search';
 

@@ -23,6 +23,7 @@ interface DesignSeed {
 }
 import { GenericService } from '../common/generic.service';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
 import { AGENT_COMMUNICATION_STRATEGY_PROMPT } from './prompts/agent-communication-strategy.prompt';
 import { AGENT_CONTEXT_EXTRACTION_PROMPT } from './prompts/agent-context-extraction.prompt';
 import { AGENT_EDITORIAL_CALENDAR_PROMPT } from './prompts/agent-editorial-calendar.prompt';
@@ -39,8 +40,8 @@ export type CommunicationStreamEvent =
   | { type: 'error'; message: string };
 
 const DEFAULT_PROMPT_CONFIG: PromptConfig = {
-  provider: LLMProvider.GEMINI,
-  modelName: 'gemini-3-flash-preview',
+  provider: AI_CONFIG.communication.default.provider,
+  modelName: AI_CONFIG.communication.default.modelName,
 };
 
 /**
@@ -270,8 +271,8 @@ export class CommunicationService extends GenericService {
       {
         ...DEFAULT_PROMPT_CONFIG,
         userId,
-        promptType: 'communication_trends',
-        llmOptions: { maxOutputTokens: 800 },
+        promptType: AI_CONFIG.communication.trends.promptType,
+        llmOptions: { ...AI_CONFIG.communication.trends.llmOptions },
       },
       messages
     );
@@ -569,8 +570,8 @@ export class CommunicationService extends GenericService {
       {
         ...DEFAULT_PROMPT_CONFIG,
         userId,
-        promptType: 'communication_flyer',
-        llmOptions: { maxOutputTokens: 2000 },
+        promptType: AI_CONFIG.communication.flyer.promptType,
+        llmOptions: { ...AI_CONFIG.communication.flyer.llmOptions },
       },
       messages
     );
