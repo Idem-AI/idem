@@ -9,6 +9,7 @@
     'closeOutside' => true,
     'minWidth' => '36rem',
     'isFullWidth' => false,
+    'hideHeader' => false,
 ])
 <div x-data="{ modalOpen: false }"
     x-init="$watch('modalOpen', value => { if (!value) { $wire.dispatch('modalClosed') } })"
@@ -45,7 +46,17 @@
                 x-transition:leave="ease-in duration-100"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 -translate-y-2 sm:scale-95"
-                class="relative w-full py-6 border rounded-sm drop-shadow-sm min-w-full lg:min-w-[{{ $minWidth }}] max-w-fit bg-white border-neutral-200 dark:bg-base px-6 dark:border-coolgray-300">
+                @if ($hideHeader)
+                class="relative border rounded-sm drop-shadow-sm dark:border-coolgray-300 overflow-hidden" style="width:36vw; min-width:580px;"
+                @else
+                class="relative w-full py-6 border rounded-sm drop-shadow-sm min-w-full lg:min-w-[{{ $minWidth }}] max-w-fit bg-white border-neutral-200 dark:bg-base px-6 dark:border-coolgray-300"
+                @endif
+                >
+                @if ($hideHeader)
+                <div class="w-full" @close-wizard.window="modalOpen = false">
+                    {{ $slot }}
+                </div>
+                @else
                 <div class="flex items-center justify-between pb-3">
                     <h3 class="text-2xl font-bold">{{ $title }}</h3>
                     <button @click="modalOpen=false"
@@ -59,6 +70,7 @@
                 <div class="relative flex items-center justify-center w-auto">
                     {{ $slot }}
                 </div>
+                @endif
             </div>
         </div>
     </template>

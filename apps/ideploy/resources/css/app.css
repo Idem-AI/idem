@@ -59,7 +59,19 @@ option {
 
 /* Button states */
 button[isError]:not(:disabled) {
-  @apply text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800 hover:bg-red-300 hover:text-white dark:hover:bg-red-800 dark:hover:text-white;
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: .04em;
+  transition: background .15s, border-color .15s, color .15s;
+}
+button[isError]:not(:disabled):hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fecaca;
 }
 
 button[isHighlighted]:not(:disabled) {
@@ -156,28 +168,46 @@ section {
 
 /* Coolify-specific utilities with @utility */
 @utility input {
-  @apply block py-1.5 w-full text-sm rounded-sm border-0 ring-2 ring-inset;
+  @apply block py-1.5 w-full text-sm rounded-sm;
   background-color: var(--color-surface-1);
   color: var(--color-text-primary);
-  ring-color: var(--color-surface-2);
+  border: 1px solid rgba(67, 70, 85, 0.28);
+  box-shadow: none;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
   @apply placeholder:text-text-tertiary;
-  @apply focus-visible:outline-none focus-visible:border-l-4;
-  border-left-color: var(--color-primary-500);
+}
+input.input:focus,
+input.input:focus-visible,
+textarea.input:focus,
+textarea.input:focus-visible {
+  border-color: var(--color-primary-500);
+  border-left-width: 3px;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
 }
 
 @utility select {
-  @apply w-full block py-1.5 text-sm rounded-sm border-0 ring-2 ring-inset;
+  @apply w-full block py-1.5 text-sm rounded-sm;
   background-color: var(--color-surface-1);
   color: var(--color-text-primary);
-  ring-color: var(--color-surface-2);
-  @apply focus-visible:outline-none focus-visible:border-l-4;
-  border-left-color: var(--color-primary-500);
+  border: 1px solid rgba(67, 70, 85, 0.28);
+  box-shadow: none;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='%23ffffff'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9'/%3e%3c/svg%3e");
   background-position: right 0.5rem center;
   background-repeat: no-repeat;
   background-size: 1rem 1rem;
   padding-right: 2.5rem;
+}
+select.input:focus,
+select.input:focus-visible {
+  border-color: var(--color-primary-500);
+  border-left-width: 3px;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
 }
 
 @utility button {

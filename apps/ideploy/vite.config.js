@@ -18,8 +18,10 @@ export default defineConfig(({ mode }) => {
                 ],
             },
             host: "0.0.0.0",
+            port: parseInt(env.VITE_PORT) || 5173,
             hmr: {
-                host: env.VITE_HOST || '0.0.0.0'
+                host: env.VITE_HMR_HOST || 'localhost',
+                port: parseInt(env.VITE_PORT) || 5173,
             },
         },
         plugins: [

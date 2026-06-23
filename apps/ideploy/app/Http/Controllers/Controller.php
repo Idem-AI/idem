@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
@@ -169,7 +170,8 @@ class Controller extends BaseController
 
         try {
             // Call Idem API to validate the token
-            $apiUrl = rtrim(config('idem.api_url', env('IDEM_API_URL', 'http://localhost:3001')), '/');
+            $apiUrl = rtrim(config('idem.api_url'), '/');
+            Log::info('[idem-sso] Validating token', ['api_url' => $apiUrl]);
             $sharedSecret = config('idem.shared_secret', env('IDEPLOY_SHARED_SECRET'));
 
             $headers = [
@@ -184,6 +186,7 @@ class Controller extends BaseController
             ]);
 
             if (!$response->successful() || !$response->json('success')) {
+                Log::warning('[idem-sso] Token validation failed', ['status' => $response->status(), 'body' => $response->body(), 'api_url' => $apiUrl]);
                 return redirect()->route('landing')->with('error', 'Authentication failed or token expired.');
             }
 
@@ -222,7 +225,7 @@ class Controller extends BaseController
 
             return redirect()->route('dashboard');
         } catch (\Throwable $e) {
-            ray($e->getMessage());
+            Log::error('[idem-sso] Exception during SSO auth', ['message' => $e->getMessage(), 'api_url' => config('idem.api_url')]);
             return redirect()->route('landing')->with('error', 'Authentication error: ' . $e->getMessage());
         }
     }
