@@ -4,8 +4,9 @@
       <app-loader />
     </div>
   } @else {
-    <!-- Avertissement : identité de marque incomplète -->
-    @if (showBrandingBanner()) {
+    <!-- Avertissement : identité de marque incomplète
+         (masqué sur l'écran d'accueil : le lanceur affiche son propre appel) -->
+    @if (showBrandingBanner() && !(isEmpty() && mode() === 'project')) {
       <div class="shrink-0 px-4 pt-3">
         <div class="max-w-3xl mx-auto w-full">
           <app-branding-warning-banner
@@ -24,8 +25,9 @@
         <app-feature-launcher
           [project]="session.activeProject()"
           [projectName]="session.activeProject()?.name ?? ''"
-          [disabled]="pendingAssistant() || isGenerating()"
+          [disabled]="pendingAssistant() || isGenerating() || brandingBusy()"
           (selected)="onFeatureSelected($event)"
+          (completeBranding)="startBrandingFromBanner()"
         />
       } @else {
       <div class="max-w-3xl mx-auto w-full px-4 py-6 space-y-5">

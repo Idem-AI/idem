@@ -2531,7 +2531,9 @@
       },
       "locked": {
         "needsBranding": "Complete your brand identity first."
-      }
+      },
+      "open": "Open",
+      "brandCalloutHint": "Logo, colors and typography — the base of every deliverable."
     }
   }
 }

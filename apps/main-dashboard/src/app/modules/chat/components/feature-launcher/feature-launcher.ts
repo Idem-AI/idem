@@ -14,9 +14,7 @@ export interface FeatureSelection {
 
 interface FeatureTile {
   kind: DeliverableKind;
-  icon: string;
-  /** Couleur d'accent sémantique de la fonctionnalité (icône) */
-  accent: string;
+  image: string;
   titleKey: string;
   descKey: string;
   state: FeatureState;
@@ -25,27 +23,27 @@ interface FeatureTile {
 
 interface FeatureMeta {
   kind: DeliverableKind;
-  icon: string;
-  accent: string;
+  image: string;
   descKey: string;
   /** Nécessite une identité de marque complète (logo + couleurs + typo) */
   needsBrandIdentity?: boolean;
 }
 
+// Illustrations partagées avec le tableau de bord (assets/images/dashboard).
 const FEATURES: FeatureMeta[] = [
-  { kind: 'branding', icon: 'pi pi-palette', accent: '#ec4899', descKey: 'chat.launcher.features.branding' },
-  { kind: 'businessPlan', icon: 'pi pi-calendar', accent: '#6366f1', descKey: 'chat.launcher.features.businessPlan' },
-  { kind: 'pitchDeck', icon: 'pi pi-desktop', accent: '#22d3ee', descKey: 'chat.launcher.features.pitchDeck', needsBrandIdentity: true },
-  { kind: 'finance', icon: 'pi pi-chart-pie', accent: '#10b981', descKey: 'chat.launcher.features.finance' },
-  { kind: 'diagrams', icon: 'pi pi-sitemap', accent: '#f59e0b', descKey: 'chat.launcher.features.diagrams' },
-  { kind: 'legalDocs', icon: 'pi pi-file-edit', accent: '#94a3b8', descKey: 'chat.launcher.features.legalDocs' },
+  { kind: 'branding', image: 'branding.png', descKey: 'chat.launcher.features.branding' },
+  { kind: 'businessPlan', image: 'business_plan.png', descKey: 'chat.launcher.features.businessPlan' },
+  { kind: 'pitchDeck', image: 'pitch_deck.png', descKey: 'chat.launcher.features.pitchDeck', needsBrandIdentity: true },
+  { kind: 'finance', image: 'finance.png', descKey: 'chat.launcher.features.finance' },
+  { kind: 'diagrams', image: 'diagrams.png', descKey: 'chat.launcher.features.diagrams' },
 ];
 
 /**
- * Lanceur de fonctionnalités affiché à la première ouverture du chat :
- * grille centrée façon tableau de bord (allégée). Chaque fonctionnalité
- * indique son état (prête / à générer / verrouillée tant qu'un prérequis
- * manque) et reste actionnable d'un clic.
+ * Lanceur de fonctionnalités affiché à la première ouverture du chat.
+ * Cartes illustrées (mêmes visuels que le tableau de bord), allégées : pas
+ * d'étiquette de statut — un discret badge marque ce qui est déjà prêt, un
+ * cadenas ce qui attend un prérequis. Un appel à compléter l'identité de
+ * marque s'affiche tant qu'elle n'est pas terminée.
  */
 @Component({
   selector: 'app-feature-launcher',
@@ -64,10 +62,14 @@ export class FeatureLauncherComponent {
   readonly disabled = input<boolean>(false);
 
   readonly selected = output<FeatureSelection>();
+  /** Demande de compléter l'identité de marque (bandeau d'invitation). */
+  readonly completeBranding = output<void>();
+
+  protected readonly brandComplete = computed(() => this.branding.isComplete(this.project()));
 
   protected readonly tiles = computed<FeatureTile[]>(() => {
     const project = this.project();
-    const brandComplete = this.branding.isComplete(project);
+    const brandComplete = this.brandComplete();
 
     return FEATURES.map((f) => {
       let state: FeatureState;
@@ -77,7 +79,6 @@ export class FeatureLauncherComponent {
         state = 'locked';
         lockReasonKey = 'chat.launcher.locked.needsBranding';
       } else if (f.kind === 'branding') {
-        // L'identité de marque est la fondation : jamais verrouillée
         state = brandComplete && this.branding.hasCharte(project) ? 'ready' : 'generate';
       } else {
         state = this.deliverables.buildCard(f.kind, project).available ? 'ready' : 'generate';
@@ -85,8 +86,7 @@ export class FeatureLauncherComponent {
 
       return {
         kind: f.kind,
-        icon: f.icon,
-        accent: f.accent,
+        image: `assets/images/dashboard/${f.image}`,
         titleKey: this.deliverables.config(f.kind).titleKey,
         descKey: f.descKey,
         state,
@@ -95,12 +95,13 @@ export class FeatureLauncherComponent {
     });
   });
 
-  protected readonly readyCount = computed(
-    () => this.tiles().filter((t) => t.state === 'ready').length,
-  );
-
   protected select(tile: FeatureTile): void {
     if (this.disabled() || tile.state === 'locked') return;
     this.selected.emit({ kind: tile.kind, state: tile.state });
+  }
+
+  protected onCompleteBranding(): void {
+    if (this.disabled()) return;
+    this.completeBranding.emit();
   }
 }
