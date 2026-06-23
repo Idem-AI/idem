@@ -19,7 +19,7 @@ return [
     | URL of the central IDEM API for authentication and user management
     |
     */
-    'api_url' => env('IDEM_API_URL', 'http://localhost:3001'),
+    'api_url' => env('IDEM_API_URL', 'https://api.idem.africa'),
 
     /*
     |--------------------------------------------------------------------------
