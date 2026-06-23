@@ -17,37 +17,39 @@
     </div>
   </div>
 
-  <div class="p-3 space-y-2">
-    @for (option of options(); track option.id) {
+  <div class="p-3 space-y-2.5" role="radiogroup">
+    @for (option of options(); track option.id; let i = $index) {
       <button
         type="button"
+        role="radio"
+        [attr.aria-checked]="selectedId() === option.id"
         (click)="pick(option)"
         [disabled]="disabled() || (!!selectedId() && selectedId() !== option.id)"
-        class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
-        [class.border-primary]="selectedId() === option.id"
-        [class.bg-primary/10]="selectedId() === option.id"
-        [class.border-white/10]="selectedId() !== option.id"
-        [class.hover:border-primary/40]="!selectedId() && !disabled()"
-        [class.hover:bg-white/5]="!selectedId() && !disabled()"
+        class="choice-tile choice-enter p-3.5"
+        [class.is-selected]="selectedId() === option.id"
+        [class.is-dimmed]="!!selectedId() && selectedId() !== option.id"
+        [style.--i]="i"
+        [attr.aria-label]="option.name"
       >
-        <span class="min-w-0">
-          <span class="block text-xs font-medium text-gray-400 truncate">{{ option.name }}</span>
-          <span
-            class="block text-base text-white truncate"
-            [style.font-family]="option.primaryFont"
-          >
-            {{ option.primaryFont }}
-          </span>
-          <span
-            class="block text-xs text-gray-300 truncate"
-            [style.font-family]="option.secondaryFont"
-          >
-            {{ option.secondaryFont }}
-          </span>
-        </span>
         @if (selectedId() === option.id) {
-          <i class="pi pi-check-circle text-primary text-sm shrink-0"></i>
+          <span class="choice-check"><i class="pi pi-check"></i></span>
         }
+        <div class="flex items-center justify-between gap-3">
+          <!-- Aperçu réel des polices -->
+          <div class="min-w-0">
+            <div
+              class="text-2xl leading-tight text-white truncate"
+              [style.font-family]="option.primaryFont"
+            >
+              Aa
+              <span class="text-base text-gray-300">{{ option.primaryFont }}</span>
+            </div>
+            <div class="text-xs text-gray-400 truncate mt-0.5" [style.font-family]="option.secondaryFont">
+              {{ 'chat.branding.cards.typographySample' | translate }}
+            </div>
+          </div>
+          <span class="text-[10px] uppercase tracking-wide text-gray-500 shrink-0">{{ option.name }}</span>
+        </div>
       </button>
     }
   </div>

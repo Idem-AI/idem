@@ -19,28 +19,16 @@
 
     <!-- Fil de messages -->
     <div class="flex-1 min-h-0 overflow-y-auto">
+      @if (isEmpty() && mode() === 'project') {
+        <!-- Démarrage à froid : lanceur de fonctionnalités centré -->
+        <app-feature-launcher
+          [project]="session.activeProject()"
+          [projectName]="session.activeProject()?.name ?? ''"
+          [disabled]="pendingAssistant() || isGenerating()"
+          (selected)="onFeatureSelected($event)"
+        />
+      } @else {
       <div class="max-w-3xl mx-auto w-full px-4 py-6 space-y-5">
-        @if (isEmpty() && mode() === 'project') {
-          <!-- Démarrage à froid : accueil + suggestions -->
-          <div class="text-center pt-16 pb-8">
-            <div
-              class="w-12 h-12 mx-auto mb-4 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center"
-            >
-              <i class="pi pi-comments text-primary text-xl"></i>
-            </div>
-            <h2 class="text-2xl font-bold text-white mb-2">
-              {{ 'chat.empty.title' | translate: { name: session.activeProject()?.name ?? '' } }}
-            </h2>
-            <p class="text-gray-400 mb-8 text-sm">{{ 'chat.empty.subtitle' | translate }}</p>
-            <div class="flex justify-center">
-              <app-suggestion-chips
-                [chips]="heroChips"
-                [disabled]="pendingAssistant()"
-                (chipSelected)="onChipSelected($event)"
-              />
-            </div>
-          </div>
-        } @else {
           @for (msg of messages(); track msg.id) {
             <div class="flex gap-3" [class.flex-row-reverse]="msg.role === 'user'">
               <!-- Avatar -->
@@ -177,9 +165,9 @@
               </div>
             </div>
           }
-        }
-        <div #scrollAnchor></div>
-      </div>
+          <div #scrollAnchor></div>
+        </div>
+      }
     </div>
 
     <!-- Composer -->
