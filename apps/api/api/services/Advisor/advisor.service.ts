@@ -6,6 +6,8 @@ import {
   AdvisorPendingFinanceIntent,
 } from '../../models/advisor.model';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
+
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import { IRepository } from '../../repository/IRepository';
 import { ProjectModel } from '../../models/project.model';
@@ -206,10 +208,10 @@ export class AdvisorService {
     ];
 
     const promptConfig: PromptConfig = {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: AI_CONFIG.advisor.provider,
+      modelName: AI_CONFIG.advisor.modelName,
       userId,
-      promptType: 'advisor',
+      promptType: AI_CONFIG.advisor.promptType,
     };
 
     logger.info(

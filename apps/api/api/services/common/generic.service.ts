@@ -10,6 +10,7 @@ import {
 import { ProjectModel } from '../../models/project.model';
 import { SectionModel } from '../../models/section.model';
 // File operations have been removed - using in-memory context
+import { AI_CONFIG } from '../../config/ai.config';
 
 import logger from '../../config/logger';
 
@@ -98,8 +99,8 @@ export class GenericService {
     promptType?: string,
     contextFromPreviousSteps: string = '',
     promptConfig: PromptConfig = {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: AI_CONFIG.default.provider,
+      modelName: AI_CONFIG.default.modelName,
       userId,
       promptType: promptType || step.stepName,
     }

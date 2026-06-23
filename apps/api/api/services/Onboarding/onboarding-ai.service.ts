@@ -11,6 +11,7 @@
 
 import logger from '../../config/logger';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
 import {
   ONBOARDING_PARSE_PROMPT,
   ONBOARDING_QUESTIONS_PROMPT,
@@ -52,12 +53,11 @@ export interface ParseAnswerResult {
 }
 
 const DEFAULT_PROMPT_CONFIG: PromptConfig = {
-  provider: LLMProvider.GEMINI,
-  modelName: 'gemini-3-flash-preview',
-  promptType: 'onboarding',
+  provider: AI_CONFIG.onboarding.default.provider,
+  modelName: AI_CONFIG.onboarding.default.modelName,
+  promptType: AI_CONFIG.onboarding.default.promptType,
   llmOptions: {
-    temperature: 0.5,
-    maxOutputTokens: 2048,
+    ...AI_CONFIG.onboarding.default.llmOptions,
   },
 };
 
@@ -179,7 +179,7 @@ export class OnboardingAIService {
 
     try {
       const raw = await this.promptService.runPrompt(
-        { ...DEFAULT_PROMPT_CONFIG, userId, llmOptions: { temperature: 0.1, maxOutputTokens: 256 } },
+        { ...DEFAULT_PROMPT_CONFIG, userId, llmOptions: { ...AI_CONFIG.onboarding.parseAnswer.llmOptions } },
         messages,
       );
       const parsed = this.parseJSON(raw);
