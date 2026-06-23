@@ -1288,9 +1288,28 @@ export class BrandingService extends GenericService {
       }
     });
 
+    // Retry des concepts échoués (une passe) pour atteindre 3 propositions de façon fiable
+    if (failedIndexes.length > 0) {
+      logger.warn(
+        `Retrying ${failedIndexes.length} failed logo concept(s): [${failedIndexes.join(', ')}]`
+      );
+      const retryResults = await Promise.allSettled(
+        failedIndexes.map((index) =>
+          this.generateRawLogoConcept(optimizedPrompt, project, index, preferences)
+        )
+      );
+      retryResults.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
+          rawLogos.push(result.value);
+        } else {
+          logger.error(`Logo concept ${failedIndexes[i] + 1} retry failed:`, result.reason);
+        }
+      });
+    }
+
     const aiGenerationTime = Date.now() - aiStartTime;
     logger.info(
-      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/3, Failed: ${failedIndexes.length}`
+      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/3 after retry`
     );
 
     // Étape 4: Optimisation SVG en parallèle (séparée de l'AI)

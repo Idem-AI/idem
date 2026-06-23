@@ -50,6 +50,10 @@ import { TypographyOptionsCardComponent } from '../../components/typography-opti
 import { LogoOptionsCardComponent } from '../../components/logo-options-card/logo-options-card';
 import { BrandingWarningBannerComponent } from '../../components/branding-warning-banner/branding-warning-banner';
 import { InfoFormCardComponent } from '../../components/info-form-card/info-form-card';
+import {
+  FeatureLauncherComponent,
+  FeatureSelection,
+} from '../../components/feature-launcher/feature-launcher';
 import { GenerationProgressCardComponent } from '../../components/generation-progress-card/generation-progress-card';
 import {
   ChartePdfFormat,
@@ -102,6 +106,7 @@ let chatMessageCounter = 0;
     InfoFormCardComponent,
     GenerationProgressCardComponent,
     FormatChoiceCardComponent,
+    FeatureLauncherComponent,
   ],
   templateUrl: './chat-home.html',
   // Réutilise les styles markdown de l'advisor (classe .advisor-message)
@@ -406,6 +411,19 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       case 'generate':
         await this.startGeneration(intent.kind!);
         break;
+    }
+  }
+
+  /** Sélection d'une fonctionnalité depuis le lanceur (état vide du chat). */
+  protected onFeatureSelected(sel: FeatureSelection): void {
+    if (this.pendingAssistant() || this.isGenerating() || this.brandingBusy()) return;
+    const title = this.translate.instant(this.deliverables.config(sel.kind).titleKey);
+    if (sel.state === 'ready') {
+      this.appendUser(this.translate.instant('chat.launcher.askShow', { title }));
+      this.respondWithCard(sel.kind);
+    } else {
+      this.appendUser(this.translate.instant('chat.launcher.askGenerate', { title }));
+      void this.startGeneration(sel.kind);
     }
   }
 

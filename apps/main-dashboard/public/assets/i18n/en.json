@@ -2426,7 +2426,8 @@
         "typographyTitle": "Typographies",
         "typographySubtitle": "Click to choose your font pairing",
         "logosTitle": "Logo concepts",
-        "logosSubtitle": "Click to choose your logo"
+        "logosSubtitle": "Click to choose your logo",
+        "typographySample": "The quick brown fox jumps over the lazy dog."
       },
       "errors": {
         "generation": "Generation failed. Shall we retry?",
@@ -2508,6 +2509,29 @@
       "cardDone": "Your {{title}} is ready",
       "cardError": "Generating your {{title}} failed",
       "steps": "{{done}}/{{total}} steps completed"
+    },
+    "launcher": {
+      "title": "What are we building for {{name}}?",
+      "subtitle": "Pick a deliverable to view or generate — or just type your request below.",
+      "hint": "You can also simply type what you need.",
+      "askShow": "Show me my {{title}}",
+      "askGenerate": "Let's generate my {{title}}",
+      "features": {
+        "branding": "Your brand's logo, colors and typography.",
+        "businessPlan": "Your project's full business plan.",
+        "pitchDeck": "The deck to win over your investors.",
+        "finance": "Financial forecasts and tables.",
+        "diagrams": "Architecture and technical diagrams.",
+        "legalDocs": "Articles, terms, contracts and legal notices."
+      },
+      "state": {
+        "ready": "Ready",
+        "generate": "Generate",
+        "locked": "Locked"
+      },
+      "locked": {
+        "needsBranding": "Complete your brand identity first."
+      }
     }
   }
 }

@@ -2392,7 +2392,8 @@
         "typographyTitle": "Typographies",
         "typographySubtitle": "Cliquez pour choisir votre duo de polices",
         "logosTitle": "Concepts de logos",
-        "logosSubtitle": "Cliquez pour choisir votre logo"
+        "logosSubtitle": "Cliquez pour choisir votre logo",
+        "typographySample": "Le vif renard brun saute par-dessus le chien."
       },
       "errors": {
         "generation": "La génération a échoué. On réessaie ?",
@@ -2474,6 +2475,29 @@
       "cardDone": "Votre {{title}} est prêt",
       "cardError": "La génération de votre {{title}} a échoué",
       "steps": "{{done}}/{{total}} étapes terminées"
+    },
+    "launcher": {
+      "title": "Que construisons-nous pour {{name}} ?",
+      "subtitle": "Choisissez un livrable à consulter ou à générer — ou écrivez votre demande ci-dessous.",
+      "hint": "Vous pouvez aussi tout simplement écrire ce dont vous avez besoin.",
+      "askShow": "Montre-moi mon {{title}}",
+      "askGenerate": "Générons mon {{title}}",
+      "features": {
+        "branding": "Logo, couleurs et typographie de votre marque.",
+        "businessPlan": "Le plan d'affaires complet de votre projet.",
+        "pitchDeck": "La présentation pour convaincre vos investisseurs.",
+        "finance": "Prévisions et tableaux financiers.",
+        "diagrams": "Schémas d'architecture et diagrammes techniques.",
+        "legalDocs": "Statuts, CGU, contrats et mentions légales."
+      },
+      "state": {
+        "ready": "Prêt",
+        "generate": "Générer",
+        "locked": "Verrouillé"
+      },
+      "locked": {
+        "needsBranding": "Complétez d'abord votre identité de marque."
+      }
     }
   }
 }
