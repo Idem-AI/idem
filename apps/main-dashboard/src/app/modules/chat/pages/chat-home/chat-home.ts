@@ -238,15 +238,13 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     await firstValueFrom(this.translate.get('chat.onboarding.welcome'));
     await this.session.loadProjects();
 
-    if (isOnboardingRoute) {
-      this.enterOnboarding();
-    } else if (!this.session.activeProjectId()) {
-      // Aucun projet : l'onboarding conversationnel prend le relais
-      this.router.navigate(['/chat/new'], { replaceUrl: true });
-      this.enterOnboarding();
-    } else {
-      await this.enterProjectMode(this.session.activeProjectId()!);
+    // La création de projet est unifiée sur /create-project (mode conversation).
+    if (isOnboardingRoute || !this.session.activeProjectId()) {
+      this.router.navigate(['/create-project'], { replaceUrl: true });
+      return;
     }
+
+    await this.enterProjectMode(this.session.activeProjectId()!);
     this.isInitializing.set(false);
   }
 
@@ -653,7 +651,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         this.handleOnboardingInput('', '', true);
         break;
       case 'new-project':
-        this.router.navigate(['/chat/new']);
+        this.router.navigate(['/create-project']);
         break;
       case 'branding-start':
       case 'branding-ai':

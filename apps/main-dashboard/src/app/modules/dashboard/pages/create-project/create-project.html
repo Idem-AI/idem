@@ -56,6 +56,69 @@
       </div>
     }
 
+    <!-- Mode toggle (toujours visible) -->
+    <div
+      class="fixed top-0 left-0 right-0 z-40 flex justify-center px-4"
+      [class.pt-16]="fromAppGen()"
+      [class.pt-4]="!fromAppGen()"
+    >
+      <div
+        class="flex items-center p-1 rounded-xl bg-white/5 border border-white/10 text-xs font-medium backdrop-blur"
+        role="group"
+        [attr.aria-label]="'dashboard.createProject.modeLabel' | translate"
+      >
+        <button
+          type="button"
+          (click)="setMode('chat')"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+          [class.bg-primary]="mode() === 'chat'"
+          [class.text-white]="mode() === 'chat'"
+          [class.shadow-lg]="mode() === 'chat'"
+          [class.text-gray-400]="mode() !== 'chat'"
+          [class.hover:text-white]="mode() !== 'chat'"
+        >
+          <i class="pi pi-comments text-[11px]"></i>
+          <span>{{ 'dashboard.createProject.modeChat' | translate }}</span>
+        </button>
+        <button
+          type="button"
+          (click)="setMode('form')"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+          [class.bg-primary]="mode() === 'form'"
+          [class.text-white]="mode() === 'form'"
+          [class.shadow-lg]="mode() === 'form'"
+          [class.text-gray-400]="mode() !== 'form'"
+          [class.hover:text-white]="mode() !== 'form'"
+        >
+          <i class="pi pi-list text-[11px]"></i>
+          <span>{{ 'dashboard.createProject.modeForm' | translate }}</span>
+        </button>
+      </div>
+    </div>
+
+    @if (mode() === 'chat') {
+      <!-- ═══ MODE CONVERSATION ═══ -->
+      <div [class]="fromAppGen() ? 'pt-32' : 'pt-20'" class="h-screen">
+        @if (chatReadyForConversation()) {
+          <div class="h-[calc(100vh-5rem)]">
+            <app-onboarding-chat
+              [foundations]="conversationFoundations()"
+              [showFormSwitch]="true"
+              (created)="onConversationCreated($event)"
+              (switchToForm)="setMode('form')"
+            ></app-onboarding-chat>
+          </div>
+        } @else {
+          <app-foundations-card
+            [project]="project()"
+            [busy]="isLoading()"
+            (projectUpdate)="onProjectUpdate($event)"
+            (continue)="onFoundationsContinue()"
+          ></app-foundations-card>
+        }
+      </div>
+    } @else {
+    <!-- ═══ MODE FORMULAIRE CLASSIQUE ═══ -->
     <!-- Content Area -->
     <div [class]="fromAppGen() ? 'pt-36 pb-24' : 'pt-24 pb-24'">
       <!-- Step Content -->
@@ -153,6 +216,7 @@
           </div>
         </div>
       </div>
+    }
     }
   </div>
 }

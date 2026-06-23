@@ -264,6 +264,8 @@
     "onboarding": {
       "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
       "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",
+      "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
+      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
       "questions": {
         "description": "Décrivez votre idée en quelques phrases : que voulez-vous construire, et pour résoudre quel problème ?",
         "name": "Très bien ! Quel **nom** voulez-vous donner à votre projet ?",
@@ -279,7 +281,8 @@
       "errors": {
         "descriptionTooShort": "Pouvez-vous m'en dire un peu plus ? Quelques phrases suffisent pour bien démarrer.",
         "nameRequired": "Il me faut un nom pour votre projet. Lequel choisissez-vous ?",
-        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau."
+        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau.",
+        "planFailed": "Je n'ai pas pu préparer mes questions, mais on peut continuer directement vers le récapitulatif."
       },
       "actions": {
         "skip": "Passer cette question",

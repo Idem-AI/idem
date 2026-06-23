@@ -21,6 +21,20 @@
       },
       "errors": {
         "noActiveProject": "No active project found. Please select a project first."
+      },
+      "modeLabel": "Creation mode",
+      "modeChat": "Conversation",
+      "modeForm": "Form",
+      "switchToForm": "Switch to form",
+      "foundations": {
+        "title": "Let's talk about your project",
+        "subtitle": "A few basics to start — the AI handles the rest in conversation.",
+        "descriptionLabel": "Describe your idea",
+        "descriptionPlaceholder": "e.g. a marketplace for local artisans handling orders and payments…",
+        "nameLabel": "Project name",
+        "namePlaceholder": "e.g. ArtisanHub",
+        "typeLabel": "Project type",
+        "continue": "Continue"
       }
     }
   }

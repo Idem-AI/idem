@@ -4,6 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { initEmptyObject } from '../../../../utils/init-empty-object';
 import CreateProjectDatas, { SelectElement } from './datas';
 
@@ -16,9 +17,14 @@ import { LogoSelectionComponent } from './components/logo-selection/logo-selecti
 import { LogoVariationsComponent } from './components/logo-variations/logo-variations';
 import { ProjectSummaryComponent } from './components/project-summary/project-summary';
 import { LogoChoiceComponent } from './components/logo-choice/logo-choice';
+import { FoundationsCardComponent } from './components/foundations-card/foundations-card';
 import { Loader } from '../../../../shared/components/loader/loader';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import {
+  OnboardingChatComponent,
+  OnboardingFoundations,
+} from '../../../chat/components/onboarding-chat/onboarding-chat';
 
 // Simple step configuration
 interface Step {
@@ -26,6 +32,10 @@ interface Step {
   title: string;
   component: string;
 }
+
+/** Mode d'affichage de la création de projet */
+type CreateMode = 'chat' | 'form';
+const CREATE_MODE_KEY = 'idem_create_project_mode';
 
 @Component({
   selector: 'app-create-project',
@@ -38,6 +48,8 @@ interface Step {
     ProjectSummaryComponent,
     TranslateModule,
     Loader,
+    FoundationsCardComponent,
+    OnboardingChatComponent,
   ],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
@@ -48,6 +60,7 @@ export class CreateProjectComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly cookieService = inject(CookieService);
+  private readonly uiModeService = inject(UiModeService);
   private readonly translate = inject(TranslateService);
 
   // AppGen handoff
@@ -58,6 +71,48 @@ export class CreateProjectComponent implements OnInit {
   protected readonly currentStepIndex = signal<number>(0);
   protected readonly project = signal<ProjectModel>(initEmptyObject<ProjectModel>());
   protected readonly isLoading = signal<boolean>(false);
+
+  // Dual-mode : conversation (défaut) ⇄ formulaire classique
+  protected readonly mode = signal<CreateMode>(this.readMode());
+
+  /** En mode chat : Fondations tant que description/nom/type ou projet manquent. */
+  protected readonly chatReadyForConversation = computed(() => {
+    const p = this.project();
+    return !!p.id && !!p.description?.trim() && !!p.name?.trim() && !!p.type;
+  });
+
+  /** Données passées au composant conversationnel. */
+  protected readonly conversationFoundations = computed<OnboardingFoundations>(() => {
+    const p = this.project();
+    const t = p.type as unknown as { name?: string; code?: string } | string | undefined;
+    const typeLabel = typeof t === 'string' ? t : (t?.name ?? '');
+    const typeCode = typeof t === 'string' ? t : (t?.code ?? '');
+    return {
+      description: p.description ?? '',
+      name: p.name ?? '',
+      type: typeCode,
+      typeLabel,
+      projectId: p.id ?? null,
+    };
+  });
+
+  private readMode(): CreateMode {
+    try {
+      return localStorage.getItem(CREATE_MODE_KEY) === 'form' ? 'form' : 'chat';
+    } catch {
+      return 'chat';
+    }
+  }
+
+  protected setMode(mode: CreateMode): void {
+    if (mode === this.mode()) return;
+    this.mode.set(mode);
+    try {
+      localStorage.setItem(CREATE_MODE_KEY, mode);
+    } catch {
+      // ignore
+    }
+  }
 
   // Step configuration
   protected get steps(): Step[] {
@@ -300,6 +355,30 @@ export class CreateProjectComponent implements OnInit {
   protected async finalizeProject(): Promise<void> {
     this.cookieService.set('projectId', this.project().id!);
     this.router.navigate(['/project/dashboard']);
+  }
+
+  // ─────────────────────────────────────────────── Mode conversation (chat)
+
+  /** Phase A → crée le projet en base (si nécessaire) puis lance la conversation. */
+  protected async onFoundationsContinue(): Promise<void> {
+    if (!this.project().id) {
+      await this.createProjectInDatabase();
+    } else {
+      this.saveDraftProject();
+    }
+    // chatReadyForConversation devient vrai → le composant conversationnel s'affiche
+  }
+
+  /** Le composant conversationnel a créé/finalisé le projet. */
+  protected onConversationCreated(projectId: string): void {
+    this.cookieService.set('projectId', projectId);
+    this.cookieService.remove('draftProject');
+    // Retour dans le contexte d'origine : chat si l'utilisateur est en mode chat
+    if (this.uiModeService.mode() === 'chat') {
+      this.router.navigate(['/chat']);
+    } else {
+      this.router.navigate(['/project/dashboard']);
+    }
   }
 
   /**

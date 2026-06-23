@@ -1,0 +1,119 @@
+<div class="onboarding-chat flex flex-col h-full min-h-0">
+  <!-- Fil de messages -->
+  <div class="flex-1 min-h-0 overflow-y-auto">
+    <div class="max-w-2xl mx-auto w-full px-4 py-6 space-y-5">
+      @for (msg of messages(); track msg.id) {
+        <div class="flex gap-3" [class.flex-row-reverse]="msg.role === 'user'">
+          <div
+            class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold uppercase text-white"
+            [ngClass]="msg.role === 'user' ? 'bg-primary' : 'bg-white/5 border border-white/10'"
+          >
+            {{ msg.role === 'user' ? 'Me' : 'AI' }}
+          </div>
+
+          <div class="min-w-0 max-w-[85%] space-y-3" [class.text-right]="msg.role === 'user'">
+            @if (msg.content) {
+              <div
+                class="inline-block text-left rounded-2xl px-4 py-3 text-sm leading-relaxed advisor-message"
+                [ngClass]="
+                  msg.role === 'user'
+                    ? 'bg-primary text-white'
+                    : 'bg-white/5 text-gray-100 border border-white/5'
+                "
+              >
+                @if (msg.role === 'user') {
+                  <div class="whitespace-pre-wrap break-words">{{ msg.content }}</div>
+                } @else {
+                  <markdown [data]="msg.content" class="markdown-content"></markdown>
+                }
+              </div>
+            }
+
+            <!-- Récap final -->
+            @if (msg.recap; as recap) {
+              <app-recap-card
+                [recap]="recap"
+                [busy]="isCreating()"
+                (confirmed)="onRecapConfirmed($event)"
+                (restartRequested)="onRecapRestart()"
+              />
+            }
+
+            <!-- Chips de réponse (sous le dernier message assistant uniquement) -->
+            @if (
+              msg.role === 'assistant' &&
+              msg.chips?.length &&
+              msg.id === lastMessageId() &&
+              !pending()
+            ) {
+              <app-suggestion-chips
+                [chips]="msg.chips!"
+                [disabled]="pending() || isCreating()"
+                (chipSelected)="onChipSelected($event)"
+              />
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Indicateur de frappe -->
+      @if (pending()) {
+        <div class="flex gap-3">
+          <div
+            class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs font-semibold uppercase text-white"
+          >
+            AI
+          </div>
+          <div
+            class="bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 flex items-center gap-2"
+          >
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:150ms]"></span>
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:300ms]"></span>
+          </div>
+        </div>
+      }
+      <div #scrollAnchor></div>
+    </div>
+  </div>
+
+  <!-- Composer -->
+  <div class="shrink-0 border-t border-white/5">
+    <div class="max-w-2xl mx-auto w-full px-4 py-4">
+      @if (errorMessage()) {
+        <p class="text-sm text-amber-400 mb-3">{{ errorMessage() }}</p>
+      }
+      <div class="flex items-end gap-3">
+        <textarea
+          [ngModel]="draft()"
+          (ngModelChange)="updateDraft($event)"
+          (keydown)="handleKeydown($event)"
+          rows="1"
+          class="min-h-[52px]! resize-none"
+          [disabled]="phase() === 'recap'"
+          [placeholder]="'chat.onboarding.composerPlaceholder' | translate"
+        ></textarea>
+        <button
+          class="inner-button"
+          [disabled]="!draft().trim() || pending() || isCreating() || phase() === 'recap'"
+          (click)="send()"
+        >
+          {{ 'chat.composer.send' | translate }}
+        </button>
+      </div>
+      <div class="flex items-center justify-between mt-2">
+        <p class="text-xs text-gray-500">{{ 'chat.composer.hint' | translate }}</p>
+        @if (showFormSwitch()) {
+          <button
+            type="button"
+            (click)="switchToForm.emit()"
+            class="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary transition-colors duration-200"
+          >
+            <i class="pi pi-list text-[10px]"></i>
+            {{ 'dashboard.createProject.switchToForm' | translate }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</div>

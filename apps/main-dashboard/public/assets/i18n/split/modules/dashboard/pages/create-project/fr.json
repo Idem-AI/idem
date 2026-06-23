@@ -21,6 +21,20 @@
       },
       "errors": {
         "noActiveProject": "Aucun projet actif trouvé. Veuillez d'abord sélectionner un projet."
+      },
+      "modeLabel": "Mode de création",
+      "modeChat": "Conversation",
+      "modeForm": "Formulaire",
+      "switchToForm": "Passer au formulaire",
+      "foundations": {
+        "title": "Parlons de votre projet",
+        "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
+        "descriptionLabel": "Décrivez votre idée",
+        "descriptionPlaceholder": "Ex. une marketplace pour artisans locaux qui gère commandes et paiements…",
+        "nameLabel": "Nom du projet",
+        "namePlaceholder": "Ex. ArtisanHub",
+        "typeLabel": "Type de projet",
+        "continue": "Continuer"
       }
     }
   }
