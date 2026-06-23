@@ -264,6 +264,8 @@
     "onboarding": {
       "welcome": "Hi! 👋 Let's create your project together, step by step. First question: **describe your idea in a few sentences.** What do you want to build, and what problem does it solve?",
       "resume": "Welcome back! 👋 Let's pick up your project creation exactly where you left off.",
+      "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
+      "composerPlaceholder": "Type your answer, or pick a suggestion…",
       "questions": {
         "description": "Describe your idea in a few sentences: what do you want to build, and what problem does it solve?",
         "name": "Great! What **name** do you want to give your project?",
@@ -279,7 +281,8 @@
       "errors": {
         "descriptionTooShort": "Could you tell me a bit more? A few sentences are enough to get started.",
         "nameRequired": "I need a name for your project. Which one do you choose?",
-        "createFailed": "Project creation failed. Check your connection and confirm again."
+        "createFailed": "Project creation failed. Check your connection and confirm again.",
+        "planFailed": "I couldn't prepare my questions, but we can go straight to the summary."
       },
       "actions": {
         "skip": "Skip this question",

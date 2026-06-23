@@ -1,0 +1,7 @@
+.onboarding-chat {
+  width: 100%;
+}
+
+.onboarding-chat textarea {
+  flex: 1;
+}

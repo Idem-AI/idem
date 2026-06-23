@@ -131,7 +131,7 @@ export class ChatSidebarComponent {
   protected newProject(): void {
     this.isProjectSelectorOpen.set(false);
     this.closeMobile.emit();
-    this.router.navigate(['/chat/new']);
+    this.router.navigate(['/create-project']);
   }
 
   protected async logout(): Promise<void> {
