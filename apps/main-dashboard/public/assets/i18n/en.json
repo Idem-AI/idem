@@ -881,7 +881,7 @@
         "businessPlan": "Business Plan",
         "pitchDeck": "Pitch Deck",
         "finance": "Financial Forecasts",
-        "systemDesign": "System Design",
+        "systemDesign": "Diagrams",
         "development": "Development",
         "launch": "Launch"
       },
@@ -912,9 +912,9 @@
           "alt": "Financial Forecasts"
         },
         "design": {
-          "title": "System Design",
+          "title": "Diagrams",
           "description": "Design your system architecture and technical specifications",
-          "alt": "System Design"
+          "alt": "Diagrams"
         },
         "development": {
           "title": "Development",

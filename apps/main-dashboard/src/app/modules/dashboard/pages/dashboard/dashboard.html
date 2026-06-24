@@ -27,457 +27,519 @@
     </div>
   </div>
 } @else {
-  <div class="max-w-7xl mx-auto px-4 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-8 mt-0 dashboard-page">
     @if (project(); as currentProject) {
       <app-incomplete-project-banner
         [project]="currentProject"
         (completeProject)="onCompleteProject()"
       />
 
-      <div class="bg-slate-900/30 backdrop-blur border border-white/5 rounded-3xl p-8 mb-8 relative overflow-hidden">
-        <div class="relative z-10">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></div>
-            <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-              {{ 'dashboard.dashboard.hero.activeProject' | translate }}
-            </span>
+      <!-- Project Premium Header -->
+      <header class="project-header-panel mb-8 pb-6 border-b border-white/5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          <!-- Logo Frame -->
+          <div class="header-logo-wrapper">
+            @if (currentProject.analysisResultModel?.branding?.logo && !logoLoadError()) {
+              @if (logoIsInline()) {
+                <div class="header-logo-inner inline-logo" [innerHTML]="currentProject.analysisResultModel.branding.logo.svg | safeHtml"></div>
+              } @else {
+                <div class="header-logo-inner">
+                  <img
+                    [src]="currentProject.analysisResultModel.branding.logo.svg"
+                    [alt]="currentProject.name"
+                    class="header-logo-img"
+                    (error)="handleImageError()"
+                  />
+                </div>
+              }
+            } @else {
+              <!-- Premium dynamic gradient placeholder -->
+              <div class="header-logo-placeholder" [style]="placeholderBgStyle()">
+                <span class="placeholder-text">{{ monogram() }}</span>
+              </div>
+            }
           </div>
-          <h1 class="text-4xl font-extrabold text-white tracking-tight mb-3">
-            {{ currentProject.name }}
-          </h1>
-          <p class="text-sm leading-relaxed text-white/60 max-w-3xl m-0">
-            {{
-              currentProject.description ||
-                ('dashboard.dashboard.hero.defaultDescription' | translate)
-            }}
-          </p>
-        </div>
-      </div>
 
-      <!-- Features Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <!-- Project Info -->
+          <div class="flex-grow space-y-1">
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white m-0 flex items-center gap-2">
+                {{ currentProject.name }}
+              </h1>
+            <p class="text-xs sm:text-sm leading-relaxed text-white/50 max-w-4xl m-0">
+              {{
+                currentProject.description ||
+                  ('dashboard.dashboard.hero.defaultDescription' | translate)
+              }}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Grid Dashboard Layout -->
+      <div class="dashboard-grid-layout">
         
-        <!-- Brand Identity -->
-        <button
-          class="relative overflow-hidden bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500/20 hover:bg-slate-900/50 group flex flex-col justify-between min-h-[340px] text-left cursor-pointer"
-          [routerLink]="['/project/branding']"
-        >
-          <!-- 3D Illustration Area -->
-          <div class="h-36 w-full flex items-center justify-center mb-6 relative">
-            <img
-              src="assets/images/dashboard/branding.png"
-              alt="Brand Identity"
-              class="h-32 w-auto object-contain select-none transition-transform duration-300 group-hover:scale-105"
-              draggable="false"
-            />
-            @if (currentProject.analysisResultModel.branding?.sections?.length > 0) {
-              <div class="absolute top-2 right-2 size-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                <svg class="size-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        <!-- Left Column: Core Modules Grid -->
+        <main class="modules-column">
+          <h2 class="section-title">Core Modules</h2>
+          
+          <div class="modules-grid">
+            <!-- 1. Brand Identity -->
+            <button
+              class="module-card group"
+              [routerLink]="['/project/branding']"
+              [ngClass]="getStepState(0)"
+            >
+              <div class="card-meta-row">
+                <div class="flex items-center gap-1.5">
+                  <span class="step-num">// 01</span>
+                  @if (getStepState(0) === 'completed') {
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(0) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>
+                  }
+                </div>
+              </div>
+
+              <!-- Vector Graphic (SVG) -->
+              <div class="module-visualizer" aria-hidden="true">
+                <svg class="feature-icon-svg branding-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                  <circle cx="35" cy="30" r="14" stroke="currentColor" stroke-width="1.5" class="svg-stroke-accent" />
+                  <rect x="53" y="18" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.5" class="svg-stroke-primary" />
+                  <line x1="35" y1="10" x2="35" y2="50" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" class="svg-stroke-dim" />
+                  <line x1="15" y1="30" x2="85" y2="30" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" class="svg-stroke-dim" />
                 </svg>
               </div>
-            }
-          </div>
 
-          <!-- Description and Title -->
-          <div class="flex-1">
-            <h3 class="text-lg font-bold text-white mb-2 tracking-wide group-hover:text-cyan-400 transition-colors">
-              {{ 'dashboard.dashboard.steps.brand.title' | translate }}
-            </h3>
-            <p class="text-xs text-white/50 leading-relaxed max-w-xs">
-              {{ 'dashboard.dashboard.steps.brand.description' | translate }}
-            </p>
-          </div>
+              <!-- Info -->
+              <div class="module-details">
+                <h3 class="module-title">
+                  {{ 'dashboard.dashboard.steps.brand.title' | translate }}
+                </h3>
+                <p class="module-description">
+                  {{ 'dashboard.dashboard.steps.brand.description' | translate }}
+                </p>
+              </div>
 
-          <!-- Open CTA -->
-          <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-white/40 group-hover:text-cyan-400 transition-colors">
-            <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-            <svg class="size-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-        <!-- Business Plan -->
-        <button
-          class="relative overflow-hidden bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500/20 hover:bg-slate-900/50 group flex flex-col justify-between min-h-[340px] text-left cursor-pointer"
-          [routerLink]="['/project/business-plan']"
-        >
-          <!-- 3D Illustration Area -->
-          <div class="h-36 w-full flex items-center justify-center mb-6 relative">
-            <img
-              src="assets/images/dashboard/business_plan.png"
-              alt="Business Plan"
-              class="h-32 w-auto object-contain select-none transition-transform duration-300 group-hover:scale-105"
-              draggable="false"
-            />
-            @if (currentProject.analysisResultModel.businessPlan) {
-              <div class="absolute top-2 right-2 size-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                <svg class="size-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              <!-- Open CTA -->
+              <div class="module-cta">
+                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-            }
-          </div>
+            </button>
 
-          <!-- Description and Title -->
-          <div class="flex-1">
-            <h3 class="text-lg font-bold text-white mb-2 tracking-wide group-hover:text-cyan-400 transition-colors">
-              {{ 'dashboard.dashboard.steps.business.title' | translate }}
-            </h3>
-            <p class="text-xs text-white/50 leading-relaxed max-w-xs">
-              {{ 'dashboard.dashboard.steps.business.description' | translate }}
-            </p>
-          </div>
+            <!-- 2. Business Plan -->
+            <button
+              class="module-card group"
+              [routerLink]="['/project/business-plan']"
+              [ngClass]="getStepState(1)"
+            >
+              <div class="card-meta-row">
+                <div class="flex items-center gap-1.5">
+                  <span class="step-num">// 02</span>
+                  @if (getStepState(1) === 'completed') {
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(1) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>
+                  }
+                </div>
+              </div>
 
-          <!-- Open CTA -->
-          <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-white/40 group-hover:text-cyan-400 transition-colors">
-            <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-            <svg class="size-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-        <!-- Pitch Deck -->
-        <button
-          class="relative overflow-hidden bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500/20 hover:bg-slate-900/50 group flex flex-col justify-between min-h-[340px] text-left cursor-pointer"
-          [routerLink]="['/project/pitch-deck']"
-        >
-          <!-- 3D Illustration Area -->
-          <div class="h-36 w-full flex items-center justify-center mb-6 relative">
-            <img
-              src="assets/images/dashboard/pitch_deck.png"
-              alt="Pitch Deck"
-              class="h-32 w-auto object-contain select-none transition-transform duration-300 group-hover:scale-105"
-              draggable="false"
-            />
-            @if (currentProject.analysisResultModel.pitchDeck) {
-              <div class="absolute top-2 right-2 size-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                <svg class="size-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              <div class="module-visualizer" aria-hidden="true">
+                <svg class="feature-icon-svg business-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                  <rect x="18" y="16" width="64" height="6" rx="2" fill="currentColor" class="svg-fill-primary" />
+                  <rect x="18" y="27" width="40" height="5" rx="2.5" fill="currentColor" class="svg-fill-accent" />
+                  <rect x="18" y="38" width="50" height="5" rx="2.5" fill="currentColor" class="svg-fill-dim" />
+                  <circle cx="76" cy="32" r="5" fill="currentColor" class="svg-fill-accent" />
                 </svg>
               </div>
-            }
-          </div>
 
-          <!-- Description and Title -->
-          <div class="flex-1">
-            <h3 class="text-lg font-bold text-white mb-2 tracking-wide group-hover:text-cyan-400 transition-colors">
-              {{ 'dashboard.dashboard.steps.pitchDeck.title' | translate }}
-            </h3>
-            <p class="text-xs text-white/50 leading-relaxed max-w-xs">
-              {{ 'dashboard.dashboard.steps.pitchDeck.description' | translate }}
-            </p>
-          </div>
+              <div class="module-details">
+                <h3 class="module-title">
+                  {{ 'dashboard.dashboard.steps.business.title' | translate }}
+                </h3>
+                <p class="module-description">
+                  {{ 'dashboard.dashboard.steps.business.description' | translate }}
+                </p>
+              </div>
 
-          <!-- Open CTA -->
-          <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-white/40 group-hover:text-cyan-400 transition-colors">
-            <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-            <svg class="size-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-        <!-- Financial Forecasts -->
-        <button
-          class="relative overflow-hidden bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500/20 hover:bg-slate-900/50 group flex flex-col justify-between min-h-[340px] text-left cursor-pointer"
-          [routerLink]="['/project/finance']"
-        >
-          <!-- 3D Illustration Area -->
-          <div class="h-36 w-full flex items-center justify-center mb-6 relative">
-            <img
-              src="assets/images/dashboard/finance.png"
-              alt="Financial Forecasts"
-              class="h-32 w-auto object-contain select-none transition-transform duration-300 group-hover:scale-105"
-              draggable="false"
-            />
-            @if (currentProject.analysisResultModel.finance) {
-              <div class="absolute top-2 right-2 size-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                <svg class="size-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              <div class="module-cta">
+                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-            }
-          </div>
+            </button>
 
-          <!-- Description and Title -->
-          <div class="flex-1">
-            <h3 class="text-lg font-bold text-white mb-2 tracking-wide group-hover:text-cyan-400 transition-colors">
-              {{ 'dashboard.dashboard.steps.finance.title' | translate }}
-            </h3>
-            <p class="text-xs text-white/50 leading-relaxed max-w-xs">
-              {{ 'dashboard.dashboard.steps.finance.description' | translate }}
-            </p>
-          </div>
+            <!-- 3. Pitch Deck -->
+            <button
+              class="module-card group"
+              [routerLink]="['/project/pitch-deck']"
+              [ngClass]="getStepState(2)"
+            >
+              <div class="card-meta-row">
+                <div class="flex items-center gap-1.5">
+                  <span class="step-num">// 03</span>
+                  @if (getStepState(2) === 'completed') {
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(2) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>
+                  }
+                </div>
+              </div>
 
-          <!-- Open CTA -->
-          <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-white/40 group-hover:text-cyan-400 transition-colors">
-            <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-            <svg class="size-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-        <!-- System Design -->
-        <button
-          class="relative overflow-hidden bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500/20 hover:bg-slate-900/50 group flex flex-col justify-between min-h-[340px] text-left cursor-pointer"
-          [routerLink]="['/project/diagrams']"
-        >
-          <!-- 3D Illustration Area -->
-          <div class="h-36 w-full flex items-center justify-center mb-6 relative">
-            <img
-              src="assets/images/dashboard/diagrams.png"
-              alt="System Design"
-              class="h-32 w-auto object-contain select-none transition-transform duration-300 group-hover:scale-105"
-              draggable="false"
-            />
-            @if (currentProject.analysisResultModel.design) {
-              <div class="absolute top-2 right-2 size-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                <svg class="size-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              <div class="module-visualizer" aria-hidden="true">
+                <svg class="feature-icon-svg pitch-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                  <rect x="22" y="14" width="56" height="32" rx="4" stroke="currentColor" stroke-width="1.5" class="svg-stroke-primary" />
+                  <path d="M 28 36 L 42 24 L 54 30 L 70 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-stroke-accent" />
+                  <circle cx="70" cy="18" r="2.5" fill="currentColor" class="svg-fill-accent" />
                 </svg>
               </div>
-            }
-          </div>
 
-          <!-- Description and Title -->
-          <div class="flex-1">
-            <h3 class="text-lg font-bold text-white mb-2 tracking-wide group-hover:text-cyan-400 transition-colors">
-              {{ 'dashboard.dashboard.steps.design.title' | translate }}
-            </h3>
-            <p class="text-xs text-white/50 leading-relaxed max-w-xs">
-              {{ 'dashboard.dashboard.steps.design.description' | translate }}
-            </p>
-          </div>
+              <div class="module-details">
+                <h3 class="module-title">
+                  {{ 'dashboard.dashboard.steps.pitchDeck.title' | translate }}
+                </h3>
+                <p class="module-description">
+                  {{ 'dashboard.dashboard.steps.pitchDeck.description' | translate }}
+                </p>
+              </div>
 
-          <!-- Open CTA -->
-          <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-white/40 group-hover:text-cyan-400 transition-colors">
-            <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-            <svg class="size-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-        <!-- Development -->
-        <button
-          class="relative overflow-hidden bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500/20 hover:bg-slate-900/50 group flex flex-col justify-between min-h-[340px] text-left cursor-pointer"
-          [routerLink]="['/project/development']"
-        >
-          <!-- 3D Illustration Area -->
-          <div class="h-36 w-full flex items-center justify-center mb-6 relative">
-            <img
-              src="assets/images/dashboard/development.png"
-              alt="Development"
-              class="h-32 w-auto object-contain select-none transition-transform duration-300 group-hover:scale-105"
-              draggable="false"
-            />
-            @if (currentProject.analysisResultModel.development) {
-              <div class="absolute top-2 right-2 size-5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                <svg class="size-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              <div class="module-cta">
+                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-            }
+            </button>
+
+            <!-- 4. Financial Forecasts -->
+            <button
+              class="module-card group"
+              [routerLink]="['/project/finance']"
+              [ngClass]="getStepState(3)"
+            >
+              <div class="card-meta-row">
+                <div class="flex items-center gap-1.5">
+                  <span class="step-num">// 04</span>
+                  @if (getStepState(3) === 'completed') {
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(3) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>
+                  }
+                </div>
+              </div>
+
+              <div class="module-visualizer" aria-hidden="true">
+                <svg class="feature-icon-svg finance-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                  <rect x="20" y="34" width="8" height="12" rx="1.5" fill="currentColor" class="svg-fill-dim" />
+                  <rect x="34" y="26" width="8" height="20" rx="1.5" fill="currentColor" class="svg-fill-dim" />
+                  <rect x="48" y="18" width="8" height="28" rx="1.5" fill="currentColor" class="svg-fill-dim" />
+                  <rect x="62" y="10" width="8" height="36" rx="1.5" fill="currentColor" class="svg-fill-accent" />
+                  <path d="M 16 38 Q 38 24 74 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="svg-stroke-primary" />
+                </svg>
+              </div>
+
+              <div class="module-details">
+                <h3 class="module-title">
+                  {{ 'dashboard.dashboard.steps.finance.title' | translate }}
+                </h3>
+                <p class="module-description">
+                  {{ 'dashboard.dashboard.steps.finance.description' | translate }}
+                </p>
+              </div>
+
+              <div class="module-cta">
+                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+
+            <!-- 5. System Design -->
+            <button
+              class="module-card group"
+              [routerLink]="['/project/diagrams']"
+              [ngClass]="getStepState(4)"
+            >
+              <div class="card-meta-row">
+                <div class="flex items-center gap-1.5">
+                  <span class="step-num">// 05</span>
+                  @if (getStepState(4) === 'completed') {
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(4) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>
+                  }
+                </div>
+              </div>
+
+              <div class="module-visualizer" aria-hidden="true">
+                <svg class="feature-icon-svg system-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                  <rect x="18" y="24" width="12" height="12" rx="3" fill="currentColor" class="svg-fill-dim" />
+                  <rect x="44" y="12" width="12" height="12" rx="3" fill="currentColor" class="svg-fill-primary" />
+                  <rect x="44" y="36" width="12" height="12" rx="3" fill="currentColor" class="svg-fill-primary" />
+                  <rect x="70" y="24" width="12" height="12" rx="3" fill="currentColor" class="svg-fill-accent" />
+                  <path d="M 30 30 L 44 18 M 30 30 L 44 42 M 56 18 L 70 30 M 56 42 L 70 30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="svg-stroke-dim" />
+                </svg>
+              </div>
+
+              <div class="module-details">
+                <h3 class="module-title">
+                  {{ 'dashboard.dashboard.steps.design.title' | translate }}
+                </h3>
+                <p class="module-description">
+                  {{ 'dashboard.dashboard.steps.design.description' | translate }}
+                </p>
+              </div>
+
+              <div class="module-cta">
+                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+
+            <!-- 6. Development -->
+            <button
+              class="module-card group"
+              [routerLink]="['/project/development']"
+              [ngClass]="getStepState(5)"
+            >
+              <div class="card-meta-row">
+                <div class="flex items-center gap-1.5">
+                  <span class="step-num">// 06</span>
+                  @if (getStepState(5) === 'completed') {
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(5) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>
+                  }
+                </div>
+              </div>
+
+              <div class="module-visualizer" aria-hidden="true">
+                <svg class="feature-icon-svg dev-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                  <path d="M 22 22 L 14 30 L 22 38 M 34 22 L 42 30 L 34 38 M 25 42 L 31 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-stroke-accent" />
+                  <rect x="52" y="20" width="30" height="5" rx="2" fill="currentColor" class="svg-fill-primary" />
+                  <rect x="52" y="30" width="22" height="5" rx="2" fill="currentColor" class="svg-fill-dim" />
+                  <rect x="52" y="40" width="15" height="5" rx="2" fill="currentColor" class="svg-fill-dim" />
+                </svg>
+              </div>
+
+              <div class="module-details">
+                <h3 class="module-title">
+                  {{ 'dashboard.dashboard.steps.development.title' | translate }}
+                </h3>
+                <p class="module-description">
+                  {{ 'dashboard.dashboard.steps.development.description' | translate }}
+                </p>
+              </div>
+
+              <div class="module-cta">
+                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
           </div>
+        </main>
 
-          <!-- Description and Title -->
-          <div class="flex-1">
-            <h3 class="text-lg font-bold text-white mb-2 tracking-wide group-hover:text-cyan-400 transition-colors">
-              {{ 'dashboard.dashboard.steps.development.title' | translate }}
-            </h3>
-            <p class="text-xs text-white/50 leading-relaxed max-w-xs">
-              {{ 'dashboard.dashboard.steps.development.description' | translate }}
-            </p>
-          </div>
-
-          <!-- Open CTA -->
-          <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-white/40 group-hover:text-cyan-400 transition-colors">
-            <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-            <svg class="size-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-      </div>
-
-      <!-- Project Progress Tracker -->
-      <div class="bg-slate-900/30 backdrop-blur border border-white/5 rounded-2xl p-6 mb-8">
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h2 class="text-base font-semibold text-white tracking-wide">
+        <!-- Right Column: Sidebar -->
+        <aside class="sidebar-column">
+          <!-- Progress Card -->
+          <div class="sidebar-panel progress-card">
+            <h3 class="sidebar-panel-title">
               {{ 'dashboard.dashboard.progressOverview' | translate }}
-            </h2>
-            <p class="text-xs text-white/40 mt-1">
-              {{ getCompletedSteps() }} of 6 core milestones completed
-            </p>
+            </h3>
+            
+            <div class="circular-progress-container">
+              <div class="relative size-24 flex items-center justify-center">
+                <!-- SVG gauge -->
+                <svg class="size-24 transform -rotate-90" viewBox="0 0 80 80" aria-hidden="true">
+                  <circle cx="40" cy="40" r="36" class="gauge-bg" stroke-width="5.5" fill="none" />
+                  <circle cx="40" cy="40" r="36" class="gauge-fill" stroke-width="5.5" fill="none"
+                    [style.strokeDasharray]="circumference"
+                    [style.strokeDashoffset]="getProgressOffset()"
+                  />
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center">
+                  <span class="text-xl font-bold tracking-tight text-white">
+                    {{ ((getCompletedSteps() / 6) * 100) | number:'1.0-0' }}%
+                  </span>
+                  <span class="text-[8px] uppercase tracking-wider text-white/40">Complete</span>
+                </div>
+              </div>
+              
+              <div class="progress-stats">
+                <span class="stats-count">{{ getCompletedSteps() }}/6 Completed</span>
+                <span class="stats-label">milestones resolved</span>
+              </div>
+            </div>
+
+            <!-- Vertical Checklist Timeline -->
+            <div class="milestones-timeline">
+              <!-- Item 1 -->
+              <div class="timeline-item" [ngClass]="getStepState(0)">
+                <div class="timeline-bullet">
+                  @if (getStepState(0) === 'completed') {
+                    <svg class="w-2.5 h-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(0) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  }
+                </div>
+                <div class="timeline-content">
+                  <span class="timeline-title">{{ 'dashboard.dashboard.milestones.brandIdentity' | translate }}</span>
+                  <span class="timeline-status-text">{{ getStepState(0) }}</span>
+                </div>
+              </div>
+
+              <!-- Item 2 -->
+              <div class="timeline-item" [ngClass]="getStepState(1)">
+                <div class="timeline-bullet">
+                  @if (getStepState(1) === 'completed') {
+                    <svg class="w-2.5 h-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(1) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  }
+                </div>
+                <div class="timeline-content">
+                  <span class="timeline-title">{{ 'dashboard.dashboard.milestones.businessPlan' | translate }}</span>
+                  <span class="timeline-status-text">{{ getStepState(1) }}</span>
+                </div>
+              </div>
+
+              <!-- Item 3 -->
+              <div class="timeline-item" [ngClass]="getStepState(2)">
+                <div class="timeline-bullet">
+                  @if (getStepState(2) === 'completed') {
+                    <svg class="w-2.5 h-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(2) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  }
+                </div>
+                <div class="timeline-content">
+                  <span class="timeline-title">{{ 'dashboard.dashboard.milestones.pitchDeck' | translate }}</span>
+                  <span class="timeline-status-text">{{ getStepState(2) }}</span>
+                </div>
+              </div>
+
+              <!-- Item 4 -->
+              <div class="timeline-item" [ngClass]="getStepState(3)">
+                <div class="timeline-bullet">
+                  @if (getStepState(3) === 'completed') {
+                    <svg class="w-2.5 h-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(3) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  }
+                </div>
+                <div class="timeline-content">
+                  <span class="timeline-title">{{ 'dashboard.dashboard.milestones.finance' | translate }}</span>
+                  <span class="timeline-status-text">{{ getStepState(3) }}</span>
+                </div>
+              </div>
+
+              <!-- Item 5 -->
+              <div class="timeline-item" [ngClass]="getStepState(4)">
+                <div class="timeline-bullet">
+                  @if (getStepState(4) === 'completed') {
+                    <svg class="w-2.5 h-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(4) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  }
+                </div>
+                <div class="timeline-content">
+                  <span class="timeline-title">{{ 'dashboard.dashboard.milestones.systemDesign' | translate }}</span>
+                  <span class="timeline-status-text">{{ getStepState(4) }}</span>
+                </div>
+              </div>
+
+              <!-- Item 6 -->
+              <div class="timeline-item" [ngClass]="getStepState(5)">
+                <div class="timeline-bullet">
+                  @if (getStepState(5) === 'completed') {
+                    <svg class="w-2.5 h-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  } @else if (getStepState(5) === 'in-progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  }
+                </div>
+                <div class="timeline-content">
+                  <span class="timeline-title">{{ 'dashboard.dashboard.milestones.development' | translate }}</span>
+                  <span class="timeline-status-text">{{ getStepState(5) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <span class="text-sm font-bold text-cyan-400">
-            {{ ((getCompletedSteps() / 6) * 100) | number:'1.0-0' }}%
-          </span>
-        </div>
 
-        <!-- Sleek milestone journey track -->
-        <div class="relative w-full py-4 overflow-x-auto">
-          <div class="min-w-[680px] relative py-2">
-            <!-- Track line background -->
-            <div class="absolute top-[28px] left-[40px] right-[40px] h-0.5 bg-white/5 rounded-full"></div>
-            <!-- Track line progress fill -->
-            <div class="absolute top-[28px] left-[40px] h-0.5 bg-cyan-400/80 rounded-full transition-all duration-500" [style.width.%]="(getCompletedSteps() / 6) * 85"></div>
-
-            <!-- Milestones row -->
-            <div class="relative z-10 flex justify-between items-start px-2">
-              <!-- Branding Milestone -->
-              <div class="flex flex-col items-center text-center w-[100px]">
-                <div class="size-6 rounded-full border flex items-center justify-center transition-all duration-300"
-                  [ngClass]="currentProject.analysisResultModel.branding?.sections?.length > 0 ? 'bg-cyan-500 border-cyan-400 text-white' : 'bg-slate-950 border-white/10 text-white/30'">
-                  @if (currentProject.analysisResultModel.branding?.sections?.length > 0) {
-                    <svg class="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  } @else {
-                    <span class="text-[9px] font-bold">1</span>
-                  }
-                </div>
-                <span class="text-[10px] font-medium mt-2 transition-colors" [ngClass]="currentProject.analysisResultModel.branding?.sections?.length > 0 ? 'text-white' : 'text-white/40'">
-                  {{ 'dashboard.dashboard.milestones.brandIdentity' | translate }}
+          <!-- Project Information Metadata Card -->
+          <div class="sidebar-panel metadata-card">
+            <h3 class="sidebar-panel-title">
+              {{ 'dashboard.dashboard.projectInformation' | translate }}
+            </h3>
+            
+            <div class="meta-list">
+              <div class="meta-item">
+                <span class="meta-label">{{ 'dashboard.dashboard.info.created' | translate }}</span>
+                <span class="meta-value">{{ currentProject.createdAt | date: 'MMMM d, yyyy' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ 'dashboard.dashboard.info.lastUpdate' | translate }}</span>
+                <span class="meta-value">{{ currentProject.updatedAt | date: 'MMMM d, yyyy' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ 'dashboard.dashboard.info.team' | translate }}</span>
+                <span class="meta-value text-white truncate max-w-[140px]" [title]="currentProject.targets || 'None'">
+                  {{ currentProject.targets || 'None' }}
                 </span>
               </div>
-
-              <!-- Business Plan Milestone -->
-              <div class="flex flex-col items-center text-center w-[100px]">
-                <div class="size-6 rounded-full border flex items-center justify-center transition-all duration-300"
-                  [ngClass]="currentProject.analysisResultModel.businessPlan ? 'bg-cyan-500 border-cyan-400 text-white' : 'bg-slate-950 border-white/10 text-white/30'">
-                  @if (currentProject.analysisResultModel.businessPlan) {
-                    <svg class="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  } @else {
-                    <span class="text-[9px] font-bold">2</span>
-                  }
-                </div>
-                <span class="text-[10px] font-medium mt-2 transition-colors" [ngClass]="currentProject.analysisResultModel.businessPlan ? 'text-white' : 'text-white/40'">
-                  {{ 'dashboard.dashboard.milestones.businessPlan' | translate }}
-                </span>
-              </div>
-
-              <!-- Pitch Deck Milestone -->
-              <div class="flex flex-col items-center text-center w-[100px]">
-                <div class="size-6 rounded-full border flex items-center justify-center transition-all duration-300"
-                  [ngClass]="currentProject.analysisResultModel.pitchDeck ? 'bg-cyan-500 border-cyan-400 text-white' : 'bg-slate-950 border-white/10 text-white/30'">
-                  @if (currentProject.analysisResultModel.pitchDeck) {
-                    <svg class="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  } @else {
-                    <span class="text-[9px] font-bold">3</span>
-                  }
-                </div>
-                <span class="text-[10px] font-medium mt-2 transition-colors" [ngClass]="currentProject.analysisResultModel.pitchDeck ? 'text-white' : 'text-white/40'">
-                  {{ 'dashboard.dashboard.milestones.pitchDeck' | translate }}
-                </span>
-              </div>
-
-              <!-- Finance Milestone -->
-              <div class="flex flex-col items-center text-center w-[100px]">
-                <div class="size-6 rounded-full border flex items-center justify-center transition-all duration-300"
-                  [ngClass]="currentProject.analysisResultModel.finance ? 'bg-cyan-500 border-cyan-400 text-white' : 'bg-slate-950 border-white/10 text-white/30'">
-                  @if (currentProject.analysisResultModel.finance) {
-                    <svg class="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  } @else {
-                    <span class="text-[9px] font-bold">4</span>
-                  }
-                </div>
-                <span class="text-[10px] font-medium mt-2 transition-colors" [ngClass]="currentProject.analysisResultModel.finance ? 'text-white' : 'text-white/40'">
-                  {{ 'dashboard.dashboard.milestones.finance' | translate }}
-                </span>
-              </div>
-
-              <!-- System Design Milestone -->
-              <div class="flex flex-col items-center text-center w-[100px]">
-                <div class="size-6 rounded-full border flex items-center justify-center transition-all duration-300"
-                  [ngClass]="currentProject.analysisResultModel.design ? 'bg-cyan-500 border-cyan-400 text-white' : 'bg-slate-950 border-white/10 text-white/30'">
-                  @if (currentProject.analysisResultModel.design) {
-                    <svg class="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  } @else {
-                    <span class="text-[9px] font-bold">5</span>
-                  }
-                </div>
-                <span class="text-[10px] font-medium mt-2 transition-colors" [ngClass]="currentProject.analysisResultModel.design ? 'text-white' : 'text-white/40'">
-                  {{ 'dashboard.dashboard.milestones.systemDesign' | translate }}
-                </span>
-              </div>
-
-              <!-- Development Milestone -->
-              <div class="flex flex-col items-center text-center w-[100px]">
-                <div class="size-6 rounded-full border flex items-center justify-center transition-all duration-300"
-                  [ngClass]="currentProject.analysisResultModel.development ? 'bg-cyan-500 border-cyan-400 text-white' : 'bg-slate-950 border-white/10 text-white/30'">
-                  @if (currentProject.analysisResultModel.development) {
-                    <svg class="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  } @else {
-                    <span class="text-[9px] font-bold">6</span>
-                  }
-                </div>
-                <span class="text-[10px] font-medium mt-2 transition-colors" [ngClass]="currentProject.analysisResultModel.development ? 'text-white' : 'text-white/40'">
-                  {{ 'dashboard.dashboard.milestones.development' | translate }}
+              <div class="meta-item">
+                <span class="meta-label">{{ 'dashboard.dashboard.info.scope' | translate }}</span>
+                <span class="meta-value text-white truncate max-w-[140px]" [title]="currentProject.scope || 'None'">
+                  {{ currentProject.scope || 'None' }}
                 </span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </aside>
 
-      <!-- Project Metadata Overview -->
-      <div class="bg-slate-900/30 backdrop-blur border border-white/5 rounded-2xl p-6">
-        <h2 class="text-base font-semibold text-white mb-4 tracking-wide">
-          {{ 'dashboard.dashboard.projectInformation' | translate }}
-        </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
-          <div>
-            <p class="text-xs text-white/40 uppercase tracking-wider mb-1">
-              {{ 'dashboard.dashboard.info.created' | translate }}
-            </p>
-            <p class="text-sm font-semibold text-white">
-              {{ currentProject.createdAt | date: 'MMMM d, yyyy' }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs text-white/40 uppercase tracking-wider mb-1">
-              {{ 'dashboard.dashboard.info.lastUpdate' | translate }}
-            </p>
-            <p class="text-sm font-semibold text-white">
-              {{ currentProject.updatedAt | date: 'MMMM d, yyyy' }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs text-white/40 uppercase tracking-wider mb-1">
-              {{ 'dashboard.dashboard.info.team' | translate }}
-            </p>
-            <p class="text-sm font-semibold text-white">{{ currentProject.targets }}</p>
-          </div>
-          <div>
-            <p class="text-xs text-white/40 uppercase tracking-wider mb-1">
-              {{ 'dashboard.dashboard.info.scope' | translate }}
-            </p>
-            <p class="text-sm font-semibold text-white">{{ currentProject.scope }}</p>
-          </div>
-        </div>
       </div>
     } @else {
       <div class="flex items-center justify-center min-h-[60vh]">
         <div class="text-center max-w-md">
           <svg
-            class="w-16 h-16 text-gray-600 mx-auto mb-4"
+            class="w-16 h-16 text-white/10 mx-auto mb-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -485,18 +547,18 @@
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2"
+              stroke-width="1.5"
               d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
             />
           </svg>
           <h2 class="text-2xl font-bold text-white mb-2">
             {{ 'dashboard.dashboard.empty.title' | translate }}
           </h2>
-          <p class="text-gray-400 mb-6">
+          <p class="text-white/40 mb-6 leading-relaxed">
             {{ 'dashboard.dashboard.empty.description' | translate }}
           </p>
           <button
-            class="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-medium transition-colors"
+            class="px-6 py-3 bg-white text-slate-900 hover:opacity-90 rounded-xl font-semibold text-xs transition-opacity"
             [routerLink]="['/projects']"
           >
             {{ 'dashboard.dashboard.empty.goToProjects' | translate }}
