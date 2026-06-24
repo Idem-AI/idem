@@ -143,19 +143,19 @@
                 {{ 'dashboard.completeBranding.overview.colors' | translate }}
               </h2>
               <div class="flex items-center space-x-3">
-                @if (selectedColor.colors?.primary) {
+                @if (selectedColor.colors.primary) {
                   <div class="text-center">
                     <div class="w-12 h-12 rounded-lg shadow-md" [style.background-color]="selectedColor.colors.primary"></div>
                     <p class="text-gray-400 text-xs mt-1">{{ 'dashboard.showBranding.sections.colors.primary' | translate }}</p>
                   </div>
                 }
-                @if (selectedColor.colors?.secondary) {
+                @if (selectedColor.colors.secondary) {
                   <div class="text-center">
                     <div class="w-12 h-12 rounded-lg shadow-md" [style.background-color]="selectedColor.colors.secondary"></div>
                     <p class="text-gray-400 text-xs mt-1">{{ 'dashboard.showBranding.sections.colors.secondary' | translate }}</p>
                   </div>
                 }
-                @if (selectedColor.colors?.accent) {
+                @if (selectedColor.colors.accent) {
                   <div class="text-center">
                     <div class="w-12 h-12 rounded-lg shadow-md" [style.background-color]="selectedColor.colors.accent"></div>
                     <p class="text-gray-400 text-xs mt-1">Accent</p>
