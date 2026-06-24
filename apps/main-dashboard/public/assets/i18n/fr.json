@@ -884,7 +884,7 @@
         "businessPlan": "Plan d'affaires",
         "pitchDeck": "Pitch Deck",
         "finance": "Prévisions financières",
-        "systemDesign": "Conception système",
+        "systemDesign": "Diagrammes",
         "development": "Développement",
         "launch": "Lancement"
       },
@@ -915,9 +915,9 @@
           "alt": "Prévisions financières"
         },
         "design": {
-          "title": "Conception système",
+          "title": "Diagrammes",
           "description": "Concevez l'architecture de votre système et les spécifications techniques",
-          "alt": "Conception système"
+          "alt": "Diagrammes"
         },
         "development": {
           "title": "Développement",
