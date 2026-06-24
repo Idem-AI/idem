@@ -24,7 +24,6 @@ import { initEmptyObject } from '../../../../utils/init-empty-object';
 import { OnboardingAiService } from '../../services/onboarding-ai.service';
 import { SuggestionChipsComponent } from '../suggestion-chips/suggestion-chips';
 import { RecapCardComponent } from '../recap-card/recap-card';
-import { Loader } from '../../../../shared/components/loader/loader';
 import {
   ChatChip,
   ChatMessageModel,
@@ -82,7 +81,6 @@ let msgCounter = 0;
     MarkdownModule,
     SuggestionChipsComponent,
     RecapCardComponent,
-    Loader,
   ],
   templateUrl: './onboarding-chat.html',
   styleUrls: ['./onboarding-chat.css', '../../../dashboard/pages/advisor/advisor-markdown.css'],
