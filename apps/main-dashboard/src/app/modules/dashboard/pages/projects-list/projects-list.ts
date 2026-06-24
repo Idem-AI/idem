@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   ElementRef,
   inject,
   OnInit,
@@ -42,6 +43,18 @@ export class ProjectsList implements OnInit {
   protected readonly user$ = this.auth.user$;
   cookieService = inject(CookieService);
   @ViewChild('menu') menuRef!: ElementRef;
+
+  /** Total number of projects for stats display */
+  protected readonly projectCount = signal(0);
+
+  /** Dynamic greeting based on time of day */
+  protected readonly greeting = computed(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return '☀️ Good morning';
+    if (hour < 18) return '🌤️ Good afternoon';
+    return '🌙 Good evening';
+  });
+
   ngOnInit() {
     try {
       this.user$.pipe(first()).subscribe((user) => {
@@ -50,6 +63,7 @@ export class ProjectsList implements OnInit {
           this.userProjects$ = this.projectService.getProjects();
           this.userProjects$.subscribe({
             next: (projects) => {
+              this.projectCount.set(projects.length);
               this.recentProjects.set(
                 projects
                   .slice()

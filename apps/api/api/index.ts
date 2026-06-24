@@ -72,11 +72,7 @@ import cacheRoutes from './routes/cache.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
 import policyRoutes from './routes/policy.routes';
-import teamRoutes from './routes/team.routes';
-import invitationRoutes from './routes/invitation.routes';
-import projectTeamRoutes from './routes/project-team.routes';
-import migrationRoutes from './routes/migration.routes';
-import { teamsRoutes } from './routes/teams.routes';
+
 import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
@@ -136,12 +132,7 @@ app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
 app.use('/project', policyRoutes);
 
-// Authorization routes
-app.use('/teams', teamRoutes);
-app.use('/api/teams', teamsRoutes); // New centralized teams API
-app.use('/invitations', invitationRoutes);
-app.use('/projects', projectTeamRoutes);
-app.use('/migration', migrationRoutes);
+
 
 // Contact routes
 app.use('/api/contact', contactRoutes);
