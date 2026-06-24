@@ -10,7 +10,6 @@ import { IncompleteProjectBannerComponent } from '../../components/incomplete-pr
 
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
   imports: [
     CommonModule,
     RouterLink,

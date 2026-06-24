@@ -116,12 +116,6 @@ export class SidebarGlobal {
       route: '/projects',
       isActive: false,
     },
-    {
-      labelKey: 'dashboard.sidebarGlobal.teams',
-      icon: 'pi pi-users',
-      route: '/teams',
-      isActive: false,
-    },
   ]);
 
   // Signals for UI State
