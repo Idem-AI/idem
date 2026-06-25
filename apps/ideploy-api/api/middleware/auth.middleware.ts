@@ -23,38 +23,45 @@ export async function authenticate(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  // 1. Session cookie (primary, user-facing).
-  const sessionCookie = req.cookies?.session as string | undefined;
-  if (sessionCookie) {
-    const profile = await verifySession(sessionCookie);
-    if (profile) {
-      const user = await syncUser(profile);
-      const requestedTeam = req.headers['x-current-team']
-        ? parseInt(String(req.headers['x-current-team']), 10)
-        : undefined;
-      const currentTeamId = await resolveCurrentTeam(user.id, requestedTeam);
-      req.user = { id: user.id, idemUid: user.idem_uid, email: user.email, name: user.name, currentTeamId };
-      next();
-      return;
+  try {
+    // 1. Session cookie (primary, user-facing).
+    const sessionCookie = req.cookies?.session as string | undefined;
+    if (sessionCookie) {
+      const profile = await verifySession(sessionCookie);
+      if (profile) {
+        const user = await syncUser(profile);
+        const requestedTeam = req.headers['x-current-team']
+          ? parseInt(String(req.headers['x-current-team']), 10)
+          : undefined;
+        const currentTeamId = await resolveCurrentTeam(user.id, requestedTeam);
+        req.user = { id: user.id, idemUid: user.idem_uid, email: user.email, name: user.name, currentTeamId };
+        next();
+        return;
+      }
     }
-  }
 
-  // 2. Sanctum PAT (programmatic public API).
-  const header = req.headers.authorization;
-  if (header?.startsWith('Bearer ')) {
-    try {
+    // 2. Sanctum PAT (programmatic public API).
+    const header = req.headers.authorization;
+    if (header?.startsWith('Bearer ')) {
       const pat = await verifyPat(header.slice(7));
       if (pat) {
         req.user = pat.user;
         next();
         return;
       }
-    } catch (err) {
-      logger.warn('PAT verification error', { message: (err as Error).message });
+    }
+
+    fail(res, 'Unauthenticated: invalid or missing session', 401, 'UNAUTHENTICATED');
+  } catch (err) {
+    // DB down, network errors, etc. — never let it become an uncaughtException.
+    const message = (err as Error).message;
+    logger.error('Authentication error', { message });
+    if (/ENOTFOUND|ECONNREFUSED|ETIMEDOUT|getaddrinfo|connect/i.test(message)) {
+      fail(res, 'Backend dependency unavailable (database). Check IDEPLOY_DB_HOST.', 503, 'DB_UNAVAILABLE');
+    } else {
+      fail(res, 'Authentication failed', 401, 'AUTH_ERROR');
     }
   }
-
-  fail(res, 'Unauthenticated: invalid or missing session', 401, 'UNAUTHENTICATED');
 }
 
 /** Guard requiring an active current team on the request. */

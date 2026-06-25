@@ -99,6 +99,11 @@ const children: Routes = [
       import('./modules/services/services-list/services-list').then((m) => m.ServicesListComponent),
   },
   {
+    path: 'templates',
+    loadComponent: () =>
+      import('./modules/templates/templates-page/templates-page').then((m) => m.TemplatesPageComponent),
+  },
+  {
     path: 'projects/:uuid',
     loadComponent: () =>
       import('./modules/projects/project-detail/project-detail').then((m) => m.ProjectDetailComponent),

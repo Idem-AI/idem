@@ -144,7 +144,13 @@ export class ShellComponent implements OnInit {
 
   protected readonly nav: NavSection[] = [
     { items: [{ path: '/dashboard', label: 'Dashboard', icon: 'fa-solid fa-house' }] },
-    { title: 'Deploy', items: [{ path: '/projects', label: 'Projects', icon: 'fa-solid fa-layer-group' }] },
+    {
+      title: 'Deploy',
+      items: [
+        { path: '/projects', label: 'Projects', icon: 'fa-solid fa-layer-group' },
+        { path: '/templates', label: 'Templates', icon: 'fa-solid fa-wand-magic-sparkles' },
+      ],
+    },
     {
       title: 'Resources',
       items: [

@@ -3,6 +3,12 @@ import { authenticate, requireTeam } from '../middleware/auth.middleware';
 import * as ctrl from '../controllers/service.controller';
 
 const router = Router();
+
+// One-click template catalog is GLOBAL (not team-scoped) — only needs auth.
+// Registered before requireTeam so it never 403s on team resolution.
+router.get('/templates', authenticate, ctrl.listTemplates);
+
+// Everything else is team-scoped.
 router.use(authenticate, requireTeam);
 
 /**
@@ -13,9 +19,6 @@ router.use(authenticate, requireTeam);
  */
 router.get('/', ctrl.list);
 router.post('/', ctrl.create);
-
-// One-click templates
-router.get('/templates', ctrl.listTemplates);
 router.post('/from-template', ctrl.createFromTemplate);
 
 router.get('/:uuid', ctrl.get);

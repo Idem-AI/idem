@@ -112,6 +112,8 @@ export interface ServiceTemplate {
   name: string;
   slogan: string;
   documentation: string;
+  category: string;
+  logo: string | null;
   tags: string[];
 }
 

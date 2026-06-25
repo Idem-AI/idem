@@ -35,7 +35,7 @@ interface DeployRow {
               [class.menu-item-active]="view() === 'grid'"><i class="fa-solid fa-table-cells-large"></i></button>
       <button class="button-secondary" title="List view" (click)="view.set('list')"
               [class.menu-item-active]="view() === 'list'"><i class="fa-solid fa-list"></i></button>
-      <button class="button" (click)="showDeploy.set(true)"><i class="fa-solid fa-plus mr-2"></i>Add New</button>
+      <button class="button" (click)="importOpen.set(true)"><i class="fa-solid fa-plus mr-2"></i>Add New</button>
     </div>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -86,14 +86,32 @@ interface DeployRow {
       <div class="lg:col-span-2">
         <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Projects</h2>
 
-        @if (showDeploy() || projects().length === 0) {
-          <div class="box">
+        <!-- Projects grid (when the team already has projects) -->
+        @if (projects().length > 0) {
+          <div [class]="projectsContainerClass()">
+            @for (p of filteredProjects(); track p.uuid) {
+              <a class="block rounded-lg p-4 hover:border-white/20" style="border:1px solid var(--color-surface-2);"
+                 [routerLink]="['/projects', p.uuid]">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i>
+                  <span class="font-semibold">{{ p.name }}</span>
+                </div>
+                @if (p.description) {
+                  <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ p.description }}</p>
+                }
+              </a>
+            }
+          </div>
+        }
+
+        <!-- Deploy / templates panel — always visible -->
+        <div class="box" [class.mt-6]="projects().length > 0">
             <div class="py-6 text-center">
               <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
                    style="background:var(--color-surface-2);">
                 <i class="fa-solid fa-cloud-arrow-up text-xl" style="color:var(--color-text-secondary);"></i>
               </div>
-              <h3 class="text-lg font-semibold">Deploy your first project</h3>
+              <h3 class="text-lg font-semibold">{{ projects().length === 0 ? 'Deploy your first project' : 'Deploy something new' }}</h3>
               <p class="text-sm" style="color:var(--color-text-secondary);">
                 Start with one of our templates<br />or import something from Git.
               </p>
@@ -156,27 +174,7 @@ interface DeployRow {
                 <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--color-text-secondary);"></i>
               </a>
             </div>
-
-            @if (projects().length > 0) {
-              <button class="button-secondary mt-4 w-full" (click)="showDeploy.set(false)">Back to projects</button>
-            }
-          </div>
-        } @else {
-          <div [class]="projectsContainerClass()">
-            @for (p of filteredProjects(); track p.uuid) {
-              <a class="block rounded-lg p-4 hover:border-white/20" style="border:1px solid var(--color-surface-2);"
-                 [routerLink]="['/projects', p.uuid]">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i>
-                  <span class="font-semibold">{{ p.name }}</span>
-                </div>
-                @if (p.description) {
-                  <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ p.description }}</p>
-                }
-              </a>
-            }
-          </div>
-        }
+        </div>
       </div>
     </div>
   `,
@@ -194,7 +192,6 @@ export class DashboardComponent implements OnInit {
     servers: { used: 0, limit: 0 },
   });
 
-  protected readonly showDeploy = signal(false);
   protected readonly importOpen = signal(false);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
