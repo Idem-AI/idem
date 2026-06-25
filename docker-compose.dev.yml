@@ -233,7 +233,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:3003,http://localhost:3004,http://localhost:8000'
+      CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:4202,http://localhost:3003,http://localhost:3004,http://localhost:8000'
       MONGODB_URI: 'mongodb://$${MONGODB_USERNAME}:$${MONGODB_PASSWORD}@mongodb:27017/$${MONGODB_DATABASE}?authSource=admin'
       # MinIO Configuration
       MINIO_ENDPOINT: 'minio'
