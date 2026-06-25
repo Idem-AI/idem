@@ -137,6 +137,19 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./modules/auth/sso-callback/sso-callback').then((m) => m.SsoCallbackComponent),
   },
+  // Full-screen guarded flows (no sidebar), like Vercel's New Project.
+  {
+    path: 'new-project',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./modules/projects/new-project/new-project').then((m) => m.NewProjectComponent),
+  },
+  {
+    path: 'new-project/import',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./modules/projects/import-config/import-config').then((m) => m.ImportConfigComponent),
+  },
   // Authenticated app — shell layout + guard.
   {
     path: '',

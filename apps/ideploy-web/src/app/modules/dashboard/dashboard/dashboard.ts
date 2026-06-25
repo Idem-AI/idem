@@ -35,7 +35,7 @@ interface DeployRow {
               [class.menu-item-active]="view() === 'grid'"><i class="fa-solid fa-table-cells-large"></i></button>
       <button class="button-secondary" title="List view" (click)="view.set('list')"
               [class.menu-item-active]="view() === 'list'"><i class="fa-solid fa-list"></i></button>
-      <button class="button" (click)="importOpen.set(true)"><i class="fa-solid fa-plus mr-2"></i>Add New</button>
+      <button class="button" (click)="goNewProject()"><i class="fa-solid fa-plus mr-2"></i>Add New</button>
     </div>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -129,26 +129,15 @@ interface DeployRow {
             <!-- Deploy rows (Vercel-style list) -->
             <div class="overflow-hidden rounded-xl" style="border:1px solid var(--color-surface-2);">
               <!-- Import Project -->
-              <div style="border-bottom:1px solid var(--color-surface-2);">
-                <div class="flex items-center gap-3 p-4">
-                  <div class="flex h-9 w-9 items-center justify-center rounded-lg" style="background:var(--color-surface-2);">
-                    <i class="fa-solid fa-circle-plus" style="color:var(--color-text-secondary);"></i>
-                  </div>
-                  <div class="flex-1">
-                    <div class="font-semibold">Import Project</div>
-                    <div class="text-sm" style="color:var(--color-text-secondary);">Add a repo from your Git provider</div>
-                  </div>
-                  <button class="button-secondary" (click)="importOpen.set(!importOpen())">Import</button>
+              <div class="flex items-center gap-3 p-4" style="border-bottom:1px solid var(--color-surface-2);">
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg" style="background:var(--color-surface-2);">
+                  <i class="fa-solid fa-circle-plus" style="color:var(--color-text-secondary);"></i>
                 </div>
-                @if (importOpen()) {
-                  <div class="flex flex-wrap gap-2 px-4 pb-4">
-                    <input class="input flex-1" placeholder="App name" [(ngModel)]="gitName" />
-                    <input class="input flex-[2]" placeholder="https://github.com/org/repo" [(ngModel)]="gitUrl" />
-                    <button class="button" [disabled]="!gitName || !gitUrl || busy()" (click)="deployGit()">
-                      {{ busy() ? '…' : 'Deploy' }}
-                    </button>
-                  </div>
-                }
+                <div class="flex-1">
+                  <div class="font-semibold">Import Project</div>
+                  <div class="text-sm" style="color:var(--color-text-secondary);">Add a repo from your Git provider</div>
+                </div>
+                <button class="button-secondary" (click)="goNewProject()">Import</button>
               </div>
 
               <!-- Template rows -->
@@ -192,14 +181,10 @@ export class DashboardComponent implements OnInit {
     servers: { used: 0, limit: 0 },
   });
 
-  protected readonly importOpen = signal(false);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly view = signal<'grid' | 'list'>('grid');
   protected readonly query = signal('');
-
-  protected gitName = '';
-  protected gitUrl = '';
 
   protected readonly projectsContainerClass = computed(() =>
     this.view() === 'grid' ? 'box grid grid-cols-1 sm:grid-cols-2 gap-3' : 'box space-y-3'
@@ -242,8 +227,8 @@ export class DashboardComponent implements OnInit {
     this.api.listServiceTemplates().subscribe((t) => this.templates.set(t.slice(0, 5)));
   }
 
-  protected deployGit(): void {
-    this.run({ name: this.gitName, git_repository: this.gitUrl });
+  protected goNewProject(): void {
+    void this.router.navigate(['/new-project']);
   }
   protected deployTemplate(row: DeployRow): void {
     if (row.template) this.run({ name: row.template, template: row.template });

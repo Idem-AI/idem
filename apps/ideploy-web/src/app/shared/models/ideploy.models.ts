@@ -153,6 +153,18 @@ export interface Tag {
   name: string;
 }
 
+export interface GithubRepo {
+  name: string;
+  fullName: string;
+  description: string;
+  private: boolean;
+  htmlUrl: string;
+  cloneUrl: string;
+  updatedAt: string;
+  defaultBranch?: string;
+  language?: string;
+}
+
 export interface FirewallConfig {
   id: number;
   application_id: number;
