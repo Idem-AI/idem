@@ -26,6 +26,8 @@ export class AuthService {
   readonly user$: Observable<AuthUser | null> = this.currentUserSubject.asObservable();
 
   private loaded = false;
+  /** Loop-breaker: marks that we already bounced to the central login once. */
+  private readonly ATTEMPT_KEY = 'ideploy_auth_attempt';
 
   /** Fetch the current user once; subsequent calls return the cached value. */
   async ensureLoaded(): Promise<AuthUser | null> {
@@ -41,6 +43,12 @@ export class AuthService {
         this.http.get<AuthUser>(`${this.globalApi}/auth/profile`, { withCredentials: true })
       );
       this.currentUserSubject.next(user);
+      // Authenticated → clear the loop-breaker.
+      try {
+        sessionStorage.removeItem(this.ATTEMPT_KEY);
+      } catch {
+        /* ignore */
+      }
       return user;
     } catch {
       this.currentUserSubject.next(null);
@@ -73,8 +81,35 @@ export class AuthService {
    * Redirect to the central app login. We pass `redirect=ideploy`, the exact
    * flag the central login honors: after authenticating it generates an iDeploy
    * SSO token and redirects to {ideploy}/auth/idem?token=... .
+   *
+   * Loop-breaker: if we already bounced to login once this tab and still aren't
+   * authenticated (e.g. the session cookie isn't shared across domains), we
+   * stop and return to the public landing instead of looping forever.
    */
   redirectToLogin(): void {
+    let attempted = false;
+    try {
+      attempted = sessionStorage.getItem(this.ATTEMPT_KEY) === '1';
+    } catch {
+      /* ignore */
+    }
+
+    if (attempted) {
+      try {
+        sessionStorage.removeItem(this.ATTEMPT_KEY);
+      } catch {
+        /* ignore */
+      }
+      // Already tried — go to the public landing (no guard) to break the loop.
+      window.location.href = '/';
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(this.ATTEMPT_KEY, '1');
+    } catch {
+      /* ignore */
+    }
     window.location.href = `${environment.services.console.url}/login?redirect=ideploy`;
   }
 }
