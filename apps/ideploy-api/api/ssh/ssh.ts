@@ -52,6 +52,16 @@ function muxPath(server: ServerRow): string {
   return path.join(MUX_DIR, `mux_${server.uuid}`);
 }
 
+/**
+ * A "local" server is this machine itself (Coolify's localhost server concept):
+ * commands run via the local Docker CLI instead of SSH. Lets you deploy on the
+ * host running iDeploy with no SSH setup — ideal for local testing.
+ */
+export function isLocalServer(server: ServerRow): boolean {
+  const ip = (server.ip || '').toLowerCase();
+  return server.uuid === '0' || ip === '127.0.0.1' || ip === 'localhost' || ip === 'host.docker.internal';
+}
+
 function commonSshOptions(server: ServerRow, keyPath: string, isScp = false): string[] {
   return [
     '-i', keyPath,
@@ -153,10 +163,41 @@ export async function executeRemoteCommand(
   command: string,
   opts: ExecOptions = {}
 ): Promise<ExecResult> {
-  const keyPath = materializeKey(privateKey);
+  const local = isLocalServer(server);
+  // Local server (this machine) runs the Docker CLI directly — no SSH, no key.
+  const keyPath = local ? '' : materializeKey(privateKey);
   const target = `${server.user}@${server.ip}`;
 
+  const captureChild = (
+    child: ReturnType<typeof spawn>,
+    feedStdin?: string
+  ): Promise<ExecResult> =>
+    new Promise<ExecResult>((resolve) => {
+      let stdout = '';
+      let stderr = '';
+      child.stdout?.on('data', (d) => {
+        const chunk = d.toString();
+        stdout += chunk;
+        opts.onData?.(redactText(chunk, opts.redact), 'stdout');
+      });
+      child.stderr?.on('data', (d) => {
+        const chunk = d.toString();
+        stderr += chunk;
+        opts.onData?.(redactText(chunk, opts.redact), 'stderr');
+      });
+      child.on('close', (code) => resolve({ exitCode: code ?? -1, stdout, stderr }));
+      child.on('error', (err) => resolve({ exitCode: -1, stdout, stderr: err.message }));
+      if (feedStdin !== undefined) {
+        child.stdin?.write(feedStdin + '\n');
+        child.stdin?.end();
+      }
+    });
+
   const attempt = async (): Promise<ExecResult> => {
+    if (local) {
+      // Run directly on the host shell (Docker Desktop / local daemon).
+      return captureChild(spawn('bash', ['-c', command]));
+    }
     const useMux = await ensureMultiplexedConnection(server, keyPath);
     const args = [
       ...(useMux ? muxOptions(server) : []),
@@ -164,29 +205,7 @@ export async function executeRemoteCommand(
       target,
       'bash -se',
     ];
-
-    return new Promise<ExecResult>((resolve) => {
-      const child = spawn('timeout', [String(SSH.commandTimeout), 'ssh', ...args]);
-      let stdout = '';
-      let stderr = '';
-
-      child.stdout.on('data', (d) => {
-        const chunk = d.toString();
-        stdout += chunk;
-        opts.onData?.(redactText(chunk, opts.redact), 'stdout');
-      });
-      child.stderr.on('data', (d) => {
-        const chunk = d.toString();
-        stderr += chunk;
-        opts.onData?.(redactText(chunk, opts.redact), 'stderr');
-      });
-      child.on('close', (code) => resolve({ exitCode: code ?? -1, stdout, stderr }));
-      child.on('error', (err) => resolve({ exitCode: -1, stdout, stderr: err.message }));
-
-      // Feed the command via stdin (heredoc-style) and close.
-      child.stdin.write(command + '\n');
-      child.stdin.end();
-    });
+    return captureChild(spawn('timeout', [String(SSH.commandTimeout), 'ssh', ...args]), command);
   };
 
   let lastResult: ExecResult = { exitCode: -1, stdout: '', stderr: '' };

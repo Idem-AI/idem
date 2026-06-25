@@ -8,7 +8,8 @@ import { randomUUID } from 'crypto';
 import pool from '../config/db.config';
 import logger from '../config/logger';
 import { ServerRow, PrivateKeyRow } from '../models/ideploy.types';
-import { executeRemoteCommand, testConnection } from '../ssh/ssh';
+import { executeRemoteCommand, testConnection, isLocalServer } from '../ssh/ssh';
+import { encryptString } from '../utils/laravel-crypto';
 
 function mapServer(row: Record<string, unknown>): ServerRow {
   return {
@@ -99,6 +100,87 @@ export async function deleteServer(teamId: number, uuid: string): Promise<boolea
     uuid,
   ]);
   return (rowCount ?? 0) > 0;
+}
+
+/**
+ * Create (or reuse) the "local" server — this machine, where Docker Desktop /
+ * the local daemon runs. Commands execute directly (no SSH). Also ensures a
+ * Docker destination so deployments can run immediately. Ideal for local testing.
+ */
+export async function ensureLocalServer(
+  teamId: number
+): Promise<{ server: ServerRow; destinationId: number; dockerOk: boolean }> {
+  // Reuse an existing local server for this team if present.
+  const found = await pool.query(
+    `SELECT * FROM servers WHERE team_id = $1 AND ip IN ('127.0.0.1','localhost') ORDER BY id LIMIT 1`,
+    [teamId]
+  );
+  let server = found.rows[0] ? mapServer(found.rows[0]) : null;
+
+  if (!server) {
+    // Servers require a private_key_id (NOT NULL); local execution never uses it.
+    const pkUuid = randomUUID();
+    const pk = await pool.query(
+      `INSERT INTO private_keys (uuid, name, description, private_key, is_git_related, team_id, created_at, updated_at)
+       VALUES ($1, 'localhost', 'Placeholder key for the local server (no SSH used)', $2, false, $3, now(), now())
+       RETURNING id`,
+      [pkUuid, encryptString('# local server — no SSH key needed'), teamId]
+    );
+    const osUser = process.env.USER || process.env.USERNAME || 'root';
+    const uuid = randomUUID();
+    const { rows } = await pool.query(
+      `INSERT INTO servers (uuid, name, description, ip, port, "user", team_id, private_key_id, proxy, created_at, updated_at)
+       VALUES ($1, 'localhost', 'This machine (local Docker)', '127.0.0.1', 22, $2, $3, $4, '{}', now(), now())
+       RETURNING *`,
+      [uuid, osUser, teamId, pk.rows[0].id]
+    );
+    server = mapServer(rows[0]);
+    logger.info('Local server created', { teamId, uuid });
+  }
+
+  // Verify Docker is reachable locally.
+  const stubKey: PrivateKeyRow = {
+    id: server.private_key_id,
+    uuid: '',
+    name: 'local',
+    description: null,
+    private_key: '',
+    is_git_related: false,
+    team_id: teamId,
+  };
+  const dockerProbe = await executeRemoteCommand(
+    server,
+    stubKey,
+    'docker version --format "{{.Server.Version}}" 2>/dev/null || echo NO_DOCKER',
+    { noRetry: true }
+  );
+  const dockerOk = !dockerProbe.stdout.includes('NO_DOCKER') && dockerProbe.exitCode === 0;
+
+  // Ensure a Docker destination (network) exists.
+  const dest = await pool.query('SELECT id FROM standalone_dockers WHERE server_id = $1 ORDER BY id LIMIT 1', [
+    server.id,
+  ]);
+  let destinationId: number;
+  if (dest.rows[0]) {
+    destinationId = Number(dest.rows[0].id);
+  } else {
+    if (dockerOk) {
+      await executeRemoteCommand(
+        server,
+        stubKey,
+        'docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy',
+        { noRetry: true }
+      );
+    }
+    const created = await pool.query(
+      `INSERT INTO standalone_dockers (uuid, name, network, server_id, created_at, updated_at)
+       VALUES ($1, 'localhost-ideploy', 'ideploy', $2, now(), now()) RETURNING id`,
+      [randomUUID(), server.id]
+    );
+    destinationId = Number(created.rows[0].id);
+  }
+
+  return { server, destinationId, dockerOk };
 }
 
 /** Validate connectivity + detect Docker. Ports ValidateServer. */

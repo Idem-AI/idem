@@ -16,6 +16,13 @@ router.post('/', ctrl.createServer);
 
 /**
  * @swagger
+ * /api/v1/servers/local:
+ *   post: { summary: Use this machine (local Docker) as a server + destination, tags: [Servers], responses: { 201: { description: Created } } }
+ */
+router.post('/local', ctrl.createLocalServer);
+
+/**
+ * @swagger
  * /api/v1/servers/{uuid}:
  *   get: { summary: Get a server, tags: [Servers], responses: { 200: { description: OK } } }
  *   delete: { summary: Delete a server, tags: [Servers], responses: { 200: { description: OK } } }

@@ -25,6 +25,17 @@ export async function getServer(req: CustomRequest, res: Response): Promise<void
   }
 }
 
+/** One-click: use THIS machine (local Docker) as a server + destination. */
+export async function createLocalServer(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const result = await serverService.ensureLocalServer(req.user!.currentTeamId!);
+    ok(res, result, 201);
+  } catch (err) {
+    logger.error('createLocalServer error', { message: (err as Error).message });
+    fail(res, (err as Error).message || 'Failed to set up local server');
+  }
+}
+
 export async function createServer(req: CustomRequest, res: Response): Promise<void> {
   const { name, ip, private_key_id } = req.body ?? {};
   if (!name || !ip || !private_key_id) {

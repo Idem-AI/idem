@@ -90,6 +90,12 @@ export class ApiService {
   deleteServer(uuid: string): Observable<unknown> {
     return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/servers/${uuid}`));
   }
+  /** One-click local server (this machine, local Docker) for testing. */
+  createLocalServer(): Observable<{ destinationId: number; dockerOk: boolean }> {
+    return this.unwrap(
+      this.http.post<ApiResponse<{ destinationId: number; dockerOk: boolean }>>(`${this.base}/servers/local`, {})
+    );
+  }
 
   // ── Projects ─────────────────────────────────────────
   listProjects(): Observable<Project[]> {
