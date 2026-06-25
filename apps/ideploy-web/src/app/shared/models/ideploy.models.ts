@@ -29,6 +29,7 @@ export interface Application {
   git_branch: string | null;
   build_pack: string | null;
   status: string | null;
+  link?: string | null;
 }
 
 export interface ApiResponse<T> {

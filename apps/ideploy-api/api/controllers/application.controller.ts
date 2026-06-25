@@ -11,7 +11,8 @@ import * as volumeService from '../services/volume.service';
 export async function listApplications(req: CustomRequest, res: Response): Promise<void> {
   try {
     const envId = req.query.environment_id ? Number(req.query.environment_id) : undefined;
-    ok(res, await appService.listApplications(req.user!.currentTeamId!, envId));
+    const apps = await appService.listApplications(req.user!.currentTeamId!, envId);
+    ok(res, apps.map((a) => ({ ...a, link: appService.computeAppLink(a) })));
   } catch (err) {
     logger.error('listApplications error', { message: (err as Error).message });
     fail(res, 'Failed to list applications');
@@ -22,7 +23,7 @@ export async function getApplication(req: CustomRequest, res: Response): Promise
   try {
     const app = await appService.getApplication(req.user!.currentTeamId!, String(req.params.uuid));
     if (!app) return fail(res, 'Application not found', 404, 'NOT_FOUND');
-    ok(res, app);
+    ok(res, { ...app, link: appService.computeAppLink(app) });
   } catch (err) {
     logger.error('getApplication error', { message: (err as Error).message });
     fail(res, 'Failed to fetch application');

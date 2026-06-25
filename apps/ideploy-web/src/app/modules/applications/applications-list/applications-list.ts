@@ -66,9 +66,16 @@ import { Application } from '../../../shared/models/ideploy.models';
                 status: {{ app.status }}
               </div>
             </div>
-            <button class="button" [disabled]="deploying() === app.uuid" (click)="deploy(app)">
-              {{ deploying() === app.uuid ? 'Queuing…' : 'Deploy' }}
-            </button>
+            <div class="flex items-center gap-2">
+              @if (app.link) {
+                <a class="button-secondary" [href]="app.link" target="_blank" rel="noopener">
+                  <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>Open
+                </a>
+              }
+              <button class="button" [disabled]="deploying() === app.uuid" (click)="deploy(app)">
+                {{ deploying() === app.uuid ? 'Queuing…' : 'Deploy' }}
+              </button>
+            </div>
           </div>
         }
       </div>

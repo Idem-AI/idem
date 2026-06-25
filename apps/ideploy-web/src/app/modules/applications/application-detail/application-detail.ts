@@ -25,7 +25,12 @@ import {
     @if (app(); as a) {
       <div class="mb-6 flex items-center justify-between">
         <h1 class="text-2xl font-bold">{{ a.name }}</h1>
-        <div class="flex gap-2">
+        <div class="flex items-center gap-2">
+          @if (a.link) {
+            <a class="button-secondary" [href]="a.link" target="_blank" rel="noopener">
+              <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>Open
+            </a>
+          }
           <button class="button-secondary" (click)="lifecycle('restart')">Restart</button>
           <button class="button-secondary" (click)="lifecycle('stop')">Stop</button>
           <button class="button" (click)="deploy()">Deploy</button>

@@ -20,11 +20,30 @@ function mapApp(r: Record<string, unknown>): ApplicationRow {
     git_repository: (r.git_repository as string) ?? null,
     git_branch: (r.git_branch as string) ?? null,
     build_pack: (r.build_pack as string) ?? null,
+    ports_exposes: (r.ports_exposes as string) ?? null,
+    ports_mappings: (r.ports_mappings as string) ?? null,
     environment_id: Number(r.environment_id),
     destination_id: r.destination_id ? Number(r.destination_id) : null,
     destination_type: (r.destination_type as string) ?? null,
     status: (r.status as string) ?? null,
   };
+}
+
+/**
+ * Public URL to open the app: the FQDN if set, else the first published host
+ * port (local dev) as http://localhost:<port>. Null if not exposed yet.
+ */
+export function computeAppLink(app: ApplicationRow): string | null {
+  if (app.fqdn) {
+    const f = app.fqdn.split(',')[0].trim();
+    return /^https?:\/\//.test(f) ? f : `https://${f}`;
+  }
+  if (app.ports_mappings) {
+    const first = app.ports_mappings.split(',')[0].trim(); // "hostPort:containerPort"
+    const hostPort = first.split(':')[0];
+    if (hostPort) return `http://localhost:${hostPort}`;
+  }
+  return null;
 }
 
 /** Verify an application belongs to the team and return it. */
@@ -117,6 +136,7 @@ export interface UpdateApplicationDto {
   git_branch?: string;
   build_pack?: string;
   ports_exposes?: string;
+  ports_mappings?: string;
   install_command?: string;
   build_command?: string;
   start_command?: string;
@@ -132,6 +152,7 @@ const UPDATABLE: (keyof UpdateApplicationDto)[] = [
   'git_branch',
   'build_pack',
   'ports_exposes',
+  'ports_mappings',
   'install_command',
   'build_command',
   'start_command',
