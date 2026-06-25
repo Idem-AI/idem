@@ -26,14 +26,18 @@ export class SsoCallbackComponent implements OnInit {
   private route = inject(ActivatedRoute);
 
   async ngOnInit(): Promise<void> {
-    // The token is the central app's bridge; the session cookie is what we use.
-    // Force a fresh profile fetch, then enter the dashboard (or back to landing).
-    const user = await this.auth.fetchCurrentUser();
-    if (user) {
-      void this.router.navigate(['/dashboard']);
-    } else {
-      // Session not established (e.g. cross-domain cookie not shared) → back to login.
-      this.auth.redirectToLogin();
+    // The session cookie may take a moment to be readable after the redirect
+    // chain — retry a few times before giving up.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const user = await this.auth.fetchCurrentUser();
+      if (user) {
+        void this.router.navigate(['/dashboard']);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 400));
     }
+    // Still not authenticated → redirectToLogin() now breaks the loop (its
+    // attempt-flag was set by the guard) and returns to the public landing.
+    this.auth.redirectToLogin();
   }
 }
