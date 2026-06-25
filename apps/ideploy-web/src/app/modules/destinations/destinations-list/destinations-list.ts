@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiService } from '../../../shared/services/api.service';
 import { Destination, Server } from '../../../shared/models/ideploy.models';
 
@@ -7,9 +8,10 @@ interface ServerDestinations {
   destinations: Destination[];
 }
 
-/** Destinations across all servers (Coolify destination.index). */
+/** Destinations across all servers (Coolify destination.index) + creation. */
 @Component({
   selector: 'app-destinations-list',
+  imports: [ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">Destinations</h1>
@@ -33,6 +35,10 @@ interface ServerDestinations {
                 </div>
               }
             }
+            <form class="mt-3 flex gap-2" [formGroup]="formFor(row.server.uuid)" (ngSubmit)="create(row.server.uuid)">
+              <input class="input flex-1" placeholder="docker network (e.g. ideploy)" [formControl]="formFor(row.server.uuid).controls.network" />
+              <button class="button" type="submit" [disabled]="formFor(row.server.uuid).invalid">Add destination</button>
+            </form>
           </div>
         }
       </div>
@@ -41,18 +47,43 @@ interface ServerDestinations {
 })
 export class DestinationsListComponent implements OnInit {
   private api = inject(ApiService);
+  private fb = inject(FormBuilder);
   protected readonly rows = signal<ServerDestinations[]>([]);
+  private forms = new Map<string, ReturnType<DestinationsListComponent['build']>>();
+
+  private build() {
+    return this.fb.nonNullable.group({ network: ['ideploy', Validators.required] });
+  }
+  protected formFor(uuid: string) {
+    let f = this.forms.get(uuid);
+    if (!f) {
+      f = this.build();
+      this.forms.set(uuid, f);
+    }
+    return f;
+  }
 
   ngOnInit(): void {
     this.api.listServers().subscribe((servers) => {
       this.rows.set(servers.map((server) => ({ server, destinations: [] })));
-      for (const server of servers) {
-        this.api.listDestinations(server.uuid).subscribe((destinations) => {
-          this.rows.update((current) =>
-            current.map((r) => (r.server.uuid === server.uuid ? { ...r, destinations } : r))
-          );
-        });
-      }
+      for (const server of servers) this.refresh(server.uuid);
+    });
+  }
+
+  private refresh(serverUuid: string): void {
+    this.api.listDestinations(serverUuid).subscribe((destinations) => {
+      this.rows.update((current) =>
+        current.map((r) => (r.server.uuid === serverUuid ? { ...r, destinations } : r))
+      );
+    });
+  }
+
+  protected create(serverUuid: string): void {
+    const form = this.formFor(serverUuid);
+    if (form.invalid) return;
+    this.api.createDestination(serverUuid, { network: form.getRawValue().network }).subscribe(() => {
+      form.reset({ network: 'ideploy' });
+      this.refresh(serverUuid);
     });
   }
 }

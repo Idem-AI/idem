@@ -60,15 +60,46 @@ export class ApiService {
       )
     );
   }
+  deleteServer(uuid: string): Observable<unknown> {
+    return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/servers/${uuid}`));
+  }
 
   // ── Projects ─────────────────────────────────────────
   listProjects(): Observable<Project[]> {
     return this.unwrap(this.http.get<ApiResponse<Project[]>>(`${this.base}/projects`));
   }
+  getProject(uuid: string): Observable<Project> {
+    return this.unwrap(this.http.get<ApiResponse<Project>>(`${this.base}/projects/${uuid}`));
+  }
+  createProject(body: { name: string; description?: string }): Observable<Project> {
+    return this.unwrap(this.http.post<ApiResponse<Project>>(`${this.base}/projects`, body));
+  }
+  deleteProject(uuid: string): Observable<unknown> {
+    return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/projects/${uuid}`));
+  }
+  listEnvironments(projectUuid: string): Observable<{ id: number; uuid: string; name: string }[]> {
+    return this.unwrap(
+      this.http.get<ApiResponse<{ id: number; uuid: string; name: string }[]>>(
+        `${this.base}/projects/${projectUuid}/environments`
+      )
+    );
+  }
 
   // ── Applications ─────────────────────────────────────
-  listApplications(): Observable<Application[]> {
-    return this.unwrap(this.http.get<ApiResponse<Application[]>>(`${this.base}/applications`));
+  listApplications(environmentId?: number): Observable<Application[]> {
+    const q = environmentId ? `?environment_id=${environmentId}` : '';
+    return this.unwrap(this.http.get<ApiResponse<Application[]>>(`${this.base}/applications${q}`));
+  }
+  createApplication(body: {
+    name: string;
+    environment_id: number;
+    git_repository: string;
+    git_branch?: string;
+    build_pack?: string;
+    destination_id?: number;
+    destination_type?: string;
+  }): Observable<Application> {
+    return this.unwrap(this.http.post<ApiResponse<Application>>(`${this.base}/applications`, body));
   }
   getApplication(uuid: string): Observable<Application> {
     return this.unwrap(this.http.get<ApiResponse<Application>>(`${this.base}/applications/${uuid}`));
@@ -130,6 +161,9 @@ export class ApiService {
         {}
       )
     );
+  }
+  deleteDatabase(type: DatabaseType, uuid: string): Observable<unknown> {
+    return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/databases/${type}/${uuid}`));
   }
 
   // ── Services (Phase 4) ───────────────────────────────
@@ -286,6 +320,9 @@ export class ApiService {
   }
   checkout(priceId: string): Observable<{ url: string }> {
     return this.unwrap(this.http.post<ApiResponse<{ url: string }>>(`${this.base}/subscription/checkout`, { price_id: priceId }));
+  }
+  changePlan(plan: string): Observable<unknown> {
+    return this.unwrap(this.http.post<ApiResponse<unknown>>(`${this.base}/subscription/change-plan`, { plan }));
   }
 
   // ── Settings / instance (Phase 10) ───────────────────

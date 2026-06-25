@@ -29,7 +29,8 @@ import { Database, DatabaseType } from '../../../shared/models/ideploy.models';
                 <div class="flex gap-2">
                   <button class="button-secondary" (click)="action(db, 'start')">Start</button>
                   <button class="button-secondary" (click)="action(db, 'stop')">Stop</button>
-                  <button class="button" (click)="backup(db)">Backup now</button>
+                  <button class="button-secondary" (click)="backup(db)">Backup now</button>
+                  <button class="text-xs text-red-400" (click)="remove(db)">Delete</button>
                 </div>
               </div>
             }
@@ -136,5 +137,11 @@ export class DatabasesListComponent implements OnInit {
 
   protected backup(db: Database): void {
     this.api.backupNow(db.type, db.uuid).subscribe();
+  }
+
+  protected remove(db: Database): void {
+    this.api.deleteDatabase(db.type, db.uuid).subscribe(() => {
+      this.databases.update((list) => list.filter((d) => d.uuid !== db.uuid));
+    });
   }
 }
