@@ -10,6 +10,7 @@
  * Returns a friendly, actionable error when the team has no server/destination
  * yet (so the UI can guide the user to add one).
  */
+import { randomUUID } from 'crypto';
 import pool from '../config/db.config';
 import * as projectService from './project.service';
 import * as appService from './application.service';
@@ -39,21 +40,32 @@ async function firstDestination(
 async function ensureProjectEnvironment(teamId: number, projectName: string): Promise<number> {
   // Reuse an existing project named like this, else create one.
   const existing = await pool.query(
-    'SELECT id FROM projects WHERE team_id = $1 AND name = $2 LIMIT 1',
+    'SELECT id, uuid FROM projects WHERE team_id = $1 AND name = $2 LIMIT 1',
     [teamId, projectName]
   );
+  let projectId: number;
   let projectUuid: string;
   if (existing.rows[0]) {
-    const r = await pool.query('SELECT uuid FROM projects WHERE id = $1', [existing.rows[0].id]);
-    projectUuid = String(r.rows[0].uuid);
+    projectId = Number(existing.rows[0].id);
+    projectUuid = String(existing.rows[0].uuid);
   } else {
     const project = await projectService.createProject(teamId, { name: projectName });
+    projectId = project.id;
     projectUuid = project.uuid;
   }
+
   const envs = await projectService.listEnvironments(teamId, projectUuid);
   const prod = envs.find((e) => e.name === 'production') ?? envs[0];
-  if (!prod) throw new Error('No environment available');
-  return prod.id;
+  if (prod) return prod.id;
+
+  // Self-heal: the project has no environment (e.g. created by an earlier
+  // failed attempt) → create the production environment now.
+  const { rows } = await pool.query(
+    `INSERT INTO environments (uuid, name, project_id, created_at, updated_at)
+     VALUES ($1, 'production', $2, now(), now()) RETURNING id`,
+    [randomUUID(), projectId]
+  );
+  return Number(rows[0].id);
 }
 
 export interface QuickDeployDto {

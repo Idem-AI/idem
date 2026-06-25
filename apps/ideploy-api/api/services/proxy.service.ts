@@ -9,7 +9,8 @@ import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
 import { ServerRow, PrivateKeyRow } from '../models/ideploy.types';
 
-const PROXY_PATH = '/data/ideploy/proxy';
+import { proxyPath } from '../utils/paths';
+const PROXY_PATH = proxyPath();
 const PROXY_CONTAINER = 'ideploy-proxy';
 
 async function resolve(

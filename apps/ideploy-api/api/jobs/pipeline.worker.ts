@@ -14,6 +14,7 @@ import * as appService from '../services/application.service';
 import * as serverService from '../services/server.service';
 import * as pipelineService from '../services/pipeline.service';
 import * as deploymentService from '../services/deployment.service';
+import { pipelineWorkdirFor } from '../utils/paths';
 import { PipelineJobData } from '../services/pipeline.service';
 
 function pipelineLog(uuid: string, line: string): Promise<void> {
@@ -35,7 +36,7 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
   const key = server ? await serverService.getPrivateKey(teamId, server.private_key_id) : null;
   if (!server || !key) throw new Error('Server or key not found');
 
-  const workdir = `/data/ideploy/pipelines/${executionUuid}`;
+  const workdir = pipelineWorkdirFor(executionUuid);
 
   try {
     for (const stage of stages) {
