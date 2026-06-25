@@ -69,9 +69,12 @@ export class AuthService {
     return this.currentUserSubject.value !== null;
   }
 
-  /** Redirect to the central console login, preserving where to return. */
+  /**
+   * Redirect to the central app login. We pass `redirect=ideploy`, the exact
+   * flag the central login honors: after authenticating it generates an iDeploy
+   * SSO token and redirects to {ideploy}/auth/idem?token=... .
+   */
   redirectToLogin(): void {
-    const back = encodeURIComponent(window.location.href);
-    window.location.href = `${environment.services.console.url}/login?redirect=${back}`;
+    window.location.href = `${environment.services.console.url}/login?redirect=ideploy`;
   }
 }

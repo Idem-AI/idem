@@ -1,7 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './shared/guards/auth.guard';
+import { ShellComponent } from './layouts/shell/shell';
 
-// All app routes require an authenticated session (verified via the global API).
+// Guarded app routes (rendered inside the authenticated shell layout).
 const children: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
@@ -116,9 +117,27 @@ const children: Routes = [
         (m) => m.DeploymentLogsComponent
       ),
   },
-  { path: '**', redirectTo: 'dashboard' },
 ];
 
 export const routes: Routes = [
-  { path: '', canActivateChild: [authGuard], children },
+  // Public iDeploy landing page (no auth required).
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./modules/landing/landing/landing').then((m) => m.LandingComponent),
+  },
+  // SSO callback from the central app after login.
+  {
+    path: 'auth/idem',
+    loadComponent: () =>
+      import('./modules/auth/sso-callback/sso-callback').then((m) => m.SsoCallbackComponent),
+  },
+  // Authenticated app — shell layout + guard.
+  {
+    path: '',
+    component: ShellComponent,
+    canActivateChild: [authGuard],
+    children,
+  },
+  { path: '**', redirectTo: '' },
 ];
