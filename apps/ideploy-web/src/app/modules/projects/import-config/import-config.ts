@@ -94,11 +94,20 @@ interface Preset {
         }
 
         @if (error()) {
-          <p class="mb-3 text-sm text-red-400">{{ error() }}
-            @if (error()!.toLowerCase().includes('server')) {
-              · <a routerLink="/servers/new" style="color:#60a5fa;">Add a server</a>
+          <div class="mb-3 rounded-md p-3 text-sm" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
+            <p class="text-red-400">{{ error() }}</p>
+            @if (error()!.toLowerCase().includes('server') || error()!.toLowerCase().includes('destination')) {
+              <div class="mt-2 flex items-center gap-3">
+                <button class="button" [disabled]="settingUpLocal()" (click)="useLocalServer()">
+                  {{ settingUpLocal() ? 'Setting up…' : 'Use this machine (local Docker)' }}
+                </button>
+                <a routerLink="/servers/new" class="text-xs" style="color:#60a5fa;">or add a remote server</a>
+              </div>
+              <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">
+                Runs the deployment on your local Docker — perfect for testing.
+              </p>
             }
-          </p>
+          </div>
         }
 
         <button class="button w-full" [disabled]="deploying() || !projectName" (click)="deploy()">
@@ -118,6 +127,7 @@ export class ImportConfigComponent implements OnInit {
   protected readonly teamName = signal('My Team');
   protected readonly presetIndex = signal(0);
   protected readonly deploying = signal(false);
+  protected readonly settingUpLocal = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly showBuild = signal(false);
   protected readonly showEnv = signal(false);
@@ -173,6 +183,26 @@ export class ImportConfigComponent implements OnInit {
     else if (l === 'html' || l === 'css') label = 'Static';
     const idx = this.presets.findIndex((p) => p.label === label);
     return idx >= 0 ? idx : 0;
+  }
+
+  /** Set up the local machine as a server, then deploy. */
+  protected useLocalServer(): void {
+    this.settingUpLocal.set(true);
+    this.error.set(null);
+    this.api.createLocalServer().subscribe({
+      next: (r) => {
+        this.settingUpLocal.set(false);
+        if (!r.dockerOk) {
+          this.error.set('Local server created, but Docker is not reachable. Is Docker Desktop running?');
+          return;
+        }
+        this.deploy();
+      },
+      error: (e) => {
+        this.settingUpLocal.set(false);
+        this.error.set(e?.error?.error?.message ?? 'Failed to set up local server');
+      },
+    });
   }
 
   protected deploy(): void {
