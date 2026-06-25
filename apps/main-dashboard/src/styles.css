@@ -4,6 +4,11 @@
 
 @import 'tailwindcss';
 
+@theme {
+  --color-secondary: var(--color-accent-500);
+  --color-accent: var(--color-accent-500);
+}
+
 /* PrimeNG Icons */
 @import 'primeicons/primeicons.css';
 
