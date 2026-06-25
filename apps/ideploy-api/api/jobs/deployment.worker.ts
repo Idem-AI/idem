@@ -94,6 +94,13 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
       });
     }
 
+    // Ensure the app publishes a host port so it gets an openable URL.
+    if (!app.ports_mappings) {
+      const exposed = (app.ports_exposes || '3000').split(',')[0].trim();
+      app.ports_mappings = `${exposed}:${exposed}`;
+      await appService.updateApplication(teamId, app.uuid, { ports_mappings: app.ports_mappings });
+    }
+
     const compose = generateComposeFile(app, image);
 
     await streamStep(deploymentUuid, 'Writing docker-compose.yml', async () => {

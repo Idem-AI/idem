@@ -11,12 +11,24 @@ import { appWorkdirFor } from '../utils/paths';
 export function generateComposeFile(app: ApplicationRow, imageTag: string): string {
   const serviceName = `${app.name}-${app.uuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
+  // Publish ports so the app is reachable. Prefer explicit ports_mappings
+  // ("host:container[,host:container]"), else publish the exposed port 1:1.
+  const mappings = (app.ports_mappings || '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  if (mappings.length === 0 && app.ports_exposes) {
+    const exposed = app.ports_exposes.split(',')[0].trim();
+    if (exposed) mappings.push(`${exposed}:${exposed}`);
+  }
+
   const compose = {
     services: {
       [serviceName]: {
         image: imageTag,
         container_name: serviceName,
         restart: 'unless-stopped',
+        ...(mappings.length ? { ports: mappings } : {}),
         labels: {
           'ideploy.managed': 'true',
           'ideploy.applicationUuid': app.uuid,

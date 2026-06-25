@@ -105,6 +105,8 @@ export interface ApplicationRow {
   git_repository: string | null;
   git_branch: string | null;
   build_pack: string | null;
+  ports_exposes: string | null;
+  ports_mappings: string | null;
   environment_id: number;
   destination_id: number | null;
   destination_type: string | null;
