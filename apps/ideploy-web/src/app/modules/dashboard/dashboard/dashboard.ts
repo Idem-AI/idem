@@ -1,100 +1,201 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../shared/services/api.service';
-import { Project, Server } from '../../../shared/models/ideploy.models';
+import { Project, Server, ServiceTemplate } from '../../../shared/models/ideploy.models';
 
 /**
- * Dashboard — Angular port of the Laravel `dashboard` Livewire view: a serif
- * hero title, an AI Smart Deploy callout, a Projects grid (with a create card)
- * and a Servers grid, using the same db-glass cards and status badges.
+ * Vercel-style dashboard: a Usage panel + a Projects panel with one-click
+ * "Deploy" cards. The deploy flow is designed for non-technical users — pick a
+ * template or paste a Git URL and iDeploy auto-creates the project, picks a
+ * server/destination and deploys (see /quick-deploy).
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-8" style="font-size:48px;font-weight:700;color:#fff;line-height:1.1;">
-      Dashboard
-    </h1>
-
-    <!-- AI Smart Deploy callout -->
-    <div class="db-glass mb-8 flex items-center gap-4" style="padding:16px 20px;">
-      <div class="w-11 h-11 rounded-xl flex items-center justify-center"
-           style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);">
-        <i class="fa-solid fa-wand-magic-sparkles text-white"></i>
+    <!-- Header -->
+    <div class="mb-6 flex items-center gap-3">
+      <div class="relative flex-1">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:#8d919a;"></i>
+        <input class="input" style="padding-left:32px;" placeholder="Search Projects…"
+               [ngModel]="query()" (ngModelChange)="query.set($event)" />
       </div>
-      <div class="flex items-center gap-3">
-        <span style="font-size:15px;font-weight:600;color:#fff;">AI Smart Deploy</span>
-        <span class="status-badge" style="background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.28);">SOON</span>
-      </div>
-      <p class="ml-2 text-sm" style="color:#8d919a;">Describe your app and let iDeploy configure and deploy it.</p>
+      <button class="button" (click)="showDeploy.set(!showDeploy())">
+        <i class="fa-solid fa-plus mr-2"></i> Add New
+      </button>
     </div>
 
-    <!-- Projects -->
-    <div class="mb-4 flex items-center gap-2">
-      <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i>
-      <h2 class="heading-serif" style="font-size:22px;font-weight:600;color:#fff;margin:0;">Projects</h2>
-    </div>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-10">
-      <a routerLink="/projects" class="db-add">
-        <div class="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-             style="background:#2d3449;color:#c3c6d7;">
-          <i class="fa-solid fa-plus text-xl"></i>
-        </div>
-        <p style="font-size:13px;font-weight:700;color:#c3c6d7;">CREATE NEW PROJECT</p>
-      </a>
-      @for (project of projects(); track project.uuid) {
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <!-- Usage column -->
+      <div class="lg:col-span-1 space-y-6">
         <div class="db-glass p-5">
-          <div class="flex items-center justify-between mb-3">
-            <span style="font-size:16px;font-weight:600;color:#fff;">{{ project.name }}</span>
-            <span class="status-badge" style="background:rgba(37,99,235,.12);color:#60a5fa;border:1px solid rgba(37,99,235,.28);">
-              <span class="dbpulse" style="width:5px;height:5px;border-radius:50%;background:#60a5fa;"></span>active
-            </span>
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="font-semibold">Usage</h2>
+            <a routerLink="/subscription" class="text-xs" style="color:#60a5fa;">Upgrade</a>
           </div>
-          @if (project.description) {
-            <p class="text-sm mb-3" style="color:#8d919a;">{{ project.description }}</p>
+          <div class="space-y-4">
+            <div>
+              <div class="mb-1 flex items-center justify-between text-sm">
+                <span><i class="fa-solid fa-cube mr-2" style="color:#60a5fa;"></i>Applications</span>
+                <span>{{ quota().apps.used }} / {{ quota().apps.limit || '∞' }}</span>
+              </div>
+              <div class="h-1.5 w-full rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);">
+                <div class="h-full rounded-full" [style.width.%]="pct(quota().apps)" style="background:#2563eb;"></div>
+              </div>
+            </div>
+            <div>
+              <div class="mb-1 flex items-center justify-between text-sm">
+                <span><i class="fa-solid fa-server mr-2" style="color:#4ade80;"></i>Servers</span>
+                <span>{{ quota().servers.used }} / {{ quota().servers.limit || '∞' }}</span>
+              </div>
+              <div class="h-1.5 w-full rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);">
+                <div class="h-full rounded-full" [style.width.%]="pct(quota().servers)" style="background:#4ade80;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-glass p-5">
+          <h2 class="mb-2 font-semibold">Get started</h2>
+          <p class="text-sm" style="color:#8d919a;">
+            New here? Add a server, then deploy your first app from a template or a Git repository — no config needed.
+          </p>
+          <a routerLink="/servers/new" class="button-secondary mt-3 inline-flex">Add a server</a>
+        </div>
+      </div>
+
+      <!-- Projects column -->
+      <div class="lg:col-span-2">
+        <div class="db-glass p-6">
+          @if (showDeploy() || projects().length === 0) {
+            <div class="text-center mb-6">
+              <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl" style="background:rgba(255,255,255,0.05);">
+                <i class="fa-solid fa-cloud-arrow-up text-xl" style="color:#60a5fa;"></i>
+              </div>
+              <h2 class="text-lg font-semibold">Deploy your first project</h2>
+              <p class="text-sm" style="color:#8d919a;">Start from a template or import a Git repository.</p>
+            </div>
+
+            @if (error()) {
+              <div class="box mb-4" style="border-color:rgba(239,68,68,0.4);">
+                <p class="text-sm text-red-400">{{ error() }}</p>
+                @if (error()!.includes('server')) {
+                  <a routerLink="/servers/new" class="text-xs" style="color:#60a5fa;">→ Add a server</a>
+                }
+              </div>
+            }
+
+            <!-- Import from Git -->
+            <div class="box mb-3 flex items-center gap-3">
+              <i class="fa-solid fa-code-branch text-lg" style="color:#60a5fa;"></i>
+              <div class="flex-1">
+                <div class="font-semibold">Import Project</div>
+                <div class="text-sm" style="color:#8d919a;">Deploy from a public Git repository URL.</div>
+                <div class="mt-2 flex gap-2">
+                  <input class="input flex-1" placeholder="App name" [(ngModel)]="gitName" />
+                  <input class="input flex-[2]" placeholder="https://github.com/org/repo" [(ngModel)]="gitUrl" />
+                </div>
+              </div>
+              <button class="button" [disabled]="!gitName || !gitUrl || busy()" (click)="deployGit()">
+                {{ busy() ? '…' : 'Import' }}
+              </button>
+            </div>
+
+            <!-- One-click templates -->
+            @for (tpl of templates(); track tpl.name) {
+              <div class="box mb-3 flex items-center justify-between">
+                <div>
+                  <div class="font-semibold capitalize">{{ tpl.name }}</div>
+                  <div class="text-sm" style="color:#8d919a;">{{ tpl.slogan }}</div>
+                </div>
+                <button class="button-secondary" [disabled]="busy()" (click)="deployTemplate(tpl)">Deploy</button>
+              </div>
+            }
+          } @else {
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="font-semibold">Projects</h2>
+              <button class="button-secondary" (click)="showDeploy.set(true)">+ New</button>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              @for (p of filteredProjects(); track p.uuid) {
+                <a class="box block hover:border-white/20" [routerLink]="['/projects', p.uuid]">
+                  <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i>
+                    <span class="font-semibold">{{ p.name }}</span>
+                  </div>
+                  @if (p.description) {
+                    <p class="mt-1 text-sm" style="color:#8d919a;">{{ p.description }}</p>
+                  }
+                </a>
+              }
+            </div>
           }
-          <div class="flex items-center justify-end">
-            <a [routerLink]="['/projects']" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#b4c5ff;">
-              View details <i class="fa-solid fa-chevron-right text-[10px]"></i>
-            </a>
-          </div>
         </div>
-      }
-    </div>
-
-    <!-- Servers -->
-    <div class="mb-4 flex items-center gap-2">
-      <i class="fa-solid fa-server" style="color:#2563eb;"></i>
-      <h2 class="heading-serif" style="font-size:22px;font-weight:600;color:#fff;margin:0;">Servers</h2>
-    </div>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <a routerLink="/servers/new" class="db-add">
-        <div class="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-             style="background:#2d3449;color:#c3c6d7;">
-          <i class="fa-solid fa-plus text-xl"></i>
-        </div>
-        <p style="font-size:13px;font-weight:700;color:#c3c6d7;">ADD A SERVER</p>
-      </a>
-      @for (server of servers(); track server.uuid) {
-        <div class="db-glass p-5">
-          <div class="flex items-center justify-between mb-2">
-            <span style="font-size:16px;font-weight:600;color:#fff;">{{ server.name }}</span>
-            <i class="fa-solid fa-server" style="color:#2563eb;"></i>
-          </div>
-          <p class="text-sm" style="color:#8d919a;">{{ server.user }}&#64;{{ server.ip }}:{{ server.port }}</p>
-        </div>
-      }
+      </div>
     </div>
   `,
 })
 export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
+  private router = inject(Router);
+
   protected readonly projects = signal<Project[]>([]);
   protected readonly servers = signal<Server[]>([]);
+  protected readonly templates = signal<ServiceTemplate[]>([]);
+  protected readonly quota = signal<{ apps: { used: number; limit: number }; servers: { used: number; limit: number } }>({
+    apps: { used: 0, limit: 0 },
+    servers: { used: 0, limit: 0 },
+  });
+  protected readonly showDeploy = signal(false);
+  protected readonly busy = signal(false);
+  protected readonly error = signal<string | null>(null);
+
+  protected readonly query = signal('');
+  protected gitName = '';
+  protected gitUrl = '';
+
+  protected readonly filteredProjects = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    return q ? this.projects().filter((p) => p.name.toLowerCase().includes(q)) : this.projects();
+  });
 
   ngOnInit(): void {
     this.api.listProjects().subscribe((p) => this.projects.set(p));
     this.api.listServers().subscribe((s) => this.servers.set(s));
+    this.api.getQuota().subscribe((q) => this.quota.set(q));
+    this.api.listServiceTemplates().subscribe((t) => this.templates.set(t.slice(0, 6)));
+  }
+
+  protected pct(x: { used: number; limit: number }): number {
+    return x.limit ? Math.min(100, Math.round((x.used / x.limit) * 100)) : 0;
+  }
+
+  protected deployGit(): void {
+    this.run({ name: this.gitName, git_repository: this.gitUrl });
+  }
+
+  protected deployTemplate(tpl: ServiceTemplate): void {
+    this.run({ name: tpl.name, template: tpl.name });
+  }
+
+  private run(body: { name: string; git_repository?: string; template?: string }): void {
+    this.busy.set(true);
+    this.error.set(null);
+    this.api.quickDeploy(body).subscribe({
+      next: (res) => {
+        this.busy.set(false);
+        if (res.deploymentUuid) {
+          void this.router.navigate(['/deployments', res.deploymentUuid]);
+        } else {
+          void this.router.navigate(['/services']);
+        }
+      },
+      error: (e) => {
+        this.busy.set(false);
+        this.error.set(e?.error?.error?.message ?? 'Deployment failed');
+      },
+    });
   }
 }

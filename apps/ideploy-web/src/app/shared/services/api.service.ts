@@ -357,6 +357,20 @@ export class ApiService {
   listS3Storages(): Observable<{ uuid: string; name: string; region: string; endpoint: string | null }[]> {
     return this.unwrap(this.http.get<ApiResponse<{ uuid: string; name: string; region: string; endpoint: string | null }[]>>(`${this.base}/s3-storages`));
   }
+  quickDeploy(body: {
+    name: string;
+    git_repository?: string;
+    git_branch?: string;
+    template?: string;
+    project_name?: string;
+  }): Observable<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }> {
+    return this.unwrap(
+      this.http.post<ApiResponse<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }>>(
+        `${this.base}/quick-deploy`,
+        body
+      )
+    );
+  }
 
   // ── Shared variables (Phase 5) ───────────────────────
   listSharedVariables(scope: string, scopeId: number): Observable<{ id: number; key: string; value: string | null }[]> {

@@ -62,9 +62,36 @@ export async function verifySession(sessionCookie: string | undefined): Promise<
 }
 
 /**
+ * Ensure the user belongs to at least one team. New SSO-synced users have no
+ * team yet (Coolify creates a personal team on registration); without one,
+ * every team-scoped action (project creation, etc.) is blocked. We create a
+ * personal team + owner membership when the user has none.
+ */
+async function ensurePersonalTeam(userId: number, name: string): Promise<void> {
+  const { rows } = await pool.query('SELECT 1 FROM team_user WHERE user_id = $1 LIMIT 1', [userId]);
+  if (rows[0]) return;
+
+  const teamName = `${name}'s Team`;
+  const teamRes = await pool.query(
+    `INSERT INTO teams (name, description, personal_team, created_at, updated_at)
+     VALUES ($1, $2, true, now(), now()) RETURNING id`,
+    [teamName, 'Personal team']
+  );
+  const teamId = Number(teamRes.rows[0].id);
+  await pool.query(
+    `INSERT INTO team_user (team_id, user_id, role, created_at, updated_at)
+     VALUES ($1, $2, 'owner', now(), now())
+     ON CONFLICT (team_id, user_id) DO NOTHING`,
+    [teamId, userId]
+  );
+  logger.info('[IDEM Auth] Created personal team for user', { userId, teamId });
+}
+
+/**
  * Find-or-create the local user from a verified profile. Mirrors
  * IdemAuthService::syncUser (match by idem_uid, else link by email, else create;
- * password stays null because auth is delegated).
+ * password stays null because auth is delegated). Also guarantees the user has
+ * a team so team-scoped features work.
  */
 export async function syncUser(profile: IdemProfile): Promise<SyncedUser> {
   const name = profile.displayName || profile.email.split('@')[0];
@@ -75,13 +102,15 @@ export async function syncUser(profile: IdemProfile): Promise<SyncedUser> {
     [profile.uid]
   );
   if (byUid.rows[0]) {
+    const id = Number(byUid.rows[0].id);
     await pool.query(
       `UPDATE users SET name = $1, email = $2, photo_url = $3,
          email_verified_at = COALESCE(email_verified_at, now()), updated_at = now()
        WHERE id = $4`,
-      [name, profile.email, profile.photoURL ?? null, byUid.rows[0].id]
+      [name, profile.email, profile.photoURL ?? null, id]
     );
-    return { id: Number(byUid.rows[0].id), idem_uid: profile.uid, email: profile.email, name };
+    await ensurePersonalTeam(id, name);
+    return { id, idem_uid: profile.uid, email: profile.email, name };
   }
 
   // 2. By email → link idem_uid
@@ -90,14 +119,16 @@ export async function syncUser(profile: IdemProfile): Promise<SyncedUser> {
     [profile.email]
   );
   if (byEmail.rows[0]) {
+    const id = Number(byEmail.rows[0].id);
     await pool.query(
       `UPDATE users SET idem_uid = $1, name = $2, photo_url = $3,
          email_verified_at = COALESCE(email_verified_at, now()), updated_at = now()
        WHERE id = $4`,
-      [profile.uid, name, profile.photoURL ?? null, byEmail.rows[0].id]
+      [profile.uid, name, profile.photoURL ?? null, id]
     );
-    logger.info('[IDEM Auth] Existing user linked to IDEM', { userId: byEmail.rows[0].id, uid: profile.uid });
-    return { id: Number(byEmail.rows[0].id), idem_uid: profile.uid, email: profile.email, name };
+    logger.info('[IDEM Auth] Existing user linked to IDEM', { userId: id, uid: profile.uid });
+    await ensurePersonalTeam(id, name);
+    return { id, idem_uid: profile.uid, email: profile.email, name };
   }
 
   // 3. Create
@@ -106,6 +137,8 @@ export async function syncUser(profile: IdemProfile): Promise<SyncedUser> {
      VALUES ($1,$2,$3,$4, now(), NULL, now(), now()) RETURNING id`,
     [profile.uid, name, profile.email, profile.photoURL ?? null]
   );
-  logger.info('[IDEM Auth] New user created from API', { userId: created.rows[0].id, uid: profile.uid });
-  return { id: Number(created.rows[0].id), idem_uid: profile.uid, email: profile.email, name };
+  const id = Number(created.rows[0].id);
+  logger.info('[IDEM Auth] New user created from API', { userId: id, uid: profile.uid });
+  await ensurePersonalTeam(id, name);
+  return { id, idem_uid: profile.uid, email: profile.email, name };
 }
