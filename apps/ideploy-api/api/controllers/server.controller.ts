@@ -27,6 +27,10 @@ export async function getServer(req: CustomRequest, res: Response): Promise<void
 
 /** One-click: use THIS machine (local Docker) as a server + destination. */
 export async function createLocalServer(req: CustomRequest, res: Response): Promise<void> {
+  // Local-machine deployment is a dev/testing convenience — never in production.
+  if (process.env.NODE_ENV === 'production') {
+    return fail(res, 'Local server is disabled in production.', 403, 'LOCAL_DISABLED');
+  }
   try {
     const result = await serverService.ensureLocalServer(req.user!.currentTeamId!);
     ok(res, result, 201);
