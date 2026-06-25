@@ -1,0 +1,20 @@
+# Dockerfile.dev for the iDeploy web frontend (Angular 20)
+# Development version with hot-reload.
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN apk add --no-cache git
+
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY ./packages ./packages
+COPY ./apps/ideploy-web ./apps/ideploy-web
+
+RUN npm install --legacy-peer-deps
+
+WORKDIR /app/apps/ideploy-web
+
+EXPOSE 4202
+
+CMD ["npm", "run", "start", "--", "--host", "0.0.0.0"]

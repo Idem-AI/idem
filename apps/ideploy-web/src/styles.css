@@ -1,0 +1,160 @@
+/* ============================================
+ * IDEPLOY-WEB — IDEM Design System Integration
+ * Mirrors apps/ideploy/resources/css/app.css so the Angular UI is visually
+ * identical to the Laravel/Livewire UI. Uses @idem/shared-styles as the single
+ * source of design tokens.
+ * ============================================ */
+
+/* FontAwesome icons (same icon set as the Laravel app). Bare specifier so it
+ * resolves from the hoisted workspace node_modules. Must precede other rules. */
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import 'tailwindcss';
+@import '@idem/shared-styles/styles.css';
+
+/* Dark-mode variant (same as the Laravel app) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Coolify color aliases for backward compatibility with ported markup */
+@theme {
+  --color-base: var(--color-bg-dark);
+  --color-coolgray-100: var(--color-surface-1);
+  --color-coolgray-200: var(--color-surface-2);
+  --color-coolgray-300: var(--color-surface-3);
+  --color-coolgray-400: var(--color-bg-light);
+  --color-coollabs: var(--color-primary-500);
+  --color-coollabs-100: var(--color-primary-600);
+  --color-coollabs-200: var(--color-primary-700);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before {
+    border-color: var(--color-surface-2, currentcolor);
+  }
+  body {
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-primary);
+  }
+}
+
+/* Core utility classes ported from the Laravel app's app.css. As more screens
+ * are migrated, port the remaining utilities (.tag, .alert-*, table styles…). */
+@layer components {
+  .input {
+    @apply w-full rounded-md px-3 py-2 text-sm;
+    background-color: var(--color-surface-1);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-surface-2);
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+  }
+  .button {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition;
+    background: var(--gradient-primary, var(--color-primary-500));
+    color: white;
+  }
+  .button:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .button-secondary {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold;
+    background-color: var(--color-surface-2);
+    color: var(--color-text-primary);
+  }
+  .menu-item {
+    @apply block rounded-md px-3 py-2 text-sm;
+    color: var(--color-text-secondary);
+  }
+  .menu-item-active {
+    background-color: var(--color-surface-2);
+    color: var(--color-text-primary);
+  }
+  .box {
+    @apply rounded-lg p-4;
+    background-color: var(--color-surface-1);
+    border: 1px solid var(--color-surface-2);
+  }
+}
+
+/* ============================================================
+ * Layout shell — ported 1:1 from apps/ideploy navbar-modern /
+ * navbar-topbar / dashboard so the Angular UI is visually identical.
+ * ============================================================ */
+
+/* Sidebar items */
+.sbi {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 12px;
+  font-size: 14px; font-weight: 500; text-decoration: none;
+  font-family: 'Jura', sans-serif;
+  transition: all 0.18s ease; color: #9ba3c0; width: 100%;
+  position: relative; overflow: hidden;
+}
+.sbi:hover { background: #2563eb; color: #fff; box-shadow: 0 4px 16px rgba(37,99,235,0.28); }
+.sbi.active { background: #2563eb; color: #fff; box-shadow: 0 4px 16px rgba(37,99,235,0.32); }
+.sbi.active::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 0 3px 3px 0; background: #fff;
+}
+.sbi .sbi-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 14px; }
+.sbi-section {
+  font-size: 9px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: rgba(155,163,192,.38); padding: 0 12px;
+  display: block; margin-bottom: 2px; font-family: 'Jura', sans-serif;
+}
+.sbi-disabled {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 12px;
+  font-size: 14px; font-weight: 500; font-family: 'Jura', sans-serif;
+  color: rgba(155,163,192,.35); width: 100%; cursor: not-allowed;
+}
+.sbi-badge-soon {
+  font-size: 9px; font-weight: 700; padding: 2px 7px;
+  border-radius: 5px; letter-spacing: .06em; text-transform: uppercase;
+  background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.28);
+}
+.sidebar-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.sidebar-scroll::-webkit-scrollbar { display: none; }
+
+.sidebar-shell {
+  background: rgba(2,6,23,0.92);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.topbar-shell {
+  background: #080c18;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Headings (Coolify uses Playfair Display for section titles) */
+.heading-serif { font-family: 'Playfair Display', Georgia, serif; }
+
+/* Dashboard glass cards */
+.db-glass {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.db-add {
+  border: 2px dashed rgba(255,255,255,0.12); border-radius: 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 28px; cursor: pointer; transition: all .25s; min-height: 160px;
+}
+.db-add:hover { border-color: #2563eb; }
+.db-stat {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+}
+.dbpulse { animation: dbpulse 1.6s ease-in-out infinite; }
+@keyframes dbpulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* Status badge */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 9999px;
+  font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}

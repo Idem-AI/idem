@@ -1,0 +1,32 @@
+# Dockerfile.dev for the iDeploy API service (Node + Express + TS)
+# Development version with hot-reload.
+#
+# Includes openssh-client + bash + curl because the deployment engine shells
+# out to `ssh`/`scp` (multiplexed) and runs the Docker CLI on remote servers.
+
+FROM node:20-alpine
+
+RUN apk add --no-cache dumb-init openssh-client bash curl
+
+WORKDIR /app
+
+# Workspace manifests
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Shared packages
+COPY ./packages ./packages
+
+# iDeploy API source
+COPY ./apps/ideploy-api ./apps/ideploy-api
+
+# Install all workspaces from root to establish symlinks
+RUN npm install --legacy-peer-deps
+
+WORKDIR /app/apps/ideploy-api
+
+# Generate the Prisma client (empty until `prisma db pull` is run against the DB)
+RUN npx prisma generate || true
+
+EXPOSE 3002
+
+CMD ["npm", "run", "dev"]

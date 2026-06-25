@@ -1,0 +1,6 @@
+{
+  "watch": ["api"],
+  "ext": "ts,json",
+  "ignore": ["api/**/*.spec.ts", "dist"],
+  "exec": "ts-node api/index.ts"
+}
