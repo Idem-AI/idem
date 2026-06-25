@@ -222,21 +222,12 @@ button {
   background: var(--glass-bg-light);
 }
 
-/* Card Header Metadata Row */
-.card-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  position: relative;
-  z-index: 1;
-}
-
 /* Large Watermark Step Number */
 .step-watermark {
   position: absolute;
   top: -0.15rem;
   right: 0.75rem;
+  font-family: var(--font-mono);
   font-size: 5.5rem;
   font-weight: 900;
   line-height: 1;
@@ -290,31 +281,6 @@ button {
 
 .upcoming .step-watermark {
   opacity: 0.4;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-tertiary);
-}
-
-.completed .status-badge {
-  color: var(--color-success);
-}
-
-.in-progress .status-badge {
-  color: var(--accent-color);
-}
-
-/* Pulsing Status Dot */
-.pulse-dot {
-  width: 0.35rem;
-  height: 0.35rem;
-  border-radius: 50%;
-  background-color: var(--accent-color);
 }
 
 /* ===== Vector Graphic Icons (SVGs) ===== */
