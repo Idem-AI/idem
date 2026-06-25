@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './shared/guards/auth.guard';
 
-export const routes: Routes = [
+// All app routes require an authenticated session (verified via the global API).
+const children: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
     path: 'dashboard',
@@ -115,4 +117,8 @@ export const routes: Routes = [
       ),
   },
   { path: '**', redirectTo: 'dashboard' },
+];
+
+export const routes: Routes = [
+  { path: '', canActivateChild: [authGuard], children },
 ];

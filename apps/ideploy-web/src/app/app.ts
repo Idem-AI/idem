@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ApiService } from './shared/services/api.service';
+import { AuthService } from './shared/services/auth.service';
 
 interface NavItem {
   path: string;
@@ -82,17 +84,21 @@ interface NavSection {
           </div>
 
           <!-- User -->
-          <a routerLink="/settings" class="flex items-center gap-2 p-1.5 rounded-lg">
-            @if (me()?.photoUrl) {
-              <img [src]="me()!.photoUrl!" class="w-8 h-8 rounded-full object-cover" alt="" />
-            } @else {
-              <div class="w-8 h-8 rounded-full flex items-center justify-center"
-                   style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">
-                <span class="text-xs font-bold text-white">{{ initial() }}</span>
-              </div>
-            }
-            <i class="fa-solid fa-chevron-down text-[10px]" style="color:#8d919a;"></i>
-          </a>
+          <div class="flex items-center gap-2">
+            <a routerLink="/settings" class="flex items-center gap-2 p-1.5 rounded-lg" [title]="authUser()?.email ?? ''">
+              @if (photoUrl()) {
+                <img [src]="photoUrl()!" class="w-8 h-8 rounded-full object-cover" alt="" />
+              } @else {
+                <div class="w-8 h-8 rounded-full flex items-center justify-center"
+                     style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">
+                  <span class="text-xs font-bold text-white">{{ initial() }}</span>
+                </div>
+              }
+            </a>
+            <button class="p-1.5 rounded-lg" title="Log out" (click)="logout()">
+              <i class="fa-solid fa-arrow-right-from-bracket text-xs" style="color:#8d919a;"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -146,7 +152,11 @@ interface NavSection {
 })
 export class App implements OnInit {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
 
+  // Canonical identity comes from the global Idem API (like landing).
+  protected readonly authUser = toSignal(this.auth.user$, { initialValue: null });
+  // iDeploy-specific context (team, role) from the iDeploy API.
   protected readonly me = signal<{ name: string; email: string; photoUrl: string | null; idemRole: string | null; team: { id: number; name: string } | null } | null>(null);
   protected readonly plan = signal('free');
   protected readonly appsUsed = signal(0);
@@ -185,8 +195,15 @@ export class App implements OnInit {
     },
   ];
 
+  protected photoUrl(): string | null {
+    return this.authUser()?.photoURL ?? this.me()?.photoUrl ?? null;
+  }
   protected initial(): string {
-    return (this.me()?.name ?? 'U').charAt(0).toUpperCase();
+    const name = this.authUser()?.displayName || this.authUser()?.email || this.me()?.name || 'U';
+    return name.charAt(0).toUpperCase();
+  }
+  protected logout(): void {
+    void this.auth.logout();
   }
   protected appsPercent(): number {
     const l = this.appsLimit();
