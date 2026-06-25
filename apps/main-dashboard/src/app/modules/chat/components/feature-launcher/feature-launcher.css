@@ -14,8 +14,8 @@
   display: flex;
   flex-direction: column;
   text-align: left;
-  padding: 1.25rem;
-  min-height: 260px;
+  padding: 1.5rem;
+  min-height: 310px;
   border-radius: var(--radius-glass);
   background: var(--glass-bg-intense);
   border: 1px solid var(--glass-border);
@@ -52,12 +52,6 @@
   border: 1px dashed var(--glass-border-subtle);
 }
 
-/* Per-card accent colors (mirrors dashboard) */
-.feature-card:nth-of-type(1) { --fc-accent: var(--color-accent-500); }
-.feature-card:nth-of-type(2) { --fc-accent: var(--color-primary-300); }
-.feature-card:nth-of-type(3) { --fc-accent: #ec4899; }
-.feature-card:nth-of-type(4) { --fc-accent: var(--color-success); }
-.feature-card:nth-of-type(5) { --fc-accent: var(--color-warning); }
 
 /* ── Step Watermark (large faded bg number) ── */
 .fc-watermark {
@@ -65,7 +59,7 @@
   top: -0.15rem;
   right: 0.6rem;
   font-family: var(--font-mono);
-  font-size: 4.5rem;
+  font-size: 5.5rem;
   font-weight: 900;
   line-height: 1;
   color: transparent;
@@ -99,10 +93,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 65px;
+  height: 85px;
   width: 100%;
-  margin-top: 0.75rem;
-  margin-bottom: 1rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
   position: relative;
   z-index: 1;
 }
@@ -145,7 +139,7 @@
 }
 
 .feature-card:hover:not(.is-locked) .svg-stroke-accent {
-  stroke: var(--fc-accent, var(--color-accent-500));
+  stroke: rgba(255, 255, 255, 0.6);
 }
 
 .svg-stroke-dim {
@@ -172,7 +166,7 @@
 }
 
 .feature-card:hover:not(.is-locked) .svg-fill-accent {
-  fill: var(--fc-accent, var(--color-accent-500));
+  fill: rgba(255, 255, 255, 0.45);
 }
 
 .svg-fill-dim {
@@ -202,7 +196,7 @@
 }
 
 .feature-card:hover:not(.is-locked) .fc-title {
-  color: var(--fc-accent, var(--color-accent-500));
+  color: var(--color-text-primary);
 }
 
 .fc-desc {
@@ -237,7 +231,7 @@
 }
 
 .feature-card:hover:not(.is-locked) .fc-cta {
-  color: var(--fc-accent, var(--color-accent-500));
+  color: var(--color-text-primary);
 }
 
 .feature-card:hover:not(.is-locked) .fc-cta i {

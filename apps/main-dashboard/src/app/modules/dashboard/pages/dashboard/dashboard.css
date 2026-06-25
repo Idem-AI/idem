@@ -176,37 +176,32 @@ button {
   box-shadow: 0 0 0 3px var(--color-primary-glow-subtle);
 }
 
-/* Micro Color Schemes per Step via Pure CSS variables */
-.module-card:nth-of-type(1) { --accent-color: var(--color-accent-500); } /* Step 1: Branding (Cyan) */
-.module-card:nth-of-type(2) { --accent-color: var(--color-primary-300); } /* Step 2: Business Plan (Indigo/Purple) */
-.module-card:nth-of-type(3) { --accent-color: #ec4899; } /* Step 3: Pitch Deck (Rose) */
-.module-card:nth-of-type(4) { --accent-color: var(--color-success); } /* Step 4: Finance (Green) */
-.module-card:nth-of-type(5) { --accent-color: var(--color-warning); } /* Step 5: System Design (Amber) */
-.module-card:nth-of-type(6) { --accent-color: var(--color-primary-500); } /* Step 6: Development (Blue) */
+/* All cards share a single subtle accent for consistency */
+.module-card {
+  --accent-color: rgba(255, 255, 255, 0.7);
+}
 
 /* Completed State Card */
 .module-card.completed {
-  border-color: color-mix(in oklch, var(--color-success) 30%, var(--glass-border));
-  background: color-mix(in oklch, var(--color-success) 3%, var(--glass-bg-intense));
+  border-color: var(--glass-border-medium);
 }
 
 .module-card.completed:hover {
-  border-color: var(--color-success);
-  background: color-mix(in oklch, var(--color-success) 6%, var(--glass-bg-darker));
-  box-shadow: var(--glass-shadow-lg), 0 0 15px color-mix(in oklch, var(--color-success) 15%, transparent);
+  border-color: var(--glass-border-strong);
+  background: var(--glass-bg-darker);
+  box-shadow: var(--glass-shadow-lg);
 }
 
 /* In Progress State Card */
 .module-card.in-progress {
   border-color: var(--glass-border-medium);
   background: var(--glass-bg-intense);
-  box-shadow: var(--glass-shadow), inset 0 0 16px rgba(255, 255, 255, 0.02);
 }
 
 .module-card.in-progress:hover {
-  border-color: var(--accent-color);
+  border-color: var(--glass-border-strong);
   background-color: var(--glass-bg-darker);
-  box-shadow: var(--glass-shadow-lg), 0 0 15px color-mix(in oklch, var(--accent-color) 15%, transparent);
+  box-shadow: var(--glass-shadow-lg);
 }
 
 /* Upcoming Locked-Looking Card */
@@ -251,28 +246,6 @@ button {
     180deg,
     rgba(255, 255, 255, 0.1) 0%,
     rgba(255, 255, 255, 0.025) 60%,
-    transparent 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-.in-progress .step-watermark {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--accent-color) 20%, transparent) 0%,
-    color-mix(in oklch, var(--accent-color) 5%, transparent) 60%,
-    transparent 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-.completed .step-watermark {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--color-success) 15%, transparent) 0%,
-    color-mix(in oklch, var(--color-success) 4%, transparent) 60%,
     transparent 100%
   );
   -webkit-background-clip: text;
@@ -333,10 +306,8 @@ button {
   transition: stroke 0.3s ease, filter 0.3s ease;
 }
 
-.module-card:hover .svg-stroke-accent,
-.in-progress .svg-stroke-accent,
-.completed .svg-stroke-accent {
-  stroke: var(--accent-color);
+.module-card:hover .svg-stroke-accent {
+  stroke: rgba(255, 255, 255, 0.6);
 }
 
 .svg-stroke-dim {
@@ -362,10 +333,8 @@ button {
   transition: fill 0.3s ease, filter 0.3s ease;
 }
 
-.module-card:hover .svg-fill-accent,
-.in-progress .svg-fill-accent,
-.completed .svg-fill-accent {
-  fill: var(--accent-color);
+.module-card:hover .svg-fill-accent {
+  fill: rgba(255, 255, 255, 0.45);
 }
 
 .svg-fill-dim {
@@ -397,11 +366,7 @@ button {
 }
 
 .module-card:hover .module-title {
-  color: var(--accent-color);
-}
-
-.completed .module-card:hover .module-title {
-  color: var(--color-success);
+  color: var(--color-text-primary);
 }
 
 .module-description {
@@ -435,11 +400,11 @@ button {
 }
 
 .in-progress .module-cta {
-  color: var(--accent-color);
+  color: var(--color-text-secondary);
 }
 
 .completed .module-cta {
-  color: var(--color-success);
+  color: var(--color-text-secondary);
 }
 
 /* ===== Right Column: Sidebar Panel ===== */
