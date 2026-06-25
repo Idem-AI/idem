@@ -157,6 +157,7 @@ button {
   outline: none;
   position: relative;
   box-shadow: var(--glass-shadow);
+  overflow: hidden;
   transition: border-color var(--duration-300) var(--ease-out), 
               background-color var(--duration-300) var(--ease-out), 
               transform var(--duration-300) var(--ease-out), 
@@ -227,22 +228,68 @@ button {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
-.step-num {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-tertiary);
-  transition: color var(--duration-200) var(--ease-out);
+/* Large Watermark Step Number */
+.step-watermark {
+  position: absolute;
+  top: -0.15rem;
+  right: 0.75rem;
+  font-size: 5.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: transparent;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.015) 60%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  transition: opacity var(--duration-300) var(--ease-out);
 }
 
-.module-card:hover .step-num {
-  color: rgba(255, 255, 255, 0.55);
+.module-card:hover .step-watermark {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.025) 60%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
-.in-progress .step-num {
-  color: var(--accent-color);
+.in-progress .step-watermark {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--accent-color) 20%, transparent) 0%,
+    color-mix(in oklch, var(--accent-color) 5%, transparent) 60%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.completed .step-watermark {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--color-success) 15%, transparent) 0%,
+    color-mix(in oklch, var(--color-success) 4%, transparent) 60%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.upcoming .step-watermark {
+  opacity: 0.4;
 }
 
 .status-badge {
@@ -279,6 +326,8 @@ button {
   width: 100%;
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .feature-icon-svg {
@@ -368,6 +417,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  position: relative;
+  z-index: 1;
 }
 
 .module-title {
@@ -408,6 +459,8 @@ button {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-tertiary);
+  position: relative;
+  z-index: 1;
   transition: color var(--duration-200) var(--ease-out), transform var(--duration-200) var(--ease-out);
 }
 
