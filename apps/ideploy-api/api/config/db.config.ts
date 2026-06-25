@@ -10,7 +10,8 @@ import { Pool } from 'pg';
 import logger from './logger';
 
 const pool = new Pool({
-  host: process.env.IDEPLOY_DB_HOST || 'postgres',
+  // Default to localhost for local dev; Docker compose sets IDEPLOY_DB_HOST=postgres.
+  host: process.env.IDEPLOY_DB_HOST || 'localhost',
   port: parseInt(process.env.IDEPLOY_DB_PORT || '5432', 10),
   database: process.env.IDEPLOY_DB_DATABASE || 'coolify',
   user: process.env.IDEPLOY_DB_USERNAME || 'coolify',
