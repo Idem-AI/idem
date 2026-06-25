@@ -34,6 +34,7 @@ import teamRoutes from './routes/team.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import settingsRoutes from './routes/settings.routes';
 import resourcesRoutes from './routes/resources.routes';
+import githubRoutes from './routes/github.routes';
 
 import { registerDeploymentWorker } from './jobs/deployment.worker';
 import { registerPipelineWorker } from './jobs/pipeline.worker';
@@ -93,6 +94,7 @@ app.use('/api/v1/team', teamRoutes);
 app.use('/api/v1/subscription', subscriptionRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1', resourcesRoutes); // /version, /resources
+app.use('/api/v1/github', githubRoutes);
 
 // ── Error handling ─────────────────────────────────────
 app.use(notFound);
