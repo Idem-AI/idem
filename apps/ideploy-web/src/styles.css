@@ -152,6 +152,27 @@
 .dbpulse { animation: dbpulse 1.6s ease-in-out infinite; }
 @keyframes dbpulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
+/* RGB variants used by the landing's glow shadows (rgba(var(--…-rgb), a)) */
+@theme {
+  --color-primary-500-rgb: 37, 99, 235;
+  --color-accent-500-rgb: 34, 211, 238;
+}
+
+/* Landing marquee (ported from livewire/landing/marquee.blade.php) */
+.marquee-wrapper {
+  display: flex; overflow: hidden; user-select: none;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+.marquee-content {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-around;
+  min-width: 100%; gap: 4rem; animation: scroll 30s linear infinite; padding-right: 4rem;
+}
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
 /* Status badge */
 .status-badge {
   display: inline-flex; align-items: center; gap: 4px;
