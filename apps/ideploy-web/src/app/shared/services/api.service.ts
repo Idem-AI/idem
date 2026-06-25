@@ -37,38 +37,34 @@ export class ApiService {
   private http = inject(HttpClient);
   private base = `${environment.api.url}/api/${environment.api.version}`;
 
-  /** Global Idem API (auth + GitHub integration), separate from the iDeploy API. */
-  private globalBase = environment.services.api.url;
-
   private unwrap<T>(obs: Observable<ApiResponse<T>>): Observable<T> {
     return obs.pipe(map((r) => r.data));
   }
 
-  // ── GitHub integration (via the global Idem API) ────────
+  // ── GitHub integration (self-contained in the iDeploy API) ──
   /** Connection status: returns the GitHub username if connected, else null. */
   githubStatus(): Observable<string | null> {
-    return this.http
-      .get<{ success: boolean; githubUsername?: string }>(`${this.globalBase}/github/user`, {
-        withCredentials: true,
-      })
-      .pipe(map((r) => (r.success ? (r.githubUsername ?? null) : null)));
+    return this.unwrap(
+      this.http.get<ApiResponse<{ connected: boolean; username: string | null }>>(`${this.base}/github/user`)
+    ).pipe(map((r) => r.username));
   }
   githubAuthUrl(): Observable<string> {
-    return this.http
-      .get<{ success: boolean; authUrl: string }>(`${this.globalBase}/github/auth/url`, {
-        withCredentials: true,
-      })
-      .pipe(map((r) => r.authUrl));
+    return this.unwrap(
+      this.http.get<ApiResponse<{ authUrl: string }>>(`${this.base}/github/auth/url`)
+    ).pipe(map((r) => r.authUrl));
   }
   githubRepositories(): Observable<GithubRepo[]> {
-    return this.http
-      .get<{ success: boolean; repositories: GithubRepo[] }>(`${this.globalBase}/github/repositories`, {
-        withCredentials: true,
-      })
-      .pipe(map((r) => r.repositories ?? []));
+    return this.unwrap(this.http.get<ApiResponse<GithubRepo[]>>(`${this.base}/github/repositories`));
+  }
+  githubDetect(repo: string): Observable<{ preset: string; buildPack: string }> {
+    return this.unwrap(
+      this.http.get<ApiResponse<{ preset: string; buildPack: string }>>(
+        `${this.base}/github/detect?repo=${encodeURIComponent(repo)}`
+      )
+    );
   }
   githubDisconnect(): Observable<unknown> {
-    return this.http.delete(`${this.globalBase}/github/disconnect`, { withCredentials: true });
+    return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/github/disconnect`));
   }
 
   // ── Servers ──────────────────────────────────────────

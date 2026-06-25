@@ -148,8 +148,22 @@ export class NewProjectComponent implements OnInit {
   }
 
   protected connectGithub(): void {
-    this.api.githubAuthUrl().subscribe((url) => {
-      if (url) window.location.href = url;
+    this.error.set(null);
+    this.api.githubAuthUrl().subscribe({
+      next: (url) => {
+        // Guard: the global API returns client_id='' when GitHub OAuth isn't
+        // configured → GitHub would 404. Surface a clear message instead.
+        if (!url || /[?&]client_id=(&|$)/.test(url)) {
+          this.error.set(
+            'GitHub integration is not configured on the Idem API (missing GITHUB_CLIENT_ID/SECRET). ' +
+              'Ask an admin to set them, or paste a Git repository URL above instead.'
+          );
+          return;
+        }
+        window.location.href = url;
+      },
+      error: () =>
+        this.error.set('Could not reach the GitHub integration. Is the Idem API running?'),
     });
   }
 

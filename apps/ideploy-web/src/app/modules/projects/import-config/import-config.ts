@@ -133,6 +133,7 @@ export class ImportConfigComponent implements OnInit {
     { label: 'Vite', icon: 'fa-solid fa-bolt', buildPack: 'nixpacks' },
     { label: 'Next.js', icon: 'fa-solid fa-n', buildPack: 'nixpacks' },
     { label: 'Node.js', icon: 'fa-brands fa-node-js', buildPack: 'nixpacks' },
+    { label: 'Angular', icon: 'fa-brands fa-angular', buildPack: 'nixpacks' },
     { label: 'Static', icon: 'fa-solid fa-file-code', buildPack: 'static' },
     { label: 'Python', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
     { label: 'Dockerfile', icon: 'fa-brands fa-docker', buildPack: 'dockerfile' },
@@ -141,22 +142,37 @@ export class ImportConfigComponent implements OnInit {
 
   ngOnInit(): void {
     const q = this.route.snapshot.queryParamMap;
-    this.repo.set(q.get('repo') || 'repository');
+    const repo = q.get('repo') || 'repository';
+    this.repo.set(repo);
     this.branch.set(q.get('branch') || 'main');
     this.projectName = q.get('name') || 'app';
     this.cloneUrl = q.get('clone') || '';
+    // Fallback preset from the repo language passed by the list…
     this.presetIndex.set(this.detectPreset(q.get('language') || ''));
     this.api.me().subscribe((m) => this.teamName.set(m.team?.name ?? 'My Team'));
+    // …then refine by inspecting the repo's files (package.json / Dockerfile).
+    if (repo.includes('/')) {
+      this.api.githubDetect(repo).subscribe({
+        next: (d) => {
+          const idx = this.presets.findIndex((p) => p.label === d.preset);
+          if (idx >= 0) this.presetIndex.set(idx);
+        },
+        error: () => {
+          /* keep the language-based guess */
+        },
+      });
+    }
   }
 
   /** Best-effort framework preset from the repo's primary language. */
   private detectPreset(language: string): number {
     const l = language.toLowerCase();
-    if (l === 'python') return 4;
-    if (l === 'dockerfile') return 5;
-    if (l === 'html' || l === 'css') return 3; // Static
-    if (l === 'javascript' || l === 'typescript' || l === 'vue') return 0; // Vite/Node
-    return 0;
+    let label = 'Vite';
+    if (l === 'python') label = 'Python';
+    else if (l === 'dockerfile') label = 'Dockerfile';
+    else if (l === 'html' || l === 'css') label = 'Static';
+    const idx = this.presets.findIndex((p) => p.label === label);
+    return idx >= 0 ? idx : 0;
   }
 
   protected deploy(): void {
