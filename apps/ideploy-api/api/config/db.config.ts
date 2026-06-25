@@ -10,11 +10,12 @@ import { Pool } from 'pg';
 import logger from './logger';
 
 const pool = new Pool({
-  // Default to localhost for local dev; Docker compose sets IDEPLOY_DB_HOST=postgres.
+  // Dev-friendly defaults matching the iDeploy dev database. Docker compose and
+  // apps/ideploy-api/.env override these via IDEPLOY_DB_* env vars.
   host: process.env.IDEPLOY_DB_HOST || 'localhost',
   port: parseInt(process.env.IDEPLOY_DB_PORT || '5432', 10),
-  database: process.env.IDEPLOY_DB_DATABASE || 'coolify',
-  user: process.env.IDEPLOY_DB_USERNAME || 'coolify',
+  database: process.env.IDEPLOY_DB_DATABASE || 'ideploy',
+  user: process.env.IDEPLOY_DB_USERNAME || 'ideploy',
   password: process.env.IDEPLOY_DB_PASSWORD || 'password',
   max: 10,
   idleTimeoutMillis: 30000,
