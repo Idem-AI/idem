@@ -9,6 +9,8 @@ import * as dbService from '../services/database.service';
 import * as serviceService from '../services/service.service';
 import * as teamService from '../services/team.service';
 import * as catalog from '../services/catalog.service';
+import * as quickDeploy from '../services/quick-deploy.service';
+import { fail } from '../utils/response';
 import pool from '../config/db.config';
 
 const router = Router();
@@ -74,6 +76,26 @@ router.get('/sources', authenticate, requireTeam, async (req: CustomRequest, res
  */
 router.get('/s3-storages', authenticate, requireTeam, async (req: CustomRequest, res: Response) => {
   ok(res, await catalog.listS3Storages(req.user!.currentTeamId!));
+});
+
+/**
+ * @swagger
+ * /api/v1/quick-deploy:
+ *   post:
+ *     summary: One-click deploy for non-technical users (auto project/env/server selection)
+ *     tags: [System]
+ *     responses: { 200: { description: OK } }
+ */
+router.post('/quick-deploy', authenticate, requireTeam, async (req: CustomRequest, res: Response) => {
+  const { name } = req.body ?? {};
+  if (!name) return fail(res, 'name is required', 422, 'VALIDATION');
+  try {
+    ok(res, await quickDeploy.quickDeploy(req.user!.currentTeamId!, req.body), 202);
+  } catch (err) {
+    const message = (err as Error).message;
+    const code = message.startsWith('NO_DESTINATION') ? 'NO_DESTINATION' : 'QUICK_DEPLOY_FAILED';
+    fail(res, message, code === 'NO_DESTINATION' ? 409 : 400, code);
+  }
 });
 
 export default router;
