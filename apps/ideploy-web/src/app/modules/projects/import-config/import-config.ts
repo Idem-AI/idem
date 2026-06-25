@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@ang
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../shared/services/api.service';
+import { environment } from '../../../../environments/environment';
 
 interface Preset {
   label: string;
@@ -98,14 +99,18 @@ interface Preset {
             <p class="text-red-400">{{ error() }}</p>
             @if (error()!.toLowerCase().includes('server') || error()!.toLowerCase().includes('destination')) {
               <div class="mt-2 flex items-center gap-3">
-                <button class="button" [disabled]="settingUpLocal()" (click)="useLocalServer()">
-                  {{ settingUpLocal() ? 'Setting up…' : 'Use this machine (local Docker)' }}
-                </button>
-                <a routerLink="/servers/new" class="text-xs" style="color:#60a5fa;">or add a remote server</a>
+                @if (!isProd) {
+                  <button class="button" [disabled]="settingUpLocal()" (click)="useLocalServer()">
+                    {{ settingUpLocal() ? 'Setting up…' : 'Use this machine (local Docker)' }}
+                  </button>
+                }
+                <a routerLink="/servers/new" class="text-xs" style="color:#60a5fa;">Add a server</a>
               </div>
-              <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">
-                Runs the deployment on your local Docker — perfect for testing.
-              </p>
+              @if (!isProd) {
+                <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">
+                  Runs the deployment on your local Docker — perfect for testing.
+                </p>
+              }
             }
           </div>
         }
@@ -126,6 +131,7 @@ export class ImportConfigComponent implements OnInit {
   protected readonly branch = signal('main');
   protected readonly teamName = signal('My Team');
   protected readonly presetIndex = signal(0);
+  protected readonly isProd = environment.production;
   protected readonly deploying = signal(false);
   protected readonly settingUpLocal = signal(false);
   protected readonly error = signal<string | null>(null);
