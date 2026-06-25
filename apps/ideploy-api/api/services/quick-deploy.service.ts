@@ -60,6 +60,7 @@ export interface QuickDeployDto {
   name: string;
   git_repository?: string;
   git_branch?: string;
+  build_pack?: string;
   template?: string;
   project_name?: string;
 }
@@ -105,6 +106,7 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
     environment_id: environmentId,
     git_repository: dto.git_repository,
     git_branch: dto.git_branch || 'main',
+    build_pack: dto.build_pack || 'nixpacks',
     destination_id: dest.destinationId,
     destination_type: STANDALONE_DOCKER_MODEL,
   });

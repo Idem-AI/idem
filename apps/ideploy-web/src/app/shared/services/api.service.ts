@@ -25,6 +25,7 @@ import {
   Tag,
   FirewallConfig,
   FirewallRule,
+  GithubRepo,
 } from '../models/ideploy.models';
 
 /**
@@ -36,8 +37,38 @@ export class ApiService {
   private http = inject(HttpClient);
   private base = `${environment.api.url}/api/${environment.api.version}`;
 
+  /** Global Idem API (auth + GitHub integration), separate from the iDeploy API. */
+  private globalBase = environment.services.api.url;
+
   private unwrap<T>(obs: Observable<ApiResponse<T>>): Observable<T> {
     return obs.pipe(map((r) => r.data));
+  }
+
+  // ── GitHub integration (via the global Idem API) ────────
+  /** Connection status: returns the GitHub username if connected, else null. */
+  githubStatus(): Observable<string | null> {
+    return this.http
+      .get<{ success: boolean; githubUsername?: string }>(`${this.globalBase}/github/user`, {
+        withCredentials: true,
+      })
+      .pipe(map((r) => (r.success ? (r.githubUsername ?? null) : null)));
+  }
+  githubAuthUrl(): Observable<string> {
+    return this.http
+      .get<{ success: boolean; authUrl: string }>(`${this.globalBase}/github/auth/url`, {
+        withCredentials: true,
+      })
+      .pipe(map((r) => r.authUrl));
+  }
+  githubRepositories(): Observable<GithubRepo[]> {
+    return this.http
+      .get<{ success: boolean; repositories: GithubRepo[] }>(`${this.globalBase}/github/repositories`, {
+        withCredentials: true,
+      })
+      .pipe(map((r) => r.repositories ?? []));
+  }
+  githubDisconnect(): Observable<unknown> {
+    return this.http.delete(`${this.globalBase}/github/disconnect`, { withCredentials: true });
   }
 
   // ── Servers ──────────────────────────────────────────
@@ -361,6 +392,7 @@ export class ApiService {
     name: string;
     git_repository?: string;
     git_branch?: string;
+    build_pack?: string;
     template?: string;
     project_name?: string;
   }): Observable<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }> {
