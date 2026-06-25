@@ -11,7 +11,8 @@ import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
 import * as databaseService from './database.service';
 
-const BACKUP_ROOT = '/data/ideploy/backups';
+import { backupRoot } from '../utils/paths';
+const BACKUP_ROOT = backupRoot();
 
 export interface BackupSchedule {
   id: number;

@@ -6,6 +6,7 @@
  */
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
+import { crowdsecDir } from '../utils/paths';
 
 const CONTAINER = 'ideploy-crowdsec';
 
@@ -23,14 +24,15 @@ export async function install(
   onData?: (chunk: string) => void
 ): Promise<{ success: boolean; output: string }> {
   const { server, key } = await resolve(teamId, serverUuid);
+  const dir = crowdsecDir();
   const script = [
-    `mkdir -p /data/ideploy/crowdsec/config /data/ideploy/crowdsec/data`,
+    `mkdir -p ${dir}/config ${dir}/data`,
     `docker rm -f ${CONTAINER} 2>/dev/null || true`,
     `docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy`,
     `docker run -d --name ${CONTAINER} --restart unless-stopped --network ideploy ` +
       `-e COLLECTIONS="crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules" ` +
-      `-v /data/ideploy/crowdsec/config:/etc/crowdsec ` +
-      `-v /data/ideploy/crowdsec/data:/var/lib/crowdsec/data ` +
+      `-v ${dir}/config:/etc/crowdsec ` +
+      `-v ${dir}/data:/var/lib/crowdsec/data ` +
       `crowdsecurity/crowdsec:latest`,
     `sleep 3 && docker exec ${CONTAINER} cscli version`,
   ].join(' && ');

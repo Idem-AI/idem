@@ -50,9 +50,11 @@ export async function createProject(
   );
   const project = mapProject(rows[0]);
   // Coolify always creates a default "production" environment.
+  // `environments.uuid` is NOT NULL (added by a later migration) — set it.
   await pool.query(
-    `INSERT INTO environments (name, project_id, created_at, updated_at) VALUES ('production', $1, now(), now())`,
-    [project.id]
+    `INSERT INTO environments (uuid, name, project_id, created_at, updated_at)
+     VALUES ($1, 'production', $2, now(), now())`,
+    [randomUUID(), project.id]
   );
   return project;
 }

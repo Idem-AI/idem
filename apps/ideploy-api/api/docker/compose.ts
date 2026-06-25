@@ -6,6 +6,7 @@
  */
 import YAML from 'yaml';
 import { ApplicationRow } from '../models/ideploy.types';
+import { appWorkdirFor } from '../utils/paths';
 
 export function generateComposeFile(app: ApplicationRow, imageTag: string): string {
   const serviceName = `${app.name}-${app.uuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
@@ -29,5 +30,5 @@ export function generateComposeFile(app: ApplicationRow, imageTag: string): stri
 
 /** Build the remote working directory path for an application's compose stack. */
 export function appWorkdir(app: ApplicationRow): string {
-  return `/data/ideploy/applications/${app.uuid}`;
+  return appWorkdirFor(app.uuid);
 }

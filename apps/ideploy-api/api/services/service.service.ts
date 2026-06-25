@@ -11,11 +11,12 @@ import logger from '../config/logger';
 import { ServiceRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
+import { serviceWorkdirFor } from '../utils/paths';
 
 const STANDALONE_DOCKER_MODEL = 'App\\Models\\StandaloneDocker';
 
 function serviceWorkdir(uuid: string): string {
-  return `/data/ideploy/services/${uuid}`;
+  return serviceWorkdirFor(uuid);
 }
 
 function mapService(r: Record<string, unknown>): ServiceRow {

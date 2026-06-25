@@ -49,18 +49,54 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
     if (!key) throw new Error('Private key not found');
 
     const workdir = appWorkdir(app);
-    const imageTag = `${app.name}:${deploymentUuid.slice(0, 8)}`.toLowerCase();
-    const compose = generateComposeFile(app, app.git_repository ? imageTag : 'nginx:alpine');
+    const srcDir = `${workdir}/src`;
+    const imageTag = `${app.name}-${deploymentUuid.slice(0, 8)}`.toLowerCase().replace(/[^a-z0-9._-]/g, '-');
+    let image = 'nginx:alpine';
 
     await streamStep(deploymentUuid, 'Preparing workdir', async () => {
-      const r = await executeRemoteCommand(server, key, `mkdir -p ${workdir}`, {
+      const r = await executeRemoteCommand(server, key, `rm -rf ${workdir} && mkdir -p ${workdir}`, {
         onData: (c) => log(c),
       });
-      if (r.exitCode !== 0) throw new Error('Failed to prepare workdir');
+      if (r.exitCode !== 0) throw new Error(`Failed to prepare workdir: ${r.stderr.slice(0, 300)}`);
     });
 
+    if (app.git_repository) {
+      await streamStep(deploymentUuid, 'Cloning repository', async () => {
+        const r = await executeRemoteCommand(
+          server,
+          key,
+          `git clone --depth 1 -b ${app.git_branch || 'main'} ${app.git_repository} ${srcDir} && ls -la ${srcDir}`,
+          { onData: (c) => log(c) }
+        );
+        if (r.exitCode !== 0) throw new Error(`git clone failed: ${r.stderr.slice(0, 300)}`);
+      });
+
+      await streamStep(deploymentUuid, 'Building image', async () => {
+        // Dockerfile → docker build; otherwise try nixpacks (if installed).
+        const script =
+          `cd ${srcDir} && ` +
+          `if [ -f Dockerfile ]; then ` +
+          `  docker build -t ${imageTag} . ; ` +
+          `elif command -v nixpacks >/dev/null 2>&1; then ` +
+          `  nixpacks build . --name ${imageTag} ; ` +
+          `else ` +
+          `  echo "NO_BUILDER" ; exit 42 ; ` +
+          `fi`;
+        const r = await executeRemoteCommand(server, key, script, { onData: (c) => log(c) });
+        if (r.exitCode === 42 || r.stdout.includes('NO_BUILDER')) {
+          throw new Error(
+            'No Dockerfile found and nixpacks is not installed. Add a Dockerfile to the repo, ' +
+              'install nixpacks (https://nixpacks.com), or deploy a Template instead.'
+          );
+        }
+        if (r.exitCode !== 0) throw new Error(`Build failed: ${r.stderr.slice(0, 300)}`);
+        image = imageTag;
+      });
+    }
+
+    const compose = generateComposeFile(app, image);
+
     await streamStep(deploymentUuid, 'Writing docker-compose.yml', async () => {
-      // base64-encode to avoid quoting issues over SSH heredoc.
       const b64 = Buffer.from(compose, 'utf8').toString('base64');
       const r = await executeRemoteCommand(
         server,
@@ -68,7 +104,7 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
         `echo '${b64}' | base64 -d > ${workdir}/docker-compose.yml && cat ${workdir}/docker-compose.yml`,
         { onData: (c) => log(c) }
       );
-      if (r.exitCode !== 0) throw new Error('Failed to write compose file');
+      if (r.exitCode !== 0) throw new Error(`Failed to write compose file: ${r.stderr.slice(0, 300)}`);
     });
 
     await streamStep(deploymentUuid, 'Deploying (docker compose up)', async () => {
@@ -78,7 +114,7 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
         `cd ${workdir} && docker compose pull --quiet 2>/dev/null; docker compose up -d --remove-orphans`,
         { onData: (c) => log(c) }
       );
-      if (r.exitCode !== 0) throw new Error('docker compose up failed');
+      if (r.exitCode !== 0) throw new Error(`docker compose up failed: ${r.stderr.slice(0, 300)}`);
     });
 
     await streamStep(deploymentUuid, 'Verifying container', async () => {
