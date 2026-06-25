@@ -43,7 +43,8 @@ import { ProxyStatus, Server, ServerValidation } from '../../../shared/models/id
               <button class="button-secondary" (click)="install(server)">Install Docker</button>
               <button class="button-secondary" (click)="proxyStatus(server)">Proxy status</button>
               <button class="button-secondary" (click)="startProxy(server)">Start proxy</button>
-              <button class="button" (click)="installCrowdSec(server)">Install CrowdSec</button>
+              <button class="button-secondary" (click)="installCrowdSec(server)">Install CrowdSec</button>
+              <button class="text-xs text-red-400" (click)="remove(server)">Delete</button>
             </div>
           </div>
         }
@@ -91,5 +92,11 @@ export class ServersListComponent implements OnInit {
 
   protected installCrowdSec(server: Server): void {
     this.api.installCrowdSec(server.uuid).subscribe();
+  }
+
+  protected remove(server: Server): void {
+    this.api.deleteServer(server.uuid).subscribe(() => {
+      this.servers.update((list) => list.filter((s) => s.uuid !== server.uuid));
+    });
   }
 }

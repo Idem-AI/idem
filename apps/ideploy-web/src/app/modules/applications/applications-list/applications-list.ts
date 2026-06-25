@@ -1,14 +1,54 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiService } from '../../../shared/services/api.service';
 import { Application } from '../../../shared/models/ideploy.models';
 
 @Component({
   selector: 'app-applications-list',
-  imports: [RouterLink],
+  imports: [RouterLink, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="mb-6 text-2xl font-bold">Applications</h1>
+    <div class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-bold">Applications</h1>
+      <button class="button" (click)="creating.set(!creating())">{{ creating() ? 'Cancel' : '+ New application' }}</button>
+    </div>
+
+    @if (creating()) {
+      <form class="box mb-6 max-w-2xl space-y-3" [formGroup]="form" (ngSubmit)="create()">
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="mb-1 block text-sm">Name</label>
+            <input class="input" formControlName="name" />
+          </div>
+          <div class="w-40">
+            <label class="mb-1 block text-sm">Environment ID</label>
+            <input class="input" type="number" formControlName="environment_id" />
+          </div>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm">Git repository URL</label>
+          <input class="input" formControlName="git_repository" placeholder="https://github.com/org/repo" />
+        </div>
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="mb-1 block text-sm">Branch</label>
+            <input class="input" formControlName="git_branch" />
+          </div>
+          <div class="w-40">
+            <label class="mb-1 block text-sm">Destination ID</label>
+            <input class="input" type="number" formControlName="destination_id" />
+          </div>
+        </div>
+        @if (error()) {
+          <p class="text-sm text-red-400">{{ error() }}</p>
+        }
+        <button class="button" type="submit" [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Creating…' : 'Create application' }}
+        </button>
+      </form>
+    }
+
     @if (loading()) {
       <p class="text-sm" style="color: var(--color-text-secondary)">Loading…</p>
     } @else if (applications().length === 0) {
@@ -38,12 +78,28 @@ import { Application } from '../../../shared/models/ideploy.models';
 export class ApplicationsListComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  private fb = inject(FormBuilder);
 
   protected readonly applications = signal<Application[]>([]);
   protected readonly loading = signal(true);
   protected readonly deploying = signal<string | null>(null);
+  protected readonly creating = signal(false);
+  protected readonly saving = signal(false);
+  protected readonly error = signal<string | null>(null);
+
+  protected readonly form = this.fb.nonNullable.group({
+    name: ['', Validators.required],
+    environment_id: [0, Validators.required],
+    git_repository: ['', Validators.required],
+    git_branch: ['main'],
+    destination_id: [0],
+  });
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  private load(): void {
     this.api.listApplications().subscribe({
       next: (apps) => {
         this.applications.set(apps);
@@ -51,6 +107,34 @@ export class ApplicationsListComponent implements OnInit {
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  protected create(): void {
+    if (this.form.invalid) return;
+    this.saving.set(true);
+    this.error.set(null);
+    const raw = this.form.getRawValue();
+    this.api
+      .createApplication({
+        name: raw.name,
+        environment_id: raw.environment_id,
+        git_repository: raw.git_repository,
+        git_branch: raw.git_branch || 'main',
+        destination_id: raw.destination_id || undefined,
+        destination_type: raw.destination_id ? 'App\\Models\\StandaloneDocker' : undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.form.reset({ name: '', environment_id: 0, git_repository: '', git_branch: 'main', destination_id: 0 });
+          this.creating.set(false);
+          this.saving.set(false);
+          this.load();
+        },
+        error: (e) => {
+          this.error.set(e?.error?.error?.message ?? 'Failed to create application');
+          this.saving.set(false);
+        },
+      });
   }
 
   protected deploy(app: Application): void {

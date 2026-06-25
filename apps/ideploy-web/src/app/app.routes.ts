@@ -96,6 +96,11 @@ export const routes: Routes = [
       import('./modules/services/services-list/services-list').then((m) => m.ServicesListComponent),
   },
   {
+    path: 'projects/:uuid',
+    loadComponent: () =>
+      import('./modules/projects/project-detail/project-detail').then((m) => m.ProjectDetailComponent),
+  },
+  {
     path: 'applications/:uuid',
     loadComponent: () =>
       import('./modules/applications/application-detail/application-detail').then(
