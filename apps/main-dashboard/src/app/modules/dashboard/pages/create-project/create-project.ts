@@ -98,9 +98,9 @@ export class CreateProjectComponent implements OnInit {
 
   private readMode(): CreateMode {
     try {
-      return localStorage.getItem(CREATE_MODE_KEY) === 'form' ? 'form' : 'chat';
+      return localStorage.getItem(CREATE_MODE_KEY) === 'chat' ? 'chat' : 'form';
     } catch {
-      return 'chat';
+      return 'form';
     }
   }
 
@@ -219,6 +219,14 @@ export class CreateProjectComponent implements OnInit {
       if (draft) {
         const projectData = JSON.parse(draft);
         this.project.set(projectData);
+
+        const draftStep = this.cookieService.get('draftProjectStep');
+        if (draftStep) {
+          const stepIndex = parseInt(draftStep, 10);
+          if (stepIndex >= 0 && stepIndex < this.steps.length) {
+            this.currentStepIndex.set(stepIndex);
+          }
+        }
       }
     } catch (error) {
       console.warn('Could not load draft project:', error);
@@ -231,6 +239,7 @@ export class CreateProjectComponent implements OnInit {
   private saveDraftProject(): void {
     try {
       this.cookieService.set('draftProject', JSON.stringify(this.project()));
+      this.cookieService.set('draftProjectStep', this.currentStepIndex().toString());
     } catch (error) {
       console.error('Could not save draft project:', error);
     }
