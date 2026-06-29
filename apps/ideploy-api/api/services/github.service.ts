@@ -136,15 +136,33 @@ export async function disconnect(userId: number): Promise<void> {
   await redis.del(tokenKey(userId));
 }
 
-/** Detect the framework from the repo's files (package.json etc.) for the import preset. */
+/**
+ * Detect the framework + whether the repo has a Dockerfile. `buildPack` is the
+ * suggested default ('buildless' unless a Dockerfile is present). The UI lets
+ * the user switch to/from Docker when a Dockerfile exists.
+ */
 export async function detectFramework(
   userId: number,
   fullName: string
-): Promise<{ preset: string; buildPack: string }> {
+): Promise<{ preset: string; buildPack: string; hasDockerfile: boolean }> {
   const token = await getToken(userId);
   const headers = token
     ? { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
     : { Accept: 'application/vnd.github+json' };
+
+  let hasDockerfile = false;
+  try {
+    const { status } = await axios.get(`https://api.github.com/repos/${fullName}/contents/Dockerfile`, {
+      headers,
+      timeout: 8000,
+      validateStatus: () => true,
+    });
+    hasDockerfile = status === 200;
+  } catch {
+    /* ignore */
+  }
+
+  let preset = 'Other';
   try {
     const { data } = await axios.get(`https://api.github.com/repos/${fullName}/contents/package.json`, {
       headers,
@@ -154,25 +172,20 @@ export async function detectFramework(
     if (data?.content) {
       const pkg = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8'));
       const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
-      if (deps.next) return { preset: 'Next.js', buildPack: 'nixpacks' };
-      if (deps.vite) return { preset: 'Vite', buildPack: 'nixpacks' };
-      if (deps['@angular/core']) return { preset: 'Angular', buildPack: 'nixpacks' };
-      if (deps.express || deps.fastify) return { preset: 'Node.js', buildPack: 'nixpacks' };
-      return { preset: 'Node.js', buildPack: 'nixpacks' };
+      if (deps.next) preset = 'Next.js';
+      else if (deps.vite) preset = 'Vite';
+      else if (deps['@angular/core']) preset = 'Angular';
+      else if (deps.express || deps.fastify) preset = 'Node.js';
+      else preset = 'Node.js';
+    } else if (hasDockerfile) {
+      preset = 'Dockerfile';
     }
   } catch {
-    /* fall through */
+    if (hasDockerfile) preset = 'Dockerfile';
   }
-  // Dockerfile?
-  try {
-    const { status } = await axios.get(`https://api.github.com/repos/${fullName}/contents/Dockerfile`, {
-      headers,
-      timeout: 8000,
-      validateStatus: () => true,
-    });
-    if (status === 200) return { preset: 'Dockerfile', buildPack: 'dockerfile' };
-  } catch {
-    /* ignore */
-  }
-  return { preset: 'Other', buildPack: 'nixpacks' };
+
+  // Default build method: Docker only if a Dockerfile exists AND there's no
+  // detected JS framework to run buildless; otherwise buildless.
+  const buildPack = hasDockerfile && preset === 'Dockerfile' ? 'dockerfile' : 'buildless';
+  return { preset, buildPack, hasDockerfile };
 }

@@ -64,6 +64,29 @@ interface Preset {
           <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">Auto-detected from the repository — change if needed.</p>
         </div>
 
+        <!-- Build method -->
+        <div class="mb-4">
+          <label class="mb-1 block text-sm">Build method</label>
+          @if (hasDockerfile()) {
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="buildMethod" [checked]="buildMethod() === 'docker'" (change)="buildMethod.set('docker')" />
+                <span><i class="fa-brands fa-docker mr-1"></i> Use Docker — build the repo's Dockerfile</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="buildMethod" [checked]="buildMethod() === 'buildless'" (change)="buildMethod.set('buildless')" />
+                <span><i class="fa-brands fa-node-js mr-1"></i> Without Docker — run the app directly (no containerization)</span>
+              </label>
+            </div>
+            <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">A Dockerfile was detected — choose how to deploy.</p>
+          } @else {
+            <div class="rounded-md p-3 text-sm" style="background:var(--color-surface-1);border:1px solid var(--color-surface-2);">
+              <i class="fa-brands fa-node-js mr-1"></i> No Dockerfile detected — the app will be deployed
+              <strong>without Docker</strong> (run directly in a base Node runtime).
+            </div>
+          }
+        </div>
+
         <div class="mb-4">
           <label class="mb-1 block text-sm">Root Directory</label>
           <input class="input" [(ngModel)]="rootDir" placeholder="./" />
@@ -132,6 +155,8 @@ export class ImportConfigComponent implements OnInit {
   protected readonly teamName = signal('My Team');
   protected readonly presetIndex = signal(0);
   protected readonly isProd = environment.production;
+  protected readonly hasDockerfile = signal(false);
+  protected readonly buildMethod = signal<'docker' | 'buildless'>('buildless');
   protected readonly deploying = signal(false);
   protected readonly settingUpLocal = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -172,9 +197,12 @@ export class ImportConfigComponent implements OnInit {
         next: (d) => {
           const idx = this.presets.findIndex((p) => p.label === d.preset);
           if (idx >= 0) this.presetIndex.set(idx);
+          this.hasDockerfile.set(d.hasDockerfile);
+          // Default to the suggested method; user can switch when a Dockerfile exists.
+          this.buildMethod.set(d.buildPack === 'dockerfile' ? 'docker' : 'buildless');
         },
         error: () => {
-          /* keep the language-based guess */
+          /* keep the language-based guess + buildless default */
         },
       });
     }
@@ -218,14 +246,16 @@ export class ImportConfigComponent implements OnInit {
     }
     this.deploying.set(true);
     this.error.set(null);
-    const preset = this.presets[this.presetIndex()];
+    // Build method drives containerization: 'dockerfile' (Docker build) vs
+    // 'buildless' (run directly, no Dockerfile needed).
+    const buildPack = this.buildMethod() === 'docker' ? 'dockerfile' : 'buildless';
     this.api
       .quickDeploy({
         name: this.projectName,
         project_name: this.projectName,
         git_repository: this.cloneUrl,
         git_branch: this.branch(),
-        build_pack: preset.buildPack,
+        build_pack: buildPack,
       })
       .subscribe({
         next: (res) => {
