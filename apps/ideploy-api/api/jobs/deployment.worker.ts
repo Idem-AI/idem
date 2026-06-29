@@ -13,7 +13,7 @@ import { registerWorker } from '../queue/worker';
 import logger from '../config/logger';
 import { realtime } from '../services/realtime.service';
 import { executeRemoteCommand } from '../ssh/ssh';
-import { generateComposeFile, appWorkdir } from '../docker/compose';
+import { generateComposeFile, generateBuildlessCompose, appWorkdir } from '../docker/compose';
 import * as appService from '../services/application.service';
 import * as serverService from '../services/server.service';
 import * as deploymentService from '../services/deployment.service';
@@ -51,7 +51,19 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
     const workdir = appWorkdir(app);
     const srcDir = `${workdir}/src`;
     const imageTag = `${app.name}-${deploymentUuid.slice(0, 8)}`.toLowerCase().replace(/[^a-z0-9._-]/g, '-');
-    let image = 'nginx:alpine';
+
+    // Ensure the app publishes a host port so it gets an openable URL.
+    if (!app.ports_mappings) {
+      const exposed = (app.ports_exposes || '3000').split(',')[0].trim();
+      app.ports_mappings = `${exposed}:${exposed}`;
+      await appService.updateApplication(teamId, app.uuid, { ports_mappings: app.ports_mappings });
+    }
+    const port = parseInt((app.ports_mappings || '3000').split(',')[0].split(':')[0], 10) || 3000;
+
+    // build_pack 'dockerfile' → build the image; otherwise run buildless
+    // (base image + mounted source — no Dockerfile, no image build).
+    const useDocker = app.build_pack === 'dockerfile';
+    let compose: string;
 
     await streamStep(deploymentUuid, 'Preparing workdir', async () => {
       const r = await executeRemoteCommand(server, key, `rm -rf ${workdir} && mkdir -p ${workdir}`, {
@@ -60,7 +72,10 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
       if (r.exitCode !== 0) throw new Error(`Failed to prepare workdir: ${r.stderr.slice(0, 300)}`);
     });
 
-    if (app.git_repository) {
+    if (!app.git_repository) {
+      // Nothing to clone — placeholder static container.
+      compose = generateComposeFile(app, 'nginx:alpine');
+    } else {
       await streamStep(deploymentUuid, 'Cloning repository', async () => {
         const r = await executeRemoteCommand(
           server,
@@ -71,37 +86,23 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
         if (r.exitCode !== 0) throw new Error(`git clone failed: ${r.stderr.slice(0, 300)}`);
       });
 
-      await streamStep(deploymentUuid, 'Building image', async () => {
-        // Dockerfile → docker build; otherwise try nixpacks (if installed).
-        const script =
-          `cd ${srcDir} && ` +
-          `if [ -f Dockerfile ]; then ` +
-          `  docker build -t ${imageTag} . ; ` +
-          `elif command -v nixpacks >/dev/null 2>&1; then ` +
-          `  nixpacks build . --name ${imageTag} ; ` +
-          `else ` +
-          `  echo "NO_BUILDER" ; exit 42 ; ` +
-          `fi`;
-        const r = await executeRemoteCommand(server, key, script, { onData: (c) => log(c) });
-        if (r.exitCode === 42 || r.stdout.includes('NO_BUILDER')) {
-          throw new Error(
-            'No Dockerfile found and nixpacks is not installed. Add a Dockerfile to the repo, ' +
-              'install nixpacks (https://nixpacks.com), or deploy a Template instead.'
+      if (useDocker) {
+        await streamStep(deploymentUuid, 'Building image (Dockerfile)', async () => {
+          const r = await executeRemoteCommand(
+            server,
+            key,
+            `cd ${srcDir} && test -f Dockerfile && docker build -t ${imageTag} .`,
+            { onData: (c) => log(c) }
           );
-        }
-        if (r.exitCode !== 0) throw new Error(`Build failed: ${r.stderr.slice(0, 300)}`);
-        image = imageTag;
-      });
+          if (r.exitCode !== 0) throw new Error(`Docker build failed: ${r.stderr.slice(0, 300)}`);
+        });
+        compose = generateComposeFile(app, imageTag);
+      } else {
+        // Buildless: run the source directly in a base Node image.
+        await log('\n──► Buildless deploy (no Dockerfile) — running in a base Node image');
+        compose = generateBuildlessCompose(app, srcDir, port);
+      }
     }
-
-    // Ensure the app publishes a host port so it gets an openable URL.
-    if (!app.ports_mappings) {
-      const exposed = (app.ports_exposes || '3000').split(',')[0].trim();
-      app.ports_mappings = `${exposed}:${exposed}`;
-      await appService.updateApplication(teamId, app.uuid, { ports_mappings: app.ports_mappings });
-    }
-
-    const compose = generateComposeFile(app, image);
 
     await streamStep(deploymentUuid, 'Writing docker-compose.yml', async () => {
       const b64 = Buffer.from(compose, 'utf8').toString('base64');
