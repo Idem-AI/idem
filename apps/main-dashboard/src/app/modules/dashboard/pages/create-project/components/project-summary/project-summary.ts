@@ -12,6 +12,7 @@ import { CookieService } from '../../../../../../shared/services/cookie.service'
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule } from '@ngx-translate/core';
 import { switchMap } from 'rxjs';
+import { AuthService } from '../../../../../auth/services/auth.service';
 
 @Component({
   selector: 'app-project-summary',
@@ -24,6 +25,8 @@ export class ProjectSummaryComponent implements OnInit {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   readonly landingUrl = environment.services.domain;
 
   // Angular inputs
@@ -150,6 +153,15 @@ export class ProjectSummaryComponent implements OnInit {
 
   protected submitProject(): void {
     if (this.canSubmit() && !this.isSubmitting()) {
+      // Check if user is logged in
+      const user = this.authService.getCurrentUser();
+      if (!user) {
+        // Redirect to login page
+        const returnUrl = window.location.pathname + window.location.search;
+        this.router.navigate(['/login'], { queryParams: { returnUrl } });
+        return;
+      }
+
       this.isSubmitting.set(true);
 
       const acceptanceData = {
@@ -188,5 +200,6 @@ export class ProjectSummaryComponent implements OnInit {
   private clearProjectCookies(): void {
     this.cookieService.remove('projectId');
     this.cookieService.remove('draftProject');
+    this.cookieService.remove('draftProjectStep');
   }
 }
