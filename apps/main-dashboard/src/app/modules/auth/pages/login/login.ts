@@ -95,14 +95,13 @@ export class Login implements OnInit {
 
       // Check if we need to redirect to AppGen (webgen)
       if (this.from === 'appgen' && this.returnUrl) {
+        console.log('AppGen redirect requested. returnUrl:', this.returnUrl);
         const appgenUrl = environment.services.webgen.url;
         const isDev = environment.environment === 'dev';
-        const isValidRedirect = this.returnUrl.startsWith(appgenUrl) || 
-                               (isDev && (
-                                 this.returnUrl.startsWith('http://localhost:5173') ||
-                                 this.returnUrl.startsWith('http://localhost:5174') ||
-                                 this.returnUrl.startsWith('http://localhost:3000')
-                               ));
+        
+        // More permissive check for local development to avoid blocking valid redirects
+        const isLocalhost = this.returnUrl.includes('localhost') || this.returnUrl.includes('127.0.0.1');
+        const isValidRedirect = this.returnUrl.startsWith(appgenUrl) || isLocalhost;
         
         if (isValidRedirect) {
           console.log('Redirecting back to AppGen:', this.returnUrl);
