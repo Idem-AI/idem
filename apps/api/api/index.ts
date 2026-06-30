@@ -61,6 +61,7 @@ import { businessPlanRoutes } from './routes/businessPlan.routes';
 import { pitchDeckRoutes } from './routes/pitchDeck.routes';
 import { legalDocsRoutes } from './routes/legalDocs.routes';
 import { advisorRoutes } from './routes/advisor.routes';
+import { onboardingRoutes } from './routes/onboarding.routes';
 import { deploymentRoutes } from './routes/deployment.routes';
 import { developmentRoutes } from './routes/development.routes';
 import { userRoutes } from './routes/user.routes';
@@ -71,11 +72,7 @@ import cacheRoutes from './routes/cache.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
 import policyRoutes from './routes/policy.routes';
-import teamRoutes from './routes/team.routes';
-import invitationRoutes from './routes/invitation.routes';
-import projectTeamRoutes from './routes/project-team.routes';
-import migrationRoutes from './routes/migration.routes';
-import { teamsRoutes } from './routes/teams.routes';
+
 import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
@@ -123,6 +120,7 @@ app.use('/project', businessPlanRoutes);
 app.use('/project', pitchDeckRoutes);
 app.use('/project', legalDocsRoutes);
 app.use('/project', advisorRoutes);
+app.use('/project', onboardingRoutes);
 app.use('/project', deploymentRoutes);
 app.use('/project', developmentRoutes);
 app.use('/auth', authRoutes);
@@ -134,12 +132,7 @@ app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
 app.use('/project', policyRoutes);
 
-// Authorization routes
-app.use('/teams', teamRoutes);
-app.use('/api/teams', teamsRoutes); // New centralized teams API
-app.use('/invitations', invitationRoutes);
-app.use('/projects', projectTeamRoutes);
-app.use('/migration', migrationRoutes);
+
 
 // Contact routes
 app.use('/api/contact', contactRoutes);

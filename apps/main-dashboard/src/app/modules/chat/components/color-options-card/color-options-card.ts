@@ -29,6 +29,13 @@ export class ColorOptionsCardComponent {
     );
   }
 
+  /** Dégradé d'aperçu (primaire → secondaire → accent) pour la bande de tête. */
+  protected gradient(option: ColorModel): string {
+    const c = option.colors;
+    if (!c) return 'transparent';
+    return `linear-gradient(120deg, ${c.primary} 0%, ${c.secondary} 55%, ${c.accent} 100%)`;
+  }
+
   protected pick(option: ColorModel): void {
     if (this.disabled() || this.selectedId()) return;
     this.picked.emit(option);

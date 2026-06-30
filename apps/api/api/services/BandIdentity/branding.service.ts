@@ -1,6 +1,7 @@
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
 import { LLMProvider, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
 import { SvgToPsdService } from '../svgToPsd.service';
 import * as fs from 'fs-extra';
 
@@ -54,37 +55,28 @@ export class BrandingService extends GenericService {
   // Configuration LLM pour la génération de logos et variations
   // Optimisée pour qualité maximale avec vitesse préservée
   private static readonly LOGO_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.5-flash',
+    provider: AI_CONFIG.branding.logo.provider,
+    modelName: AI_CONFIG.branding.logo.modelName,
     llmOptions: {
-      maxOutputTokens: 1048, // SVG complet sans troncature (path + text + defs)
-      temperature: 0.7, // Variance créative — évite la convergence cercle-bleu
-      topP: 0.95, // Pool de sampling légèrement élargi pour les couleurs et concepts
-      topK: 40, // Sweet spot Gemini — au-delà, le JSON se dégrade
+      ...AI_CONFIG.branding.logo.llmOptions,
     },
   };
 
   // Configuration LLM optimisée pour la vitesse — génération de couleurs
   private static readonly COLORS_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.1-flash-lite',
+    provider: AI_CONFIG.branding.colors.provider,
+    modelName: AI_CONFIG.branding.colors.modelName,
     llmOptions: {
-      maxOutputTokens: 1200, // réduit fortement la latence
-      temperature: 0.05, // réponses plus déterministes
-      topP: 0.8,
-      topK: 20,
+      ...AI_CONFIG.branding.colors.llmOptions,
     },
   };
 
   // Configuration LLM optimisée pour la vitesse — génération de typographies
   private static readonly TYPOGRAPHY_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.1-flash-lite',
+    provider: AI_CONFIG.branding.typography.provider,
+    modelName: AI_CONFIG.branding.typography.modelName,
     llmOptions: {
-      maxOutputTokens: 1800, // suffisant pour du JSON structuré
-      temperature: 0.3, // équilibre vitesse/cohérence
-      topP: 0.8,
-      topK: 20,
+      ...AI_CONFIG.branding.typography.llmOptions,
     },
   };
 
@@ -820,8 +812,8 @@ export class BrandingService extends GenericService {
             }
           },
           {
-            provider: LLMProvider.GEMINI,
-            modelName: 'gemini-3-flash-preview',
+            provider: AI_CONFIG.default.provider,
+            modelName: AI_CONFIG.default.modelName,
             userId,
           }, // promptConfig
           'branding', // promptType
@@ -1296,9 +1288,28 @@ export class BrandingService extends GenericService {
       }
     });
 
+    // Retry des concepts échoués (une passe) pour atteindre 3 propositions de façon fiable
+    if (failedIndexes.length > 0) {
+      logger.warn(
+        `Retrying ${failedIndexes.length} failed logo concept(s): [${failedIndexes.join(', ')}]`
+      );
+      const retryResults = await Promise.allSettled(
+        failedIndexes.map((index) =>
+          this.generateRawLogoConcept(optimizedPrompt, project, index, preferences)
+        )
+      );
+      retryResults.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
+          rawLogos.push(result.value);
+        } else {
+          logger.error(`Logo concept ${failedIndexes[i] + 1} retry failed:`, result.reason);
+        }
+      });
+    }
+
     const aiGenerationTime = Date.now() - aiStartTime;
     logger.info(
-      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/3, Failed: ${failedIndexes.length}`
+      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/3 after retry`
     );
 
     // Étape 4: Optimisation SVG en parallèle (séparée de l'AI)

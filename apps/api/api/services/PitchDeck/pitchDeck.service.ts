@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
+
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
 import { PitchDeckModel } from '../../models/pitchDeck.model';
@@ -158,9 +160,10 @@ export class PitchDeckService extends GenericService {
     ];
 
     const promptConfig: PromptConfig = {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: AI_CONFIG.pitchDeck.provider,
+      modelName: AI_CONFIG.pitchDeck.modelName,
     };
+
 
     let sectionResults: SectionModel[] = [];
 

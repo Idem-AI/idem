@@ -1,0 +1,7 @@
+node_modules/
+dist/
+logs/
+.env
+.env.local
+# Prisma generated client
+/prisma/generated/

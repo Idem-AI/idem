@@ -13,30 +13,35 @@
     </div>
   </div>
 
-  <div class="p-3 space-y-2">
-    @for (option of options(); track option.id) {
+  <div class="p-3 space-y-2.5" role="radiogroup">
+    @for (option of options(); track option.id; let i = $index) {
       <button
         type="button"
+        role="radio"
+        [attr.aria-checked]="selectedId() === option.id"
         (click)="pick(option)"
         [disabled]="disabled() || (!!selectedId() && selectedId() !== option.id)"
-        class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
-        [class.border-primary]="selectedId() === option.id"
-        [class.bg-primary/10]="selectedId() === option.id"
-        [class.border-white/10]="selectedId() !== option.id"
-        [class.hover:border-primary/40]="!selectedId() && !disabled()"
-        [class.hover:bg-white/5]="!selectedId() && !disabled()"
+        class="choice-tile choice-enter overflow-hidden"
+        [class.is-selected]="selectedId() === option.id"
+        [class.is-dimmed]="!!selectedId() && selectedId() !== option.id"
+        [style.--i]="i"
+        [attr.aria-label]="option.name"
       >
-        <span class="text-xs font-medium text-gray-200 truncate">{{ option.name }}</span>
-        <span class="flex items-center gap-1.5 shrink-0">
-          @for (swatch of swatches(option); track $index) {
-            <span
-              class="w-5 h-5 rounded-full border border-white/20"
-              [style.background-color]="swatch"
-            ></span>
-          }
-          @if (selectedId() === option.id) {
-            <i class="pi pi-check-circle text-primary text-sm ml-1"></i>
-          }
+        @if (selectedId() === option.id) {
+          <span class="choice-check"><i class="pi pi-check"></i></span>
+        }
+        <!-- Bande de dégradé d'aperçu -->
+        <span class="block h-12 w-full" [style.background]="gradient(option)"></span>
+        <span class="flex items-center justify-between gap-2 px-3 py-2.5">
+          <span class="text-xs font-medium text-gray-200 truncate">{{ option.name }}</span>
+          <span class="flex items-center gap-1 shrink-0">
+            @for (swatch of swatches(option); track $index) {
+              <span
+                class="w-4 h-4 rounded-full border border-white/25"
+                [style.background-color]="swatch"
+              ></span>
+            }
+          </span>
         </span>
       </button>
     }

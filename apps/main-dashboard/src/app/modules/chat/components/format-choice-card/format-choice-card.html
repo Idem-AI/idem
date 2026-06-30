@@ -15,57 +15,51 @@
     </div>
   </div>
 
-  <div class="p-4 grid grid-cols-2 gap-3">
+  <div class="p-4 grid grid-cols-2 gap-3" role="radiogroup">
     <!-- Portrait A4 -->
     <button
       type="button"
+      role="radio"
+      [attr.aria-checked]="selected() === 'A4_PORTRAIT'"
       (click)="pick('A4_PORTRAIT')"
       [disabled]="disabled() || (!!selected() && selected() !== 'A4_PORTRAIT')"
-      class="group flex flex-col items-center gap-3 p-4 rounded-xl border transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-      [class.border-primary]="selected() === 'A4_PORTRAIT'"
-      [class.bg-primary/10]="selected() === 'A4_PORTRAIT'"
-      [class.border-white/10]="selected() !== 'A4_PORTRAIT'"
-      [class.hover:border-primary/40]="!selected() && !disabled()"
-      [class.hover:bg-white/5]="!selected() && !disabled()"
+      class="choice-tile choice-enter items-center p-4"
+      [class.is-selected]="selected() === 'A4_PORTRAIT'"
+      [class.is-dimmed]="!!selected() && selected() !== 'A4_PORTRAIT'"
+      [style.--i]="0"
     >
-      <span
-        class="w-10 h-14 rounded-md border-2 bg-white/5 transition-colors duration-200"
-        [class.border-primary]="selected() === 'A4_PORTRAIT'"
-        [class.border-white/25]="selected() !== 'A4_PORTRAIT'"
-      ></span>
-      <span class="text-xs font-medium" [class.text-white]="true">
+      @if (selected() === 'A4_PORTRAIT') {
+        <span class="choice-check"><i class="pi pi-check"></i></span>
+      }
+      <span class="h-16 flex items-center justify-center">
+        <span class="w-[44px] h-[60px] rounded-md border-2 border-white/30 bg-white/5"></span>
+      </span>
+      <span class="mt-2 text-xs font-medium text-white">
         {{ 'chat.branding.format.portrait' | translate }}
       </span>
-      @if (selected() === 'A4_PORTRAIT') {
-        <i class="pi pi-check-circle text-primary text-sm"></i>
-      }
     </button>
 
     <!-- Paysage 16:9 -->
     <button
       type="button"
+      role="radio"
+      [attr.aria-checked]="selected() === 'SLIDE_16_9'"
       (click)="pick('SLIDE_16_9')"
       [disabled]="disabled() || (!!selected() && selected() !== 'SLIDE_16_9')"
-      class="group flex flex-col items-center gap-3 p-4 rounded-xl border transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-      [class.border-primary]="selected() === 'SLIDE_16_9'"
-      [class.bg-primary/10]="selected() === 'SLIDE_16_9'"
-      [class.border-white/10]="selected() !== 'SLIDE_16_9'"
-      [class.hover:border-primary/40]="!selected() && !disabled()"
-      [class.hover:bg-white/5]="!selected() && !disabled()"
+      class="choice-tile choice-enter items-center p-4"
+      [class.is-selected]="selected() === 'SLIDE_16_9'"
+      [class.is-dimmed]="!!selected() && selected() !== 'SLIDE_16_9'"
+      [style.--i]="1"
     >
-      <span class="w-14 h-14 flex items-center justify-center">
-        <span
-          class="w-14 h-9 rounded-md border-2 bg-white/5 transition-colors duration-200"
-          [class.border-primary]="selected() === 'SLIDE_16_9'"
-          [class.border-white/25]="selected() !== 'SLIDE_16_9'"
-        ></span>
+      @if (selected() === 'SLIDE_16_9') {
+        <span class="choice-check"><i class="pi pi-check"></i></span>
+      }
+      <span class="h-16 flex items-center justify-center">
+        <span class="w-16 h-10 rounded-md border-2 border-white/30 bg-white/5"></span>
       </span>
-      <span class="text-xs font-medium text-white">
+      <span class="mt-2 text-xs font-medium text-white">
         {{ 'chat.branding.format.landscape' | translate }}
       </span>
-      @if (selected() === 'SLIDE_16_9') {
-        <i class="pi pi-check-circle text-primary text-sm"></i>
-      }
     </button>
   </div>
 

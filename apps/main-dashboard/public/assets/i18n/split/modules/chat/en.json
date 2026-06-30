@@ -254,7 +254,8 @@
         "typographyTitle": "Typographies",
         "typographySubtitle": "Click to choose your font pairing",
         "logosTitle": "Logo concepts",
-        "logosSubtitle": "Click to choose your logo"
+        "logosSubtitle": "Click to choose your logo",
+        "typographySample": "The quick brown fox jumps over the lazy dog."
       },
       "errors": {
         "generation": "Generation failed. Shall we retry?",
@@ -264,6 +265,8 @@
     "onboarding": {
       "welcome": "Hi! 👋 Let's create your project together, step by step. First question: **describe your idea in a few sentences.** What do you want to build, and what problem does it solve?",
       "resume": "Welcome back! 👋 Let's pick up your project creation exactly where you left off.",
+      "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
+      "composerPlaceholder": "Type your answer, or pick a suggestion…",
       "questions": {
         "description": "Describe your idea in a few sentences: what do you want to build, and what problem does it solve?",
         "name": "Great! What **name** do you want to give your project?",
@@ -279,7 +282,8 @@
       "errors": {
         "descriptionTooShort": "Could you tell me a bit more? A few sentences are enough to get started.",
         "nameRequired": "I need a name for your project. Which one do you choose?",
-        "createFailed": "Project creation failed. Check your connection and confirm again."
+        "createFailed": "Project creation failed. Check your connection and confirm again.",
+        "planFailed": "I couldn't prepare my questions, but we can go straight to the summary."
       },
       "actions": {
         "skip": "Skip this question",
@@ -323,6 +327,31 @@
           "gt-50k": "Over €50,000"
         }
       }
+    },
+    "launcher": {
+      "title": "What are we building for {{name}}?",
+      "subtitle": "Pick a deliverable to view or generate — or just type your request below.",
+      "hint": "You can also simply type what you need.",
+      "askShow": "Show me my {{title}}",
+      "askGenerate": "Let's generate my {{title}}",
+      "features": {
+        "branding": "Your brand's logo, colors and typography.",
+        "businessPlan": "Your project's full business plan.",
+        "pitchDeck": "The deck to win over your investors.",
+        "finance": "Financial forecasts and tables.",
+        "diagrams": "Architecture and technical diagrams.",
+        "legalDocs": "Articles, terms, contracts and legal notices."
+      },
+      "state": {
+        "ready": "Ready",
+        "generate": "Generate",
+        "locked": "Locked"
+      },
+      "locked": {
+        "needsBranding": "Complete your brand identity first."
+      },
+      "open": "Open",
+      "brandCalloutHint": "Logo, colors and typography — the base of every deliverable."
     }
   }
 }

@@ -1,0 +1,203 @@
+export enum LLMProvider {
+  GEMINI = 'GEMINI',
+  CHATGPT = 'CHATGPT',
+  DEEPSEEK = 'DEEPSEEK',
+}
+
+export interface LLMOptions {
+  maxOutputTokens?: number;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+}
+
+export interface FeatureAIConfig {
+  provider: LLMProvider;
+  modelName: string;
+  llmOptions?: LLMOptions;
+  promptType?: string;
+}
+
+export const AI_CONFIG = {
+  // Global / default settings
+  default: {
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
+  } as FeatureAIConfig,
+
+  // Onboarding service configurations
+  onboarding: {
+    default: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'onboarding',
+      llmOptions: {
+        temperature: 0.5,
+        maxOutputTokens: 2048,
+      },
+    } as FeatureAIConfig,
+    parseAnswer: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'onboarding',
+      llmOptions: {
+        temperature: 0.1,
+        maxOutputTokens: 256,
+      },
+    } as FeatureAIConfig,
+  },
+
+  // Business Plan service configuration
+  businessPlan: {
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
+  } as FeatureAIConfig,
+
+  // Pitch Deck service configuration
+  pitchDeck: {
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
+  } as FeatureAIConfig,
+
+  // Advisor service configuration
+  advisor: {
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
+    promptType: 'advisor',
+  } as FeatureAIConfig,
+
+  // Legal Docs service configuration
+  legalDocs: {
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
+  } as FeatureAIConfig,
+
+  // Deployment configurations
+  deployment: {
+    terraform: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'terraform_tfvars_generation',
+      llmOptions: {
+        temperature: 0.3,
+        maxOutputTokens: 4000,
+      },
+    } as FeatureAIConfig,
+    chat: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      llmOptions: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      },
+    } as FeatureAIConfig,
+  },
+
+  // Finance configurations
+  finance: {
+    autofill: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'finance',
+      llmOptions: {
+        temperature: 0.4,
+        maxOutputTokens: 8192,
+      },
+    } as FeatureAIConfig,
+    intent: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'finance',
+      llmOptions: {
+        temperature: 0.2,
+        maxOutputTokens: 1024,
+      },
+    } as FeatureAIConfig,
+    pdfCover: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'finance-cover-generation',
+      llmOptions: {
+        temperature: 0.7,
+        maxOutputTokens: 2000,
+      },
+    } as FeatureAIConfig,
+    pdfInterpretation: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'finance-pdf-interpretation',
+      llmOptions: {
+        temperature: 0.5,
+        maxOutputTokens: 1500,
+      },
+    } as FeatureAIConfig,
+  },
+
+  // Communication configurations
+  communication: {
+    default: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+    } as FeatureAIConfig,
+    trends: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'communication_trends',
+      llmOptions: {
+        maxOutputTokens: 800,
+      },
+    } as FeatureAIConfig,
+    flyer: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'communication_flyer',
+      llmOptions: {
+        maxOutputTokens: 2000,
+      },
+    } as FeatureAIConfig,
+    imageSourcing: {
+      imageModel: 'gemini-3.1-flash-image',
+      visionModel: 'gemini-2.0-flash',
+    },
+  },
+
+  // Branding configurations
+  branding: {
+    logo: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3.5-flash',
+      llmOptions: {
+        maxOutputTokens: 1048,
+        temperature: 0.7,
+        topP: 0.95,
+        topK: 40,
+      },
+    } as FeatureAIConfig,
+    colors: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3.1-flash-lite',
+      llmOptions: {
+        maxOutputTokens: 1200,
+        temperature: 0.05,
+        topP: 0.8,
+        topK: 20,
+      },
+    } as FeatureAIConfig,
+    typography: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3.1-flash-lite',
+      llmOptions: {
+        maxOutputTokens: 1800,
+        temperature: 0.3,
+        topP: 0.8,
+        topK: 20,
+      },
+    } as FeatureAIConfig,
+    mockupHtml: {
+      modelName: 'gemini-3.5-flash',
+    },
+    brandMockup: {
+      imageModel: 'gemini-3.1-flash-image',
+    },
+  },
+};

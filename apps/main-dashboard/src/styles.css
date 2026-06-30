@@ -4,6 +4,11 @@
 
 @import 'tailwindcss';
 
+@theme {
+  --color-secondary: var(--color-accent-500);
+  --color-accent: var(--color-accent-500);
+}
+
 /* PrimeNG Icons */
 @import 'primeicons/primeicons.css';
 
@@ -63,3 +68,101 @@ html.light {
 }
 
 /* Angular-specific or project-specific styles can be added below */
+
+/* ============================================================================
+   CHAT — SELECTION VISUAL LANGUAGE (choice tiles, feature launcher)
+   Shared, tactile selection affordance used by the conversational chat.
+   ============================================================================ */
+
+/* A single selectable tile (logo / color / typography / format / feature). */
+.choice-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.choice-tile:hover:not(.is-disabled):not(.is-selected) {
+  transform: translateY(-3px);
+  border-color: rgba(34, 211, 238, 0.45);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: 0 10px 28px -12px rgba(0, 0, 0, 0.6);
+}
+
+.choice-tile:focus-visible {
+  outline: none;
+  border-color: var(--color-accent, #22d3ee);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.35);
+}
+
+.choice-tile.is-selected {
+  border-color: var(--color-primary, #1447e6);
+  background: rgba(20, 71, 230, 0.12);
+  box-shadow:
+    0 0 0 1px var(--color-primary, #1447e6),
+    0 12px 30px -14px rgba(20, 71, 230, 0.7);
+}
+
+.choice-tile.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: saturate(0.6);
+}
+
+/* When a choice is locked because the group is awaiting another selection. */
+.choice-tile.is-dimmed:not(.is-selected) {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* The animated check badge that appears on the selected tile. */
+.choice-check {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 9999px;
+  background: var(--color-primary, #1447e6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  box-shadow: 0 4px 10px -2px rgba(20, 71, 230, 0.8);
+  animation: choice-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes choice-pop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Entrance for a group of tiles, staggered via inline --i. */
+.choice-enter {
+  animation: choice-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+@keyframes choice-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice-tile { transition: border-color 0.2s ease, background-color 0.2s ease; }
+  .choice-tile:hover:not(.is-disabled):not(.is-selected) { transform: none; }
+  .choice-check { animation: none; }
+  .choice-enter { animation: none; }
+}

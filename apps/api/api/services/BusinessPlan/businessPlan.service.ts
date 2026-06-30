@@ -1,4 +1,6 @@
 import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
+
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
 import { BusinessPlanModel } from '../../models/businessPlan.model';
@@ -142,8 +144,8 @@ export class BusinessPlanService extends GenericService {
         },
       ];
       const promptConfig: PromptConfig = {
-        provider: LLMProvider.GEMINI,
-        modelName: 'gemini-3-flash-preview',
+        provider: AI_CONFIG.businessPlan.provider,
+        modelName: AI_CONFIG.businessPlan.modelName,
       };
 
       // Initialize empty sections array to collect results as they come in

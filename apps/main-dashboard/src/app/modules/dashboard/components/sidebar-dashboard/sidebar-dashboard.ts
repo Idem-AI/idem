@@ -152,7 +152,6 @@ export class SidebarDashboard implements OnInit {
       icon: 'pi pi-chart-pie',
       route: 'project/finance',
       isActive: false,
-      isNew: true,
       isExpanded: false,
       children: [
         {
@@ -228,28 +227,24 @@ export class SidebarDashboard implements OnInit {
       icon: 'pi pi-desktop',
       route: 'project/pitch-deck',
       isActive: false,
-      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.communication',
       icon: 'pi pi-megaphone',
       route: 'project/communication',
       isActive: false,
-      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.legalDocs',
       icon: 'pi pi-file-edit',
       route: 'project/legal-docs',
       isActive: false,
-      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.advisor',
       icon: 'pi pi-comments',
       route: 'project/advisor',
       isActive: false,
-      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.diagrams',

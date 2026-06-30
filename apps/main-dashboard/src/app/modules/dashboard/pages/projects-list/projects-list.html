@@ -1,81 +1,218 @@
-<div class="min-h-screen text-white flex flex-col mt-16">
-  <!-- MAIN CONTENT -->
-  <div class="flex-1 flex px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
-    <!-- MAIN SECTION -->
-    <main
-      class="flex-1 space-y-6 sm:space-y-8 lg:space-y-10 overflow-y-auto max-w-7xl mx-auto w-full"
-    >
+<div class="min-h-screen text-white flex flex-col mt-16 projects-page">
+  <div class="flex-1 flex px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <main class="flex-1 max-w-7xl mx-auto w-full space-y-8">
+      
       @if (isLoading()) {
-        <div class="flex justify-center items-center h-64">
+        <div class="flex flex-col justify-center items-center h-64 space-y-4">
           <app-loader />
+          <p class="text-xs text-white/40 tracking-widest uppercase animate-pulse">Loading Workspace…</p>
         </div>
       } @else {
-        <!-- Projets récents -->
-        <section class="space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary-500">
-              {{ 'dashboard.projectsList.sections.recent' | translate }}
-            </h2>
+        
+        <!-- Clean Header Panel -->
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-white/5">
+          <div class="space-y-1">
+            <p class="text-xs font-bold uppercase tracking-wider text-white/40">
+              {{ greeting() }}
+            </p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              {{ 'dashboard.globalDashboard.title' | translate }}
+            </h1>
+            <p class="text-xs sm:text-sm text-white/40">
+              {{ 'dashboard.projectsList.cards.create.subtitle' | translate }}
+            </p>
+          </div>
+          
+          <button
+            (click)="openCreateProject()"
+            class="header-create-btn"
+            aria-label="Create New Project"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>{{ 'dashboard.projectsList.cards.create.title' | translate }}</span>
+          </button>
+        </header>
+
+        <!-- Filters & Layout Toolbar -->
+        <section class="toolbar-panel" aria-label="Filters and layout toolbar">
+          <!-- Left: Search Box -->
+          <div class="search-box-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search projects by name or description…"
+              [value]="searchQuery()"
+              (input)="onSearch($event)"
+              class="search-input"
+            />
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            <!-- Créer un projet -->
+          <!-- Center: Category filter tabs -->
+          <div class="filter-tabs">
             <button
-              (click)="openCreateProject()"
-              class="h-[200px] sm:h-[220px] lg:h-[240px] flex flex-col justify-center items-center text-center border-2 border-dashed border-secondary-500/50 rounded-xl bg-gray-800/50 hover:bg-gray-800 hover:shadow-[0_0_20px_-5px_var(--color-primary)] hover:scale-[1.01] transition-all duration-300 p-4 hover:cursor-pointer group"
+              (click)="setTypeFilter('all')"
+              [class.active]="selectedTypeFilter() === 'all'"
+              class="filter-tab"
             >
-              <div
-                class="w-12 h-12 mb-3 bg-primary rounded-full flex items-center justify-center group-hover:bg-secondary-500/20 transition"
-              >
-                <i class="pi pi-plus text-secondary-500 text-2xl"></i>
-              </div>
-              <div class="font-bold text-sm sm:text-base">
-                {{ 'dashboard.projectsList.cards.create.title' | translate }}
-              </div>
-              <div
-                class="text-xs sm:text-sm text-gray-400 group-hover:text-white transition-colors"
-              >
-                {{ 'dashboard.projectsList.cards.create.subtitle' | translate }}
-              </div>
+              <span>All</span>
+              <span class="tab-badge">{{ typeCounts().all }}</span>
             </button>
+            <button
+              (click)="setTypeFilter('web')"
+              [class.active]="selectedTypeFilter() === 'web'"
+              class="filter-tab"
+            >
+              <span>Web</span>
+              <span class="tab-badge">{{ typeCounts().web }}</span>
+            </button>
+            <button
+              (click)="setTypeFilter('mobile')"
+              [class.active]="selectedTypeFilter() === 'mobile'"
+              class="filter-tab"
+            >
+              <span>Mobile</span>
+              <span class="tab-badge">{{ typeCounts().mobile }}</span>
+            </button>
+            <button
+              (click)="setTypeFilter('iot')"
+              [class.active]="selectedTypeFilter() === 'iot'"
+              class="filter-tab"
+            >
+              <span>IoT</span>
+              <span class="tab-badge">{{ typeCounts().iot }}</span>
+            </button>
+            <button
+              (click)="setTypeFilter('desktop')"
+              [class.active]="selectedTypeFilter() === 'desktop'"
+              class="filter-tab"
+            >
+              <span>Desktop</span>
+              <span class="tab-badge">{{ typeCounts().desktop }}</span>
+            </button>
+          </div>
 
-            <!-- Cartes projets récents -->
-            @for (project of recentProjects(); track $index) {
-              <app-project-card [project]="project" />
-            }
+          <!-- Right: Grid/List Toggle Switch -->
+          <div class="layout-toggle-group">
+            <button
+              (click)="setViewMode('grid')"
+              [class.active]="viewMode() === 'grid'"
+              class="toggle-btn"
+              title="Grid view"
+              aria-label="Grid view"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </button>
+            <button
+              (click)="setViewMode('list')"
+              [class.active]="viewMode() === 'list'"
+              class="toggle-btn"
+              title="List view"
+              aria-label="List view"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </section>
 
-        <!-- Tous les projets -->
-        <section class="space-y-4 sm:space-y-6">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 class="text-xl sm:text-2xl font-semibold text-primary-500">
-              {{ 'dashboard.projectsList.sections.all' | translate }}
-            </h2>
-            <div class="flex gap-2"></div>
-          </div>
-
-          <div class="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            @for (project of userProjects$ | async; track $index) {
-              <app-project-card [project]="project" />
-            } @empty {
-              <div
-                class="col-span-full text-center py-12 sm:py-16 border-2 border-dashed border-gray-800 rounded-xl"
-              >
-                <i class="lucide lucide-folder-x text-3xl sm:text-4xl text-gray-600 mb-3"></i>
-                <div class="text-gray-400 text-sm sm:text-base mb-2">
-                  {{ 'dashboard.projectsList.empty.noProjects' | translate }}
-                </div>
+        <!-- Main Content Area -->
+        <section aria-label="Projects list">
+          @if (filteredProjects().length > 0) {
+            
+            <div [class]="viewMode() === 'grid' ? 'projects-grid' : 'projects-list-vertical'">
+              <!-- Create Project Card -->
+              @if (viewMode() === 'grid') {
                 <button
                   (click)="openCreateProject()"
-                  class="text-primary-500 text-sm sm:text-base inline-block transition-colors outer-button"
+                  class="create-project-card group"
+                  aria-label="Create New Project"
                 >
+                  <div class="tile-header-row">
+                    <div class="create-plus-icon-wrapper">
+                      <svg class="plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                    </div>
+                    <div class="tile-title-wrapper">
+                      <h3 class="create-card-title">{{ 'dashboard.projectsList.cards.create.title' | translate }}</h3>
+                    </div>
+                  </div>
+                  <div class="tile-body">
+                    <p class="create-card-subtitle">Start building a new app</p>
+                  </div>
+                </button>
+              }
+
+              <!-- Project Tile Cards -->
+              @for (project of filteredProjects(); track project.id) {
+                <app-project-card [project]="project" />
+              }
+            </div>
+
+          } @else {
+            <!-- EMPTY STATES -->
+            @if (allProjects().length > 0) {
+              <!-- No results matching query -->
+              <div class="empty-state-container">
+                <div class="empty-state-graphic">
+                  <svg class="empty-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </div>
+                <h3 class="empty-state-title">No matching projects</h3>
+                <p class="empty-state-desc">Your filters didn't return any workspace. Try clearing your search query or choosing another platform category.</p>
+                <button
+                  (click)="searchQuery.set(''); selectedTypeFilter.set('all')"
+                  class="empty-cta-btn"
+                >
+                  Reset filters
+                </button>
+              </div>
+            } @else {
+              <!-- Absolute empty state (no projects in account) -->
+              <div class="empty-state-container">
+                <div class="empty-state-graphic">
+                  <svg class="empty-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
+                <h3 class="empty-state-title">
+                  {{ 'dashboard.projectsList.empty.noProjects' | translate }}
+                </h3>
+                <p class="empty-state-desc">
+                  Start configuring your brand, deployments, and visual architecture. Create your first application package.
+                </p>
+                <button
+                  (click)="openCreateProject()"
+                  class="empty-cta-btn"
+                >
+                  <svg class="mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
                   {{ 'dashboard.projectsList.buttons.create' | translate }}
                 </button>
               </div>
             }
-          </div>
+          }
         </section>
+
       }
     </main>
   </div>

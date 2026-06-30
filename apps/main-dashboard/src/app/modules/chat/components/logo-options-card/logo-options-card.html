@@ -17,32 +17,35 @@
     </div>
   </div>
 
-  <div class="p-3 grid grid-cols-2 gap-2">
-    @for (option of options(); track option.id) {
+  <div class="p-3 logo-grid" role="radiogroup">
+    @for (option of options(); track option.id; let i = $index) {
       <button
         type="button"
+        role="radio"
+        [attr.aria-checked]="selectedId() === option.id"
         (click)="pick(option)"
         [disabled]="disabled() || (!!selectedId() && selectedId() !== option.id)"
-        class="relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-        [class.border-primary]="selectedId() === option.id"
-        [class.bg-primary/10]="selectedId() === option.id"
-        [class.border-white/10]="selectedId() !== option.id"
-        [class.hover:border-primary/40]="!selectedId() && !disabled()"
-        [class.hover:bg-white/5]="!selectedId() && !disabled()"
+        class="choice-tile choice-enter items-center p-3"
+        [class.is-selected]="selectedId() === option.id"
+        [class.is-dimmed]="!!selectedId() && selectedId() !== option.id"
+        [style.--i]="i"
+        [attr.aria-label]="option.name"
       >
+        @if (selectedId() === option.id) {
+          <span class="choice-check"><i class="pi pi-check"></i></span>
+        }
         <span
-          class="w-full h-20 flex items-center justify-center rounded-lg bg-white/90 overflow-hidden logo-preview"
+          class="w-full aspect-square max-h-28 flex items-center justify-center rounded-xl bg-white logo-canvas overflow-hidden"
         >
           @if (isInlineSvg(option)) {
             <span class="logo-svg" [innerHTML]="option.svg | safeHtml"></span>
           } @else if (option.svg) {
-            <img [src]="option.svg" [alt]="option.name" class="max-h-16 max-w-full object-contain" />
+            <img [src]="option.svg" [alt]="option.name" class="max-h-20 max-w-[80%] object-contain" />
           }
         </span>
-        <span class="text-[11px] text-gray-300 truncate w-full text-center">{{ option.name }}</span>
-        @if (selectedId() === option.id) {
-          <i class="pi pi-check-circle text-primary text-sm absolute top-2 right-2"></i>
-        }
+        <span class="mt-2 text-[11px] font-medium text-gray-300 truncate w-full text-center">
+          {{ option.name }}
+        </span>
       </button>
     }
   </div>

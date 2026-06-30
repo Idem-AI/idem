@@ -786,6 +786,20 @@
       },
       "errors": {
         "noActiveProject": "Aucun projet actif trouvé. Veuillez d'abord sélectionner un projet."
+      },
+      "modeLabel": "Mode de création",
+      "modeChat": "Conversation",
+      "modeForm": "Formulaire",
+      "switchToForm": "Passer au formulaire",
+      "foundations": {
+        "title": "Parlons de votre projet",
+        "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
+        "descriptionLabel": "Décrivez votre idée",
+        "descriptionPlaceholder": "Ex. une marketplace pour artisans locaux qui gère commandes et paiements…",
+        "nameLabel": "Nom du projet",
+        "namePlaceholder": "Ex. ArtisanHub",
+        "typeLabel": "Type de projet",
+        "continue": "Continuer"
       }
     },
     "logoChoice": {
@@ -870,7 +884,7 @@
         "businessPlan": "Plan d'affaires",
         "pitchDeck": "Pitch Deck",
         "finance": "Prévisions financières",
-        "systemDesign": "Conception système",
+        "systemDesign": "Diagrammes",
         "development": "Développement",
         "launch": "Lancement"
       },
@@ -901,9 +915,9 @@
           "alt": "Prévisions financières"
         },
         "design": {
-          "title": "Conception système",
+          "title": "Diagrammes",
           "description": "Concevez l'architecture de votre système et les spécifications techniques",
-          "alt": "Conception système"
+          "alt": "Diagrammes"
         },
         "development": {
           "title": "Développement",
@@ -2292,7 +2306,8 @@
       "errors": {
         "descriptionTooShort": "Pouvez-vous m'en dire un peu plus ? Quelques phrases suffisent pour bien démarrer.",
         "nameRequired": "Il me faut un nom pour votre projet. Lequel choisissez-vous ?",
-        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau."
+        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau.",
+        "planFailed": "Je n'ai pas pu préparer mes questions, mais on peut continuer directement vers le récapitulatif."
       },
       "actions": {
         "skip": "Passer cette question",
@@ -2335,7 +2350,9 @@
           "20k-50k": "20 000 € à 50 000 €",
           "gt-50k": "Plus de 50 000 €"
         }
-      }
+      },
+      "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
+      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…"
     },
     "branding": {
       "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
@@ -2375,7 +2392,8 @@
         "typographyTitle": "Typographies",
         "typographySubtitle": "Cliquez pour choisir votre duo de polices",
         "logosTitle": "Concepts de logos",
-        "logosSubtitle": "Cliquez pour choisir votre logo"
+        "logosSubtitle": "Cliquez pour choisir votre logo",
+        "typographySample": "Le vif renard brun saute par-dessus le chien."
       },
       "errors": {
         "generation": "La génération a échoué. On réessaie ?",
@@ -2457,6 +2475,31 @@
       "cardDone": "Votre {{title}} est prêt",
       "cardError": "La génération de votre {{title}} a échoué",
       "steps": "{{done}}/{{total}} étapes terminées"
+    },
+    "launcher": {
+      "title": "Que construisons-nous pour {{name}} ?",
+      "subtitle": "Choisissez un livrable à consulter ou à générer — ou écrivez votre demande ci-dessous.",
+      "hint": "Vous pouvez aussi tout simplement écrire ce dont vous avez besoin.",
+      "askShow": "Montre-moi mon {{title}}",
+      "askGenerate": "Générons mon {{title}}",
+      "features": {
+        "branding": "Logo, couleurs et typographie de votre marque.",
+        "businessPlan": "Le plan d'affaires complet de votre projet.",
+        "pitchDeck": "La présentation pour convaincre vos investisseurs.",
+        "finance": "Prévisions et tableaux financiers.",
+        "diagrams": "Schémas d'architecture et diagrammes techniques.",
+        "legalDocs": "Statuts, CGU, contrats et mentions légales."
+      },
+      "state": {
+        "ready": "Prêt",
+        "generate": "Générer",
+        "locked": "Verrouillé"
+      },
+      "locked": {
+        "needsBranding": "Complétez d'abord votre identité de marque."
+      },
+      "open": "Ouvrir",
+      "brandCalloutHint": "Logo, couleurs et typographie — la base de tous vos livrables."
     }
   }
 }
