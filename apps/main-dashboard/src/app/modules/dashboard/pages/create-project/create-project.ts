@@ -25,6 +25,9 @@ import {
   OnboardingChatComponent,
   OnboardingFoundations,
 } from '../../../chat/components/onboarding-chat/onboarding-chat';
+import { AuthService } from '../../../auth/services/auth.service';
+import { LoginCardComponent } from '../../../auth/components/login-card/login-card';
+import { DialogModule } from 'primeng/dialog';
 
 // Simple step configuration
 interface Step {
@@ -50,6 +53,8 @@ const CREATE_MODE_KEY = 'idem_create_project_mode';
     Loader,
     FoundationsCardComponent,
     OnboardingChatComponent,
+    DialogModule,
+    LoginCardComponent,
   ],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
@@ -62,6 +67,11 @@ export class CreateProjectComponent implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly uiModeService = inject(UiModeService);
   private readonly translate = inject(TranslateService);
+  private readonly authService = inject(AuthService);
+
+  // Authentication Modal State
+  protected readonly showLoginModal = signal<boolean>(false);
+  private pendingAction: 'nextStep' | 'foundations' | null = null;
 
   // AppGen handoff
   protected readonly fromAppGen = signal<boolean>(false);
@@ -290,7 +300,18 @@ export class CreateProjectComponent implements OnInit {
   protected async goToNextStep(): Promise<void> {
     // After completing the "details" step (index 1), create the project in the database
     if (this.currentStepIndex() === 1 && !this.project().id) {
+      const user = this.authService.getCurrentUser();
+      if (!user) {
+        this.pendingAction = 'nextStep';
+        this.showLoginModal.set(true);
+        return;
+      }
+      
       await this.createProjectInDatabase();
+      if (!this.project().id) {
+        // Project creation failed, block navigation
+        return;
+      }
     }
 
     if (this.canGoNext()) {
@@ -302,6 +323,37 @@ export class CreateProjectComponent implements OnInit {
         this.finalizeProject();
       }
     }
+  }
+
+  /**
+   * Handle successful login from modal and resume the pending action
+   */
+  protected async onLoginSuccess(): Promise<void> {
+    this.showLoginModal.set(false);
+    const action = this.pendingAction;
+    this.pendingAction = null;
+
+    if (action === 'nextStep') {
+      await this.createProjectInDatabase();
+      if (this.project().id && this.canGoNext()) {
+        const nextIndex = this.currentStepIndex() + 1;
+        if (nextIndex < this.steps.length) {
+          this.navigateToStep(nextIndex);
+        } else {
+          this.finalizeProject();
+        }
+      }
+    } else if (action === 'foundations') {
+      await this.createProjectInDatabase();
+    }
+  }
+
+  /**
+   * Close login modal and cancel pending action
+   */
+  protected closeLoginModal(): void {
+    this.showLoginModal.set(false);
+    this.pendingAction = null;
   }
 
   /**
@@ -371,6 +423,12 @@ export class CreateProjectComponent implements OnInit {
   /** Phase A → crée le projet en base (si nécessaire) puis lance la conversation. */
   protected async onFoundationsContinue(): Promise<void> {
     if (!this.project().id) {
+      const user = this.authService.getCurrentUser();
+      if (!user) {
+        this.pendingAction = 'foundations';
+        this.showLoginModal.set(true);
+        return;
+      }
       await this.createProjectInDatabase();
     } else {
       this.saveDraftProject();
