@@ -220,3 +220,36 @@
     }
   </div>
 }
+
+<!-- Authentication Modal -->
+<p-dialog
+  [(visible)]="showLoginModal"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-full max-w-md auth-dialog"
+  [header]="'dashboard.colorSelection.auth.header' | translate"
+  (onHide)="closeLoginModal()"
+>
+  <div class="text-center mb-6">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-primary/20 rounded-full mb-4">
+      <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+        ></path>
+      </svg>
+    </div>
+    <h3 class="text-xl font-semibold text-white mb-2">
+      {{ 'dashboard.colorSelection.auth.title' | translate }}
+    </h3>
+    <p class="text-gray-400 text-sm">
+      {{ 'dashboard.colorSelection.auth.message' | translate }}
+    </p>
+  </div>
+
+  <app-login-card (loginSuccess)="onLoginSuccess()"></app-login-card>
+</p-dialog>
