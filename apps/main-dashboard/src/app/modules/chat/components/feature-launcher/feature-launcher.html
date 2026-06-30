@@ -1,0 +1,143 @@
+<div class="feature-launcher mx-auto w-full max-w-4xl px-4 py-10 sm:py-14">
+  <!-- En-tête centré -->
+  <header class="text-center mb-8">
+    <h2 class="text-2xl sm:text-3xl font-bold text-white text-balance">
+      {{ 'chat.launcher.title' | translate: { name: projectName() } }}
+    </h2>
+    <p class="mt-2 text-sm text-white/50 max-w-md mx-auto text-pretty">
+      {{ 'chat.launcher.subtitle' | translate }}
+    </p>
+  </header>
+
+  <!-- Appel à compléter l'identité de marque (tant qu'incomplète) -->
+  @if (!brandComplete()) {
+    <button
+      type="button"
+      (click)="onCompleteBranding()"
+      [disabled]="disabled()"
+      class="brand-callout group w-full flex items-center gap-4 mb-7 p-4 rounded-2xl text-left"
+    >
+      <span class="brand-callout-orb shrink-0">
+        <i class="pi pi-palette"></i>
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-semibold text-white">
+          {{ 'chat.banner.title' | translate }}
+        </span>
+        <span class="block text-xs text-white/55 mt-0.5">
+          {{ 'chat.launcher.brandCalloutHint' | translate }}
+        </span>
+      </span>
+      <span
+        class="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-300 group-hover:text-cyan-200 transition-colors"
+      >
+        {{ 'chat.banner.cta' | translate }}
+        <i class="pi pi-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+      </span>
+    </button>
+  }
+
+  <!-- Grille de fonctionnalités -->
+  <div class="launcher-grid">
+    @for (tile of tiles(); track tile.kind; let i = $index) {
+      <button
+        type="button"
+        (click)="select(tile)"
+        [disabled]="disabled() || tile.state === 'locked'"
+        class="feature-card choice-enter group"
+        [class.is-locked]="tile.state === 'locked'"
+        [style.--i]="i"
+        [attr.aria-label]="tile.titleKey | translate"
+        [title]="tile.state === 'locked' && tile.lockReasonKey ? (tile.lockReasonKey | translate) : ''"
+      >
+        <!-- Watermark numéro -->
+        <span class="fc-watermark" aria-hidden="true">{{ (i + 1).toString().padStart(2, '0') }}</span>
+
+        <!-- Badge d'état discret (coin) -->
+        @if (tile.state === 'ready') {
+          <span class="card-badge badge-ready" [attr.aria-label]="'chat.launcher.state.ready' | translate">
+            <i class="pi pi-check"></i>
+          </span>
+        } @else if (tile.state === 'locked') {
+          <span class="card-badge badge-locked" [attr.aria-label]="'chat.launcher.state.locked' | translate">
+            <i class="pi pi-lock"></i>
+          </span>
+        }
+
+        <!-- SVG Illustration (même style que dashboard) -->
+        <div class="fc-visualizer" aria-hidden="true">
+          @switch (tile.kind) {
+            @case ('branding') {
+              <svg class="fc-icon-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                <circle cx="35" cy="30" r="14" stroke="currentColor" stroke-width="1.5" class="svg-stroke-accent" />
+                <rect x="53" y="18" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.5" class="svg-stroke-primary" />
+                <line x1="35" y1="10" x2="35" y2="50" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" class="svg-stroke-dim" />
+                <line x1="15" y1="30" x2="85" y2="30" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" class="svg-stroke-dim" />
+              </svg>
+            }
+            @case ('businessPlan') {
+              <svg class="fc-icon-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                <rect x="18" y="16" width="64" height="6" rx="2" fill="currentColor" class="svg-fill-primary" />
+                <rect x="18" y="27" width="40" height="5" rx="2.5" fill="currentColor" class="svg-fill-accent" />
+                <rect x="18" y="38" width="50" height="5" rx="2.5" fill="currentColor" class="svg-fill-dim" />
+                <circle cx="76" cy="32" r="5" fill="currentColor" class="svg-fill-accent" />
+              </svg>
+            }
+            @case ('pitchDeck') {
+              <svg class="fc-icon-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                <rect x="22" y="14" width="56" height="32" rx="4" stroke="currentColor" stroke-width="1.5" class="svg-stroke-primary" />
+                <path d="M 28 36 L 42 24 L 54 30 L 70 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-stroke-accent" />
+                <circle cx="70" cy="18" r="2.5" fill="currentColor" class="svg-fill-accent" />
+              </svg>
+            }
+            @case ('finance') {
+              <svg class="fc-icon-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                <rect x="20" y="34" width="8" height="12" rx="1.5" fill="currentColor" class="svg-fill-dim" />
+                <rect x="34" y="26" width="8" height="20" rx="1.5" fill="currentColor" class="svg-fill-dim" />
+                <rect x="48" y="18" width="8" height="28" rx="1.5" fill="currentColor" class="svg-fill-dim" />
+                <rect x="62" y="10" width="8" height="36" rx="1.5" fill="currentColor" class="svg-fill-accent" />
+                <path d="M 16 38 Q 38 24 74 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="svg-stroke-primary" />
+              </svg>
+            }
+            @case ('diagrams') {
+              <svg class="fc-icon-svg" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="5" width="90" height="50" rx="8" class="svg-bg" />
+                <rect x="18" y="24" width="12" height="12" rx="3" fill="currentColor" class="svg-fill-dim" />
+                <rect x="44" y="12" width="12" height="12" rx="3" fill="currentColor" class="svg-fill-primary" />
+                <rect x="44" y="36" width="12" height="12" rx="3" fill="currentColor" class="svg-fill-primary" />
+                <rect x="70" y="24" width="12" height="12" rx="3" fill="currentColor" class="svg-fill-accent" />
+                <path d="M 30 30 L 44 18 M 30 30 L 44 42 M 56 18 L 70 30 M 56 42 L 70 30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="svg-stroke-dim" />
+              </svg>
+            }
+          }
+        </div>
+
+        <!-- Titre + description -->
+        <h3 class="fc-title">{{ tile.titleKey | translate }}</h3>
+        <p class="fc-desc">{{ tile.descKey | translate }}</p>
+
+        <!-- Pied : action ou raison de verrouillage -->
+        <div class="fc-foot">
+          @if (tile.state === 'locked') {
+            <span class="text-[11px] text-white/35">
+              <i class="pi pi-lock text-[9px] mr-1"></i>{{ tile.lockReasonKey! | translate }}
+            </span>
+          } @else {
+            <span class="fc-cta">
+              {{ 'chat.launcher.open' | translate }}
+              <i class="pi pi-arrow-right text-[10px]"></i>
+            </span>
+          }
+        </div>
+      </button>
+    }
+  </div>
+
+  <p class="mt-8 text-center text-xs text-white/40">
+    <i class="pi pi-comment text-[10px] mr-1"></i>{{ 'chat.launcher.hint' | translate }}
+  </p>
+</div>

@@ -783,6 +783,20 @@
       },
       "errors": {
         "noActiveProject": "No active project found. Please select a project first."
+      },
+      "modeLabel": "Creation mode",
+      "modeChat": "Conversation",
+      "modeForm": "Form",
+      "switchToForm": "Switch to form",
+      "foundations": {
+        "title": "Let's talk about your project",
+        "subtitle": "A few basics to start — the AI handles the rest in conversation.",
+        "descriptionLabel": "Describe your idea",
+        "descriptionPlaceholder": "e.g. a marketplace for local artisans handling orders and payments…",
+        "nameLabel": "Project name",
+        "namePlaceholder": "e.g. ArtisanHub",
+        "typeLabel": "Project type",
+        "continue": "Continue"
       }
     },
     "logoChoice": {
@@ -867,7 +881,7 @@
         "businessPlan": "Business Plan",
         "pitchDeck": "Pitch Deck",
         "finance": "Financial Forecasts",
-        "systemDesign": "System Design",
+        "systemDesign": "Diagrams",
         "development": "Development",
         "launch": "Launch"
       },
@@ -898,9 +912,9 @@
           "alt": "Financial Forecasts"
         },
         "design": {
-          "title": "System Design",
+          "title": "Diagrams",
           "description": "Design your system architecture and technical specifications",
-          "alt": "System Design"
+          "alt": "Diagrams"
         },
         "development": {
           "title": "Development",
@@ -2326,7 +2340,8 @@
       "errors": {
         "descriptionTooShort": "Could you tell me a bit more? A few sentences are enough to get started.",
         "nameRequired": "I need a name for your project. Which one do you choose?",
-        "createFailed": "Project creation failed. Check your connection and confirm again."
+        "createFailed": "Project creation failed. Check your connection and confirm again.",
+        "planFailed": "I couldn't prepare my questions, but we can go straight to the summary."
       },
       "actions": {
         "skip": "Skip this question",
@@ -2369,7 +2384,9 @@
           "20k-50k": "€20,000 to €50,000",
           "gt-50k": "Over €50,000"
         }
-      }
+      },
+      "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
+      "composerPlaceholder": "Type your answer, or pick a suggestion…"
     },
     "branding": {
       "invite": "Now let's work on your **brand identity** (logo, colors, typography). Do you want to generate it with AI, or import your own logo?",
@@ -2409,7 +2426,8 @@
         "typographyTitle": "Typographies",
         "typographySubtitle": "Click to choose your font pairing",
         "logosTitle": "Logo concepts",
-        "logosSubtitle": "Click to choose your logo"
+        "logosSubtitle": "Click to choose your logo",
+        "typographySample": "The quick brown fox jumps over the lazy dog."
       },
       "errors": {
         "generation": "Generation failed. Shall we retry?",
@@ -2491,6 +2509,31 @@
       "cardDone": "Your {{title}} is ready",
       "cardError": "Generating your {{title}} failed",
       "steps": "{{done}}/{{total}} steps completed"
+    },
+    "launcher": {
+      "title": "What are we building for {{name}}?",
+      "subtitle": "Pick a deliverable to view or generate — or just type your request below.",
+      "hint": "You can also simply type what you need.",
+      "askShow": "Show me my {{title}}",
+      "askGenerate": "Let's generate my {{title}}",
+      "features": {
+        "branding": "Your brand's logo, colors and typography.",
+        "businessPlan": "Your project's full business plan.",
+        "pitchDeck": "The deck to win over your investors.",
+        "finance": "Financial forecasts and tables.",
+        "diagrams": "Architecture and technical diagrams.",
+        "legalDocs": "Articles, terms, contracts and legal notices."
+      },
+      "state": {
+        "ready": "Ready",
+        "generate": "Generate",
+        "locked": "Locked"
+      },
+      "locked": {
+        "needsBranding": "Complete your brand identity first."
+      },
+      "open": "Open",
+      "brandCalloutHint": "Logo, colors and typography — the base of every deliverable."
     }
   }
 }

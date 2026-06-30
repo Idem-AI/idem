@@ -8,6 +8,8 @@ import {
   SelectedMockupSupport,
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
+import { AI_CONFIG } from '../config/ai.config';
+
 
 export interface MockupGenerationRequest {
   logoImageBase64: string | null;
@@ -222,14 +224,14 @@ export class GeminiMockupService {
         `[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3.1-flash-image)`,
         {
           mockupName,
-          model: 'gemini-3.1-flash-image',
+          model: AI_CONFIG.branding.brandMockup.imageModel,
           mockupIndex: request.selectedSupport.mockupIndex,
           projectId,
         }
       );
 
       const response = await this.geminiAI.models.generateContent({
-        model: 'gemini-3.1-flash-image',
+        model: AI_CONFIG.branding.brandMockup.imageModel,
         contents: contents,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],

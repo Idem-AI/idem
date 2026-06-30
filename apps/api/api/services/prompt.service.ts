@@ -7,18 +7,8 @@ import OpenAI from 'openai';
 import { userService } from './user.service';
 dotenv.config();
 
-export enum LLMProvider {
-  GEMINI = 'GEMINI',
-  CHATGPT = 'CHATGPT',
-  DEEPSEEK = 'DEEPSEEK',
-}
-
-export interface LLMOptions {
-  maxOutputTokens?: number;
-  temperature?: number;
-  topP?: number;
-  topK?: number;
-}
+import { LLMProvider, LLMOptions } from '../config/ai.config';
+export { LLMProvider, LLMOptions };
 
 export interface PromptConfig {
   provider: LLMProvider;

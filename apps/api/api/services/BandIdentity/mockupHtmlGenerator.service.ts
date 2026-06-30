@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import logger from '../../config/logger';
 import { MOCKUP_HTML_GENERATION_PROMPT } from './prompts/mockup-html-generation.prompt';
+import { AI_CONFIG } from '../../config/ai.config';
 
 /**
  * Service pour générer le HTML d'affichage des mockups via Gemini AI
@@ -8,7 +9,7 @@ import { MOCKUP_HTML_GENERATION_PROMPT } from './prompts/mockup-html-generation.
  */
 export class MockupHtmlGeneratorService {
   private geminiAI: GoogleGenerativeAI;
-  private readonly MODEL_NAME = 'gemini-3.5-flash';
+  private readonly MODEL_NAME = AI_CONFIG.branding.mockupHtml.modelName;
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;

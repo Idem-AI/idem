@@ -13,7 +13,9 @@ import {
 } from '../../models/deployment.model';
 import logger from '../../config/logger';
 import { PromptService, LLMProvider, AIChatMessage, PromptConfig } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
 import { GenericService } from '../common/generic.service';
+
 import { spawn } from 'child_process';
 import { ProjectModel } from '../../models/project.model';
 import { AI_CHAT_INITIAL_PROMPT } from './prompts/ai-chat.prompt';
@@ -769,14 +771,13 @@ Please provide only the terraform.tfvars file content as output.`;
 
       // Use AI to generate the tfvars content
       const promptConfig: PromptConfig = {
-        provider: LLMProvider.GEMINI,
-        modelName: 'gemini-3-flash-preview',
+        provider: AI_CONFIG.deployment.terraform.provider,
+        modelName: AI_CONFIG.deployment.terraform.modelName,
         llmOptions: {
-          temperature: 0.3,
-          maxOutputTokens: 4000,
+          ...AI_CONFIG.deployment.terraform.llmOptions,
         },
         userId,
-        promptType: 'terraform_tfvars_generation',
+        promptType: AI_CONFIG.deployment.terraform.promptType,
       };
 
       const messages: AIChatMessage[] = [
@@ -1139,11 +1140,10 @@ Please provide only the terraform.tfvars file content as output.`;
           // Call the PromptService to generate a response
           const aiResponse = await this.promptService.runPrompt(
             {
-              provider: LLMProvider.GEMINI,
-              modelName: 'gemini-3-flash-preview',
+              provider: AI_CONFIG.deployment.chat.provider,
+              modelName: AI_CONFIG.deployment.chat.modelName,
               llmOptions: {
-                temperature: 0.7,
-                maxOutputTokens: 1024,
+                ...AI_CONFIG.deployment.chat.llmOptions,
               },
             },
             promptMessages

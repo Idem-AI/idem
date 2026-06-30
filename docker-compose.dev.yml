@@ -13,6 +13,8 @@ volumes:
   dev_mongodb_data:
   # Services node_modules volumes (pour éviter conflits avec host)
   dev_node_modules_api:
+  dev_node_modules_ideploy_api:
+  dev_node_modules_ideploy_web:
   dev_node_modules_dashboard:
   dev_node_modules_landing:
   dev_node_modules_appgen:
@@ -231,7 +233,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:3003,http://localhost:3004,http://localhost:8000'
+      CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:4202,http://localhost:3003,http://localhost:3004,http://localhost:8000'
       MONGODB_URI: 'mongodb://$${MONGODB_USERNAME}:$${MONGODB_PASSWORD}@mongodb:27017/$${MONGODB_DATABASE}?authSource=admin'
       # MinIO Configuration
       MINIO_ENDPOINT: 'minio'
@@ -250,6 +252,82 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+
+  # ==================== IDEPLOY API (Node rewrite) ====================
+
+  ideploy-api:
+    image: ideploy-api:dev
+    container_name: idem-ideploy-api-dev
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ./Dockerfile/dev/Dockerfile.ideploy-api
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    ports:
+      - '${IDEPLOY_API_PORT:-3002}:3002'
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      CORS_ALLOWED_ORIGINS: 'http://localhost:4202,http://localhost:8000'
+      # SHARED iDeploy Postgres (same DB as the Laravel app)
+      IDEPLOY_DB_HOST: 'postgres'
+      IDEPLOY_DB_PORT: '5432'
+      IDEPLOY_DB_DATABASE: '${IDEPLOY_DB_DATABASE:-coolify}'
+      IDEPLOY_DB_USERNAME: '${IDEPLOY_DB_USERNAME:-coolify}'
+      IDEPLOY_DB_PASSWORD: '${IDEPLOY_DB_PASSWORD:-password}'
+      DATABASE_URL: 'postgresql://$${IDEPLOY_DB_USERNAME:-coolify}:$${IDEPLOY_DB_PASSWORD:-password}@postgres:5432/$${IDEPLOY_DB_DATABASE:-coolify}?schema=public'
+      # MUST match apps/ideploy/.env APP_KEY to read encrypted columns
+      APP_KEY: '${IDEPLOY_APP_KEY}'
+      # Authentication is delegated to the central Idem API (session cookie → /auth/profile)
+      IDEM_API_URL: 'http://api:3000'
+      REDIS_HOST: 'redis'
+      REDIS_PORT: '6379'
+      # Realtime via Soketi (Pusher protocol)
+      PUSHER_HOST: 'soketi'
+      PUSHER_PORT: '6001'
+      PUSHER_SCHEME: 'http'
+      PUSHER_APP_ID: '${PUSHER_APP_ID:-ideploy}'
+      PUSHER_APP_KEY: '${PUSHER_APP_KEY:-ideploy}'
+      PUSHER_APP_SECRET: '${PUSHER_APP_SECRET:-ideploy-secret}'
+    volumes:
+      - ./apps/ideploy-api:/app/apps/ideploy-api:cached
+      - ./packages:/app/packages:cached
+      - dev_node_modules_ideploy_api:/app/apps/ideploy-api/node_modules
+    networks:
+      - idem-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ==================== IDEPLOY WEB (Angular rewrite) ====================
+
+  ideploy-web:
+    user: '${UID}:${GID}'
+    image: ideploy-web:dev
+    container_name: idem-ideploy-web-dev
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ./Dockerfile/dev/Dockerfile.ideploy-web
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    ports:
+      - '4202:4202'
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/ideploy-web:/app/apps/ideploy-web:cached
+      - ./packages:/app/packages:cached
+      - dev_node_modules_ideploy_web:/app/apps/ideploy-web/node_modules
+    networks:
+      - idem-dev
+    depends_on:
+      - ideploy-api
 
   # ==================== MAIN DASHBOARD ====================
 

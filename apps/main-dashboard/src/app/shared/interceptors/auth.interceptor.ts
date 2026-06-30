@@ -18,13 +18,18 @@ export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn,
 ): Observable<HttpEvent<unknown>> => {
-  console.log('Auth Interceptor: Intercepting request:', req.url);
   const platformId = inject(PLATFORM_ID);
-  const tokenService = inject(TokenService);
 
   // Skip interception for server-side rendering
   if (isPlatformServer(platformId)) {
-    console.log('Auth Interceptor: Skipping interception for server-side rendering');
+    return next(req);
+  }
+
+  // Skip static assets (i18n JSON, images, fonts…). These never need an auth
+  // header, and intercepting them would inject TokenService → Firebase Auth
+  // synchronously during bootstrap (the translate loader fires at startup),
+  // which triggers an NG0200 circular dependency on `Auth`. Resolve them early.
+  if (req.url.includes('/assets/') || req.url.startsWith('assets/')) {
     return next(req);
   }
 
@@ -34,7 +39,6 @@ export const authInterceptor: HttpInterceptorFn = (
     req.url.includes('/auth/register') ||
     req.url.includes('/auth/refresh')
   ) {
-    console.log('Auth Interceptor: Skipping interception for auth endpoints');
     return next(req);
   }
 
@@ -42,6 +46,10 @@ export const authInterceptor: HttpInterceptorFn = (
   if (req.headers.has('Authorization')) {
     return next(req);
   }
+
+  // Only now resolve TokenService (which injects Firebase Auth) — i.e. only for
+  // real API requests, in a clean injection context.
+  const tokenService = inject(TokenService);
 
   // Wait for auth to be ready, then proceed with token logic
   return from(tokenService.waitForAuthReady()).pipe(

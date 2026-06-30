@@ -24,6 +24,8 @@ import {
 } from '../../models/finance.model';
 import { TypographyModel } from '../../models/brand-identity.model';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
+
 import { cacheService } from '../cache.service';
 import * as crypto from 'crypto';
 import { AGENT_FINANCE_COVER_PROMPT } from './prompts/agent-finance-cover.prompt';
@@ -172,10 +174,12 @@ export class FinancePdfService {
     ];
 
     const config: PromptConfig = {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
-      promptType: 'finance-cover-generation',
-      llmOptions: { temperature: 0.7, maxOutputTokens: 2000 },
+      provider: AI_CONFIG.finance.pdfCover.provider,
+      modelName: AI_CONFIG.finance.pdfCover.modelName,
+      promptType: AI_CONFIG.finance.pdfCover.promptType,
+      llmOptions: {
+        ...AI_CONFIG.finance.pdfCover.llmOptions,
+      },
     };
 
     try {
@@ -740,10 +744,12 @@ NE renvoie PAS de markdown, juste du texte avec des sauts de ligne entre paragra
     ];
 
     const config: PromptConfig = {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
-      promptType: 'finance-pdf-interpretation',
-      llmOptions: { temperature: 0.5, maxOutputTokens: 1500 },
+      provider: AI_CONFIG.finance.pdfInterpretation.provider,
+      modelName: AI_CONFIG.finance.pdfInterpretation.modelName,
+      promptType: AI_CONFIG.finance.pdfInterpretation.promptType,
+      llmOptions: {
+        ...AI_CONFIG.finance.pdfInterpretation.llmOptions,
+      },
     };
     try {
       const raw = await this.promptService.runPrompt(config, messages);

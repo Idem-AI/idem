@@ -19,7 +19,7 @@
       "milestones": {
         "brandIdentity": "Brand Identity",
         "businessPlan": "Business Plan",
-        "systemDesign": "System Design",
+        "systemDesign": "Diagrams",
         "development": "Development",
         "launch": "Launch"
       },
@@ -40,9 +40,9 @@
           "alt": "Business Plan"
         },
         "design": {
-          "title": "System Design",
+          "title": "Diagrams",
           "description": "Design your system architecture and technical specifications",
-          "alt": "System Design"
+          "alt": "Diagrams"
         },
         "development": {
           "title": "Development",

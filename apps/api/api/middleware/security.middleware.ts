@@ -44,10 +44,7 @@ export function auditLogger(req: Request, res: Response, next: NextFunction): vo
   const sensitivePaths = [
     '/auth',
     '/admin',
-    '/migration',
     '/api/auth',
-    '/teams',
-    '/invitations',
     '/github',
   ];
   const matches = sensitivePaths.some((p) => req.path.startsWith(p));

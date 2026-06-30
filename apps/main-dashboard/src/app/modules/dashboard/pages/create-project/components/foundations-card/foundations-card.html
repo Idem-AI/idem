@@ -1,0 +1,78 @@
+<section class="flex flex-col items-center justify-center w-full px-4 py-8 min-h-[60vh]">
+  <div class="text-center mb-6 max-w-2xl">
+    <div
+      class="w-12 h-12 mx-auto mb-4 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center"
+    >
+      <i class="pi pi-sparkles text-primary text-xl"></i>
+    </div>
+    <h1 class="text-2xl sm:text-3xl font-bold text-white mb-2">
+      {{ 'dashboard.createProject.foundations.title' | translate }}
+    </h1>
+    <p class="text-sm text-gray-400">
+      {{ 'dashboard.createProject.foundations.subtitle' | translate }}
+    </p>
+  </div>
+
+  <div class="w-full max-w-xl">
+    <div class="rounded-2xl p-5 sm:p-6 border border-white/10 glass space-y-5">
+      <!-- Description -->
+      <div>
+        <label for="foundDesc" class="block text-sm font-medium text-gray-200 mb-2">
+          {{ 'dashboard.createProject.foundations.descriptionLabel' | translate }}
+        </label>
+        <textarea
+          id="foundDesc"
+          [ngModel]="description()"
+          (ngModelChange)="onDescriptionChange($event)"
+          rows="4"
+          class="w-full resize-none"
+          [placeholder]="'dashboard.createProject.foundations.descriptionPlaceholder' | translate"
+        ></textarea>
+      </div>
+
+      <!-- Nom + Type -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="foundName" class="block text-sm font-medium text-gray-200 mb-2">
+            {{ 'dashboard.createProject.foundations.nameLabel' | translate }}
+          </label>
+          <input
+            pInputText
+            id="foundName"
+            [ngModel]="name()"
+            (ngModelChange)="onNameChange($event)"
+            autocomplete="off"
+            class="w-full"
+            [placeholder]="'dashboard.createProject.foundations.namePlaceholder' | translate"
+          />
+        </div>
+        <div>
+          <label for="foundType" class="block text-sm font-medium text-gray-200 mb-2">
+            {{ 'dashboard.createProject.foundations.typeLabel' | translate }}
+          </label>
+          <p-select
+            [options]="projectTypes"
+            [ngModel]="type()"
+            (ngModelChange)="onTypeChange($event)"
+            [editable]="false"
+            optionLabel="name"
+            class="w-full"
+            [placeholder]="'dashboard.projectDetails.placeholders.selectType' | translate"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        (click)="submit()"
+        [disabled]="!canContinue()"
+        class="inner-button w-full justify-center"
+      >
+        @if (busy()) {
+          <i class="pi pi-spinner pi-spin text-xs mr-2"></i>
+        }
+        {{ 'dashboard.createProject.foundations.continue' | translate }}
+      </button>
+    </div>
+  </div>
+</section>

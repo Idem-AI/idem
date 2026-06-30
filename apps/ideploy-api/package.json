@@ -1,0 +1,53 @@
+{
+  "name": "ideploy-api",
+  "version": "1.0.0",
+  "description": "Node.js (Express + TypeScript) backend for iDeploy — rewrite of the Laravel/Livewire PaaS, sharing the same PostgreSQL schema.",
+  "main": "api/index.ts",
+  "scripts": {
+    "dev": "nodemon api/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint api --ext .ts",
+    "prisma:pull": "prisma db pull",
+    "prisma:generate": "prisma generate",
+    "prisma:introspect": "npm run prisma:pull && npm run prisma:generate"
+  },
+  "author": "arolleaguekeng",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^6.2.1",
+    "axios": "^1.7.9",
+    "bullmq": "^5.34.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "ioredis": "^5.4.1",
+    "morgan": "^1.10.0",
+    "node-ssh": "^13.2.0",
+    "pg": "^8.13.3",
+    "pusher": "^5.2.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/hpp": "^0.2.7",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.13.11",
+    "@types/pg": "^8.11.11",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "nodemon": "^3.1.9",
+    "prisma": "^6.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

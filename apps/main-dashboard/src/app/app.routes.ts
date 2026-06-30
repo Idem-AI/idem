@@ -30,40 +30,13 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
-        (m) => m.GlobalDashboard,
-      ),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
+    redirectTo: 'console',
+    pathMatch: 'full',
   },
   {
     path: 'projects',
     loadComponent: () =>
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
-  },
-  {
-    path: 'teams',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/my-teams/my-teams').then((m) => m.MyTeams),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
-  },
-  {
-    path: 'teams/create',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/create-team/create-team').then((m) => m.CreateTeam),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
-  },
-  {
-    path: 'teams/:teamId',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/team-details-global/team-details-global').then(
-        (m) => m.TeamDetailsGlobal,
-      ),
     canActivate: [authGuard],
     data: { layout: 'global' },
   },
@@ -288,31 +261,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { layout: 'dashboard' },
   },
-  {
-    path: 'project/teams',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/project-teams/project-teams').then((m) => m.ProjectTeams),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
-    path: 'project/teams/:teamId',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/team-details-project/team-details-project').then(
-        (m) => m.TeamDetailsProject,
-      ),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
-    path: 'project/teams/add',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/add-team-to-project/add-team-to-project').then(
-        (m) => m.AddTeamToProject,
-      ),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
+
   {
     path: 'project/profile',
     loadComponent: () =>
