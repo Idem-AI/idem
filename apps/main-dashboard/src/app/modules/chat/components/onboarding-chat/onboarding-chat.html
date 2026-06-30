@@ -1,26 +1,22 @@
-<div class="onboarding-chat flex flex-col h-full min-h-0">
+<div class="onboarding-chat-container">
   <!-- Fil de messages -->
-  <div class="flex-1 min-h-0 overflow-y-auto">
-    <div class="max-w-2xl mx-auto w-full px-4 py-6 space-y-5">
+  <div class="chat-history">
+    <div class="max-w-3xl mx-auto w-full space-y-6">
       @for (msg of messages(); track msg.id) {
-        <div class="flex gap-3" [class.flex-row-reverse]="msg.role === 'user'">
-          <div
-            class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold uppercase text-white"
-            [ngClass]="msg.role === 'user' ? 'bg-primary' : 'bg-white/5 border border-white/10'"
-          >
-            {{ msg.role === 'user' ? 'Me' : 'AI' }}
+        <div class="chat-message-row" [class.user-row]="msg.role === 'user'">
+          <!-- Avatar -->
+          <div class="chat-avatar" [class.user-avatar]="msg.role === 'user'" [class.assistant-avatar]="msg.role !== 'user'">
+            @if (msg.role === 'user') {
+              <i class="pi pi-user text-xs"></i>
+            } @else {
+              <i class="pi pi-sparkles text-xs"></i>
+            }
           </div>
-
-          <div class="min-w-0 max-w-[85%] space-y-3" [class.text-right]="msg.role === 'user'">
+ 
+          <!-- Message and items -->
+          <div class="message-bubble-wrapper">
             @if (msg.content) {
-              <div
-                class="inline-block text-left rounded-2xl px-4 py-3 text-sm leading-relaxed advisor-message"
-                [ngClass]="
-                  msg.role === 'user'
-                    ? 'bg-primary text-white'
-                    : 'bg-white/5 text-gray-100 border border-white/5'
-                "
-              >
+              <div class="message-bubble" [class.user-bubble]="msg.role === 'user'" [class.assistant-bubble]="msg.role !== 'user'">
                 @if (msg.role === 'user') {
                   <div class="whitespace-pre-wrap break-words">{{ msg.content }}</div>
                 } @else {
@@ -28,17 +24,19 @@
                 }
               </div>
             }
-
+ 
             <!-- Récap final -->
             @if (msg.recap; as recap) {
-              <app-recap-card
-                [recap]="recap"
-                [busy]="isCreating()"
-                (confirmed)="onRecapConfirmed($event)"
-                (restartRequested)="onRecapRestart()"
-              />
+              <div class="mt-4">
+                <app-recap-card
+                  [recap]="recap"
+                  [busy]="isCreating()"
+                  (confirmed)="onRecapConfirmed($event)"
+                  (restartRequested)="onRecapRestart()"
+                />
+              </div>
             }
-
+ 
             <!-- Chips de réponse (sous le dernier message assistant uniquement) -->
             @if (
               msg.role === 'assistant' &&
@@ -46,63 +44,68 @@
               msg.id === lastMessageId() &&
               !pending()
             ) {
-              <app-suggestion-chips
-                [chips]="msg.chips!"
-                [disabled]="pending() || isCreating()"
-                (chipSelected)="onChipSelected($event)"
-              />
+              <div class="mt-3">
+                <app-suggestion-chips
+                  [chips]="msg.chips!"
+                  [disabled]="pending() || isCreating()"
+                  (chipSelected)="onChipSelected($event)"
+                />
+              </div>
             }
           </div>
         </div>
       }
-
+ 
       <!-- Indicateur de frappe -->
       @if (pending()) {
-        <div class="flex gap-3">
-          <div
-            class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs font-semibold uppercase text-white"
-          >
-            AI
+        <div class="chat-message-row">
+          <div class="chat-avatar assistant-avatar">
+            <i class="pi pi-sparkles text-xs"></i>
           </div>
-          <div
-            class="bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 flex items-center gap-2"
-          >
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:150ms]"></span>
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:300ms]"></span>
+          <div class="message-bubble assistant-bubble py-4 flex items-center justify-center min-w-[70px]">
+            <div class="typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
           </div>
         </div>
       }
       <div #scrollAnchor></div>
     </div>
   </div>
-
+ 
   <!-- Composer -->
-  <div class="shrink-0 border-t border-white/5">
-    <div class="max-w-2xl mx-auto w-full px-4 py-4">
+  <div class="chat-composer-container">
+    <div class="max-w-3xl mx-auto w-full">
       @if (errorMessage()) {
-        <p class="text-sm text-amber-400 mb-3">{{ errorMessage() }}</p>
+        <p class="text-sm text-amber-400 mb-3 px-2 flex items-center gap-1.5 animate-pulse">
+          <i class="pi pi-exclamation-triangle"></i>
+          {{ errorMessage() }}
+        </p>
       }
-      <div class="flex items-end gap-3">
+      <div class="chat-composer-box">
         <textarea
           [ngModel]="draft()"
           (ngModelChange)="updateDraft($event)"
           (keydown)="handleKeydown($event)"
           rows="1"
-          class="min-h-[52px]! resize-none"
           [disabled]="phase() === 'recap'"
           [placeholder]="'chat.onboarding.composerPlaceholder' | translate"
         ></textarea>
+        
         <button
-          class="inner-button"
+          class="chat-send-btn"
           [disabled]="!draft().trim() || pending() || isCreating() || phase() === 'recap'"
           (click)="send()"
+          [title]="'chat.composer.send' | translate"
         >
-          {{ 'chat.composer.send' | translate }}
+          <i class="pi pi-send text-[13px]"></i>
         </button>
       </div>
-      <div class="flex items-center justify-between mt-2">
-        <p class="text-xs text-gray-500">{{ 'chat.composer.hint' | translate }}</p>
+      
+      <div class="flex items-center justify-between mt-2 px-2">
+        <p class="text-xs text-gray-500/80">{{ 'chat.composer.hint' | translate }}</p>
         @if (showFormSwitch()) {
           <button
             type="button"
@@ -117,3 +120,37 @@
     </div>
   </div>
 </div>
+
+<!-- Authentication Modal -->
+<p-dialog
+  [(visible)]="showLoginModal"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-full max-w-md auth-dialog"
+  [header]="'dashboard.colorSelection.auth.header' | translate"
+  (onHide)="closeLoginModal()"
+>
+  <div class="text-center mb-6">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-primary/20 rounded-full mb-4">
+      <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+        ></path>
+      </svg>
+    </div>
+    <h3 class="text-xl font-semibold text-white mb-2">
+      {{ 'dashboard.colorSelection.auth.title' | translate }}
+    </h3>
+    <p class="text-gray-400 text-sm">
+      {{ 'dashboard.colorSelection.auth.message' | translate }}
+    </p>
+  </div>
+
+  <app-login-card (loginSuccess)="onLoginSuccess()"></app-login-card>
+</p-dialog>
+

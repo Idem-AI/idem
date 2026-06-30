@@ -57,14 +57,31 @@ html.light {
 }
 
 /* Override any potential light backgrounds */
+.p-dialog,
+.p-dialog .p-dialog-header,
 .p-dialog .p-dialog-content,
+.p-dialog .p-dialog-footer,
 .p-overlay-panel,
 .p-menu .p-menu-list,
 .p-dropdown-panel,
 .p-select-overlay {
-  background-color: rgba(20, 25, 32, 0.95) !important;
+  background-color: #0f141b !important;
   color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.p-dialog .p-dialog-header .p-dialog-title {
+  color: #ffffff !important;
+}
+
+.p-dialog .p-dialog-header .p-dialog-header-icon,
+.p-dialog .p-dialog-header .p-dialog-close-icon {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.p-dialog .p-dialog-header .p-dialog-header-icon:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Angular-specific or project-specific styles can be added below */

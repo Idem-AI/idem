@@ -25,6 +25,13 @@ export const AI_CONFIG = {
     modelName: 'gemini-3-flash-preview',
   } as FeatureAIConfig,
 
+  // Fallback settings
+  fallback: {
+    textModel: 'gemini-2.5-flash',
+    imageModel: 'gemini-3-pro-image',
+  },
+
+
   // Onboarding service configurations
   onboarding: {
     default: {

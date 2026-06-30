@@ -16,6 +16,7 @@ import { GoogleGenAI } from '@google/genai';
 import logger from '../../config/logger';
 import { StorageService } from '../storage.service';
 import { AI_CONFIG } from '../../config/ai.config';
+import { withGeminiFallback } from '../../utils/gemini-fallback';
 import {
   FlyerImageAnalysis,
   FlyerImageAttribution,
@@ -162,22 +163,43 @@ export class ImageSourcingService {
   ): Promise<SourcedImage> {
     logger.info(`[ImageSourcing] Generating and analyzing with Gemini`, { tag: opts.tag });
     const start = Date.now();
-    const response = await this.geminiAI.models.generateContent({
-      model: GEMINI_IMAGE_MODEL,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: brief.generationPrompt },
-            { text: COMBINED_INSTRUCTION(brief.searchQuery) },
-          ],
+    const fallbackImageModel = AI_CONFIG.fallback.imageModel;
+    const response = await withGeminiFallback(
+      () => this.geminiAI.models.generateContent({
+        model: GEMINI_IMAGE_MODEL,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: brief.generationPrompt },
+              { text: COMBINED_INSTRUCTION(brief.searchQuery) },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          candidateCount: 1,
         },
-      ],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        candidateCount: 1,
-      },
-    });
+      }),
+      () => this.geminiAI.models.generateContent({
+        model: fallbackImageModel,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: brief.generationPrompt },
+              { text: COMBINED_INSTRUCTION(brief.searchQuery) },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          candidateCount: 1,
+        },
+      }),
+      GEMINI_IMAGE_MODEL,
+      fallbackImageModel
+    );
 
     logger.info(`[ImageSourcing] Gemini generation complete`, {
       tag: opts.tag,
@@ -262,24 +284,47 @@ export class ImageSourcingService {
     mimeType: string,
     searchQuery: string
   ): Promise<FlyerImageAnalysis> {
-    const response = await this.geminiAI.models.generateContent({
-      model: GEMINI_VISION_MODEL,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { inlineData: { mimeType, data: base64 } },
-            { text: `Brief context: "${searchQuery}". ${VISION_INSTRUCTION}` },
-          ],
+    const fallbackVisionModel = AI_CONFIG.fallback.textModel;
+    const effectiveFallback = GEMINI_VISION_MODEL === fallbackVisionModel ? 'gemini-1.5-flash' : fallbackVisionModel;
+
+    const response = await withGeminiFallback(
+      () => this.geminiAI.models.generateContent({
+        model: GEMINI_VISION_MODEL,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType, data: base64 } },
+              { text: `Brief context: "${searchQuery}". ${VISION_INSTRUCTION}` },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ['TEXT'],
+          candidateCount: 1,
+          maxOutputTokens: 256,
         },
-      ],
-      config: {
-        responseModalities: ['TEXT'],
-        candidateCount: 1,
-        // Cap output tokens — the JSON fits comfortably in 150 tokens.
-        maxOutputTokens: 256,
-      },
-    });
+      }),
+      () => this.geminiAI.models.generateContent({
+        model: effectiveFallback,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType, data: base64 } },
+              { text: `Brief context: "${searchQuery}". ${VISION_INSTRUCTION}` },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ['TEXT'],
+          candidateCount: 1,
+          maxOutputTokens: 256,
+        },
+      }),
+      GEMINI_VISION_MODEL,
+      effectiveFallback
+    );
 
     const text = (response.candidates?.[0]?.content?.parts || [])
       .map((p: any) => p.text || '')

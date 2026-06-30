@@ -158,6 +158,8 @@ export type OnboardingStepId =
 
 /** Champ projet ciblé par une question du plan IA */
 export type OnboardingFieldKey =
+  | 'name'
+  | 'type'
   | 'targets'
   | 'scope'
   | 'teamSize'
