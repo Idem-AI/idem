@@ -32,6 +32,10 @@ import {
   OnboardingRecapData,
 } from '../../models/chat.model';
 
+import { AuthService } from '../../../auth/services/auth.service';
+import { LoginCardComponent } from '../../../auth/components/login-card/login-card';
+import { DialogModule } from 'primeng/dialog';
+
 /** Données de départ (issues du formulaire Fondations / d'un projet en cours). */
 export interface OnboardingFoundations {
   description: string;
@@ -81,6 +85,8 @@ let msgCounter = 0;
     MarkdownModule,
     SuggestionChipsComponent,
     RecapCardComponent,
+    DialogModule,
+    LoginCardComponent,
   ],
   templateUrl: './onboarding-chat.html',
   styleUrls: ['./onboarding-chat.css', '../../../dashboard/pages/advisor/advisor-markdown.css'],
@@ -91,6 +97,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private readonly aiService = inject(OnboardingAiService);
   private readonly projectService = inject(ProjectService);
   private readonly translate = inject(TranslateService);
+  private readonly authService = inject(AuthService);
 
   /** Fondations du projet (obligatoires pour démarrer le plan IA) */
   readonly foundations = input.required<OnboardingFoundations>();
@@ -108,6 +115,9 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   protected readonly isCreating = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly phase = signal<'asking' | 'recap'>('asking');
+  
+  protected readonly showLoginModal = signal<boolean>(false);
+  private pendingAcceptances: OnboardingPolicyAcceptances | null = null;
 
   private questions: OnboardingPlanQuestion[] = [];
   private index = 0;
@@ -137,8 +147,9 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   // ─────────────────────────────────────────────── Démarrage / plan IA
 
   private async startFlow(): Promise<void> {
+    const welcomeName = this.foundations().name || (this.translate.currentLang === 'en' ? 'your project' : 'votre projet');
     this.appendAssistant(
-      this.translate.instant('chat.onboarding.aiWelcome', { name: this.foundations().name }),
+      this.translate.instant('chat.onboarding.aiWelcome', { name: welcomeName }),
     );
     this.pending.set(true);
     try {
@@ -146,12 +157,46 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       const res = await firstValueFrom(
         this.aiService.generateQuestions({
           description: this.foundations().description,
-          name: this.foundations().name,
-          type: this.foundations().type,
+          name: this.foundations().name || undefined,
+          type: this.foundations().type || undefined,
           language: lang,
         }),
       );
       this.questions = res?.questions ?? [];
+      
+      // Inject Name question if not provided in foundations
+      if (!this.foundations().name) {
+        this.questions.unshift({
+          id: 'name',
+          field: 'name',
+          kind: 'open',
+          optional: false,
+          prompt: this.translate.currentLang === 'en'
+            ? 'First, what is the name of your project?'
+            : 'Tout d\'abord, quel est le nom de votre projet ?',
+        });
+      }
+
+      // Inject Type question if not provided in foundations
+      if (!this.foundations().type) {
+        const insertIndex = !this.foundations().name ? 1 : 0;
+        this.questions.splice(insertIndex, 0, {
+          id: 'type',
+          field: 'type',
+          kind: 'choice',
+          optional: false,
+          prompt: this.translate.currentLang === 'en'
+            ? 'What type of application are we building?'
+            : 'Quel type d\'application allons-nous construire ?',
+          chips: [
+            { label: this.translate.currentLang === 'en' ? 'Web Application' : 'Application Web', value: 'web' },
+            { label: this.translate.currentLang === 'en' ? 'Mobile Application' : 'Application Mobile', value: 'mobile' },
+            { label: this.translate.currentLang === 'en' ? 'Landing Page' : 'Site Vitrine', value: 'landing' },
+            { label: this.translate.currentLang === 'en' ? 'Other / API' : 'Autre / API', value: 'api' }
+          ]
+        });
+      }
+
       this.index = 0;
       this.pending.set(false);
       if (this.questions.length === 0) {
@@ -315,9 +360,9 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   private buildRecap(): OnboardingRecapData {
     return {
-      name: this.foundations().name,
+      name: this.answerDisplay('name') || this.foundations().name,
       description: this.foundations().description,
-      typeKey: this.foundations().typeLabel || this.foundations().type,
+      typeKey: this.answerDisplay('type') || this.foundations().typeLabel || this.foundations().type,
       targetsKey: this.answerDisplay('targets'),
       scopeKey: this.answerDisplay('scope'),
       teamSizeKey: this.answerDisplay('teamSize'),
@@ -331,6 +376,15 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   protected async onRecapConfirmed(acceptances: OnboardingPolicyAcceptances): Promise<void> {
     if (this.isCreating()) return;
+
+    // Check if user is logged in
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.pendingAcceptances = acceptances;
+      this.showLoginModal.set(true);
+      return;
+    }
+
     this.isCreating.set(true);
     try {
       const projectId = await this.persistProject(acceptances);
@@ -341,6 +395,29 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       this.isCreating.set(false);
       this.appendAssistant(this.translate.instant('chat.onboarding.errors.createFailed'));
     }
+  }
+
+  protected async onLoginSuccess(): Promise<void> {
+    this.showLoginModal.set(false);
+    if (this.pendingAcceptances) {
+      const acceptances = this.pendingAcceptances;
+      this.pendingAcceptances = null;
+      this.isCreating.set(true);
+      try {
+        const projectId = await this.persistProject(acceptances);
+        this.clearPersisted();
+        this.created.emit(projectId);
+      } catch (error) {
+        console.error('Onboarding: project creation failed', error);
+        this.isCreating.set(false);
+        this.appendAssistant(this.translate.instant('chat.onboarding.errors.createFailed'));
+      }
+    }
+  }
+
+  protected closeLoginModal(): void {
+    this.showLoginModal.set(false);
+    this.pendingAcceptances = null;
   }
 
   protected onRecapRestart(): void {
@@ -365,14 +442,20 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       constraints: this.notes.slice(),
     };
 
+    const chatName = this.answerValue('name');
+    const chatType = this.answerValue('type');
+
     let projectId = f.projectId;
     if (projectId) {
-      await firstValueFrom(this.projectService.updateProject(projectId, fields));
+      const updatedFields: any = { ...fields };
+      if (chatName) updatedFields.name = chatName;
+      if (chatType) updatedFields.type = chatType;
+      await firstValueFrom(this.projectService.updateProject(projectId, updatedFields));
     } else {
       const project = initEmptyObject<ProjectModel>();
-      project.name = f.name;
+      project.name = chatName || f.name || 'Nouveau Projet';
       project.description = f.description;
-      project.type = (f.type || 'web') as ProjectModel['type'];
+      project.type = (chatType || f.type || 'web') as ProjectModel['type'];
       project.targets = fields.targets ?? '';
       project.scope = fields.scope ?? '';
       project.teamSize = fields.teamSize ?? '';
