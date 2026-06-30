@@ -7,8 +7,10 @@ import OpenAI from 'openai';
 import { userService } from './user.service';
 dotenv.config();
 
-import { LLMProvider, LLMOptions } from '../config/ai.config';
+import { LLMProvider, LLMOptions, AI_CONFIG } from '../config/ai.config';
+import { withGeminiFallback } from '../utils/gemini-fallback';
 export { LLMProvider, LLMOptions };
+
 
 export interface PromptConfig {
   provider: LLMProvider;
@@ -147,10 +149,22 @@ export class PromptService {
         lastMessageTurn.parts.push(filePart);
 
         // run prompt
-        const result = await this.genAIClient.models.generateContent({
-          model: modelName,
-          contents: geminiContent,
-        });
+        const fallbackModel = AI_CONFIG.fallback.textModel;
+        const secondaryFallback = 'gemini-1.5-flash';
+        const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
+
+        const result = await withGeminiFallback(
+          () => this.genAIClient.models.generateContent({
+            model: modelName,
+            contents: geminiContent,
+          }),
+          () => this.genAIClient.models.generateContent({
+            model: effectiveFallbackModel,
+            contents: geminiContent,
+          }),
+          modelName,
+          effectiveFallbackModel
+        );
         // Safely access the text content
         const firstCandidate = result.candidates?.[0];
         const firstPart = firstCandidate?.content?.parts?.[0];
@@ -206,11 +220,24 @@ export class PromptService {
       ...(llmOptions.topK && { topK: llmOptions.topK }),
     };
 
-    const result = await this.genAIClient.models.generateContent({
-      model: modelName,
-      contents: geminiContent,
-      ...generationParams,
-    });
+    const fallbackModel = AI_CONFIG.fallback.textModel;
+    const secondaryFallback = 'gemini-1.5-flash';
+    const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
+
+    const result = await withGeminiFallback(
+      () => this.genAIClient.models.generateContent({
+        model: modelName,
+        contents: geminiContent,
+        ...generationParams,
+      }),
+      () => this.genAIClient.models.generateContent({
+        model: effectiveFallbackModel,
+        contents: geminiContent,
+        ...generationParams,
+      }),
+      modelName,
+      effectiveFallbackModel
+    );
     const response = result.text;
     if (!response) {
       logger.error('Failed to generate response from Gemini API.');
