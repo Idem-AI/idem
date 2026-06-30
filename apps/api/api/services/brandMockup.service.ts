@@ -9,6 +9,7 @@ import {
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
 import { AI_CONFIG } from '../config/ai.config';
+import { withGeminiFallback } from '../utils/gemini-fallback';
 
 
 export interface MockupGenerationRequest {
@@ -230,14 +231,29 @@ export class GeminiMockupService {
         }
       );
 
-      const response = await this.geminiAI.models.generateContent({
-        model: AI_CONFIG.branding.brandMockup.imageModel,
-        contents: contents,
-        config: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          candidateCount: 1, // Générer UNE SEULE image par appel
-        },
-      });
+      const primaryImageModel = AI_CONFIG.branding.brandMockup.imageModel;
+      const fallbackImageModel = AI_CONFIG.fallback.imageModel;
+
+      const response = await withGeminiFallback(
+        () => this.geminiAI.models.generateContent({
+          model: primaryImageModel,
+          contents: contents,
+          config: {
+            responseModalities: ['TEXT', 'IMAGE'],
+            candidateCount: 1,
+          },
+        }),
+        () => this.geminiAI.models.generateContent({
+          model: fallbackImageModel,
+          contents: contents,
+          config: {
+            responseModalities: ['TEXT', 'IMAGE'],
+            candidateCount: 1,
+          },
+        }),
+        primaryImageModel,
+        fallbackImageModel
+      );
 
       logger.info(`[MOCKUP][${mockupName}] Gemini API response received`, {
         mockupName,

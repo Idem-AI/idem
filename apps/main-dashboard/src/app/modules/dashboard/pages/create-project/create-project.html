@@ -19,7 +19,7 @@
     <!-- AppGen Handoff Banner -->
     @if (fromAppGen()) {
       <div
-        class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-gradient-to-r from-blue-900/90 to-purple-900/90 backdrop-blur border-b border-blue-700/50"
+        class="fixed-handoff-banner flex items-center justify-between px-6 py-3 bg-gradient-to-r from-blue-900/90 to-purple-900/90 backdrop-blur border-b border-blue-700/50"
       >
         <div class="flex items-center gap-3">
           <div
@@ -56,11 +56,11 @@
       </div>
     }
 
-    <!-- Mode toggle (toujours visible) -->
+    <!-- Mode toggle (toujours visible au dessus du contenu, fixe sous la navbar) -->
     <div
-      class="fixed top-0 left-0 right-0 z-40 flex justify-center px-4"
-      [class.pt-16]="fromAppGen()"
-      [class.pt-4]="!fromAppGen()"
+      class="fixed-toggle-container"
+      [class.toggle-with-banner]="fromAppGen()"
+      [class.toggle-standard]="!fromAppGen()"
     >
       <div
         class="flex items-center p-1 rounded-xl bg-white/5 border border-white/10 text-xs font-medium backdrop-blur"
@@ -98,29 +98,34 @@
 
     @if (mode() === 'chat') {
       <!-- ═══ MODE CONVERSATION ═══ -->
-      <div [class]="fromAppGen() ? 'pt-32' : 'pt-20'" class="h-screen">
-        @if (chatReadyForConversation()) {
-          <div class="h-[calc(100vh-5rem)]">
-            <app-onboarding-chat
-              [foundations]="conversationFoundations()"
-              [showFormSwitch]="true"
-              (created)="onConversationCreated($event)"
-              (switchToForm)="setMode('form')"
-            ></app-onboarding-chat>
-          </div>
-        } @else {
-          <app-foundations-card
+      <div
+        class="w-full content-wrapper pb-36"
+        [class.content-with-banner]="fromAppGen()"
+        [class.content-standard]="!fromAppGen()"
+      >
+        @if (currentStepIndex() === 0) {
+          <app-project-description
             [project]="project()"
-            [busy]="isLoading()"
+            (nextStep)="goToNextStep()"
             (projectUpdate)="onProjectUpdate($event)"
-            (continue)="onFoundationsContinue()"
-          ></app-foundations-card>
+          ></app-project-description>
+        } @else {
+          <app-onboarding-chat
+            [foundations]="conversationFoundations()"
+            [showFormSwitch]="true"
+            (created)="onConversationCreated($event)"
+            (switchToForm)="setMode('form')"
+          ></app-onboarding-chat>
         }
       </div>
     } @else {
     <!-- ═══ MODE FORMULAIRE CLASSIQUE ═══ -->
     <!-- Content Area -->
-    <div [class]="fromAppGen() ? 'pt-36 pb-24' : 'pt-24 pb-24'">
+    <div
+      class="w-full max-w-4xl mx-auto pb-36 content-wrapper"
+      [class.content-with-banner]="fromAppGen()"
+      [class.content-standard]="!fromAppGen()"
+    >
       <!-- Step Content -->
       @if (isStepActive(0)) {
         <app-project-description
@@ -164,7 +169,7 @@
     </div>
 
     <!-- Navigation Controls -->
-    @if (currentStepIndex() !== 0) {
+    @if (currentStepIndex() !== 0 && mode() !== 'chat') {
       <div
         class="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700"
       >
@@ -220,3 +225,36 @@
     }
   </div>
 }
+
+<!-- Authentication Modal -->
+<p-dialog
+  [(visible)]="showLoginModal"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-full max-w-md auth-dialog"
+  [header]="'dashboard.colorSelection.auth.header' | translate"
+  (onHide)="closeLoginModal()"
+>
+  <div class="text-center mb-6">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-primary/20 rounded-full mb-4">
+      <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+        ></path>
+      </svg>
+    </div>
+    <h3 class="text-xl font-semibold text-white mb-2">
+      {{ 'dashboard.colorSelection.auth.title' | translate }}
+    </h3>
+    <p class="text-gray-400 text-sm">
+      {{ 'dashboard.colorSelection.auth.message' | translate }}
+    </p>
+  </div>
+
+  <app-login-card (loginSuccess)="onLoginSuccess()"></app-login-card>
+</p-dialog>
