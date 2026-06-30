@@ -18,21 +18,34 @@ export const authService = {
     if (!res.ok) throw data;
     return data;
   },
-  async getUserInfo(token: string): Promise<User> {
+  async getUserInfo(token?: string): Promise<User> {
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const res = await fetch(
         `${process.env.REACT_REACT_APP_BASE_URL}/api/user`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
+          credentials: "include",
         }
       );
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        return { error: errorData || 'Unauthorized' } as unknown as User;
+      }
+      
       const response = await res.json();
       return response;
-    } catch (error) {}
+    } catch (error) {
+      return { error: 'Network error' } as unknown as User;
+    }
   },
 
   async register(username: string, email: string, password: string) {
