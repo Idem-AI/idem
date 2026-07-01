@@ -100,92 +100,17 @@ jobs:
         continue-on-error: true
 
   # ==========================
-  # Deploy jobs
-  # ==========================
-  deploy-api:
-    name: Deploy API
-    needs: [detect-changes, quality]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
-      needs.detect-changes.outputs.api == 'true'
-    uses: ./.github/workflows/deploy-api.yml
-    secrets: inherit
-
-  deploy-landing:
-    name: Deploy Landing Page
-    needs: [detect-changes, quality]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
-      needs.detect-changes.outputs.landing == 'true'
-    uses: ./.github/workflows/deploy-landing.yml
-    secrets: inherit
-
-  deploy-main-dashboard:
-    name: Deploy Main Dashboard
-    needs: [detect-changes, quality]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
-      needs.detect-changes.outputs.main-dashboard == 'true'
-    uses: ./.github/workflows/deploy-main-dashboard.yml
-    secrets: inherit
-
-  deploy-chart:
-    name: Deploy Chart
-    needs: [detect-changes, quality]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
-      needs.detect-changes.outputs.chart == 'true'
-    uses: ./.github/workflows/deploy-chart.yml
-    secrets: inherit
-
-  deploy-appgen:
-    name: Deploy AppGen
-    needs: [detect-changes, quality]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main') &&
-      needs.detect-changes.outputs.appgen == 'true'
-    uses: ./.github/workflows/deploy-appgen.yml
-    secrets: inherit
-
-  deploy-appgen-server:
-    name: Deploy AppGen Server
-    needs: [detect-changes, quality]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main') &&
-      needs.detect-changes.outputs.appgen == 'true'
-    uses: ./.github/workflows/deploy-appgen_server.yml
-    secrets: inherit
-
-
-  deploy-ideploy:
-    name: Deploy IDEPLOY
-    needs: [detect-changes, quality]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/main') &&
-      needs.detect-changes.outputs.ideploy == 'true'
-    uses: ./.github/workflows/deploy-ideploy.yml
-    secrets: inherit
-
-
-  # ==========================
   # Summary
   # ==========================
   summary:
     name: CI/CD Summary
     runs-on: ubuntu-latest
-    needs: [detect-changes, quality, deploy-api, deploy-landing, deploy-main-dashboard, deploy-chart, deploy-appgen]
+    needs: [detect-changes, quality]
     if: always()
     steps:
       - name: Display CI/CD Summary
         run: |
-          echo "## 📊 CI/CD Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 CI/CD Quality Checks Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Changes Detected:" >> $GITHUB_STEP_SUMMARY
           echo "- **API**: ${{ needs.detect-changes.outputs.api == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
@@ -195,9 +120,5 @@ jobs:
           echo "- **AppGen**: ${{ needs.detect-changes.outputs.appgen == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Packages**: ${{ needs.detect-changes.outputs.packages == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Deployments:" >> $GITHUB_STEP_SUMMARY
-          echo "- **API**: ${{ needs.deploy-api.result == 'success' && '✅ Deployed' || (needs.deploy-api.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Landing Page**: ${{ needs.deploy-landing.result == 'success' && '✅ Deployed' || (needs.deploy-landing.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Main Dashboard**: ${{ needs.deploy-main-dashboard.result == 'success' && '✅ Deployed' || (needs.deploy-main-dashboard.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Chart**: ${{ needs.deploy-chart.result == 'success' && '✅ Deployed' || (needs.deploy-chart.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **AppGen**: ${{ needs.deploy-appgen.result == 'success' && '✅ Deployed' || (needs.deploy-appgen.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Quality Checks Status:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ needs.quality.result == 'success' && '✅ Passed' || (needs.quality.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY
