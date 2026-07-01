@@ -1,4 +1,4 @@
-// Test trigger: AppGen deployment pipeline
+// Test trigger: AppGen deployment pipeline (Update 2)
 interface ModelConfig {
   modelName: string;
   modelKey: string;

@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
-// Test trigger: Dashboard deployment pipeline
+// Test trigger: Dashboard deployment pipeline (Update 2)
 export interface GoogleFont {
   family: string;
   variants: string[];
