@@ -1,21 +1,11 @@
 name: Deploy API
 
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'apps/ideploy/**'
-      - 'Dockerfile.ideploy'
-      - 'packages/shared-models/**'
-      - '.github/workflows/deploy-ideploy.yml'
-  pull_request:
-    types: [ closed ]
-    branches: [ main ]
-    paths:
-      - 'apps/ideploy/**'
-      - 'Dockerfile.ideploy'
-      - 'packages/shared-models/**'
-      - '.github/workflows/deploy-ideploy.yml'
+  workflow_call:
   workflow_dispatch:
 
 jobs:
