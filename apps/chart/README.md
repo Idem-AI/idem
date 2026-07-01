@@ -1,4 +1,4 @@
-# Idem Chart
+# Idem Chart (Test)
 
 <div align="center">
   <img src="public/assets/icons/logo_white.png" alt="Idem Logo" width="200">
