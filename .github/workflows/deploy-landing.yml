@@ -1,19 +1,11 @@
 name: Deploy Landing Page
 
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'apps/landing/**'
-      - 'Dockerfile.landing'
-      - '.github/workflows/deploy-landing.yml'
-  pull_request:
-    types: [ closed ]
-    branches: [ main ]
-    paths:
-      - 'apps/landing/**'
-      - 'Dockerfile.landing'
-      - '.github/workflows/deploy-landing.yml'
+  workflow_call:
   workflow_dispatch:
 
 jobs:
