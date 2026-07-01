@@ -12,9 +12,6 @@ WORKDIR /app
 # Copier tout le code source
 COPY ./apps/chart ./
 
-# Corriger postcss.config.cjs pour utiliser Tailwind v3
-RUN sed -i "s|const tailwindcss = require('@tailwindcss/postcss');|const tailwindcss = require('tailwindcss');|g" postcss.config.cjs
-
 # Corriger tailwind.config.js pour enlever l'import de @idem/shared-styles
 RUN sed -i "1,/^$/d" tailwind.config.js && \
     sed -i "s|import sharedConfig from '@idem/shared-styles/tailwind.config';||g" tailwind.config.js && \
