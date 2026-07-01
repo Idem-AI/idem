@@ -1,4 +1,4 @@
-# IDEM - AI-Powered Software Development Lifecycle Generator
+# IDEM - AI-Powered Software Development Lifecycle Generator (API Test)
 
 <div align="center">
   <img src="public/logo_white.png" alt="IDEM Logo" width="200" height="auto">

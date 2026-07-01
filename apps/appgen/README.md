@@ -1,6 +1,6 @@
 [![English](https://img.shields.io/badge/README-English-494cad.svg)](https://github.com/idem appgen-dev/idem appgen/blob/main/README.md) [![中文](https://img.shields.io/badge/README-中文-494cad.svg)](https://github.com/idem appgen-dev/idem appgen/blob/main/docs/README.zh.md) 
 
-# idem appgen
+# idem appgen (Test)
 
 ## What is Idem Appgen
 
