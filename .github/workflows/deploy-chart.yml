@@ -1,19 +1,11 @@
 name: Deploy Chart (Live Editor)
 
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'apps/chart/**'
-      - 'Dockerfile.chart'
-      - '.github/workflows/deploy-chart.yml'
-  pull_request:
-    types: [ closed ]
-    branches: [ main ]
-    paths:
-      - 'apps/chart/**'
-      - 'Dockerfile.chart'
-      - '.github/workflows/deploy-chart.yml'
+  workflow_call:
   workflow_dispatch:
 
 jobs:
