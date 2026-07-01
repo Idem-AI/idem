@@ -1,11 +1,17 @@
 name: Deploy API
 
 concurrency:
-  group: server-deploy
+  group: deploy-api
   cancel-in-progress: false
 
 on:
-  workflow_call:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/api/**'
+      - 'Dockerfile.api'
+      - 'packages/shared-models/**'
+      - '.github/workflows/deploy-api.yml'
   workflow_dispatch:
 
 jobs:
@@ -33,6 +39,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
+            
+            # Acquire lock to serialize deployment on the server (avoid parallel conflicts)
+            exec 200>/tmp/idem-deploy.lock
+            flock -x -w 600 200
             
             # Variables
             REPO_DIR="/root/idem"

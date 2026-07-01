@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 
+  // Test trigger: Landing deployment pipeline
 @Injectable({
   providedIn: 'root',
 })

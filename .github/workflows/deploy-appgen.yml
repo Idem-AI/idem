@@ -1,11 +1,16 @@
 name: Deploy AppGen
 
 concurrency:
-  group: server-deploy
+  group: deploy-appgen
   cancel-in-progress: false
 
 on:
-  workflow_call:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/appgen/**'
+      - 'Dockerfile.appgen-client'
+      - '.github/workflows/deploy-appgen.yml'
   workflow_dispatch:
 
 jobs:
@@ -33,6 +38,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
+            
+            # Acquire lock to serialize deployment on the server (avoid parallel conflicts)
+            exec 200>/tmp/idem-deploy.lock
+            flock -x -w 600 200
             
             # Variables
             REPO_DIR="/root/idem"
