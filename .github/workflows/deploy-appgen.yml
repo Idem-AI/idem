@@ -1,19 +1,11 @@
 name: Deploy AppGen
 
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'apps/appgen/**'
-      - 'Dockerfile.appgen-client'
-      - '.github/workflows/deploy-appgen.yml'
-  pull_request:
-    types: [ closed ]
-    branches: [ main ]
-    paths:
-      - 'apps/appgen/**'
-      - 'Dockerfile.appgen-client'
-      - '.github/workflows/deploy-appgen.yml'
+  workflow_call:
   workflow_dispatch:
 
 jobs:

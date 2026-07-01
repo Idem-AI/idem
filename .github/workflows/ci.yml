@@ -3,8 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -107,8 +106,8 @@ jobs:
     name: Deploy API
     needs: [detect-changes, quality]
     if: |
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
       needs.detect-changes.outputs.api == 'true'
     uses: ./.github/workflows/deploy-api.yml
     secrets: inherit
@@ -117,8 +116,8 @@ jobs:
     name: Deploy Landing Page
     needs: [detect-changes, quality]
     if: |
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
       needs.detect-changes.outputs.landing == 'true'
     uses: ./.github/workflows/deploy-landing.yml
     secrets: inherit
@@ -127,8 +126,8 @@ jobs:
     name: Deploy Main Dashboard
     needs: [detect-changes, quality]
     if: |
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
       needs.detect-changes.outputs.main-dashboard == 'true'
     uses: ./.github/workflows/deploy-main-dashboard.yml
     secrets: inherit
@@ -137,7 +136,7 @@ jobs:
     name: Deploy Chart
     needs: [detect-changes, quality]
     if: |
-      github.event_name == 'push' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
       needs.detect-changes.outputs.chart == 'true'
     uses: ./.github/workflows/deploy-chart.yml
@@ -147,8 +146,8 @@ jobs:
     name: Deploy AppGen
     needs: [detect-changes, quality]
     if: |
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main') &&
       needs.detect-changes.outputs.appgen == 'true'
     uses: ./.github/workflows/deploy-appgen.yml
     secrets: inherit
@@ -157,8 +156,8 @@ jobs:
     name: Deploy AppGen Server
     needs: [detect-changes, quality]
     if: |
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main') &&
       needs.detect-changes.outputs.appgen == 'true'
     uses: ./.github/workflows/deploy-appgen_server.yml
     secrets: inherit
@@ -168,8 +167,8 @@ jobs:
     name: Deploy IDEPLOY
     needs: [detect-changes, quality]
     if: |
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main') &&
       needs.detect-changes.outputs.ideploy == 'true'
     uses: ./.github/workflows/deploy-ideploy.yml
     secrets: inherit

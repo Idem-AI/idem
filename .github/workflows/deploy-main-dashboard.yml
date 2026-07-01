@@ -1,23 +1,11 @@
 name: Deploy Main Dashboard
 
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'apps/main-dashboard/**'
-      - 'Dockerfile.main-dashboard'
-      - 'Dockerfile.main-dashboard.staging'
-      - 'packages/shared-models/**'
-      - '.github/workflows/deploy-main-dashboard.yml'
-  pull_request:
-    types: [ closed ]
-    branches: [ main ]
-    paths:
-      - 'apps/main-dashboard/**'
-      - 'Dockerfile.main-dashboard'
-      - 'Dockerfile.main-dashboard.staging'
-      - 'packages/shared-models/**'
-      - '.github/workflows/deploy-main-dashboard.yml'
+  workflow_call:
   workflow_dispatch:
 
 jobs:
