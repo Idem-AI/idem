@@ -5,6 +5,7 @@ import { PromptService } from '../services/prompt.service';
 import logger from '../config/logger';
 import { userService } from '../services/user.service';
 import { ISectionResult } from '../services/common/generic.service';
+import { projectService } from '../services/project.service';
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -281,6 +282,11 @@ export const generateBusinessPlanStreamingController = async (
 
     // Appel au service avec le callback de streaming
     const forceRegenerate = req.query.force === 'true' || req.body.force === true;
+
+    // Fetch project to see if this is a retry/resume
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const isRetry = !!(project && !forceRegenerate && (project.analysisResultModel?.businessPlan?.sections?.length ?? 0) > 0);
+
     const updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
       userId,
       projectId as string,
@@ -303,7 +309,13 @@ export const generateBusinessPlanStreamingController = async (
     const newBusinessPlan = updatedProject.analysisResultModel?.businessPlan;
 
     logger.info(`Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}`);
-    userService.incrementUsage(userId, 5);
+    
+    if (!isRetry) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on Business Plan completion.`);
+    } else {
+      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+    }
 
     // Envoyer un événement de fin
     res.write(

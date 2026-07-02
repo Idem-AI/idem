@@ -5,6 +5,7 @@ import { PromptService } from '../services/prompt.service';
 import { ISectionResult } from '../services/common/generic.service';
 import { userService } from '../services/user.service';
 import logger from '../config/logger';
+import { projectService } from '../services/project.service';
 
 const promptService = new PromptService();
 const pitchDeckService = new PitchDeckService(promptService);
@@ -96,6 +97,11 @@ export const generatePitchDeckStreamingController = async (
     };
 
     const forceRegenerate = req.query.force === 'true' || req.body.force === true;
+
+    // Fetch project to see if this is a retry/resume
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const isRetry = !!(project && !forceRegenerate && (project.analysisResultModel?.pitchDeck?.sections?.length ?? 0) > 0);
+
     const updatedProject = await pitchDeckService.generatePitchDeckWithStreaming(
       userId,
       projectId as string,
@@ -112,7 +118,13 @@ export const generatePitchDeckStreamingController = async (
       return;
     }
 
-    userService.incrementUsage(userId, 5);
+    if (!isRetry) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on Pitch Deck completion.`);
+    } else {
+      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+    }
+
     logger.info(
       `generatePitchDeckStreamingController success projectId=${projectId} durationMs=${Date.now() - startedAt}`
     );

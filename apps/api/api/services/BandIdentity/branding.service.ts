@@ -1059,7 +1059,8 @@ export class BrandingService extends GenericService {
     optimizedPrompt: string,
     project: ProjectModel,
     conceptIndex: number,
-    preferences?: LogoPreferences
+    preferences?: LogoPreferences,
+    skipQuotaCheck = false
   ): Promise<LogoModel> {
     logger.info(
       `Generating raw logo concept ${
@@ -1093,7 +1094,14 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck,
+      }
+    );
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
@@ -1264,7 +1272,8 @@ export class BrandingService extends GenericService {
   async generateLogoConcepts(
     userId: string,
     projectId: string,
-    forceRegenerate = false
+    forceRegenerate = false,
+    skipQuotaCheck = false
   ): Promise<{
     logos: LogoModel[];
   }> {
@@ -1295,6 +1304,7 @@ export class BrandingService extends GenericService {
     }
 
     const logosToGenerateCount = 3 - existingLogosCount;
+    const isRetry = existingLogosCount > 0 || skipQuotaCheck;
 
     logger.info(
       `Generating ${logosToGenerateCount} logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
@@ -1316,7 +1326,7 @@ export class BrandingService extends GenericService {
 
     // Créer promesses pour génération AI pure en parallèle pour les concepts restants
     const logoPromises = Array.from({ length: logosToGenerateCount }, (_, index) =>
-      this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences)
+      this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry)
     );
 
     // Attendre toutes les générations AI avec gestion d'erreurs robuste
@@ -1342,7 +1352,7 @@ export class BrandingService extends GenericService {
       );
       const retryResults = await Promise.allSettled(
         failedIndexes.map((index) =>
-          this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences)
+          this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry)
         )
       );
       retryResults.forEach((result, i) => {
@@ -1398,7 +1408,8 @@ export class BrandingService extends GenericService {
    */
   private async generateSingleLightVariation(
     logoStructure: any,
-    project: ProjectModel
+    project: ProjectModel,
+    skipQuotaCheck = false
   ): Promise<{ lightBackground?: string }> {
     const prompt = `Logo structure: ${JSON.stringify(
       logoStructure
@@ -1422,7 +1433,14 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck,
+      }
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -1431,7 +1449,8 @@ export class BrandingService extends GenericService {
    */
   private async generateSingleDarkVariation(
     logoStructure: any,
-    project: ProjectModel
+    project: ProjectModel,
+    skipQuotaCheck = false
   ): Promise<{ darkBackground?: string }> {
     const prompt = `Logo structure: ${JSON.stringify(
       logoStructure
@@ -1455,7 +1474,14 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck,
+      }
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -1464,7 +1490,8 @@ export class BrandingService extends GenericService {
    */
   private async generateSingleMonochromeVariation(
     logoStructure: any,
-    project: ProjectModel
+    project: ProjectModel,
+    skipQuotaCheck = false
   ): Promise<{ monochrome?: string }> {
     const prompt = `Logo structure: ${JSON.stringify(
       logoStructure
@@ -1488,7 +1515,14 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck,
+      }
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -1500,7 +1534,8 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string,
     selectedLogo: LogoModel,
-    forceRegenerate = false
+    forceRegenerate = false,
+    skipQuotaCheck = false
   ): Promise<{
     withText: {
       lightBackground?: string;
@@ -1530,20 +1565,21 @@ export class BrandingService extends GenericService {
     };
 
     const existingVariations = (!forceRegenerate && selectedLogo.variations?.withText) ? selectedLogo.variations.withText : {};
+    const isRetry = (selectedLogo.variations?.withText !== undefined) || skipQuotaCheck;
 
     // Execute only the missing variations in parallel
     logger.info(`Starting parallel generation of logo variations (resuming completed ones)`);
     const lightPromise = existingVariations.lightBackground
       ? Promise.resolve({ lightBackground: existingVariations.lightBackground })
-      : this.generateSingleLightVariation(logoStructure, project);
+      : this.generateSingleLightVariation(logoStructure, project, isRetry);
 
     const darkPromise = existingVariations.darkBackground
       ? Promise.resolve({ darkBackground: existingVariations.darkBackground })
-      : this.generateSingleDarkVariation(logoStructure, project);
+      : this.generateSingleDarkVariation(logoStructure, project, isRetry);
 
     const monochromePromise = existingVariations.monochrome
       ? Promise.resolve({ monochrome: existingVariations.monochrome })
-      : this.generateSingleMonochromeVariation(logoStructure, project);
+      : this.generateSingleMonochromeVariation(logoStructure, project, isRetry);
 
     const [lightVariation, darkVariation, monochromeVariation] = await Promise.all([
       lightPromise,
