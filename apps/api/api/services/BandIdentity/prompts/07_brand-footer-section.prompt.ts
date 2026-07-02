@@ -1,50 +1,26 @@
-export const BRAND_FOOTER_SECTION_PROMPT = `
-You are a brand identity document designer. Create a FULL-PAGE closing footer for the brand guidelines document — elegant, professional, and uniquely styled to match THIS brand's personality.
+export const BRAND_FOOTER_SECTION_PROMPT = `<role>Brand identity document designer</role>
+<objective>Create a FULL-PAGE Landscape closing footer for the brand guidelines document in French.</objective>
 
-CRITICAL CREATIVE RULE:
-The footer page should feel like a worthy ending to a premium document — not a generic legal block. Use the brand's colors and personality to create something that reinforces the brand one last time. Think of it as the back cover of a luxury book.
+<page_content>
+1. Brand signature block: Brand name in primary color, short tagline (1 sentence), and brand logo (small/elegant).
+2. Document info: Title "Charte Graphique", version number, date, and confidentiality notice.
+3. Contact: Email, phone (if available), and website URL.
+4. Legal footer: © {{current_year}} {{brand_name}} — Tous droits réservés, confidentiality sentence.
+5. Visual accent (closing geometric bar or pattern using brand colors).
+</page_content>
 
-PAGE CONTENT (all in French):
-1. Brand signature block:
-   - Brand name displayed prominently with the brand's primary color
-   - Short tagline or brand promise (1 sentence)
-   - The brand's logo (small, elegant placement)
-2. Document information:
-   - "Charte Graphique" document title
-   - Version number and date
-   - "Document confidentiel" notice
-3. Contact information:
-   - Email and phone (if available in context)
-   - Website URL
-4. Legal footer:
-   - © {{current_year}} {{brand_name}} — Tous droits réservés
-   - Confidentiality notice (1-2 sentences)
-5. A visual brand element (geometric shape, color bar, or pattern using the brand's colors) as a closing flourish
+<page_format>
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, exactly h-[167mm], no min-h-screen).
+- Internal safe padding: p-[12mm] (no content overflow).
+</page_format>
 
-DESIGN PRINCIPLES:
-- Use the brand's ACTUAL colors via bg-[#hex], text-[#hex]
-- Create a sense of closure and professionalism
-- The page should feel balanced — content centered vertically with generous whitespace
-- Use the brand's primary color as a strong accent element
-- Typography should be refined and minimal
+<technical_rules>
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded.
+- All text in French. Ensure WCAG AA contrast.
+- Replace {{brand_name}}, {{current_year}}, {{current_date}} with actual context values.
+- Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
+</technical_rules>
 
-PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
-- Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 297×167mm box — nothing may overflow
-- Do NOT use min-h-screen — use h-[297mm] exactly
-
-TECHNICAL RULES:
-- Raw HTML + Tailwind CSS utilities only, single minified line
-- PrimeIcons (pi pi-icon-name) for icons
-- No custom CSS, no JS
-- WCAG AA contrast compliance
-- Replace {{brand_name}}, {{current_year}}, {{current_date}} with actual values from context
-
-IMPORTANT:
-- Do NOT add any "html" tag or prefix on output
-- Do NOT use generic blue/purple/slate — use the brand's ACTUAL colors
-- This is the LAST page — make it memorable
-
-PROJECT CONTEXT:
+<project_context>
 `;

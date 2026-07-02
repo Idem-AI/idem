@@ -2,32 +2,24 @@ import { SelectedMockupSupport } from '../mockupAnalyzer.service';
 
 /**
  * Système de prompts dynamiques pour la génération de mockups photoréalistes
- * Les prompts s'adaptent automatiquement au projet, à l'industrie et au support sélectionné
  */
 
 export const MOCKUP_GENERATION_PROMPT = {
-  /**
-   * Instructions pour le logo - s'assurer que le logo fourni est reproduit exactement
-   */
   logoInstructions: (brandName: string) => ({
-    withLogo: `🎯 IMAGE DU LOGO FOURNIE : J'ai attaché le logo EXACT de cette marque.
+    withLogo: `<logo_rules>
+- Une image du logo exact de cette marque est fournie.
+- Étudier attentivement chaque détail de l'image du logo fournie et le reproduire EXACTEMENT dans la scène.
+- Respecter toutes les formes, couleurs, typographie et proportions originelles.
+- Placer le logo de manière visible et lisible sur le support. Ne pas modifier ou traduire le texte du logo.
+- Choisir une taille équilibrée (ni invisible ni écrasante).
+</logo_rules>`,
 
-**RÈGLES CRITIQUES POUR LE LOGO :**
-1. **Examiner attentivement** l'image du logo fournie — étudiez CHAQUE détail
-2. **REPRODUIRE CE LOGO EXACTEMENT** dans la scène — NE PAS créer un logo différent
-3. **Respecter TOUTES les caractéristiques** : formes, couleurs, typographie, proportions
-4. **Placer le logo de manière proéminente** sur le support de communication
-5. **Si le logo contient du texte** : reproduire EXACTEMENT — NE PAS modifier ou traduire
-6. **Le logo doit être parfaitement lisible** et professionnel dans son intégration
-7. **Taille appropriée** : ni trop petit (invisible), ni trop grand (écrasant)`,
-
-    withoutLogo: `⚠️ Aucune image de logo fournie.
-Afficher le nom de marque "${brandName}" dans un style typographique propre et professionnel en utilisant les couleurs de la marque.`,
+    withoutLogo: `<logo_rules>
+- Aucune image de logo n'est fournie.
+- Afficher le nom de marque "${brandName}" dans un style typographique propre et professionnel avec les couleurs de la marque.
+</logo_rules>`,
   }),
 
-  /**
-   * Construit un prompt dynamique basé sur le support sélectionné par l'analyseur
-   */
   buildDynamicPrompt: (params: {
     brandName: string;
     brandColors: { primary: string; secondary: string; accent: string };
@@ -39,183 +31,88 @@ Afficher le nom de marque "${brandName}" dans un style typographique propre et p
     const { brandName, brandColors, projectDescription, hasLogo, selectedSupport, pdfFormat } =
       params;
 
-    // Déterminer les dimensions et orientation selon le format PDF
     const formatSpecs =
       pdfFormat === 'A4_PORTRAIT'
         ? {
             orientation: 'PORTRAIT (VERTICAL)',
             dimensions: '210mm × 297mm',
             aspectRatio: '1:1.414 (A4 portrait)',
-            imageSize: 'Largeur: 2480px, Hauteur: 3508px (HAUTE RÉSOLUTION)',
-            description: 'Format document classique vertical - IMAGE DOIT ÊTRE VERTICALE',
-            criticalInstructions:
-              "CRITIQUE: L'image DOIT être en orientation PORTRAIT (plus haute que large). Ratio 1:1.414 OBLIGATOIRE. Cadrage vertical serré pour remplir toute la hauteur.",
+            imageSize: '2480px × 3508px',
+            description: 'Format vertical. L\'image DOIT être verticale.',
+            criticalInstructions: 'CRITIQUE: Orientation PORTRAIT obligatoire. Ratio 1:1.414. Cadrage vertical serré pour remplir toute la hauteur.',
           }
         : {
             orientation: 'PAYSAGE (HORIZONTAL)',
             dimensions: '297mm × 167mm',
             aspectRatio: '16:9 (paysage)',
-            imageSize: 'Largeur: 2480px, Hauteur: 1395px (HAUTE RÉSOLUTION)',
-            description: 'Format présentation moderne horizontal - IMAGE DOIT ÊTRE HORIZONTALE',
-            criticalInstructions:
-              "CRITIQUE: L'image DOIT être en orientation PAYSAGE (plus large que haute). Ratio 16:9 OBLIGATOIRE. Cadrage horizontal large pour remplir toute la largeur.",
+            imageSize: '2480px × 1395px',
+            description: 'Format horizontal. L\'image DOIT être horizontale.',
+            criticalInstructions: 'CRITIQUE: Orientation PAYSAGE obligatoire. Ratio 16:9. Cadrage horizontal large pour remplir toute la largeur.',
           };
 
     const logoInstruction = hasLogo
       ? MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withLogo
       : MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withoutLogo;
 
-    // Construire les exemples de supports
     const supportExamples = selectedSupport.examples
-      .map((ex, idx) => `   ${idx + 1}. ${ex}`)
+      .map((ex, idx) => `  - ${ex}`)
       .join('\n');
 
-    // Déterminer le niveau de priorité
     const priorityText =
       selectedSupport.priority === 'primary'
-        ? '**SUPPORT PRINCIPAL** — Le plus iconique et impactant pour cette marque'
-        : '**SUPPORT COMPLÉMENTAIRE** — Secondaire mais toujours professionnel et pertinent';
+        ? 'SUPPORT PRINCIPAL (le plus iconique pour cette marque)'
+        : 'SUPPORT COMPLÉMENTAIRE (secondaire mais pertinent)';
 
-    return `Vous êtes un photographe commercial d'élite et directeur artistique spécialisé dans la mise en scène de marques.
+    return `<role>Photographe commercial d'élite et directeur artistique spécialisé dans la mise en scène de marques.</role>
+<objective>Créer une photographie de mockup photoréaliste et professionnelle de haute qualité.</objective>
 
-Créez une photographie de mockup PHOTORÉALISTE et PROFESSIONNELLE de haute qualité.
+<brand_context>
+- Nom: "${brandName}"
+- Industrie: ${selectedSupport.industryContext}
+- Couleurs: Primaire ${brandColors.primary}, Secondaire ${brandColors.secondary}, Accent ${brandColors.accent}
+- Description: ${projectDescription}
+</brand_context>
 
-═══════════════════════════════════════════════════════════════════════════════
-📋 INFORMATIONS DE LA MARQUE
-═══════════════════════════════════════════════════════════════════════════════
-
-• **Nom de la marque** : "${brandName}"
-• **Contexte industrie** : ${selectedSupport.industryContext}
-• **Couleurs de marque** :
-  - Primaire : ${brandColors.primary}
-  - Secondaire : ${brandColors.secondary}
-  - Accent : ${brandColors.accent}
-• **Description du projet** : ${projectDescription}
-
-═══════════════════════════════════════════════════════════════════════════════
-🎯 VOTRE MISSION — MOCKUP #${selectedSupport.mockupIndex}
-═══════════════════════════════════════════════════════════════════════════════
+<mockup_mission>
+Mockup index: #${selectedSupport.mockupIndex}
+Priority: ${priorityText}
+Support Name: ${selectedSupport.supportName}
 
 ${logoInstruction}
 
-**TYPE DE SUPPORT SÉLECTIONNÉ** : ${priorityText}
-
-📦 **${selectedSupport.supportName}**
-
-**Exemples spécifiques à créer** :
+Exemples de supports à créer :
 ${supportExamples}
 
-**Contexte de mise en scène** :
+Mise en scène :
 ${selectedSupport.context}
+</mockup_mission>
 
-═══════════════════════════════════════════════════════════════════════════════
-💡 DIRECTIVES SPÉCIFIQUES POUR CE SUPPORT
-═══════════════════════════════════════════════════════════════════════════════
+<photographic_rules>
+1. RÉALISME PHOTOGRAPHIQUE ABSOLU: Vraie photographie commerciale (pas d'illustration numérique, pas de rendu 3D artificiel). Grain subtil, imperfections naturelles.
+2. ÉCLAIRAGE: Éclairage studio ou lumière naturelle réaliste, ombres douces, reflets sur verre/métal/plastique.
+3. COMPOSITION: Règle des tiers, profondeur de champ cinématographique (arrière-plan flouté). Le support brandé est le héros clairement visible.
+4. TEXTURES: Fibres de tissu visibles, grain de papier, brillance métallique, usure naturelle légère.
+5. COULEURS: Intégration subtile et harmonieuse des couleurs de marque (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) dans la scène.
+6. CONTEXTE: Environnement cohérent (${selectedSupport.industryContext}). Pas de distraction visuelle.
+</photographic_rules>
 
-**Choisissez UN exemple spécifique** parmi la liste ci-dessus qui correspond le MIEUX :
-• Au contexte du projet (${selectedSupport.industryContext})
-• À la description : "${projectDescription.substring(0, 150)}..."
-• Aux couleurs de marque (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent})
+<format_rules>
+- Orientation: ${formatSpecs.orientation}
+- Dimensions: ${formatSpecs.dimensions}
+- Ratio: ${formatSpecs.aspectRatio}
+- Résolution: ${formatSpecs.imageSize}
+- Règle: ${formatSpecs.description}
+- ${formatSpecs.criticalInstructions}
+- L'image doit couvrir 100% de la hauteur et de la largeur (FULL-PAGE, pas de bordures blanches).
+</format_rules>
 
-**Créez une scène UNIQUE et MÉMORABLE** :
-• NE PAS créer un mockup générique ou cliché
-• Analyser le projet pour comprendre son essence
-• Créer une mise en scène qui RACONTE L'HISTOIRE de la marque
-• Le support doit être le HÉROS de la photographie
-• L'environnement doit renforcer l'identité de la marque
+<forbidden>
+- Mockup générique / cliché.
+- Rendu 3D artificiel.
+- Logo différent du logo fourni.
+- Surcharger la scène.
+</forbidden>
 
-═══════════════════════════════════════════════════════════════════════════════
-📸 EXIGENCES PHOTOGRAPHIQUES PROFESSIONNELLES
-═══════════════════════════════════════════════════════════════════════════════
-
-**1. RÉALISME PHOTOGRAPHIQUE ABSOLU**
-   • Ceci doit ressembler à une VRAIE PHOTOGRAPHIE prise par un photographe professionnel
-   • PAS d'illustration numérique, PAS de rendu 3D artificiel
-   • Grain photographique subtil, imperfections naturelles
-
-**2. ÉCLAIRAGE PROFESSIONNEL**
-   • Éclairage studio ou en situation réelle (lumière naturelle + artificielle)
-   • Ombres douces et naturelles
-   • Reflets réalistes sur les surfaces (verre, métal, plastique)
-   • Pas de sur-exposition ni de sous-exposition
-
-**3. COMPOSITION ARTISTIQUE**
-   • Règle des tiers respectée
-   • Profondeur de champ cinématographique (arrière-plan légèrement flouté)
-   • Le support avec le logo est le HÉROS de l'image — clairement visible et mis en valeur
-   • Cadrage professionnel (pas trop serré, pas trop large)
-
-**4. TEXTURES ET MATÉRIAUX RÉALISTES**
-   • Grain du papier visible sur les supports imprimés
-   • Texture du tissu sur les vêtements (fibres, coutures)
-   • Brillance métallique sur les finitions premium
-   • Reflets du verre, transparence réaliste
-   • Usure légère et naturelle (pas trop neuf, pas abîmé)
-
-**5. INTÉGRATION DES COULEURS DE MARQUE**
-   • Les couleurs ${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent} doivent être visibles
-   • Intégration subtile et professionnelle (pas forcée)
-   • Harmonie chromatique avec l'environnement
-
-**6. CONTEXTE ET MISE EN SCÈNE**
-   • Environnement cohérent avec le contexte "${selectedSupport.industryContext}"
-   • Éléments de contexte pertinents (bureau, café, boutique, extérieur, etc.)
-   • Pas de distraction visuelle — focus sur le support brandé
-   • Ambiance professionnelle et premium
-
-**7. QUALITÉ TECHNIQUE**
-   • Haute résolution visuelle
-   • Netteté parfaite sur le logo et le support principal
-   • Pas de déformation, pas d'aberration chromatique
-   • Perspective réaliste et naturelle
-
-**8. FORMAT ET DIMENSIONS DE L'IMAGE** ⚠️ CRITIQUE
-   • **Orientation** : ${formatSpecs.orientation}
-   • **Dimensions de page** : ${formatSpecs.dimensions}
-   • **Ratio d'aspect** : ${formatSpecs.aspectRatio}
-   • **Taille d'image recommandée** : ${formatSpecs.imageSize}
-   • **Description** : ${formatSpecs.description}
-   • **INSTRUCTIONS CRITIQUES** : ${formatSpecs.criticalInstructions}
-   • L'image DOIT couvrir 100% de la hauteur ET 100% de la largeur de la page
-   • Le mockup doit être cadré pour remplir ENTIÈREMENT le format ${formatSpecs.orientation}
-   • Pas d'espace vide sur les bords — l'image doit être FULL-PAGE
-   • Composition adaptée à l'orientation ${formatSpecs.orientation}
-   • IMPORTANT: Générer l'image dans la bonne orientation dès le départ (pas de rotation nécessaire)
-
-═══════════════════════════════════════════════════════════════════════════════
-⚠️ RÈGLES CRITIQUES À RESPECTER
-═══════════════════════════════════════════════════════════════════════════════
-
-✅ **À FAIRE ABSOLUMENT** :
-• Créer UNE scène photoréaliste centrée sur le support "${selectedSupport.supportName}"
-• Reproduire le logo EXACTEMENT comme fourni (si image fournie)
-• Créer une photographie digne d'un portfolio professionnel (Behance/Dribbble)
-• Intégrer subtilement les couleurs de marque dans l'environnement
-• Montrer le support dans un contexte RÉEL et NATUREL pour cette industrie
-• Créer une ambiance qui reflète les valeurs du projet
-
-❌ **À ÉVITER ABSOLUMENT** :
-• NE PAS créer un mockup générique ou cliché
-• NE PAS ignorer le type de support spécifié (${selectedSupport.supportName})
-• NE PAS créer un logo différent de celui fourni
-• NE PAS faire un rendu 3D artificiel — PHOTORÉALISME UNIQUEMENT
-• NE PAS surcharger la scène avec trop d'éléments distracteurs
-• NE PAS utiliser des couleurs qui contredisent la marque
-• NE PAS créer une mise en scène irréaliste ou fantaisiste
-• NE PAS créer le même mockup que les autres (chaque mockup doit être UNIQUE)
-
-═══════════════════════════════════════════════════════════════════════════════
-🎨 STYLE FINAL ET LIVRABLE
-═══════════════════════════════════════════════════════════════════════════════
-
-**Style photographique** : Photographie commerciale haut de gamme
-**Inspiration** : Portfolio de marque professionnel (Behance, Dribbble, Brand New)
-**Qualité** : Digne d'une agence de branding premium internationale
-**Support** : ${selectedSupport.supportName} — ${selectedSupport.priority === 'primary' ? 'APPLICATION PRINCIPALE' : 'APPLICATION COMPLÉMENTAIRE'}
-**Contexte industrie** : ${selectedSupport.industryContext}
-
-**IMPORTANT** : Générez UNIQUEMENT l'image photoréaliste, aucune réponse textuelle.
-
-La photographie doit être si convaincante qu'elle pourrait être utilisée immédiatement dans une présentation client ou un portfolio d'agence.`;
+GÉNÉRER UNIQUEMENT L'IMAGE PHOTORÉALISTE. AUCUNE RÉPONSE TEXTUELLE.`;
   },
 };

@@ -1,31 +1,22 @@
-export const TYPOGRAPHY_GENERATION_PROMPT = `
-You are a senior brand typography expert. Generate 3 typography sets built on
-professional pairing principles — contrast in role, cohesion in proportions.
+export const TYPOGRAPHY_GENERATION_PROMPT = `<role>Senior brand typography expert</role>
+<objective>Generate 3 typography sets based on professional pairing principles (contrast in role, cohesion in proportions).</objective>
 
-PAIRING PRINCIPLES (apply to sets 2 and 3)
-- CONTRAST: heading and body must differ clearly (geometric vs humanist,
-  serif vs sans, display vs text) so hierarchy is instant.
-- COHESION: similar x-height and width so the pair feels like one voice
-  (test mentally: do lowercase letters look the same size at equal font-size?).
-- ROLES: primaryFont = headings/display — personality allowed.
-  secondaryFont = body — must be effortless to read at 14–16px
-  (workhorses: Inter, Source Sans 3, IBM Plex Sans, Roboto, Open Sans, Lora,
-  Source Serif 4).
-- SUPERFAMILY option: pairs designed together are always safe
-  (IBM Plex Sans + IBM Plex Serif, Roboto + Roboto Slab, Merriweather Sans +
-  Merriweather).
-- Maximum 2 families per set. Never two display fonts together.
-- Avoid dated/overused picks: Lobster, Pacifico, Comfortaa, Bebas Neue + Roboto.
+<pairing_principles>
+- Contrast: Heading and body must differ clearly (geometric vs humanist, serif vs sans, display vs text).
+- Cohesion: Similar x-height and width.
+- Roles: primaryFont = headings (personality allowed); secondaryFont = body text (readable at 14-16px: Inter, Source Sans 3, IBM Plex Sans, Roboto, Open Sans, Lora, Source Serif 4).
+- Superfamily option: designed-together fonts (IBM Plex Sans/Serif, Roboto/Slab, Merriweather Sans/Serif).
+- Max 2 families per set. Never two display fonts. No dated fonts (Lobster, Pacifico, Comfortaa). All must be on Google Fonts.
+</pairing_principles>
 
-PERSONALITY DIRECTIONS (one per set)
-- Modern/tech: Space Grotesk, Manrope, Sora, Plus Jakarta Sans, Outfit, DM Sans
-- Classic/editorial: Playfair Display, Fraunces, Libre Caslon Text, Source Serif 4
-- Bold/expressive: Archivo, Clash-like grotesques (use Archivo Black), Syne
+<personalities>
+- Modern/tech: Space Grotesk, Manrope, Sora, Plus Jakarta Sans, Outfit, DM Sans.
+- Classic/editorial: Playfair Display, Fraunces, Libre Caslon Text, Source Serif 4.
+- Bold/expressive: Archivo, Archivo Black, Syne.
+</personalities>
 
-ALL fonts MUST exist on Google Fonts — verify each name mentally before output.
-
-Return JSON only:
-
+<output_format>
+Return STRICT JSON only.
 {
   "typography": [
     {
@@ -35,14 +26,9 @@ Return JSON only:
       "primaryFont": "Exo 2",
       "secondaryFont": "Roboto"
     }
-    // ... 2 more unique sets
+    // ... 2 more unique sets following the directions
   ]
 }
-
-Rules:
-- First set: exactly "Système Premium" with Exo 2 + Roboto
-- 2 more unique pairings with distinct personalities (one modern, one classic
-  or expressive), each following the pairing principles above
-- Descriptive French names and matching URL slugs
-- Single line JSON, no explanations
+First set MUST be exactly "Système Premium" with primaryFont "Exo 2" and secondaryFont "Roboto". Other sets should have descriptive French names and URLs.
+</output_format>
 `;
