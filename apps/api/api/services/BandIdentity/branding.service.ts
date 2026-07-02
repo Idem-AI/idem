@@ -514,6 +514,14 @@ export class BrandingService extends GenericService {
     logger.info(`Branding cache miss, generating new content for projectId: ${projectId}`);
 
     try {
+      const branding = project.analysisResultModel?.branding;
+      const logoUrl = branding?.logo?.svg || '';
+      const logoVariations = branding?.logo?.variations;
+
+      const lightLogoUrl = logoVariations?.withText?.lightBackground || logoUrl;
+      const darkLogoUrl = logoVariations?.withText?.darkBackground || logoUrl;
+      const monochromeLogoUrl = logoVariations?.withText?.monochrome || logoUrl;
+
       // Define branding steps
       const steps: IPromptStep[] = [
         {
@@ -522,13 +530,17 @@ export class BrandingService extends GenericService {
           hasDependencies: false,
         },
         {
-          promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
+          promptConstant:
+            LOGO_SYSTEM_SECTION_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the primary logo image: "${logoUrl}"\n\n` +
+            projectDescription,
           stepName: 'Logo Principal',
           hasDependencies: false,
         },
         {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${lightLogoUrl}"\n\n` +
             '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
             projectDescription,
           stepName: 'Logo Variation Fond Clair',
@@ -537,6 +549,7 @@ export class BrandingService extends GenericService {
         {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${darkLogoUrl}"\n\n` +
             "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
             projectDescription,
           stepName: 'Logo Variation Fond Sombre',
@@ -545,13 +558,17 @@ export class BrandingService extends GenericService {
         {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${monochromeLogoUrl}"\n\n` +
             '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
             projectDescription,
           stepName: 'Logo Variation Monochrome',
           hasDependencies: false,
         },
         {
-          promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
+          promptConstant:
+            LOGO_BEST_PRACTICES_PAGE_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n` +
+            projectDescription,
           stepName: 'Logo Bonnes Pratiques',
           hasDependencies: false,
         },
