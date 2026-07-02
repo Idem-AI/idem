@@ -627,7 +627,14 @@ class ProjectService {
     missingElements: string[];
   } {
     const missingElements: string[] = [];
-    const branding = project.analysisResultModel?.branding;
+    const branding = project.analysisResultModel?.branding as any;
+
+    if (branding?.isComplete) {
+      return {
+        isComplete: true,
+        missingElements: [],
+      };
+    }
 
     // Check for logo
     if (!branding?.logo || !branding?.logo?.svg) {
@@ -635,15 +642,14 @@ class ProjectService {
     }
 
     // Check for colors
-    if (!branding?.colors || !branding?.generatedColors || branding.generatedColors.length === 0) {
+    if (!branding?.colors && (!branding?.generatedColors || branding.generatedColors.length === 0)) {
       missingElements.push('colors');
     }
 
     // Check for typography
     if (
-      !branding?.typography ||
-      !branding?.generatedTypography ||
-      branding.generatedTypography.length === 0
+      !branding?.typography &&
+      (!branding?.generatedTypography || branding.generatedTypography.length === 0)
     ) {
       missingElements.push('typography');
     }

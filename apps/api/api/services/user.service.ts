@@ -339,21 +339,62 @@ class UserService {
       lastResetWeekly: this.getWeekStart(now).toISOString().split('T')[0],
     };
 
-    // Update the user document with quota data
-    await this.userRepository.update(
-      userId,
-      {
-        quota: {
-          dailyUsage: quotaData.dailyUsage,
-          weeklyUsage: quotaData.weeklyUsage,
-          dailyLimit: quotaData.dailyLimit,
-          weeklyLimit: quotaData.weeklyLimit,
-          lastResetDaily: quotaData.lastResetDaily,
-          lastResetWeekly: quotaData.lastResetWeekly,
+    // Check if user exists in repository
+    const user = await this.userRepository.findById(userId, 'users');
+    if (!user) {
+      try {
+        logger.info(`User ${userId} not found in database, fetching from Firebase Auth to initialize user record`);
+        const userRecord = await admin.auth().getUser(userId);
+        await this.userRepository.create(
+          {
+            uid: userId,
+            email: userRecord.email || '',
+            displayName: userRecord.displayName || '',
+            photoURL: userRecord.photoURL || '',
+            subscription: 'free',
+            lastLogin: new Date(),
+            quota: quotaData,
+            roles: ['user'],
+          },
+          'users',
+          userId
+        );
+        logger.info(`Initialized user document and quota for user ${userId}`);
+      } catch (fbError: any) {
+        logger.error(`Failed to fetch user from Firebase Auth or create user document for ${userId}:`, fbError);
+        // Fallback: update attempt just in case document existed but findById failed
+        await this.userRepository.update(
+          userId,
+          {
+            quota: {
+              dailyUsage: quotaData.dailyUsage,
+              weeklyUsage: quotaData.weeklyUsage,
+              dailyLimit: quotaData.dailyLimit,
+              weeklyLimit: quotaData.weeklyLimit,
+              lastResetDaily: quotaData.lastResetDaily,
+              lastResetWeekly: quotaData.lastResetWeekly,
+            },
+          },
+          'users'
+        );
+      }
+    } else {
+      // Update the user document with quota data
+      await this.userRepository.update(
+        userId,
+        {
+          quota: {
+            dailyUsage: quotaData.dailyUsage,
+            weeklyUsage: quotaData.weeklyUsage,
+            dailyLimit: quotaData.dailyLimit,
+            weeklyLimit: quotaData.weeklyLimit,
+            lastResetDaily: quotaData.lastResetDaily,
+            lastResetWeekly: quotaData.lastResetWeekly,
+          },
         },
-      },
-      'users'
-    );
+        'users'
+      );
+    }
 
     logger.info(`Created new quota data for user ${userId}`);
     return quotaData;
