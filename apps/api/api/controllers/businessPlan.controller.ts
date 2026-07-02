@@ -280,10 +280,12 @@ export const generateBusinessPlanStreamingController = async (
     };
 
     // Appel au service avec le callback de streaming
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
     const updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
       userId,
       projectId as string,
-      streamCallback // Passer le callback de streaming
+      streamCallback, // Passer le callback de streaming
+      forceRegenerate
     );
 
     if (!updatedProject) {

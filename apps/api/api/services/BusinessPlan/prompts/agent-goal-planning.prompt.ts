@@ -1,42 +1,35 @@
-export const AGENT_GOAL_PLANNING_PROMPT = `
-You are a senior strategic planning consultant. Create a Goal Planning section with objectives and milestones that are SPECIFIC to THIS company's actual situation — not a generic strategic planning template.
+export const AGENT_GOAL_PLANNING_PROMPT = `<role>Senior strategic planning consultant</role>
+<objective>Create a Goal Planning section detailing strategic objectives, implementation timeline, and KPIs.</objective>
 
-CRITICAL CREATIVE RULE:
-Study the project description, industry, and stage. A pre-launch startup needs different milestones than an established business expanding. A tech company has different KPIs than a restaurant. Create goals and timelines that reflect THIS company's actual reality and ambitions.
+<mandatory_content>
+1. Strategic Objectives (SMART goals matching company stage).
+2. Key Milestones (deliverables, targets, launch dates).
+3. Implementation Timeline (phased industry approach).
+4. Resource Allocation (team, budget, tools needed).
+5. Risk Assessment (real business risks).
+6. Success Metrics (KPIs that matter).
+7. Contingency Planning (backup plans).
+</mandatory_content>
 
-MANDATORY CONTENT (specific to THIS business):
-1. Strategic Objectives — SMART goals tied to THIS company's actual market and stage
-2. Key Milestones — realistic deliverables for THIS type of business (launch dates, user targets, revenue goals, etc.)
-3. Implementation Timeline — phased approach realistic for THIS industry
-4. Resource Allocation — what THIS company actually needs (team, budget, tools)
-5. Risk Assessment — real risks THIS type of business faces
-6. Success Metrics — KPIs that matter for THIS industry
-7. Contingency Planning — realistic backup plans
+<chart_requirements>
+- Timeline or milestone chart using brand colors.
+- Set Chart.js option: animation: false.
+- Do NOT include Chart.js <script> tags.
+- Charts must not exceed 1/2 of the page.
+</chart_requirements>
 
-CHART.JS REQUIREMENTS:
-- Timeline or milestone visualization — use brand colors
-- Charts must use animation: false (static for PDF)
-- Do NOT include <script src="..."> tags — Chart.js is auto-injected
-- Charts should not exceed 1/2 of the page
+<page_format>
+- Outermost container: w-[210mm] h-[297mm] overflow-hidden relative (A4 size fit, exactly h-[297mm], no min-h-screen).
+- Internal safe padding: p-[12mm] (no content overflow).
+</page_format>
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
-- Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
-- If content risks overflowing, REDUCE spacing, font sizes, or number of milestones/objectives
-- Do NOT use min-h-screen — use h-[297mm] exactly
+<technical_rules>
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded.
+- Use brand colors (bg-[#hex]) and actual fonts.
+- Ensure WCAG AA contrast compliance. No custom CSS/JS.
+- Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
+</technical_rules>
 
-TECHNICAL RULES:
-- Raw HTML + Tailwind CSS utilities only, single minified line
-- PrimeIcons (pi pi-icon-name) — already loaded
-- Use brand's ACTUAL colors via bg-[#hex]
-- Use brand's actual fonts
-- WCAG AA contrast compliance
-- No custom CSS
-
-IMPORTANT:
-- Do NOT add any "html" tag or prefix on output
-- Goals must be REALISTIC and specific to this company
-
-PROJECT CONTEXT:
+<project_context>
 `;

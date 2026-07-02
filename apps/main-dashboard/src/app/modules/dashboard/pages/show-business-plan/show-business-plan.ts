@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -47,6 +47,15 @@ export class ShowBusinessPlan implements OnInit {
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
   protected readonly project = signal<ProjectModel | null>(null);
+
+  protected readonly isBusinessPlanIncomplete = computed(() => {
+    const sections = this.project()?.analysisResultModel?.businessPlan?.sections || [];
+    return sections.length > 0 && sections.length < 9;
+  });
+
+  protected readonly businessPlanSectionCount = computed(() => {
+    return this.project()?.analysisResultModel?.businessPlan?.sections?.length || 0;
+  });
 
   ngOnInit(): void {
     // Get project ID from cookies
@@ -149,9 +158,11 @@ export class ShowBusinessPlan implements OnInit {
   /**
    * Navigate to business plan generation page
    */
-  protected generateBusinessPlan(): void {
-    console.log('Navigating to business plan generation page');
-    this.router.navigate(['/project/business-plan/generate']);
+  protected generateBusinessPlan(force = false): void {
+    console.log('Navigating to business plan generation page, force:', force);
+    this.router.navigate(['/project/business-plan/generate'], {
+      queryParams: force ? { force: 'true' } : {}
+    });
   }
 
   /**

@@ -26,10 +26,15 @@ export class BusinessPlanService {
     this.sseService.closeConnection('business-plan');
   }
 
-  createBusinessplanItem(projectId: string, additionalInfos?: any): Observable<SSEStepEvent> {
+  createBusinessplanItem(
+    projectId: string,
+    additionalInfos?: any,
+    force = false
+  ): Observable<SSEStepEvent> {
     console.log('Starting business plan generation with SSE...', {
       projectId,
       hasAdditionalInfos: !!additionalInfos,
+      force,
     });
 
     // Close any existing SSE connection
@@ -83,7 +88,7 @@ export class BusinessPlanService {
 
             // Now start the SSE generation with additional info flag
             const config: SSEConnectionConfig = {
-              url: `${this.apiUrl}/generate/${projectId}?withAdditionalInfo=true`,
+              url: `${this.apiUrl}/generate/${projectId}?withAdditionalInfo=true${force ? '&force=true' : ''}`,
               keepAlive: true,
               reconnectionDelay: 1000,
             };
@@ -103,7 +108,7 @@ export class BusinessPlanService {
     } else {
       // Standard generation without additional info
       const config: SSEConnectionConfig = {
-        url: `${this.apiUrl}/generate/${projectId}`,
+        url: `${this.apiUrl}/generate/${projectId}${force ? '?force=true' : ''}`,
         keepAlive: true,
         reconnectionDelay: 1000,
       };

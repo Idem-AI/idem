@@ -1,24 +1,23 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_MARKET_PROMPT = `
-You are designing the MARKET OPPORTUNITY slide.
+<role>Pitch deck designer</role>
+<objective>Design the MARKET OPPORTUNITY slide showing TAM, SAM, and SOM numbers.</objective>
 
-GOAL:
-Prove the market is large, growing, and reachable. Use TAM / SAM / SOM or a comparable framework.
-
-MANDATORY CONTENT:
+<mandatory_content>
 - Slide number "03 / 10" top-right
-- Headline: "Market Opportunity" or equivalent
-- TAM, SAM, SOM values with short explanation (adapt to geography — sub-Saharan Africa / OHADA / CFA zone is a plausible default for African startups)
-- Key growth trends (2 bullets max, each under 20 words)
-- Consistent currency (USD or local) clearly labeled
+- Headline: "Market Opportunity"
+- TAM, SAM, and SOM values with a short description (use USD or local currency consistently).
+- Key growth trends (max 2 bullets, under 20 words each).
+</mandatory_content>
 
-LAYOUT:
-- Three stacked or horizontal "cards" (TAM / SAM / SOM) with very large figures and a short descriptor under each
-- Use thin outlines or subtle background tints (bg-[#hex]/10 or similar) — no heavy shadows
-- Optional: a minimal horizontal bar chart built with plain Tailwind divs (width percentages) — no Chart.js
+<layout>
+- Display TAM / SAM / SOM as 3 horizontal or vertical cards with huge numbers and tiny descriptors.
+- Use thin borders or light fills (e.g., bg-[#hex]/10) without heavy shadows.
+- Optional: A simple horizontal bar chart built with Tailwind divs (no external JS libraries).
+</layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
-PROJECT CONTEXT:
+<project_context>
 `;

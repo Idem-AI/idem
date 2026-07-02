@@ -1,23 +1,23 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_TRACTION_PROMPT = `
-You are designing the TRACTION / ROADMAP slide.
+<role>Pitch deck designer</role>
+<objective>Design the TRACTION / ROADMAP slide demonstrating company momentum.</objective>
 
-GOAL:
-Show momentum. If actual metrics are unknown, use realistic, conservative projections clearly labeled as "Plan".
-
-MANDATORY CONTENT:
+<mandatory_content>
 - Slide number "06 / 10" top-right
 - Headline: "Traction" or "Roadmap"
-- 3 or 4 hero metrics in large numerals (users, revenue, partners, MoM growth, etc.) with small descriptors
-- A compact roadmap: next 3 milestones (Q1, Q2, Q3 — or month markers) with 1-line deliverables
-- Clearly mark projections as "Plan" or "Target" when applicable, never fabricate vanity metrics
+- 3-4 hero metrics in large numerals (e.g., users, revenue, growth) with small labels.
+- Compact roadmap: next 3 milestones (Q1, Q2, Q3...) with 1-line deliverables.
+- Clearly label projections as "Plan" or "Target" (do not fabricate metrics).
+</mandatory_content>
 
-LAYOUT:
-- Top: 3-4 KPI blocks in a row (huge numbers, small labels, thin dividers)
-- Bottom: horizontal roadmap strip with small dots + labels
+<layout>
+- Top: 3-4 KPI blocks in a row (large numbers, small labels, thin dividers).
+- Bottom: Horizontal roadmap timeline with small dots and milestone labels.
+</layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
-PROJECT CONTEXT:
+<project_context>
 `;

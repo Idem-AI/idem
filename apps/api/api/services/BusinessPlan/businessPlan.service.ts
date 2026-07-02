@@ -33,10 +33,11 @@ export class BusinessPlanService extends GenericService {
   async generateBusinessPlanWithStreaming(
     userId: string,
     projectId: string,
-    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
+    forceRegenerate = false
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}`
+      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}`
     );
 
     // Generate cache key based on project content
@@ -148,8 +149,13 @@ export class BusinessPlanService extends GenericService {
         modelName: AI_CONFIG.businessPlan.modelName,
       };
 
-      // Initialize empty sections array to collect results as they come in
-      let sectionResults: SectionModel[] = [];
+      // Load existing sections if not forcing regeneration
+      const existingSections = (!forceRegenerate && project.analysisResultModel?.businessPlan?.sections)
+        ? project.analysisResultModel.businessPlan.sections
+        : [];
+
+      // Initialize sections array with existing sections to collect results
+      let sectionResults: SectionModel[] = [...existingSections];
 
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
@@ -173,8 +179,17 @@ export class BusinessPlanService extends GenericService {
               summary: result.summary,
             };
 
-            // Add to sections array
-            sectionResults.push(section);
+            // Add or replace in sections array to avoid duplicates
+            const existingIndex = sectionResults.findIndex((s) => s.name === section.name);
+            if (existingIndex !== -1) {
+              sectionResults[existingIndex] = section;
+            } else {
+              sectionResults.push(section);
+            }
+
+            // Sort sections to match the original steps order
+            const stepOrder = steps.map((s) => s.stepName);
+            sectionResults.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
             // Update project immediately after each step
             logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
@@ -234,7 +249,9 @@ export class BusinessPlanService extends GenericService {
           },
           promptConfig,
           'business_plan',
-          userId
+          userId,
+          undefined, // finalizationCallback
+          existingSections
         );
 
         // Return the updated project (it should be available in cache or fetch it again)
