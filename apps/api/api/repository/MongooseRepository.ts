@@ -265,7 +265,7 @@ export class MongooseRepository<
         );
 
       // Handle MongoDB Driver v4 ModifyResult wrapper if present
-      let updatedDoc = (result as any).value !== undefined ? (result as any).value : result;
+      let updatedDoc = result && (result as any).value !== undefined ? (result as any).value : result;
 
       if (!updatedDoc && queryId !== id) {
         // Fallback to string ID if ObjectId update failed
@@ -276,7 +276,7 @@ export class MongooseRepository<
             { $set: { ...item, updatedAt: new Date() } },
             { returnDocument: 'after' }
           );
-        updatedDoc = (result as any).value !== undefined ? (result as any).value : result;
+        updatedDoc = result && (result as any).value !== undefined ? (result as any).value : result;
       }
 
       if (!updatedDoc) {

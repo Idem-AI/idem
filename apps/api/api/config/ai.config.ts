@@ -173,9 +173,9 @@ export const AI_CONFIG = {
   branding: {
     logo: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.5-flash',
+      modelName: 'gemini-3-flash-preview',
       llmOptions: {
-        maxOutputTokens: 1048,
+        maxOutputTokens: 648,
         temperature: 0.7,
         topP: 0.95,
         topK: 40,

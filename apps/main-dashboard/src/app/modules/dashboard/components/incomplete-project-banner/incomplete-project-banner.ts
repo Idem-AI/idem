@@ -19,15 +19,19 @@ export class IncompleteProjectBannerComponent {
 
   protected get missingElements(): string[] {
     const missing: string[] = [];
-    const branding = this.project().analysisResultModel?.branding;
+    const branding = this.project().analysisResultModel?.branding as any;
+
+    if (branding?.isComplete) {
+      return [];
+    }
 
     if (!branding?.logo) {
       missing.push(this.translate.instant('dashboard.incompleteBanner.elements.logo'));
     }
-    if (!branding?.colors || !branding?.generatedColors?.length) {
+    if (!branding?.colors && (!branding?.generatedColors || !branding.generatedColors.length)) {
       missing.push(this.translate.instant('dashboard.incompleteBanner.elements.colors'));
     }
-    if (!branding?.typography || !branding?.generatedTypography?.length) {
+    if (!branding?.typography && (!branding?.generatedTypography || !branding.generatedTypography.length)) {
       missing.push(this.translate.instant('dashboard.incompleteBanner.elements.typography'));
     }
 
