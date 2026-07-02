@@ -95,10 +95,12 @@ export const generatePitchDeckStreamingController = async (
       (res as any).flush?.();
     };
 
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
     const updatedProject = await pitchDeckService.generatePitchDeckWithStreaming(
       userId,
       projectId as string,
-      streamCallback
+      streamCallback,
+      forceRegenerate
     );
 
     if (!updatedProject) {

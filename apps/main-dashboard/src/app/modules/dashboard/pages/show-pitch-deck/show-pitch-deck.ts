@@ -90,6 +90,16 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
     () => this.steps().filter((s) => s.status === 'completed').length,
   );
 
+  protected readonly isPitchDeckIncomplete = computed(() => {
+    const deck = this.pitchDeck();
+    if (this.isGenerating()) return false;
+    return deck ? (deck.sections?.length > 0 && deck.sections?.length < 11) : false;
+  });
+
+  protected readonly pitchDeckSectionCount = computed(() => {
+    return this.pitchDeck()?.sections?.length || 0;
+  });
+
   ngOnInit(): void {
     const pid = this.cookieService.get('projectId');
     this.projectId.set(pid);
@@ -170,7 +180,7 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
       });
   }
 
-  protected startGeneration(): void {
+  protected startGeneration(force = false): void {
     const pid = this.projectId();
     if (!pid) return;
     this.errorMessage.set(null);
@@ -178,7 +188,7 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
     this.steps.set(PITCH_DECK_STEP_NAMES.map((n) => ({ name: n, status: 'pending' as const })));
 
     this.pitchDeckService
-      .generatePitchDeck(pid)
+      .generatePitchDeck(pid, force)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (event: SSEStepEvent) => this.handleSseEvent(event),
@@ -259,9 +269,9 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.pitchDeck.set(null);
-          this.startGeneration();
+          this.startGeneration(true);
         },
-        error: () => this.startGeneration(),
+        error: () => this.startGeneration(true),
       });
   }
 }

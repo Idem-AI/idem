@@ -21,10 +21,10 @@ export class PitchDeckService {
     this.sseService.cancelGeneration('pitch-deck');
   }
 
-  generatePitchDeck(projectId: string): Observable<SSEStepEvent> {
+  generatePitchDeck(projectId: string, force = false): Observable<SSEStepEvent> {
     this.closeSSEConnection();
     const config: SSEConnectionConfig = {
-      url: `${this.apiUrl}/generate/${projectId}`,
+      url: `${this.apiUrl}/generate/${projectId}${force ? '?force=true' : ''}`,
       keepAlive: true,
       reconnectionDelay: 1000,
     };
