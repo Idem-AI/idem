@@ -1,52 +1,32 @@
-export const COLOR_PALETTE_SECTION_PROMPT = `
-You are a world-class color strategist and editorial designer. Create a FULL-PAGE color palette presentation that feels like a premium design magazine spread — unique to THIS brand's personality and industry.
+export const COLOR_PALETTE_SECTION_PROMPT = `<role>World-class color strategist and editorial designer</role>
+<objective>Create a FULL-PAGE color palette presentation that feels like a premium design magazine spread, unique to this brand's personality.</objective>
 
-CRITICAL CREATIVE RULE:
-Do NOT produce the same card-grid layout every time. Study the brand's colors, industry, and personality, then invent a presentation concept that makes these specific colors feel alive and meaningful. The layout should reflect the brand's energy.
+<concept_ideas>
+- Paint studio: colors as large swatches or brushstrokes.
+- Pantone: vertical strips with specs.
+- Landscape: horizontal bands.
+- Material samples: textured material cards.
+</concept_ideas>
 
-CONCEPT INVENTION (choose or invent based on the brand):
-- Paint studio: colors presented as large paint swatches or brushstrokes, with hex codes as elegant labels
-- Pantone-inspired: each color as a tall vertical strip with detailed specs below, like a professional color fan
-- Landscape: colors arranged as horizontal bands creating an abstract landscape or horizon
-- Material samples: colors shown as textured material cards (fabric, paper, metal feel via shadows/gradients)
-- Color story: colors presented in a narrative flow showing how they relate and complement each other
-- Architectural: colors as building blocks stacked or arranged in a structural composition
+<page_content>
+1. Section title: "Palette de Couleurs".
+2. Colors displayed with actual hex values: Primary, Secondary, Accent, Background, Text.
+3. Each color shows: visual swatch, name & role, HEX code, and brief usage note (1 sentence in French).
+4. Color harmony composition demonstrating how colors work together.
+</page_content>
 
-PAGE CONTENT (MANDATORY):
-1. Section title: "Palette de Couleurs" — styled to match brand personality
-2. The brand's colors displayed prominently with ACTUAL hex values via bg-[#hex]:
-   - Primary, Secondary, Accent, Background, Text
-3. Each color must show:
-   - Large visual swatch (the color itself, prominent)
-   - Color name and role (e.g., "Primaire", "Secondaire", "Accent")
-   - HEX code in monospace
-   - Brief usage note (1 sentence, in French)
-4. A small color harmony section showing how the colors work together (e.g., a mini composition using all colors)
+<page_format>
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, exactly h-[167mm], no min-h-screen).
+- Internal safe padding: p-[12mm] (no content overflow).
+</page_format>
 
-DESIGN PRINCIPLES:
-- Use the brand's ACTUAL colors via bg-[#hex], text-[#hex] — never default to generic blue/purple
-- The color swatches must be LARGE and visually dominant — this is about showing color, not reading text
-- Typography should be minimal and serve the colors, not compete with them
-- Create visual rhythm and balance — not just a uniform grid
-- All text in French
+<technical_rules>
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded.
+- Use brand colors (bg-[#hex]) and actual fonts.
+- All text in French. Ensure WCAG AA contrast.
+- Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
+</technical_rules>
 
-PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
-- Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 297×167mm box — nothing may overflow
-- If content risks overflowing, REDUCE spacing (gap-6→gap-3), swatch sizes, or font sizes
-- Do NOT use min-h-screen — use h-[297mm] exactly
-
-TECHNICAL RULES:
-- Raw HTML + Tailwind CSS utilities only, single minified line
-- PrimeIcons (pi pi-icon-name) for icons if needed
-- WCAG AA contrast for text overlaid on colors
-- No custom CSS, no JS
-
-IMPORTANT:
-- Do NOT add any "html" tag or prefix on output
-- Do NOT use generic blue/indigo/purple — use the brand's ACTUAL hex colors
-- Each brand's color page should look distinctly different based on its unique palette
-
-PROJECT CONTEXT:
+<project_context>
 `;

@@ -1,20 +1,14 @@
-export const ENTITY_DIAGRAM_PROMPT = `
-As a certified database modeling expert, generate a detailed entity relationship diagram in Mermaid format with the following specifications:
+export const ENTITY_DIAGRAM_PROMPT = `<objective>Generate a detailed entity relationship diagram in Mermaid format.</objective>
 
-# Entity Relationship Diagram - [SystemName]
+<requirements>
+1. Use "erDiagram" syntax.
+2. Include primary keys (PK) and foreign keys (FK) with proper data types.
+3. Use cardinality notation (e.g., ||--o{).
+4. Add relationship labels.
+5. Reflect the project data model focusing on core entities.
+</requirements>
 
-## Strict Requirements:
-1. Must use "erDiagram" syntax
-2. Entities with appropriate names
-3. Attributes for each entity
-4. Clear relationships (one-to-one, one-to-many, many-to-many)
-5. Cardinality notation (||--o{, etc.)
-6. Relationship labels
-
-
-
-## Structured Example:
-
+<example>
 erDiagram
     USER {
         string id PK
@@ -42,18 +36,10 @@ erDiagram
     
     USER ||--o{ PROJECT : "creates"
     PROJECT ||--o{ TASK : "contains"
+</example>
 
-
-## Rules:
-- Include primary keys (PK) and foreign keys (FK)
-- Use proper data types for attributes
-- Show all important relationships between entities
-- Use standard ER diagram notation
-- Focus on the core entities in the system
-- Make sure the diagram reflects the specific project's data model
-- Do NOT add any additional text, explanations or comments - ONLY generate the diagram
-
-- Verry Important: ALWAYS wrap your diagram with \`\`\`mermaid and \`\`\` tags
-- Verry Important: Your response MUST begin with \`\`\`mermaid and end with \`\`\`
-- Verry Important: Do NOT add any additional text, explanations or comments - ONLY the diagram code wrapped in \`\`\`mermaid ... \`\`\` tags
+<output_format>
+- Output ONLY the diagram code wrapped in \`\`\`mermaid and \`\`\` tags.
+- No explanations, introduction, or comments.
+</output_format>
 `;

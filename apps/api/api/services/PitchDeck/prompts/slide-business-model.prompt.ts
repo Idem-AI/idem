@@ -1,24 +1,24 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_BUSINESS_MODEL_PROMPT = `
-You are designing the BUSINESS MODEL slide.
+<role>Pitch deck designer</role>
+<objective>Design the BUSINESS MODEL slide. Clearly explain monetization: pricing, tiers, and unit economics.</objective>
 
-GOAL:
-Make the monetization crystal clear: who pays, for what, how much, with what recurrence.
-
-MANDATORY CONTENT:
+<mandatory_content>
 - Slide number "05 / 10" top-right
-- Headline: "Business Model" or equivalent
-- Primary revenue stream clearly stated (subscription / transaction fee / commission / licensing / ...)
-- Pricing points (2 to 3) with tier name + price + one-line description
-- Key unit economics: at least ONE of ARPU, LTV, CAC, gross margin, or take rate — grounded in the project context. Display prominently.
+- Headline: "Business Model"
+- Primary revenue stream (subscription, transaction fee, commission, licensing, etc.)
+- Pricing points (2-3 tiers) with tier name + price + 1-line description (max 2-3 features per tier, no emojis)
+- Key unit economics (at least one of: ARPU, LTV, CAC, margin, take rate), displayed prominently.
+</mandatory_content>
 
-LAYOUT:
-- Left: short prose explaining the model (max 40 words)
-- Right: pricing tiers as minimal cards (thin border, no emojis, no checkmarks-mania — 2-3 features per tier max)
-- Bottom strip: 3 small KPI blocks with the unit economics
+<layout>
+- Left: Short explanation of model (max 40 words)
+- Right: Pricing tiers as minimal cards (thin border, no checkmarks mania)
+- Bottom: 3 small KPI blocks showing unit economics
+</layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
-PROJECT CONTEXT:
+<project_context>
 `;

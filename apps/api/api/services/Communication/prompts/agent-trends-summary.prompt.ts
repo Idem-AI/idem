@@ -1,33 +1,22 @@
-/**
- * Lightweight "trend signals" summariser.
- *
- * By default the service serves cached signals derived from periodic jobs or
- * external APIs. If none are cached, we ask the LLM to produce a SHORT list
- * of plausible industry signals from the context. This is intentionally
- * minimal to keep token usage low.
- */
-export const AGENT_TRENDS_SUMMARY_PROMPT = `
-You are a market analyst.
+export const AGENT_TRENDS_SUMMARY_PROMPT = `<role>Market analyst</role>
+<objective>Given the project context, produce 3 to 5 current, short industry trend signals for communication planning.</objective>
 
-TASK
-Given the CONTEXT, produce 3 to 5 current industry trend signals relevant for
-communication planning. Keep each signal SHORT.
-
-OUTPUT FORMAT (STRICT JSON — NO PROSE, NO MARKDOWN, NO CODE FENCES)
+<output_schema>
 {
   "signals": [
     {
-      "id": string,               // short slug, unique
-      "label": string,             // <= 60 chars
-      "description": string,       // <= 180 chars
-      "relevance": number          // 0..1
+      "id": "short-slug-unique",
+      "label": "Title (max 60 chars)",
+      "description": "Short explanation (max 180 chars)",
+      "relevance": 0.0 to 1.0
     }
   ]
 }
+</output_schema>
 
-RULES
-- Output ONLY valid JSON. No backticks, no commentary.
-- Avoid speculation about numbers you cannot verify.
-- Prefer evergreen structural trends (e.g., "short-form video dominates reach")
-  unless the context clearly implies a narrow niche.
+<rules>
+- Output ONLY valid JSON. No backticks, code fences, or commentary.
+- Do not speculate on unverifiable numbers.
+- Prefer evergreen structural trends unless context indicates a narrow niche.
+</rules>
 `;
