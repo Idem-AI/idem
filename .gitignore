@@ -5,7 +5,7 @@
 /tmp
 /out-tsc
 /build
-
+.npm-cache
 
 CLAUDE.md
 

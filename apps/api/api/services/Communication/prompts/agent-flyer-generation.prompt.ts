@@ -18,6 +18,10 @@ Seed: {{DESIGN_SEED}}
   - spacingMultiplier: An odd integer (3–11). Multiply base spacing units by this value
                        to create spacing that is distinctly different each render.
                        e.g., multiplier=7 → padding of 56px instead of default 32px.
+  - imagePosition:    WHERE on the canvas the image is anchored (see IMAGE POSITIONS).
+  - readingDirection: The intended eye-flow path (see READING DIRECTIONS).
+  - graphicAccent:    An optional decorative graphic element (see GRAPHIC ACCENTS).
+  - contentDensity:   How much textual content to include (see CONTENT DENSITIES).
 
 ═══════════════════════════════════════════════════════════
 CORE PHILOSOPHY — READ BEFORE ANYTHING ELSE
@@ -28,7 +32,9 @@ Think Photoshop, InDesign, Canva Pro — NOT a landing page.
 Avoid at all costs:
   ✗ Navigation bars, headers, footers, card components
   ✗ Centered content stacked vertically like a website
-  ✗ Rounded buttons that look like UI components
+  ✗ ANY element that looks like a clickable web button (no <button>, no <a>,
+    no rounded rectangles with hover states, no pill shapes, no shadows
+    suggesting interactivity). This is PRINT — nothing is clickable.
   ✗ Generic grid/flexbox web layouts
   ✗ White backgrounds with colored text boxes floating on them
   ✗ Defaulting to archetype A or B when the seed specifies otherwise
@@ -40,6 +46,37 @@ Always aim for:
   ✓ Bleeds, crops, overlaps — not everything must be fully visible
   ✓ One strong focal point the eye lands on immediately
   ✓ Negative space used as a design element, not wasted space
+
+═══════════════════════════════════════════════════════════
+UNIQUENESS — CRITICAL ANTI-REPETITION RULES
+═══════════════════════════════════════════════════════════
+Every flyer you produce is for a DIFFERENT PROJECT with a DIFFERENT BRAND.
+You must treat each generation as a completely new creative brief.
+DO NOT fall back on familiar patterns. DO NOT repeat structural habits.
+
+COMMON LLM PATTERNS TO ACTIVELY AVOID:
+  ✗ Placing the headline at the top-center every time.
+  ✗ Always putting the image on the left and text on the right (or vice-versa).
+  ✗ Using the same CSS positioning values across generations
+    (e.g., always top:20px left:40px for the headline).
+  ✗ Defaulting to the same font sizes (e.g., always 72px for headline).
+  ✗ Always using the same color overlay opacity (e.g., always 0.3).
+  ✗ Always putting the logo in the bottom-right corner.
+  ✗ Repeating the same text-shadow or box-shadow values.
+  ✗ Always using a dark semi-transparent overlay on images.
+  ✗ Producing layouts that look like they came from the same template.
+
+UNIQUENESS ENFORCEMENT:
+  ✓ The seed has 9 independent dimensions — honor ALL of them literally.
+  ✓ Let the imagePosition seed drive WHERE the image sits. Do not override it.
+  ✓ Let readingDirection seed drive the visual flow. Do not default to top-down.
+  ✓ Vary concrete CSS values: positions, sizes, rotations, opacities, spacing.
+  ✓ The BRAND identity (colors, fonts, tone) should drive the visual feel.
+    A luxury brand and a streetwear brand using the same archetype must
+    still look radically different because of their brand DNA.
+  ✓ The CONTENT (headline, subject, image) should influence layout decisions.
+    A flyer about a summer sale and one about a corporate event should feel
+    completely different even with the same archetype.
 
 ═══════════════════════════════════════════════════════════
 ARCHETYPE CATALOG — EXECUTE THE ONE IN YOUR SEED
@@ -211,6 +248,66 @@ LAYOUT TENSIONS — EXECUTE THE ONE IN YOUR SEED
                         At least one element bleeds off canvas. Layering IS the layout.
 
 ═══════════════════════════════════════════════════════════
+IMAGE POSITIONS — EXECUTE THE ONE IN YOUR SEED
+═══════════════════════════════════════════════════════════
+
+  TOP_LEFT:        Image anchored to the top-left quadrant of the canvas.
+  TOP_RIGHT:       Image anchored to the top-right quadrant.
+  BOTTOM_LEFT:     Image anchored to the bottom-left quadrant.
+  BOTTOM_RIGHT:    Image anchored to the bottom-right quadrant.
+  CENTER_BLEED:    Image centered on the canvas, bleeding outward beyond edges.
+  LEFT_STRIP:      Image occupies a vertical strip on the left third.
+  RIGHT_STRIP:     Image occupies a vertical strip on the right third.
+  TOP_BAND:        Image as a horizontal band across the top portion.
+  BOTTOM_BAND:     Image as a horizontal band across the bottom portion.
+  DIAGONAL_SLICE:  Image placed along a diagonal axis (use clip-path or rotation).
+
+═══════════════════════════════════════════════════════════
+READING DIRECTIONS — EXECUTE THE ONE IN YOUR SEED
+═══════════════════════════════════════════════════════════
+The intended visual flow — how the viewer's eye should travel across the flyer.
+
+  TOP_DOWN:         Eye flows from top to bottom. Classic editorial.
+  BOTTOM_UP:        Key information at bottom, eye travels upward to the image.
+  LEFT_TO_RIGHT:    Western reading: headline on the left, image on the right.
+  RIGHT_TO_LEFT:    Reverse: image on the left, headline and text on the right.
+  CENTER_OUT:       Focal point at center, secondary details radiate outward.
+  CORNER_DIAGONAL:  Eye follows a diagonal line from one corner to the opposite.
+
+═══════════════════════════════════════════════════════════
+GRAPHIC ACCENTS — EXECUTE THE ONE IN YOUR SEED
+═══════════════════════════════════════════════════════════
+An optional decorative graphic element to add visual uniqueness.
+
+  GEOMETRIC_SHAPE:       A bold circle, triangle, or polygon used as a decorative
+                         element (not containing content). Solid or outlined.
+  THICK_UNDERLINE:       A heavy underline or overline on the headline (8–12px thick,
+                         brand color). Not a CSS text-decoration — a real div.
+  DOT_CLUSTER:           Small decorative dots or circles (6–12px) scattered
+                         deliberately in negative space. 5–12 dots.
+  OVERSIZED_PUNCTUATION: A giant quotation mark, ampersand, slash, or asterisk
+                         (300px+) used as a background graphic at low opacity.
+  GRADIENT_WASH:         A subtle gradient wash (brand color to transparent) over
+                         one zone of the canvas.
+  NONE:                  No added accent — let typography and image carry the design.
+  BORDER_ACCENT:         Thick partial border (4–8px) on only 1–2 sides of the canvas.
+  PATTERN_STRIP:         A thin strip (40–80px) of repeating geometric pattern
+                         (stripes, dots, chevrons) along one edge.
+
+═══════════════════════════════════════════════════════════
+CONTENT DENSITIES — EXECUTE THE ONE IN YOUR SEED
+═══════════════════════════════════════════════════════════
+How much textual content to include on the flyer.
+
+  MINIMAL:     Only headline + image + brand mark. Almost no body text.
+               Let the visual do the talking. Maximum 15 words total.
+  BALANCED:    Headline, short body (1–2 sentences), call to action. Standard.
+  EDITORIAL:   More text: headline, subheadline, body paragraph, fine print.
+               Feels like a magazine page. Text is part of the design.
+  TYPE_HEAVY:  Text IS the design. Large blocks of typographic content fill
+               the canvas. Image is secondary or used as a texture.
+
+═══════════════════════════════════════════════════════════
 IMAGE INTEGRATION RULES
 ═══════════════════════════════════════════════════════════
 The image URL is {{IMAGE_URL}}.
@@ -270,8 +367,12 @@ TECHNICAL HTML RULES
 - Single unbroken line. Zero newlines inside the "html" string value.
 - Outer container: exactly the format dimensions. overflow-hidden. relative.
 - All inner elements: absolute positioning for print-like placement.
-- CTA: bold, solid brand color, ALL CAPS, generous padding, square corners.
-  It looks like a print stamp, NOT a web button.
+- CALL TO ACTION: This is NOT a button. Render it as a bold typographic
+  text block — ALL CAPS, brand color as text color or as a flat background
+  band/stripe behind the text. NO border-radius, NO box-shadow, NO hover
+  states, NO <button> or <a> tags. Think of it as a bold printed tagline
+  or a stamped strip of text, like you'd see on a physical poster or flyer.
+  It must feel like ink on paper, not a clickable UI element.
 - PrimeIcons (pi pi-*) for small accent icons only.
 - WCAG AA contrast on all readable text (minimum 4.5:1).
 - Always include: headline, subheadline (if relevant), body text, CTA, brand name/logo.
@@ -295,9 +396,15 @@ Before writing the JSON, verify each of the following is TRUE:
   □ typographyMood {{DESIGN_SEED.typographyMood}} is visible in the HTML.
   □ layoutTension {{DESIGN_SEED.layoutTension}} creates a structural decision.
   □ spacingMultiplier {{DESIGN_SEED.spacingMultiplier}} has influenced at least 3 spacing values.
+  □ imagePosition {{DESIGN_SEED.imagePosition}} determines where the image sits.
+  □ readingDirection {{DESIGN_SEED.readingDirection}} determines the visual flow.
+  □ graphicAccent {{DESIGN_SEED.graphicAccent}} is visible (or NONE = no accent element).
+  □ contentDensity {{DESIGN_SEED.contentDensity}} controls the amount of text.
   □ At least TWO image integration techniques are used.
   □ NO element uses flexbox/grid layout (absolute positioning only).
-  □ CTA has square corners and looks like a print stamp.
+  □ Call to action is a bold text block, NOT a button or clickable element.
+  □ The layout does NOT look like a generic template — it is specific to THIS brand
+    and THIS content.
 
 If any box is unchecked → revise the html before outputting.
 
@@ -312,7 +419,7 @@ OUTPUT FORMAT — STRICT JSON, NO EXCEPTIONS
     "headline": string,     // <= 60 chars. Punchy. Echoes image mood. Honors typographyMood case rules.
     "subheadline": string,  // <= 90 chars. Optional.
     "body": string,         // <= 220 chars.
-    "cta": string           // <= 30 chars. Action-oriented.
+    "cta": string           // <= 30 chars. Bold printed tagline, NOT a button label.
   },
   "html": string            // Single-line Tailwind HTML. Outer div = exact format dimensions.
 }
