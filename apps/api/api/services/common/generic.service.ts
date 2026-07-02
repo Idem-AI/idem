@@ -220,6 +220,13 @@ Please generate *only* the content for the '${
       }
     }
 
+    const isRetry = existingSections.length > 0;
+    const effectivePromptConfig: PromptConfig = {
+      provider: promptConfig?.provider || AI_CONFIG.default.provider,
+      modelName: promptConfig?.modelName || AI_CONFIG.default.modelName,
+      ...promptConfig,
+      skipQuotaCheck: isRetry ? true : (promptConfig?.skipQuotaCheck ?? false),
+    };
 
     // Helper function to send progress updates
     const sendProgressUpdate = async () => {
@@ -298,7 +305,7 @@ Please generate *only* the content for the '${
           userId,
           promptType || step.stepName,
           contextFromPreviousSteps,
-          promptConfig
+          effectivePromptConfig
         );
 
         // Store the content of this step for future steps
