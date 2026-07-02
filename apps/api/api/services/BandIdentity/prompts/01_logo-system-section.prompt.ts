@@ -13,7 +13,7 @@ CONCEPT IDEAS (choose or invent one that fits the brand):
 
 PAGE CONTENT (this page ONLY shows the primary logo):
 1. Section title: "Logo Principal" — styled to match the brand's personality
-2. The PRIMARY LOGO displayed prominently (use the actual logo URL from context via <img>)
+2. The PRIMARY LOGO displayed prominently (use the exact URL specified in **SPECIFIC LOGO URL FOR THIS PAGE** via <img>)
 3. Brief description of the logo's concept/meaning (2-3 sentences max, in French)
 4. The logo's color codes displayed elegantly (the colors extracted from the logo)
 5. A "zone de protection" illustration showing minimum clear space around the logo
@@ -30,7 +30,7 @@ TECHNICAL RULES:
 - PrimeIcons (pi pi-icon-name) for icons — already loaded, no CDN
 - Use brand's ACTUAL colors via bg-[#hex], text-[#hex], border-[#hex]
 - All text in French
-- Replace logo URL placeholders with actual project context URLs
+- Use the exact URL specified in **SPECIFIC LOGO URL FOR THIS PAGE** for the <img> src attribute. Do NOT use fake urls or other placeholders.
 - Logo displayed with object-contain and appropriate max-h constraints
 - WCAG AA contrast compliance
 
@@ -81,7 +81,7 @@ PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
 TECHNICAL RULES:
 - Raw HTML + Tailwind CSS utilities only, single minified line
 - Use bg-[#hex] for the actual background color of this variation
-- Logo via <img> with object-contain
+- Logo via <img> with object-contain (use the exact URL specified in **SPECIFIC LOGO URL FOR THIS PAGE** for the src attribute)
 - All text in French
 - WCAG AA contrast for any text against the background
 - PrimeIcons (pi pi-icon-name) if needed
@@ -140,7 +140,7 @@ TECHNICAL RULES:
 IMPORTANT:
 - Do NOT add any "html" tag or prefix on output
 - This page must be USEFUL — a real reference that someone would pin on their wall
-- Use the brand's actual logo URL for visual examples
+- Use the exact URL specified in **SPECIFIC LOGO URL FOR THIS PAGE** for the logo image src in visual examples. Do NOT use fake urls or placeholders.
 
 PROJECT CONTEXT:
 `;
