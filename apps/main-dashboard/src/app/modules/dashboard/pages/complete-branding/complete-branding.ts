@@ -244,35 +244,31 @@ export class CompleteBrandingPage implements OnInit {
       ? branding.generatedTypography[0]
       : null;
 
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = {
+      isComplete: true
+    };
     if (autoColor) patch['colors'] = autoColor;
     if (autoTypo) patch['typography'] = autoTypo;
 
     this.isFinalizing.set(true);
 
-    const hasPatch = Object.keys(patch).length > 0;
+    const updated = {
+      ...proj,
+      analysisResultModel: {
+        ...proj.analysisResultModel,
+        branding: { ...branding, ...patch },
+      },
+    } as ProjectModel;
+    this.project.set(updated);
 
     const doNavigate = () => {
       this.isFinalizing.set(false);
       this.router.navigate(['/project/dashboard']);
     };
 
-    if (hasPatch) {
-      const updated = {
-        ...proj,
-        analysisResultModel: {
-          ...proj.analysisResultModel,
-          branding: { ...branding, ...patch },
-        },
-      } as ProjectModel;
-      this.project.set(updated);
-
-      this.projectService.updateProject(proj.id!, {
-        analysisResultModel: updated.analysisResultModel,
-      }).subscribe({ next: doNavigate, error: doNavigate });
-    } else {
-      doNavigate();
-    }
+    this.projectService.updateProject(proj.id!, {
+      analysisResultModel: updated.analysisResultModel,
+    }).subscribe({ next: doNavigate, error: doNavigate });
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
