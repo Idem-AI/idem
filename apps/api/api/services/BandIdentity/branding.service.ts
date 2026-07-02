@@ -463,10 +463,11 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string,
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
-    pdfFormat: string = 'SLIDE_16_9'
+    pdfFormat: string = 'SLIDE_16_9',
+    forceRegenerate = false
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}, pdfFormat: ${pdfFormat}`
+      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}, pdfFormat: ${pdfFormat}, force: ${forceRegenerate}`
     );
 
     // Get project
@@ -607,8 +608,13 @@ export class BrandingService extends GenericService {
       //   hasDependencies: false,
       // });
 
-      // Initialize empty sections array to collect results as they come in
-      let sections: SectionModel[] = [];
+      // Load existing sections if not forcing regeneration
+      const existingSections = (!forceRegenerate && project.analysisResultModel?.branding?.sections)
+        ? project.analysisResultModel.branding.sections
+        : [];
+
+      // Initialize sections array to collect results
+      let sections: SectionModel[] = [...existingSections];
 
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
@@ -771,7 +777,17 @@ export class BrandingService extends GenericService {
               };
             }
 
-            sections.push(finalSection);
+            // Add or replace in sections array to avoid duplicates
+            const existingIndex = sections.findIndex((s) => s.name === finalSection.name);
+            if (existingIndex !== -1) {
+              sections[existingIndex] = finalSection;
+            } else {
+              sections.push(finalSection);
+            }
+
+            // Sort sections to match original step order
+            const stepOrder = steps.map((s) => s.stepName);
+            sections.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
             // Prepare the updated project data
             const updatedProjectData = {
@@ -788,7 +804,7 @@ export class BrandingService extends GenericService {
                   generatedTypography:
                     project.analysisResultModel.branding.generatedTypography || [],
                   pdfFormat: pdfFormat, // Stocker le format PDF choisi
-                  createdAt: new Date(),
+                  createdAt: project.analysisResultModel.branding.createdAt || new Date(),
                   updatedAt: new Date(),
                 },
               },
@@ -834,7 +850,9 @@ export class BrandingService extends GenericService {
             userId,
           }, // promptConfig
           'branding', // promptType
-          userId
+          userId,
+          undefined, // finalizationCallback
+          existingSections
         );
 
         // Return the updated project (it should be available in cache or fetch it again)
@@ -1245,7 +1263,8 @@ export class BrandingService extends GenericService {
    */
   async generateLogoConcepts(
     userId: string,
-    projectId: string
+    projectId: string,
+    forceRegenerate = false
   ): Promise<{
     logos: LogoModel[];
   }> {
@@ -1266,8 +1285,19 @@ export class BrandingService extends GenericService {
       throw new Error(`Project is missing colors or typography. Cannot generate logos.`);
     }
 
+    // Load existing generated logos unless forcing a regeneration from scratch
+    const existingLogos = (!forceRegenerate && branding?.generatedLogos) ? branding.generatedLogos : [];
+    const existingLogosCount = existingLogos.length;
+
+    if (existingLogosCount >= 3) {
+      logger.info(`Logos already complete (${existingLogosCount}/3) for projectId: ${projectId}. Skipping.`);
+      return { logos: existingLogos };
+    }
+
+    const logosToGenerateCount = 3 - existingLogosCount;
+
     logger.info(
-      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
+      `Generating ${logosToGenerateCount} logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
         preferences?.type || 'name'
       }`
     );
@@ -1284,9 +1314,9 @@ export class BrandingService extends GenericService {
     // Étape 3: Génération AI parallèle PURE (sans optimisation SVG)
     const aiStartTime = Date.now();
 
-    // Créer 3 promesses pour génération AI pure en parallèle
-    const logoPromises = Array.from({ length: 3 }, (_, index) =>
-      this.generateRawLogoConcept(optimizedPrompt, project, index, preferences)
+    // Créer promesses pour génération AI pure en parallèle pour les concepts restants
+    const logoPromises = Array.from({ length: logosToGenerateCount }, (_, index) =>
+      this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences)
     );
 
     // Attendre toutes les générations AI avec gestion d'erreurs robuste
@@ -1300,7 +1330,7 @@ export class BrandingService extends GenericService {
       if (result.status === 'fulfilled') {
         rawLogos.push(result.value);
       } else {
-        logger.error(`Logo concept ${index + 1} generation failed:`, result.reason);
+        logger.error(`Logo concept ${index + existingLogosCount + 1} generation failed:`, result.reason);
         failedIndexes.push(index);
       }
     });
@@ -1312,25 +1342,27 @@ export class BrandingService extends GenericService {
       );
       const retryResults = await Promise.allSettled(
         failedIndexes.map((index) =>
-          this.generateRawLogoConcept(optimizedPrompt, project, index, preferences)
+          this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences)
         )
       );
       retryResults.forEach((result, i) => {
         if (result.status === 'fulfilled') {
           rawLogos.push(result.value);
         } else {
-          logger.error(`Logo concept ${failedIndexes[i] + 1} retry failed:`, result.reason);
+          logger.error(`Logo concept ${failedIndexes[i] + existingLogosCount + 1} retry failed:`, result.reason);
         }
       });
     }
 
     const aiGenerationTime = Date.now() - aiStartTime;
     logger.info(
-      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/3 after retry`
+      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/${logosToGenerateCount} after retry`
     );
 
     // Étape 4: Optimisation SVG en parallèle (séparée de l'AI)
     const optimizationStartTime = Date.now();
+
+    const finalLogosList = [...existingLogos, ...rawLogos];
 
     // Paralléliser l'optimisation SVG + mise à jour DB/cache
     const [finalOptimizedLogos, _] = await Promise.all([
@@ -1344,7 +1376,7 @@ export class BrandingService extends GenericService {
         project,
         selectedColors,
         selectedTypography,
-        rawLogos // Utiliser les logos non-optimisés pour la DB (plus rapide)
+        finalLogosList // Utiliser la liste complète de logos
       ),
     ]);
 
@@ -1357,7 +1389,7 @@ export class BrandingService extends GenericService {
     );
 
     return {
-      logos: finalOptimizedLogos as LogoModel[],
+      logos: [...existingLogos, ...finalOptimizedLogos] as LogoModel[],
     };
   }
 
@@ -1467,7 +1499,8 @@ export class BrandingService extends GenericService {
   async generateLogoVariations(
     userId: string,
     projectId: string,
-    selectedLogo: LogoModel
+    selectedLogo: LogoModel,
+    forceRegenerate = false
   ): Promise<{
     withText: {
       lightBackground?: string;
@@ -1496,15 +1529,29 @@ export class BrandingService extends GenericService {
       svg: selectedLogo.iconSvg,
     };
 
-    // Execute all three variations in parallel
-    logger.info(`Starting parallel generation of 3 logo variations`);
+    const existingVariations = (!forceRegenerate && selectedLogo.variations?.withText) ? selectedLogo.variations.withText : {};
+
+    // Execute only the missing variations in parallel
+    logger.info(`Starting parallel generation of logo variations (resuming completed ones)`);
+    const lightPromise = existingVariations.lightBackground
+      ? Promise.resolve({ lightBackground: existingVariations.lightBackground })
+      : this.generateSingleLightVariation(logoStructure, project);
+
+    const darkPromise = existingVariations.darkBackground
+      ? Promise.resolve({ darkBackground: existingVariations.darkBackground })
+      : this.generateSingleDarkVariation(logoStructure, project);
+
+    const monochromePromise = existingVariations.monochrome
+      ? Promise.resolve({ monochrome: existingVariations.monochrome })
+      : this.generateSingleMonochromeVariation(logoStructure, project);
+
     const [lightVariation, darkVariation, monochromeVariation] = await Promise.all([
-      this.generateSingleLightVariation(logoStructure, project),
-      this.generateSingleDarkVariation(logoStructure, project),
-      this.generateSingleMonochromeVariation(logoStructure, project),
+      lightPromise,
+      darkPromise,
+      monochromePromise,
     ]);
 
-    logger.info(`Successfully generated all 3 variations in parallel`);
+    logger.info(`Successfully processed all 3 variations`);
 
     // Create direct SVG variations (bypassing JSON-to-SVG conversion since we already have SVGs)
     const svgVariations = {

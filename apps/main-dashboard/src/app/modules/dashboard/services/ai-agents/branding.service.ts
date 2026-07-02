@@ -40,6 +40,7 @@ export class BrandingService {
   createBrandIdentityModel(
     projectId: string,
     pdfFormat: string = 'SLIDE_16_9',
+    force = false,
   ): Observable<SSEStepEvent> {
     console.log('Starting branding generation with SSE and format:', pdfFormat);
 
@@ -47,7 +48,7 @@ export class BrandingService {
     this.closeSSEConnection();
 
     const config: SSEConnectionConfig = {
-      url: `${this.apiUrl}/generate/${projectId}?format=${pdfFormat}`,
+      url: `${this.apiUrl}/generate/${projectId}?format=${pdfFormat}${force ? '&force=true' : ''}`,
       keepAlive: true,
       reconnectionDelay: 1000,
     };
@@ -125,6 +126,7 @@ export class BrandingService {
     selectedColor: ColorModel,
     selectedTypography: TypographyModel,
     preferences: LogoPreferencesModel,
+    force = false,
   ): Observable<{
     logos: LogoModel[];
   }> {
@@ -136,7 +138,7 @@ export class BrandingService {
     return this.http
       .post<{
         logos: LogoModel[];
-      }>(`${this.apiUrl}/generate/logo-concepts/${projectId}`, {})
+      }>(`${this.apiUrl}/generate/logo-concepts/${projectId}${force ? '?force=true' : ''}`, {})
       .pipe(
         tap((response) => console.log('generateLogosWithPreferences response:', response)),
         catchError((error) => {
@@ -153,6 +155,7 @@ export class BrandingService {
   generateLogoVariations(
     selectedLogo: LogoModel,
     project: ProjectModel,
+    force = false,
   ): Observable<{
     variations: {
       withText?: {
@@ -184,7 +187,7 @@ export class BrandingService {
             monochrome?: string;
           };
         };
-      }>(`${this.apiUrl}/generate/logo-variations/${project.id}`, {
+      }>(`${this.apiUrl}/generate/logo-variations/${project.id}${force ? '?force=true' : ''}`, {
         selectedLogo: selectedLogo,
       })
       .pipe(

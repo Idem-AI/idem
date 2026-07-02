@@ -48,10 +48,11 @@ export class PitchDeckService extends GenericService {
   async generatePitchDeckWithStreaming(
     userId: string,
     projectId: string,
-    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
+    forceRegenerate = false
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}`
+      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}`
     );
 
     const project = await this.getProject(projectId, userId);
@@ -165,7 +166,12 @@ export class PitchDeckService extends GenericService {
     };
 
 
-    let sectionResults: SectionModel[] = [];
+    // Load existing sections if not forcing regeneration
+    const existingSections = (!forceRegenerate && project.analysisResultModel?.pitchDeck?.sections)
+      ? project.analysisResultModel.pitchDeck.sections
+      : [];
+
+    let sectionResults: SectionModel[] = [...existingSections];
 
     if (streamCallback) {
       await this.processStepsWithStreaming(
@@ -183,7 +189,18 @@ export class PitchDeckService extends GenericService {
             data: result.data,
             summary: result.summary,
           };
-          sectionResults.push(section);
+          
+          // Add or replace in sections array to avoid duplicates
+          const existingIndex = sectionResults.findIndex((s) => s.name === section.name);
+          if (existingIndex !== -1) {
+            sectionResults[existingIndex] = section;
+          } else {
+            sectionResults.push(section);
+          }
+
+          // Sort sections to match original step order
+          const stepOrder = steps.map((s) => s.stepName);
+          sectionResults.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
           const currentProject = await this.projectRepository.findById(
             projectId,
@@ -215,7 +232,9 @@ export class PitchDeckService extends GenericService {
         },
         promptConfig,
         'pitch_deck',
-        userId
+        userId,
+        undefined, // finalizationCallback
+        existingSections
       );
 
       return this.projectRepository.findById(projectId, `users/${userId}/projects`);
