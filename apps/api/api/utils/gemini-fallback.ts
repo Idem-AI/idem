@@ -43,21 +43,18 @@ export async function withGeminiFallback<T>(
   try {
     return await primaryFn();
   } catch (error: any) {
-    if (isGeminiOverloadedError(error)) {
-      logger.warn(
-        `Gemini model "${modelName}" failed due to high demand/overload. Attempting fallback to "${fallbackModelName}"...`,
-        { error: error.message || error }
+    logger.warn(
+      `Gemini model "${modelName}" failed (Error: ${error.message || error}). Attempting fallback to "${fallbackModelName}"...`,
+      { error: error.message || error }
+    );
+    try {
+      return await fallbackFn();
+    } catch (fallbackError: any) {
+      logger.error(
+        `Fallback model "${fallbackModelName}" also failed: ${fallbackError.message || fallbackError}`,
+        { error: fallbackError }
       );
-      try {
-        return await fallbackFn();
-      } catch (fallbackError: any) {
-        logger.error(
-          `Fallback model "${fallbackModelName}" also failed: ${fallbackError.message || fallbackError}`,
-          { error: fallbackError }
-        );
-        throw fallbackError;
-      }
+      throw fallbackError;
     }
-    throw error;
   }
 }
