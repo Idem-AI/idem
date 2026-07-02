@@ -29,7 +29,7 @@ export const AI_CONFIG = {
   // Fallback settings
   fallback: {
     textModel: 'gemini-2.5-flash',
-    imageModel: 'gemini-3-pro-image',
+    imageModel: 'gemini-2.5-flash-image',
   },
 
 
@@ -164,7 +164,7 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     imageSourcing: {
-      imageModel: 'gemini-3.1-flash-image',
+      imageModel: 'gemini-2.5-flash-image',
       visionModel: 'gemini-2.0-flash',
     },
   },
@@ -205,7 +205,7 @@ export const AI_CONFIG = {
       modelName: 'gemini-3.5-flash',
     },
     brandMockup: {
-      imageModel: 'gemini-3.1-flash-image',
+      imageModel: 'gemini-2.5-flash-image',
     },
   },
 };

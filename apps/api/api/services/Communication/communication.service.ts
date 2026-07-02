@@ -20,6 +20,10 @@ interface DesignSeed {
   typographyMood: string;
   layoutTension: string;
   spacingMultiplier: number;
+  imagePosition: string;
+  readingDirection: string;
+  graphicAccent: string;
+  contentDensity: string;
 }
 import { GenericService } from '../common/generic.service';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
@@ -965,10 +969,45 @@ export class CommunicationService extends GenericService {
       'FRAME_WITHIN_FRAME', // Thin inset border creates inner frame
       'COLLAGE_LAYER', // 3+ layered elements at varying opacities
     ];
+    const imagePositions = [
+      'TOP_LEFT', // Image anchored to the top-left quadrant
+      'TOP_RIGHT', // Image anchored to the top-right quadrant
+      'BOTTOM_LEFT', // Image anchored to the bottom-left quadrant
+      'BOTTOM_RIGHT', // Image anchored to the bottom-right quadrant
+      'CENTER_BLEED', // Image centered, bleeding outward
+      'LEFT_STRIP', // Image as a vertical strip on the left third
+      'RIGHT_STRIP', // Image as a vertical strip on the right third
+      'TOP_BAND', // Image as a horizontal band across the top
+      'BOTTOM_BAND', // Image as a horizontal band across the bottom
+      'DIAGONAL_SLICE', // Image placed along a diagonal axis
+    ];
+    const readingDirections = [
+      'TOP_DOWN', // Eye flow from top to bottom, classic editorial
+      'BOTTOM_UP', // Key info at bottom, eye travels upward
+      'LEFT_TO_RIGHT', // Western reading: headline left, image right
+      'RIGHT_TO_LEFT', // Reverse: image left, headline right
+      'CENTER_OUT', // Focal point at center, details radiate outward
+      'CORNER_DIAGONAL', // Eye follows a diagonal from one corner to the opposite
+    ];
+    const graphicAccents = [
+      'GEOMETRIC_SHAPE', // A bold circle, triangle, or polygon as a decorative element
+      'THICK_UNDERLINE', // A heavy underline or overline on the headline (8-12px)
+      'DOT_CLUSTER', // Small decorative dots/circles scattered in negative space
+      'OVERSIZED_PUNCTUATION', // A giant quotation mark, ampersand, or slash as decor
+      'GRADIENT_WASH', // A subtle gradient wash over one zone of the canvas
+      'NONE', // No added accent — let typography and image carry the design
+      'BORDER_ACCENT', // Thick partial border on 1-2 sides only
+      'PATTERN_STRIP', // A thin strip of repeating geometric pattern
+    ];
+    const contentDensities = [
+      'MINIMAL', // Only headline + image + brand mark. Almost no body text.
+      'BALANCED', // Headline, short body, CTA. Standard density.
+      'EDITORIAL', // More text: headline, subheadline, body paragraph, fine print.
+      'TYPE_HEAVY', // Text IS the design. Large blocks of typographic content.
+    ];
 
-    // Rotate based on timestamp bucket (changes every generation)
-    const now = Date.now();
-    const pick = <T>(arr: T[]): T => arr[Math.floor((now / 1000 + Math.random() * 100) % arr.length)];
+    // Pure random selection for maximum diversity
+    const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
     return {
       archetype: pick(archetypes),
@@ -977,6 +1016,10 @@ export class CommunicationService extends GenericService {
       layoutTension: pick(layoutTensions),
       // Extra entropy: random odd number for spacing/sizing decisions
       spacingMultiplier: (Math.floor(Math.random() * 5) + 1) * 2 + 1, // 3,5,7,9,11
+      imagePosition: pick(imagePositions),
+      readingDirection: pick(readingDirections),
+      graphicAccent: pick(graphicAccents),
+      contentDensity: pick(contentDensities),
     };
   }
 }
