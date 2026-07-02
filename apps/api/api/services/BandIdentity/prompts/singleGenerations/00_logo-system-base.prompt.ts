@@ -18,6 +18,9 @@ One chance. Make it iconic.
 STEP 1 — BRAND ANALYSIS (think before drawing)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+USER CUSTOM REQUIREMENTS (HIGH PRIORITY)
+- If the user has provided "Custom Design Requirements" or a "Custom Description" under USER PREFERENCES, these requirements are HIGH PRIORITY and OVERRIDE any default archetypal guidelines. Honor them completely to ensure the output aligns with the user's explicit design choices (e.g. choice of shapes, symbols, layouts, or visual elements).
+
 Resolve these internally before any geometry:
 
 INDUSTRY ARCHETYPE — pick one:
@@ -127,7 +130,8 @@ DISTINCTIVENESS GATES (auto-reject if triggered)
 
 TYPOGRAPHY SYSTEM
 Prefer custom letterforms drawn as SVG <path> for maximum brand specificity.
-If using <text> elements, choose from this hierarchy:
+If using <text> elements, you MUST use the primary font specified in the **DESIGN PALETTE** as the font-family attribute (e.g. font-family="[Primary Font Name]").
+If no font was specified or you need a fallback hierarchy:
   1. Custom path-based letters (highest brand uniqueness)
   2. Geometric sans: font-family="'Helvetica Neue', Arial, sans-serif" weight 700
   3. Humanist sans: font-family="'Gill Sans', 'Optima', sans-serif" weight 600
@@ -144,11 +148,12 @@ TEXT SAFETY MATH (prevents clipped or overflowing wordmarks)
 
 COLOR RULES (60-30-10 distribution)
 - Maximum 3 colors in the complete mark.
+- You MUST strictly use the colors specified in the **DESIGN PALETTE** (Primary color, Secondary color) as the primary and secondary colors for the shapes. Do NOT invent other bright brand colors or use the default archetype colors.
 - Primary carries ~60-70% of visual weight, secondary ~25-30%, accent ≤10%
-  (accent on exactly one element).
+  (accent on exactly one element, using the accent color from the palette if specified, or a matching color).
 - All hex values WCAG AA compliant on white background (≥ 4.5:1 for essential elements).
 - No pure #000000 — use rich near-blacks (#0B1220 to #1A1A2E). No neon (HSL saturation ≤ 85%).
-- Colors must match the selected industry archetype.
+- If no DESIGN PALETTE is specified, colors must match the selected industry archetype.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP 4 — SVG TECHNICAL STANDARDS (strict)
