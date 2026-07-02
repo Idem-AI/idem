@@ -8,7 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
@@ -39,8 +39,10 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   private readonly generationService = inject(GenerationService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
   private readonly destroy$ = new Subject<void>();
+  private isForcingRegeneration = false;
 
   // Outputs
   readonly businessPlanGenerated = output<BusinessPlanModel>();
@@ -82,6 +84,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
+    this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
   }
 
   ngOnDestroy(): void {
@@ -127,7 +130,11 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     console.log('Starting business plan generation with SSE (no additional info)...');
 
     // Create SSE connection for business plan generation
-    const sseConnection = this.businessPlanService.createBusinessplanItem(this.projectId()!);
+    const sseConnection = this.businessPlanService.createBusinessplanItem(
+      this.projectId()!,
+      undefined,
+      this.isForcingRegeneration
+    );
 
     this.startGenerationProcess(sseConnection);
   }
@@ -155,6 +162,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     const sseConnection = this.businessPlanService.createBusinessplanItem(
       this.projectId()!,
       additionalInfos,
+      this.isForcingRegeneration
     );
 
     // Use the generation service to handle the SSE connection properly

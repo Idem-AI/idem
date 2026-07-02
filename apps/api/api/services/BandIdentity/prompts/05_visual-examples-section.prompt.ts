@@ -1,57 +1,38 @@
-export const VISUAL_EXAMPLES_SECTION_PROMPT = `
-You are a senior UI/UX designer creating realistic branded interface mockups. Generate a FULL-PAGE showing how this specific brand's identity translates into real digital products — completely tailored to the brand's industry and personality.
+export const VISUAL_EXAMPLES_SECTION_PROMPT = `<role>Senior UI/UX designer</role>
+<objective>Create a FULL-PAGE showcasing realistic branded digital interface mockups tailored to the brand's industry and personality in French.</objective>
 
-CRITICAL CREATIVE RULE:
-Do NOT produce the same generic "dashboard + mobile app" mockup every time. Study the project's INDUSTRY and PURPOSE, then create mockups that are RELEVANT to what this brand would actually build. A restaurant brand needs a menu/booking interface, not a SaaS dashboard. A fashion brand needs an e-commerce product page, not an analytics panel.
+<industry_options>
+Choose 2 touchpoints relevant to the industry:
+- SaaS/Tech: dashboard, settings panel.
+- E-commerce: product page, cart.
+- Restaurant: menu, reservation.
+- Health: appointment booking, patient portal.
+- Education: course page, learning dashboard.
+- Finance: account overview, transaction history.
+- Real Estate: property listing, contact form.
+</industry_options>
 
-INDUSTRY-SPECIFIC MOCKUP SELECTION (choose what fits THIS brand):
-- SaaS/Tech: dashboard, settings panel, onboarding flow
-- E-commerce/Retail: product page, cart, category browse
-- Restaurant/Food: menu, reservation, delivery tracking
-- Health/Wellness: appointment booking, patient portal, wellness tracker
-- Education: course page, learning dashboard, student profile
-- Finance: account overview, transaction history, investment view
-- Creative/Agency: portfolio, project showcase, client gallery
-- Real Estate: property listing, virtual tour, contact form
-- Travel: booking flow, destination page, itinerary
-- B2B/Corporate: landing page hero, pricing table, contact form
+<page_content>
+1. Section title: "Exemples Visuels".
+2. TWO realistic mockups side by side or stacked:
+   - Mockup 1: Primary digital touchpoint.
+   - Mockup 2: Secondary digital touchpoint.
+3. Brief annotation under each mockup explaining the brand application in French.
+4. Device frames (browser chrome / mobile frames) for context.
+</page_content>
 
-PAGE CONTENT:
-1. Section title: "Exemples Visuels" — styled with brand personality
-2. TWO mockups side by side (or stacked), each RELEVANT to the brand's industry:
-   - Mockup 1: Primary digital touchpoint (the most important screen for this type of business)
-   - Mockup 2: Secondary touchpoint (a complementary screen)
-3. Each mockup must use the brand's ACTUAL colors (bg-[#hex]), fonts, and name
-4. Brief annotation under each mockup explaining the brand application (in French)
+<page_format>
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, exactly h-[167mm], no min-h-screen).
+- Internal safe padding: p-[12mm] (no content overflow).
+</page_format>
 
-MOCKUP DESIGN RULES:
-- Use the brand's ACTUAL primary color for headers, CTAs, and accent elements via bg-[#hex]
-- Use the brand's secondary color for supporting elements
-- Use the brand's background and text colors appropriately
-- Include the brand name in the mockup UI
-- Make the mockup REALISTIC — it should look like a real product, not a wireframe
-- Add device frames (browser chrome with traffic lights, or phone frame) for context
+<technical_rules>
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded.
+- Use brand colors (bg-[#hex]), fonts, and name (replace {{brandName}}).
+- All text in French. Ensure WCAG AA contrast.
+- Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
+</technical_rules>
 
-PAYSAGE 16:9 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[297mm] h-[167mm] overflow-hidden relative
-- Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 297×167mm box — nothing may overflow
-- Mockups must be sized to fit within the page — use max-h constraints on device frames
-- If two mockups side by side overflow, stack them vertically with reduced sizes
-- Do NOT use min-h-screen — use h-[297mm] exactly
-
-TECHNICAL RULES:
-- Raw HTML + Tailwind CSS utilities only, single minified line
-- PrimeIcons (pi pi-icon-name) for icons
-- No custom CSS, no JS
-- All annotations in French
-- WCAG AA contrast compliance
-- Replace {{brandName}} with actual brand name from context
-
-IMPORTANT:
-- Do NOT add any "html" tag or prefix on output
-- Do NOT use generic blue/purple — use the brand's ACTUAL hex colors
-- Do NOT always make a "dashboard" — match the mockup to the brand's INDUSTRY
-
-PROJECT CONTEXT:
+<project_context>
 `;

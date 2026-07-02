@@ -203,11 +203,23 @@ Please generate *only* the content for the '${
     promptConfig?: PromptConfig,
     promptType?: string,
     userId?: string,
-    finalizationCallback?: () => Promise<void>
+    finalizationCallback?: () => Promise<void>,
+    existingSections: SectionModel[] = []
   ): Promise<void> {
     const completedSteps: Map<string, { name: string; content: string }> = new Map();
     const runningSteps: Set<string> = new Set();
     const stepPromises: Map<string, Promise<void>> = new Map();
+
+    // Pre-populate completedSteps with existing sections to satisfy dependencies
+    for (const sec of existingSections) {
+      if (sec.name && sec.data && typeof sec.data === 'string' && sec.data.trim().length > 0) {
+        completedSteps.set(sec.name, {
+          name: sec.name,
+          content: sec.data,
+        });
+      }
+    }
+
 
     // Helper function to send progress updates
     const sendProgressUpdate = async () => {
@@ -355,7 +367,7 @@ Please generate *only* the content for the '${
     };
 
     // Main execution loop
-    const pendingSteps = [...steps];
+    const pendingSteps = steps.filter((step) => !completedSteps.has(step.stepName));
 
     while (pendingSteps.length > 0 || stepPromises.size > 0) {
       // Find steps that can be started (dependencies satisfied)

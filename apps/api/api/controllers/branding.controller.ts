@@ -144,9 +144,11 @@ export const generateLogoConceptsController = async (
       return;
     }
 
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
     const logos = await brandingService.generateLogoConcepts(
       userId,
-      projectId as string
+      projectId as string,
+      forceRegenerate
     );
 
     if (!logos) {
@@ -197,10 +199,12 @@ export const generateLogoVariationsController = async (
       return;
     }
 
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
     const variations = await brandingService.generateLogoVariations(
       userId,
       projectId as string,
-      selectedLogo
+      selectedLogo,
+      forceRegenerate
     );
 
     if (!variations) {
@@ -464,11 +468,13 @@ export const generateBrandingStreamingController = async (
     };
 
     // Appel au service avec le callback de streaming et le format PDF
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
     const updatedProject = await brandingService.generateBrandingWithStreaming(
       userId,
       projectId as string,
       streamCallback, // Passer le callback de streaming
-      pdfFormat // Passer le format PDF
+      pdfFormat, // Passer le format PDF
+      forceRegenerate
     );
 
     if (!updatedProject) {

@@ -77,8 +77,11 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
     this.generationService.calculateProgress(this.generationState()),
   );
 
+  private isForcingRegeneration = false;
+
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
+    this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
     // Start with format selection screen
     this.isSelectingFormat.set(true);
   }
@@ -109,12 +112,13 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
     // Reset state for new generation
     this.resetGenerationState();
-    console.log('Starting branding generation with SSE and format:', this.pdfFormat());
+    console.log('Starting branding generation with SSE and format:', this.pdfFormat(), 'force:', this.isForcingRegeneration);
 
     // Create SSE connection for branding generation with format
     const sseConnection = this.brandingService.createBrandIdentityModel(
       this.projectId()!,
       this.pdfFormat(),
+      this.isForcingRegeneration,
     );
 
     this.generationService

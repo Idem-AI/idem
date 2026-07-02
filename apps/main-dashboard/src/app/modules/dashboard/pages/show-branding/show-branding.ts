@@ -83,6 +83,16 @@ export class ShowBrandingComponent implements OnInit {
     return branding && branding.sections && branding.sections.length > 0;
   });
 
+  protected readonly isBrandingIncomplete = computed(() => {
+    const branding = this.existingBranding();
+    // 8 base slides + 3 mockups = 11 sections total
+    return branding && branding.sections ? (branding.sections.length > 0 && branding.sections.length < 11) : false;
+  });
+
+  protected readonly brandingSectionCount = computed(() => {
+    return this.existingBranding()?.sections?.length || 0;
+  });
+
   protected readonly hasBrandingData = computed(() => {
     const branding = this.existingBranding();
     return (
@@ -262,16 +272,18 @@ export class ShowBrandingComponent implements OnInit {
   /**
    * Navigate to branding generation page
    */
-  protected generateBranding(): void {
-    console.log('Navigating to branding generation page');
-    this.router.navigate(['/project/branding/generate']);
+  protected generateBranding(force = false): void {
+    console.log('Navigating to branding generation page, force:', force);
+    this.router.navigate(['/project/branding/generate'], {
+      queryParams: force ? { force: 'true' } : {}
+    });
   }
 
   /**
    * Navigate to branding generation (alias for banner)
    */
-  protected navigateToBrandingGeneration(): void {
-    this.generateBranding();
+  protected navigateToBrandingGeneration(force = false): void {
+    this.generateBranding(force);
   }
 
   /**

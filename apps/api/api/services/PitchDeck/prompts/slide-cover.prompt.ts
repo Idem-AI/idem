@@ -1,24 +1,25 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_COVER_PROMPT = `
-You are designing the COVER slide of a pitch deck for a real startup pitching to institutional investors.
+<role>Pitch deck designer</role>
+<objective>Design the COVER slide of the pitch deck. Make it clean and confident.</objective>
 
-GOAL:
-A single, confident cover: company name as the hero element, one-line positioning statement, small date/version footer.
+<mandatory_content>
+- Company name (large, hero element)
+- 1-sentence positioning statement (max 14 words: what we do, for whom, key edge)
+- Small uppercase label (e.g., "PITCH DECK")
+- Tiny footer: Month + Year + "Confidential"
+- Optional: Brand logo SVG (placed top-left, small) if provided
+</mandatory_content>
 
-MANDATORY CONTENT:
-- Company name (large, dominant)
-- One-sentence positioning ("What we do, for whom, with what unique edge") — max 14 words
-- Small uppercase label (e.g. "PITCH DECK" or "INVESTOR DECK")
-- Tiny footer: month + year + confidentiality notice ("Confidential")
-- Optional: the brand logo SVG if provided, placed top-left, small
-
-LAYOUT OPTIONS (pick ONE, avoid the obvious centered-on-gradient cliche):
-- Left-aligned editorial: company name on left, positioning below, thin vertical rule, whitespace on right
-- Split 50/50: typographic side + solid color block side (brand primary)
-- Full-bleed typography: name dominates, tiny supporting metadata at corners
+<layout_options>
+Choose ONE (avoid centered-on-gradient cliché):
+1. Left-aligned editorial: Company name on left, positioning below, thin vertical rule, whitespace on right.
+2. Split 50/50: Typographic side + solid brand primary color block side.
+3. Full-bleed typography: Dominant name, tiny supporting metadata at corners.
+</layout_options>
 
 ${PITCH_DECK_SHARED_RULES}
 
-PROJECT CONTEXT:
+<project_context>
 `;
