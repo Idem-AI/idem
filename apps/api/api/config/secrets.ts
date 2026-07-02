@@ -60,6 +60,7 @@ const OPTIONAL_SECRETS = [
   'PEXELS_API_KEY',
   'SMTP_PASS',
   'IDEPLOY_SHARED_SECRET',
+  'ADMIN_EMAILS',
 ] as const;
 
 let loaded = false;
