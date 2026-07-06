@@ -9,6 +9,19 @@
   --color-accent: var(--color-accent-500);
 }
 
+/* Force standard project font Jura globally */
+* {
+  font-family: 'Jura', sans-serif !important;
+}
+
+/* Permit code segments, icons, and preformatted areas to keep their respective fonts */
+code, pre, i, .pi, [class^="pi-"], [class*=" pi-"] {
+  font-family: inherit !important;
+}
+.pi, [class^="pi-"], [class*=" pi-"] {
+  font-family: 'primeicons' !important;
+}
+
 /* PrimeNG Icons */
 @import 'primeicons/primeicons.css';
 

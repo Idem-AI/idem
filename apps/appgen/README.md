@@ -64,7 +64,7 @@ Rename .env.example to .env and fill in the corresponding content.
 Client apps/we-dev-client/.env
 ```shell
 # SERVER_ADDRESS [MUST*] (eg: http://localhost:3000)
-REACT_REACT_APP_BASE_URL=
+REACT_APP_BASE_URL=
 
 # JWT_SECRET [Optional]
 JWT_SECRET=

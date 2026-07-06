@@ -453,6 +453,13 @@
   margin-top: 0.1rem;
 }
 
+/* IP address display — keeps Jura but with tighter tracking for legibility */
+.al-ip {
+  letter-spacing: 0.04em;
+  font-feature-settings: "tnum" 1;
+  color: rgba(255, 255, 255, 0.4);
+}
+
 /* status chips */
 .chip {
   display: inline-flex;
