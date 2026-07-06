@@ -175,7 +175,7 @@ export const AI_CONFIG = {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-2.5-flash',
       llmOptions: {
-        maxOutputTokens: 600,
+        maxOutputTokens: 1600,
         temperature: 0.5,
         topP: 0.95,
         topK: 40,

@@ -108,7 +108,7 @@
 }
 
 .placeholder-text {
-  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+  font-family: var(--font-jura, 'Jura', sans-serif);
   font-weight: 700;
   font-size: 1.15rem;
   letter-spacing: 0.02em;
@@ -172,5 +172,5 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+  font-family: var(--font-jura, 'Jura', sans-serif);
 }
