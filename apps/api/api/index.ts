@@ -184,8 +184,20 @@ app.use((req: Request, res: Response) => {
 
 app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
   console.error('Global error handler:', err);
-  res.status(500).send('Something broke!');
+  
+  // S'assurer que les en-têtes CORS sont présents même en cas d'erreur
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message || 'Something broke!'
+  });
 });
+
 
 async function bootstrap() {
   await loadSecrets();
