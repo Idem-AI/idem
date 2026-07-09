@@ -20,6 +20,14 @@ export const brandingRoutes = Router();
 
 const resourceName = 'brandings';
 
+// Middleware to extend connection timeout for heavy processing tasks (AI generation, PDF, etc.)
+const extendedTimeout = (req: any, res: any, next: any) => {
+  req.setTimeout(180000); // 3 minutes
+  res.setTimeout(180000); // 3 minutes
+  next();
+};
+
+
 // All routes are protected and project-specific where applicable
 
 // Generate a new branding for a project
@@ -207,6 +215,7 @@ brandingRoutes.post(
 brandingRoutes.post(
   `/${resourceName}/generate/logo-concepts/:projectId`,
   authenticate,
+  extendedTimeout,
   checkQuota,
   generateLogoConceptsController
 );
@@ -263,6 +272,7 @@ brandingRoutes.post(
 brandingRoutes.post(
   `/${resourceName}/generate/logo-variations/:projectId`,
   authenticate,
+  extendedTimeout,
   checkQuota,
   generateLogoVariationsController
 );
@@ -700,6 +710,7 @@ brandingRoutes.get(
 brandingRoutes.post(
   `/${resourceName}/edit-logo/:projectId`,
   authenticate,
+  extendedTimeout,
   checkQuota,
   editLogoController
 );

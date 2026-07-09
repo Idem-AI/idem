@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, timeout, retry } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { ProjectModel } from '@idem/shared-models';
@@ -140,6 +140,8 @@ export class BrandingService {
         logos: LogoModel[];
       }>(`${this.apiUrl}/generate/logo-concepts/${projectId}${force ? '?force=true' : ''}`, {})
       .pipe(
+        timeout(180000), // 3 minutes timeout
+        retry(1), // retry once on transient network or CORS error
         tap((response) => console.log('generateLogosWithPreferences response:', response)),
         catchError((error) => {
           console.error('Error in generateLogosWithPreferences:', error);
@@ -191,6 +193,8 @@ export class BrandingService {
         selectedLogo: selectedLogo,
       })
       .pipe(
+        timeout(180000), // 3 minutes timeout
+        retry(1), // retry once
         tap((response) => console.log('generateLogoVariations response:', response)),
         catchError((error) => {
           console.error('Error in generateLogoVariations:', error);
@@ -217,6 +221,8 @@ export class BrandingService {
         modificationPrompt: modificationPrompt,
       })
       .pipe(
+        timeout(180000), // 3 minutes timeout
+        retry(1), // retry once
         tap((response) => console.log('editLogo response:', response)),
         catchError((error) => {
           console.error('Error in editLogo:', error);
