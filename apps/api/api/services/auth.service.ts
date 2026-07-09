@@ -60,6 +60,7 @@ export async function authenticate(
               secure: isProduction,
               sameSite: isProduction ? 'none' : 'lax',
               path: '/',
+              ...(isProduction && { domain: '.idem.africa' }),
             };
             res.cookie('session', newSessionCookie, options);
 
