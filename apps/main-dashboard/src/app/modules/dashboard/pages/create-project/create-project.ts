@@ -360,6 +360,7 @@ export class CreateProjectComponent implements OnInit {
    * Create project in database after details step
    */
   private async createProjectInDatabase(): Promise<void> {
+    if (this.project().id || this.isLoading()) return;
     try {
       this.isLoading.set(true);
       const currentProject = this.project();
