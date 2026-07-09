@@ -7,6 +7,7 @@ import fsExtra from 'fs-extra';
 import path from 'path';
 import { storageService } from './storage.service';
 import { v4 as uuidv4 } from 'uuid';
+import { cacheService } from './cache.service';
 
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
@@ -206,6 +207,12 @@ class ProjectService {
       const success = await this.projectRepository.delete(projectId, `users/${userId}/projects`);
       if (success) {
         logger.info(`Project ${projectId} deleted successfully for user ${userId} via repository`);
+        
+        // Invalider le cache du projet dans Redis
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        await cacheService.delete(projectCacheKey, { prefix: 'project' }).catch((err) => {
+          logger.error(`Error invalidating project cache for key ${projectCacheKey}:`, err);
+        });
       } else {
         logger.warn(
           `Project ${projectId} not found for deletion or delete failed for user ${userId} via repository`
@@ -238,6 +245,12 @@ class ProjectService {
       );
       if (updatedProject) {
         logger.info(`Project ${projectId} updated successfully for user ${userId} via repository`);
+        
+        // Invalider le cache du projet dans Redis
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        await cacheService.delete(projectCacheKey, { prefix: 'project' }).catch((err) => {
+          logger.error(`Error invalidating project cache for key ${projectCacheKey}:`, err);
+        });
       } else {
         logger.warn(
           `Project ${projectId} not found for update or update failed for user ${userId} via repository`

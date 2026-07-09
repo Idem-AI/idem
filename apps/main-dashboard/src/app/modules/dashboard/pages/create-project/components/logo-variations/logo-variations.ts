@@ -88,12 +88,50 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
-    // Auto-start generation when component loads
-    console.log(this.project().analysisResultModel.branding.logo.variations);
-    if (this.selectedLogo() && !this.project().analysisResultModel.branding.logo.variations) {
+    const existingVariations = this.project().analysisResultModel?.branding?.logo?.variations;
+    if (existingVariations) {
+      console.log('Using existing logo variations:', existingVariations);
+      const variations: DisplayVariation[] = [];
+      
+      if (existingVariations.withText) {
+        const withText = existingVariations.withText;
+        if (withText.lightBackground) {
+          variations.push({
+            id: 'lightBackground',
+            background: 'lightBackground',
+            label: this.translate.instant('dashboard.logoVariations.labels.lightBackground'),
+            svgContent: withText.lightBackground,
+            description: this.translate.instant('dashboard.logoVariations.descriptions.lightBackground'),
+            backgroundColor: '#ffffff',
+          });
+        }
+        if (withText.darkBackground) {
+          variations.push({
+            id: 'darkBackground',
+            background: 'darkBackground',
+            label: this.translate.instant('dashboard.logoVariations.labels.darkBackground'),
+            svgContent: withText.darkBackground,
+            description: this.translate.instant('dashboard.logoVariations.descriptions.darkBackground'),
+            backgroundColor: '#1f2937',
+          });
+        }
+        if (withText.monochrome) {
+          variations.push({
+            id: 'monochrome',
+            background: 'monochrome',
+            label: this.translate.instant('dashboard.logoVariations.labels.monochrome'),
+            svgContent: withText.monochrome,
+            description: this.translate.instant('dashboard.logoVariations.descriptions.monochrome'),
+            backgroundColor: '#f3f4f6',
+          });
+        }
+      }
+      
+      this.generatedVariations.set(variations);
+      this.isCompleted.set(true);
+      this.variationsGenerated.emit(existingVariations);
+    } else if (this.selectedLogo()) {
       this.startVariationGeneration();
-    } else {
-      this.variationsGenerated.emit(this.project().analysisResultModel.branding.logo.variations!);
     }
   }
 

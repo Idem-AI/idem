@@ -164,6 +164,61 @@ export class CompleteBrandingPage implements OnInit {
       next: (project) => {
         this.project.set(project);
         this.isLoading.set(false);
+
+        // Restaurer l'étape et l'état en fonction des données existantes
+        const branding = project?.analysisResultModel?.branding;
+        if (branding) {
+          const hasAiPreferences = !!branding.logoPreferences;
+          const hasGeneratedLogos = !!(branding.generatedLogos && branding.generatedLogos.length > 0);
+
+          if (hasAiPreferences || hasGeneratedLogos) {
+            this.logoChoice.set('ai');
+            if (branding.logoPreferences) {
+              this.aiLogoPreferences.set(branding.logoPreferences);
+            }
+          } else if (branding.logo) {
+            this.logoChoice.set('import');
+            this.logoImportComplete.set(true);
+          }
+
+          let targetStepIndex = 0;
+          const choice = this.logoChoice();
+
+          if (choice === 'import') {
+            if (branding.colors) this.colorSelected.set(true);
+            if (branding.typography) this.typographySelected.set(true);
+
+            if (branding.logo && branding.colors && branding.typography) {
+              targetStepIndex = 3; // overview
+            } else if (branding.logo && branding.colors) {
+              targetStepIndex = 2; // typography
+            } else if (branding.logo) {
+              targetStepIndex = 1; // colors
+            }
+          } else if (choice === 'ai') {
+            if (branding.colors) this.colorSelected.set(true);
+            if (branding.typography) this.typographySelected.set(true);
+
+            const hasLogo = !!branding.logo;
+            const hasVariations = !!branding.logo?.variations?.withText;
+
+            if (hasLogo && hasVariations) {
+              targetStepIndex = 6; // overview
+            } else if (hasLogo) {
+              targetStepIndex = 5; // logo-variations
+            } else if (branding.logoPreferences) {
+              targetStepIndex = 4; // logo-selection
+            } else if (branding.typography) {
+              targetStepIndex = 3; // logo-preferences
+            } else if (branding.colors) {
+              targetStepIndex = 2; // typography
+            } else {
+              targetStepIndex = 1; // colors
+            }
+          }
+
+          this.currentStepIndex.set(targetStepIndex);
+        }
       },
       error: () => {
         this.isLoading.set(false);
