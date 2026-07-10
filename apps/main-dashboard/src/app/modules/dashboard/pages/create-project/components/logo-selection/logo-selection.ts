@@ -160,16 +160,13 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
         });
       }
 
-      // Sélectionner automatiquement le logo existant s'il y en a un, sinon le premier logo
+      // Sélectionner automatiquement le logo existant s'il y en a un déjà sauvegardé
       const currentSelectedLogo = this.project()?.analysisResultModel?.branding?.logo;
       if (currentSelectedLogo && currentSelectedLogo.id) {
         this.selectedLogoId.set(currentSelectedLogo.id);
-      } else if (this.logos()!.length > 0) {
-        // Retarder légèrement pour laisser le temps aux signaux de se stabiliser
-        setTimeout(() => {
-          this.selectLogo(this.logos()![0].id!);
-        }, 100);
       }
+      // Ne PAS auto-sélectionner le premier logo si aucun n'a été choisi :
+      // l'utilisateur doit cliquer explicitement pour sélectionner un logo
     }
   }
 
@@ -297,11 +294,8 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
             this.currentStep.set(
               this.translate.instant('dashboard.logoSelection.progress.completed'),
             );
-            
-            // Sélectionner automatiquement le premier logo généré
-            if (logosWithUniqueIds.length > 0) {
-              this.selectLogo(logosWithUniqueIds[0].id);
-            }
+            // Ne PAS auto-sélectionner le premier logo :
+            // l'utilisateur doit cliquer explicitement pour choisir
           }, 1000);
         },
         error: (error) => {
