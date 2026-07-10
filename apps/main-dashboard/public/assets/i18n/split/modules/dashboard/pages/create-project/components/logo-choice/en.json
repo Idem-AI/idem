@@ -1,0 +1,36 @@
+{
+  "dashboard": {
+    "logoChoice": {
+      "title": "Do you already have a logo?",
+      "subtitle": "You can import your existing logo or let our AI create one for you",
+      "import": {
+        "title": "I already have a logo",
+        "description": "Upload your existing logo file. We'll optimize it and convert it to a clean vector format."
+      },
+      "ai": {
+        "title": "Create with AI",
+        "description": "Let our AI generate unique logo concepts based on your project's identity.",
+        "badge": "AI Powered"
+      },
+      "backToChoice": "Back to options",
+      "continueWithLogo": "Continue with this logo",
+      "extractedColors": "Colors detected in your logo",
+      "colorsUsedAsPrimary": "These colors will be used as primary colors. Our AI will propose complementary palettes.",
+      "generatingBranding": "Generating your brand identity...",
+      "generatingBrandingSubtitle": "Our AI is creating color palettes and typography sets based on your logo.",
+      "postImport": {
+        "title": "Your logo is ready. What would you like to do with it?",
+        "useAsIs": {
+          "title": "Use as is",
+          "description": "Keep your logo exactly as it is. Its variations (light background, dark background, monochrome) are generated automatically."
+        },
+        "improve": {
+          "title": "Improve with AI",
+          "description": "AI analyzes your logo and generates more professional versions that stay true to your identity (shapes, colors, symbolism)."
+        },
+        "analyzing": "Analyzing your logo…",
+        "analysisError": "Logo analysis failed. Try again or use your logo as is."
+      }
+    }
+  }
+}

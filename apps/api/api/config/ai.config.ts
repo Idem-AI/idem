@@ -201,6 +201,14 @@ export const AI_CONFIG = {
         topK: 20,
       },
     } as FeatureAIConfig,
+    logoAnalysis: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      llmOptions: {
+        maxOutputTokens: 1500,
+        temperature: 0.2,
+      },
+    } as FeatureAIConfig,
     mockupHtml: {
       modelName: 'gemini-3.5-flash',
     },
