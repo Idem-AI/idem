@@ -207,8 +207,14 @@ export class CompleteBrandingPage implements OnInit {
 
             if (hasLogo && hasVariations) {
               targetStepIndex = 6; // overview
-            } else if (hasLogo) {
-              targetStepIndex = 5; // logo-variations
+            } else if (hasLogo && !hasVariations) {
+              // Logo sélectionné mais variations non générées (ex: retour navigateur)
+              // → revenir à logo-selection pour que l'utilisateur re-confirme son choix
+              targetStepIndex = 4; // logo-selection
+            } else if (hasGeneratedLogos && !hasLogo) {
+              // Des logos ont été générés mais aucun n'a été sélectionné
+              // → aller directement à logo-selection avec les logos déjà générés
+              targetStepIndex = 4; // logo-selection
             } else if (branding.logoPreferences) {
               targetStepIndex = 4; // logo-selection
             } else if (branding.typography) {
