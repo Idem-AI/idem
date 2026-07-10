@@ -5,7 +5,8 @@ import { Subject } from 'rxjs';
 import { LogoImportComponent } from '../logo-import/logo-import';
 import { ProjectModel } from '@idem/shared-models';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
-import { LogoVariations } from '../../../../models/logo.model';
+import { LogoImportService } from '../../../../services/logo-import.service';
+import { LogoVariations, LogoPreferencesModel } from '../../../../models/logo.model';
 
 /**
  * Logo choice step in the create-project wizard.
@@ -23,6 +24,7 @@ import { LogoVariations } from '../../../../models/logo.model';
 export class LogoChoiceComponent {
   // Services
   private readonly brandingService = inject(BrandingService);
+  private readonly logoImportService = inject(LogoImportService);
   private readonly destroy$ = new Subject<void>();
 
   // Inputs
@@ -43,9 +45,15 @@ export class LogoChoiceComponent {
   protected readonly isGeneratingBranding = signal(false);
   protected readonly generationError = signal<string | null>(null);
 
-  // Computed: logo import is complete when we have both SVG and at least 2 colors
+  /** Analyse IA du logo importé (voie « améliorer mon logo ») */
+  protected readonly isAnalyzing = signal(false);
+  protected readonly analysisFailed = signal(false);
+
+  // Computed: logo import is complete when we have the SVG and at least 1 color.
+  // Un logo mono-couleur est valide : la génération de palette utilise alors
+  // cette couleur comme primaire et secondaire.
   protected readonly isLogoImportComplete = computed(() => {
-    return !!this.importedSvg() && this.importedColors().length >= 2;
+    return !!this.importedSvg() && this.importedColors().length >= 1;
   });
 
   /**
@@ -136,6 +144,64 @@ export class LogoChoiceComponent {
     // Passer à l'étape de sélection des couleurs
     console.log('🔵 Emitting nextStep');
     this.nextStep.emit();
+  }
+
+  /**
+   * Sous-choix « Utiliser mon logo tel quel » : workflow import inchangé,
+   * les déclinaisons ont déjà été générées par le moteur hybride à l'import.
+   */
+  protected useLogoAsIs(): void {
+    if (this.isAnalyzing()) return;
+    this.continueWithImportedLogo();
+  }
+
+  /**
+   * Sous-choix « Améliorer mon logo avec l'IA » :
+   * 1. Analyse vision du logo importé (type, formes, couleurs, faiblesses, brief).
+   * 2. Injection du brief dans logoPreferences (customDescription est HIGH PRIORITY
+   *    dans le pipeline de génération existant).
+   * 3. Bascule sur le workflow IA — la génération proposera des concepts
+   *    ressemblants mais plus professionnels.
+   */
+  protected improveLogoWithAI(): void {
+    const svg = this.importedSvg();
+    if (!svg || this.isAnalyzing()) return;
+
+    this.isAnalyzing.set(true);
+    this.analysisFailed.set(false);
+
+    this.logoImportService.analyzeLogo(svg).subscribe({
+      next: (analysis) => {
+        // Conserver le logo importé comme référence (logo + couleurs extraites)
+        this.saveImportedLogo();
+
+        const reference =
+          `Original logo reference — shapes: ${analysis.shapes}; ` +
+          `colors: ${analysis.colors.join(', ')}; symbolism: ${analysis.symbolism}; ` +
+          `weaknesses to fix: ${analysis.weaknesses}`;
+
+        const preferences: LogoPreferencesModel = {
+          type: analysis.logoType,
+          useAIGeneration: true,
+          customDescription: `${analysis.improvementBrief}\n\n${reference}`,
+        };
+
+        this.projectUpdate.emit({
+          analysisResultModel: {
+            branding: { logoPreferences: preferences },
+          },
+        } as unknown as Partial<ProjectModel>);
+
+        this.isAnalyzing.set(false);
+        this.logoChoiceMade.emit('ai');
+        this.nextStep.emit();
+      },
+      error: (err) => {
+        console.error('Logo analysis failed:', err);
+        this.isAnalyzing.set(false);
+        this.analysisFailed.set(true);
+      },
+    });
   }
 
   /**
