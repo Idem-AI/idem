@@ -831,7 +831,9 @@
           "description": "L'IA analyse votre logo et génère des versions plus professionnelles, fidèles à votre identité (formes, couleurs, symbolique)."
         },
         "analyzing": "Analyse de votre logo en cours…",
-        "analysisError": "L'analyse du logo a échoué. Réessayez ou utilisez votre logo tel quel."
+        "analysisError": "L'analyse du logo a échoué. Réessayez ou utilisez votre logo tel quel.",
+        "subtitle": "Vous pouvez le conserver tel quel ou laisser l'IA en proposer une version plus professionnelle.",
+        "back": "Retour à l'import"
       }
     },
     "logoImport": {

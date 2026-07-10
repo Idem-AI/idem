@@ -49,6 +49,14 @@ export class LogoChoiceComponent {
   protected readonly isAnalyzing = signal(false);
   protected readonly analysisFailed = signal(false);
 
+  /**
+   * Sous-étape du workflow import :
+   * 'upload' — import du fichier + couleurs extraites ;
+   * 'decision' — écran de choix dédié « tel quel / améliorer » (plein écran,
+   * comme le choix initial upload/IA).
+   */
+  protected readonly importStep = signal<'upload' | 'decision'>('upload');
+
   // Computed: logo import is complete when we have the SVG and at least 1 color.
   // Un logo mono-couleur est valide : la génération de palette utilise alors
   // cette couleur comme primaire et secondaire.
@@ -136,23 +144,35 @@ export class LogoChoiceComponent {
 
   /**
    * Appelé quand l'utilisateur clique sur Next après avoir importé le logo.
-   * Sauvegarde le logo et les couleurs dans le projet, puis passe à l'étape suivante.
-   * La génération des couleurs sera faite dans color-selection.
+   * Premier clic : bascule sur l'écran de décision « tel quel / améliorer ».
+   * Depuis l'écran de décision, Next équivaut à « utiliser tel quel ».
    */
   public continueWithImportedLogo(): void {
-    this.saveImportedLogo();
-    // Passer à l'étape de sélection des couleurs
-    console.log('🔵 Emitting nextStep');
-    this.nextStep.emit();
+    if (this.importStep() === 'upload') {
+      this.importStep.set('decision');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    this.useLogoAsIs();
   }
 
   /**
-   * Sous-choix « Utiliser mon logo tel quel » : workflow import inchangé,
-   * les déclinaisons ont déjà été générées par le moteur hybride à l'import.
+   * « Utiliser mon logo tel quel » : sauvegarde le logo et les couleurs dans le
+   * projet puis passe à l'étape suivante (les déclinaisons ont déjà été
+   * générées par le moteur hybride à l'import). La génération des couleurs
+   * sera faite dans color-selection.
    */
   protected useLogoAsIs(): void {
     if (this.isAnalyzing()) return;
-    this.continueWithImportedLogo();
+    this.saveImportedLogo();
+    this.nextStep.emit();
+  }
+
+  /** Retour de l'écran de décision vers l'import */
+  protected backToUpload(): void {
+    if (this.isAnalyzing()) return;
+    this.analysisFailed.set(false);
+    this.importStep.set('upload');
   }
 
   /**
@@ -212,6 +232,8 @@ export class LogoChoiceComponent {
     this.importedSvg.set(null);
     this.importedColors.set([]);
     this.generationError.set(null);
+    this.importStep.set('upload');
+    this.analysisFailed.set(false);
   }
 
   protected goToPreviousStep(): void {
