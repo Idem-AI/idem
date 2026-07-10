@@ -36,7 +36,12 @@ import {
   COLORS_FROM_LOGO_PROMPT,
   TYPOGRAPHY_FROM_LOGO_PROMPT,
 } from './prompts/singleGenerations/colors-from-logo.prompt';
-import { generateLogoVariationsFromSvg } from '../logo-import.service';
+import {
+  generateLogoVariations,
+  AiRecolorRequest,
+} from '../logoVariationEngine.service';
+import { resolveSvgContent } from '../logo-import.service';
+import { LOGO_VARIATION_RECOLOR_PROMPT } from './prompts/singleGenerations/logo-variation-recolor.prompt';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
 import crypto from 'crypto';
@@ -962,15 +967,28 @@ export class BrandingService extends GenericService {
   }> {
     logger.info(`Generating colors and typography in parallel for userId: ${userId}`);
 
-    // Créer le projet
-    project = {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: BrandIdentityBuilder.createEmpty(),
-      },
-    };
-    const createdProject = await projectService.createUserProject(userId, project);
+    // Réutiliser le projet existant (workflow complete-branding) au lieu de créer
+    // un doublon — voir generateColorsAndTypographyFromLogo.
+    const existingProject = project.id
+      ? await this.projectRepository.findById(project.id, `users/${userId}/projects`)
+      : null;
+
+    let createdProject: ProjectModel;
+    if (existingProject) {
+      logger.info(
+        `Reusing existing project for colors/typography generation - ProjectId: ${existingProject.id}`
+      );
+      createdProject = existingProject;
+    } else {
+      project = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: BrandIdentityBuilder.createEmpty(),
+        },
+      };
+      createdProject = await projectService.createUserProject(userId, project);
+    }
 
     if (!createdProject.id) {
       throw new Error(`Failed to create project`);
@@ -2488,15 +2506,32 @@ ${LOGO_EDIT_PROMPT}`;
       `Generating colors and typography from imported logo for userId: ${userId}, logo colors: ${logoColors.join(', ')}`
     );
 
-    // Créer le projet
-    project = {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: BrandIdentityBuilder.createEmpty(),
-      },
-    };
-    const createdProject = await projectService.createUserProject(userId, project);
+    // Variations déjà générées à l'import côté front (repli si le moteur échoue ici)
+    const existingVariations = project.analysisResultModel?.branding?.logo?.variations;
+
+    // Réutiliser le projet existant (workflow complete-branding) au lieu de créer
+    // un doublon : les couleurs/typographies doivent être persistées sur le projet
+    // que le dashboard charge, pas sur un nouveau projet.
+    const existingProject = project.id
+      ? await this.projectRepository.findById(project.id, `users/${userId}/projects`)
+      : null;
+
+    let createdProject: ProjectModel;
+    if (existingProject) {
+      logger.info(
+        `Reusing existing project for logo-based colors/typography - ProjectId: ${existingProject.id}`
+      );
+      createdProject = existingProject;
+    } else {
+      project = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: BrandIdentityBuilder.createEmpty(),
+        },
+      };
+      createdProject = await projectService.createUserProject(userId, project);
+    }
 
     if (!createdProject.id) {
       throw new Error(`Failed to create project`);
@@ -2549,15 +2584,27 @@ ${LOGO_EDIT_PROMPT}`;
     const generationTime = Date.now() - startTime;
     logger.info(`Logo-based colors and typography generation completed in ${generationTime}ms`);
 
-    // Generate logo variations (light/dark/monochrome) programmatically
+    // Generate logo variations (light/dark/monochrome) with the hybrid engine:
+    // deterministic OKLCH transforms + rendered QA, AI recolor as last resort.
+    // logo.svg may hold a MinIO URL — resolve it to inline SVG first.
+    // Non-fatal: colors/typography must succeed even if variations fail.
     logger.info(`Generating logo variations from imported SVG`);
-    const logoVariations = generateLogoVariationsFromSvg(logoSvg);
-
-    // Optimize variations
-    const optimizedVariations = {
-      withText: this.optimizeVariationSet(logoVariations.withText),
-      iconOnly: this.optimizeVariationSet(logoVariations.iconOnly),
-    };
+    let optimizedVariations = existingVariations;
+    try {
+      const svgContent = await resolveSvgContent(logoSvg);
+      const logoVariations = await generateLogoVariations(svgContent, {
+        aiRecolor: (request) => this.aiRecolorLogoVariation(request, createdProject),
+      });
+      optimizedVariations = {
+        withText: this.optimizeVariationSet(logoVariations.withText),
+        iconOnly: this.optimizeVariationSet(logoVariations.iconOnly),
+      };
+    } catch (error) {
+      logger.error(
+        `Logo variation generation failed, falling back to ${existingVariations ? 'existing front-generated variations' : 'no variations'}:`,
+        error
+      );
+    }
 
     // Update project with generated colors, typography, logo, and variations
     const importedLogo: LogoModel = {
@@ -2567,7 +2614,7 @@ ${LOGO_EDIT_PROMPT}`;
       concept: 'User-imported logo',
       colors: logoColors,
       fonts: [],
-      variations: optimizedVariations,
+      ...(optimizedVariations ? { variations: optimizedVariations } : {}),
     };
 
     const updatedProjectData = {
@@ -2676,6 +2723,50 @@ ${LOGO_EDIT_PROMPT}`;
       BrandingService.TYPOGRAPHY_LLM_CONFIG
     );
     return sectionResults[0].parsedData as TypographyModel[];
+  }
+
+  /**
+   * AI fallback for the variation engine QA: returns a bounded color mapping
+   * (hex → hex) to fix an unreadable variation. Never touches geometry.
+   * Quota check is skipped — this is an internal quality repair, not a user action.
+   */
+  private async aiRecolorLogoVariation(
+    request: AiRecolorRequest,
+    project: ProjectModel
+  ): Promise<Record<string, string> | null> {
+    try {
+      const prompt = LOGO_VARIATION_RECOLOR_PROMPT.replace(/\{\{VARIANT\}\}/g, request.variant)
+        .replace(/\{\{BACKGROUND\}\}/g, request.background)
+        .replace(/\{\{ISSUE\}\}/g, request.issue)
+        .replace('{{SVG}}', request.svg);
+
+      const steps: IPromptStep[] = [
+        {
+          promptConstant: prompt,
+          stepName: 'Logo Variation Recolor',
+          maxOutputTokens: 800,
+          modelParser: (content) => {
+            try {
+              return JSON.parse(content).mapping;
+            } catch (error) {
+              logger.error('Error parsing recolor mapping JSON:', error);
+              throw new Error('Failed to parse recolor mapping JSON');
+            }
+          },
+          hasDependencies: false,
+        },
+      ];
+
+      const sectionResults = await this.processSteps(steps, project, {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck: true,
+      });
+      const mapping = sectionResults[0].parsedData;
+      return mapping && typeof mapping === 'object' ? mapping : null;
+    } catch (error) {
+      logger.error('AI recolor fallback failed (variation kept as-is):', error);
+      return null;
+    }
   }
 
   /**

@@ -130,7 +130,12 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     const hasNoLogos = !this.logos() || this.logos()?.length === 0;
 
     if (hasNoLogos && !this.hasStartedGeneration()) {
-      const initialPrefs = this.initialPreferences();
+      // Fallback : préférences stockées dans le projet (ex. voie « améliorer mon logo »
+      // où l'analyse IA les a persistées avant d'arriver ici)
+      const initialPrefs =
+        this.initialPreferences() ??
+        this.project()?.analysisResultModel?.branding?.logoPreferences ??
+        null;
       if (initialPrefs) {
         // Parent provided preferences, auto-start generation
         this.logoPreferences.set(initialPrefs);

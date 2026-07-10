@@ -149,13 +149,33 @@ export class ShowBrandingComponent implements OnInit {
    * Load existing branding data for the project
    * Load branding data from project and check for PDF
    */
+  /**
+   * Le branding issu du workflow d'import peut être partiel (couleurs ou
+   * typographie pas encore sélectionnées, sections absentes). On normalise
+   * pour que le template puisse lire colors.colors, generatedColors.length,
+   * logo.variations, etc. sans planter — les sections correspondantes
+   * basculent alors sur leur état vide.
+   */
+  private normalizeBranding(branding: BrandIdentityModel): BrandIdentityModel {
+    return {
+      ...branding,
+      logo: branding.logo ?? ({} as LogoModel),
+      colors: branding.colors ?? ({} as ColorModel),
+      typography: branding.typography ?? ({} as TypographyModel),
+      generatedLogos: branding.generatedLogos ?? [],
+      generatedColors: branding.generatedColors ?? [],
+      generatedTypography: branding.generatedTypography ?? [],
+      sections: branding.sections ?? [],
+    };
+  }
+
   private loadExistingBranding(project: ProjectModel): void {
     // Load branding data from project
     const brandingData = project.analysisResultModel?.branding;
 
     if (brandingData) {
       console.log('Branding data found in project:', brandingData);
-      this.existingBranding.set(brandingData);
+      this.existingBranding.set(this.normalizeBranding(brandingData));
 
       // Also check for PDF if available
       this.checkForBrandingPdf(project.id!);
@@ -180,7 +200,7 @@ export class ShowBrandingComponent implements OnInit {
               ...currentBranding,
               pdfBlob: pdfBlob,
               sections: [
-                ...currentBranding.sections,
+                ...(currentBranding.sections ?? []),
                 {
                   name: 'Brand Guide',
                   type: 'pdf',

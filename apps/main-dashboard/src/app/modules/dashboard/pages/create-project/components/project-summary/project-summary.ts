@@ -3,9 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
-import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
-import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
-import { LogoModel } from '../../../../models/logo.model';
 import { environment } from '../../../../../../../environments/environment';
 import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
@@ -17,7 +14,7 @@ import { AuthService } from '../../../../../auth/services/auth.service';
 @Component({
   selector: 'app-project-summary',
   standalone: true,
-  imports: [CommonModule, FormsModule, SafeHtmlPipe, RouterModule, Loader, TranslateModule],
+  imports: [CommonModule, FormsModule, RouterModule, Loader, TranslateModule],
   templateUrl: './project-summary.html',
   styleUrl: './project-summary.css',
 })
@@ -31,12 +28,6 @@ export class ProjectSummaryComponent implements OnInit {
 
   // Angular inputs
   readonly project = input.required<ProjectModel>();
-  readonly selectedLogo = input.required<string>();
-  readonly selectedColor = input.required<string>();
-  readonly selectedTypography = input.required<string>();
-  readonly logos = input.required<LogoModel[]>();
-  readonly colorPalettes = input.required<ColorModel[]>();
-  readonly typographyOptions = input.required<TypographyModel[]>();
   readonly privacyPolicyAccepted = input.required<boolean>();
   readonly termsOfServiceAccepted = input.required<boolean>();
   readonly betaPolicyAccepted = input.required<boolean>();
@@ -78,6 +69,9 @@ export class ProjectSummaryComponent implements OnInit {
 
   protected readonly formattedTargets = computed(() => {
     const targets = this.project().targets;
+    if (typeof targets === 'object' && targets !== null) {
+      return (targets as any).name || JSON.stringify(targets);
+    }
     return targets || 'Non spécifié';
   });
 
@@ -96,40 +90,8 @@ export class ProjectSummaryComponent implements OnInit {
   ngOnInit(): void {
     console.log('=== PROJECT SUMMARY DEBUG ===');
     console.log('Project:', this.project());
-    console.log('Selected Logo ID:', this.selectedLogo());
-    console.log('Logos array:', this.logos());
-    console.log('Branding logo:', this.project().analysisResultModel?.branding?.logo);
-    console.log(
-      'Imported logo colors:',
-      this.project().analysisResultModel?.branding?.importedLogoColors,
-    );
     console.log('============================');
   }
-
-  // ✅ Computed signals pour éviter les boucles infinies
-  protected readonly selectedLogoData = computed<LogoModel | undefined>(() => {
-    // D'abord chercher dans la liste des logos générés
-    const logo = this.logos().find((logo) => logo.id === this.selectedLogo());
-    if (logo) {
-      return logo;
-    }
-
-    // Si pas trouvé, c'est peut-être un logo importé
-    const importedLogo = this.project().analysisResultModel?.branding?.logo;
-    if (importedLogo) {
-      return importedLogo;
-    }
-
-    return undefined;
-  });
-
-  protected readonly selectedColorData = computed<ColorModel | undefined>(() => {
-    return this.colorPalettes().find((color) => color.id === this.selectedColor());
-  });
-
-  protected readonly selectedTypographyData = computed<TypographyModel | undefined>(() => {
-    return this.typographyOptions().find((typo) => typo.id === this.selectedTypography());
-  });
 
   protected onPrivacyPolicyChange(event: Event): void {
     const checkbox = event.target as HTMLInputElement;

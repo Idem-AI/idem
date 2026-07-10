@@ -819,7 +819,22 @@
       "extractedColors": "Couleurs détectées dans votre logo",
       "colorsUsedAsPrimary": "Ces couleurs seront utilisées comme couleurs primaires. Notre IA proposera des palettes complémentaires.",
       "generatingBranding": "Génération de votre identité visuelle...",
-      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo."
+      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo.",
+      "postImport": {
+        "title": "Votre logo est prêt. Que souhaitez-vous en faire ?",
+        "useAsIs": {
+          "title": "Utiliser tel quel",
+          "description": "Conservez votre logo exactement comme il est. Ses déclinaisons (fond clair, fond sombre, monochrome) sont générées automatiquement."
+        },
+        "improve": {
+          "title": "Améliorer avec l'IA",
+          "description": "L'IA analyse votre logo et génère des versions plus professionnelles, fidèles à votre identité (formes, couleurs, symbolique)."
+        },
+        "analyzing": "Analyse de votre logo en cours…",
+        "analysisError": "L'analyse du logo a échoué. Réessayez ou utilisez votre logo tel quel.",
+        "subtitle": "Vous pouvez le conserver tel quel ou laisser l'IA en proposer une version plus professionnelle.",
+        "back": "Retour à l'import"
+      }
     },
     "logoImport": {
       "dropzone": {
