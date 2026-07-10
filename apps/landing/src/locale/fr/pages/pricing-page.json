@@ -27,9 +27,6 @@
     "pricing-page.value.noFees.title": "Pas de Frais Cachés",
     "pricing-page.value.noFees.description": "Tarification transparente sans frais surprises ou coûts cachés",
     "pricing-page.credits.title": "Comment Fonctionnent les Crédits",
-    "pricing-page.credits.description": "Chaque génération consomme des crédits selon la complexité et le coût IA",
-    "pricing-page.credits.completeProject": "Projet Complet :",
-    "pricing-page.credits.projectDetails": "Logo (7) + Business Plan (20) + App Complète (30) + UML (3) =",
-    "pricing-page.credits.projectTotal": "64 crédits (6,40$)"
+    "pricing-page.credits.description": "Chaque génération consomme des crédits selon la complexité et le coût IA"
   }
 }

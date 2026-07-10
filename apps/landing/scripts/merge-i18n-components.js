@@ -4,76 +4,60 @@
  * Merge component-based i18n files back into single messages.json
  */
 
-var fs = require('fs');
-var path = require('path');
+const fs = require('fs');
+const path = require('path');
 
 function mergeLocale(locale) {
-  var baseDir = path.join(__dirname, '../src/locale/' + locale);
-  var merged = {
+  const baseDir = path.join(__dirname, `../src/locale/${locale}`);
+  const merged = {
     locale: locale,
-    translations: {},
+    translations: {}
   };
 
   // Merge components
-  var componentsDir = path.join(baseDir, 'components');
+  const componentsDir = path.join(baseDir, 'components');
   if (fs.existsSync(componentsDir)) {
     fs.readdirSync(componentsDir)
-      .filter(function (f) {
-        return f.endsWith('.json');
-      })
-      .forEach(function (file) {
-        var content = JSON.parse(fs.readFileSync(path.join(componentsDir, file), 'utf8'));
+      .filter(f => f.endsWith('.json'))
+      .forEach(file => {
+        const content = JSON.parse(fs.readFileSync(path.join(componentsDir, file), 'utf8'));
         Object.assign(merged.translations, content.translations);
       });
   }
 
   // Merge pages
-  var pagesDir = path.join(baseDir, 'pages');
+  const pagesDir = path.join(baseDir, 'pages');
   if (fs.existsSync(pagesDir)) {
     fs.readdirSync(pagesDir)
-      .filter(function (f) {
-        return f.endsWith('.json');
-      })
-      .forEach(function (file) {
-        var content = JSON.parse(fs.readFileSync(path.join(pagesDir, file), 'utf8'));
+      .filter(f => f.endsWith('.json'))
+      .forEach(file => {
+        const content = JSON.parse(fs.readFileSync(path.join(pagesDir, file), 'utf8'));
         Object.assign(merged.translations, content.translations);
       });
   }
 
   // Merge shared components
-  var sharedDir = path.join(baseDir, 'shared/components');
+  const sharedDir = path.join(baseDir, 'shared/components');
   if (fs.existsSync(sharedDir)) {
     fs.readdirSync(sharedDir)
-      .filter(function (f) {
-        return f.endsWith('.json');
-      })
-      .forEach(function (file) {
-        var content = JSON.parse(fs.readFileSync(path.join(sharedDir, file), 'utf8'));
+      .filter(f => f.endsWith('.json'))
+      .forEach(file => {
+        const content = JSON.parse(fs.readFileSync(path.join(sharedDir, file), 'utf8'));
         Object.assign(merged.translations, content.translations);
       });
   }
 
   // Merge common
-  var commonFile = path.join(baseDir, 'common.json');
+  const commonFile = path.join(baseDir, 'common.json');
   if (fs.existsSync(commonFile)) {
-    var content = JSON.parse(fs.readFileSync(commonFile, 'utf8'));
-    Object.assign(merged.translations, content.translations);
-  }
-
-  // Merge meta (SEO metadata)
-  var metaFile = path.join(baseDir, 'meta.json');
-  if (fs.existsSync(metaFile)) {
-    var content = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+    const content = JSON.parse(fs.readFileSync(commonFile, 'utf8'));
     Object.assign(merged.translations, content.translations);
   }
 
   // Write merged file
-  var outputPath = path.join(
-    __dirname,
-    '../src/locale/messages.' + (locale === 'en' ? '' : locale + '.') + 'json',
-  );
+  const outputPath = path.join(__dirname, `../src/locale/messages.${locale === 'en' ? '' : locale + '.'}json`);
   fs.writeFileSync(outputPath, JSON.stringify(merged, null, 2), 'utf8');
-  console.log('✅ Merged ' + locale + ': ' + Object.keys(merged.translations).length + ' keys');
+  console.log(`✅ Merged ${locale}: ${Object.keys(merged.translations).length} keys`);
 }
 
 mergeLocale('en');

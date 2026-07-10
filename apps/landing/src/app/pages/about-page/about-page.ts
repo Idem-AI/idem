@@ -57,29 +57,29 @@ export class AboutPage implements OnInit {
 
   protected readonly milestones: Milestone[] = [
     {
-      year: '2024',
+      year: '2025',
       title: $localize`:@@about-page.milestones.foundation.title:Foundation`,
       description: $localize`:@@about-page.milestones.foundation.description:IDEM founded in Cameroon with a vision to democratize AI for African entrepreneurs`,
     },
     {
-      year: '2024',
+      year: '2027',
       title: $localize`:@@about-page.milestones.mvp.title:MVP Launch`,
       description: $localize`:@@about-page.milestones.mvp.description:First version released with core features: logo generation, business plans, and website builder`,
     },
     {
-      year: '2024',
+      year: '2028',
       title: $localize`:@@about-page.milestones.openSource.title:Open Source`,
       description: $localize`:@@about-page.milestones.openSource.description:Full codebase released under Apache 2.0 license, becoming Africa's first sovereign AI platform`,
     },
     {
-      year: '2025',
+      year: '2029',
       title: $localize`:@@about-page.milestones.expansion.title:Pan-African Expansion`,
       description: $localize`:@@about-page.milestones.expansion.description:Expanding infrastructure across Africa with local data centers and partnerships`,
     },
   ];
 
   protected readonly stats = [
-    { value: '2024', label: $localize`:@@about-page.stats.founded:Founded` },
+    { value: '2025', label: $localize`:@@about-page.stats.founded:Founded` },
     { value: '1000+', label: $localize`:@@about-page.stats.projects:Projects Created` },
     { value: '15+', label: $localize`:@@about-page.stats.countries:African Countries` },
     { value: '100%', label: $localize`:@@about-page.stats.openSource:Open Source` },
