@@ -29,7 +29,9 @@
           "description": "AI analyzes your logo and generates more professional versions that stay true to your identity (shapes, colors, symbolism)."
         },
         "analyzing": "Analyzing your logo…",
-        "analysisError": "Logo analysis failed. Try again or use your logo as is."
+        "analysisError": "Logo analysis failed. Try again or use your logo as is.",
+        "subtitle": "You can keep it as is or let AI craft a more professional version of it.",
+        "back": "Back to upload"
       }
     }
   }

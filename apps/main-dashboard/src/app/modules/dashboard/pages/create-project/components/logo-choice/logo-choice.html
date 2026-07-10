@@ -6,10 +6,18 @@
     <h1
       class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 leading-tight px-4"
     >
-      {{ 'dashboard.logoChoice.title' | translate }}
+      @if (choice() === 'import' && importStep() === 'decision') {
+        {{ 'dashboard.logoChoice.postImport.title' | translate }}
+      } @else {
+        {{ 'dashboard.logoChoice.title' | translate }}
+      }
     </h1>
     <p class="text-sm sm:text-base text-gray-400 mt-3 max-w-2xl mx-auto">
-      {{ 'dashboard.logoChoice.subtitle' | translate }}
+      @if (choice() === 'import' && importStep() === 'decision') {
+        {{ 'dashboard.logoChoice.postImport.subtitle' | translate }}
+      } @else {
+        {{ 'dashboard.logoChoice.subtitle' | translate }}
+      }
     </p>
   </div>
 
@@ -130,7 +138,7 @@
   }
 
   <!-- Import mode: show logo import component -->
-  @if (choice() === 'import') {
+  @if (choice() === 'import' && importStep() === 'upload') {
     <div class="w-full max-w-3xl mx-auto animate-slideIn">
       <!-- Back to choice -->
       <button
@@ -155,125 +163,157 @@
         (colorsExtracted)="onColorsExtracted($event)"
         (variationsEmitted)="onVariationsReceived($event)"
       ></app-logo-import>
+    </div>
+  }
 
-      <!-- Post-import sub-choice: use as-is or improve with AI -->
-      @if (isLogoImportComplete()) {
-        <div class="mt-8 animate-slideIn">
-          <h3 class="text-center text-base sm:text-lg font-semibold text-gray-100 mb-4">
-            {{ 'dashboard.logoChoice.postImport.title' | translate }}
-          </h3>
+  <!-- Decision step: use as-is or improve with AI (dedicated screen) -->
+  @if (choice() === 'import' && importStep() === 'decision') {
+    <div class="w-full max-w-3xl mx-auto animate-slideIn">
+      <!-- Back to upload -->
+      <button
+        (click)="backToUpload()"
+        [disabled]="isAnalyzing()"
+        class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+        {{ 'dashboard.logoChoice.postImport.back' | translate }}
+      </button>
 
-          @if (analysisFailed()) {
-            <p
-              role="alert"
-              class="text-center text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2 mb-4"
-            >
-              {{ 'dashboard.logoChoice.postImport.analysisError' | translate }}
-            </p>
-          }
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Use as-is -->
-            <button
-              type="button"
-              (click)="useLogoAsIs()"
-              [disabled]="isAnalyzing()"
-              class="group rounded-xl border border-white/10 glass p-5 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div class="flex items-start gap-3">
-                <div
-                  class="w-10 h-10 shrink-0 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
-                >
-                  <svg
-                    class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h4 class="text-sm font-semibold text-gray-100 mb-1">
-                    {{ 'dashboard.logoChoice.postImport.useAsIs.title' | translate }}
-                  </h4>
-                  <p class="text-xs text-gray-400 leading-relaxed">
-                    {{ 'dashboard.logoChoice.postImport.useAsIs.description' | translate }}
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            <!-- Improve with AI -->
-            <button
-              type="button"
-              (click)="improveLogoWithAI()"
-              [disabled]="isAnalyzing()"
-              class="group rounded-xl border border-white/10 glass p-5 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed"
-            >
-              <div class="flex items-start gap-3">
-                <div
-                  class="w-10 h-10 shrink-0 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
-                >
-                  @if (isAnalyzing()) {
-                    <svg
-                      class="w-5 h-5 text-primary animate-spin"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        class="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="4"
-                      ></circle>
-                      <path
-                        class="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      ></path>
-                    </svg>
-                  } @else {
-                    <svg
-                      class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.5"
-                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
-                      />
-                    </svg>
-                  }
-                </div>
-                <div>
-                  <h4 class="text-sm font-semibold text-gray-100 mb-1">
-                    @if (isAnalyzing()) {
-                      {{ 'dashboard.logoChoice.postImport.analyzing' | translate }}
-                    } @else {
-                      {{ 'dashboard.logoChoice.postImport.improve.title' | translate }}
-                    }
-                  </h4>
-                  <p class="text-xs text-gray-400 leading-relaxed">
-                    {{ 'dashboard.logoChoice.postImport.improve.description' | translate }}
-                  </p>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
+      @if (analysisFailed()) {
+        <p
+          role="alert"
+          class="text-center text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2 mb-6"
+        >
+          {{ 'dashboard.logoChoice.postImport.analysisError' | translate }}
+        </p>
       }
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <!-- Use as-is -->
+        <button
+          type="button"
+          (click)="useLogoAsIs()"
+          [disabled]="isAnalyzing()"
+          class="group relative rounded-xl border border-white/10 glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <div class="flex flex-col items-center text-center space-y-4">
+            <div
+              class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
+            >
+              <svg
+                class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+
+            <div>
+              <h3 class="text-lg font-semibold text-gray-100 mb-2">
+                {{ 'dashboard.logoChoice.postImport.useAsIs.title' | translate }}
+              </h3>
+              <p class="text-sm text-gray-400 leading-relaxed">
+                {{ 'dashboard.logoChoice.postImport.useAsIs.description' | translate }}
+              </p>
+            </div>
+          </div>
+        </button>
+
+        <!-- Improve with AI -->
+        <button
+          type="button"
+          (click)="improveLogoWithAI()"
+          [disabled]="isAnalyzing()"
+          class="group relative rounded-xl border border-white/10 glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed"
+        >
+          <div class="flex flex-col items-center text-center space-y-4">
+            <div
+              class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
+            >
+              @if (isAnalyzing()) {
+                <svg
+                  class="w-8 h-8 text-primary animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
+                </svg>
+              } @else {
+                <svg
+                  class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+                  />
+                </svg>
+              }
+            </div>
+
+            <div>
+              <h3 class="text-lg font-semibold text-gray-100 mb-2">
+                @if (isAnalyzing()) {
+                  {{ 'dashboard.logoChoice.postImport.analyzing' | translate }}
+                } @else {
+                  {{ 'dashboard.logoChoice.postImport.improve.title' | translate }}
+                }
+              </h3>
+              <p class="text-sm text-gray-400 leading-relaxed">
+                {{ 'dashboard.logoChoice.postImport.improve.description' | translate }}
+              </p>
+            </div>
+
+            <!-- AI badge -->
+            <div class="pt-2">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                {{ 'dashboard.logoChoice.ai.badge' | translate }}
+              </span>
+            </div>
+          </div>
+        </button>
+      </div>
     </div>
   }
 </section>

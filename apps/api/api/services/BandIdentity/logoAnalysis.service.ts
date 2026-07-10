@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import logger from '../../config/logger';
 import { AI_CONFIG } from '../../config/ai.config';
 import { withGeminiFallback } from '../../utils/gemini-fallback';
@@ -20,6 +20,61 @@ export interface LogoAnalysisResult {
   weaknesses: string;
   improvementBrief: string;
 }
+
+/**
+ * Strict JSON schema for LogoAnalysisResult to enforce valid structure from Gemini.
+ */
+const logoAnalysisSchema = {
+  type: Type.OBJECT,
+  properties: {
+    logoType: {
+      type: Type.STRING,
+      enum: ['icon', 'name', 'initial'],
+      description: 'The type classification of the logo. "icon" for symbol/pictorial mark, "name" for full brand name wordmark, "initial" for stylized monogram.',
+    },
+    style: {
+      type: Type.STRING,
+      description: 'Overall visual style of the logo in a few words.',
+    },
+    shapes: {
+      type: Type.STRING,
+      description: 'Geometric description of the shapes and layout of the mark.',
+    },
+    colors: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.STRING,
+      },
+      description: 'The estimated colors present in the logo as 6-digit hex values.',
+    },
+    typographyStyle: {
+      type: Type.STRING,
+      description: 'Typography style details (e.g. serif, sans-serif, weight) or "none".',
+    },
+    symbolism: {
+      type: Type.STRING,
+      description: 'What the logo mark evokes or represents.',
+    },
+    weaknesses: {
+      type: Type.STRING,
+      description: 'Flaws and weaknesses in the current design (alignment, kerning, colors, etc.).',
+    },
+    improvementBrief: {
+      type: Type.STRING,
+      description: 'Concrete design instructions to recreate and improve this logo. Must be 60-120 words.',
+    },
+  },
+  required: [
+    'logoType',
+    'style',
+    'shapes',
+    'colors',
+    'typographyStyle',
+    'symbolism',
+    'weaknesses',
+    'improvementBrief',
+  ],
+};
 
 /**
  * Analyzes a user-imported logo with a multimodal model and produces a
@@ -67,6 +122,8 @@ export class LogoAnalysisService {
           config: {
             temperature: AI_CONFIG.branding.logoAnalysis.llmOptions?.temperature,
             maxOutputTokens: AI_CONFIG.branding.logoAnalysis.llmOptions?.maxOutputTokens,
+            responseMimeType: 'application/json',
+            responseSchema: logoAnalysisSchema,
           },
         }),
       () =>
@@ -76,16 +133,15 @@ export class LogoAnalysisService {
           config: {
             temperature: AI_CONFIG.branding.logoAnalysis.llmOptions?.temperature,
             maxOutputTokens: AI_CONFIG.branding.logoAnalysis.llmOptions?.maxOutputTokens,
+            responseMimeType: 'application/json',
+            responseSchema: logoAnalysisSchema,
           },
         }),
       primaryModel,
       fallbackModel
     );
 
-    const rawText = (response.candidates?.[0]?.content?.parts || [])
-      .map((part: any) => part.text || '')
-      .join('')
-      .trim();
+    const rawText = response.text?.trim() || '';
 
     if (!rawText) {
       throw new Error('Logo analysis returned an empty response');
@@ -102,8 +158,19 @@ export class LogoAnalysisService {
     try {
       parsed = JSON.parse(cleaned);
     } catch (error) {
-      logger.error('Logo analysis: failed to parse JSON response', { rawText: cleaned.slice(0, 500) });
-      throw new Error('Failed to parse logo analysis response');
+      // Try to recover the first {...} or [...] block
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          parsed = JSON.parse(match[0]);
+        } catch (innerError) {
+          logger.error('Logo analysis: failed to parse JSON from recovered block', { rawText: cleaned.slice(0, 500) });
+          throw new Error('Failed to parse logo analysis response');
+        }
+      } else {
+        logger.error('Logo analysis: failed to parse JSON response', { rawText: cleaned.slice(0, 500) });
+        throw new Error('Failed to parse logo analysis response');
+      }
     }
 
     const validTypes = ['icon', 'name', 'initial'];
