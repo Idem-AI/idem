@@ -53,6 +53,7 @@
       <!-- STEP : Logo Preferences (workflow IA uniquement) -->
       @if (isStepActive('logo-preferences')) {
         <app-logo-preferences
+          [initialPreferences]="aiLogoPreferences()"
           (preferencesSelected)="onLogoPreferencesSelected($event)"
         ></app-logo-preferences>
       }

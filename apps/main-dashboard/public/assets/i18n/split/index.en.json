@@ -10,6 +10,7 @@
     "modules/dashboard/pages/add-team-to-project",
     "modules/dashboard/pages/create-project/components/color-customizer",
     "modules/dashboard/pages/create-project/components/color-selection",
+    "modules/dashboard/pages/create-project/components/logo-choice",
     "modules/dashboard/pages/create-project/components/logo-creation-simulator",
     "modules/dashboard/pages/create-project/components/logo-editor-chat",
     "modules/dashboard/pages/create-project/components/logo-preferences",

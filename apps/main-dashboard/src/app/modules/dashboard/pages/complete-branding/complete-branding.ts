@@ -199,8 +199,11 @@ export class CompleteBrandingPage implements OnInit {
             if (branding.colors) this.colorSelected.set(true);
             if (branding.typography) this.typographySelected.set(true);
 
-            const hasLogo = !!branding.logo;
-            const hasVariations = !!branding.logo?.variations?.withText;
+            // Voie « améliorer mon logo » : le logo importé sert de référence à
+            // l'analyse mais ne compte pas comme un logo généré par l'IA
+            const logoIsImported = !!branding.logo?.id?.startsWith('imported-');
+            const hasLogo = !!branding.logo && !logoIsImported;
+            const hasVariations = hasLogo && !!branding.logo?.variations?.withText;
 
             if (hasLogo && hasVariations) {
               targetStepIndex = 6; // overview
@@ -343,6 +346,12 @@ export class CompleteBrandingPage implements OnInit {
   protected onLogoChoiceMade(choice: 'import' | 'ai'): void {
     this.logoChoice.set(choice);
     if (choice === 'ai') {
+      // Voie « améliorer mon logo » : les préférences issues de l'analyse
+      // ont déjà été poussées dans le projet par logo-choice
+      const analysisPrefs = this.project()?.analysisResultModel?.branding?.logoPreferences;
+      if (analysisPrefs && !this.aiLogoPreferences()) {
+        this.aiLogoPreferences.set(analysisPrefs);
+      }
       // Pour l'IA, on avance directement vers colors
       this.navigateToStep(1);
     }
@@ -437,6 +446,8 @@ export class CompleteBrandingPage implements OnInit {
     const updated: ProjectModel = {
       ...current,
       ...updates,
+      // Ne jamais laisser une réponse API remplacer l'id du projet en cours
+      id: current.id,
       analysisResultModel: {
         ...current.analysisResultModel,
         ...updates.analysisResultModel,

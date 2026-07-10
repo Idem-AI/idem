@@ -42,6 +42,7 @@ const CONFIG = {
     // Dashboard pages - Create Project
     'modules/dashboard/pages/create-project/components/color-customizer': 'dashboard.colorCustomizer',
     'modules/dashboard/pages/create-project/components/color-selection': 'dashboard.colorSelection',
+    'modules/dashboard/pages/create-project/components/logo-choice': 'dashboard.logoChoice',
     'modules/dashboard/pages/create-project/components/logo-creation-simulator': 'logoCreation',
     'modules/dashboard/pages/create-project/components/logo-editor-chat': 'dashboard.logoEditor',
     'modules/dashboard/pages/create-project/components/logo-preferences': 'dashboard.logoPreferences',
