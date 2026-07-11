@@ -132,6 +132,10 @@ Rules per color role:
 VARIANT C — monochrome
 ─────────────────────────────────────────
 Context: single-color environments (print, embossing, stamp, watermark, B&W screen).
+This variant IS the black-and-white test of the brand (Airey): a professional mark
+must carry its full hierarchy and meaning through tone alone. If the tonal mapping
+below produces a mark that loses its structure, the hierarchy assignments (not the
+geometry) must be adjusted until it reads perfectly.
 
 Rules:
   Convert all fills using perceptual luminance formula:
@@ -209,6 +213,8 @@ For each variant, verify:
   [ ] darkBackground: no hue with HSL saturation > 85%
   [ ] monochrome: at least 3 distinct tones used (no flat single-color)
   [ ] monochrome: primary shape uses the darkest tone
+  [ ] monochrome: visual hierarchy of the original is preserved through tone alone
+  [ ] silhouette of every variant is identical to the original (geometry frozen)
   [ ] JSON parses without error
   [ ] viewBox is exactly "0 0 80 80" in all 3 variants
 

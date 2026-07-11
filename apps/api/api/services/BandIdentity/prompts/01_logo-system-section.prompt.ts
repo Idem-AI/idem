@@ -14,7 +14,10 @@ export const LOGO_SYSTEM_SECTION_PROMPT = `<role>Senior brand identity art direc
 2. Primary logo <img> (use the exact URL specified in **SPECIFIC LOGO URL FOR THIS PAGE**).
 3. Concept explanation (2-3 sentences max, in French).
 4. Color codes (hex codes extracted from logo).
-5. "Zone de protection" diagram (minimum clear space around logo).
+5. "Zone de protection" diagram: the clear space is PROPORTIONAL to the logo itself
+   (Wheeler) — margin = 25% of the logo height on all four sides, visualized with
+   thin dashed guides and labeled "x = 25% de la hauteur du logo". Never an
+   arbitrary pixel value.
 </page_content>
 
 <page_format>
@@ -70,9 +73,17 @@ export const LOGO_BEST_PRACTICES_PAGE_PROMPT = `<role>Brand standards expert</ro
 
 <page_content>
 1. Page title: "Bonnes Pratiques — Utilisation du Logo".
-2. "À FAIRE" (Do's) - 4-6 rules: respect proportions, use official versions, maintain clear space, check contrast, pick right variant.
-3. "À ÉVITER" (Don'ts) - 4-6 rules: no stretching, no color changes, no busy backgrounds, no extra shadows/strokes, no tiny sizing.
-4. Minimum size specs (digital: 24px height, print: 12mm height).
+2. "À FAIRE" (Do's) - 4-6 rules drawn from professional brand standards:
+   respect proportions, use official versions only, maintain the proportional
+   clear space (25% of logo height), check contrast on every background,
+   pick the right variant per background (clair / sombre / monochrome),
+   verify the logo still reads in pure black and white (test noir et blanc).
+3. "À ÉVITER" (Don'ts) - 4-6 rules: no stretching or rotating, no color changes
+   outside the palette, no busy/photographic backgrounds without the right variant,
+   no added shadows, gradients, outlines or effects, no sizing below the minimum,
+   no recreating or redrawing the logo.
+4. Minimum size specs (digital: 24px height, print: 12mm height) — below these,
+   details close up and legibility fails.
 5. File formats (SVG for digital, PDF for print, PNG for web).
 </page_content>
 
