@@ -111,4 +111,9 @@ export interface ApplicationRow {
   destination_id: number | null;
   destination_type: string | null;
   status: string | null;
+  base_directory: string | null;
+  build_command: string | null;
+  start_command: string | null;
+  install_command: string | null;
+  publish_directory: string | null;
 }

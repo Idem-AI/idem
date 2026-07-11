@@ -397,12 +397,22 @@ export class ApiService {
     build_pack?: string;
     template?: string;
     project_name?: string;
+    base_directory?: string;
+    build_command?: string;
+    start_command?: string;
+    ports_exposes?: string;
   }): Observable<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }> {
     return this.unwrap(
       this.http.post<ApiResponse<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }>>(
         `${this.base}/quick-deploy`,
         body
       )
+    );
+  }
+
+  getDeployment(deploymentUuid: string): Observable<any> {
+    return this.unwrap(
+      this.http.get<ApiResponse<any>>(`${this.base}/deploy/${deploymentUuid}`)
     );
   }
 
