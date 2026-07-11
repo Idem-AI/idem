@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../../shared/services/api.service';
 import { Project, Server, ServiceTemplate } from '../../../shared/models/ideploy.models';
 
@@ -50,13 +51,22 @@ interface DeployRow {
                  style="background:var(--color-surface-2);color:var(--color-text-primary);">Upgrade</a>
             </div>
             <div class="space-y-3">
-              @for (m of usageMetrics(); track m.label) {
-                <div class="flex items-center justify-between text-sm">
-                  <span class="flex items-center gap-2">
-                    <i [class]="m.icon" class="text-xs" [style.color]="m.color"></i>{{ m.label }}
-                  </span>
-                  <span style="color:var(--color-text-secondary);">{{ m.value }}</span>
-                </div>
+              @if (loading()) {
+                @for (i of [1, 2, 3, 4]; track i) {
+                  <div class="flex items-center justify-between text-sm dbpulse">
+                    <div class="h-4 w-24 rounded bg-white/10"></div>
+                    <div class="h-4 w-12 rounded bg-white/10"></div>
+                  </div>
+                }
+              } @else {
+                @for (m of usageMetrics(); track m.label) {
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="flex items-center gap-2">
+                      <i [class]="m.icon" class="text-xs" [style.color]="m.color"></i>{{ m.label }}
+                    </span>
+                    <span style="color:var(--color-text-secondary);">{{ m.value }}</span>
+                  </div>
+                }
               }
             </div>
           </div>
@@ -87,7 +97,19 @@ interface DeployRow {
         <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Projects</h2>
 
         <!-- Projects grid (when the team already has projects) -->
-        @if (projects().length > 0) {
+        @if (loading()) {
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <div class="dbpulse rounded-lg p-4 border border-white/5 bg-white/[0.02]" style="min-height: 80px;">
+                <div class="flex items-center gap-2">
+                  <div class="h-4 w-4 rounded-full bg-white/10"></div>
+                  <div class="h-4 w-28 rounded bg-white/10"></div>
+                </div>
+                <div class="mt-2 h-3 w-40 rounded bg-white/10"></div>
+              </div>
+            }
+          </div>
+        } @else if (projects().length > 0) {
           <div [class]="projectsContainerClass()">
             @for (p of filteredProjects(); track p.uuid) {
               <a class="block rounded-lg p-4 hover:border-white/20" style="border:1px solid var(--color-surface-2);"
@@ -185,6 +207,7 @@ export class DashboardComponent implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly view = signal<'grid' | 'list'>('grid');
   protected readonly query = signal('');
+  protected readonly loading = signal(true);
 
   protected readonly projectsContainerClass = computed(() =>
     this.view() === 'grid' ? 'box grid grid-cols-1 sm:grid-cols-2 gap-3' : 'box space-y-3'
@@ -220,11 +243,26 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.listProjects().subscribe((p) => this.projects.set(p));
-    this.api.listServers().subscribe((s) => this.servers.set(s));
-    this.api.listDatabases().subscribe((d) => this.dbCount.set(d.length));
-    this.api.getQuota().subscribe((q) => this.quota.set(q));
-    this.api.listServiceTemplates().subscribe((t) => this.templates.set(t.slice(0, 5)));
+    forkJoin({
+      projects: this.api.listProjects(),
+      servers: this.api.listServers(),
+      databases: this.api.listDatabases(),
+      quota: this.api.getQuota(),
+      templates: this.api.listServiceTemplates(),
+    }).subscribe({
+      next: (res) => {
+        this.projects.set(res.projects);
+        this.servers.set(res.servers);
+        this.dbCount.set(res.databases.length);
+        this.quota.set(res.quota);
+        this.templates.set(res.templates.slice(0, 5));
+        this.loading.set(false);
+      },
+      error: (e) => {
+        this.loading.set(false);
+        this.error.set(e?.error?.error?.message ?? 'Failed to load dashboard data. Please reload.');
+      },
+    });
   }
 
   protected goNewProject(): void {

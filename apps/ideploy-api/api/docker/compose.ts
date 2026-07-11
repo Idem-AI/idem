@@ -48,14 +48,20 @@ export function generateComposeFile(app: ApplicationRow, imageTag: string): stri
  */
 export function generateBuildlessCompose(app: ApplicationRow, srcDir: string, port: number): string {
   const serviceName = `${app.name}-${app.uuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  const start =
-    `npm install` +
-    ` && (npm run build || true)` +
-    ` && (npm start` +
-    ` || npm run preview -- --host 0.0.0.0 --port ${port}` +
-    ` || npm run dev -- --host 0.0.0.0 --port ${port}` +
-    ` || npx --yes serve -s dist -l ${port}` +
-    ` || npx --yes serve -s . -l ${port})`;
+
+  let baseDir = app.base_directory || '/';
+  if (baseDir.startsWith('./')) {
+    baseDir = baseDir.slice(2);
+  }
+  baseDir = baseDir.replace(/^\/+|\/+$/g, '');
+  const workingDir = baseDir ? `/app/${baseDir}` : '/app';
+
+  const installCmd = app.install_command || 'npm install';
+  const buildCmd = app.build_command || 'npm run build || true';
+  const startCmd = app.start_command ||
+    `npm start || npm run preview -- --host 0.0.0.0 --port ${port} || npm run dev -- --host 0.0.0.0 --port ${port} || npx --yes serve -s dist -l ${port} || npx --yes serve -s . -l ${port}`;
+
+  const startScript = `${installCmd} && (${buildCmd}) && (${startCmd})`;
 
   const compose = {
     services: {
@@ -63,10 +69,10 @@ export function generateBuildlessCompose(app: ApplicationRow, srcDir: string, po
         image: 'node:20-alpine',
         container_name: serviceName,
         restart: 'unless-stopped',
-        working_dir: '/app',
+        working_dir: workingDir,
         volumes: [`${srcDir}:/app`],
         environment: [`PORT=${port}`, 'HOST=0.0.0.0'],
-        command: ['sh', '-lc', start],
+        command: ['sh', '-lc', startScript],
         ports: [`${port}:${port}`],
         labels: {
           'ideploy.managed': 'true',

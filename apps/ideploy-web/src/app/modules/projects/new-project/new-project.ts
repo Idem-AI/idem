@@ -17,23 +17,28 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
   template: `
     <!-- Top bar -->
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
-      <a routerLink="/dashboard" class="flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);">
+      <a routerLink="/dashboard" class="flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
         <i class="fa-solid fa-arrow-left"></i> Back
       </a>
-      <span class="text-sm font-semibold">New Project</span>
+      <span class="text-sm font-semibold font-mono">New Project</span>
       <span class="w-12"></span>
     </div>
 
     <div class="mx-auto max-w-5xl px-6 py-12">
-      <h1 class="heading-serif mb-8" style="font-size:40px;font-weight:700;color:#fff;">Let's build something new</h1>
+      <h1 class="heading-serif mb-8 text-center" style="font-size:40px;font-weight:700;color:#fff;">Let's build something new</h1>
 
       <!-- Git URL prompt -->
-      <div class="mb-2 flex items-center gap-3 rounded-xl px-4 py-3" style="background:var(--color-surface-1);border:1px solid var(--color-surface-2);">
+      <div class="mb-2 flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 border"
+           style="background:var(--color-surface-1);border-color:var(--color-surface-2);"
+           [class.focus-within:border-blue-500]="true"
+           [class.focus-within:ring-2]="true"
+           [class.focus-within:ring-blue-500/20]="true">
         <i class="fa-solid fa-plus" style="color:var(--color-text-secondary);"></i>
         <input class="flex-1 bg-transparent outline-none" placeholder="Enter a Git repository URL…"
+               aria-label="Git repository URL"
                [(ngModel)]="gitUrl" (keyup.enter)="importUrl()" style="color:var(--color-text-primary);" />
         @if (gitUrl) {
-          <button class="button" (click)="importUrl()">Continue</button>
+          <button class="button cursor-pointer" (click)="importUrl()">Continue</button>
         }
       </div>
       <p class="mb-10 text-center text-sm" style="color:var(--color-text-tertiary);">
@@ -43,61 +48,61 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
       <div class="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <!-- ===== Import Git Repository ===== -->
         <div>
-          <h2 class="mb-4 text-xl font-semibold">Import Git Repository</h2>
+          <h2 class="mb-4 text-xl font-semibold font-mono">Import Git Repository</h2>
 
           @if (githubUser() === undefined) {
             <p class="text-sm" style="color:var(--color-text-secondary);">Checking GitHub connection…</p>
           } @else if (githubUser() === null) {
-            <div class="box text-center">
-              <i class="fa-brands fa-github mb-3 text-3xl"></i>
-              <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
+            <div class="db-glass text-center p-8">
+              <i class="fa-brands fa-github mb-3 text-4xl text-white/80"></i>
+              <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">
                 Connect your GitHub account to import and deploy your repositories.
               </p>
-              <button class="button" (click)="connectGithub()">
+              <button class="button cursor-pointer" (click)="connectGithub()">
                 <i class="fa-brands fa-github mr-2"></i> Connect GitHub
               </button>
             </div>
           } @else {
             <div class="mb-3 flex items-center gap-2">
-              <span class="flex items-center gap-2 rounded-md px-3 py-2 text-sm" style="background:var(--color-surface-1);border:1px solid var(--color-surface-2);">
+              <span class="flex items-center gap-2 rounded-md px-3 py-2 text-sm border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
                 <i class="fa-brands fa-github"></i> {{ githubUser() }}
               </span>
-              <input class="input flex-1" placeholder="Search…" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
+              <input class="input flex-1" placeholder="Search…" aria-label="Search repositories" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
             </div>
             @if (filteredRepos().length === 0) {
-              <div class="box text-sm" style="color:var(--color-text-secondary);">No repositories found.</div>
+              <div class="db-glass p-8 text-center text-sm" style="color:var(--color-text-secondary);">No repositories found.</div>
             } @else {
-              <div class="overflow-hidden rounded-xl" style="border:1px solid var(--color-surface-2);">
+              <div class="overflow-hidden rounded-xl db-glass">
                 @for (repo of filteredRepos(); track repo.fullName) {
-                  <div class="flex items-center gap-3 p-3" style="border-bottom:1px solid var(--color-surface-2);">
+                  <div class="flex items-center gap-3 p-3 hover:bg-white/[0.02]" style="border-bottom:1px solid var(--color-surface-2);">
                     <i class="fa-solid fa-code-branch" style="color:var(--color-text-secondary);"></i>
                     <div class="min-w-0 flex-1">
                       <div class="truncate text-sm font-semibold">{{ repo.name }}
                         @if (repo.private) { <i class="fa-solid fa-lock ml-1 text-xs" style="color:var(--color-text-tertiary);"></i> }
                       </div>
-                      <div class="truncate text-xs" style="color:var(--color-text-tertiary);">{{ repo.updatedAt | slice:0:10 }}</div>
+                      <div class="truncate text-xs font-mono" style="color:var(--color-text-tertiary);">{{ repo.updatedAt | slice:0:10 }}</div>
                     </div>
-                    <button class="button-secondary" (click)="importRepo(repo)">Import</button>
+                    <button class="button-secondary cursor-pointer hover:bg-white/10 transition-colors" (click)="importRepo(repo)">Import</button>
                   </div>
                 }
               </div>
             }
-            <button class="mt-3 text-xs" style="color:var(--color-text-tertiary);" (click)="disconnectGithub()">Disconnect GitHub</button>
+            <button class="mt-3 text-xs hover:text-white transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="disconnectGithub()">Disconnect GitHub</button>
           }
         </div>
 
         <!-- ===== Clone Template ===== -->
         <div>
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold">Clone Template</h2>
-            <a routerLink="/templates" class="text-sm" style="color:#60a5fa;">Browse All</a>
+            <h2 class="text-xl font-semibold font-mono">Clone Template</h2>
+            <a routerLink="/templates" class="text-sm font-semibold hover:underline" style="color:#60a5fa;">Browse All</a>
           </div>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             @for (t of templates(); track t.name) {
-              <div class="box flex flex-col">
-                <div class="mb-1 font-semibold capitalize">{{ t.name }}</div>
-                <p class="mb-3 flex-1 text-sm" style="color:var(--color-text-secondary);">{{ t.slogan }}</p>
-                <button class="button-secondary w-full" [disabled]="busy()" (click)="cloneTemplate(t)">Deploy</button>
+              <div class="db-glass flex flex-col hover:border-blue-500/40 hover:bg-white/[0.01] transition-all duration-200">
+                <div class="mb-1 font-semibold capitalize font-mono text-white/90">{{ t.name }}</div>
+                <p class="mb-4 flex-1 text-sm" style="color:var(--color-text-secondary);">{{ t.slogan }}</p>
+                <button class="button-secondary w-full cursor-pointer hover:bg-white/10 transition-colors" [disabled]="busy()" (click)="cloneTemplate(t)">Deploy</button>
               </div>
             }
           </div>
@@ -107,14 +112,14 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
       <!-- Create Empty Project -->
       <div class="mt-10 flex items-center justify-between border-t pt-6" style="border-color:var(--color-surface-2);">
         <div>
-          <div class="font-semibold">Create Empty Project</div>
+          <div class="font-semibold font-mono text-white/90">Create Empty Project</div>
           <div class="text-sm" style="color:var(--color-text-secondary);">Skip Git and start from scratch.</div>
         </div>
-        <button class="button-secondary" (click)="createEmpty()">Create Empty Project</button>
+        <button class="button-secondary cursor-pointer hover:bg-white/10 transition-colors" (click)="createEmpty()">Create Empty Project</button>
       </div>
 
       @if (error()) {
-        <p class="mt-4 text-sm text-red-400">{{ error() }}</p>
+        <p class="mt-4 text-sm text-red-400 bg-red-500/5 border border-red-500/20 p-3 rounded-lg">{{ error() }}</p>
       }
     </div>
   `,
