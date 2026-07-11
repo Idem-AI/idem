@@ -13,6 +13,12 @@ ${LOGO_SYSTEM_BASE}
 You are revising an EXISTING logo concept that failed design review. This is a
 surgical correction, not a redesign.
 
+BRAND CONTEXT:
+- BRAND NAME: "{{BRAND_NAME}}" — the text displayed in the logo must be exactly
+  this name (or its initials for a monogram/initial type). The original logo's
+  "name" field is only the creative title of the concept: NEVER replace the
+  displayed brand name with the concept title.
+
 REVISION RULES:
 - KEEP the concept, the visual idea, the layout type and the overall composition.
 - FIX every remark from the design director below, precisely and completely.

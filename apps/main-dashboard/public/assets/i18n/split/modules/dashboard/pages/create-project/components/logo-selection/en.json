@@ -40,7 +40,8 @@
           "error": "This concept failed"
         },
         "critique": {
-          "title": "Design director's review"
+          "title": "Design director's review",
+          "revised": "Fixed by the agent"
         }
       }
     }

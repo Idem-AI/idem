@@ -48,6 +48,8 @@ export interface ConceptSlot {
   status: ConceptSlotStatus;
   logo: LogoModel | null;
   critique: LogoCritiqueView | null;
+  /** true si l'agent de révision a corrigé le logo après une critique négative */
+  revised?: boolean;
 }
 
 @Component({
@@ -374,7 +376,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
         this.updateSlot(index, { status: 'revising' });
         break;
       case 'concept_updated':
-        this.updateSlot(index, { logo: this.normalizeLogo(payload.logo!, index) });
+        this.updateSlot(index, { logo: this.normalizeLogo(payload.logo!, index), revised: true });
         break;
       case 'concept_finalized': {
         const logo = this.normalizeLogo(payload.logo!, index);

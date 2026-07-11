@@ -124,14 +124,23 @@
                 [class.border-amber-500/30]="critique.verdict === 'fail'"
                 [class.bg-amber-500/5]="critique.verdict === 'fail'"
               >
-                <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center justify-between mb-1.5 gap-2">
                   <span class="text-xs font-semibold"
                     [class.text-green-400]="critique.verdict === 'pass'"
                     [class.text-amber-400]="critique.verdict === 'fail'"
                   >
                     {{ 'dashboard.logoSelection.live.critique.title' | translate }}
                   </span>
-                  <span class="text-xs text-gray-400">{{ critique.score }}/100</span>
+                  <span class="flex items-center gap-2">
+                    @if (slot.revised) {
+                      <span
+                        class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20"
+                      >
+                        {{ 'dashboard.logoSelection.live.critique.revised' | translate }}
+                      </span>
+                    }
+                    <span class="text-xs text-gray-400">{{ critique.score }}/100</span>
+                  </span>
                 </div>
                 <p class="text-xs text-gray-300 leading-relaxed">{{ critique.summary }}</p>
                 @if (critique.verdict === 'fail' && critique.remarks.length > 0) {
