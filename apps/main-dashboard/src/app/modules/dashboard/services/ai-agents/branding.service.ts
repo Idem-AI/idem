@@ -63,6 +63,90 @@ export class BrandingService {
     this.sseService.cancelGeneration('branding');
   }
 
+  /**
+   * Génération streamée des concepts de logo (SSE) avec boucle qualité :
+   * l'API pousse chaque étape en temps réel — concept généré, remarques de
+   * l'agent critique, révision, finalisation.
+   * stepName des événements : concept_started, concept_generated,
+   * critique_started, critique_result, revision_started, concept_updated,
+   * concept_finalized, concept_cancelled, concept_error.
+   */
+  generateLogoConceptsStream(
+    projectId: string,
+    force = false,
+    preferences?: LogoPreferencesModel | null,
+  ): Observable<SSEStepEvent> {
+    this.sseService.closeConnection('logo');
+
+    // Les préférences voyagent en query : le formulaire local peut ne pas être
+    // encore persisté côté projet au moment où le flux démarre.
+    const params = new URLSearchParams();
+    if (force) params.set('force', 'true');
+    if (preferences?.type) {
+      params.set('prefType', preferences.type);
+      if (preferences.customDescription) {
+        params.set('prefDesc', preferences.customDescription.slice(0, 800));
+      }
+    }
+    const query = params.toString();
+
+    const config: SSEConnectionConfig = {
+      url: `${this.apiUrl}/generate/logo-concepts-stream/${projectId}${query ? `?${query}` : ''}`,
+      keepAlive: true,
+      reconnectionDelay: 1000,
+    };
+
+    return this.sseService.createConnection(config, 'logo');
+  }
+
+  /**
+   * Annule la génération de logos en cours côté serveur (économie de tokens
+   * quand l'utilisateur a déjà sélectionné un logo) et ferme le flux SSE.
+   */
+  cancelLogoConceptsGeneration(projectId: string): Observable<{ success: boolean; cancelled: boolean }> {
+    this.sseService.closeConnection('logo');
+    return this.http
+      .post<{ success: boolean; cancelled: boolean }>(
+        `${this.apiUrl}/generate/logo-concepts-cancel/${projectId}`,
+        {},
+      )
+      .pipe(
+        catchError((error) => {
+          console.error('Error cancelling logo generation:', error);
+          return throwError(() => error);
+        }),
+      );
+  }
+
+  /** Ferme le flux SSE de génération de logos sans annuler côté serveur */
+  closeLogoConceptsStream(): void {
+    this.sseService.closeConnection('logo');
+  }
+
+  /**
+   * Génération streamée des déclinaisons du logo sélectionné (SSE) avec boucle
+   * qualité. stepName des événements : variation_started, variation_generated,
+   * critique_started, critique_result, revision_started, variation_updated,
+   * variation_finalized, variation_cancelled, variation_error.
+   * Le logo sélectionné est lu depuis le projet côté API.
+   */
+  generateLogoVariationsStream(projectId: string, force = false): Observable<SSEStepEvent> {
+    this.sseService.closeConnection('logo-variations');
+
+    const config: SSEConnectionConfig = {
+      url: `${this.apiUrl}/generate/logo-variations-stream/${projectId}${force ? '?force=true' : ''}`,
+      keepAlive: true,
+      reconnectionDelay: 1000,
+    };
+
+    return this.sseService.createConnection(config, 'logo-variations');
+  }
+
+  /** Ferme le flux SSE des déclinaisons ; le serveur annule à la déconnexion */
+  closeLogoVariationsStream(): void {
+    this.sseService.closeConnection('logo-variations');
+  }
+
   generateColorsAndTypography(project: ProjectModel): Observable<{
     colors: ColorModel[];
     typography: TypographyModel[];

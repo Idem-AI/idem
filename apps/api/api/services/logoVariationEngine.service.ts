@@ -689,6 +689,43 @@ async function produceVariant(
   return svg;
 }
 
+// ─── Public helpers (used by the streamed variations quality loop) ───────────
+
+/**
+ * Measures the fraction (0..1) of a logo's pixels that are visible against a
+ * background color, via a real render. 1 is returned when rendering fails.
+ */
+export async function measureSvgVisibility(svg: string, backgroundHex: string): Promise<number> {
+  return measureVisibleFraction(svg, backgroundHex);
+}
+
+/**
+ * Applies a hex→hex color mapping to an SVG (fills, strokes, gradient stops),
+ * resolving inherited/implicit paints first so the remap is exhaustive.
+ * Geometry is untouched — this is the safe repair primitive for variations.
+ */
+export async function applyColorMappingToSvg(
+  svgContent: string,
+  mapping: Record<string, string>
+): Promise<string> {
+  const ast = await parse(svgContent);
+
+  const styleTexts: string[] = [];
+  collectStyleText(ast, styleTexts);
+  const cssRules = styleTexts.length > 0 ? parseCssRules(styleTexts.join('\n')) : [];
+  materializePaints(ast, cssRules, {}, true);
+
+  const normalized = new Map<string, string>();
+  for (const [from, to] of Object.entries(mapping)) {
+    const fromHex = parseCssColor(from);
+    const toHex = parseCssColor(to);
+    if (fromHex && toHex) normalized.set(fromHex, toHex);
+  }
+
+  applyColorTransform(ast, (hex) => normalized.get(hex) || hex);
+  return stringify(ast);
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**

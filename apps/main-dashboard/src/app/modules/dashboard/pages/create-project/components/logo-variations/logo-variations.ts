@@ -28,6 +28,41 @@ interface DisplayVariation {
   backgroundColor: string;
 }
 
+type VariationKind = 'lightBackground' | 'darkBackground' | 'monochrome';
+
+type VariationSlotStatus =
+  | 'pending'
+  | 'generating'
+  | 'generated'
+  | 'critiquing'
+  | 'revising'
+  | 'final'
+  | 'cancelled'
+  | 'error';
+
+/** Avis de l'agent critique sur une déclinaison, affiché en temps réel */
+interface VariationCritiqueView {
+  verdict: 'pass' | 'fail';
+  score: number;
+  summary: string;
+  remarks: { criterion: string; issue: string }[];
+}
+
+/** État live d'une déclinaison pendant la génération streamée */
+interface VariationSlot {
+  kind: VariationKind;
+  status: VariationSlotStatus;
+  svg: string | null;
+  critique: VariationCritiqueView | null;
+  revised?: boolean;
+}
+
+const VARIATION_DISPLAY: Record<VariationKind, { backgroundColor: string }> = {
+  lightBackground: { backgroundColor: '#ffffff' },
+  darkBackground: { backgroundColor: '#1f2937' },
+  monochrome: { backgroundColor: '#f3f4f6' },
+};
+
 @Component({
   selector: 'app-logo-variations',
   standalone: true,
@@ -60,13 +95,20 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   protected readonly error = signal<string | null>(null);
   protected readonly isCompleted = signal(false);
 
+  // Live generation state (SSE) : un slot par déclinaison
+  protected readonly liveMode = signal(false);
+  protected readonly variationSlots = signal<VariationSlot[]>([]);
+
+  /** Tableau de bord live affiché pendant la génération streamée */
+  protected readonly showLiveBoard = computed(() => this.liveMode() && this.isGenerating());
+
   // Computed properties
   protected readonly shouldShowLoader = computed(() => {
-    return this.isGenerating() && this.generatedVariations().length === 0;
+    return this.isGenerating() && this.generatedVariations().length === 0 && !this.liveMode();
   });
 
   protected readonly shouldShowVariations = computed(() => {
-    return this.generatedVariations().length > 0;
+    return this.generatedVariations().length > 0 && !this.showLiveBoard();
   });
 
   protected readonly shouldShowInitialPrompt = computed(() => {
@@ -136,101 +178,168 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Fermer le flux SSE ; le serveur annule la génération à la déconnexion
+    this.brandingService.closeLogoVariationsStream();
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  protected startVariationGeneration(): void {
-    if (this.isGenerating() || this.hasStartedGeneration()) {
+  /**
+   * Génération streamée (SSE) avec boucle qualité : chaque déclinaison apparaît
+   * dès qu'elle est générée, l'avis de l'agent de vérification s'affiche
+   * (fidélité géométrique + lisibilité mesurée sur le fond cible), et la
+   * recoloration corrective se fait sous les yeux de l'utilisateur.
+   */
+  protected startVariationGeneration(force = false): void {
+    if (this.isGenerating()) {
       return;
     }
 
     this.hasStartedGeneration.set(true);
     this.isGenerating.set(true);
-    this.currentStep.set(this.translate.instant('dashboard.logoVariations.progress.initializing'));
-    this.generationProgress.set(0);
+    this.liveMode.set(true);
     this.error.set(null);
+    this.generationProgress.set(0);
+    this.currentStep.set(this.translate.instant('dashboard.logoVariations.progress.initializing'));
+    this.variationSlots.set(
+      (['lightBackground', 'darkBackground', 'monochrome'] as VariationKind[]).map((kind) => ({
+        kind,
+        status: 'pending' as const,
+        svg: null,
+        critique: null,
+      })),
+    );
 
-    // Simulate progress updates
-    this.simulateProgress();
-
-    // Generate logo variations using the selected logo and project
     this.brandingService
-      .generateLogoVariations(this.selectedLogo(), this.project())
+      .generateLogoVariationsStream(this.project().id!, force)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          console.log('Logo variations generated successfully:', response);
-
-          // Transform the response into DisplayVariation objects (simplified to 3 variations)
-          const variations: DisplayVariation[] = [];
-
-          // Use withText variations as primary (since logos are now complete)
-          if (response.variations.withText) {
-            const withText = response.variations.withText;
-
-            if (withText.lightBackground) {
-              variations.push({
-                id: 'lightBackground',
-                background: 'lightBackground',
-                label: this.translate.instant('dashboard.logoVariations.labels.lightBackground'),
-                svgContent: withText.lightBackground,
-                description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.lightBackground',
-                ),
-                backgroundColor: '#ffffff',
-              });
-            }
-
-            if (withText.darkBackground) {
-              variations.push({
-                id: 'darkBackground',
-                background: 'darkBackground',
-                label: this.translate.instant('dashboard.logoVariations.labels.darkBackground'),
-                svgContent: withText.darkBackground,
-                description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.darkBackground',
-                ),
-                backgroundColor: '#1f2937',
-              });
-            }
-
-            if (withText.monochrome) {
-              variations.push({
-                id: 'monochrome',
-                background: 'monochrome',
-                label: this.translate.instant('dashboard.logoVariations.labels.monochrome'),
-                svgContent: withText.monochrome,
-                description: this.translate.instant(
-                  'dashboard.logoVariations.descriptions.monochrome',
-                ),
-                backgroundColor: '#f3f4f6',
-              });
-            }
-          }
-
-          // Update state with generated variations
-          this.generatedVariations.set(variations);
-          this.variationsGenerated.emit(response.variations);
-
-          // Update generation state
-          this.isGenerating.set(false);
-          this.generationProgress.set(100);
-          this.currentStep.set(
-            this.translate.instant('dashboard.logoVariations.progress.completed'),
-          );
-
-          // Auto-accept all variations and update project immediately
-          this.autoAcceptVariations(response.variations);
-        },
+        next: (event) => this.handleVariationStreamEvent(event),
         error: (error) => {
-          console.error('Error in logo variation generation:', error);
-          this.error.set(
-            this.translate.instant('dashboard.logoVariations.errors.generationFailed'),
-          );
-          this.isGenerating.set(false);
+          console.error('Error in streamed variation generation:', error);
+          this.finishLiveGeneration();
+          if (this.generatedVariations().length === 0) {
+            this.error.set(
+              this.translate.instant('dashboard.logoVariations.errors.generationFailed'),
+            );
+          }
         },
+        complete: () => this.finishLiveGeneration(),
       });
+  }
+
+  /** Route un événement SSE vers le slot de déclinaison concerné */
+  private handleVariationStreamEvent(event: {
+    stepName: string;
+    data: string;
+  }): void {
+    let payload: {
+      variant?: VariationKind;
+      svg?: string;
+      critique?: VariationCritiqueView;
+      message?: string;
+    } = {};
+    try {
+      payload = event.data ? JSON.parse(event.data) : {};
+    } catch {
+      return;
+    }
+    const kind = payload.variant;
+    if (!kind) return;
+
+    switch (event.stepName) {
+      case 'variation_started':
+        this.updateSlot(kind, { status: 'generating' });
+        break;
+      case 'variation_generated':
+        this.updateSlot(kind, { status: 'generated', svg: payload.svg ?? null });
+        break;
+      case 'critique_started':
+        this.updateSlot(kind, { status: 'critiquing' });
+        break;
+      case 'critique_result':
+        this.updateSlot(kind, { critique: payload.critique ?? null });
+        break;
+      case 'revision_started':
+        this.updateSlot(kind, { status: 'revising' });
+        break;
+      case 'variation_updated':
+        this.updateSlot(kind, { svg: payload.svg ?? null, revised: true });
+        break;
+      case 'variation_finalized':
+        this.updateSlot(kind, { status: 'final', svg: payload.svg ?? null });
+        this.generationProgress.set(
+          Math.round(
+            (this.variationSlots().filter((s) => s.status === 'final').length / 3) * 100,
+          ),
+        );
+        break;
+      case 'variation_cancelled':
+        this.updateSlot(kind, { status: 'cancelled' });
+        break;
+      case 'variation_error':
+        this.updateSlot(kind, { status: 'error' });
+        break;
+    }
+  }
+
+  private updateSlot(kind: VariationKind, patch: Partial<VariationSlot>): void {
+    this.variationSlots.update((slots) =>
+      slots.map((slot) => (slot.kind === kind ? { ...slot, ...patch } : slot)),
+    );
+  }
+
+  /** Fin du flux : assemble les déclinaisons finalisées et bascule sur l'affichage classique */
+  private finishLiveGeneration(): void {
+    this.isGenerating.set(false);
+    this.liveMode.set(false);
+    this.currentStep.set(this.translate.instant('dashboard.logoVariations.progress.completed'));
+
+    const finalSlots = this.variationSlots().filter((s) => s.status === 'final' && s.svg);
+    if (finalSlots.length === 0) {
+      if (!this.error()) {
+        this.error.set(this.translate.instant('dashboard.logoVariations.errors.generationFailed'));
+      }
+      return;
+    }
+
+    const variationSet: Record<string, string> = {};
+    const displayVariations: DisplayVariation[] = [];
+    for (const slot of finalSlots) {
+      variationSet[slot.kind] = slot.svg!;
+      displayVariations.push({
+        id: slot.kind,
+        background: slot.kind,
+        label: this.translate.instant(`dashboard.logoVariations.labels.${slot.kind}`),
+        svgContent: slot.svg!,
+        description: this.translate.instant(`dashboard.logoVariations.descriptions.${slot.kind}`),
+        backgroundColor: VARIATION_DISPLAY[slot.kind].backgroundColor,
+      });
+    }
+
+    const variations: LogoVariations = {
+      withText: { ...variationSet },
+      iconOnly: { ...variationSet },
+    };
+
+    this.generatedVariations.set(displayVariations);
+    this.variationsGenerated.emit(variations);
+    this.autoAcceptVariations(variations);
+  }
+
+  /** Couleur de fond d'affichage d'un slot */
+  protected slotBackground(kind: VariationKind): string {
+    return VARIATION_DISPLAY[kind].backgroundColor;
+  }
+
+  /** Libellé i18n du statut d'un slot */
+  protected slotStatusKey(status: VariationSlotStatus): string {
+    return `dashboard.logoVariations.live.status.${status}`;
+  }
+
+  /** Libellé i18n d'une déclinaison */
+  protected slotLabelKey(kind: VariationKind): string {
+    return `dashboard.logoVariations.labels.${kind}`;
   }
 
   // Simplified: return all variations since we only have 3 now
@@ -275,47 +384,6 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     }
   }
 
-  private simulateProgress(): void {
-    const steps = [
-      {
-        progress: 15,
-        step: this.translate.instant('dashboard.logoVariations.progress.analyzing'),
-      },
-      {
-        progress: 35,
-        step: this.translate.instant('dashboard.logoVariations.progress.generatingLight'),
-      },
-      {
-        progress: 55,
-        step: this.translate.instant('dashboard.logoVariations.progress.generatingDark'),
-      },
-      {
-        progress: 75,
-        step: this.translate.instant('dashboard.logoVariations.progress.generatingMonochrome'),
-      },
-      {
-        progress: 90,
-        step: this.translate.instant('dashboard.logoVariations.progress.optimizing'),
-      },
-      {
-        progress: 95,
-        step: this.translate.instant('dashboard.logoVariations.progress.finalizing'),
-      },
-    ];
-
-    let currentStepIndex = 0;
-    const interval = setInterval(() => {
-      if (currentStepIndex < steps.length && this.isGenerating()) {
-        const currentStepData = steps[currentStepIndex];
-        this.generationProgress.set(currentStepData.progress);
-        this.currentStep.set(currentStepData.step);
-        currentStepIndex++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 8000); // Update every 8 seconds
-  }
-
   /**
    * Method to retry variation generation in case of failure
    */
@@ -327,7 +395,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     this.generationProgress.set(0);
     this.isCompleted.set(false);
 
-    // Restart generation
+    // Restart generation (reprise : les déclinaisons déjà validées sont conservées)
     this.startVariationGeneration();
   }
 }

@@ -4,6 +4,7 @@
  * ApplicationDeploymentJob (the heavy lifting runs in the worker).
  */
 import { randomUUID } from 'crypto';
+import os from 'os';
 import pool from '../config/db.config';
 import { deploymentQueue } from '../queue/queues';
 
@@ -73,18 +74,59 @@ export async function listForApplication(
   return rows;
 }
 
+function getLocalIpAddress(): string {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
+function computeAppLink(fqdn: string | null, ports_mappings: string | null): string | null {
+  if (fqdn) {
+    const f = fqdn.split(',')[0].trim();
+    return /^https?:\/\//.test(f) ? f : `https://${f}`;
+  }
+  if (ports_mappings) {
+    const first = ports_mappings.split(',')[0].trim(); // "hostPort:containerPort"
+    const hostPort = first.split(':')[0];
+    if (hostPort) {
+      const ip = getLocalIpAddress();
+      return `http://${ip}:${hostPort}`;
+    }
+  }
+  return null;
+}
+
 export async function getDeployment(
   teamId: number,
   deploymentUuid: string
 ): Promise<Record<string, unknown> | null> {
   // Scope through application → environment → project → team.
   const { rows } = await pool.query(
-    `SELECT adq.* FROM application_deployment_queues adq
+    `SELECT adq.*, a.uuid AS application_uuid, a.name AS application_name,
+            a.fqdn AS application_fqdn, a.ports_mappings AS application_ports_mappings,
+            a.git_branch AS application_git_branch
+     FROM application_deployment_queues adq
      JOIN applications a ON a.id = CAST(adq.application_id AS integer)
      JOIN environments e ON e.id = a.environment_id
      JOIN projects p ON p.id = e.project_id
      WHERE p.team_id = $1 AND adq.deployment_uuid = $2 LIMIT 1`,
     [teamId, deploymentUuid]
   );
-  return rows[0] ?? null;
+  if (!rows[0]) return null;
+
+  const url = computeAppLink(
+    rows[0].application_fqdn ? String(rows[0].application_fqdn) : null,
+    rows[0].application_ports_mappings ? String(rows[0].application_ports_mappings) : null
+  );
+
+  return {
+    ...rows[0],
+    application_url: url,
+  };
 }

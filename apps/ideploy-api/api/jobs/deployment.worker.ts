@@ -126,12 +126,65 @@ async function processDeployment(job: Job<DeploymentJobData>): Promise<void> {
     });
 
     await streamStep(deploymentUuid, 'Verifying container', async () => {
-      await executeRemoteCommand(
-        server,
-        key,
-        `cd ${workdir} && docker compose ps`,
-        { onData: (c) => log(c), noRetry: true }
-      );
+      await log('Monitoring container startup and logs...');
+      const startTime = Date.now();
+      const maxWaitMs = 45000; // 45 seconds max wait for build and start
+      let lastLogLength = 0;
+
+      while (Date.now() - startTime < maxWaitMs) {
+        const logsResult = await executeRemoteCommand(
+          server,
+          key,
+          `cd ${workdir} && docker compose logs --no-color`,
+          { noRetry: true }
+        );
+        const currentLogs = logsResult.stdout || '';
+        if (currentLogs.length > lastLogLength) {
+          const newLogs = currentLogs.slice(lastLogLength);
+          await log(newLogs);
+          lastLogLength = currentLogs.length;
+        }
+
+        const psResult = await executeRemoteCommand(
+          server,
+          key,
+          `cd ${workdir} && docker compose ps`,
+          { noRetry: true }
+        );
+        const psOutput = psResult.stdout.trim().toLowerCase();
+        
+        const hasExited = psOutput.includes('exited') || psOutput.includes('dead') || psOutput.includes('exit');
+        const isUp = psOutput.includes('up') || psOutput.includes('running');
+
+        if (hasExited || (psOutput && !isUp)) {
+          const finalLogs = await executeRemoteCommand(
+            server,
+            key,
+            `cd ${workdir} && docker compose logs --no-color`,
+            { noRetry: true }
+          );
+          const finalLogsStr = finalLogs.stdout || '';
+          if (finalLogsStr.length > lastLogLength) {
+            await log(finalLogsStr.slice(lastLogLength));
+          }
+          throw new Error('Container exited unexpectedly during build/startup. Check the logs above for errors.');
+        }
+
+        if (
+          currentLogs.toLowerCase().includes('listening on') ||
+          currentLogs.toLowerCase().includes('ready in') ||
+          currentLogs.toLowerCase().includes('local:') ||
+          currentLogs.toLowerCase().includes('accepting connections') ||
+          currentLogs.toLowerCase().includes('compiled successfully') ||
+          currentLogs.toLowerCase().includes('http://localhost:') ||
+          currentLogs.toLowerCase().includes('ready - started server')
+        ) {
+          await log('\n✓ Application started successfully and is listening for connections.');
+          break;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
     });
 
     await finalize(app, deploymentUuid, teamId, true);

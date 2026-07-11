@@ -26,6 +26,11 @@ function mapApp(r: Record<string, unknown>): ApplicationRow {
     destination_id: r.destination_id ? Number(r.destination_id) : null,
     destination_type: (r.destination_type as string) ?? null,
     status: (r.status as string) ?? null,
+    base_directory: (r.base_directory as string) ?? null,
+    build_command: (r.build_command as string) ?? null,
+    start_command: (r.start_command as string) ?? null,
+    install_command: (r.install_command as string) ?? null,
+    publish_directory: (r.publish_directory as string) ?? null,
   };
 }
 
@@ -84,6 +89,11 @@ export interface CreateApplicationDto {
   fqdn?: string;
   destination_id?: number;
   destination_type?: string;
+  base_directory?: string;
+  build_command?: string;
+  start_command?: string;
+  install_command?: string;
+  publish_directory?: string;
 }
 
 /** Ensure the target environment belongs to the team. */
@@ -107,8 +117,9 @@ export async function createApplication(
     `INSERT INTO applications
        (uuid, name, description, git_repository, git_branch, git_commit_sha,
         build_pack, ports_exposes, fqdn, environment_id, destination_id, destination_type,
+        base_directory, build_command, start_command, install_command, publish_directory,
         status, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,$5,'HEAD',$6,$7,$8,$9,$10,$11,'exited', now(), now())
+     VALUES ($1,$2,$3,$4,$5,'HEAD',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'exited', now(), now())
      RETURNING *`,
     [
       uuid,
@@ -122,6 +133,11 @@ export async function createApplication(
       dto.environment_id,
       dto.destination_id ?? null,
       dto.destination_type ?? null,
+      dto.base_directory ?? '/',
+      dto.build_command ?? null,
+      dto.start_command ?? null,
+      dto.install_command ?? null,
+      dto.publish_directory ?? null,
     ]
   );
   return mapApp(rows[0]);

@@ -144,7 +144,7 @@ export async function disconnect(userId: number): Promise<void> {
 export async function detectFramework(
   userId: number,
   fullName: string
-): Promise<{ preset: string; buildPack: string; hasDockerfile: boolean }> {
+): Promise<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }> {
   const token = await getToken(userId);
   const headers = token
     ? { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
@@ -158,6 +158,26 @@ export async function detectFramework(
       validateStatus: () => true,
     });
     hasDockerfile = status === 200;
+  } catch {
+    /* ignore */
+  }
+
+  let hasDockerCompose = false;
+  try {
+    const { status: statusCompose } = await axios.get(`https://api.github.com/repos/${fullName}/contents/docker-compose.yml`, {
+      headers,
+      timeout: 8000,
+      validateStatus: () => true,
+    });
+    hasDockerCompose = statusCompose === 200;
+    if (!hasDockerCompose) {
+      const { status: statusComposeYaml } = await axios.get(`https://api.github.com/repos/${fullName}/contents/docker-compose.yaml`, {
+        headers,
+        timeout: 8000,
+        validateStatus: () => true,
+      });
+      hasDockerCompose = statusComposeYaml === 200;
+    }
   } catch {
     /* ignore */
   }
@@ -187,5 +207,5 @@ export async function detectFramework(
   // Default build method: Docker only if a Dockerfile exists AND there's no
   // detected JS framework to run buildless; otherwise buildless.
   const buildPack = hasDockerfile && preset === 'Dockerfile' ? 'dockerfile' : 'buildless';
-  return { preset, buildPack, hasDockerfile };
+  return { preset, buildPack, hasDockerfile, hasDockerCompose };
 }
