@@ -144,6 +144,45 @@ interface Preset {
         </button>
       </div>
     </div>
+
+    @if (showDockerModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div class="db-glass max-w-md w-full p-6 rounded-2xl shadow-2xl border border-white/10" style="background-color: #0b0f19;">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+              <i class="fa-solid fa-cube text-lg"></i>
+            </div>
+            <h2 class="text-xl font-bold font-mono text-white/95">Docker Detected</h2>
+          </div>
+          
+          <p class="text-sm mb-6" style="color:var(--color-text-secondary);">
+            We detected a Dockerfile or Docker Compose configuration in your repository. Would you like to deploy using Docker containerization, or run the app directly in a base Node runtime?
+          </p>
+
+          <div class="space-y-3 mb-6">
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] cursor-pointer transition-colors group">
+              <input type="radio" name="modalBuildMethod" [checked]="modalBuildMethod() === 'docker'" (change)="modalBuildMethod.set('docker')" class="cursor-pointer" />
+              <div>
+                <div class="text-sm font-semibold text-white/90 group-hover:text-blue-400 transition-colors">Deploy with Docker</div>
+                <div class="text-xs text-white/40 mt-0.5">Use your custom Docker configuration.</div>
+              </div>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] cursor-pointer transition-colors group">
+              <input type="radio" name="modalBuildMethod" [checked]="modalBuildMethod() === 'buildless'" (change)="modalBuildMethod.set('buildless')" class="cursor-pointer" />
+              <div>
+                <div class="text-sm font-semibold text-white/90 group-hover:text-blue-400 transition-colors">Deploy without Docker</div>
+                <div class="text-xs text-white/40 mt-0.5">Run directly in our optimized Node runtime.</div>
+              </div>
+            </label>
+          </div>
+
+          <div class="flex gap-3 justify-end">
+            <button class="button-secondary cursor-pointer text-xs px-4 py-2" (click)="showDockerModal.set(false)">Cancel</button>
+            <button class="button cursor-pointer text-xs px-4 py-2" (click)="confirmDockerDeploy()">Confirm & Deploy</button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class ImportConfigComponent implements OnInit {
@@ -157,6 +196,9 @@ export class ImportConfigComponent implements OnInit {
   protected readonly presetIndex = signal(0);
   protected readonly isProd = environment.production;
   protected readonly hasDockerfile = signal(false);
+  protected readonly hasDockerCompose = signal(false);
+  protected readonly showDockerModal = signal(false);
+  protected readonly modalBuildMethod = signal<'docker' | 'buildless'>('buildless');
   protected readonly buildMethod = signal<'docker' | 'buildless'>('buildless');
   protected readonly deploying = signal(false);
   protected readonly settingUpLocal = signal(false);
@@ -199,6 +241,7 @@ export class ImportConfigComponent implements OnInit {
           const idx = this.presets.findIndex((p) => p.label === d.preset);
           if (idx >= 0) this.presetIndex.set(idx);
           this.hasDockerfile.set(d.hasDockerfile);
+          this.hasDockerCompose.set(d.hasDockerCompose || false);
           // Default to the suggested method; user can switch when a Dockerfile exists.
           this.buildMethod.set(d.buildPack === 'dockerfile' ? 'docker' : 'buildless');
         },
@@ -241,14 +284,27 @@ export class ImportConfigComponent implements OnInit {
   }
 
   protected deploy(): void {
+    if (this.hasDockerfile() || this.hasDockerCompose()) {
+      this.modalBuildMethod.set(this.buildMethod());
+      this.showDockerModal.set(true);
+    } else {
+      this.executeDeploy();
+    }
+  }
+
+  protected confirmDockerDeploy(): void {
+    this.buildMethod.set(this.modalBuildMethod());
+    this.showDockerModal.set(false);
+    this.executeDeploy();
+  }
+
+  protected executeDeploy(): void {
     if (!this.projectName || !this.cloneUrl) {
       this.error.set('Missing repository URL.');
       return;
     }
     this.deploying.set(true);
     this.error.set(null);
-    // Build method drives containerization: 'dockerfile' (Docker build) vs
-    // 'buildless' (run directly, no Dockerfile needed).
     const buildPack = this.buildMethod() === 'docker' ? 'dockerfile' : 'buildless';
     this.api
       .quickDeploy({

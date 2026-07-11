@@ -56,9 +56,9 @@ export class ApiService {
   githubRepositories(): Observable<GithubRepo[]> {
     return this.unwrap(this.http.get<ApiResponse<GithubRepo[]>>(`${this.base}/github/repositories`));
   }
-  githubDetect(repo: string): Observable<{ preset: string; buildPack: string; hasDockerfile: boolean }> {
+  githubDetect(repo: string): Observable<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }> {
     return this.unwrap(
-      this.http.get<ApiResponse<{ preset: string; buildPack: string; hasDockerfile: boolean }>>(
+      this.http.get<ApiResponse<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }>>(
         `${this.base}/github/detect?repo=${encodeURIComponent(repo)}`
       )
     );
