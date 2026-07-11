@@ -22,6 +22,33 @@ import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectModel } from '@idem/shared-models';
+import { SSEStepEvent } from '../../../../../../shared/models/sse-step.model';
+
+/** Avis de l'agent critique, affiché en temps réel à l'utilisateur */
+export interface LogoCritiqueView {
+  verdict: 'pass' | 'fail';
+  score: number;
+  summary: string;
+  remarks: { criterion: string; issue: string }[];
+}
+
+export type ConceptSlotStatus =
+  | 'pending'
+  | 'generating'
+  | 'generated'
+  | 'critiquing'
+  | 'revising'
+  | 'final'
+  | 'cancelled'
+  | 'error';
+
+/** État live d'un des 3 concepts pendant la génération streamée */
+export interface ConceptSlot {
+  index: number;
+  status: ConceptSlotStatus;
+  logo: LogoModel | null;
+  critique: LogoCritiqueView | null;
+}
 
 @Component({
   selector: 'app-logo-selection',
@@ -76,9 +103,21 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   protected readonly showEditorChat = signal(false);
   protected readonly showSimulator = signal(false);
 
+  // Live generation state (SSE) : un slot par concept, statut + critique visibles
+  protected readonly liveMode = signal(false);
+  protected readonly conceptSlots = signal<ConceptSlot[]>([]);
+
+  /** Tableau de bord live affiché pendant la génération streamée */
+  protected readonly showLiveBoard = computed(() => this.liveMode() && this.isGenerating());
+
   // Computed properties
   protected readonly shouldShowLoader = computed(() => {
-    return this.isGenerating() && this.generatedLogos().length === 0 && !this.showSimulator();
+    return (
+      this.isGenerating() &&
+      this.generatedLogos().length === 0 &&
+      !this.showSimulator() &&
+      !this.liveMode()
+    );
   });
 
   protected readonly shouldShowSimulator = computed(() => {
@@ -86,6 +125,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   });
 
   protected readonly shouldShowLogos = computed(() => {
+    if (this.showLiveBoard()) return false;
     const inputLogos = this.logos();
     const generatedLogos = this.generatedLogos();
     return (inputLogos && inputLogos.length > 0) || generatedLogos.length > 0;
@@ -171,11 +211,33 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Fermer le flux SSE ; le serveur annule la génération à la déconnexion
+    this.brandingService.closeLogoConceptsStream();
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   protected selectLogo(logoId: string): void {
+    // Sélection pendant la génération streamée : annuler les concepts restants
+    // côté serveur pour économiser les tokens
+    if (this.isGenerating() && this.liveMode()) {
+      this.conceptSlots.update((slots) =>
+        slots.map((slot) =>
+          slot.status === 'final' || slot.logo?.id === logoId
+            ? slot
+            : { ...slot, status: 'cancelled' as const },
+        ),
+      );
+      this.brandingService
+        .cancelLogoConceptsGeneration(this.projectId()!)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => console.log('Remaining logo concepts cancelled'),
+          error: (err) => console.warn('Cancel request failed (non-blocking):', err),
+        });
+      this.finishLiveGeneration();
+    }
+
     // Update selected logo state
     this.selectedLogoId.set(logoId);
     this.logoSelected.emit(logoId);
@@ -228,22 +290,16 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.startLogoGeneration();
   }
 
-  protected startLogoGeneration(): void {
-    if (this.isGenerating() || this.hasStartedGeneration()) {
+  /**
+   * Génération streamée (SSE) avec boucle qualité : chaque concept apparaît dès
+   * qu'il est généré, l'avis de l'agent critique s'affiche, et la révision se
+   * fait sous les yeux de l'utilisateur. Sélectionner un logo pendant la
+   * génération annule les concepts restants (économie de tokens).
+   */
+  protected startLogoGeneration(force = false): void {
+    if (this.isGenerating()) {
       return;
     }
-
-    const preferences = this.logoPreferences();
-    if (!preferences) {
-      console.error('Logo preferences not set');
-      return;
-    }
-
-    this.hasStartedGeneration.set(true);
-    this.isGenerating.set(true);
-    this.showSimulator.set(true);
-    this.currentStep.set(this.translate.instant('dashboard.logoSelection.progress.initializing'));
-    this.generationProgress.set(0);
 
     const project = this.project();
     const selectedColor = project?.analysisResultModel?.branding?.colors;
@@ -253,58 +309,145 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
       this.error.set(
         this.translate.instant('dashboard.logoSelection.errors.colorAndTypographyRequired'),
       );
-      this.isGenerating.set(false);
       return;
     }
 
+    this.hasStartedGeneration.set(true);
+    this.isGenerating.set(true);
+    this.liveMode.set(true);
+    this.showSimulator.set(false);
+    this.error.set(null);
+    this.generationProgress.set(0);
+    this.currentStep.set(this.translate.instant('dashboard.logoSelection.progress.initializing'));
+    this.conceptSlots.set(
+      [0, 1, 2].map((index) => ({ index, status: 'pending' as const, logo: null, critique: null })),
+    );
+
     this.brandingService
-      .generateLogosWithPreferences(
-        this.projectId()!,
-        selectedColor,
-        selectedTypography,
-        preferences,
-      )
+      .generateLogoConceptsStream(this.projectId()!, force, this.logoPreferences())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          console.log('Logos generated successfully:', response.logos);
-
-          const logosWithUniqueIds = response.logos.map((logo: LogoModel, index: number) => ({
-            ...logo,
-            id: logo.id || `logo-${Date.now()}-${index}`,
-            type: preferences.type,
-            customDescription: preferences.customDescription,
-          }));
-
-          console.log('Logos with unique IDs:', logosWithUniqueIds);
-
-          this.generatedLogos.set(logosWithUniqueIds);
-          this.logosGenerated.emit(logosWithUniqueIds);
-
-          // Terminer la simulation immédiatement si elle est en cours
-          if (this.simulator) {
-            this.simulator.completeImmediately();
-          }
-
-          // Attendre que l'animation de fin soit terminée avant de cacher le simulateur
-          setTimeout(() => {
-            this.isGenerating.set(false);
-            this.showSimulator.set(false);
-            this.generationProgress.set(100);
-            this.currentStep.set(
-              this.translate.instant('dashboard.logoSelection.progress.completed'),
-            );
-            // Ne PAS auto-sélectionner le premier logo :
-            // l'utilisateur doit cliquer explicitement pour choisir
-          }, 1000);
-        },
+        next: (event) => this.handleLogoStreamEvent(event),
         error: (error) => {
-          console.error('Error in logo generation:', error);
-          this.error.set(this.translate.instant('dashboard.logoSelection.errors.generationFailed'));
-          this.isGenerating.set(false);
-          this.showSimulator.set(false);
+          console.error('Error in streamed logo generation:', error);
+          this.finishLiveGeneration();
+          if (this.generatedLogos().length === 0) {
+            this.error.set(
+              this.translate.instant('dashboard.logoSelection.errors.generationFailed'),
+            );
+          }
         },
+        complete: () => this.finishLiveGeneration(),
       });
+  }
+
+  /** Route un événement SSE vers le slot de concept concerné */
+  private handleLogoStreamEvent(event: SSEStepEvent): void {
+    let payload: {
+      conceptIndex?: number;
+      logo?: LogoModel;
+      critique?: LogoCritiqueView;
+      message?: string;
+    } = {};
+    try {
+      payload = event.data ? JSON.parse(event.data) : {};
+    } catch {
+      return;
+    }
+    const index = payload.conceptIndex ?? -1;
+    if (index < 0) return;
+
+    switch (event.stepName) {
+      case 'concept_started':
+        this.updateSlot(index, { status: 'generating' });
+        break;
+      case 'concept_generated':
+        this.updateSlot(index, { status: 'generated', logo: this.normalizeLogo(payload.logo!, index) });
+        break;
+      case 'critique_started':
+        this.updateSlot(index, { status: 'critiquing' });
+        break;
+      case 'critique_result':
+        this.updateSlot(index, { critique: payload.critique ?? null });
+        break;
+      case 'revision_started':
+        this.updateSlot(index, { status: 'revising' });
+        break;
+      case 'concept_updated':
+        this.updateSlot(index, { logo: this.normalizeLogo(payload.logo!, index) });
+        break;
+      case 'concept_finalized': {
+        const logo = this.normalizeLogo(payload.logo!, index);
+        this.updateSlot(index, { status: 'final', logo });
+        this.mergeFinalLogo(logo);
+        this.generationProgress.set(
+          Math.round((this.conceptSlots().filter((s) => s.status === 'final').length / 3) * 100),
+        );
+        break;
+      }
+      case 'concept_cancelled':
+        this.updateSlot(index, { status: 'cancelled' });
+        break;
+      case 'concept_error':
+        this.updateSlot(index, { status: 'error' });
+        break;
+    }
+  }
+
+  private updateSlot(index: number, patch: Partial<ConceptSlot>): void {
+    this.conceptSlots.update((slots) =>
+      slots.map((slot) => (slot.index === index ? { ...slot, ...patch } : slot)),
+    );
+  }
+
+  /** Garantit id/type/description sur un logo reçu du flux */
+  private normalizeLogo(logo: LogoModel, index: number): LogoModel {
+    const preferences = this.logoPreferences();
+    return {
+      ...logo,
+      id: logo.id || `concept-${index + 1}`,
+      type: logo.type ?? preferences?.type,
+      customDescription: logo.customDescription ?? preferences?.customDescription,
+    };
+  }
+
+  /** Ajoute ou remplace un logo finalisé dans la liste sélectionnable */
+  private mergeFinalLogo(logo: LogoModel): void {
+    this.generatedLogos.update((logos) => {
+      const existingIndex = logos.findIndex((l) => l.id === logo.id);
+      if (existingIndex !== -1) {
+        const next = [...logos];
+        next[existingIndex] = logo;
+        return next;
+      }
+      return [...logos, logo];
+    });
+    this.logosGenerated.emit(this.generatedLogos());
+  }
+
+  /** Fin (ou interruption) du flux : bascule du tableau live vers la sélection */
+  private finishLiveGeneration(): void {
+    this.isGenerating.set(false);
+    this.liveMode.set(false);
+    this.generationProgress.set(100);
+    this.currentStep.set(this.translate.instant('dashboard.logoSelection.progress.completed'));
+  }
+
+  /**
+   * Sélection depuis le tableau live : on choisit ce logo et on annule la
+   * génération des concepts restants pour économiser les tokens.
+   */
+  protected selectFromSlot(slot: ConceptSlot): void {
+    if (!slot.logo || slot.status === 'cancelled' || slot.status === 'error') {
+      return;
+    }
+    this.mergeFinalLogo(slot.logo);
+    this.selectLogo(slot.logo.id);
+  }
+
+  /** Libellé i18n du statut d'un slot */
+  protected slotStatusKey(status: ConceptSlotStatus): string {
+    return `dashboard.logoSelection.live.status.${status}`;
   }
 
   // Ancienne méthode de simulation remplacée par LogoCreationSimulatorComponent
@@ -413,7 +556,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.hasStartedGeneration.set(false);
     this.showSimulator.set(false);
 
-    // Restart generation with same preferences
-    this.startLogoGeneration();
+    // Restart generation with same preferences, forcing full regeneration
+    this.startLogoGeneration(true);
   }
 }

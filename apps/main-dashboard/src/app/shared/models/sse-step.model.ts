@@ -66,6 +66,7 @@ export type SSEEventType =
 export type SSEServiceEventType =
   | 'diagram'
   | 'branding'
+  | 'logo'
   | 'business-plan'
   | 'pitch-deck'
   | 'legal-docs';

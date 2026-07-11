@@ -16,6 +16,142 @@
     ></app-logo-creation-simulator>
   }
 
+  <!-- Live Generation Board (SSE) : concepts, critique qualité et révision en temps réel -->
+  @if (showLiveBoard()) {
+    <div class="w-full max-w-7xl mx-auto">
+      <div class="text-center mb-8">
+        <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-100 mb-3">
+          {{ 'dashboard.logoSelection.live.title' | translate }}
+        </h1>
+        <p class="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
+          {{ 'dashboard.logoSelection.live.subtitle' | translate }}
+        </p>
+        <p
+          class="inline-flex items-center gap-2 mt-3 px-3 py-1.5 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+            />
+          </svg>
+          {{ 'dashboard.logoSelection.live.selectHint' | translate }}
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        @for (slot of conceptSlots(); track slot.index) {
+          <div
+            class="relative rounded-2xl border-2 glass p-5 flex flex-col transition-all duration-300"
+            [class.border-white/10]="slot.status !== 'final'"
+            [class.border-green-500/40]="slot.status === 'final'"
+            [class.opacity-50]="slot.status === 'cancelled'"
+            [class.cursor-pointer]="!!slot.logo && slot.status !== 'cancelled' && slot.status !== 'error'"
+            [class.hover:border-primary]="!!slot.logo && slot.status !== 'cancelled' && slot.status !== 'error'"
+            (click)="selectFromSlot(slot)"
+            [attr.role]="slot.logo ? 'button' : null"
+            [attr.aria-label]="slot.logo?.name || null"
+          >
+            <!-- Zone logo -->
+            <div
+              class="relative w-full bg-white rounded-xl h-[150px] sm:h-[170px] flex items-center justify-center p-4 mb-4 overflow-hidden"
+            >
+              @if (slot.logo) {
+                <div
+                  [innerHTML]="slot.logo.svg | safeHtml"
+                  class="w-full h-full flex items-center justify-center transition-opacity duration-500 [&>svg]:max-w-full [&>svg]:max-h-full"
+                ></div>
+                @if (slot.status === 'revising') {
+                  <div
+                    class="absolute inset-0 bg-white/75 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2"
+                  >
+                    <svg class="w-7 h-7 text-primary animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    <span class="text-xs font-medium text-gray-700">
+                      {{ 'dashboard.logoSelection.live.status.revising' | translate }}
+                    </span>
+                  </div>
+                }
+              } @else if (slot.status === 'cancelled') {
+                <div class="flex flex-col items-center gap-2 text-gray-400">
+                  <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                  <span class="text-xs">{{ 'dashboard.logoSelection.live.status.cancelled' | translate }}</span>
+                </div>
+              } @else if (slot.status === 'error') {
+                <div class="flex flex-col items-center gap-2 text-red-400">
+                  <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  <span class="text-xs">{{ 'dashboard.logoSelection.live.status.error' | translate }}</span>
+                </div>
+              } @else {
+                <div class="w-20 h-20 bg-gray-200 rounded-lg animate-pulse"></div>
+              }
+            </div>
+
+            <!-- Statut -->
+            <div class="flex items-center gap-2 mb-3 min-h-[24px]">
+              @if (slot.status === 'generating' || slot.status === 'critiquing' || slot.status === 'revising' || slot.status === 'pending') {
+                <svg class="w-4 h-4 text-primary animate-spin shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+              } @else if (slot.status === 'final') {
+                <svg class="w-4 h-4 text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              }
+              <span class="text-sm text-gray-300 truncate">
+                {{ slotStatusKey(slot.status) | translate }}
+              </span>
+              @if (slot.logo?.name) {
+                <span class="text-xs text-gray-500 truncate ml-auto">{{ slot.logo?.name }}</span>
+              }
+            </div>
+
+            <!-- Avis de l'agent critique -->
+            @if (slot.critique; as critique) {
+              <div
+                class="rounded-lg border p-3 text-left"
+                [class.border-green-500/30]="critique.verdict === 'pass'"
+                [class.bg-green-500/5]="critique.verdict === 'pass'"
+                [class.border-amber-500/30]="critique.verdict === 'fail'"
+                [class.bg-amber-500/5]="critique.verdict === 'fail'"
+              >
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs font-semibold"
+                    [class.text-green-400]="critique.verdict === 'pass'"
+                    [class.text-amber-400]="critique.verdict === 'fail'"
+                  >
+                    {{ 'dashboard.logoSelection.live.critique.title' | translate }}
+                  </span>
+                  <span class="text-xs text-gray-400">{{ critique.score }}/100</span>
+                </div>
+                <p class="text-xs text-gray-300 leading-relaxed">{{ critique.summary }}</p>
+                @if (critique.verdict === 'fail' && critique.remarks.length > 0) {
+                  <ul class="mt-2 space-y-1">
+                    @for (remark of critique.remarks; track remark.issue) {
+                      <li class="text-xs text-gray-400 flex gap-1.5">
+                        <span class="text-amber-400 shrink-0">•</span>
+                        <span>{{ remark.issue }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
   <!-- Fallback Loading State (si simulateur non disponible) -->
   @if (shouldShowLoader()) {
     <div class="text-center mb-8">
