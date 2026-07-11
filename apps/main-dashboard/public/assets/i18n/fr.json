@@ -481,6 +481,25 @@
       },
       "cards": {
         "colors": "Couleurs"
+      },
+      "live": {
+        "title": "Création de vos logos en direct",
+        "subtitle": "Chaque concept est généré, audité par notre directeur artistique IA, puis corrigé si nécessaire — sous vos yeux.",
+        "selectHint": "Un logo vous plaît ? Cliquez dessus pour le choisir et arrêter le reste de la génération.",
+        "status": {
+          "pending": "En attente…",
+          "generating": "Génération du concept…",
+          "generated": "Concept généré",
+          "critiquing": "Contrôle qualité en cours…",
+          "revising": "Amélioration du logo…",
+          "final": "Validé",
+          "cancelled": "Annulé",
+          "error": "Échec de ce concept"
+        },
+        "critique": {
+          "title": "Avis du directeur artistique",
+          "revised": "Corrigé par l’agent"
+        }
       }
     },
     "logoVariations": {
@@ -574,7 +593,25 @@
         "darkBackground": "Optimisé pour les fonds sombres et modernes",
         "monochrome": "Version en noir et blanc pour toutes les utilisations"
       },
-      "selectionsMade": "{{count}} sélection(s) faite(s)"
+      "selectionsMade": "{{count}} sélection(s) faite(s)",
+      "live": {
+        "title": "Création des déclinaisons en direct",
+        "subtitle": "Chaque déclinaison est générée, vérifiée sur son fond cible par notre agent qualité, puis corrigée si nécessaire.",
+        "status": {
+          "pending": "En attente…",
+          "generating": "Génération de la déclinaison…",
+          "generated": "Déclinaison générée",
+          "critiquing": "Vérification sur le fond cible…",
+          "revising": "Correction des couleurs…",
+          "final": "Validée",
+          "cancelled": "Annulée",
+          "error": "Échec de cette déclinaison"
+        },
+        "critique": {
+          "title": "Avis de l'agent qualité",
+          "revised": "Corrigée par l'agent"
+        }
+      }
     },
     "projectDescription": {
       "hello": "Bonjour",

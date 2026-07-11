@@ -56,9 +56,9 @@ export class ApiService {
   githubRepositories(): Observable<GithubRepo[]> {
     return this.unwrap(this.http.get<ApiResponse<GithubRepo[]>>(`${this.base}/github/repositories`));
   }
-  githubDetect(repo: string): Observable<{ preset: string; buildPack: string; hasDockerfile: boolean }> {
+  githubDetect(repo: string): Observable<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }> {
     return this.unwrap(
-      this.http.get<ApiResponse<{ preset: string; buildPack: string; hasDockerfile: boolean }>>(
+      this.http.get<ApiResponse<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }>>(
         `${this.base}/github/detect?repo=${encodeURIComponent(repo)}`
       )
     );
@@ -397,12 +397,22 @@ export class ApiService {
     build_pack?: string;
     template?: string;
     project_name?: string;
+    base_directory?: string;
+    build_command?: string;
+    start_command?: string;
+    ports_exposes?: string;
   }): Observable<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }> {
     return this.unwrap(
       this.http.post<ApiResponse<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }>>(
         `${this.base}/quick-deploy`,
         body
       )
+    );
+  }
+
+  getDeployment(deploymentUuid: string): Observable<any> {
+    return this.unwrap(
+      this.http.get<ApiResponse<any>>(`${this.base}/deploy/${deploymentUuid}`)
     );
   }
 

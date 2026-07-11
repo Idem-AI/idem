@@ -39,9 +39,11 @@ export class AuthService {
 
   async fetchCurrentUser(): Promise<AuthUser | null> {
     try {
+      console.log('[AuthService] Fetching profile from', `${this.globalApi}/auth/profile`);
       const user = await firstValueFrom(
         this.http.get<AuthUser>(`${this.globalApi}/auth/profile`, { withCredentials: true })
       );
+      console.log('[AuthService] Profile loaded:', user?.email ?? 'null');
       this.currentUserSubject.next(user);
       // Authenticated → clear the loop-breaker.
       try {
@@ -50,7 +52,8 @@ export class AuthService {
         /* ignore */
       }
       return user;
-    } catch {
+    } catch (err: any) {
+      console.warn('[AuthService] fetchCurrentUser failed:', err?.status, err?.message || err);
       this.currentUserSubject.next(null);
       return null;
     }

@@ -75,6 +75,10 @@ export interface QuickDeployDto {
   build_pack?: string;
   template?: string;
   project_name?: string;
+  base_directory?: string;
+  build_command?: string;
+  start_command?: string;
+  ports_exposes?: string;
 }
 
 export interface QuickDeployResult {
@@ -121,6 +125,10 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
     build_pack: dto.build_pack || 'nixpacks',
     destination_id: dest.destinationId,
     destination_type: STANDALONE_DOCKER_MODEL,
+    base_directory: dto.base_directory,
+    build_command: dto.build_command,
+    start_command: dto.start_command,
+    ports_exposes: dto.ports_exposes,
   });
   const { deploymentUuid } = await deploymentService.createDeployment(app, teamId, {});
   return { kind: 'application', deploymentUuid, server: dest.serverName };

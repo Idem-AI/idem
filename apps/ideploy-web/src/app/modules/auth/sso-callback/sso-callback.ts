@@ -26,16 +26,22 @@ export class SsoCallbackComponent implements OnInit {
   private route = inject(ActivatedRoute);
 
   async ngOnInit(): Promise<void> {
+    const token = this.route.snapshot.queryParamMap.get('token');
+    console.log('[SsoCallback] Arrived with token:', token ? token.substring(0, 8) + '…' : 'none');
+
     // The session cookie may take a moment to be readable after the redirect
     // chain — retry a few times before giving up.
     for (let attempt = 0; attempt < 3; attempt++) {
+      console.log(`[SsoCallback] Attempt ${attempt + 1}/3 to verify session…`);
       const user = await this.auth.fetchCurrentUser();
       if (user) {
+        console.log('[SsoCallback] Authenticated as', user.email, '→ /dashboard');
         void this.router.navigate(['/dashboard']);
         return;
       }
       await new Promise((r) => setTimeout(r, 400));
     }
+    console.warn('[SsoCallback] All attempts failed → redirectToLogin()');
     // Still not authenticated → redirectToLogin() now breaks the loop (its
     // attempt-flag was set by the guard) and returns to the public landing.
     this.auth.redirectToLogin();

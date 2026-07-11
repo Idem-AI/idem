@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../../shared/services/api.service';
 import { Project, Server, ServiceTemplate } from '../../../shared/models/ideploy.models';
 
@@ -25,17 +26,24 @@ interface DeployRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Top toolbar -->
-    <div class="mb-6 flex items-center gap-3">
-      <div class="relative flex-1">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:#8d919a;"></i>
-        <input class="input" style="padding-left:32px;" placeholder="Search Projects…"
+    <div class="mb-8 flex items-center gap-3">
+      <div class="relative flex-1"
+           [class.focus-within:border-blue-500/80]="true"
+           [class.focus-within:ring-2]="true"
+           [class.focus-within:ring-blue-500/20]="true">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-white/40"></i>
+        <input class="input" style="padding-left:36px;" placeholder="Search Projects…"
                [ngModel]="query()" (ngModelChange)="query.set($event)" />
       </div>
-      <button class="button-secondary" title="Grid view" (click)="view.set('grid')"
-              [class.menu-item-active]="view() === 'grid'"><i class="fa-solid fa-table-cells-large"></i></button>
-      <button class="button-secondary" title="List view" (click)="view.set('list')"
-              [class.menu-item-active]="view() === 'list'"><i class="fa-solid fa-list"></i></button>
-      <button class="button" (click)="goNewProject()"><i class="fa-solid fa-plus mr-2"></i>Add New</button>
+      <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+        <button class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 text-white/60 transition-colors cursor-pointer" title="Grid view" (click)="view.set('grid')"
+                [class.bg-white/10]="view() === 'grid'" [class.!text-white]="view() === 'grid'"><i class="fa-solid fa-table-cells-large"></i></button>
+        <button class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 text-white/60 transition-colors cursor-pointer" title="List view" (click)="view.set('list')"
+                [class.bg-white/10]="view() === 'list'" [class.!text-white]="view() === 'list'"><i class="fa-solid fa-list"></i></button>
+      </div>
+      <button class="button flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]" (click)="goNewProject()">
+        <i class="fa-solid fa-plus text-xs"></i> New Project
+      </button>
     </div>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -43,20 +51,29 @@ interface DeployRow {
       <div class="lg:col-span-1 space-y-6">
         <div>
           <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Usage</h2>
-          <div class="box">
+          <div class="box p-5">
             <div class="mb-4 flex items-center justify-between">
-              <span class="text-sm font-semibold">Current</span>
-              <a routerLink="/subscription" class="rounded-md px-2.5 py-1 text-xs font-semibold"
+              <span class="text-sm font-semibold text-white/90">Current Limit</span>
+              <a routerLink="/subscription" class="rounded-md px-2.5 py-1 text-xs font-semibold hover:bg-white/15 transition-colors"
                  style="background:var(--color-surface-2);color:var(--color-text-primary);">Upgrade</a>
             </div>
-            <div class="space-y-3">
-              @for (m of usageMetrics(); track m.label) {
-                <div class="flex items-center justify-between text-sm">
-                  <span class="flex items-center gap-2">
-                    <i [class]="m.icon" class="text-xs" [style.color]="m.color"></i>{{ m.label }}
-                  </span>
-                  <span style="color:var(--color-text-secondary);">{{ m.value }}</span>
-                </div>
+            <div class="space-y-4">
+              @if (loading()) {
+                @for (i of [1, 2, 3, 4]; track i) {
+                  <div class="flex items-center justify-between text-sm dbpulse">
+                    <div class="h-4 w-24 rounded bg-white/10"></div>
+                    <div class="h-4 w-12 rounded bg-white/10"></div>
+                  </div>
+                }
+              } @else {
+                @for (m of usageMetrics(); track m.label) {
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="flex items-center gap-2">
+                      <i [class]="m.icon" class="text-xs" [style.color]="m.color"></i>{{ m.label }}
+                    </span>
+                    <span class="font-mono" style="color:var(--color-text-secondary);">{{ m.value }}</span>
+                  </div>
+                }
               }
             </div>
           </div>
@@ -64,57 +81,110 @@ interface DeployRow {
 
         <div>
           <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Alerts</h2>
-          <div class="box text-center">
-            <p class="font-semibold">Get notified about your deployments</p>
-            <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
+          <div class="box text-center p-6">
+            <p class="font-semibold text-white/90">Get notified about your deployments</p>
+            <p class="mt-1.5 text-xs leading-relaxed" style="color:var(--color-text-secondary);">
               Slack, Discord, Telegram, email — be alerted when a deploy fails or a server goes down.
             </p>
-            <a routerLink="/notifications" class="button-secondary mt-3 inline-flex">Configure notifications</a>
+            <a routerLink="/notifications" class="button-secondary mt-4 inline-flex text-xs px-4 py-2 cursor-pointer rounded-xl hover:bg-white/10 transition-colors">Configure notifications</a>
           </div>
         </div>
 
         <div>
           <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Recent Deployments</h2>
-          <div class="box text-center" style="color:var(--color-text-tertiary);">
-            <i class="fa-solid fa-clock-rotate-left mb-2 text-lg"></i>
-            <p class="text-sm">Deployments you trigger will appear here.</p>
+          <div class="box text-center p-6" style="color:var(--color-text-tertiary);">
+            <i class="fa-solid fa-clock-rotate-left mb-2 text-lg text-white/30"></i>
+            <p class="text-xs">Deployments you trigger will appear here.</p>
           </div>
         </div>
       </div>
 
       <!-- ===== Right column ===== -->
-      <div class="lg:col-span-2">
-        <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Projects</h2>
+      <div class="lg:col-span-2 space-y-6">
+        <div>
+          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Project History</h2>
 
-        <!-- Projects grid (when the team already has projects) -->
-        @if (projects().length > 0) {
-          <div [class]="projectsContainerClass()">
-            @for (p of filteredProjects(); track p.uuid) {
-              <a class="block rounded-lg p-4 hover:border-white/20" style="border:1px solid var(--color-surface-2);"
-                 [routerLink]="['/projects', p.uuid]">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i>
-                  <span class="font-semibold">{{ p.name }}</span>
+          @if (loading()) {
+            <!-- Skeleton Projects Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              @for (i of [1, 2]; track i) {
+                <div class="dbpulse rounded-2xl p-5 border border-white/5 bg-white/[0.02]" style="min-height: 80px;">
+                  <div class="flex items-center gap-3">
+                    <div class="h-9 w-9 rounded-xl bg-white/10"></div>
+                    <div class="space-y-2 flex-1">
+                      <div class="h-4 w-28 rounded bg-white/10"></div>
+                      <div class="h-3 w-40 rounded bg-white/10"></div>
+                    </div>
+                  </div>
                 </div>
-                @if (p.description) {
-                  <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ p.description }}</p>
+              }
+            </div>
+          } @else if (projects().length > 0) {
+            @if (view() === 'grid') {
+              <!-- Projects Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                @for (p of displayedProjects(); track p.uuid) {
+                  <a class="db-glass block p-5 hover:border-blue-500/50 hover:bg-white/[0.01] transition-all duration-200 rounded-2xl group"
+                     [routerLink]="['/projects', p.uuid]">
+                    <div class="flex items-center gap-3">
+                      <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                        <i class="fa-solid fa-layer-group"></i>
+                      </div>
+                      <div>
+                        <span class="font-semibold font-mono text-white/90 group-hover:text-blue-400 transition-colors">{{ p.name }}</span>
+                        @if (p.description) {
+                          <p class="mt-0.5 text-xs truncate max-w-[200px]" style="color:var(--color-text-secondary);">{{ p.description }}</p>
+                        }
+                      </div>
+                    </div>
+                  </a>
                 }
-              </a>
+              </div>
+            } @else {
+              <!-- Projects List -->
+              <div class="space-y-3">
+                @for (p of displayedProjects(); track p.uuid) {
+                  <a class="db-glass block p-4 hover:border-blue-500/50 hover:bg-white/[0.01] transition-all duration-200 rounded-xl group"
+                     [routerLink]="['/projects', p.uuid]">
+                    <div class="flex items-center justify-between gap-4">
+                      <div class="flex items-center gap-3">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                          <i class="fa-solid fa-layer-group text-sm"></i>
+                        </div>
+                        <span class="font-semibold font-mono text-white/90 group-hover:text-blue-400 transition-colors">{{ p.name }}</span>
+                      </div>
+                      @if (p.description) {
+                        <span class="text-xs truncate max-w-[300px]" style="color:var(--color-text-secondary);">{{ p.description }}</span>
+                      }
+                    </div>
+                  </a>
+                }
+              </div>
             }
-          </div>
-        }
+          } @else {
+            <!-- Empty State -->
+            <div class="db-glass p-8 text-center text-sm rounded-2xl" style="color:var(--color-text-secondary);">
+              No projects in history. Use the import block below to deploy your first project.
+            </div>
+          }
+        </div>
 
         <!-- Deploy / templates panel — always visible -->
-        <div class="box" [class.mt-6]="projects().length > 0">
-            <div class="py-6 text-center">
-              <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
-                   style="background:var(--color-surface-2);">
-                <i class="fa-solid fa-cloud-arrow-up text-xl" style="color:var(--color-text-secondary);"></i>
+        <div class="db-glass p-6 rounded-2xl">
+            <!-- Highlighted Import Project Box -->
+            <div class="db-glass p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-200" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(0, 0, 0, 0) 100%);">
+              <div class="flex items-center gap-4">
+                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400">
+                  <i class="fa-brands fa-github text-xl animate-pulse"></i>
+                </div>
+                <div>
+                  <h4 class="font-bold text-white/95 text-base">Import Project</h4>
+                  <p class="text-xs mt-0.5" style="color:var(--color-text-secondary);">Deploy your app directly from a GitHub repository or Git URL.</p>
+                </div>
               </div>
-              <h3 class="text-lg font-semibold">{{ projects().length === 0 ? 'Deploy your first project' : 'Deploy something new' }}</h3>
-              <p class="text-sm" style="color:var(--color-text-secondary);">
-                Start with one of our templates<br />or import something from Git.
-              </p>
+              <button class="button cursor-pointer text-xs font-semibold py-2.5 px-5 shadow-lg shadow-blue-500/15 hover:scale-[1.02] transition-transform" (click)="goNewProject()">
+                Import Repository
+              </button>
             </div>
 
             @if (error()) {
@@ -126,41 +196,55 @@ interface DeployRow {
               </div>
             }
 
-            <!-- Deploy rows (Vercel-style list) -->
-            <div class="overflow-hidden rounded-xl" style="border:1px solid var(--color-surface-2);">
-              <!-- Import Project -->
-              <div class="flex items-center gap-3 p-4" style="border-bottom:1px solid var(--color-surface-2);">
-                <div class="flex h-9 w-9 items-center justify-center rounded-lg" style="background:var(--color-surface-2);">
-                  <i class="fa-solid fa-circle-plus" style="color:var(--color-text-secondary);"></i>
-                </div>
-                <div class="flex-1">
-                  <div class="font-semibold">Import Project</div>
-                  <div class="text-sm" style="color:var(--color-text-secondary);">Add a repo from your Git provider</div>
-                </div>
-                <button class="button-secondary" (click)="goNewProject()">Import</button>
-              </div>
+            <!-- Templates title -->
+            <div class="mb-3 flex items-center justify-between">
+              <h4 class="text-sm font-semibold font-mono text-white/80">Start with a template</h4>
+              @if (loading()) {
+                <div class="h-3 w-16 rounded bg-white/10 dbpulse"></div>
+              } @else {
+                <span class="text-[10px] font-mono" style="color:var(--color-text-secondary);">{{ templateRows().length }} available</span>
+              }
+            </div>
 
-              <!-- Template rows -->
-              @for (row of templateRows(); track row.id) {
-                <div class="flex items-center gap-3 p-4" style="border-bottom:1px solid var(--color-surface-2);">
-                  <div class="flex h-9 w-9 items-center justify-center rounded-lg" style="background:var(--color-surface-2);">
-                    <i [class]="row.icon" [style.color]="row.iconColor"></i>
+            <!-- Deploy rows (Vercel-style list) -->
+            <div class="overflow-hidden rounded-xl border border-white/10" style="background-color: rgba(0, 0, 0, 0.1);">
+              <!-- Template rows / loading skeletons -->
+              @if (loading()) {
+                @for (i of [1, 2, 3]; track i) {
+                  <div class="flex items-center gap-4 p-4 dbpulse border-b border-white/5">
+                    <div class="h-9 w-9 rounded-xl bg-white/10"></div>
+                    <div class="space-y-1.5 flex-1">
+                      <div class="h-4 w-28 rounded bg-white/10"></div>
+                      <div class="h-3 w-40 rounded bg-white/10"></div>
+                    </div>
+                    <div class="h-7 w-16 rounded-lg bg-white/10"></div>
                   </div>
-                  <div class="flex-1">
-                    <div class="font-semibold capitalize">{{ row.title }}</div>
-                    <div class="text-sm" style="color:var(--color-text-secondary);">{{ row.description }}</div>
+                }
+              } @else {
+                @for (row of templateRows(); track row.id) {
+                  <div class="flex items-center gap-4 p-4 hover:bg-white/[0.01] transition-colors" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                    <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5">
+                      <i [class]="getTemplateIcon(row.title)"></i>
+                    </div>
+                    <div class="flex-1">
+                      <div class="font-semibold capitalize text-white/90">{{ row.title }}</div>
+                      <div class="text-xs" style="color:var(--color-text-secondary);">{{ row.description }}</div>
+                    </div>
+                    <button class="button-secondary cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors" [disabled]="busy()" (click)="deployTemplate(row)">Deploy</button>
                   </div>
-                  <button class="button-secondary" [disabled]="busy()" (click)="deployTemplate(row)">Deploy</button>
-                </div>
+                }
               }
 
               <!-- Browse templates -->
-              <a routerLink="/services" class="flex items-center gap-3 p-4">
-                <div class="flex-1">
-                  <div class="font-semibold">Browse Templates</div>
-                  <div class="text-sm" style="color:var(--color-text-secondary);">Databases, stacks and one-click apps</div>
+              <a routerLink="/services" class="flex items-center gap-4 p-4 hover:bg-white/[0.01] transition-colors group">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+                  <i class="fa-solid fa-compass"></i>
                 </div>
-                <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--color-text-secondary);"></i>
+                <div class="flex-1">
+                  <div class="font-semibold text-white/90 group-hover:text-blue-400 transition-colors">Browse Templates</div>
+                  <div class="text-xs" style="color:var(--color-text-secondary);">Databases, stacks and one-click apps</div>
+                </div>
+                <i class="fa-solid fa-arrow-up-right-from-square text-xs text-white/40 group-hover:text-blue-400 transition-colors"></i>
               </a>
             </div>
         </div>
@@ -185,6 +269,7 @@ export class DashboardComponent implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly view = signal<'grid' | 'list'>('grid');
   protected readonly query = signal('');
+  protected readonly loading = signal(true);
 
   protected readonly projectsContainerClass = computed(() =>
     this.view() === 'grid' ? 'box grid grid-cols-1 sm:grid-cols-2 gap-3' : 'box space-y-3'
@@ -193,6 +278,10 @@ export class DashboardComponent implements OnInit {
   protected readonly filteredProjects = computed(() => {
     const q = this.query().trim().toLowerCase();
     return q ? this.projects().filter((p) => p.name.toLowerCase().includes(q)) : this.projects();
+  });
+
+  protected readonly displayedProjects = computed(() => {
+    return this.filteredProjects().slice(0, 2);
   });
 
   protected readonly usageMetrics = computed(() => {
@@ -220,11 +309,38 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.listProjects().subscribe((p) => this.projects.set(p));
-    this.api.listServers().subscribe((s) => this.servers.set(s));
-    this.api.listDatabases().subscribe((d) => this.dbCount.set(d.length));
-    this.api.getQuota().subscribe((q) => this.quota.set(q));
-    this.api.listServiceTemplates().subscribe((t) => this.templates.set(t.slice(0, 5)));
+    forkJoin({
+      projects: this.api.listProjects(),
+      servers: this.api.listServers(),
+      databases: this.api.listDatabases(),
+      quota: this.api.getQuota(),
+      templates: this.api.listServiceTemplates(),
+    }).subscribe({
+      next: (res) => {
+        this.projects.set(res.projects);
+        this.servers.set(res.servers);
+        this.dbCount.set(res.databases.length);
+        this.quota.set(res.quota);
+        this.templates.set(res.templates.slice(0, 5));
+        this.loading.set(false);
+      },
+      error: (e) => {
+        this.loading.set(false);
+        this.error.set(e?.error?.error?.message ?? 'Failed to load dashboard data. Please reload.');
+      },
+    });
+  }
+
+  protected getTemplateIcon(name: string): string {
+    const n = name.toLowerCase();
+    if (n.includes('angular')) return 'fa-brands fa-angular text-red-500';
+    if (n.includes('node')) return 'fa-brands fa-node-js text-green-500';
+    if (n.includes('python')) return 'fa-brands fa-python text-blue-400';
+    if (n.includes('docker')) return 'fa-brands fa-docker text-blue-400';
+    if (n.includes('next') || n.includes('react')) return 'fa-brands fa-react text-sky-400';
+    if (n.includes('static')) return 'fa-solid fa-file-code text-amber-500';
+    if (n.includes('vite')) return 'fa-solid fa-bolt text-yellow-400';
+    return 'fa-solid fa-cube text-blue-400';
   }
 
   protected goNewProject(): void {
