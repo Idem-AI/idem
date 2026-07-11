@@ -348,6 +348,117 @@ export const cancelLogoConceptsController = async (
 };
 
 /**
+ * Étape 2 (SSE) : Génère les déclinaisons du logo sélectionné en streaming,
+ * avec boucle qualité (critique fidélité/lisibilité → recoloration bornée).
+ * Le logo sélectionné est lu depuis le projet (persisté à la sélection).
+ */
+export const generateLogoVariationsStreamController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateLogoVariationsStreamController called - UserId: ${userId}, ProjectId: ${projectId}`
+  );
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+
+    const forceRegenerate = req.query.force === 'true';
+
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const hasVariations =
+      project?.analysisResultModel?.branding?.logo?.variations?.withText !== undefined;
+    const isRetry = !!(project && !forceRegenerate && hasVariations);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    // Fermeture de la page → annuler pour économiser les tokens
+    req.on('close', () => {
+      brandingService.cancelLogoVariationsGeneration(userId, projectId as string);
+    });
+
+    const streamCallback = async (
+      event: import('../services/BandIdentity/branding.service').ILogoVariationStreamEvent
+    ) => {
+      try {
+        const message = {
+          type: 'progress',
+          stepName: event.type,
+          data: JSON.stringify({
+            variant: event.variant,
+            svg: event.svg,
+            critique: event.critique,
+            message: event.message,
+          }),
+          summary: event.critique?.summary || '',
+          timestamp: new Date().toISOString(),
+          parsedData: { status: 'progress' },
+        };
+        res.write(`data: ${JSON.stringify(message)}\n\n`);
+        (res as any).flush?.();
+      } catch (error: any) {
+        logger.error(`Error streaming variation event: ${error.message}`);
+      }
+    };
+
+    const variations = await brandingService.generateLogoVariationsWithStreaming(
+      userId,
+      projectId as string,
+      streamCallback,
+      forceRegenerate
+    );
+
+    if (!isRetry && Object.keys(variations.withText).length > 0) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on streamed logo variations completion.`);
+    }
+
+    res.write(
+      `data: ${JSON.stringify({
+        type: 'completed',
+        stepName: 'completion',
+        data: 'all_steps_completed',
+        summary: '',
+        timestamp: new Date().toISOString(),
+        parsedData: { status: 'completed' },
+      })}\n\n`
+    );
+    res.end();
+  } catch (error: any) {
+    logger.error(
+      `Error in generateLogoVariationsStreamController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    try {
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'progress',
+          stepName: 'variation_error',
+          data: JSON.stringify({ message: error.message }),
+          summary: '',
+          timestamp: new Date().toISOString(),
+          parsedData: { status: 'progress' },
+        })}\n\n`
+      );
+    } catch {
+      // headers peut-être non envoyés
+    }
+    res.end();
+  }
+};
+
+/**
  * Étape 2: Génère les variations d'un logo sélectionné
  */
 export const generateLogoVariationsController = async (

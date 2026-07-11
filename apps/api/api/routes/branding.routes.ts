@@ -10,6 +10,7 @@ import {
   generateLogoConceptsStreamController,
   cancelLogoConceptsController,
   generateLogoVariationsController,
+  generateLogoVariationsStreamController,
   generateBrandingStreamingController,
   generateBrandingPdfController,
   generateLogosZipController,
@@ -286,6 +287,45 @@ brandingRoutes.post(
   `/${resourceName}/generate/logo-concepts-cancel/:projectId`,
   authenticate,
   cancelLogoConceptsController
+);
+
+// Étape 2 (SSE): Génération streamée des déclinaisons avec boucle qualité
+/**
+ * @openapi
+ * /project/brandings/generate/logo-variations-stream/{projectId}:
+ *   get:
+ *     tags:
+ *       - Branding
+ *     summary: Stream logo variations generation with quality loop (SSE)
+ *     description: |
+ *       Server-Sent Events stream. Events (stepName): variation_started,
+ *       variation_generated, critique_started, critique_result,
+ *       revision_started, variation_updated, variation_finalized,
+ *       variation_cancelled, variation_error, then a completion event.
+ *       The selected logo is read from the project.
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: force
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       '200':
+ *         description: SSE stream of variation generation events
+ */
+brandingRoutes.get(
+  `/${resourceName}/generate/logo-variations-stream/:projectId`,
+  authenticate,
+  extendedTimeout,
+  checkQuota,
+  generateLogoVariationsStreamController
 );
 
 // Étape 2: Generate logo variations for selected logo

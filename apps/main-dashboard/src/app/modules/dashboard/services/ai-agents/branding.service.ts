@@ -123,6 +123,30 @@ export class BrandingService {
     this.sseService.closeConnection('logo');
   }
 
+  /**
+   * Génération streamée des déclinaisons du logo sélectionné (SSE) avec boucle
+   * qualité. stepName des événements : variation_started, variation_generated,
+   * critique_started, critique_result, revision_started, variation_updated,
+   * variation_finalized, variation_cancelled, variation_error.
+   * Le logo sélectionné est lu depuis le projet côté API.
+   */
+  generateLogoVariationsStream(projectId: string, force = false): Observable<SSEStepEvent> {
+    this.sseService.closeConnection('logo-variations');
+
+    const config: SSEConnectionConfig = {
+      url: `${this.apiUrl}/generate/logo-variations-stream/${projectId}${force ? '?force=true' : ''}`,
+      keepAlive: true,
+      reconnectionDelay: 1000,
+    };
+
+    return this.sseService.createConnection(config, 'logo-variations');
+  }
+
+  /** Ferme le flux SSE des déclinaisons ; le serveur annule à la déconnexion */
+  closeLogoVariationsStream(): void {
+    this.sseService.closeConnection('logo-variations');
+  }
+
   generateColorsAndTypography(project: ProjectModel): Observable<{
     colors: ColorModel[];
     typography: TypographyModel[];

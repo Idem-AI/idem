@@ -593,7 +593,25 @@
         "darkBackground": "Optimized for dark and modern backgrounds",
         "monochrome": "Version in black and white for all uses"
       },
-      "selectionsMade": "{{count}} selection(s) made"
+      "selectionsMade": "{{count}} selection(s) made",
+      "live": {
+        "title": "Creating your variations live",
+        "subtitle": "Each variation is generated, checked on its target background by our quality agent, then fixed if needed.",
+        "status": {
+          "pending": "Waiting…",
+          "generating": "Generating variation…",
+          "generated": "Variation generated",
+          "critiquing": "Checking on target background…",
+          "revising": "Fixing colors…",
+          "final": "Approved",
+          "cancelled": "Cancelled",
+          "error": "This variation failed"
+        },
+        "critique": {
+          "title": "Quality agent's review",
+          "revised": "Fixed by the agent"
+        }
+      }
     },
     "projectDescription": {
       "hello": "Hello",
