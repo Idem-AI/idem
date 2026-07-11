@@ -59,7 +59,7 @@ export function generateBuildlessCompose(app: ApplicationRow, srcDir: string, po
   const installCmd = app.install_command || 'npm install';
   const buildCmd = app.build_command || 'npm run build || true';
   const startCmd = app.start_command ||
-    `npm start || npm run preview -- --host 0.0.0.0 --port ${port} || npm run dev -- --host 0.0.0.0 --port ${port} || npx --yes serve -s dist -l ${port} || npx --yes serve -s . -l ${port}`;
+    `npm start -- --host 0.0.0.0 --port ${port} || npm start || npm run preview -- --host 0.0.0.0 --port ${port} || npm run dev -- --host 0.0.0.0 --port ${port} || npx --yes serve -s dist -l ${port} || npx --yes serve -s . -l ${port}`;
 
   const startScript = `${installCmd} && (${buildCmd}) && (${startCmd})`;
 
