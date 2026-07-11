@@ -4,6 +4,7 @@
  * ApplicationDeploymentJob (the heavy lifting runs in the worker).
  */
 import { randomUUID } from 'crypto';
+import os from 'os';
 import pool from '../config/db.config';
 import { deploymentQueue } from '../queue/queues';
 
@@ -73,6 +74,18 @@ export async function listForApplication(
   return rows;
 }
 
+function getLocalIpAddress(): string {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
 function computeAppLink(fqdn: string | null, ports_mappings: string | null): string | null {
   if (fqdn) {
     const f = fqdn.split(',')[0].trim();
@@ -81,7 +94,10 @@ function computeAppLink(fqdn: string | null, ports_mappings: string | null): str
   if (ports_mappings) {
     const first = ports_mappings.split(',')[0].trim(); // "hostPort:containerPort"
     const hostPort = first.split(':')[0];
-    if (hostPort) return `http://localhost:${hostPort}`;
+    if (hostPort) {
+      const ip = getLocalIpAddress();
+      return `http://${ip}:${hostPort}`;
+    }
   }
   return null;
 }
