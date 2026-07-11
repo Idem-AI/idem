@@ -497,7 +497,8 @@
           "error": "Échec de ce concept"
         },
         "critique": {
-          "title": "Avis du directeur artistique"
+          "title": "Avis du directeur artistique",
+          "revised": "Corrigé par l’agent"
         }
       }
     },

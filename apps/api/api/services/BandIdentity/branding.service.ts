@@ -1484,14 +1484,19 @@ export class BrandingService extends GenericService {
     logo: LogoModel,
     project: ProjectModel
   ): Promise<LogoCritiqueResult> {
+    // "conceptName" = titre créatif du concept ; le nom de marque est passé à part
+    // pour que le critique ne les confonde pas (le wordmark doit afficher la marque)
     const logoJson = JSON.stringify({
-      name: logo.name,
+      conceptName: logo.name,
       concept: logo.concept,
       colors: logo.colors,
       fonts: logo.fonts,
       svg: logo.svg,
     });
-    const prompt = LOGO_CRITIQUE_PROMPT.replace('{{LOGO_JSON}}', logoJson);
+    const brandName = project.name || this.extractProjectName(this.extractProjectDescription(project));
+    const prompt = LOGO_CRITIQUE_PROMPT.replace('{{LOGO_JSON}}', logoJson)
+      .replace(/\{\{BRAND_NAME\}\}/g, brandName)
+      .replace(/\{\{LOGO_TYPE\}\}/g, logo.type || 'unspecified');
 
     const steps: IPromptStep[] = [
       {
@@ -1551,6 +1556,7 @@ export class BrandingService extends GenericService {
       .map((r, i) => `${i + 1}. [${r.criterion}] ${r.fix}`)
       .join('\n');
 
+    const brandName = project.name || this.extractProjectName(this.extractProjectDescription(project));
     const prompt = LOGO_REVISION_PROMPT.replace(
       '{{ORIGINAL_LOGO_JSON}}',
       JSON.stringify({
@@ -1561,7 +1567,9 @@ export class BrandingService extends GenericService {
         fonts: logo.fonts,
         svg: logo.svg,
       })
-    ).replace('{{CRITIQUE_REMARKS}}', remarksText || critique.summary);
+    )
+      .replace(/\{\{BRAND_NAME\}\}/g, brandName)
+      .replace('{{CRITIQUE_REMARKS}}', remarksText || critique.summary);
 
     const steps: IPromptStep[] = [
       {
