@@ -24,6 +24,24 @@
       },
       "cards": {
         "colors": "Couleurs"
+      },
+      "live": {
+        "title": "Création de vos logos en direct",
+        "subtitle": "Chaque concept est généré, audité par notre directeur artistique IA, puis corrigé si nécessaire — sous vos yeux.",
+        "selectHint": "Un logo vous plaît ? Cliquez dessus pour le choisir et arrêter le reste de la génération.",
+        "status": {
+          "pending": "En attente…",
+          "generating": "Génération du concept…",
+          "generated": "Concept généré",
+          "critiquing": "Contrôle qualité en cours…",
+          "revising": "Amélioration du logo…",
+          "final": "Validé",
+          "cancelled": "Annulé",
+          "error": "Échec de ce concept"
+        },
+        "critique": {
+          "title": "Avis du directeur artistique"
+        }
       }
     }
   }

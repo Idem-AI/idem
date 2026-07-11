@@ -7,6 +7,8 @@ import {
   generateColorsAndTypographyController,
   generateColorsAndTypographyFromLogoController,
   generateLogoConceptsController,
+  generateLogoConceptsStreamController,
+  cancelLogoConceptsController,
   generateLogoVariationsController,
   generateBrandingStreamingController,
   generateBrandingPdfController,
@@ -218,6 +220,72 @@ brandingRoutes.post(
   extendedTimeout,
   checkQuota,
   generateLogoConceptsController
+);
+
+// Étape 1 (SSE): Génération streamée des concepts avec boucle qualité
+// (concept → critique design → révision), événements temps réel
+/**
+ * @openapi
+ * /project/brandings/generate/logo-concepts-stream/{projectId}:
+ *   get:
+ *     tags:
+ *       - Branding
+ *     summary: Stream logo concepts generation with quality loop (SSE)
+ *     description: |
+ *       Server-Sent Events stream. Events (stepName): concept_started,
+ *       concept_generated, critique_started, critique_result, revision_started,
+ *       concept_updated, concept_finalized, concept_cancelled, concept_error,
+ *       then a completion event.
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: force
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       '200':
+ *         description: SSE stream of logo generation events
+ */
+brandingRoutes.get(
+  `/${resourceName}/generate/logo-concepts-stream/:projectId`,
+  authenticate,
+  extendedTimeout,
+  checkQuota,
+  generateLogoConceptsStreamController
+);
+
+// Annulation de la génération en cours (sélection anticipée par l'utilisateur)
+/**
+ * @openapi
+ * /project/brandings/generate/logo-concepts-cancel/{projectId}:
+ *   post:
+ *     tags:
+ *       - Branding
+ *     summary: Cancel the in-flight logo concepts generation
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Cancellation acknowledged
+ */
+brandingRoutes.post(
+  `/${resourceName}/generate/logo-concepts-cancel/:projectId`,
+  authenticate,
+  cancelLogoConceptsController
 );
 
 // Étape 2: Generate logo variations for selected logo
