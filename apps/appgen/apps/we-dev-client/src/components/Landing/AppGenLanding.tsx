@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/api/persistence/db';
 import type { UserModel } from '@/api/persistence/userModel';
 import { UserProfile } from '../Header/UserProfile';
 import { redirectToLogin } from '@/hooks/useAuth';
+import { AppGenPricing } from './AppGenPricing';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
 
@@ -63,6 +64,26 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
                 className="w-[120px] h-auto object-contain"
               />
             </div>
+          </div>
+          <div className="hidden md:flex items-center gap-8">
+            <a
+              href="#showcase"
+              className="text-sm font-semibold text-white/70 hover:text-white transition-colors"
+            >
+              Showcase
+            </a>
+            <a
+              href="#how-it-works"
+              className="text-sm font-semibold text-white/70 hover:text-white transition-colors"
+            >
+              How it works
+            </a>
+            <a
+              href="#pricing"
+              className="text-sm font-semibold text-white/70 hover:text-white transition-colors"
+            >
+              Pricing
+            </a>
           </div>
           <div>
             {currentUser ? (
@@ -146,7 +167,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       </section>
 
       {/* Showcase Section - Unique diagonal layout */}
-      <section className="py-32 px-4 overflow-hidden">
+      <section id="showcase" className="py-32 px-4 overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">See it in action</h2>
@@ -222,7 +243,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       </section>
 
       {/* How it works Section */}
-      <section className="py-32 px-4 bg-white/[0.02]">
+      <section id="how-it-works" className="py-32 px-4 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">How it works</h2>
@@ -257,11 +278,14 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <AppGenPricing onGetStarted={() => handleStart()} />
+
       {/* CTA Section */}
       <section className="py-32 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">Start building today</h2>
-          <p className="text-xl text-gray-400 mb-8">No credit card required</p>
+          <p className="text-xl text-gray-400 mb-8">Generating is free — no credit card required</p>
           <button
             onClick={() =>
               (window.location.href = `${process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200'}/login?from=appgen`)
