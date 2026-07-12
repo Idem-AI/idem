@@ -37,7 +37,7 @@ import { environment } from '../../../../environments/environment';
             <div class="hidden md:flex items-center gap-8">
               <a href="#showcase" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">Showcase</a>
               <a href="#features" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">Platform</a>
-              <a href="#pricing" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">Pricing</a>
+              <a routerLink="/pricing" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">Pricing</a>
             </div>
             @if (user(); as u) {
               <div class="relative">
@@ -305,10 +305,10 @@ import { environment } from '../../../../environments/environment';
             <div class="absolute inset-0 z-0" style="background: linear-gradient(to bottom right, rgba(37,99,235,0.2), black, rgba(34,211,238,0.2));"></div>
             <div class="glass-card relative z-10 p-16 md:p-24 border border-white/10 text-center" style="backdrop-filter: blur(48px);">
               <h1 class="text-5xl md:text-6xl font-black text-white mb-6" style="letter-spacing:-0.04em;">Ready to <span class="i-underline">host?</span></h1>
-              <p class="text-xl text-white/70 mb-12 max-w-xl mx-auto font-medium">Join thousands of developers escaping the PaaS tax. Stop paying for traffic. Start paying for hardware.</p>
+              <p class="text-xl text-white/70 mb-12 max-w-xl mx-auto font-medium">5 free deployments, a free domain with automatic SSL and commercial use allowed from day one. Paid plans start at 2 999 F/month.</p>
               <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a [href]="loginUrl" class="inner-button px-8 py-4 text-lg w-full sm:w-auto">Get started for free</a>
-                <a href="https://github.com/coollabsio/coolify" target="_blank" class="outer-button px-8 py-4 text-lg w-full sm:w-auto">View on GitHub</a>
+                <a routerLink="/pricing" class="outer-button px-8 py-4 text-lg w-full sm:w-auto">View pricing</a>
               </div>
               <p class="mt-8 text-sm text-white/40 font-mono">MIT Licensed. Open Source forever.</p>
             </div>

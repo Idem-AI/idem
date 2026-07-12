@@ -131,6 +131,11 @@ export const routes: Routes = [
     pathMatch: 'full',
     loadComponent: () => import('./modules/landing/landing/landing').then((m) => m.LandingComponent),
   },
+  // Public pricing page (no auth required).
+  {
+    path: 'pricing',
+    loadComponent: () => import('./modules/landing/pricing/pricing').then((m) => m.PricingComponent),
+  },
   // SSO callback from the central app after login.
   {
     path: 'auth/idem',
