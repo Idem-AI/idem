@@ -17,6 +17,7 @@ COPY ./packages/shared-styles ./packages/shared-styles
 COPY ./apps/landing ./apps/landing
 
 # Installer les dépendances globales sans scripts
+RUN npm install dotenv 
 RUN npm install --legacy-peer-deps --ignore-scripts
 
 # Installer les dépendances de l'application landing
