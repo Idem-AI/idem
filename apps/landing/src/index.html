@@ -2,6 +2,35 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
+    <script>
+      (function() {
+        var pathname = window.location.pathname;
+        var hasFr = pathname.startsWith('/fr/') || pathname === '/fr';
+        var hasEn = pathname.startsWith('/en/') || pathname === '/en';
+        
+        if (hasFr) {
+          localStorage.setItem('idem_lang', 'fr');
+          document.cookie = "idem_lang=fr; path=/; max-age=31536000; SameSite=Lax";
+        } else if (hasEn) {
+          localStorage.setItem('idem_lang', 'en');
+          document.cookie = "idem_lang=en; path=/; max-age=31536000; SameSite=Lax";
+        } else {
+          // Skip redirection on local development servers
+          if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            var pref = localStorage.getItem('idem_lang');
+            if (!pref) {
+              var userLang = navigator.language || navigator.userLanguage || '';
+              pref = userLang.toLowerCase().startsWith('fr') ? 'fr' : 'en';
+            }
+            localStorage.setItem('idem_lang', pref);
+            document.cookie = "idem_lang=" + pref + "; path=/; max-age=31536000; SameSite=Lax";
+            
+            var newPath = '/' + pref + (pathname.startsWith('/') ? pathname : '/' + pathname);
+            window.location.replace(newPath);
+          }
+        }
+      })();
+    </script>
     <title i18n="@@meta.title">
       IDEM - The Open Source AI that brings African startups to life | AI-powered business creation
       tool
