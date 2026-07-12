@@ -3,7 +3,6 @@ ARG BUILD_ENV=production
 
 # Dockerfile.landing
 FROM node:20-alpine AS builder
-
 WORKDIR /app
 
 # Copier les fichiers de configuration racine
@@ -25,6 +24,13 @@ WORKDIR /app/apps/landing
 RUN npm install --legacy-peer-deps --ignore-scripts && \
     npm install @angular/animations@^20.3.0 --save --legacy-peer-deps --ignore-scripts
 
+# --- Génération de l'environnement (src/environments/environment.ts) ---
+
+# RUN test -f .env || (echo "❌ .env introuvable dans /app/apps/landing — vérifie .dockerignore" && exit 1)
+RUN npm run env:prod
+
+# --- Builds ---
+
 # Builder l'application landing (version anglaise d'abord)
 RUN npm run build:en && \
     mkdir -p /tmp/en-build && \
@@ -35,6 +41,7 @@ RUN npm run build:fr
 
 # Stage de production avec nginx
 FROM nginx:alpine AS production
+ARG BUILD_ENV
 
 # Install security updates
 RUN apk update && apk upgrade && \
@@ -54,9 +61,9 @@ COPY ./apps/landing/nginx.conf /etc/nginx/nginx.conf
 # Copier les builds des deux locales
 COPY --from=builder /app/apps/landing/dist/landing/browser/fr /usr/share/nginx/html/fr
 COPY --from=builder /tmp/en-build/en /usr/share/nginx/html/en
+
 # Copier FR comme version par défaut
 COPY --from=builder /app/apps/landing/dist/landing/browser/fr /usr/share/nginx/html
 
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]
