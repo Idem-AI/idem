@@ -1,4 +1,4 @@
-<!-- Pricing Page - Elegant Design -->
+<!-- Pricing Page - Usage-based African pricing -->
 <div class="relative min-h-screen bg-black">
   <!-- Background -->
   <div class="absolute inset-0">
@@ -7,7 +7,7 @@
 
   <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
     <!-- Hero Section -->
-    <div class="text-center mb-20">
+    <div class="text-center mb-16">
       <div
         class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
       >
@@ -21,28 +21,130 @@
             clip-rule="evenodd"
           />
         </svg>
-        <span class="text-white" i18n="@@pricing-page.hero.badge">Simple, Transparent Pricing</span>
+        <span class="text-white" i18n="@@pricing-page.hero.badge"
+          >FCFA Pricing · Mobile Money Ready</span
+        >
       </div>
 
       <h1
         class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6"
         i18n="@@pricing-page.hero.title"
       >
-        Simple, <span class="i-underline">Affordable</span> Pricing
+        Prices that make sense <span class="i-underline">in Africa</span>
       </h1>
 
       <p
         class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
         i18n="@@pricing-page.hero.description"
       >
-        Start for free and scale as you grow. No hidden fees, no surprises. Designed for African
-        entrepreneurs with pricing that makes sense.
+        Each product has its own credits and its own pricing — you only pay for the engine you use.
+        Structure your business, generate your app, host it in production: all for the price of a
+        monthly data plan.
       </p>
     </div>
 
-    <!-- Pricing Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
-      @for (plan of subscriptionPlans; track plan.id) {
+    <!-- Engine Tabs -->
+    <div class="flex flex-wrap justify-center gap-3 mb-12" role="tablist" aria-label="Products">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="activeEngine() === 'business'"
+        (click)="setEngine('business')"
+        [class]="
+          activeEngine() === 'business'
+            ? 'px-6 py-3 rounded-full bg-primary text-white font-semibold text-sm'
+            : 'px-6 py-3 rounded-full glass-card border border-white/10 text-white/70 hover:text-white font-semibold text-sm transition-colors'
+        "
+      >
+        <span i18n="@@pricing-page.tabs.business">IDEM Business</span>
+        <span class="block text-xs font-normal opacity-70" i18n="@@pricing-page.tabs.business.sub"
+          >Branding, business plan, legal</span
+        >
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="activeEngine() === 'appgen'"
+        (click)="setEngine('appgen')"
+        [class]="
+          activeEngine() === 'appgen'
+            ? 'px-6 py-3 rounded-full bg-primary text-white font-semibold text-sm'
+            : 'px-6 py-3 rounded-full glass-card border border-white/10 text-white/70 hover:text-white font-semibold text-sm transition-colors'
+        "
+      >
+        <span i18n="@@pricing-page.tabs.appgen">IDEM AppGen</span>
+        <span class="block text-xs font-normal opacity-70" i18n="@@pricing-page.tabs.appgen.sub"
+          >AI application generation</span
+        >
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="activeEngine() === 'ideploy'"
+        (click)="setEngine('ideploy')"
+        [class]="
+          activeEngine() === 'ideploy'
+            ? 'px-6 py-3 rounded-full bg-primary text-white font-semibold text-sm'
+            : 'px-6 py-3 rounded-full glass-card border border-white/10 text-white/70 hover:text-white font-semibold text-sm transition-colors'
+        "
+      >
+        <span i18n="@@pricing-page.tabs.ideploy">iDeploy</span>
+        <span class="block text-xs font-normal opacity-70" i18n="@@pricing-page.tabs.ideploy.sub"
+          >Deployment &amp; hosting</span
+        >
+      </button>
+    </div>
+
+    <!-- AppGen: Project Pass highlight -->
+    @if (activeEngine() === 'appgen') {
+      <div class="mb-12">
+        <div
+          class="glass-card rounded-2xl border-2 border-primary/60 p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center"
+        >
+          <div>
+            <div
+              class="inline-block px-3 py-1 bg-primary/90 rounded-full text-xs font-bold text-white mb-4"
+              i18n="@@pricing-page.appgen.pass.badge"
+            >
+              The heart of the model
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3">
+              <span i18n="@@pricing-page.appgen.pass.title">Project Pass</span>
+              <span class="text-primary ml-3">999 F</span>
+              <span class="text-white/50 text-base font-normal" i18n="@@pricing-page.appgen.pass.once"
+                >— once per project (~$1.7)</span
+              >
+            </h2>
+            <p class="text-white/70 leading-relaxed" i18n="@@pricing-page.appgen.pass.description">
+              Generating is free. Owning costs almost nothing. Describe your idea, watch your app
+              run live in the browser — then unlock it for less than a restaurant meal.
+            </p>
+          </div>
+          <ul class="space-y-3">
+            @for (feature of projectPassFeatures; track feature) {
+              <li class="flex items-start gap-2 text-sm text-gray-300">
+                <svg
+                  class="w-4 h-4 text-primary mt-0.5 shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span>{{ feature }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
+
+    <!-- Plans grid (per engine) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      @for (plan of currentPlans(); track plan.id) {
         <div
           [class]="
             plan.popular
@@ -53,6 +155,7 @@
           @if (plan.popular) {
             <div
               class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary rounded-full text-xs font-bold text-white"
+              i18n="@@pricing-page.plans.mostPopular"
             >
               Most Popular
             </div>
@@ -61,8 +164,11 @@
           <div class="text-center mb-6">
             <h3 class="text-xl font-bold text-white mb-2">{{ plan.name }}</h3>
             <div class="mb-2">
-              <span class="text-4xl font-bold text-primary">${{ plan.price }}</span>
+              <span class="text-3xl font-bold text-primary">{{ plan.price }}</span>
               <span class="text-gray-400 text-sm">{{ plan.period }}</span>
+              @if (plan.usd) {
+                <span class="block text-xs text-gray-500 mt-1">{{ plan.usd }}</span>
+              }
             </div>
             <div class="text-sm text-primary font-semibold mb-3">
               {{ plan.creditsLabel }}
@@ -92,7 +198,7 @@
           </ul>
 
           <a
-            [routerLink]="plan.id === 'business' ? '/contact' : '/auth/signup'"
+            [href]="plan.link"
             [class]="
               plan.popular
                 ? 'inner-button w-full py-3 rounded-lg font-semibold text-center block'
@@ -105,17 +211,324 @@
       }
     </div>
 
-    <!-- Comparison Table -->
+    <div class="text-center text-sm text-white/50 mb-20" i18n="@@pricing-page.plans.annualNote">
+      Annual billing: 2 months free (-16%) — payable by Mobile Money in 1 or 3 installments.
+    </div>
+
+    <!-- Business: one-shot packs -->
+    @if (activeEngine() === 'business') {
+      <div class="mb-20">
+        <div class="text-center mb-12">
+          <h2
+            class="text-3xl sm:text-4xl font-bold text-white mb-4"
+            i18n="@@pricing-page.packs.title"
+          >
+            One-shot Packs — no subscription
+          </h2>
+          <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.packs.description">
+            A single price, guaranteed deliverables, credits valid 12 months. Preview everything
+            for free before paying.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          @for (pack of businessPacks; track pack.id) {
+            <div
+              [class]="
+                pack.popular
+                  ? 'glass-card p-6 rounded-xl border-2 border-primary relative flex flex-col'
+                  : 'glass-card p-6 rounded-xl border border-white/10 relative flex flex-col'
+              "
+            >
+              @if (pack.popular) {
+                <div
+                  class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary rounded-full text-xs font-bold text-white"
+                  i18n="@@pricing-page.packs.bestValue"
+                >
+                  Best Value
+                </div>
+              }
+              <h3 class="text-lg font-bold text-white mb-2">{{ pack.name }}</h3>
+              <div class="mb-3">
+                <span class="text-3xl font-bold text-primary">{{ pack.price }}</span>
+                <span class="block text-xs text-gray-500 mt-1">{{ pack.usd }}</span>
+              </div>
+              <div class="text-sm text-primary font-semibold mb-2">{{ pack.creditsLabel }}</div>
+              <p class="text-sm text-gray-300 mb-4 grow">{{ pack.deliverables }}</p>
+              <div class="text-xs text-white/40 border-t border-white/10 pt-3">
+                <span i18n="@@pricing-page.packs.altLabel">Local alternative:</span>
+                {{ pack.localAlternative }}
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Business: IDEM Social add-on -->
+      <div class="mb-20">
+        <div class="text-center mb-12">
+          <h2
+            class="text-3xl sm:text-4xl font-bold text-white mb-4"
+            i18n="@@pricing-page.social.title"
+          >
+            IDEM Social — publish everywhere, automatically
+          </h2>
+          <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.social.description">
+            Generate your communication strategy and editorial calendar with credits, then let the
+            Social add-on publish it to your networks every day.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          @for (addon of socialAddons; track addon.id) {
+            <div
+              [class]="
+                addon.popular
+                  ? 'glass-card p-6 rounded-xl border-2 border-primary relative'
+                  : 'glass-card p-6 rounded-xl border border-white/10 relative'
+              "
+            >
+              <h3 class="text-lg font-bold text-white mb-2">{{ addon.name }}</h3>
+              <div class="mb-2">
+                <span class="text-3xl font-bold text-primary">{{ addon.price }}</span>
+                <span class="text-gray-400 text-sm">{{ addon.period }}</span>
+                <span class="block text-xs text-gray-500 mt-1">{{ addon.usd }}</span>
+              </div>
+              <div class="text-sm text-primary font-semibold mb-2">{{ addon.creditsLabel }}</div>
+              <p class="text-sm text-gray-400 mb-4">{{ addon.description }}</p>
+              <ul class="space-y-2">
+                @for (feature of addon.features; track feature) {
+                  <li class="flex items-start gap-2 text-sm text-gray-300">
+                    <svg
+                      class="w-4 h-4 text-primary mt-0.5 shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                    <span>{{ feature }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- AppGen: telecom-style passes -->
+    @if (activeEngine() === 'appgen') {
+      <div class="mb-20">
+        <div class="text-center mb-8">
+          <h2
+            class="text-2xl sm:text-3xl font-bold text-white mb-3"
+            i18n="@@pricing-page.appgen.passes.title"
+          >
+            Telecom-style Passes
+          </h2>
+          <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.appgen.passes.description">
+            Like a data plan: pay only for the days you build.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          @for (pass of appgenPasses; track pass.name) {
+            <div class="glass-card p-6 rounded-xl border border-white/10 text-center">
+              <div class="text-white font-bold mb-1">{{ pass.name }}</div>
+              <div class="text-3xl font-bold text-primary mb-2">{{ pass.price }}</div>
+              <p class="text-sm text-gray-400">{{ pass.note }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- iDeploy: pay-per-deploy + managed services -->
+    @if (activeEngine() === 'ideploy') {
+      <div class="mb-20">
+        <div class="glass-card rounded-xl border border-white/10 p-8 mb-12 text-center">
+          <h2
+            class="text-2xl sm:text-3xl font-bold text-white mb-3"
+            i18n="@@pricing-page.ideploy.payg.title"
+          >
+            Generous entry, pay as you grow
+          </h2>
+          <p
+            class="text-gray-400 max-w-3xl mx-auto mb-6"
+            i18n="@@pricing-page.ideploy.payg.description"
+          >
+            Every account gets 5 free deployments, a free yourapp.idem.africa domain and free custom
+            domains with automatic SSL — commercial use allowed from day one.
+          </p>
+          <div class="flex flex-wrap justify-center gap-4">
+            <div class="glass-card px-6 py-4 rounded-xl border border-white/10">
+              <div class="text-2xl font-bold text-primary">100 F</div>
+              <div class="text-xs text-gray-400" i18n="@@pricing-page.ideploy.payg.perDeploy">
+                per deployment after the 5 free ones
+              </div>
+            </div>
+            <div class="glass-card px-6 py-4 rounded-xl border border-white/10">
+              <div class="text-2xl font-bold text-primary">900 F</div>
+              <div class="text-xs text-gray-400" i18n="@@pricing-page.ideploy.payg.pack10">
+                10-deployment pack
+              </div>
+            </div>
+            <div class="glass-card px-6 py-4 rounded-xl border border-white/10">
+              <div class="text-2xl font-bold text-primary" i18n="@@pricing-page.ideploy.payg.unlimited">
+                Unlimited
+              </div>
+              <div class="text-xs text-gray-400" i18n="@@pricing-page.ideploy.payg.unlimitedNote">
+                deployments on any paid plan
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mb-8">
+          <h2
+            class="text-2xl sm:text-3xl font-bold text-white mb-3"
+            i18n="@@pricing-page.ideploy.services.title"
+          >
+            Managed services à la carte
+          </h2>
+          <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.ideploy.services.description">
+            Activate in one click from the dashboard — monthly, no commitment.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          @for (svc of managedServices; track svc.name) {
+            <div class="glass-card p-5 rounded-xl border border-white/10">
+              <div class="text-primary font-bold text-xl mb-1">
+                {{ svc.price }}<span class="text-xs text-gray-500" i18n="@@pricing-page.ideploy.services.perMonth">/month</span>
+              </div>
+              <div class="text-white/90 text-sm font-semibold mb-1">{{ svc.name }}</div>
+              <div class="text-white/50 text-xs">{{ svc.note }}</div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Credit recharges (Business & AppGen) -->
+    @if (activeEngine() !== 'ideploy') {
+      <div class="mb-20">
+        <div class="text-center mb-12">
+          <h2
+            class="text-3xl sm:text-4xl font-bold text-white mb-4"
+            i18n="@@pricing-page.recharge.title"
+          >
+            Credit Recharges — no commitment
+          </h2>
+          <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.recharge.description">
+            Start at the price of a daily data plan. Credits valid 12 months, cheaper as you go up.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          @for (recharge of creditRecharges; track recharge.name) {
+            <div class="glass-card p-6 rounded-xl border border-white/10 text-center">
+              <div class="text-white font-semibold mb-1">{{ recharge.name }}</div>
+              <div class="text-2xl font-bold text-primary mb-1">{{ recharge.price }}</div>
+              <div class="text-sm text-white/80 mb-1">
+                {{ recharge.credits }}
+                <span i18n="@@pricing-page.recharge.creditsWord">credits</span>
+              </div>
+              <div class="text-xs text-white/40">
+                {{ recharge.perCredit }}
+                <span i18n="@@pricing-page.recharge.perCreditWord">/credit</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Credits System Info (Business price list) -->
+    @if (activeEngine() === 'business') {
+      <div class="mb-20">
+        <div class="text-center mb-12">
+          <h2
+            class="text-3xl sm:text-4xl font-bold text-white mb-4"
+            i18n="@@pricing-page.credits.title"
+          >
+            What one deliverable costs
+          </h2>
+          <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.credits.description">
+            1 credit ≈ 20 F — you always know what you spend. Free watermarked preview before any
+            credit is debited.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          @for (cost of creditCosts; track cost.name) {
+            <div class="glass-card p-4 rounded-xl border border-white/10">
+              <div class="text-center">
+                <div class="text-primary font-bold text-2xl mb-1">{{ cost.price }}</div>
+                <div class="text-white/80 text-sm mb-2">{{ cost.name }}</div>
+                <div class="text-white/50 text-xs">{{ cost.note }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Bundles -->
+    <div class="mb-20">
+      <div class="text-center mb-12">
+        <h2
+          class="text-3xl sm:text-4xl font-bold text-white mb-4"
+          i18n="@@pricing-page.bundles.title"
+        >
+          Bundles — the full IDEM stack, cheaper
+        </h2>
+        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.bundles.description">
+          Serious entrepreneurs need several engines. Bundles lock them together at a discount.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        @for (bundle of bundles; track bundle.name) {
+          <div class="glass-card p-8 rounded-xl border border-white/10 relative">
+            <div
+              class="absolute -top-3 right-6 px-3 py-1 bg-primary rounded-full text-xs font-bold text-white"
+            >
+              {{ bundle.discount }}
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">{{ bundle.name }}</h3>
+            <div class="mb-3">
+              <span class="text-4xl font-bold text-primary">{{ bundle.price }}</span>
+              <span class="text-gray-400 text-sm" i18n="@@pricing-page.bundles.perMonth">/month</span>
+              <span class="block text-xs text-gray-500 mt-1">{{ bundle.usd }}</span>
+            </div>
+            <div class="text-sm text-primary font-semibold mb-3">{{ bundle.composition }}</div>
+            <p class="text-sm text-gray-400 mb-6">{{ bundle.description }}</p>
+            <a
+              [href]="dashboardUrl + '/login'"
+              class="inner-button w-full py-3 rounded-lg font-semibold text-center block"
+              i18n="@@pricing-page.bundles.cta"
+            >
+              Get the bundle
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Frontal comparison -->
     <div class="mb-20">
       <div class="text-center mb-12">
         <h2
           class="text-3xl sm:text-4xl font-bold text-white mb-4"
           i18n="@@pricing-page.compare.title"
         >
-          Compare Plans
+          The same result, without the bill
         </h2>
         <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.compare.description">
-          Detailed comparison of features across all plans
+          Real market prices (July 2026) — what IDEM charges versus what the alternative costs.
         </p>
       </div>
 
@@ -126,147 +539,32 @@
               <tr>
                 <th
                   class="text-left p-4 text-white font-semibold"
-                  i18n="@@pricing-page.table.feature"
+                  i18n="@@pricing-page.compare.col.item"
                 >
-                  Feature
+                  What you need
+                </th>
+                <th
+                  class="text-center p-4 text-primary font-semibold"
+                  i18n="@@pricing-page.compare.col.idem"
+                >
+                  With IDEM
                 </th>
                 <th
                   class="text-center p-4 text-white font-semibold"
-                  i18n="@@pricing-page.table.free"
+                  i18n="@@pricing-page.compare.col.alt"
                 >
-                  Free
-                </th>
-                <th
-                  class="text-center p-4 text-white font-semibold"
-                  i18n="@@pricing-page.table.starter"
-                >
-                  Starter
-                </th>
-                <th
-                  class="text-center p-4 text-white font-semibold"
-                  i18n="@@pricing-page.table.professional"
-                >
-                  Professional
-                </th>
-                <th
-                  class="text-center p-4 text-white font-semibold"
-                  i18n="@@pricing-page.table.business"
-                >
-                  Business
+                  Elsewhere
                 </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/10">
-              <tr>
-                <td class="p-4 text-gray-300" i18n="@@pricing-page.table.monthlyCredits">
-                  Monthly Credits
-                </td>
-                <td class="p-4 text-center text-gray-400">10 (once)</td>
-                <td class="p-4 text-center text-gray-400">150</td>
-                <td class="p-4 text-center text-gray-400">650</td>
-                <td class="p-4 text-center text-primary">1,800</td>
-              </tr>
-              <tr>
-                <td class="p-4 text-gray-300" i18n="@@pricing-page.table.activeProjects">
-                  Active Projects
-                </td>
-                <td class="p-4 text-center text-gray-400">1</td>
-                <td class="p-4 text-center text-gray-400">3</td>
-                <td class="p-4 text-center text-gray-400">10</td>
-                <td class="p-4 text-center text-primary">Unlimited</td>
-              </tr>
-              <tr>
-                <td class="p-4 text-gray-300" i18n="@@pricing-page.table.storage">Storage</td>
-                <td class="p-4 text-center text-gray-400">500 MB</td>
-                <td class="p-4 text-center text-gray-400">5 GB</td>
-                <td class="p-4 text-center text-gray-400">50 GB</td>
-                <td class="p-4 text-center text-primary">500 GB</td>
-              </tr>
-              <tr>
-                <td class="p-4 text-gray-300" i18n="@@pricing-page.table.deployment">Deployment</td>
-                <td class="p-4 text-center text-gray-400">Quick</td>
-                <td class="p-4 text-center text-gray-400">Custom domain</td>
-                <td class="p-4 text-center text-gray-400">VPS</td>
-                <td class="p-4 text-center text-primary">Cloud</td>
-              </tr>
-              <tr>
-                <td class="p-4 text-gray-300" i18n="@@pricing-page.table.teamCollaboration">
-                  Team Collaboration
-                </td>
-                <td class="p-4 text-center">
-                  <svg
-                    class="w-5 h-5 text-gray-600 mx-auto"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </td>
-                <td class="p-4 text-center">
-                  <svg
-                    class="w-5 h-5 text-gray-600 mx-auto"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </td>
-                <td class="p-4 text-center text-gray-400">5 users</td>
-                <td class="p-4 text-center text-primary">Unlimited</td>
-              </tr>
-              <tr>
-                <td class="p-4 text-gray-300" i18n="@@pricing-page.table.prioritySupport">
-                  Priority Support
-                </td>
-                <td class="p-4 text-center">
-                  <svg
-                    class="w-5 h-5 text-gray-600 mx-auto"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </td>
-                <td class="p-4 text-center">
-                  <svg class="w-5 h-5 text-primary mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </td>
-                <td class="p-4 text-center">
-                  <svg class="w-5 h-5 text-primary mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </td>
-                <td class="p-4 text-center">
-                  <svg class="w-5 h-5 text-primary mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </td>
-              </tr>
+              @for (row of comparisonRows; track row.item) {
+                <tr>
+                  <td class="p-4 text-gray-300">{{ row.item }}</td>
+                  <td class="p-4 text-center text-primary font-semibold">{{ row.idem }}</td>
+                  <td class="p-4 text-center text-gray-400">{{ row.alternative }}</td>
+                </tr>
+              }
             </tbody>
           </table>
         </div>
@@ -274,7 +572,7 @@
     </div>
 
     <!-- Value Proposition with Image -->
-    <div class="mb-20">
+    <div class="mb-8">
       <div class="relative rounded-2xl lg:rounded-3xl overflow-hidden border border-white/10">
         <!-- Background Image with Overlay -->
         <div class="absolute inset-0">
@@ -307,9 +605,9 @@
               class="text-white/90 text-sm sm:text-base lg:text-lg leading-relaxed mb-6 sm:mb-8"
               i18n="@@pricing-page.value.description"
             >
-              Designed specifically for African entrepreneurs and businesses. We understand the
-              unique challenges and opportunities in African markets, and our pricing reflects that
-              commitment.
+              We don't sell man-hours, we sell generated results — and we price them for the
+              markets we serve. Credits hide the complexity, FCFA prices remove the friction, and
+              Mobile Money makes payment a one-tap habit.
             </p>
           </div>
         </div>
@@ -333,13 +631,14 @@
               </svg>
             </div>
             <h3 class="text-xl font-bold text-white mb-3" i18n="@@pricing-page.value.cheaper.title">
-              60-80% Cheaper
+              3-5× Cheaper
             </h3>
             <p
               class="text-gray-400 leading-relaxed"
               i18n="@@pricing-page.value.cheaper.description"
             >
-              Significantly more affordable than international alternatives
+              3 to 5 times cheaper than international platforms — up to 99% cheaper than local
+              consultants and agencies
             </p>
           </div>
 
@@ -363,7 +662,7 @@
               class="text-gray-400 leading-relaxed"
               i18n="@@pricing-page.value.mobileMoney.description"
             >
-              Pay with mobile money across Africa for easy access
+              Pay with MTN MoMo, Orange Money or card — annual plans payable in 1 or 3 installments
             </p>
           </div>
 
@@ -383,37 +682,11 @@
               No Hidden Fees
             </h3>
             <p class="text-gray-400 leading-relaxed" i18n="@@pricing-page.value.noFees.description">
-              Transparent pricing with no surprise charges or hidden costs
+              Credits roll over 2 months, packs are valid 12 months, and your code and documents
+              are always exportable — the freedom to leave is our proof of trust
             </p>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Credits System Info -->
-    <div class="mb-20">
-      <div class="text-center mb-12">
-        <h2
-          class="text-3xl sm:text-4xl font-bold text-white mb-4"
-          i18n="@@pricing-page.credits.title"
-        >
-          How Credits Work
-        </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@pricing-page.credits.description">
-          Each generation consumes credits based on complexity and AI cost
-        </p>
-      </div>
-
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        @for (gen of generationCosts.slice(0, 8); track gen.name) {
-          <div class="glass-card p-4 rounded-xl border border-white/10">
-            <div class="text-center">
-              <div class="text-primary font-bold text-2xl mb-1">{{ gen.credits }}</div>
-              <div class="text-white/80 text-sm mb-2">{{ gen.name }}</div>
-              <div class="text-white/50 text-xs">≈ ${{ gen.price }}</div>
-            </div>
-          </div>
-        }
       </div>
     </div>
   </div>
