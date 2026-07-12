@@ -7,6 +7,7 @@ import {
   ViewChild,
   signal,
   computed,
+  LOCALE_ID,
 } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -62,11 +63,13 @@ export class Header implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
+  protected readonly locale = inject(LOCALE_ID);
 
   protected readonly dashboardUrl = environment.services.dashboard.url;
   // UI State Signals
   protected readonly isMenuOpen = signal(false);
   protected readonly isDropdownOpen = signal(false);
+  protected readonly isLangDropdownOpen = signal(false);
   protected readonly userRefresh = signal(0);
   protected readonly activeDropdown = signal<string | null>(null);
 
@@ -233,5 +236,51 @@ export class Header implements OnInit {
     if (this.isDropdownOpen() && !dropdownButton && !dropdownMenu) {
       this.isDropdownOpen.set(false);
     }
+
+    const langButton = targetElement.closest('.lang-selector-btn');
+    const langMenu = targetElement.closest('.lang-selector-menu');
+
+    if (this.isLangDropdownOpen() && !langButton && !langMenu) {
+      this.isLangDropdownOpen.set(false);
+    }
+  }
+
+  /**
+   * Toggle language dropdown
+   */
+  protected toggleLangDropdown(): void {
+    this.isLangDropdownOpen.update((open) => !open);
+  }
+
+  /**
+   * Switch the application language
+   */
+  protected switchLanguage(targetLang: string): void {
+    if (this.locale === targetLang) {
+      this.isLangDropdownOpen.set(false);
+      return;
+    }
+
+    // Save language preference in localStorage and cookie
+    localStorage.setItem('idem_lang', targetLang);
+    document.cookie = `idem_lang=${targetLang}; path=/; max-age=31536000; SameSite=Lax`;
+
+    const pathname = this.document.location.pathname;
+    let newPath = pathname;
+
+    // Check if the current URL has /fr/ or /fr or /en/ or /en prefix
+    const hasFr = pathname.startsWith('/fr/') || pathname === '/fr';
+    const hasEn = pathname.startsWith('/en/') || pathname === '/en';
+
+    if (hasFr) {
+      newPath = pathname.replace(/^\/fr(\/|$)/, `/${targetLang}$1`);
+    } else if (hasEn) {
+      newPath = pathname.replace(/^\/en(\/|$)/, `/${targetLang}$1`);
+    } else {
+      newPath = `/${targetLang}${pathname.startsWith('/') ? pathname : '/' + pathname}`;
+    }
+
+    this.isLangDropdownOpen.set(false);
+    this.document.location.href = `${this.document.location.origin}${newPath}`;
   }
 }
