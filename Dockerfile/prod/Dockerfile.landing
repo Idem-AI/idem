@@ -15,6 +15,7 @@ COPY ./packages/shared-styles ./packages/shared-styles
 
 # Copier l'application landing
 COPY ./apps/landing ./apps/landing
+COPY .env ./apps/landing/.env
 
 # Installer les dépendances globales sans scripts
 RUN npm install dotenv 
