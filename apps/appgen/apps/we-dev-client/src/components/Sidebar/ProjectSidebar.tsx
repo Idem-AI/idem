@@ -66,7 +66,7 @@ export function ProjectSidebar({
         }
       } catch (error) {
         console.error("Error loading project data:", error);
-        toast.error("Erreur lors du chargement du projet");
+        toast.error(t("settings.errorLoadingProject"));
       } finally {
         setIsLoading(false);
       }
