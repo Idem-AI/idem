@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 
 @Component({
   selector: 'app-storages-list',
+  imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">S3 Storages</h1>
+    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">{{ 'storages.title' | translate }}</h1>
     @if (storages().length === 0) {
-      <div class="box">No S3 storages configured.</div>
+      <div class="box">{{ 'storages.empty' | translate }}</div>
     } @else {
       <div class="space-y-3">
         @for (s of storages(); track s.uuid) {

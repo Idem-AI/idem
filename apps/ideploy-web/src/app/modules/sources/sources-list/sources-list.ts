@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 
 @Component({
   selector: 'app-sources-list',
+  imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">Git Sources</h1>
+    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">{{ 'sources.title' | translate }}</h1>
     @if (sources().length === 0) {
-      <div class="box">No Git sources configured (GitHub / GitLab apps).</div>
+      <div class="box">{{ 'sources.empty' | translate }}</div>
     } @else {
       <div class="space-y-3">
         @for (s of sources(); track s.uuid) {

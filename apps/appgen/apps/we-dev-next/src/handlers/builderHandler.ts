@@ -17,7 +17,8 @@ export async function handleBuilderMode(
   userId: string | null,
   otherConfig?: PromptExtra,
   tools?: ToolInfo[],
-  projectData?: ProjectModel
+  projectData?: ProjectModel,
+  language?: string
 ) {
   const startTime = Date.now();
 
@@ -172,7 +173,7 @@ export async function handleBuilderMode(
 
       console.log('🔧 Building system prompt...');
       ChatLogger.info('SYSTEM_PROMPT', 'Building system prompt...');
-      const systemPrompt = buildSystemPrompt();
+      const systemPrompt = buildSystemPrompt(language);
       console.log('  System prompt length:', systemPrompt.length, 'characters');
       console.log(
         '  System prompt preview (first 300 chars):',
@@ -299,7 +300,7 @@ REQUIREMENTS:
       console.log('⚠️  USING FALLBACK CONTENT...');
       ChatLogger.warn('FALLBACK', 'Using fallback content due to error');
 
-      const systemInstructions = buildSystemPrompt();
+      const systemInstructions = buildSystemPrompt(language);
       const userRequest =
         `Error processing project data: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
         'Please generate a basic web application structure.\n\n' +
@@ -330,7 +331,7 @@ REQUIREMENTS:
       const historyDiffString = getHistoryDiff(historyMessages, filesPath, nowFiles);
 
       ChatLogger.info('MAX_PROMPT', 'Building max system prompt for large content');
-      const maxPrompt = buildMaxSystemPrompt(filesPath, nowFiles, historyDiffString);
+      const maxPrompt = buildMaxSystemPrompt(filesPath, nowFiles, historyDiffString, language);
       const userRequest =
         'My question is: ' +
         messages[messages.length - 1].content +
@@ -344,7 +345,7 @@ REQUIREMENTS:
       });
     } else {
       ChatLogger.info('STANDARD_PROMPT', 'Building standard system prompt');
-      const standardPrompt = buildSystemPrompt();
+      const standardPrompt = buildSystemPrompt(language);
       const userRequest =
         'My question is: ' +
         messages[messages.length - 1].content +

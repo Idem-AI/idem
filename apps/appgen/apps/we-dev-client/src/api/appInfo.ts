@@ -1,21 +1,9 @@
+import { resolveInitialLocale } from "../utils/localeCookie";
+
 export const authService = {
   async appInfo() {
-    let language = "en";
-    try {
-      const settingsConfig = JSON.parse(
-        localStorage.getItem("settingsConfig") || "{}"
-      );
-      if (settingsConfig.language) {
-        language = settingsConfig.language;
-      } else {
-        // Get browser language setting
-        const browserLang = navigator.language.toLowerCase();
-        // Set to Chinese if browser language is Chinese, otherwise English
-        language = browserLang.startsWith("zh") ? "zh" : "en";
-      }
-    } catch (error) {
-      console.log(error);
-    }
+    // Shared cross-app cookie is the source of truth; falls back to browser lang.
+    const language = resolveInitialLocale();
 
     const res = await fetch(
       `${process.env.REACT_APP_BASE_URL}/api/appInfo?language=${language}`,

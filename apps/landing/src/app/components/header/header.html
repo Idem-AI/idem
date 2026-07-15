@@ -335,6 +335,31 @@
             </svg>
             <span i18n="@@header.nav.github">GitHub</span>
           </a>
+
+          <!-- Language Selector (Mobile) -->
+          <div class="mobile-nav-group mt-4 px-4">
+            <div class="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2" i18n="@@header.mobile.language">
+              Language / Langue
+            </div>
+            <div class="flex gap-2">
+              <button
+                (click)="switchLanguage('en')"
+                [ngClass]="{ 'bg-white/15 text-white border-white/20 font-semibold': locale === 'en', 'bg-white/5 text-white/50 border-white/5': locale !== 'en' }"
+                class="flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>🇬🇧</span>
+                <span>English</span>
+              </button>
+              <button
+                (click)="switchLanguage('fr')"
+                [ngClass]="{ 'bg-white/15 text-white border-white/20 font-semibold': locale === 'fr', 'bg-white/5 text-white/50 border-white/5': locale !== 'fr' }"
+                class="flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>🇫🇷</span>
+                <span>Français</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <!-- Fin contenu scrollable -->

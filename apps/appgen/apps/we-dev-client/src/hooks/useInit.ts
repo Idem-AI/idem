@@ -1,6 +1,7 @@
 import useThemeStore from '@/stores/themeSlice';
 import useUserStore from '@/stores/userSlice';
 import i18n from '@/utils/i18';
+import { readLocaleCookie } from '@/utils/localeCookie';
 import { useEffect } from 'react';
 import useMCPStore from '@/stores/useMCPSlice';
 import { eventEmitter } from '@/components/AiChat/utils/EventEmitter';
@@ -90,17 +91,18 @@ const useInit = (): { isDarkMode: boolean } => {
     // Version web - pas d'accès au système de fichiers local
     console.log('Local filesystem not available in web mode');
 
+    // Language priority: shared cross-app cookie > legacy settingsConfig > browser.
+    // The shared `idem_lang` cookie is the source of truth across all Idem apps.
     const settingsConfig = JSON.parse(localStorage.getItem('settingsConfig') || '{}');
-    if (settingsConfig.language) {
+    const cookieLang = readLocaleCookie();
+    if (cookieLang) {
+      i18n.changeLanguage(cookieLang);
+    } else if (settingsConfig.language === 'en' || settingsConfig.language === 'fr') {
       i18n.changeLanguage(settingsConfig.language);
     } else {
-      // Get browser language settings
       const browserLang = navigator.language.toLowerCase();
-      // If Chinese environment (including simplified and traditional), set to Chinese, otherwise set to English
-      const defaultLang = browserLang.startsWith('zh') ? 'zh' : 'en';
-
+      const defaultLang = browserLang.startsWith('fr') ? 'fr' : 'en';
       i18n.changeLanguage(defaultLang);
-      // Save to local settings
     }
 
     // Version web - pas de gestion de proxy système

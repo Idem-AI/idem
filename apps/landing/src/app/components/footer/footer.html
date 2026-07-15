@@ -253,19 +253,41 @@
     </div>
 
     <!-- Copyright Section -->
-    <div class="mt-12 pt-8 text-center relative">
+    <div class="mt-12 pt-8 text-center relative flex flex-col items-center justify-center gap-4">
       <div
-        class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-6 -rotate-1"
+        class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-6 -rotate-1"
       ></div>
-      <p class="text-gray-200 mb-2" i18n="@@footer.2025_idem_all">
-        &copy; 2025 IDEM. All rights reserved.
-      </p>
-      <p class="text-gray-400 text-sm">
-        <span class="text-primary font-semibold" i18n="@@footer.african_you_too"
-          >African, you too can build</span
+      <div>
+        <p class="text-gray-200 mb-2" i18n="@@footer.2025_idem_all">
+          &copy; 2025 IDEM. All rights reserved.
+        </p>
+        <p class="text-gray-400 text-sm">
+          <span class="text-primary font-semibold" i18n="@@footer.african_you_too"
+            >African, you too can build</span
+          >
+          <ng-container i18n="@@footer.madeInCameroon">• Made with ❤️ in Cameroon </ng-container>
+        </p>
+      </div>
+
+      <!-- Language Selector (Footer) -->
+      <div class="flex items-center gap-3 mt-2">
+        <button
+          (click)="switchLanguage('en')"
+          [ngClass]="{ 'bg-white/15 text-white border-white/20 font-semibold': locale === 'en', 'bg-white/5 text-gray-400 border-white/5 hover:text-white hover:bg-white/10': locale !== 'en' }"
+          class="py-1 px-3 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer"
         >
-        <ng-container i18n="@@footer.madeInCameroon">• Made with ❤️ in Cameroon </ng-container>
-      </p>
+          <span>🇬🇧</span>
+          <span>English</span>
+        </button>
+        <button
+          (click)="switchLanguage('fr')"
+          [ngClass]="{ 'bg-white/15 text-white border-white/20 font-semibold': locale === 'fr', 'bg-white/5 text-gray-400 border-white/5 hover:text-white hover:bg-white/10': locale !== 'fr' }"
+          class="py-1 px-3 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>🇫🇷</span>
+          <span>Français</span>
+        </button>
+      </div>
     </div>
   </div>
 </footer>

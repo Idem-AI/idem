@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } 
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SlicePipe } from '@angular/common';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.models';
 
@@ -12,20 +13,20 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
  */
 @Component({
   selector: 'app-new-project',
-  imports: [FormsModule, RouterLink, SlicePipe],
+  imports: [FormsModule, RouterLink, SlicePipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Top bar -->
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
       <a routerLink="/dashboard" class="flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
-        <i class="fa-solid fa-arrow-left"></i> Back
+        <i class="fa-solid fa-arrow-left"></i> {{ 'projects.common.back' | translate }}
       </a>
-      <span class="text-sm font-semibold font-mono text-white/90">New Project</span>
+      <span class="text-sm font-semibold font-mono text-white/90">{{ 'projects.common.newProject' | translate }}</span>
       <span class="w-12"></span>
     </div>
 
     <div class="mx-auto max-w-5xl px-6 py-12">
-      <h1 class="heading-serif mb-8 text-center" style="font-size:40px;font-weight:700;color:#fff;">Let's build something new</h1>
+      <h1 class="heading-serif mb-8 text-center" style="font-size:40px;font-weight:700;color:#fff;">{{ 'projects.new.heading' | translate }}</h1>
 
       <!-- Git URL prompt -->
       <div class="mb-2 flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 border"
@@ -34,32 +35,32 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
            [class.focus-within:ring-2]="true"
            [class.focus-within:ring-blue-500/20]="true">
         <i class="fa-solid fa-link text-blue-400"></i>
-        <input class="flex-1 bg-transparent outline-none text-sm" placeholder="Enter a Git repository URL…"
-               aria-label="Git repository URL"
+        <input class="flex-1 bg-transparent outline-none text-sm" [placeholder]="'projects.new.gitUrlPlaceholder' | translate"
+               [attr.aria-label]="'projects.new.gitUrlLabel' | translate"
                [(ngModel)]="gitUrl" (keyup.enter)="importUrl()" style="color:var(--color-text-primary);" />
         @if (gitUrl) {
-          <button class="button cursor-pointer text-xs font-semibold py-1.5 px-3" (click)="importUrl()">Continue</button>
+          <button class="button cursor-pointer text-xs font-semibold py-1.5 px-3" (click)="importUrl()">{{ 'projects.new.continue' | translate }}</button>
         }
       </div>
       <p class="mb-10 text-center text-sm" style="color:var(--color-text-tertiary);">
-        Paste a public Git repository URL, pick one of your GitHub repos, or clone a template.
+        {{ 'projects.new.subheading' | translate }}
       </p>
 
       <div class="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <!-- ===== Import Git Repository ===== -->
         <div>
-          <h2 class="mb-4 text-xl font-semibold font-mono text-white/95">Import Git Repository</h2>
+          <h2 class="mb-4 text-xl font-semibold font-mono text-white/95">{{ 'projects.new.importGitRepo' | translate }}</h2>
 
           @if (githubUser() === undefined) {
-            <p class="text-sm" style="color:var(--color-text-secondary);">Checking GitHub connection…</p>
+            <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.checkingGithub' | translate }}</p>
           } @else if (githubUser() === null) {
             <div class="db-glass text-center p-8 rounded-2xl">
               <i class="fa-brands fa-github mb-3 text-4xl text-white/80"></i>
               <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">
-                Connect your GitHub account to import and deploy your repositories.
+                {{ 'projects.new.connectGithubDesc' | translate }}
               </p>
               <button class="button cursor-pointer" (click)="connectGithub()">
-                <i class="fa-brands fa-github mr-2"></i> Connect GitHub
+                <i class="fa-brands fa-github mr-2"></i> {{ 'projects.new.connectGithub' | translate }}
               </button>
             </div>
           } @else {
@@ -69,11 +70,11 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
               </span>
               <div class="relative flex-1">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[10px]" style="color:#8d919a;"></i>
-                <input class="input font-mono text-xs" style="padding-left:30px;height:36px;" placeholder="Search repositories…" aria-label="Search repositories" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
+                <input class="input font-mono text-xs" style="padding-left:30px;height:36px;" [placeholder]="'projects.new.searchReposPlaceholder' | translate" [attr.aria-label]="'projects.new.searchReposLabel' | translate" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
               </div>
             </div>
             @if (filteredRepos().length === 0) {
-              <div class="db-glass p-8 text-center text-sm" style="color:var(--color-text-secondary);">No repositories found.</div>
+              <div class="db-glass p-8 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.noRepos' | translate }}</div>
             } @else {
               <div class="overflow-y-auto rounded-xl db-glass p-0" style="max-height: 400px;">
                 @for (repo of filteredRepos(); track repo.fullName) {
@@ -83,24 +84,24 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
                     </div>
                     <div class="min-w-0 flex-1">
                       <div class="truncate text-sm font-semibold text-white/90 font-mono">{{ repo.name }}
-                        @if (repo.private) { <i class="fa-solid fa-lock ml-1.5 text-[10px]" style="color:var(--color-text-tertiary);" title="Private repository"></i> }
+                        @if (repo.private) { <i class="fa-solid fa-lock ml-1.5 text-[10px]" style="color:var(--color-text-tertiary);" [title]="'projects.new.privateRepo' | translate"></i> }
                       </div>
-                      <div class="truncate text-[10px] font-mono mt-0.5" style="color:var(--color-text-tertiary);">Updated: {{ repo.updatedAt | slice:0:10 }}</div>
+                      <div class="truncate text-[10px] font-mono mt-0.5" style="color:var(--color-text-tertiary);">{{ 'projects.new.updated' | translate }} {{ repo.updatedAt | slice:0:10 }}</div>
                     </div>
-                    <button class="button-secondary cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors" (click)="importRepo(repo)">Import</button>
+                    <button class="button-secondary cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors" (click)="importRepo(repo)">{{ 'projects.new.import' | translate }}</button>
                   </div>
                 }
               </div>
             }
-            <button class="mt-3 text-xs hover:text-white transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="disconnectGithub()">Disconnect GitHub</button>
+            <button class="mt-3 text-xs hover:text-white transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="disconnectGithub()">{{ 'projects.new.disconnectGithub' | translate }}</button>
           }
         </div>
 
         <!-- ===== Clone Template ===== -->
         <div>
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold font-mono text-white/95">Clone Template</h2>
-            <a routerLink="/templates" class="text-sm font-semibold hover:underline" style="color:#60a5fa;">Browse All</a>
+            <h2 class="text-xl font-semibold font-mono text-white/95">{{ 'projects.new.cloneTemplate' | translate }}</h2>
+            <a routerLink="/templates" class="text-sm font-semibold hover:underline" style="color:#60a5fa;">{{ 'projects.new.browseAll' | translate }}</a>
           </div>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             @for (t of templates(); track t.name) {
@@ -111,8 +112,8 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
                   </div>
                   <div class="font-semibold capitalize font-mono text-white/90 group-hover:text-blue-400 transition-colors">{{ t.name }}</div>
                 </div>
-                <p class="mb-4 flex-1 text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ t.slogan || 'One-click boilerplate project' }}</p>
-                <button class="button-secondary w-full cursor-pointer hover:bg-blue-500 hover:text-white transition-all text-xs font-semibold py-1.5 rounded-lg border border-transparent hover:border-blue-600/30" [disabled]="busy()" (click)="cloneTemplate(t)">Deploy</button>
+                <p class="mb-4 flex-1 text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ t.slogan || ('projects.new.oneClickBoilerplate' | translate) }}</p>
+                <button class="button-secondary w-full cursor-pointer hover:bg-blue-500 hover:text-white transition-all text-xs font-semibold py-1.5 rounded-lg border border-transparent hover:border-blue-600/30" [disabled]="busy()" (click)="cloneTemplate(t)">{{ 'projects.common.deploy' | translate }}</button>
               </div>
             }
           </div>
@@ -126,11 +127,11 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
             <i class="fa-solid fa-cube text-lg"></i>
           </div>
           <div>
-            <div class="font-semibold font-mono text-white/90">Create Empty Project</div>
-            <p class="text-xs mt-0.5" style="color:var(--color-text-secondary);">Skip Git connection and start a blank environment from scratch.</p>
+            <div class="font-semibold font-mono text-white/90">{{ 'projects.new.createEmpty' | translate }}</div>
+            <p class="text-xs mt-0.5" style="color:var(--color-text-secondary);">{{ 'projects.new.createEmptyDesc' | translate }}</p>
           </div>
         </div>
-        <button class="button-secondary cursor-pointer text-xs font-semibold py-2 px-4 rounded-xl hover:bg-white/10 hover:text-white transition-all" (click)="createEmpty()">Create Empty Project</button>
+        <button class="button-secondary cursor-pointer text-xs font-semibold py-2 px-4 rounded-xl hover:bg-white/10 hover:text-white transition-all" (click)="createEmpty()">{{ 'projects.new.createEmpty' | translate }}</button>
       </div>
 
       @if (error()) {
@@ -142,6 +143,7 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
 export class NewProjectComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  private translate = inject(TranslateService);
 
   protected readonly githubUser = signal<string | null | undefined>(undefined);
   protected readonly repos = signal<GithubRepo[]>([]);
@@ -186,16 +188,13 @@ export class NewProjectComponent implements OnInit {
         // Guard: the global API returns client_id='' when GitHub OAuth isn't
         // configured → GitHub would 404. Surface a clear message instead.
         if (!url || /[?&]client_id=(&|$)/.test(url)) {
-          this.error.set(
-            'GitHub integration is not configured on the Idem API (missing GITHUB_CLIENT_ID/SECRET). ' +
-              'Ask an admin to set them, or paste a Git repository URL above instead.'
-          );
+          this.error.set(this.translate.instant('projects.new.errGithubNotConfigured'));
           return;
         }
         window.location.href = url;
       },
       error: () =>
-        this.error.set('Could not reach the GitHub integration. Is the Idem API running?'),
+        this.error.set(this.translate.instant('projects.new.errGithubUnreachable')),
     });
   }
 
@@ -234,7 +233,7 @@ export class NewProjectComponent implements OnInit {
       next: () => this.router.navigate(['/services']),
       error: (e) => {
         this.busy.set(false);
-        this.error.set(e?.error?.error?.message ?? 'Deployment failed');
+        this.error.set(e?.error?.error?.message ?? this.translate.instant('projects.common.deploymentFailed'));
       },
     });
   }
@@ -243,7 +242,7 @@ export class NewProjectComponent implements OnInit {
     const name = `project-${Date.now().toString(36)}`;
     this.api.createProject({ name }).subscribe({
       next: (p) => this.router.navigate(['/projects', p.uuid]),
-      error: (e) => this.error.set(e?.error?.error?.message ?? 'Failed to create project'),
+      error: (e) => this.error.set(e?.error?.error?.message ?? this.translate.instant('projects.common.errCreateProject')),
     });
   }
 }

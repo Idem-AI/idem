@@ -121,4 +121,6 @@ export interface ChatRequest {
   };
   tools?: ToolInfo[];
   projectData?: ProjectModel;
+  /** User UI language ('en' | 'fr') so the AI generates content in the right language. */
+  language?: string;
 }

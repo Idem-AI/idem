@@ -9,6 +9,7 @@ dotenv.config();
 
 import { LLMProvider, LLMOptions, AI_CONFIG } from '../config/ai.config';
 import { withGeminiFallback } from '../utils/gemini-fallback';
+import { getRequestLanguage } from '../utils/request-language';
 export { LLMProvider, LLMOptions };
 
 
@@ -24,6 +25,12 @@ export interface PromptConfig {
   userId?: string;
   promptType?: string;
   skipQuotaCheck?: boolean;
+  /**
+   * User UI language ('en' | 'fr'). When set, a language directive is injected so
+   * the model generates content in the requested language. Resolved from the
+   * request (query `lang` / body `language` / Accept-Language header) upstream.
+   */
+  language?: string;
 }
 
 export interface AIChatMessage {
@@ -44,6 +51,7 @@ export interface PromptRequest {
   userId?: string;
   promptType?: string;
   skipQuotaCheck?: boolean;
+  language?: string;
 }
 
 export interface AIResponse {
@@ -422,6 +430,27 @@ export class PromptService {
     }
   }
 
+  /**
+   * Build a strong directive that forces the model to answer in the user's language.
+   * Returns an empty string when no (or an unknown) language is provided, leaving
+   * existing behavior unchanged.
+   */
+  private buildLanguageDirective(language?: string): string {
+    if (!language) {
+      return '';
+    }
+    const normalized = language.toLowerCase();
+    const label = normalized.startsWith('fr')
+      ? 'French (Français)'
+      : normalized.startsWith('en')
+        ? 'English'
+        : null;
+    if (!label) {
+      return '';
+    }
+    return `RESPONSE LANGUAGE (CRITICAL): You MUST write ALL generated content — every section, title, sentence, label and value — in ${label}. Do not mix languages. This instruction overrides any language implied by the examples or prompts below.`;
+  }
+
   public async runPrompt(request: PromptConfig, messages: AIChatMessage[]): Promise<string> {
     logger.info(
       `Running prompt for provider: ${request.provider}, model: ${
@@ -436,6 +465,7 @@ export class PromptService {
       userId,
       promptType,
       skipQuotaCheck = false,
+      language,
     } = request;
 
     if (!messages || messages.length === 0) {
@@ -490,6 +520,25 @@ export class PromptService {
         return msg;
       });
       logger.info('Applied prompt modifications');
+    }
+
+    // Force the output language. This is the single choke point for every AI
+    // feature/provider, so one directive here guarantees generated content is in
+    // the user's language (prevents wrong-language output). An explicit
+    // config.language wins; otherwise fall back to the request-scoped language.
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+    if (languageDirective && modifiedMessages.length > 0) {
+      // Append to the LAST message rather than inserting a new system message:
+      // this keeps message roles/adjacency intact (Gemini rejects consecutive
+      // same-role turns) and benefits from recency for stronger adherence.
+      const lastIdx = modifiedMessages.length - 1;
+      const last = modifiedMessages[lastIdx];
+      modifiedMessages = [
+        ...modifiedMessages.slice(0, lastIdx),
+        { ...last, content: `${last.content}\n\n${languageDirective}` },
+      ];
+      logger.info(`Injected language directive (language=${effectiveLanguage}).`);
     }
 
     try {

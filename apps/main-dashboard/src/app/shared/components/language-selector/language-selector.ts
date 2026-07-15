@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LanguageService } from '../../services/language.service';
 import { TranslateModule } from '@ngx-translate/core';
@@ -12,6 +12,9 @@ import { TranslateModule } from '@ngx-translate/core';
 })
 export class LanguageSelectorComponent {
   private readonly languageService = inject(LanguageService);
+
+  readonly direction = input<'up' | 'down'>('up');
+  readonly align = input<'left' | 'right'>('left');
 
   protected readonly isOpen = signal(false);
   protected readonly currentLanguage = signal(this.languageService.getCurrentLanguage());
