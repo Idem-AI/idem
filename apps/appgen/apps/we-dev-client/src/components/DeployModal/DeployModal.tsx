@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from 'antd';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import useUserStore from '@/stores/userSlice';
 import { redirectToLogin } from '@/hooks/useAuth';
@@ -20,6 +21,7 @@ const API_BASE = process.env.REACT_APP_IDEM_API_BASE_URL || 'http://localhost:30
 const HANDOFF_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps) {
+  const { t } = useTranslation();
   const [isHandingOff, setIsHandingOff] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
   const { getHandoffPayload } = useAppGenContextStore();
@@ -45,7 +47,7 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
 
     const payload = getHandoffPayload();
     if (!payload) {
-      toast.error('Aucune génération disponible à déployer');
+      toast.error(t('deployModal.no_generation'));
       return;
     }
 
@@ -112,7 +114,7 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
     }
 
     onClose();
-    const encodedName = encodeURIComponent(payload?.appName || 'Mon Application');
+    const encodedName = encodeURIComponent(payload?.appName || t('deployModal.default_app_name'));
     const encodedDesc = encodeURIComponent(payload?.description || '');
     window.location.href = `${DASHBOARD_URL}/create-project?from=appgen&name=${encodedName}&description=${encodedDesc}`;
   };
@@ -152,8 +154,8 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
               />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-white mb-1">Déployer votre application</h3>
-          <p className="text-sm text-gray-400">Choisissez comment vous souhaitez déployer</p>
+          <h3 className="text-xl font-bold text-white mb-1">{t('deployModal.title')}</h3>
+          <p className="text-sm text-gray-400">{t('deployModal.subtitle')}</p>
         </div>
 
         {/* Options */}
@@ -181,23 +183,23 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
               </div>
               <div>
                 <h4 className="font-semibold text-white group-hover:text-blue-400 transition-colors text-sm">
-                  Déploiement rapide
+                  {t('deployModal.quick_deploy_title')}
                 </h4>
-                <span className="text-xs text-gray-500">Netlify · Sans compte requis</span>
+                <span className="text-xs text-gray-500">{t('deployModal.quick_deploy_subtitle')}</span>
               </div>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed mb-3">
-              Déployez instantanément avec CDN global et SSL automatique.
+              {t('deployModal.quick_deploy_desc')}
             </p>
             <div className="flex flex-wrap gap-1.5">
               <span className="px-2 py-0.5 text-xs bg-blue-900/40 text-blue-300 rounded-md">
-                Instantané
+                {t('deployModal.tag_instant')}
               </span>
               <span className="px-2 py-0.5 text-xs bg-blue-900/40 text-blue-300 rounded-md">
-                SSL auto
+                {t('deployModal.tag_ssl')}
               </span>
               <span className="px-2 py-0.5 text-xs bg-blue-900/40 text-blue-300 rounded-md">
-                CDN global
+                {t('deployModal.tag_cdn')}
               </span>
             </div>
           </button>
@@ -231,21 +233,20 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
               </div>
               <div>
                 <h4 className="font-semibold text-white group-hover:text-purple-400 transition-colors text-sm">
-                  Déploiement avec Idem
+                  {t('deployModal.idem_deploy_title')}
                 </h4>
-                <span className="text-xs text-gray-500">iDeploy · Projet auto-configuré</span>
+                <span className="text-xs text-gray-500">{t('deployModal.idem_deploy_subtitle')}</span>
               </div>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed mb-3">
-              Votre application est transférée vers iDeploy avec toutes les métadonnées. Prête à
-              déployer.
+              {t('deployModal.idem_deploy_desc')}
             </p>
             <div className="flex flex-wrap gap-1.5">
               <span className="px-2 py-0.5 text-xs bg-purple-900/40 text-purple-300 rounded-md">
-                Projet auto
+                {t('deployModal.tag_auto_project')}
               </span>
               <span className="px-2 py-0.5 text-xs bg-purple-900/40 text-purple-300 rounded-md">
-                Données pré-remplies
+                {t('deployModal.tag_prefilled')}
               </span>
             </div>
             {!currentUser && (
@@ -258,7 +259,7 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
                     d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                   />
                 </svg>
-                <span>Connexion requise</span>
+                <span>{t('deployModal.login_required')}</span>
               </div>
             )}
           </button>
@@ -287,8 +288,8 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
                 </svg>
               </div>
               <div className="text-left">
-                <p className="text-sm font-medium text-white">Connecter à un projet Idem</p>
-                <p className="text-xs text-gray-500">Créer ou associer à un projet existant</p>
+                <p className="text-sm font-medium text-white">{t('deployModal.connect_idem_title')}</p>
+                <p className="text-xs text-gray-500">{t('deployModal.connect_idem_subtitle')}</p>
               </div>
             </div>
             <svg
@@ -308,7 +309,7 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
             onClick={onClose}
             className="px-5 py-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
           >
-            Annuler
+            {t('deployModal.cancel')}
           </button>
         </div>
       </div>

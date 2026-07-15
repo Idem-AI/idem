@@ -386,7 +386,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     } catch (error) {
       console.error('Failed to load chat history:', error);
-      toast.error('Failed to load chat history');
+      toast.error(t('chat.errors.load_history_failed'));
     }
   };
 
@@ -661,7 +661,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
       // add Ollama error handling
       if (baseModal.from === 'ollama') {
-        toast.error('Ollama server connection failed, please check configuration');
+        toast.error(t('chat.errors.ollama_connection_failed'));
       }
     },
   });
@@ -842,7 +842,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       console.log('Generation started for project:', projectData.name);
     } catch (error) {
       console.error('Error starting generation:', error);
-      toast.error('Error starting generation');
+      toast.error(t('chat.errors.start_generation_failed'));
     }
   };
 
@@ -859,13 +859,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Upload ZIP to backend (Firebase Storage)
       await sendZipToBackend(projectId, zipBlob);
 
-      console.log('Code successfully saved to Firebase Storage');
       toast.success(
-        `Code sauvegardé sur Firebase Storage (${Object.keys(generatedFiles).length} fichiers)`
+        t('chat.success.firebase_save_success', {
+          count: Object.keys(generatedFiles).length,
+        })
       );
     } catch (error) {
       console.error('Error saving code to Firebase Storage:', error);
-      toast.error('Erreur lors de la sauvegarde sur Firebase Storage');
+      toast.error(t('chat.errors.firebase_save_failed'));
     }
   };
 
@@ -1063,7 +1064,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }, 100);
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Failed to upload files');
+      toast.error(t('chat.errors.upload_files_failed'));
     }
   };
 
@@ -1173,13 +1174,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       addImages(uploadResults);
 
       if (uploadResults.length === 1) {
-        toast.success('Image added to input box');
+        toast.success(t('chat.success.image_added'));
       } else {
-        toast.success(`${uploadResults.length} images added to input box`);
+        toast.success(
+          t('chat.success.images_added_multiple', {
+            count: uploadResults.length,
+          })
+        );
       }
     } catch (error) {
       console.error('Failed to process dropped images:', error);
-      toast.error('Failed to process dropped images');
+      toast.error(t('chat.errors.process_dropped_images_failed'));
     } finally {
       setIsUploading(false);
     }

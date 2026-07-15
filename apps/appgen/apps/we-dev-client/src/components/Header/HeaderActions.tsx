@@ -154,8 +154,8 @@ export function HeaderActions() {
             toast.success(t('header.deploySuccess'));
           } else {
             console.error('Deploy failed:', data);
-            const errorMessage = data.message || 'Deployment failed';
-            toast.error(`Deployment failed: ${errorMessage}`);
+            const errorMessage = data.message || t('header.error.deploy_failed');
+            toast.error(t('header.error.deploy_failed_with_msg', { message: errorMessage }));
           }
         } catch (error) {
           console.error('Failed to read dist directory:', error);
@@ -174,7 +174,7 @@ export function HeaderActions() {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(deployUrl);
-      toast.success('Link copied to clipboard!');
+      toast.success(t('header.copied_link'));
     } catch (err) {
       console.error('Failed to copy:', err);
     }
@@ -189,7 +189,7 @@ export function HeaderActions() {
       const projectId = urlParams.get('projectId');
 
       if (!projectId) {
-        toast.error('Project ID not found');
+        toast.error(t('header.github.no_project_id'));
         return;
       }
 
@@ -203,10 +203,10 @@ export function HeaderActions() {
       console.log('Sending to GitHub:', githubData);
 
       // await sendToGitHub(projectId, githubData);
-      toast.success('Project sent to GitHub successfully!');
+      toast.success(t('header.github.success'));
     } catch (error) {
       console.error('Failed to send to GitHub:', error);
-      toast.error('Failed to send to GitHub. Please try again.');
+      toast.error(t('header.github.error_sending'));
     } finally {
       setIsSendingToGitHub(false);
     }
@@ -301,7 +301,7 @@ export function HeaderActions() {
                 />
               </svg>
             )}
-            <span>{isSendingToGitHub ? 'Sending...' : 'Send to GitHub'}</span>
+            <span>{isSendingToGitHub ? t('header.github.sending') : t('header.github.send')}</span>
           </button>
 
           {/* Directory opening option disabled in web mode */}
@@ -414,7 +414,7 @@ export function HeaderActions() {
           }}
         >
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-white mb-4">Deploying Your Project</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">{t('header.deploy_modal.title')}</h3>
             <div className="flex justify-center items-center h-32">
               <div className="relative">
                 <div className="animate-spin rounded-full h-16 w-16 border-2 border-blue-500/30 border-t-blue-500"></div>
@@ -422,7 +422,7 @@ export function HeaderActions() {
               </div>
             </div>
             <p className="text-sm text-gray-400 mt-4">
-              Please wait while we deploy your application...
+              {t('header.deploy_modal.loading_text')}
             </p>
           </div>
         </Modal>

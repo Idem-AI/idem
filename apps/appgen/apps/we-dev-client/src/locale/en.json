@@ -35,7 +35,13 @@
       "file_size_limit": "File {fileName} exceeds 5MB limit",
       "upload_failed": "Upload failed",
       "paste_failed": "Failed to paste image",
-      "add_image_failed": "Failed to add image"
+      "add_image_failed": "Failed to add image",
+      "load_history_failed": "Failed to load chat history",
+      "ollama_connection_failed": "Ollama server connection failed, please check configuration",
+      "start_generation_failed": "Error starting generation",
+      "firebase_save_failed": "Failed to save on Firebase Storage",
+      "upload_files_failed": "Failed to upload files",
+      "process_dropped_images_failed": "Failed to process dropped images"
     },
     "success": {
       "images_uploaded": "Image uploaded successfully",
@@ -43,7 +49,8 @@
       "image_pasted": "Image pasted successfully",
       "images_pasted_multiple": "{count} images pasted successfully",
       "image_added": "Image added to input",
-      "images_added_multiple": "{count} images added to input"
+      "images_added_multiple": "{count} images added to input",
+      "firebase_save_success": "Code saved to Firebase Storage ({count} files)"
     },
     "placeholders": {
       "input": "Enter message, press Enter to send, Shift+Enter for new line...",
@@ -210,7 +217,9 @@
         "username": "Database Username",
         "password": "Database Password"
       }
-    }
+    },
+    "projectNotFound": "Project not found",
+    "errorLoadingProject": "Failed to load project"
   },
   "preview": {
     "noserver": "No server running",
@@ -234,9 +243,22 @@
     "close": "Close",
     "visitSite": "Visit Site",
     "open_directory": "Open Directory",
+    "copied_link": "Link copied to clipboard!",
+    "github": {
+      "sending": "Sending...",
+      "send": "Send to GitHub",
+      "success": "Project sent to GitHub successfully!",
+      "error_sending": "Failed to send to GitHub. Please try again.",
+      "no_project_id": "Project ID not found"
+    },
+    "deploy_modal": {
+      "title": "Deploying Your Project",
+      "loading_text": "Please wait while we deploy your application..."
+    },
     "error": {
       "open_directory": "Failed to open directory",
-      "deploy_failed": "Deployment failed, please try again later"
+      "deploy_failed": "Deployment failed, please try again later",
+      "deploy_failed_with_msg": "Deployment failed: {{message}}"
     }
   },
   "explorer": {
@@ -407,5 +429,26 @@
       "invalidOldPassword": "Invalid old password",
       "updateFailed": "Failed to update password"
     }
+  },
+  "deployModal": {
+    "title": "Deploy your application",
+    "subtitle": "Choose how you want to deploy",
+    "no_generation": "No generation available to deploy",
+    "default_app_name": "My Application",
+    "quick_deploy_title": "Quick Deploy",
+    "quick_deploy_subtitle": "Netlify · No account required",
+    "quick_deploy_desc": "Instantly deploy with global CDN and automatic SSL.",
+    "tag_instant": "Instant",
+    "tag_ssl": "Auto SSL",
+    "tag_cdn": "Global CDN",
+    "idem_deploy_title": "Deploy with Idem",
+    "idem_deploy_subtitle": "iDeploy · Auto-configured project",
+    "idem_deploy_desc": "Your application is transferred to iDeploy with all metadata. Ready to deploy.",
+    "tag_auto_project": "Auto project",
+    "tag_prefilled": "Prefilled data",
+    "login_required": "Login required",
+    "connect_idem_title": "Connect to an Idem project",
+    "connect_idem_subtitle": "Create or associate with an existing project",
+    "cancel": "Cancel"
   }
 }
