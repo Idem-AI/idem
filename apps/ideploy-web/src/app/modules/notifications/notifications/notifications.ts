@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 
 interface ChannelState {
@@ -11,26 +12,26 @@ interface ChannelState {
 
 @Component({
   selector: 'app-notifications',
-  imports: [FormsModule],
+  imports: [FormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="mb-6 text-2xl font-bold">Notifications</h1>
+    <h1 class="mb-6 text-2xl font-bold">{{ 'notifications.title' | translate }}</h1>
     <div class="space-y-4">
       @for (ch of channels(); track ch.channel) {
         <div class="box">
           <h2 class="mb-2 font-semibold">{{ ch.label }}</h2>
           <label class="mb-2 flex items-center gap-2 text-sm">
             <input type="checkbox" [(ngModel)]="ch.enabled" />
-            Enabled
+            {{ 'notifications.enabled' | translate }}
           </label>
           <input
             class="input mb-2"
-            placeholder="Webhook URL / token"
+            [placeholder]="'notifications.webhookPlaceholder' | translate"
             [(ngModel)]="ch.webhook"
           />
           <div class="flex gap-2">
-            <button class="button" (click)="save(ch)">Save</button>
-            <button class="button-secondary" (click)="test(ch)">Send test</button>
+            <button class="button" (click)="save(ch)">{{ 'notifications.save' | translate }}</button>
+            <button class="button-secondary" (click)="test(ch)">{{ 'notifications.sendTest' | translate }}</button>
           </div>
           @if (status()[ch.channel]; as st) {
             <p class="mt-2 text-xs" [class.text-green-400]="st.ok" [class.text-red-400]="!st.ok">
@@ -44,6 +45,7 @@ interface ChannelState {
 })
 export class NotificationsComponent implements OnInit {
   private api = inject(ApiService);
+  private translate = inject(TranslateService);
 
   protected readonly channels = signal<ChannelState[]>([
     { channel: 'slack', label: 'Slack', enabled: false, webhook: '' },
@@ -73,14 +75,14 @@ export class NotificationsComponent implements OnInit {
     if (ch.channel === 'telegram') body['telegram_token'] = ch.webhook;
     if (ch.channel === 'pushover') body['pushover_user_key'] = ch.webhook;
     this.api.updateNotificationSettings(ch.channel, body).subscribe(() =>
-      this.setStatus(ch.channel, true, 'Saved')
+      this.setStatus(ch.channel, true, this.translate.instant('notifications.saved'))
     );
   }
 
   protected test(ch: ChannelState): void {
     this.api.testNotification(ch.channel).subscribe({
-      next: () => this.setStatus(ch.channel, true, 'Test sent ✓'),
-      error: (e) => this.setStatus(ch.channel, false, e?.error?.error?.message ?? 'Test failed'),
+      next: () => this.setStatus(ch.channel, true, this.translate.instant('notifications.testSent')),
+      error: (e) => this.setStatus(ch.channel, false, e?.error?.error?.message ?? this.translate.instant('notifications.testFailed')),
     });
   }
 }
