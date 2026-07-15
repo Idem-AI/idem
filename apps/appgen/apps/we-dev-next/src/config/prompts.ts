@@ -10,8 +10,24 @@ export interface PromptExtra {
   extra: Record<string, any>;
 }
 
-export function getSystemPrompt(): string {
+/**
+ * Build a directive forcing the AI to produce user-facing content in the user's
+ * UI language. Code, identifiers, tags and technical tokens stay unchanged.
+ */
+export function getLanguageDirective(language?: string): string {
+  const isFr = (language || 'en').toLowerCase().startsWith('fr');
+  const label = isFr ? 'French (Français)' : 'English';
   return `
+
+RESPONSE LANGUAGE (CRITICAL): All user-facing content you generate — UI text, copy,
+headings, labels, button text, placeholder/demo data, testimonials and any message
+addressed to the user — MUST be written in ${label}. Keep code, identifiers, file
+paths, HTML/JSX tags and technical tokens unchanged.
+`;
+}
+
+export function getSystemPrompt(language?: string): string {
+  return getLanguageDirective(language) + `
 You are an expert web developer. Generate complete, production-ready code with professional architecture.
 
 TECHNICAL CONSTRAINTS:
@@ -181,8 +197,8 @@ This platform primarily targets Sub-Saharan Africa. ALL generated content MUST r
 `;
 }
 
-export function buildSystemPrompt(): string {
-  return getSystemPrompt();
+export function buildSystemPrompt(language?: string): string {
+  return getSystemPrompt(language);
 }
 
 export const CONTINUE_PROMPT = stripIndents`
@@ -193,8 +209,9 @@ export const CONTINUE_PROMPT = stripIndents`
 export function buildMaxSystemPrompt(
   filesPath: string[],
   files: Record<string, string>,
-  diffString: string
+  diffString: string,
+  language?: string
 ): string {
-  return `Current file directory tree: ${filesPath.join('\n')}\n\n,You can only modify the contents within the directory tree, requirements: ${getSystemPrompt()}
+  return `Current file directory tree: ${filesPath.join('\n')}\n\n,You can only modify the contents within the directory tree, requirements: ${getSystemPrompt(language)}
 Current requirement file contents:\n${JSON.stringify(files)}${diffString ? `,diff:\n${diffString}` : ''}`;
 }

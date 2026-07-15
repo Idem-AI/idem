@@ -4,27 +4,41 @@
     <meta charset="utf-8" />
     <script>
       (function() {
+        // Shared cross-app locale cookie: `idem_lang` on `.idem.africa` in prod
+        // (shared across sub-domains), host-only on localhost. Keep this contract
+        // identical to shared/utils/locale-cookie.ts and the other Idem apps.
+        var host = window.location.hostname;
+        var onIdem = host.indexOf('idem.africa') !== -1 &&
+          host.lastIndexOf('idem.africa') === host.length - 'idem.africa'.length;
+        function getCookie(name) {
+          var m = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+          return m ? decodeURIComponent(m[1]) : null;
+        }
+        function saveLang(lang) {
+          localStorage.setItem('idem_lang', lang);
+          var scope = onIdem ? '; domain=.idem.africa; Secure' : '';
+          document.cookie = 'idem_lang=' + lang + '; path=/; max-age=31536000; SameSite=Lax' + scope;
+        }
+
         var pathname = window.location.pathname;
         var hasFr = pathname.startsWith('/fr/') || pathname === '/fr';
         var hasEn = pathname.startsWith('/en/') || pathname === '/en';
-        
+
         if (hasFr) {
-          localStorage.setItem('idem_lang', 'fr');
-          document.cookie = "idem_lang=fr; path=/; max-age=31536000; SameSite=Lax";
+          saveLang('fr');
         } else if (hasEn) {
-          localStorage.setItem('idem_lang', 'en');
-          document.cookie = "idem_lang=en; path=/; max-age=31536000; SameSite=Lax";
+          saveLang('en');
         } else {
           // Skip redirection on local development servers
-          if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            var pref = localStorage.getItem('idem_lang');
-            if (!pref) {
+          if (host !== 'localhost' && host !== '127.0.0.1') {
+            // Priority: shared cookie (set by any Idem app) > localStorage > browser.
+            var pref = getCookie('idem_lang') || localStorage.getItem('idem_lang');
+            if (pref !== 'fr' && pref !== 'en') {
               var userLang = navigator.language || navigator.userLanguage || '';
               pref = userLang.toLowerCase().startsWith('fr') ? 'fr' : 'en';
             }
-            localStorage.setItem('idem_lang', pref);
-            document.cookie = "idem_lang=" + pref + "; path=/; max-age=31536000; SameSite=Lax";
-            
+            saveLang(pref);
+
             var newPath = '/' + pref + (pathname.startsWith('/') ? pathname : '/' + pathname);
             window.location.replace(newPath);
           }

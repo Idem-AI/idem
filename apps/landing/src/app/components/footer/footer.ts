@@ -1,5 +1,6 @@
 import { Component, inject, LOCALE_ID } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
+import { isSupportedLocale, writeLocaleCookie } from '../../shared/utils/locale-cookie';
 
 @Component({
   selector: 'app-footer',
@@ -16,9 +17,11 @@ export class Footer {
       return;
     }
 
-    // Save language preference in localStorage and cookie
+    // Persist to the shared cross-app cookie (source of truth) + localStorage.
+    if (isSupportedLocale(targetLang)) {
+      writeLocaleCookie(targetLang);
+    }
     localStorage.setItem('idem_lang', targetLang);
-    document.cookie = `idem_lang=${targetLang}; path=/; max-age=31536000; SameSite=Lax`;
 
     const pathname = this.document.location.pathname;
     let newPath = pathname;

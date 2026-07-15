@@ -614,7 +614,7 @@ export function GeneralSettings() {
                   onChange={(value) => handleLanguageChange(value)}
                   options={[
                     { value: "en", label: "English" },
-                    { value: "zh", label: "中文" },
+                    { value: "fr", label: "Français" },
                   ]}
                 />
               </div>
@@ -643,7 +643,7 @@ export function GeneralSettings() {
             onChange={(value) => handleLanguageChange(value)}
             options={[
               { value: "en", label: "English" },
-              { value: "zh", label: "中文" },
+              { value: "fr", label: "Français" },
             ]}
           />
         </div>

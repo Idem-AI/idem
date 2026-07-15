@@ -4,6 +4,7 @@ import { TokenService } from '../services/token.service';
 import { isPlatformServer } from '@angular/common';
 import { Observable, from, of } from 'rxjs';
 import { switchMap, catchError, timeout } from 'rxjs/operators';
+import { readLocaleCookie } from '../utils/locale-cookie';
 
 /**
  * Interceptor function to add JWT to requests.
@@ -41,6 +42,13 @@ export const authInterceptor: HttpInterceptorFn = (
   ) {
     return next(req);
   }
+
+  // Advertise the user's UI language on every real API request so backend AI
+  // generation replies in the right language. SSE streaming bypasses HttpClient
+  // (and thus this interceptor) — it carries the language as a `lang` query param
+  // instead (see SSEService callers).
+  const lang = readLocaleCookie() ?? 'en';
+  req = req.clone({ headers: req.headers.set('Accept-Language', lang) });
 
   // Skip if the request already carries its own Authorization header (e.g. iDeploy API)
   if (req.headers.has('Authorization')) {
