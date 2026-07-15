@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Messages, ToolInfo } from '../types/project.js';
 import { streamTextFn, StreamingOptions } from '../services/aiService.js';
-import { CONTINUE_PROMPT } from '../config/prompts.js';
+import { CONTINUE_PROMPT, getLanguageDirective } from '../config/prompts.js';
 import { deductUserTokens, estimateTokens } from '../utils/tokens.js';
 import SwitchableStream from '../utils/switchableStream.js';
 import { tool } from 'ai';
@@ -14,10 +14,18 @@ export async function handleChatMode(
   messages: Messages,
   model: string,
   userId: string | null,
-  tools?: ToolInfo[]
+  tools?: ToolInfo[],
+  language?: string
 ) {
   const stream = new SwitchableStream();
   let toolList = {};
+
+  // Prepend a system message so the assistant replies in the user's UI language.
+  messages.unshift({
+    id: uuidv4(),
+    role: 'system',
+    content: getLanguageDirective(language),
+  });
 
   if (tools && tools.length > 0) {
     toolList = tools.reduce(

@@ -7,6 +7,7 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { RealtimeService } from '../../../shared/services/realtime.service';
 import { interval, Subscription } from 'rxjs';
@@ -19,15 +20,15 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
  */
 @Component({
   selector: 'app-deployment-logs',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Header -->
     <div class="flex h-16 items-center justify-between border-b px-6 mb-8" style="border-color:var(--color-surface-2);">
       <a routerLink="/dashboard" class="flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
-        <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+        <i class="fa-solid fa-arrow-left"></i> {{ 'deploy.backToDashboard' | translate }}
       </a>
-      <span class="text-sm font-semibold font-mono text-white/90">Deployment Logs</span>
+      <span class="text-sm font-semibold font-mono text-white/90">{{ 'deploy.deploymentLogs' | translate }}</span>
       <span class="w-12"></span>
     </div>
 
@@ -41,7 +42,7 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
                 {{ deployment().application_name }}
               </h1>
               <p class="text-sm mt-1" style="color:var(--color-text-secondary);">
-                Branch: <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-white/5 text-white/80"><i class="fa-solid fa-code-branch mr-1"></i>{{ deployment().application_git_branch || 'main' }}</span>
+                {{ 'deploy.branch' | translate }} <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-white/5 text-white/80"><i class="fa-solid fa-code-branch mr-1"></i>{{ deployment().application_git_branch || 'main' }}</span>
               </p>
             </div>
             
@@ -50,31 +51,31 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
               @switch (deployment().status) {
                 @case ('queued') {
                   <span class="status-badge bg-white/5 text-white/70 border border-white/10">
-                    <i class="fa-solid fa-circle-notch fa-spin text-xs"></i> Queued
+                    <i class="fa-solid fa-circle-notch fa-spin text-xs"></i> {{ 'deploy.statusQueued' | translate }}
                   </span>
                 }
                 @case ('in_progress') {
                   <span class="status-badge bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    <i class="fa-solid fa-circle-notch fa-spin text-xs"></i> In Progress
+                    <i class="fa-solid fa-circle-notch fa-spin text-xs"></i> {{ 'deploy.statusInProgress' | translate }}
                   </span>
                 }
                 @case ('finished') {
                   <span class="status-badge bg-green-500/10 text-green-400 border border-green-500/20">
-                    ✓ Success
+                    ✓ {{ 'deploy.statusSuccess' | translate }}
                   </span>
                 }
                 @case ('failed') {
                   <span class="status-badge bg-red-500/10 text-red-400 border border-red-500/20">
-                    ✗ Failed
+                    ✗ {{ 'deploy.statusFailed' | translate }}
                   </span>
                 }
               }
 
               <!-- Live URL Button -->
               @if (deployment().status === 'finished' && deployment().application_url) {
-                <a [href]="deployment().application_url" target="_blank" rel="noopener noreferrer" 
+                <a [href]="deployment().application_url" target="_blank" rel="noopener noreferrer"
                    class="button cursor-pointer text-xs px-3 py-1.5 inline-flex items-center gap-1.5 shadow-lg shadow-blue-500/10 transition-transform hover:scale-[1.02]">
-                  Visit App <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                  {{ 'deploy.visitApp' | translate }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                 </a>
               }
             </div>
@@ -99,8 +100,8 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
             <span class="text-xs font-mono ml-2 text-white/40">build-console</span>
           </div>
           
-          <button (click)="copyLogs()" class="text-xs px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white/80 transition-colors cursor-pointer inline-flex items-center gap-1" title="Copy logs to clipboard">
-            <i class="fa-solid fa-copy"></i> Copy logs
+          <button (click)="copyLogs()" class="text-xs px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white/80 transition-colors cursor-pointer inline-flex items-center gap-1" [title]="'deploy.copyLogsTitle' | translate">
+            <i class="fa-solid fa-copy"></i> {{ 'deploy.copyLogs' | translate }}
           </button>
         </div>
 
@@ -109,7 +110,7 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
           class="p-4 overflow-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-[#c9d1d9]"
           style="max-height: 65vh; min-height: 250px; background-color: #080b12;"
         >@for (line of lines(); track $index) {<span>{{ line }}</span>
-}@if (lines().length === 0) {<span style="color: var(--color-text-tertiary)">Waiting for logs…</span>}</pre>
+}@if (lines().length === 0) {<span style="color: var(--color-text-tertiary)">{{ 'deploy.waitingForLogs' | translate }}</span>}</pre>
       </div>
     </div>
   `,

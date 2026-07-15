@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { ServiceTemplate } from '../../../shared/models/ideploy.models';
 
@@ -11,28 +12,28 @@ import { ServiceTemplate } from '../../../shared/models/ideploy.models';
  */
 @Component({
   selector: 'app-templates-page',
-  imports: [FormsModule],
+  imports: [FormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6 flex items-center justify-between gap-4">
-      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:#fff;">Templates</h1>
+      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:#fff;">{{ 'templates.title' | translate }}</h1>
       <span class="text-sm" style="color:var(--color-text-secondary);">{{ filtered().length }} / {{ templates().length }}</span>
     </div>
 
-    <input class="input mb-6" placeholder="Search templates (name, category, tag)…"
+    <input class="input mb-6" [placeholder]="'templates.searchPlaceholder' | translate"
            [ngModel]="query()" (ngModelChange)="query.set($event)" />
 
     @if (error()) {
       <div class="mb-4 rounded-md p-3 text-sm text-red-400" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
         {{ error() }}
         @if (error()!.toLowerCase().includes('server')) {
-          · <a href="/servers/new" style="color:#60a5fa;">Add a server</a>
+          · <a href="/servers/new" style="color:#60a5fa;">{{ 'templates.addServer' | translate }}</a>
         }
       </div>
     }
 
     @if (templates().length === 0) {
-      <div class="box">No templates available. (The service-templates catalog could not be loaded.)</div>
+      <div class="box">{{ 'templates.noTemplates' | translate }}</div>
     } @else {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         @for (t of filtered(); track t.name) {
@@ -48,7 +49,7 @@ import { ServiceTemplate } from '../../../shared/models/ideploy.models';
             </div>
             <p class="mb-4 flex-1 text-sm" style="color:var(--color-text-secondary);">{{ t.slogan }}</p>
             <button class="button w-full" [disabled]="busy() === t.name" (click)="deploy(t)">
-              {{ busy() === t.name ? 'Deploying…' : 'Deploy' }}
+              {{ busy() === t.name ? ('templates.deploying' | translate) : ('templates.deploy' | translate) }}
             </button>
           </div>
         }
@@ -59,6 +60,7 @@ import { ServiceTemplate } from '../../../shared/models/ideploy.models';
 export class TemplatesPageComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  private translate = inject(TranslateService);
 
   protected readonly templates = signal<ServiceTemplate[]>([]);
   protected readonly query = signal('');
@@ -91,7 +93,7 @@ export class TemplatesPageComponent implements OnInit {
       },
       error: (e) => {
         this.busy.set(null);
-        this.error.set(e?.error?.error?.message ?? 'Deployment failed');
+        this.error.set(e?.error?.error?.message ?? this.translate.instant('templates.deploymentFailed'));
       },
     });
   }

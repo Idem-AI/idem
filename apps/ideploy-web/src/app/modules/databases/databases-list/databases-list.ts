@@ -1,21 +1,22 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Database, DatabaseType } from '../../../shared/models/ideploy.models';
 
 @Component({
   selector: 'app-databases-list',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="mb-6 text-2xl font-bold">Databases</h1>
+    <h1 class="mb-6 text-2xl font-bold">{{ 'databases.title' | translate }}</h1>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div>
         @if (loading()) {
-          <p class="text-sm" style="color: var(--color-text-secondary)">Loading…</p>
+          <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'databases.loading' | translate }}</p>
         } @else if (databases().length === 0) {
-          <div class="box">No databases yet.</div>
+          <div class="box">{{ 'databases.empty' | translate }}</div>
         } @else {
           <div class="space-y-3">
             @for (db of databases(); track db.uuid) {
@@ -27,10 +28,10 @@ import { Database, DatabaseType } from '../../../shared/models/ideploy.models';
                   </div>
                 </div>
                 <div class="flex gap-2">
-                  <button class="button-secondary" (click)="action(db, 'start')">Start</button>
-                  <button class="button-secondary" (click)="action(db, 'stop')">Stop</button>
-                  <button class="button-secondary" (click)="backup(db)">Backup now</button>
-                  <button class="text-xs text-red-400" (click)="remove(db)">Delete</button>
+                  <button class="button-secondary" (click)="action(db, 'start')">{{ 'databases.start' | translate }}</button>
+                  <button class="button-secondary" (click)="action(db, 'stop')">{{ 'databases.stop' | translate }}</button>
+                  <button class="button-secondary" (click)="backup(db)">{{ 'databases.backupNow' | translate }}</button>
+                  <button class="text-xs text-red-400" (click)="remove(db)">{{ 'databases.delete' | translate }}</button>
                 </div>
               </div>
             }
@@ -39,9 +40,9 @@ import { Database, DatabaseType } from '../../../shared/models/ideploy.models';
       </div>
 
       <form class="box space-y-3" [formGroup]="form" (ngSubmit)="create()">
-        <h2 class="font-semibold">New database</h2>
+        <h2 class="font-semibold">{{ 'databases.newDatabase' | translate }}</h2>
         <div>
-          <label class="mb-1 block text-sm">Type</label>
+          <label class="mb-1 block text-sm">{{ 'databases.type' | translate }}</label>
           <select class="input" formControlName="type">
             @for (t of types; track t) {
               <option [value]="t">{{ t }}</option>
@@ -49,16 +50,16 @@ import { Database, DatabaseType } from '../../../shared/models/ideploy.models';
           </select>
         </div>
         <div>
-          <label class="mb-1 block text-sm">Name</label>
+          <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
           <input class="input" formControlName="name" />
         </div>
         <div class="flex gap-3">
           <div class="flex-1">
-            <label class="mb-1 block text-sm">Environment ID</label>
+            <label class="mb-1 block text-sm">{{ 'databases.environmentId' | translate }}</label>
             <input class="input" type="number" formControlName="environment_id" />
           </div>
           <div class="flex-1">
-            <label class="mb-1 block text-sm">Destination ID</label>
+            <label class="mb-1 block text-sm">{{ 'databases.destinationId' | translate }}</label>
             <input class="input" type="number" formControlName="destination_id" />
           </div>
         </div>
@@ -66,7 +67,7 @@ import { Database, DatabaseType } from '../../../shared/models/ideploy.models';
           <p class="text-sm text-red-400">{{ error() }}</p>
         }
         <button class="button" type="submit" [disabled]="form.invalid || saving()">
-          {{ saving() ? 'Creating…' : 'Create database' }}
+          {{ (saving() ? 'databases.creating' : 'databases.createDatabase') | translate }}
         </button>
       </form>
     </div>
@@ -75,6 +76,7 @@ import { Database, DatabaseType } from '../../../shared/models/ideploy.models';
 export class DatabasesListComponent implements OnInit {
   private api = inject(ApiService);
   private fb = inject(FormBuilder);
+  private translate = inject(TranslateService);
 
   protected readonly types: DatabaseType[] = [
     'postgresql',
@@ -125,7 +127,7 @@ export class DatabasesListComponent implements OnInit {
         this.load();
       },
       error: (e) => {
-        this.error.set(e?.error?.error?.message ?? 'Failed to create database');
+        this.error.set(e?.error?.error?.message ?? this.translate.instant('databases.createError'));
         this.saving.set(false);
       },
     });

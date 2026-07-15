@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Destination, Server } from '../../../shared/models/ideploy.models';
 
@@ -11,12 +12,12 @@ interface ServerDestinations {
 /** Destinations across all servers (Coolify destination.index) + creation. */
 @Component({
   selector: 'app-destinations-list',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">Destinations</h1>
+    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">{{ 'destinations.title' | translate }}</h1>
     @if (rows().length === 0) {
-      <div class="box">No servers yet — add a server to create Docker destinations.</div>
+      <div class="box">{{ 'destinations.empty' | translate }}</div>
     } @else {
       <div class="space-y-4">
         @for (row of rows(); track row.server.uuid) {
@@ -26,18 +27,18 @@ interface ServerDestinations {
               <span class="font-semibold">{{ row.server.name }}</span>
             </div>
             @if (row.destinations.length === 0) {
-              <p class="text-sm" style="color: var(--color-text-secondary)">No destinations.</p>
+              <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'destinations.noDestinations' | translate }}</p>
             } @else {
               @for (d of row.destinations; track d.uuid) {
                 <div class="text-sm">
                   <i class="fa-solid fa-network-wired mr-2" style="color:#8d919a;"></i>
-                  {{ d.name }} · network <code>{{ d.network }}</code>
+                  {{ d.name }} · {{ 'destinations.network' | translate }} <code>{{ d.network }}</code>
                 </div>
               }
             }
             <form class="mt-3 flex gap-2" [formGroup]="formFor(row.server.uuid)" (ngSubmit)="create(row.server.uuid)">
-              <input class="input flex-1" placeholder="docker network (e.g. ideploy)" [formControl]="formFor(row.server.uuid).controls.network" />
-              <button class="button" type="submit" [disabled]="formFor(row.server.uuid).invalid">Add destination</button>
+              <input class="input flex-1" [placeholder]="'destinations.networkPlaceholder' | translate" [formControl]="formFor(row.server.uuid).controls.network" />
+              <button class="button" type="submit" [disabled]="formFor(row.server.uuid).invalid">{{ 'destinations.addDestination' | translate }}</button>
             </form>
           </div>
         }

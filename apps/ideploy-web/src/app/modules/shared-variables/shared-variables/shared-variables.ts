@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 
 /** Team-scoped shared environment variables (Coolify Shared Variables). */
 @Component({
   selector: 'app-shared-variables',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">Shared Variables</h1>
-    <p class="mb-4 text-sm" style="color: var(--color-text-secondary)">Team-level variables reusable across all resources.</p>
+    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">{{ 'sharedVariables.title' | translate }}</h1>
+    <p class="mb-4 text-sm" style="color: var(--color-text-secondary)">{{ 'sharedVariables.description' | translate }}</p>
 
     <div class="box max-w-2xl">
       @for (v of vars(); track v.key) {
@@ -19,9 +20,9 @@ import { ApiService } from '../../../shared/services/api.service';
         </div>
       }
       <form class="mt-3 flex gap-2" [formGroup]="form" (ngSubmit)="add()">
-        <input class="input flex-1" placeholder="KEY" formControlName="key" />
-        <input class="input flex-1" placeholder="value" formControlName="value" />
-        <button class="button" type="submit" [disabled]="form.invalid || teamId() === null">Add</button>
+        <input class="input flex-1" [placeholder]="'sharedVariables.keyPlaceholder' | translate" formControlName="key" />
+        <input class="input flex-1" [placeholder]="'sharedVariables.valuePlaceholder' | translate" formControlName="value" />
+        <button class="button" type="submit" [disabled]="form.invalid || teamId() === null">{{ 'sharedVariables.add' | translate }}</button>
       </form>
     </div>
   `,

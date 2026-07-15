@@ -7,6 +7,7 @@ import express, { Express, Request, Response } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
 import { metricsMiddleware } from './middleware/metrics.middleware';
+import { languageMiddleware } from './middleware/language.middleware';
 import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
@@ -112,6 +113,10 @@ app.use(
 
 // Audit log for sensitive routes.
 app.use(auditLogger);
+
+// Resolve the user's UI language (query > body > Accept-Language) and expose it to
+// all downstream services so AI generation replies in the right language.
+app.use(languageMiddleware);
 
 app.use('/projects', projectRoutes);
 app.use('/project', brandingRoutes);

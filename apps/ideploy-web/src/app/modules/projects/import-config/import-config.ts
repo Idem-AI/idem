@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { environment } from '../../../../environments/environment';
 
@@ -17,104 +18,104 @@ interface Preset {
  */
 @Component({
   selector: 'app-import-config',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
       <a routerLink="/new-project" class="flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
-        <i class="fa-solid fa-arrow-left"></i> Back
+        <i class="fa-solid fa-arrow-left"></i> {{ 'projects.common.back' | translate }}
       </a>
-      <span class="text-sm font-semibold font-mono">New Project</span>
+      <span class="text-sm font-semibold font-mono">{{ 'projects.common.newProject' | translate }}</span>
       <span class="w-12"></span>
     </div>
 
     <div class="mx-auto max-w-2xl px-6 py-12">
       <div class="db-glass">
-        <h1 class="mb-4 text-2xl font-bold font-mono text-white/95">New Project</h1>
+        <h1 class="mb-4 text-2xl font-bold font-mono text-white/95">{{ 'projects.common.newProject' | translate }}</h1>
 
         <!-- Imported source -->
         <div class="mb-6 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
-          <div class="text-xs font-semibold uppercase tracking-wider" style="color:var(--color-text-tertiary);">Importing from Git</div>
+          <div class="text-xs font-semibold uppercase tracking-wider" style="color:var(--color-text-tertiary);">{{ 'projects.import.importingFromGit' | translate }}</div>
           <div class="mt-2 flex items-center gap-2 text-sm font-semibold text-white/90">
             <i class="fa-brands fa-github text-lg"></i> {{ repo() }}
             <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:var(--color-surface-2);color:var(--color-text-secondary);"><i class="fa-solid fa-code-branch mr-1"></i>{{ branch() }}</span>
           </div>
         </div>
 
-        <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">Configure your project parameters and deploy.</p>
+        <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">{{ 'projects.import.configureDeploy' | translate }}</p>
 
         <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label class="mb-1 block text-sm font-semibold text-white/80" for="teamName">Team</label>
+            <label class="mb-1 block text-sm font-semibold text-white/80" for="teamName">{{ 'projects.import.team' | translate }}</label>
             <input id="teamName" name="teamName" class="input bg-opacity-50 cursor-not-allowed" [value]="teamName()" disabled />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-semibold text-white/80" for="projectName">Project Name</label>
+            <label class="mb-1 block text-sm font-semibold text-white/80" for="projectName">{{ 'projects.import.projectName' | translate }}</label>
             <input id="projectName" name="projectName" class="input" [(ngModel)]="projectName" autocomplete="off" />
           </div>
         </div>
 
         <div class="mb-4">
-          <label class="mb-1 block text-sm font-semibold text-white/80" for="appPreset">Application Preset</label>
+          <label class="mb-1 block text-sm font-semibold text-white/80" for="appPreset">{{ 'projects.import.appPreset' | translate }}</label>
           <select id="appPreset" name="appPreset" class="input cursor-pointer" [ngModel]="presetIndex()" (ngModelChange)="presetIndex.set(+$event)">
             @for (p of presets; track p.label; let i = $index) {
               <option [value]="i">{{ p.label }}</option>
             }
           </select>
-          <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">Auto-detected from the repository — change if needed.</p>
+          <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.autoDetected' | translate }}</p>
         </div>
 
         <!-- Build method -->
         <div class="mb-4">
-          <span class="mb-1.5 block text-sm font-semibold text-white/80">Build method</span>
+          <span class="mb-1.5 block text-sm font-semibold text-white/80">{{ 'projects.import.buildMethod' | translate }}</span>
           @if (hasDockerfile()) {
             <div class="space-y-2 rounded-xl p-3 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
               <label class="flex items-center gap-2 text-sm cursor-pointer text-white/80 hover:text-white">
                 <input type="radio" name="buildMethod" class="cursor-pointer" [checked]="buildMethod() === 'docker'" (change)="buildMethod.set('docker')" />
-                <span><i class="fa-brands fa-docker mr-1 text-blue-400"></i> Use Docker — build the repo's Dockerfile</span>
+                <span><i class="fa-brands fa-docker mr-1 text-blue-400"></i> {{ 'projects.import.useDocker' | translate }}</span>
               </label>
               <label class="flex items-center gap-2 text-sm cursor-pointer text-white/80 hover:text-white">
                 <input type="radio" name="buildMethod" class="cursor-pointer" [checked]="buildMethod() === 'buildless'" (change)="buildMethod.set('buildless')" />
-                <span><i class="fa-brands fa-node-js mr-1 text-green-400"></i> Without Docker — run the app directly (no containerization)</span>
+                <span><i class="fa-brands fa-node-js mr-1 text-green-400"></i> {{ 'projects.import.withoutDocker' | translate }}</span>
               </label>
             </div>
-            <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">A Dockerfile was detected — choose how to deploy.</p>
+            <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.dockerfileDetected' | translate }}</p>
           } @else {
             <div class="rounded-xl p-3 text-sm border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);color:var(--color-text-secondary);">
-              <i class="fa-brands fa-node-js mr-1 text-green-400"></i> No Dockerfile detected — the app will be deployed
-              <strong>without Docker</strong> (run directly in a base Node runtime).
+              <i class="fa-brands fa-node-js mr-1 text-green-400"></i> {{ 'projects.import.noDockerfilePart1' | translate }}
+              <strong>{{ 'projects.import.withoutDockerStrong' | translate }}</strong> {{ 'projects.import.noDockerfilePart2' | translate }}
             </div>
           }
         </div>
 
         <div class="mb-5">
-          <label class="mb-1 block text-sm font-semibold text-white/80" for="rootDir">Root Directory</label>
+          <label class="mb-1 block text-sm font-semibold text-white/80" for="rootDir">{{ 'projects.import.rootDirectory' | translate }}</label>
           <input id="rootDir" name="rootDir" class="input font-mono" [(ngModel)]="rootDir" placeholder="./" autocomplete="off" />
-          <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">The directory where your package.json / build settings are located.</p>
+          <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.rootDirHint' | translate }}</p>
         </div>
 
         <!-- Collapsibles -->
         <button class="mb-3 flex w-full items-center gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
                 style="border:1px solid var(--color-surface-2);" (click)="showBuild.set(!showBuild())">
           <i class="fa-solid" [class.fa-chevron-right]="!showBuild()" [class.fa-chevron-down]="showBuild()"></i>
-          Build and Output Settings
+          {{ 'projects.import.buildOutputSettings' | translate }}
         </button>
         @if (showBuild()) {
           <div class="mb-3 space-y-3 px-1">
-            <input class="input font-mono" [(ngModel)]="buildCommand" placeholder="Build command (optional, e.g. npm run build)" aria-label="Build command" autocomplete="off" />
-            <input class="input font-mono" [(ngModel)]="startCommand" placeholder="Start command (optional, e.g. npm run start)" aria-label="Start command" autocomplete="off" />
-            <input class="input font-mono" [(ngModel)]="portsExposes" placeholder="Exposed port (e.g. 3000)" aria-label="Exposed port" autocomplete="off" />
+            <input class="input font-mono" [(ngModel)]="buildCommand" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.buildCommandLabel' | translate" autocomplete="off" />
+            <input class="input font-mono" [(ngModel)]="startCommand" [placeholder]="'projects.import.startCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.startCommandLabel' | translate" autocomplete="off" />
+            <input class="input font-mono" [(ngModel)]="portsExposes" [placeholder]="'projects.import.portPlaceholder' | translate" [attr.aria-label]="'projects.import.portLabel' | translate" autocomplete="off" />
           </div>
         }
 
         <button class="mb-5 flex w-full items-center gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
                 style="border:1px solid var(--color-surface-2);" (click)="showEnv.set(!showEnv())">
           <i class="fa-solid" [class.fa-chevron-right]="!showEnv()" [class.fa-chevron-down]="showEnv()"></i>
-          Environment Variables
+          {{ 'projects.import.envVariables' | translate }}
         </button>
         @if (showEnv()) {
           <p class="mb-4 px-1 text-xs" style="color:var(--color-text-tertiary);">
-            You can add environment variables after the first deploy, from the application's Environment tab.
+            {{ 'projects.import.envHint' | translate }}
           </p>
         }
 
@@ -125,14 +126,14 @@ interface Preset {
               <div class="flex items-center gap-3">
                 @if (!isProd) {
                   <button class="button cursor-pointer" [disabled]="settingUpLocal()" (click)="useLocalServer()">
-                    {{ settingUpLocal() ? 'Setting up…' : 'Use this machine (local Docker)' }}
+                    {{ (settingUpLocal() ? 'projects.import.settingUp' : 'projects.import.useLocalMachine') | translate }}
                   </button>
                 }
-                <a routerLink="/servers/new" class="text-xs font-semibold hover:underline" style="color:#60a5fa;">Add a server</a>
+                <a routerLink="/servers/new" class="text-xs font-semibold hover:underline" style="color:#60a5fa;">{{ 'projects.import.addServer' | translate }}</a>
               </div>
               @if (!isProd) {
                 <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">
-                  Runs the deployment on your local Docker — perfect for testing.
+                  {{ 'projects.import.localDockerHint' | translate }}
                 </p>
               }
             }
@@ -140,7 +141,7 @@ interface Preset {
         }
 
         <button class="button w-full cursor-pointer py-2.5 text-base" [disabled]="deploying() || !projectName" (click)="deploy()">
-          {{ deploying() ? 'Deploying…' : 'Deploy' }}
+          {{ (deploying() ? 'projects.import.deploying' : 'projects.common.deploy') | translate }}
         </button>
       </div>
     </div>
@@ -152,33 +153,33 @@ interface Preset {
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
               <i class="fa-solid fa-cube text-lg"></i>
             </div>
-            <h2 class="text-xl font-bold font-mono text-white/95">Docker Detected</h2>
+            <h2 class="text-xl font-bold font-mono text-white/95">{{ 'projects.import.dockerDetectedTitle' | translate }}</h2>
           </div>
-          
+
           <p class="text-sm mb-6" style="color:var(--color-text-secondary);">
-            We detected a Dockerfile or Docker Compose configuration in your repository. Would you like to deploy using Docker containerization, or run the app directly in a base Node runtime?
+            {{ 'projects.import.dockerModalDesc' | translate }}
           </p>
 
           <div class="space-y-3 mb-6">
             <label class="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] cursor-pointer transition-colors group">
               <input type="radio" name="modalBuildMethod" [checked]="modalBuildMethod() === 'docker'" (change)="modalBuildMethod.set('docker')" class="cursor-pointer" />
               <div>
-                <div class="text-sm font-semibold text-white/90 group-hover:text-blue-400 transition-colors">Deploy with Docker</div>
-                <div class="text-xs text-white/40 mt-0.5">Use your custom Docker configuration.</div>
+                <div class="text-sm font-semibold text-white/90 group-hover:text-blue-400 transition-colors">{{ 'projects.import.deployWithDocker' | translate }}</div>
+                <div class="text-xs text-white/40 mt-0.5">{{ 'projects.import.deployWithDockerDesc' | translate }}</div>
               </div>
             </label>
             <label class="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] cursor-pointer transition-colors group">
               <input type="radio" name="modalBuildMethod" [checked]="modalBuildMethod() === 'buildless'" (change)="modalBuildMethod.set('buildless')" class="cursor-pointer" />
               <div>
-                <div class="text-sm font-semibold text-white/90 group-hover:text-blue-400 transition-colors">Deploy without Docker</div>
-                <div class="text-xs text-white/40 mt-0.5">Run directly in our optimized Node runtime.</div>
+                <div class="text-sm font-semibold text-white/90 group-hover:text-blue-400 transition-colors">{{ 'projects.import.deployWithoutDocker' | translate }}</div>
+                <div class="text-xs text-white/40 mt-0.5">{{ 'projects.import.deployWithoutDockerDesc' | translate }}</div>
               </div>
             </label>
           </div>
 
           <div class="flex gap-3 justify-end">
-            <button class="button-secondary cursor-pointer text-xs px-4 py-2" (click)="showDockerModal.set(false)">Cancel</button>
-            <button class="button cursor-pointer text-xs px-4 py-2" (click)="confirmDockerDeploy()">Confirm & Deploy</button>
+            <button class="button-secondary cursor-pointer text-xs px-4 py-2" (click)="showDockerModal.set(false)">{{ 'projects.common.cancel' | translate }}</button>
+            <button class="button cursor-pointer text-xs px-4 py-2" (click)="confirmDockerDeploy()">{{ 'projects.import.confirmDeploy' | translate }}</button>
           </div>
         </div>
       </div>
@@ -189,6 +190,7 @@ export class ImportConfigComponent implements OnInit {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private translate = inject(TranslateService);
 
   protected readonly repo = signal('');
   protected readonly branch = signal('main');
@@ -271,14 +273,14 @@ export class ImportConfigComponent implements OnInit {
       next: (r) => {
         this.settingUpLocal.set(false);
         if (!r.dockerOk) {
-          this.error.set('Local server created, but Docker is not reachable. Is Docker Desktop running?');
+          this.error.set(this.translate.instant('projects.import.errLocalDockerUnreachable'));
           return;
         }
         this.deploy();
       },
       error: (e) => {
         this.settingUpLocal.set(false);
-        this.error.set(e?.error?.error?.message ?? 'Failed to set up local server');
+        this.error.set(e?.error?.error?.message ?? this.translate.instant('projects.import.errLocalSetup'));
       },
     });
   }
@@ -300,7 +302,7 @@ export class ImportConfigComponent implements OnInit {
 
   protected executeDeploy(): void {
     if (!this.projectName || !this.cloneUrl) {
-      this.error.set('Missing repository URL.');
+      this.error.set(this.translate.instant('projects.import.errMissingRepo'));
       return;
     }
     this.deploying.set(true);
@@ -325,7 +327,7 @@ export class ImportConfigComponent implements OnInit {
         },
         error: (e) => {
           this.deploying.set(false);
-          this.error.set(e?.error?.error?.message ?? 'Deployment failed');
+          this.error.set(e?.error?.error?.message ?? this.translate.instant('projects.common.deploymentFailed'));
         },
       });
   }

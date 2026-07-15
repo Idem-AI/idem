@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../../shared/services/auth.service';
 import { environment } from '../../../../environments/environment';
 
@@ -13,7 +14,7 @@ import { environment } from '../../../../environments/environment';
  */
 @Component({
   selector: 'app-landing',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative min-h-screen text-white overflow-hidden" style="font-family: 'Jura', sans-serif;">
@@ -31,13 +32,13 @@ import { environment } from '../../../../environments/environment';
              style="background: rgba(6,8,13,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
           <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <img src="/ideploy-logo.png" alt="EPLOY Logo" class="w-[150px] h-auto object-cover"
+              <img src="/ideploy-logo.png" [alt]="'landing.logoAlt' | translate" class="w-[150px] h-auto object-cover"
                    style="filter: drop-shadow(0 0 15px var(--color-primary-500));" />
             </div>
             <div class="hidden md:flex items-center gap-8">
-              <a href="#showcase" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">Showcase</a>
-              <a href="#features" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">Platform</a>
-              <a routerLink="/pricing" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">Pricing</a>
+              <a href="#showcase" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">{{ 'landing.navShowcase' | translate }}</a>
+              <a href="#features" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">{{ 'landing.navPlatform' | translate }}</a>
+              <a routerLink="/pricing" class="text-sm font-semibold text-white/70 hover:text-white transition-colors">{{ 'landing.navPricing' | translate }}</a>
             </div>
             @if (user(); as u) {
               <div class="relative">
@@ -49,16 +50,16 @@ import { environment } from '../../../../environments/environment';
                 @if (menuOpen()) {
                   <div class="absolute right-0 mt-2 w-56 rounded-xl glass-card overflow-hidden">
                     <div class="py-2">
-                      <a routerLink="/dashboard" class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">Dashboard</a>
-                      <button (click)="logout()" class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5">Logout</button>
+                      <a routerLink="/dashboard" class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">{{ 'landing.navDashboard' | translate }}</a>
+                      <button (click)="logout()" class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5">{{ 'landing.logout' | translate }}</button>
                     </div>
                   </div>
                 }
               </div>
             } @else {
               <div class="flex items-center gap-4">
-                <a [href]="loginUrl" class="hidden sm:block text-sm font-semibold text-white/70 hover:text-white">Log in</a>
-                <a [href]="loginUrl" class="inner-button text-sm px-5 py-2.5">Get started</a>
+                <a [href]="loginUrl" class="hidden sm:block text-sm font-semibold text-white/70 hover:text-white">{{ 'landing.login' | translate }}</a>
+                <a [href]="loginUrl" class="inner-button text-sm px-5 py-2.5">{{ 'landing.getStarted' | translate }}</a>
               </div>
             }
           </div>
@@ -69,20 +70,20 @@ import { environment } from '../../../../environments/environment';
           <div class="absolute inset-0 z-0">
             <div class="absolute inset-0 z-10" style="background: linear-gradient(to bottom, rgba(6,8,13,0.5), rgba(6,8,13,0.7), #06080d);"></div>
             <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2000&auto=format&fit=crop"
-                 alt="Server Room" class="w-full h-full object-cover opacity-40 mix-blend-lighten" style="filter: grayscale(50%);" />
+                 [alt]="'landing.heroImageAlt' | translate" class="w-full h-full object-cover opacity-40 mix-blend-lighten" style="filter: grayscale(50%);" />
           </div>
           <div class="relative z-10 max-w-5xl mx-auto w-full flex flex-col items-center text-center px-4">
             <div class="max-w-4xl mx-auto">
               <h1 class="font-black mb-8 text-white break-words"
                   style="font-size: clamp(3.8rem, 8vw, 7.5rem); line-height:1.05; letter-spacing: -0.04em; text-shadow: 0 0 40px rgba(0,0,0,0.5);">
-                Deploy apps,<br /><span class="i-underline text-secondary">Not servers</span>
+                {{ 'landing.heroTitleLine1' | translate }}<br /><span class="i-underline text-secondary">{{ 'landing.heroTitleAccent' | translate }}</span>
               </h1>
               <p class="text-[20px] md:text-[24px] text-white/70 mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
-                The leading platform to deploy, scale, and secure your applications without leaving your workspace. Powered by Idem.
+                {{ 'landing.heroSubtitle' | translate }}
               </p>
               <div class="flex flex-col sm:flex-row gap-6 justify-center">
-                <a [href]="loginUrl" class="inner-button px-12 py-5 text-xl">Get started for free</a>
-                <a href="https://github.com/coollabsio/coolify" target="_blank" class="outer-button px-12 py-5 text-xl">Talk to sales</a>
+                <a [href]="loginUrl" class="inner-button px-12 py-5 text-xl">{{ 'landing.getStartedFree' | translate }}</a>
+                <a href="https://github.com/coollabsio/coolify" target="_blank" class="outer-button px-12 py-5 text-xl">{{ 'landing.talkToSales' | translate }}</a>
               </div>
             </div>
           </div>
@@ -91,7 +92,7 @@ import { environment } from '../../../../environments/environment';
         <!-- ===== MARQUEE ===== -->
         <section class="py-12 px-6 border-y border-white/5 bg-transparent overflow-hidden">
           <div class="max-w-7xl mx-auto flex items-center mb-8">
-            <p class="text-white/40 text-sm font-bold uppercase tracking-widest px-4">Supported Stacks & Partners</p>
+            <p class="text-white/40 text-sm font-bold uppercase tracking-widest px-4">{{ 'landing.supportedStacks' | translate }}</p>
             <div class="flex-1 h-px bg-white/5 ml-4"></div>
           </div>
           <div class="marquee-wrapper mx-auto max-w-7xl">
@@ -110,9 +111,9 @@ import { environment } from '../../../../environments/environment';
           <div class="max-w-7xl mx-auto">
             <div class="mb-16">
               <h1 class="text-4xl md:text-5xl font-black text-white mb-6" style="letter-spacing:-0.04em;">
-                Explore what <span class="i-underline">people are building</span>
+                {{ 'landing.showcaseTitle' | translate }} <span class="i-underline">{{ 'landing.showcaseTitleAccent' | translate }}</span>
               </h1>
-              <p class="text-xl text-white/60 max-w-2xl font-medium">From complex microservices architectures to simple static portfolios, see how Eploy powers the independent web.</p>
+              <p class="text-xl text-white/60 max-w-2xl font-medium">{{ 'landing.showcaseSubtitle' | translate }}</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               @for (p of showcase; track p.title) {
@@ -128,7 +129,7 @@ import { environment } from '../../../../environments/environment';
               }
             </div>
             <div class="mt-12 text-center">
-              <a [href]="loginUrl" class="outer-button px-8 py-3 text-sm inline-flex">Join the community</a>
+              <a [href]="loginUrl" class="outer-button px-8 py-3 text-sm inline-flex">{{ 'landing.joinCommunity' | translate }}</a>
             </div>
           </div>
         </section>
@@ -141,30 +142,30 @@ import { environment } from '../../../../environments/environment';
                 <div class="w-16 h-16 rounded-[1rem] bg-white/5 flex items-center justify-center mb-8 border border-white/10 backdrop-blur-md">
                   <span class="text-2xl" style="color: var(--color-primary-500)">1</span>
                 </div>
-                <h1 class="text-5xl font-black text-white mb-6 leading-tight" style="letter-spacing:-0.04em;">Push to <span class="i-underline">deploy</span>.<br />It's that simple.</h1>
-                <p class="text-xl text-white/60 mb-8 font-medium leading-relaxed">Connect your GitHub repo, select your branch, and hit deploy. EPLOY automatically builds your Docker image, provisions an SSL cert, and launches your app securely.</p>
+                <h1 class="text-5xl font-black text-white mb-6 leading-tight" style="letter-spacing:-0.04em;">{{ 'landing.pillar1Title' | translate }} <span class="i-underline">{{ 'landing.pillar1TitleAccent' | translate }}</span>.<br />{{ 'landing.pillar1TitleRest' | translate }}</h1>
+                <p class="text-xl text-white/60 mb-8 font-medium leading-relaxed">{{ 'landing.pillar1Body' | translate }}</p>
                 <div class="flex flex-col gap-5 font-bold text-white/80">
                   <div class="glass-card flex items-center gap-4 p-4 rounded-xl border border-white/5 group">
                     <div class="w-3 h-3 rounded-full group-hover:scale-150 transition-transform" style="background: var(--color-primary-500)"></div>
-                    <span>Automatic builds based on Nixpacks</span>
+                    <span>{{ 'landing.pillar1Feature1' | translate }}</span>
                   </div>
                   <div class="glass-card flex items-center gap-4 p-4 rounded-xl border border-white/5 group">
                     <div class="w-3 h-3 rounded-full group-hover:scale-150 transition-transform" style="background: var(--color-primary-500)"></div>
-                    <span>Pre-configured Let's Encrypt SSL</span>
+                    <span>{{ 'landing.pillar1Feature2' | translate }}</span>
                   </div>
                 </div>
               </div>
               <div class="relative w-full aspect-square rounded-[2rem] p-4 md:p-8 flex items-center justify-center">
                 <div class="absolute w-[80%] h-[80%] rounded-full blur-[100px]" style="background: linear-gradient(to top right, rgba(37,99,235,0.3), transparent);"></div>
                 <div class="glass-card relative w-full h-full rounded-[1.5rem] border py-2 border-white/10 overflow-hidden group">
-                  <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop" class="w-full h-full object-cover" alt="Code deployment log" />
+                  <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop" class="w-full h-full object-cover" [alt]="'landing.pillar1ImageAlt' | translate" />
                   <div class="absolute bottom-8 left-8 right-8 z-20 glass-card border border-white/10 rounded-2xl p-6 flex items-center gap-6" style="background: rgba(0,0,0,0.6);">
                     <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background: rgba(34,197,94,0.2);">
                       <i class="fa-solid fa-check text-2xl text-green-400"></i>
                     </div>
                     <div>
-                      <div class="text-xl font-bold text-white mb-1">Production Ready</div>
-                      <div class="text-sm text-green-400 font-mono">deployment-39ffa2z completed in 12.4s</div>
+                      <div class="text-xl font-bold text-white mb-1">{{ 'landing.productionReady' | translate }}</div>
+                      <div class="text-sm text-green-400 font-mono">{{ 'landing.deploymentLog' | translate }}</div>
                     </div>
                   </div>
                 </div>
@@ -174,23 +175,23 @@ import { environment } from '../../../../environments/environment';
               <div class="order-2 lg:order-1 relative w-full aspect-[4/3] md:aspect-square rounded-[2rem] p-4 md:p-8 flex items-center justify-center">
                 <div class="absolute w-[80%] h-[80%] rounded-full blur-[100px]" style="background: linear-gradient(to top right, rgba(34,211,238,0.3), transparent);"></div>
                 <div class="glass-card relative w-full h-full rounded-[1.5rem] border border-white/10 overflow-hidden group">
-                  <img src="https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?q=80&w=1200&auto=format&fit=crop" class="w-full h-full object-cover" alt="Server clusters data" />
+                  <img src="https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?q=80&w=1200&auto=format&fit=crop" class="w-full h-full object-cover" [alt]="'landing.pillar2ImageAlt' | translate" />
                 </div>
               </div>
               <div class="order-1 lg:order-2 max-w-xl lg:pl-10">
                 <div class="w-16 h-16 rounded-[1rem] bg-white/5 flex items-center justify-center mb-8 border border-white/10 backdrop-blur-md">
                   <span class="text-2xl" style="color: var(--color-accent-500)">2</span>
                 </div>
-                <h1 class="text-5xl font-black text-white mb-6 leading-tight" style="letter-spacing:-0.04em;">Instantiate DBs<br />in <span class="i-underline">1-Click</span>.</h1>
-                <p class="text-xl text-white/60 mb-8 font-medium leading-relaxed">Stop manually configuring databases. Provision Postgres, Redis, MongoDB, or MySQL instances in one click. Completely managed, inherently secure, with native scheduled backups.</p>
+                <h1 class="text-5xl font-black text-white mb-6 leading-tight" style="letter-spacing:-0.04em;">{{ 'landing.pillar2Title' | translate }}<br />{{ 'landing.pillar2TitleMid' | translate }} <span class="i-underline">{{ 'landing.pillar2TitleAccent' | translate }}</span>.</h1>
+                <p class="text-xl text-white/60 mb-8 font-medium leading-relaxed">{{ 'landing.pillar2Body' | translate }}</p>
                 <div class="flex flex-col gap-5 font-bold text-white/80">
                   <div class="glass-card flex items-center gap-4 p-4 rounded-xl border border-white/5 group">
                     <div class="w-3 h-3 rounded-full" style="background: var(--color-accent-500)"></div>
-                    <span>Scheduled S3 backups natively supported</span>
+                    <span>{{ 'landing.pillar2Feature1' | translate }}</span>
                   </div>
                   <div class="glass-card flex items-center gap-4 p-4 rounded-xl border border-white/5 group">
                     <div class="w-3 h-3 rounded-full" style="background: var(--color-accent-500)"></div>
-                    <span>Automatic environment variable tunneling</span>
+                    <span>{{ 'landing.pillar2Feature2' | translate }}</span>
                   </div>
                 </div>
               </div>
@@ -201,26 +202,26 @@ import { environment } from '../../../../environments/environment';
         <!-- ===== FEATURES ===== -->
         <section id="features" class="py-32 px-6 relative z-10">
           <div class="max-w-7xl mx-auto">
-            <h1 class="text-4xl md:text-5xl font-black text-white text-center mb-16" style="letter-spacing:-0.04em;">Everything you <span class="i-underline">need</span>. <span class="text-white/40">Nothing you don't.</span></h1>
+            <h1 class="text-4xl md:text-5xl font-black text-white text-center mb-16" style="letter-spacing:-0.04em;">{{ 'landing.featuresTitle' | translate }} <span class="i-underline">{{ 'landing.featuresTitleAccent' | translate }}</span>. <span class="text-white/40">{{ 'landing.featuresTitleRest' | translate }}</span></h1>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div class="glass-card hover:-translate-y-2 transition-all p-8 rounded-[2rem] border border-white/10 group">
                 <div class="w-12 h-12 rounded-[1rem] bg-white/5 border border-white/10 flex items-center justify-center mb-6"><i class="fa-solid fa-cube text-xl text-primary-400"></i></div>
-                <h3 class="text-xl font-bold text-white mb-3">Any Language</h3>
-                <p class="text-white/60 text-sm font-medium leading-relaxed">Nixpacks integration means if it builds on your machine, it builds on Eploy. No Dockerfile required.</p>
+                <h3 class="text-xl font-bold text-white mb-3">{{ 'landing.feature1Title' | translate }}</h3>
+                <p class="text-white/60 text-sm font-medium leading-relaxed">{{ 'landing.feature1Body' | translate }}</p>
               </div>
               <div class="glass-card hover:-translate-y-2 transition-all p-8 rounded-[2rem] border border-white/10 group">
                 <div class="w-12 h-12 rounded-[1rem] bg-white/5 border border-white/10 flex items-center justify-center mb-6"><i class="fa-solid fa-lock text-xl text-accent-400"></i></div>
-                <h3 class="text-xl font-bold text-white mb-3">Auto SSL</h3>
-                <p class="text-white/60 text-sm font-medium leading-relaxed">We automatically generate and renew Let's Encrypt certificates for all your connected custom domains.</p>
+                <h3 class="text-xl font-bold text-white mb-3">{{ 'landing.feature2Title' | translate }}</h3>
+                <p class="text-white/60 text-sm font-medium leading-relaxed">{{ 'landing.feature2Body' | translate }}</p>
               </div>
               <div class="glass-card hover:-translate-y-2 transition-all p-8 rounded-[2rem] border border-white/10 group lg:col-span-2 relative overflow-hidden">
                 <div class="absolute right-0 bottom-0 w-64 h-64 rounded-tl-full blur-3xl pointer-events-none" style="background: rgba(37,99,235,0.1);"></div>
                 <div class="w-12 h-12 rounded-[1rem] bg-white/5 border border-white/10 flex items-center justify-center mb-6"><i class="fa-solid fa-code-branch text-xl text-white"></i></div>
-                <h3 class="text-xl font-bold text-white mb-3">PR Previews</h3>
-                <p class="text-white/60 text-sm font-medium leading-relaxed max-w-sm">Every pull request gets its own isolated deployment environment. Review changes live before merging to production. Automatically destroyed when merged, keeping costs at zero.</p>
+                <h3 class="text-xl font-bold text-white mb-3">{{ 'landing.feature3Title' | translate }}</h3>
+                <p class="text-white/60 text-sm font-medium leading-relaxed max-w-sm">{{ 'landing.feature3Body' | translate }}</p>
                 <div class="mt-6 flex items-center gap-4">
                   <div class="h-2 w-32 bg-white/10 rounded-full overflow-hidden"><div class="h-full w-1/2" style="background: var(--color-primary-500);"></div></div>
-                  <span class="text-xs font-mono text-white/40">Building...</span>
+                  <span class="text-xs font-mono text-white/40">{{ 'landing.building' | translate }}</span>
                 </div>
               </div>
             </div>
@@ -232,13 +233,13 @@ import { environment } from '../../../../environments/environment';
           <div class="max-w-4xl mx-auto text-center">
             <div class="text-[8rem] font-serif leading-none mt-4" style="color:#222;">"</div>
             <h2 class="text-3xl md:text-5xl font-black text-white -mt-16 mb-12 leading-tight" style="letter-spacing:-0.03em;">
-              Since migrating our entire agency server fleet to Eploy, our deployment velocity increased by 400% while server overhead dropped to zero. It's the Heroku alternative we actually own.
+              {{ 'landing.testimonialQuote' | translate }}
             </h2>
             <div class="flex items-center justify-center gap-4">
               <div class="w-12 h-12 rounded-full glass-card border border-white/10"></div>
               <div class="text-left">
                 <p class="font-bold text-lg text-white">David J.</p>
-                <p class="text-sm text-white/50 font-medium">Lead DevOps, Systema</p>
+                <p class="text-sm text-white/50 font-medium">{{ 'landing.testimonialRole' | translate }}</p>
               </div>
             </div>
           </div>
@@ -247,7 +248,7 @@ import { environment } from '../../../../environments/environment';
         <!-- ===== ROLES ===== -->
         <section class="py-32 px-6 relative z-10">
           <div class="max-w-7xl mx-auto">
-            <h1 class="text-4xl md:text-5xl font-black text-white mb-16 text-center" style="letter-spacing:-0.04em;">Built for how you <span class="i-underline">work</span></h1>
+            <h1 class="text-4xl md:text-5xl font-black text-white mb-16 text-center" style="letter-spacing:-0.04em;">{{ 'landing.rolesTitle' | translate }} <span class="i-underline">{{ 'landing.rolesTitleAccent' | translate }}</span></h1>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
               @for (role of roles; track role.title) {
                 <div class="glass-card hover:-translate-y-2 transition-transform p-10 rounded-[2rem] border border-white/10 text-center group relative overflow-hidden">
@@ -267,13 +268,13 @@ import { environment } from '../../../../environments/environment';
         <!-- ===== HOW IT WORKS ===== -->
         <section class="py-32 px-6 relative z-10 border-t border-white/5">
           <div class="max-w-4xl mx-auto">
-            <h1 class="text-4xl md:text-5xl font-black text-white text-center mb-16" style="letter-spacing:-0.04em;"><span class="i-underline">How</span> it works</h1>
+            <h1 class="text-4xl md:text-5xl font-black text-white text-center mb-16" style="letter-spacing:-0.04em;"><span class="i-underline">{{ 'landing.howItWorksTitleAccent' | translate }}</span> {{ 'landing.howItWorksTitle' | translate }}</h1>
             <div class="glass-card relative p-8 md:p-16 rounded-[3rem] border border-white/10">
               <div class="space-y-16">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-8 group">
                   <div class="md:w-5/12 text-center md:text-right">
-                    <h3 class="text-2xl font-bold text-white mb-2">1. Connect Provider</h3>
-                    <p class="text-white/60 font-medium">Link your GitHub, GitLab, or Bitbucket account. We only ask for the permissions we absolutely need.</p>
+                    <h3 class="text-2xl font-bold text-white mb-2">{{ 'landing.step1Title' | translate }}</h3>
+                    <p class="text-white/60 font-medium">{{ 'landing.step1Body' | translate }}</p>
                   </div>
                   <div class="w-16 h-16 rounded-full glass-card flex items-center justify-center border-2 relative z-10" style="border-color: var(--color-primary-500);"><span class="text-xl font-bold text-white">1</span></div>
                   <div class="md:w-5/12"></div>
@@ -282,14 +283,14 @@ import { environment } from '../../../../environments/environment';
                   <div class="md:w-5/12 hidden md:block"></div>
                   <div class="w-16 h-16 rounded-full glass-card flex items-center justify-center border-2 border-white/20 relative z-10"><span class="text-xl font-bold text-white">2</span></div>
                   <div class="md:w-5/12 text-center md:text-left">
-                    <h3 class="text-2xl font-bold text-white mb-2">2. Define Destination</h3>
-                    <p class="text-white/60 font-medium">Add any Linux server using an SSH key. A $4/mo Hetzner VPS works just fine.</p>
+                    <h3 class="text-2xl font-bold text-white mb-2">{{ 'landing.step2Title' | translate }}</h3>
+                    <p class="text-white/60 font-medium">{{ 'landing.step2Body' | translate }}</p>
                   </div>
                 </div>
                 <div class="flex flex-col md:flex-row items-center justify-between gap-8 group">
                   <div class="md:w-5/12 text-center md:text-right">
-                    <h3 class="text-2xl font-bold text-white mb-2">3. Deploy</h3>
-                    <p class="text-white/60 font-medium">Hit deploy. We automatically build the container and route the traffic. It just works.</p>
+                    <h3 class="text-2xl font-bold text-white mb-2">{{ 'landing.step3Title' | translate }}</h3>
+                    <p class="text-white/60 font-medium">{{ 'landing.step3Body' | translate }}</p>
                   </div>
                   <div class="w-16 h-16 rounded-full glass-card flex items-center justify-center border-2 relative z-10" style="border-color: var(--color-accent-500);"><span class="text-xl font-bold text-white">3</span></div>
                   <div class="md:w-5/12"></div>
@@ -304,13 +305,13 @@ import { environment } from '../../../../environments/environment';
           <div class="max-w-4xl mx-auto rounded-[3rem] overflow-hidden relative">
             <div class="absolute inset-0 z-0" style="background: linear-gradient(to bottom right, rgba(37,99,235,0.2), black, rgba(34,211,238,0.2));"></div>
             <div class="glass-card relative z-10 p-16 md:p-24 border border-white/10 text-center" style="backdrop-filter: blur(48px);">
-              <h1 class="text-5xl md:text-6xl font-black text-white mb-6" style="letter-spacing:-0.04em;">Ready to <span class="i-underline">host?</span></h1>
-              <p class="text-xl text-white/70 mb-12 max-w-xl mx-auto font-medium">5 free deployments, a free domain with automatic SSL and commercial use allowed from day one. Paid plans start at 2 999 F/month.</p>
+              <h1 class="text-5xl md:text-6xl font-black text-white mb-6" style="letter-spacing:-0.04em;">{{ 'landing.ctaTitle' | translate }} <span class="i-underline">{{ 'landing.ctaTitleAccent' | translate }}</span></h1>
+              <p class="text-xl text-white/70 mb-12 max-w-xl mx-auto font-medium">{{ 'landing.ctaSubtitle' | translate }}</p>
               <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a [href]="loginUrl" class="inner-button px-8 py-4 text-lg w-full sm:w-auto">Get started for free</a>
-                <a routerLink="/pricing" class="outer-button px-8 py-4 text-lg w-full sm:w-auto">View pricing</a>
+                <a [href]="loginUrl" class="inner-button px-8 py-4 text-lg w-full sm:w-auto">{{ 'landing.getStartedFree' | translate }}</a>
+                <a routerLink="/pricing" class="outer-button px-8 py-4 text-lg w-full sm:w-auto">{{ 'landing.viewPricing' | translate }}</a>
               </div>
-              <p class="mt-8 text-sm text-white/40 font-mono">MIT Licensed. Open Source forever.</p>
+              <p class="mt-8 text-sm text-white/40 font-mono">{{ 'landing.ctaLicense' | translate }}</p>
             </div>
           </div>
         </section>
@@ -324,10 +325,10 @@ import { environment } from '../../../../environments/environment';
               </div>
               <span class="text-base font-black text-white tracking-tight">EPLOY</span>
             </div>
-            <p class="text-sm text-white/50 font-medium">© {{ year }} EPLOY · Powered seamlessly by Idem Frameworks</p>
+            <p class="text-sm text-white/50 font-medium">{{ 'landing.footerCopyright' | translate: { year: year } }}</p>
             <div class="flex items-center gap-8">
-              <a [href]="loginUrl" class="text-sm font-bold text-white/50 hover:text-white transition-colors">Sign In</a>
-              <a href="https://github.com/coollabsio/coolify" target="_blank" class="text-sm font-bold text-white/50 hover:text-white transition-colors">GitHub Repository</a>
+              <a [href]="loginUrl" class="text-sm font-bold text-white/50 hover:text-white transition-colors">{{ 'landing.signIn' | translate }}</a>
+              <a href="https://github.com/coollabsio/coolify" target="_blank" class="text-sm font-bold text-white/50 hover:text-white transition-colors">{{ 'landing.githubRepo' | translate }}</a>
             </div>
           </div>
         </footer>

@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../shared/services/auth.service';
+import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 
 interface NavItem {
   path: string;
@@ -21,7 +23,7 @@ interface NavSection {
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, LanguageSelectorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed top-0 left-0 right-0 z-50 h-16 topbar-shell">
@@ -36,7 +38,7 @@ interface NavSection {
             <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-md"
                  style="background:rgba(255,180,171,0.12);color:#ffb4ab;border:1px solid rgba(255,180,171,0.28);">
               <i class="fa-solid fa-shield-halved text-xs"></i>
-              <span style="font-size:11px;font-weight:700;letter-spacing:.05em;">ADMIN</span>
+              <span style="font-size:11px;font-weight:700;letter-spacing:.05em;">{{ 'shell.admin' | translate }}</span>
             </div>
           }
           <a routerLink="/subscription"
@@ -49,7 +51,7 @@ interface NavSection {
             <i class="fa-solid fa-cube text-[10px]" style="color:#60a5fa;"></i>
             <div class="flex flex-col gap-0.5">
               <div class="flex items-center justify-between gap-2">
-                <span style="font-size:9px;color:#8d919a;text-transform:uppercase;">Apps</span>
+                <span style="font-size:9px;color:#8d919a;text-transform:uppercase;">{{ 'shell.apps' | translate }}</span>
                 <span style="font-size:9px;font-weight:700;color:#e3e1e6;">{{ appsUsed() }}/{{ appsLimit() }}</span>
               </div>
               <div class="w-14 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);">
@@ -61,7 +63,7 @@ interface NavSection {
             <i class="fa-solid fa-server text-[10px]" style="color:#4ade80;"></i>
             <div class="flex flex-col gap-0.5">
               <div class="flex items-center justify-between gap-2">
-                <span style="font-size:9px;color:#8d919a;text-transform:uppercase;">Srv</span>
+                <span style="font-size:9px;color:#8d919a;text-transform:uppercase;">{{ 'shell.srv' | translate }}</span>
                 <span style="font-size:9px;font-weight:700;color:#e3e1e6;">{{ serversUsed() }}/{{ serversLimit() }}</span>
               </div>
               <div class="w-14 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);">
@@ -69,8 +71,9 @@ interface NavSection {
               </div>
             </div>
           </div>
+          <app-language-selector />
           <div class="flex items-center gap-2">
-            <a routerLink="/settings" class="flex items-center gap-2 p-1.5 rounded-lg" [title]="authUser()?.email ?? ''">
+            <a routerLink="/settings" class="flex items-center gap-2 p-1.5 rounded-lg" [title]="authUser()?.email ?? ''" [attr.aria-label]="'shell.userMenu' | translate">
               @if (photoUrl()) {
                 <img [src]="photoUrl()!" class="w-8 h-8 rounded-full object-cover" alt="" />
               } @else {
@@ -79,7 +82,7 @@ interface NavSection {
                 </div>
               }
             </a>
-            <button class="p-1.5 rounded-lg" title="Log out" (click)="logout()">
+            <button class="p-1.5 rounded-lg" [title]="'shell.logout' | translate" (click)="logout()">
               <i class="fa-solid fa-arrow-right-from-bracket text-xs" style="color:#8d919a;"></i>
             </button>
           </div>
@@ -92,20 +95,20 @@ interface NavSection {
         <div style="padding:16px 12px; border-bottom:1px solid rgba(255,255,255,0.06);">
           <div class="flex items-center gap-2 px-1">
             <i class="fa-solid fa-users-rectangle" style="color:#60a5fa;"></i>
-            <span class="text-sm font-semibold text-white">{{ me()?.team?.name ?? 'My Team' }}</span>
+            <span class="text-sm font-semibold text-white">{{ me()?.team?.name ?? ('shell.myTeam' | translate) }}</span>
           </div>
         </div>
         <ul role="list" class="flex flex-col flex-1 px-3 py-5 gap-y-0.5">
           @for (section of nav; track section.title || 'main') {
             @if (section.title) {
-              <li style="padding-top:20px; padding-bottom:5px;"><span class="sbi-section">{{ section.title }}</span></li>
+              <li style="padding-top:20px; padding-bottom:5px;"><span class="sbi-section">{{ section.title! | translate }}</span></li>
             }
             @for (item of section.items; track item.path) {
               <li>
                 <a class="sbi" [routerLink]="item.path" routerLinkActive="active"
                    [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }">
                   <i class="sbi-icon" [class]="item.icon"></i>
-                  <span>{{ item.label }}</span>
+                  <span>{{ item.label | translate }}</span>
                 </a>
               </li>
             }
@@ -114,9 +117,9 @@ interface NavSection {
             <div class="sbi-disabled" style="justify-content:space-between;">
               <div class="flex items-center gap-3">
                 <i class="fa-solid fa-wand-magic-sparkles" style="width:18px;text-align:center;"></i>
-                <span>AI Smart Deploy</span>
+                <span>{{ 'shell.aiSmartDeploy' | translate }}</span>
               </div>
-              <span class="sbi-badge-soon">SOON</span>
+              <span class="sbi-badge-soon">{{ 'shell.soon' | translate }}</span>
             </div>
           </li>
         </ul>
@@ -143,35 +146,35 @@ export class ShellComponent implements OnInit {
   protected readonly serversLimit = signal(0);
 
   protected readonly nav: NavSection[] = [
-    { items: [{ path: '/dashboard', label: 'Dashboard', icon: 'fa-solid fa-house' }] },
+    { items: [{ path: '/dashboard', label: 'shell.nav.dashboard', icon: 'fa-solid fa-house' }] },
     {
-      title: 'Deploy',
+      title: 'shell.nav.sectionDeploy',
       items: [
-        { path: '/projects', label: 'Projects', icon: 'fa-solid fa-layer-group' },
-        { path: '/templates', label: 'Templates', icon: 'fa-solid fa-wand-magic-sparkles' },
+        { path: '/projects', label: 'shell.nav.projects', icon: 'fa-solid fa-layer-group' },
+        { path: '/templates', label: 'shell.nav.templates', icon: 'fa-solid fa-wand-magic-sparkles' },
       ],
     },
     {
-      title: 'Resources',
+      title: 'shell.nav.sectionResources',
       items: [
-        { path: '/servers', label: 'Servers', icon: 'fa-solid fa-server' },
-        { path: '/applications', label: 'Applications', icon: 'fa-solid fa-cube' },
-        { path: '/databases', label: 'Databases', icon: 'fa-solid fa-database' },
-        { path: '/services', label: 'Services', icon: 'fa-solid fa-cubes' },
-        { path: '/sources', label: 'Sources', icon: 'fa-brands fa-git-alt' },
-        { path: '/destinations', label: 'Destinations', icon: 'fa-solid fa-network-wired' },
-        { path: '/storages', label: 'S3 Storages', icon: 'fa-solid fa-box-archive' },
-        { path: '/tags', label: 'Tags', icon: 'fa-solid fa-tags' },
+        { path: '/servers', label: 'shell.nav.servers', icon: 'fa-solid fa-server' },
+        { path: '/applications', label: 'shell.nav.applications', icon: 'fa-solid fa-cube' },
+        { path: '/databases', label: 'shell.nav.databases', icon: 'fa-solid fa-database' },
+        { path: '/services', label: 'shell.nav.services', icon: 'fa-solid fa-cubes' },
+        { path: '/sources', label: 'shell.nav.sources', icon: 'fa-brands fa-git-alt' },
+        { path: '/destinations', label: 'shell.nav.destinations', icon: 'fa-solid fa-network-wired' },
+        { path: '/storages', label: 'shell.nav.storages', icon: 'fa-solid fa-box-archive' },
+        { path: '/tags', label: 'shell.nav.tags', icon: 'fa-solid fa-tags' },
       ],
     },
     {
-      title: 'Configuration',
+      title: 'shell.nav.sectionConfiguration',
       items: [
-        { path: '/settings', label: 'Settings', icon: 'fa-solid fa-gear' },
-        { path: '/shared-variables', label: 'Shared Variables', icon: 'fa-solid fa-code' },
-        { path: '/notifications', label: 'Notifications', icon: 'fa-regular fa-bell' },
-        { path: '/security/keys', label: 'Keys & Tokens', icon: 'fa-solid fa-key' },
-        { path: '/team', label: 'Team', icon: 'fa-solid fa-users' },
+        { path: '/settings', label: 'shell.nav.settings', icon: 'fa-solid fa-gear' },
+        { path: '/shared-variables', label: 'shell.nav.sharedVariables', icon: 'fa-solid fa-code' },
+        { path: '/notifications', label: 'shell.nav.notifications', icon: 'fa-regular fa-bell' },
+        { path: '/security/keys', label: 'shell.nav.keysTokens', icon: 'fa-solid fa-key' },
+        { path: '/team', label: 'shell.nav.team', icon: 'fa-solid fa-users' },
       ],
     },
   ];

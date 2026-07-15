@@ -1,17 +1,18 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Tag } from '../../../shared/models/ideploy.models';
 
 @Component({
   selector: 'app-tags-list',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="mb-6 text-2xl font-bold">Tags</h1>
+    <h1 class="mb-6 text-2xl font-bold">{{ 'tags.title' | translate }}</h1>
     <div class="box max-w-lg">
       @if (loading()) {
-        <p class="text-sm" style="color: var(--color-text-secondary)">Loading…</p>
+        <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'tags.loading' | translate }}</p>
       } @else {
         <div class="mb-4 flex flex-wrap gap-2">
           @for (tag of tags(); track tag.uuid) {
@@ -24,8 +25,8 @@ import { Tag } from '../../../shared/models/ideploy.models';
         </div>
       }
       <form class="flex gap-2" [formGroup]="form" (ngSubmit)="add()">
-        <input class="input flex-1" placeholder="New tag name" formControlName="name" />
-        <button class="button" type="submit" [disabled]="form.invalid">Add</button>
+        <input class="input flex-1" [placeholder]="'tags.newTagPlaceholder' | translate" formControlName="name" />
+        <button class="button" type="submit" [disabled]="form.invalid">{{ 'tags.add' | translate }}</button>
       </form>
     </div>
   `,

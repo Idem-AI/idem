@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../../shared/services/auth.service';
 
 /**
@@ -10,12 +11,13 @@ import { AuthService } from '../../../shared/services/auth.service';
  */
 @Component({
   selector: 'app-sso-callback',
+  imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen items-center justify-center" style="background: var(--color-bg-dark);">
       <div class="text-center">
         <i class="fa-solid fa-circle-notch fa-spin text-2xl" style="color:#2563eb;"></i>
-        <p class="mt-4 text-sm" style="color:#8d919a;">Signing you in…</p>
+        <p class="mt-4 text-sm" style="color:#8d919a;">{{ 'auth.signingIn' | translate }}</p>
       </div>
     </div>
   `,
