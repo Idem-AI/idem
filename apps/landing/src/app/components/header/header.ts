@@ -19,6 +19,7 @@ import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { DOCUMENT } from '@angular/common';
 import { environment } from '../../../environments/environment';
+import { isSupportedLocale, writeLocaleCookie } from '../../shared/utils/locale-cookie';
 @Component({
   selector: 'app-header',
   standalone: true,
@@ -261,9 +262,11 @@ export class Header implements OnInit {
       return;
     }
 
-    // Save language preference in localStorage and cookie
+    // Persist to the shared cross-app cookie (source of truth) + localStorage.
+    if (isSupportedLocale(targetLang)) {
+      writeLocaleCookie(targetLang);
+    }
     localStorage.setItem('idem_lang', targetLang);
-    document.cookie = `idem_lang=${targetLang}; path=/; max-age=31536000; SameSite=Lax`;
 
     const pathname = this.document.location.pathname;
     let newPath = pathname;

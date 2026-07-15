@@ -8,6 +8,7 @@ import { GenericService, IPromptStep, ISectionResult } from '../common/generic.s
 import { SectionModel } from '../../models/section.model';
 import { PdfService } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
+import { getRequestLanguage } from '../../utils/request-language';
 import crypto from 'crypto';
 import { AGENT_COVER_PROMPT } from './prompts/agent-cover.prompt';
 import { AGENT_COMPANY_SUMMARY_PROMPT } from './prompts/agent-company-summary.prompt';
@@ -89,7 +90,9 @@ export class BusinessPlanService extends GenericService {
     const typography = project.analysisResultModel?.branding?.typography || {
       primary: 'Arial, sans-serif',
     };
-    const language = 'fr';
+    // Use the user's request language instead of a hard-coded 'fr' so the plan is
+    // generated in the language selected in the UI (falls back to 'en').
+    const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
 
     // Create brand context for all agents
     const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(

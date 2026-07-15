@@ -186,7 +186,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { otherConfig } = useChatStore();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [checkCount, setCheckCount] = useState(0);
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
@@ -493,6 +493,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     body: {
       model: baseModal.value,
       mode: mode,
+      // User UI language so the AI answers/generates content in the right language.
+      // (Distinct from otherConfig.backendLanguage, which is the target programming language.)
+      language: i18n.language,
       otherConfig: {
         ...otherConfig,
         extra: {

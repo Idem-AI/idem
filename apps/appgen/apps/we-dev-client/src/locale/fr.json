@@ -1,0 +1,411 @@
+{
+  "Welcome to React": "Bienvenue sur React",
+  "common": {
+    "name": "nom",
+    "description": "description",
+    "edit": "modifier",
+    "more": "plus",
+    "delete": "supprimer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "open_directory_quota": "panneau de quota",
+    "login": "Connexion",
+    "close": "Fermer",
+    "please_login": "Veuillez vous connecter pour consulter votre quota",
+    "format": "Formater",
+    "formatting": "Formatage en cours..."
+  },
+  "chat": {
+    "urlInput": {
+      "title": "Saisir l'adresse du site web",
+      "placeholder": "Veuillez saisir l'adresse du site web à capturer",
+      "button": "Ouvrir le site web",
+      "errorInvalid": "Veuillez saisir une URL valide"
+    },
+    "tips": {
+      "title": "ce que vous souhaitez créer",
+      "description": "la fonction sketch d2c est uniquement disponible dans la version en ligne",
+      "uploadSketch": "Importer un fichier Sketch ou Figma",
+      "uploadImg": "Importer une image",
+      "uploadWebsite": "Importer un site web",
+      "game": "Générer un jeu de snake",
+      "hello": "Générer une belle page"
+    },
+    "errors": {
+      "file_size_limit": "Le fichier {fileName} dépasse la limite de 5 Mo",
+      "upload_failed": "Échec de l'importation",
+      "paste_failed": "Échec du collage de l'image",
+      "add_image_failed": "Échec de l'ajout de l'image"
+    },
+    "success": {
+      "images_uploaded": "Image importée avec succès",
+      "images_uploaded_multiple": "{count} images importées avec succès",
+      "image_pasted": "Image collée avec succès",
+      "images_pasted_multiple": "{count} images collées avec succès",
+      "image_added": "Image ajoutée à la saisie",
+      "images_added_multiple": "{count} images ajoutées à la saisie"
+    },
+    "placeholders": {
+      "input": "Saisissez un message, appuyez sur Entrée pour envoyer, Maj+Entrée pour un saut de ligne...",
+      "tips": "Comment puis-je vous aider ? (Appuyez sur Ctrl+V pour coller des images)"
+    },
+    "buttons": {
+      "send": "Envoyer",
+      "upload": "Importer une image",
+      "upload_tips": "Cliquez pour importer ou coller des images",
+      "upload_sketch": "Importer un fichier Sketch ou Figma",
+      "upload_sketch_tips": "Cliquez pour importer des fichiers Sketch ou Figma",
+      "upload_disabled": "Importation désactivée",
+      "upload_image": "Importer une image",
+      "waiting": "Veuillez attendre la fin du processus en cours",
+      "not_support_image": "Le modèle actuel ne prend pas en charge l'importation d'images",
+      "click_to_upload": "Cliquez pour importer ou coller des images",
+      "figma_integration": "Intégration Figma",
+      "figma_settings": "Paramètres Figma",
+      "figma_url": "URL du fichier Figma",
+      "figma_token": "Jeton d'accès Figma",
+      "enter_figma_url": "Saisissez l'URL du fichier Figma",
+      "enter_figma_token": "Saisissez le jeton d'accès Figma",
+      "mcp_disabled": "Outils MCP désactivés",
+      "mcp_tools": "Outils MCP",
+      "not_support_mcp": "Le modèle actuel ne prend pas en charge les outils MCP",
+      "click_to_use_mcp": "Cliquez pour utiliser les outils MCP"
+    },
+    "examples": {
+      "title": "Vous pouvez me demander par exemple",
+      "prompts": {
+        "todo": "Créer une application de tâches avec React et Tailwind",
+        "blog": "Créer un blog simple avec Astro",
+        "cookie": "Créer un formulaire de consentement aux cookies avec Material UI",
+        "game": "Créer un jeu Space Invaders",
+        "center": "Comment centrer un div ?"
+      }
+    },
+    "loading": {
+      "generating": "L'IA génère une réponse..."
+    },
+    "modePlaceholders": {
+      "chat": "Ceci est le mode chat. Vous pouvez discuter directement avec l'IA et obtenir la réponse souhaitée.",
+      "builder": "Ceci est le mode builder, utilisé pour construire votre projet par le dialogue"
+    },
+    "optimizePrompt": {
+      "title": "Optimiser le prompt",
+      "placeholder": "Saisissez votre prompt ici, nous vous aiderons à l'optimiser...",
+      "processing": "Traitement en cours...",
+      "cancel": "Annuler",
+      "loading": "Génération du design : le contenu est",
+      "design": "Générer le design",
+      "confirm": "Confirmer",
+      "button": "Optimiser le prompt",
+      "error": "Échec de l'optimisation du prompt :",
+      "designPlaceholder": "Saisissez votre prompt ici, nous vous aiderons à générer un design..."
+    },
+    "regenerate_incomplete": "Veuillez vérifier quels fichiers ont été générés la dernière fois, reconstruire et poursuivre les fichiers de code incomplets de la dernière fois, sans qu'il soit nécessaire de régénérer les fichiers de code déjà terminés"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "general": "Général",
+    "Quota": "quota",
+    "General": "Général",
+    "Language": "Langue",
+    "keyPlaceholder": "Veuillez saisir votre clé API",
+    "save": "Enregistrer",
+    "themeMode": "Mode du thème",
+    "themeModeLight": "Mode clair",
+    "themeModeDark": "Mode sombre",
+    "MCPServer": "Serveur MCP",
+    "InvalidProxyUrl": "URL de proxy non valide",
+    "mcp": {
+      "actions": "Actions",
+      "active": "Actif",
+      "addError": "Échec de l'ajout du serveur",
+      "addServer": "Ajouter un serveur",
+      "addSuccess": "Serveur ajouté avec succès",
+      "args": "Arguments",
+      "argsTooltip": "Chaque argument sur une nouvelle ligne",
+      "baseUrlTooltip": "URL de base du serveur distant",
+      "command": "Commande",
+      "commandRequired": "Veuillez saisir une commande",
+      "config_description": "Configurer les serveurs Model Context Protocol",
+      "confirmDelete": "Supprimer le serveur",
+      "confirmDeleteMessage": "Êtes-vous sûr de vouloir supprimer le serveur ?",
+      "deleteError": "Échec de la suppression du serveur",
+      "deleteSuccess": "Serveur supprimé avec succès",
+      "dependenciesInstall": "Installer les dépendances",
+      "dependenciesInstalling": "Installation des dépendances...",
+      "description": "Description",
+      "duplicateName": "Un serveur portant ce nom existe déjà",
+      "editJson": "Modifier le JSON",
+      "editServer": "Modifier le serveur",
+      "env": "Variables d'environnement",
+      "envTooltip": "Format : CLE=valeur, une par ligne",
+      "findMore": "Trouver plus de serveurs MCP",
+      "install": "Installer",
+      "installError": "Échec de l'installation des dépendances",
+      "installSuccess": "Dépendances installées avec succès",
+      "jsonFormatError": "Erreur de format JSON",
+      "jsonModeHint": "Modifiez ici le format JSON de la configuration du serveur MCP. Cliquez sur confirmer pour enregistrer les modifications après édition.",
+      "jsonSaveError": "Échec de l'enregistrement de la configuration",
+      "jsonSaveSuccess": "Configuration enregistrée avec succès",
+      "missingDependencies": "est manquant, veuillez l'installer pour continuer.",
+      "name": "Nom",
+      "nameRequired": "Veuillez saisir un nom de serveur",
+      "noServers": "Aucun serveur configuré",
+      "unavailable": "La version web ne prend pas en charge MCP pour le moment. Restez à l'écoute.",
+      "invoke_tool": "Invoquer l'outil",
+      "invoke_tooling": "Invocation de l'outil",
+      "npx_list": {
+        "actions": "Actions",
+        "desc": "Rechercher et ajouter des paquets npm en tant que serveurs MCP",
+        "description": "Description",
+        "no_packages": "Aucun paquet trouvé",
+        "npm": "NPM",
+        "package_name": "Nom du paquet",
+        "scope_placeholder": "Saisissez le scope npm (par ex. @votre-org)",
+        "scope_required": "Veuillez saisir le scope npm",
+        "search": "Rechercher",
+        "search_error": "Erreur de recherche",
+        "title": "Liste des paquets NPX",
+        "usage": "Utilisation",
+        "version": "Version"
+      },
+      "serverPlural": "serveurs",
+      "serverSingular": "serveur",
+      "title": "Serveurs MCP",
+      "toggleError": "Échec du basculement",
+      "type": "Type",
+      "updateError": "Échec de la mise à jour du serveur",
+      "updateSuccess": "Serveur mis à jour avec succès",
+      "url": "URL",
+      "invalidMcpFormat": "Format de configuration MCP non valide"
+    },
+    "proxy": "Paramètres du proxy",
+    "noProxy": "Aucun proxy",
+    "systemProxy": "Proxy système",
+    "customProxy": "Proxy personnalisé",
+    "customProxyPlaceholder": "Saisissez la configuration du proxy",
+    "proxyHint": "Chaque configuration de proxy doit être sur une nouvelle ligne.\nFormat : protocole=adresse_proxy\nExemple :\nhttp=http://127.0.0.1:7890\nhttps=http://127.0.0.1:7890\nsocks5=socks5://127.0.0.1:7890",
+    "packageMirrors": "Miroirs de paquets",
+    "pythonMirror": "Miroir Python",
+    "nodeMirror": "Miroir Node",
+    "customMirror": "Miroir personnalisé",
+    "customMirrorPlaceholder": "Saisissez l'URL du miroir personnalisé",
+    "proxyApplied": "Paramètres du proxy appliqués avec succès",
+    "proxyError": "Échec de l'application des paramètres du proxy",
+    "unsupportedProxyProtocol": "Protocole de proxy non pris en charge. Veuillez utiliser http, https, socks4 ou socks5",
+    "invalidProxyHost": "Adresse d'hôte du proxy non valide",
+    "invalidProxyPort": "Numéro de port du proxy non valide (doit être un nombre compris entre 1 et 65535)",
+    "invalidProxyFormat": "Format d'adresse du proxy non valide",
+    "proxyUrlRequired": "Veuillez saisir une adresse de proxy",
+    "socksPortRequired": "Un proxy SOCKS doit spécifier un numéro de port",
+    "themeSystem": "Suivre le système",
+    "backend": {
+      "enable": "Activer le backend (bêta)",
+      "language": "Langage du backend",
+      "database": {
+        "type": "Type de base de données",
+        "none": "Aucun",
+        "url": "URL de la base de données",
+        "username": "Nom d'utilisateur de la base de données",
+        "password": "Mot de passe de la base de données"
+      }
+    }
+  },
+  "preview": {
+    "noserver": "Aucun serveur en cours d'exécution",
+    "wxminiPreview": "Ouvrir les outils de développement WeChat Mini Program pour l'aperçu"
+  },
+  "editor": {
+    "editor": "Éditeur",
+    "preview": "Aperçu",
+    "apiTest": "APITest",
+    "search_in_files": "Rechercher dans les fichiers...",
+    "diff": "diff"
+  },
+  "header": {
+    "download": "Télécharger le code",
+    "deploy": "Déployer",
+    "deploying": "Déploiement en cours...",
+    "deploySuccess": "Déploiement réussi !",
+    "deployToCloud": "Votre projet a été déployé avec succès dans le cloud",
+    "accessLink": "Lien d'accès :",
+    "copy": "Copier",
+    "close": "Fermer",
+    "visitSite": "Visiter le site",
+    "open_directory": "Ouvrir le répertoire",
+    "error": {
+      "open_directory": "Échec de l'ouverture du répertoire",
+      "deploy_failed": "Échec du déploiement, veuillez réessayer plus tard"
+    }
+  },
+  "explorer": {
+    "clear_all": "Tout effacer",
+    "explorer": "Explorateur"
+  },
+  "sidebar": {
+    "start_new_chat": "Démarrer une nouvelle discussion",
+    "search": "Rechercher",
+    "chat_history": "Historique des discussions",
+    "my_subscription": "Mon abonnement",
+    "settings": "Paramètres",
+    "contact_us": "Nous contacter",
+    "personal_plan": "Forfait personnel"
+  },
+  "usage": {
+    "usage": "Utilisation",
+    "monthly_usage": "utilisation mensuelle du quota",
+    "quota_used": "quota utilisé",
+    "remaining": "restant",
+    "billing_cycle": "Cycle de facturation",
+    "next_reset": "Prochaine réinitialisation",
+    "days": "jours",
+    "type": "type",
+    "buy_quote": "Acheter plus de quota",
+    "personal_plan": "Forfait personnel"
+  },
+  "login": {
+    "guest": "Invité",
+    "title": "Veuillez vous connecter",
+    "click_to_login": "Cliquez pour vous connecter",
+    "AI_powered_development_platform": "Plateforme de développement propulsée par l'IA",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "sign_in": "Se connecter",
+    "signing_in": "Connexion en cours...",
+    "Failed to fetch": "Échec de la récupération",
+    "remember_me": "Se souvenir de moi",
+    "forgot_password": "Mot de passe oublié",
+    "By_signing_in_you_agree_to_our": "En vous connectant, vous acceptez nos",
+    "terms_of_service": "Conditions d'utilisation",
+    "Invalid password": "Mot de passe non valide",
+    "privacy_policy": "Politique de confidentialité",
+    "and": "et",
+    "need_an_account": "Besoin d'un compte",
+    "register": "S'inscrire",
+    "weChat": "WeChat",
+    "basic_information": "Informations de base, avatar, etc.",
+    "continue_with_wechat": "Continuer avec WeChat",
+    "connecting": "Connexion en cours...",
+    "sign_up_with_wechat": "S'inscrire avec WeChat",
+    "WeDev_will_access_the_following_GitHub_information": "WeDev accédera aux informations GitHub suivantes",
+    "WeDev_will_access_the_following_wechat_information": "WeDev accédera aux informations WeChat suivantes",
+    "basic_profile": "Profil de base",
+    "public_repositories": "Dépôts publics",
+    "and_Gists": "et Gists",
+    "continue_with_github": "Continuer avec GitHub",
+    "chat_limit_reached": "Limite de discussion atteinte",
+    "chat_limit_reached_tips": "Veuillez vous connecter pour continuer à discuter",
+    "usage_limit_reached": "Limite d'utilisation atteinte",
+    "usage_limit_reached_tips": "Vous avez atteint la limite maximale d'utilisation. Veuillez ajouter du quota pour continuer à utiliser le service."
+  },
+  "register": {
+    "register_success": "Inscription réussie !",
+    "register_success_account": "Nous avons envoyé un e-mail de vérification dans votre boîte de réception, veuillez le vérifier rapidement.",
+    "process_login": "Passer à la connexion",
+    "create_account": "Créez votre compte Idem Appgen",
+    "creating_account": "Création du compte...",
+    "create_account_button": "Créer un compte",
+    "already_account": "Vous avez déjà un compte ?"
+  },
+  "sketch": {
+    "title": "Éditeur Sketch",
+    "guide": {
+      "title": "Guide de conversion de design Sketch ou Figma en code",
+      "uploadTitle": "Importez votre design Sketch ou Figma",
+      "description": "Importez simplement votre design Sketch ou Figma, et nous générerons automatiquement pour vous un code frontend de haute qualité.",
+      "startButton": "Démarrer l'expérience D2C",
+      "supportText": "Prend en charge les formats de fichier .sketch ou .figma, taille de fichier jusqu'à 10 Mo",
+      "slide0": {
+        "title": "Sélectionnez la zone de design à générer",
+        "description": "Après l'import -> Cliquez sur le fichier dans l'arborescence de gauche ou cliquez sur la zone de design pour la sélectionner -> L'aperçu apparaît en bas à droite -> Cliquez sur le bouton en bas à droite pour obtenir le code"
+      },
+      "slide1": {
+        "title": "Génération automatique de code de haute qualité",
+        "description": "Patientez un instant pendant que notre moteur d'IA analyse votre design et génère un code frontend précis"
+      },
+      "slide2": {
+        "title": "Aperçu instantané",
+        "description": "Voyez le code généré en action !!!"
+      }
+    },
+    "generating": "Génération en cours...",
+    "generate_success": "Généré avec succès",
+    "prompt": "1. Encapsulez les composants à partir des images lorsque c'est possible ; 2. Utilisez des liens blob pour les images ; 3. Créez une réplique exacte de l'image, référez-vous aux marges, tailles, polices et arrière-plans dans le tableau JSON ! 4. Utilisez TypeScript ; 5. Pour les éléments répétés dans l'image, utilisez des composants lorsque c'est possible sans casser le style d'origine ; 6. Utilisez des styles de dépassement de texte, identifiez le texte sur une seule ligne ou sur plusieurs lignes, tronquez avec '...' en cas de dépassement pour préserver l'esthétique ; 7. Utilisez les balises <div> <span> <img> <a> <input>, évitez <h1><h2> etc. ; 8. Simplifiez les noms CSS, préférez la mise en page flex plutôt que le positionnement absolu lorsque c'est possible ; 9. Corrigez les problèmes de z-index si nécessaire ; 10. Conservez un espacement précis conforme aux données de référence. Important : n'omettez aucun code !!!!",
+    "generate_failed": "Échec de la génération",
+    "get_code": "Obtenir le code",
+    "select_tech": "Sélectionnez la pile technologique",
+    "tech": {
+      "react": "React avec TypeScript et Tailwind",
+      "vue": "Vue3 avec TypeScript et Tailwind",
+      "miniprogram": "WeChat Mini Program"
+    },
+    "prompts": {
+      "base": "Veuillez générer à partir du design importé",
+      "react": "Code React utilisant TypeScript et Tailwind CSS, le projet doit avoir un point d'entrée de démarrage, garantir que le projet peut s'exécuter et que le code respecte les bonnes pratiques et l'optimisation des performances.",
+      "vue": "Code Vue3 utilisant TypeScript et l'API Composition, avec un style Tailwind CSS, en respectant les bonnes pratiques de Vue.",
+      "miniprogram": "Code WeChat Mini Program utilisant le framework natif avec un style WXSS, en respectant les standards et bonnes pratiques de développement des Mini Program. Utilisez les unités rpx pour l'interface, et supprimez la barre d'état si elle est présente dans le design. Faites attention aux styles et à la largeur lors de l'écriture des mini programmes"
+    }
+  },
+  "update": {
+    "version_update": "Mise à jour de version",
+    "release_date": "Date de publication"
+  },
+  "weapi": {
+    "title": "Test d'API",
+    "edit": "Modifier",
+    "save_changes": "Enregistrer les modifications",
+    "send_request": "Envoyer la requête",
+    "api_collection": "Collection d'API",
+    "request_failed": "Échec de la requête",
+    "api_saved": "API enregistrée avec succès",
+    "import_success": "Liste d'API importée avec succès",
+    "delete_api_title": "Confirmer la suppression de l'API",
+    "delete_folder_title": "Confirmer la suppression du dossier",
+    "delete_api_confirm": "Êtes-vous sûr de vouloir supprimer l'API ?",
+    "delete_folder_confirm": "Êtes-vous sûr de vouloir supprimer le dossier et tout son contenu ?",
+    "new_api": "Nouvelle API",
+    "new_folder": "Nouveau dossier",
+    "add_api": "Ajouter une API",
+    "add_folder": "Ajouter un dossier",
+    "import": "Importer",
+    "export": "Exporter",
+    "edit_item": "Modifier {type}",
+    "add_item": "Ajouter un nouvel élément",
+    "item_type": "Type",
+    "item_name": "Nom",
+    "type_api": "API",
+    "type_folder": "Dossier",
+    "name_required": "Veuillez saisir un nom",
+    "url_required": "Veuillez saisir une URL",
+    "url": "URL",
+    "method": {
+      "GET": "GET",
+      "POST": "POST",
+      "PUT": "PUT",
+      "DELETE": "DELETE",
+      "PATCH": "PATCH",
+      "HEAD": "HEAD",
+      "OPTIONS": "OPTIONS"
+    }
+  },
+  "forgotPassword": {
+    "title": "Réinitialiser le mot de passe",
+    "email": "Adresse e-mail",
+    "emailPlaceholder": "Saisissez votre e-mail",
+    "oldPassword": "Ancien mot de passe",
+    "oldPasswordPlaceholder": "Saisissez votre ancien mot de passe",
+    "newPassword": "Nouveau mot de passe",
+    "newPasswordPlaceholder": "Saisissez votre nouveau mot de passe",
+    "submit": "Mettre à jour le mot de passe",
+    "submitting": "Mise à jour en cours...",
+    "backToLogin": "Retour à la connexion",
+    "success": "Mot de passe mis à jour avec succès",
+    "error": {
+      "missingFields": "Veuillez remplir tous les champs",
+      "userNotFound": "Utilisateur introuvable",
+      "invalidOldPassword": "Ancien mot de passe non valide",
+      "updateFailed": "Échec de la mise à jour du mot de passe"
+    }
+  }
+}
