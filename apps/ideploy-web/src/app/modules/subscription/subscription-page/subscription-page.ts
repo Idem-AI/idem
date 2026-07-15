@@ -1,42 +1,44 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 
 @Component({
   selector: 'app-subscription-page',
+  imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="mb-6 text-2xl font-bold">Subscription</h1>
+    <h1 class="mb-6 text-2xl font-bold">{{ 'subscription.title' | translate }}</h1>
 
     @if (subscription(); as s) {
       <div class="box mb-6">
-        <div class="text-lg font-semibold">Current plan: {{ s.plan }}</div>
+        <div class="text-lg font-semibold">{{ 'subscription.currentPlan' | translate }} {{ s.plan }}</div>
         @if (quota(); as q) {
           <div class="mt-2 text-sm">
-            Apps: {{ q.apps.used }}/{{ q.apps.limit || '∞' }}
-            <span [class.text-red-400]="!q.apps.ok">{{ q.apps.ok ? '' : '(limit reached)' }}</span>
+            {{ 'subscription.apps' | translate }} {{ q.apps.used }}/{{ q.apps.limit || '∞' }}
+            <span [class.text-red-400]="!q.apps.ok">{{ q.apps.ok ? '' : ('subscription.limitReached' | translate) }}</span>
           </div>
           <div class="text-sm">
-            Servers: {{ q.servers.used }}/{{ q.servers.limit || '∞' }}
-            <span [class.text-red-400]="!q.servers.ok">{{ q.servers.ok ? '' : '(limit reached)' }}</span>
+            {{ 'subscription.servers' | translate }} {{ q.servers.used }}/{{ q.servers.limit || '∞' }}
+            <span [class.text-red-400]="!q.servers.ok">{{ q.servers.ok ? '' : ('subscription.limitReached' | translate) }}</span>
           </div>
         }
       </div>
     }
 
-    <h2 class="mb-3 font-semibold">Plans</h2>
+    <h2 class="mb-3 font-semibold">{{ 'subscription.plans' | translate }}</h2>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
       @for (plan of plans(); track plan['name']) {
         <div class="box flex flex-col">
           <div class="text-lg font-semibold">{{ plan['display_name'] }}</div>
           <div class="my-2 text-2xl">{{ plan['price'] }} {{ plan['currency'] }}<span class="text-sm">/{{ plan['billing_period'] }}</span></div>
           <div class="text-sm" style="color: var(--color-text-secondary)">
-            Apps: {{ plan['app_limit'] || '∞' }} · Servers: {{ plan['server_limit'] || '∞' }}
+            {{ 'subscription.apps' | translate }} {{ plan['app_limit'] || '∞' }} · {{ 'subscription.servers' | translate }} {{ plan['server_limit'] || '∞' }}
           </div>
           <div class="mt-3">
             @if (subscription()?.plan === plan['name']) {
-              <span class="status-badge" style="background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.28);">CURRENT</span>
+              <span class="status-badge" style="background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.28);">{{ 'subscription.current' | translate }}</span>
             } @else {
-              <button class="button w-full" (click)="select(plan)">{{ plan['price'] && +(plan['price'] || 0) > 0 ? 'Subscribe' : 'Switch' }}</button>
+              <button class="button w-full" (click)="select(plan)">{{ plan['price'] && +(plan['price'] || 0) > 0 ? ('subscription.subscribe' | translate) : ('subscription.switch' | translate) }}</button>
             }
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Application, Project } from '../../../shared/models/ideploy.models';
 
@@ -16,7 +17,7 @@ interface EnvRow {
  */
 @Component({
   selector: 'app-project-detail',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (project(); as p) {
@@ -28,8 +29,8 @@ interface EnvRow {
       @for (env of environments(); track env.id) {
         <section class="box mb-6">
           <div class="mb-3 flex items-center justify-between">
-            <h2 class="font-semibold">Environment: {{ env.name }}</h2>
-            <span class="text-xs" style="color: var(--color-text-secondary)">env #{{ env.id }}</span>
+            <h2 class="font-semibold">{{ 'projects.detail.environment' | translate }} {{ env.name }}</h2>
+            <span class="text-xs" style="color: var(--color-text-secondary)">{{ 'projects.detail.envNumber' | translate }}{{ env.id }}</span>
           </div>
 
           <!-- Applications in this environment -->
@@ -43,16 +44,16 @@ interface EnvRow {
 
           <!-- New application -->
           <form class="mt-3 flex flex-wrap gap-2" [formGroup]="newAppForm(env.id)" (ngSubmit)="createApp(env.id)">
-            <input class="input flex-1" placeholder="app name" [formControl]="newAppForm(env.id).controls.name" />
-            <input class="input flex-1" placeholder="git repository URL" [formControl]="newAppForm(env.id).controls.git_repository" />
-            <input class="input w-28" placeholder="branch" [formControl]="newAppForm(env.id).controls.git_branch" />
-            <input class="input w-36" type="number" placeholder="destination id" [formControl]="newAppForm(env.id).controls.destination_id" />
-            <button class="button" type="submit" [disabled]="newAppForm(env.id).invalid">New application</button>
+            <input class="input flex-1" [placeholder]="'projects.detail.appNamePlaceholder' | translate" [formControl]="newAppForm(env.id).controls.name" />
+            <input class="input flex-1" [placeholder]="'projects.detail.gitRepoPlaceholder' | translate" [formControl]="newAppForm(env.id).controls.git_repository" />
+            <input class="input w-28" [placeholder]="'projects.detail.branchPlaceholder' | translate" [formControl]="newAppForm(env.id).controls.git_branch" />
+            <input class="input w-36" type="number" [placeholder]="'projects.detail.destinationIdPlaceholder' | translate" [formControl]="newAppForm(env.id).controls.destination_id" />
+            <button class="button" type="submit" [disabled]="newAppForm(env.id).invalid">{{ 'projects.detail.newApplication' | translate }}</button>
           </form>
         </section>
       }
     } @else {
-      <p class="text-sm" style="color: var(--color-text-secondary)">Loading…</p>
+      <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'projects.common.loading' | translate }}</p>
     }
   `,
 })

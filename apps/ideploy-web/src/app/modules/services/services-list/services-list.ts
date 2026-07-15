@@ -1,21 +1,22 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Service, ServiceTemplate } from '../../../shared/models/ideploy.models';
 
 @Component({
   selector: 'app-services-list',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="mb-6 text-2xl font-bold">Services</h1>
+    <h1 class="mb-6 text-2xl font-bold">{{ 'services.title' | translate }}</h1>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div>
         @if (loading()) {
-          <p class="text-sm" style="color: var(--color-text-secondary)">Loading…</p>
+          <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'services.loading' | translate }}</p>
         } @else if (services().length === 0) {
-          <div class="box">No services yet.</div>
+          <div class="box">{{ 'services.empty' | translate }}</div>
         } @else {
           <div class="space-y-3">
             @for (svc of services(); track svc.uuid) {
@@ -27,8 +28,8 @@ import { Service, ServiceTemplate } from '../../../shared/models/ideploy.models'
                   </div>
                 </div>
                 <div class="flex gap-2">
-                  <button class="button-secondary" (click)="action(svc, 'stop')">Stop</button>
-                  <button class="button" (click)="action(svc, 'start')">Start</button>
+                  <button class="button-secondary" (click)="action(svc, 'stop')">{{ 'services.stop' | translate }}</button>
+                  <button class="button" (click)="action(svc, 'start')">{{ 'services.start' | translate }}</button>
                 </div>
               </div>
             }
@@ -37,39 +38,39 @@ import { Service, ServiceTemplate } from '../../../shared/models/ideploy.models'
       </div>
 
       <form class="box space-y-3" [formGroup]="form" (ngSubmit)="create()">
-        <h2 class="font-semibold">Deploy a one-click service</h2>
+        <h2 class="font-semibold">{{ 'services.deployOneClick' | translate }}</h2>
         <div>
-          <label class="mb-1 block text-sm">Template</label>
+          <label class="mb-1 block text-sm">{{ 'services.template' | translate }}</label>
           <select class="input" formControlName="template">
-            <option value="">— custom (none) —</option>
+            <option value="">{{ 'services.customNone' | translate }}</option>
             @for (t of templates(); track t.name) {
               <option [value]="t.name">{{ t.name }} — {{ t.slogan }}</option>
             }
           </select>
         </div>
         <div>
-          <label class="mb-1 block text-sm">Name</label>
+          <label class="mb-1 block text-sm">{{ 'services.name' | translate }}</label>
           <input class="input" formControlName="name" />
         </div>
         <div class="flex gap-3">
           <div class="flex-1">
-            <label class="mb-1 block text-sm">Environment ID</label>
+            <label class="mb-1 block text-sm">{{ 'services.environmentId' | translate }}</label>
             <input class="input" type="number" formControlName="environment_id" />
           </div>
           <div class="flex-1">
-            <label class="mb-1 block text-sm">Destination ID</label>
+            <label class="mb-1 block text-sm">{{ 'services.destinationId' | translate }}</label>
             <input class="input" type="number" formControlName="destination_id" />
           </div>
         </div>
         <div>
-          <label class="mb-1 block text-sm">docker-compose.yml (ignored when a template is selected)</label>
+          <label class="mb-1 block text-sm">{{ 'services.dockerComposeLabel' | translate }}</label>
           <textarea class="input font-mono" rows="6" formControlName="docker_compose_raw"></textarea>
         </div>
         @if (error()) {
           <p class="text-sm text-red-400">{{ error() }}</p>
         }
         <button class="button" type="submit" [disabled]="saving()">
-          {{ saving() ? 'Creating…' : 'Create service' }}
+          {{ (saving() ? 'services.creating' : 'services.createService') | translate }}
         </button>
       </form>
     </div>
@@ -78,6 +79,7 @@ import { Service, ServiceTemplate } from '../../../shared/models/ideploy.models'
 export class ServicesListComponent implements OnInit {
   private api = inject(ApiService);
   private fb = inject(FormBuilder);
+  private translate = inject(TranslateService);
 
   protected readonly services = signal<Service[]>([]);
   protected readonly templates = signal<ServiceTemplate[]>([]);
@@ -120,7 +122,7 @@ export class ServicesListComponent implements OnInit {
         this.load();
       },
       error: (e: { error?: { error?: { message?: string } } }) => {
-        this.error.set(e?.error?.error?.message ?? 'Failed to create service');
+        this.error.set(e?.error?.error?.message ?? this.translate.instant('services.createError'));
         this.saving.set(false);
       },
     };

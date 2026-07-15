@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../../../shared/services/api.service';
 import { Project, Server, ServiceTemplate } from '../../../shared/models/ideploy.models';
@@ -22,7 +23,7 @@ interface DeployRow {
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Top toolbar -->
@@ -32,17 +33,17 @@ interface DeployRow {
            [class.focus-within:ring-2]="true"
            [class.focus-within:ring-blue-500/20]="true">
         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-white/40"></i>
-        <input class="input" style="padding-left:36px;" placeholder="Search Projects…"
+        <input class="input" style="padding-left:36px;" [placeholder]="'dashboard.searchProjects' | translate"
                [ngModel]="query()" (ngModelChange)="query.set($event)" />
       </div>
       <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
-        <button class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 text-white/60 transition-colors cursor-pointer" title="Grid view" (click)="view.set('grid')"
+        <button class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 text-white/60 transition-colors cursor-pointer" [title]="'dashboard.gridView' | translate" (click)="view.set('grid')"
                 [class.bg-white/10]="view() === 'grid'" [class.!text-white]="view() === 'grid'"><i class="fa-solid fa-table-cells-large"></i></button>
-        <button class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 text-white/60 transition-colors cursor-pointer" title="List view" (click)="view.set('list')"
+        <button class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 text-white/60 transition-colors cursor-pointer" [title]="'dashboard.listView' | translate" (click)="view.set('list')"
                 [class.bg-white/10]="view() === 'list'" [class.!text-white]="view() === 'list'"><i class="fa-solid fa-list"></i></button>
       </div>
       <button class="button flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]" (click)="goNewProject()">
-        <i class="fa-solid fa-plus text-xs"></i> New Project
+        <i class="fa-solid fa-plus text-xs"></i> {{ 'dashboard.newProject' | translate }}
       </button>
     </div>
 
@@ -50,12 +51,12 @@ interface DeployRow {
       <!-- ===== Left column ===== -->
       <div class="lg:col-span-1 space-y-6">
         <div>
-          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Usage</h2>
+          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">{{ 'dashboard.usage' | translate }}</h2>
           <div class="box p-5">
             <div class="mb-4 flex items-center justify-between">
-              <span class="text-sm font-semibold text-white/90">Current Limit</span>
+              <span class="text-sm font-semibold text-white/90">{{ 'dashboard.currentLimit' | translate }}</span>
               <a routerLink="/subscription" class="rounded-md px-2.5 py-1 text-xs font-semibold hover:bg-white/15 transition-colors"
-                 style="background:var(--color-surface-2);color:var(--color-text-primary);">Upgrade</a>
+                 style="background:var(--color-surface-2);color:var(--color-text-primary);">{{ 'dashboard.upgrade' | translate }}</a>
             </div>
             <div class="space-y-4">
               @if (loading()) {
@@ -80,21 +81,21 @@ interface DeployRow {
         </div>
 
         <div>
-          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Alerts</h2>
+          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">{{ 'dashboard.alerts' | translate }}</h2>
           <div class="box text-center p-6">
-            <p class="font-semibold text-white/90">Get notified about your deployments</p>
+            <p class="font-semibold text-white/90">{{ 'dashboard.getNotified' | translate }}</p>
             <p class="mt-1.5 text-xs leading-relaxed" style="color:var(--color-text-secondary);">
-              Slack, Discord, Telegram, email — be alerted when a deploy fails or a server goes down.
+              {{ 'dashboard.alertsDescription' | translate }}
             </p>
-            <a routerLink="/notifications" class="button-secondary mt-4 inline-flex text-xs px-4 py-2 cursor-pointer rounded-xl hover:bg-white/10 transition-colors">Configure notifications</a>
+            <a routerLink="/notifications" class="button-secondary mt-4 inline-flex text-xs px-4 py-2 cursor-pointer rounded-xl hover:bg-white/10 transition-colors">{{ 'dashboard.configureNotifications' | translate }}</a>
           </div>
         </div>
 
         <div>
-          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Recent Deployments</h2>
+          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">{{ 'dashboard.recentDeployments' | translate }}</h2>
           <div class="box text-center p-6" style="color:var(--color-text-tertiary);">
             <i class="fa-solid fa-clock-rotate-left mb-2 text-lg text-white/30"></i>
-            <p class="text-xs">Deployments you trigger will appear here.</p>
+            <p class="text-xs">{{ 'dashboard.recentDeploymentsEmpty' | translate }}</p>
           </div>
         </div>
       </div>
@@ -102,7 +103,7 @@ interface DeployRow {
       <!-- ===== Right column ===== -->
       <div class="lg:col-span-2 space-y-6">
         <div>
-          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">Project History</h2>
+          <h2 class="mb-3 text-sm font-semibold" style="color:var(--color-text-secondary);">{{ 'dashboard.projectHistory' | translate }}</h2>
 
           @if (loading()) {
             <!-- Skeleton Projects Grid -->
@@ -164,7 +165,7 @@ interface DeployRow {
           } @else {
             <!-- Empty State -->
             <div class="db-glass p-8 text-center text-sm rounded-2xl" style="color:var(--color-text-secondary);">
-              No projects in history. Use the import block below to deploy your first project.
+              {{ 'dashboard.noProjects' | translate }}
             </div>
           }
         </div>
@@ -178,12 +179,12 @@ interface DeployRow {
                   <i class="fa-brands fa-github text-xl animate-pulse"></i>
                 </div>
                 <div>
-                  <h4 class="font-bold text-white/95 text-base">Import Project</h4>
-                  <p class="text-xs mt-0.5" style="color:var(--color-text-secondary);">Deploy your app directly from a GitHub repository or Git URL.</p>
+                  <h4 class="font-bold text-white/95 text-base">{{ 'dashboard.importProject' | translate }}</h4>
+                  <p class="text-xs mt-0.5" style="color:var(--color-text-secondary);">{{ 'dashboard.importProjectDescription' | translate }}</p>
                 </div>
               </div>
               <button class="button cursor-pointer text-xs font-semibold py-2.5 px-5 shadow-lg shadow-blue-500/15 hover:scale-[1.02] transition-transform" (click)="goNewProject()">
-                Import Repository
+                {{ 'dashboard.importRepository' | translate }}
               </button>
             </div>
 
@@ -191,18 +192,18 @@ interface DeployRow {
               <div class="mb-4 rounded-md p-3 text-sm text-red-400" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
                 {{ error() }}
                 @if (error()!.toLowerCase().includes('server')) {
-                  · <a routerLink="/servers/new" style="color:#60a5fa;">Add a server</a>
+                  · <a routerLink="/servers/new" style="color:#60a5fa;">{{ 'dashboard.addServer' | translate }}</a>
                 }
               </div>
             }
 
             <!-- Templates title -->
             <div class="mb-3 flex items-center justify-between">
-              <h4 class="text-sm font-semibold font-mono text-white/80">Start with a template</h4>
+              <h4 class="text-sm font-semibold font-mono text-white/80">{{ 'dashboard.startWithTemplate' | translate }}</h4>
               @if (loading()) {
                 <div class="h-3 w-16 rounded bg-white/10 dbpulse"></div>
               } @else {
-                <span class="text-[10px] font-mono" style="color:var(--color-text-secondary);">{{ templateRows().length }} available</span>
+                <span class="text-[10px] font-mono" style="color:var(--color-text-secondary);">{{ 'dashboard.available' | translate: { count: templateRows().length } }}</span>
               }
             </div>
 
@@ -230,7 +231,7 @@ interface DeployRow {
                       <div class="font-semibold capitalize text-white/90">{{ row.title }}</div>
                       <div class="text-xs" style="color:var(--color-text-secondary);">{{ row.description }}</div>
                     </div>
-                    <button class="button-secondary cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors" [disabled]="busy()" (click)="deployTemplate(row)">Deploy</button>
+                    <button class="button-secondary cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors" [disabled]="busy()" (click)="deployTemplate(row)">{{ 'dashboard.deploy' | translate }}</button>
                   </div>
                 }
               }
@@ -241,8 +242,8 @@ interface DeployRow {
                   <i class="fa-solid fa-compass"></i>
                 </div>
                 <div class="flex-1">
-                  <div class="font-semibold text-white/90 group-hover:text-blue-400 transition-colors">Browse Templates</div>
-                  <div class="text-xs" style="color:var(--color-text-secondary);">Databases, stacks and one-click apps</div>
+                  <div class="font-semibold text-white/90 group-hover:text-blue-400 transition-colors">{{ 'dashboard.browseTemplates' | translate }}</div>
+                  <div class="text-xs" style="color:var(--color-text-secondary);">{{ 'dashboard.browseTemplatesDescription' | translate }}</div>
                 </div>
                 <i class="fa-solid fa-arrow-up-right-from-square text-xs text-white/40 group-hover:text-blue-400 transition-colors"></i>
               </a>
@@ -255,6 +256,7 @@ interface DeployRow {
 export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  private translate = inject(TranslateService);
 
   protected readonly projects = signal<Project[]>([]);
   protected readonly servers = signal<Server[]>([]);
@@ -287,10 +289,10 @@ export class DashboardComponent implements OnInit {
   protected readonly usageMetrics = computed(() => {
     const q = this.quota();
     return [
-      { label: 'Applications', icon: 'fa-solid fa-cube', color: '#60a5fa', value: `${q.apps.used} / ${q.apps.limit || '∞'}` },
-      { label: 'Servers', icon: 'fa-solid fa-server', color: '#4ade80', value: `${q.servers.used} / ${q.servers.limit || '∞'}` },
-      { label: 'Databases', icon: 'fa-solid fa-database', color: '#a78bfa', value: `${this.dbCount()}` },
-      { label: 'Projects', icon: 'fa-solid fa-layer-group', color: '#2563eb', value: `${this.projects().length}` },
+      { label: this.translate.instant('dashboard.metricApplications'), icon: 'fa-solid fa-cube', color: '#60a5fa', value: `${q.apps.used} / ${q.apps.limit || '∞'}` },
+      { label: this.translate.instant('dashboard.metricServers'), icon: 'fa-solid fa-server', color: '#4ade80', value: `${q.servers.used} / ${q.servers.limit || '∞'}` },
+      { label: this.translate.instant('dashboard.metricDatabases'), icon: 'fa-solid fa-database', color: '#a78bfa', value: `${this.dbCount()}` },
+      { label: this.translate.instant('dashboard.metricProjects'), icon: 'fa-solid fa-layer-group', color: '#2563eb', value: `${this.projects().length}` },
     ];
   });
 
@@ -302,7 +304,7 @@ export class DashboardComponent implements OnInit {
       icon: 'fa-solid fa-cube',
       iconColor: '#60a5fa',
       title: t.name,
-      description: t.slogan || 'One-click service',
+      description: t.slogan || this.translate.instant('dashboard.oneClickService'),
       action: 'deploy' as const,
       template: t.name,
     }));
@@ -326,7 +328,7 @@ export class DashboardComponent implements OnInit {
       },
       error: (e) => {
         this.loading.set(false);
-        this.error.set(e?.error?.error?.message ?? 'Failed to load dashboard data. Please reload.');
+        this.error.set(e?.error?.error?.message ?? this.translate.instant('dashboard.loadError'));
       },
     });
   }
@@ -360,7 +362,7 @@ export class DashboardComponent implements OnInit {
       },
       error: (e) => {
         this.busy.set(false);
-        this.error.set(e?.error?.error?.message ?? 'Deployment failed');
+        this.error.set(e?.error?.error?.message ?? this.translate.instant('dashboard.deploymentFailed'));
       },
     });
   }

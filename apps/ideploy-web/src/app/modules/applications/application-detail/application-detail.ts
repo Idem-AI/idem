@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import {
   Application,
@@ -19,7 +20,7 @@ import {
  */
 @Component({
   selector: 'app-application-detail',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (app(); as a) {
@@ -28,142 +29,142 @@ import {
         <div class="flex items-center gap-2">
           @if (a.link) {
             <a class="button-secondary" [href]="a.link" target="_blank" rel="noopener">
-              <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>Open
+              <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>{{ 'applications.open' | translate }}
             </a>
           }
-          <button class="button-secondary" (click)="lifecycle('restart')">Restart</button>
-          <button class="button-secondary" (click)="lifecycle('stop')">Stop</button>
-          <button class="button" (click)="deploy()">Deploy</button>
+          <button class="button-secondary" (click)="lifecycle('restart')">{{ 'applications.detail.restart' | translate }}</button>
+          <button class="button-secondary" (click)="lifecycle('stop')">{{ 'applications.detail.stop' | translate }}</button>
+          <button class="button" (click)="deploy()">{{ 'applications.deploy' | translate }}</button>
         </div>
       </div>
 
       <!-- Config -->
       <section class="box mb-6">
-        <h2 class="mb-3 font-semibold">Configuration</h2>
+        <h2 class="mb-3 font-semibold">{{ 'applications.detail.configuration' | translate }}</h2>
         <form class="space-y-3" [formGroup]="configForm" (ngSubmit)="saveConfig()">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="mb-1 block text-sm">Git repository</label>
+              <label class="mb-1 block text-sm">{{ 'applications.detail.gitRepository' | translate }}</label>
               <input class="input" formControlName="git_repository" />
             </div>
             <div>
-              <label class="mb-1 block text-sm">Branch</label>
+              <label class="mb-1 block text-sm">{{ 'applications.branch' | translate }}</label>
               <input class="input" formControlName="git_branch" />
             </div>
             <div>
-              <label class="mb-1 block text-sm">Build pack</label>
+              <label class="mb-1 block text-sm">{{ 'applications.detail.buildPack' | translate }}</label>
               <input class="input" formControlName="build_pack" />
             </div>
             <div>
-              <label class="mb-1 block text-sm">FQDN</label>
+              <label class="mb-1 block text-sm">{{ 'applications.detail.fqdn' | translate }}</label>
               <input class="input" formControlName="fqdn" />
             </div>
           </div>
-          <button class="button" type="submit" [disabled]="savingConfig()">Save</button>
+          <button class="button" type="submit" [disabled]="savingConfig()">{{ 'applications.detail.save' | translate }}</button>
         </form>
       </section>
 
       <!-- Env vars -->
       <section class="box mb-6">
-        <h2 class="mb-3 font-semibold">Environment variables</h2>
+        <h2 class="mb-3 font-semibold">{{ 'applications.detail.environmentVariables' | translate }}</h2>
         @for (env of envVars(); track env.key) {
           <div class="mb-2 flex items-center gap-2">
             <code class="text-sm">{{ env.key }}</code>
             <span class="text-sm" style="color: var(--color-text-secondary)">= {{ env.value }}</span>
-            <button class="ml-auto text-xs text-red-400" (click)="removeEnv(env)">remove</button>
+            <button class="ml-auto text-xs text-red-400" (click)="removeEnv(env)">{{ 'applications.detail.remove' | translate }}</button>
           </div>
         }
         <form class="mt-3 flex gap-2" [formGroup]="envForm" (ngSubmit)="addEnv()">
-          <input class="input flex-1" placeholder="KEY" formControlName="key" />
-          <input class="input flex-1" placeholder="value" formControlName="value" />
-          <button class="button" type="submit" [disabled]="envForm.invalid">Add</button>
+          <input class="input flex-1" [placeholder]="'applications.detail.keyPlaceholder' | translate" formControlName="key" />
+          <input class="input flex-1" [placeholder]="'applications.detail.valuePlaceholder' | translate" formControlName="value" />
+          <button class="button" type="submit" [disabled]="envForm.invalid">{{ 'applications.detail.add' | translate }}</button>
         </form>
       </section>
 
       <!-- Scheduled tasks -->
       <section class="box mb-6">
-        <h2 class="mb-3 font-semibold">Scheduled tasks</h2>
+        <h2 class="mb-3 font-semibold">{{ 'applications.detail.scheduledTasks' | translate }}</h2>
         @for (task of tasks(); track task.uuid) {
           <div class="mb-2 flex items-center gap-3 text-sm">
             <span class="font-semibold">{{ task.name }}</span>
             <code>{{ task.command }}</code>
             <span style="color: var(--color-text-secondary)">{{ task.frequency }}</span>
-            <button class="ml-auto text-xs" (click)="runTask(task)">run now</button>
-            <button class="text-xs text-red-400" (click)="removeTask(task)">delete</button>
+            <button class="ml-auto text-xs" (click)="runTask(task)">{{ 'applications.detail.runNow' | translate }}</button>
+            <button class="text-xs text-red-400" (click)="removeTask(task)">{{ 'applications.detail.delete' | translate }}</button>
           </div>
         }
         <form class="mt-3 flex flex-wrap gap-2" [formGroup]="taskForm" (ngSubmit)="addTask()">
-          <input class="input flex-1" placeholder="name" formControlName="name" />
-          <input class="input flex-1" placeholder="command" formControlName="command" />
-          <input class="input w-40" placeholder="cron (e.g. 0 * * * *)" formControlName="frequency" />
-          <button class="button" type="submit" [disabled]="taskForm.invalid">Add task</button>
+          <input class="input flex-1" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />
+          <input class="input flex-1" [placeholder]="'applications.detail.commandPlaceholder' | translate" formControlName="command" />
+          <input class="input w-40" [placeholder]="'applications.detail.cronPlaceholder' | translate" formControlName="frequency" />
+          <button class="button" type="submit" [disabled]="taskForm.invalid">{{ 'applications.detail.addTask' | translate }}</button>
         </form>
       </section>
 
       <!-- Volumes -->
       <section class="box mb-6">
-        <h2 class="mb-3 font-semibold">Persistent volumes</h2>
+        <h2 class="mb-3 font-semibold">{{ 'applications.detail.persistentVolumes' | translate }}</h2>
         @for (vol of volumes()?.persistent ?? []; track vol.id) {
           <div class="mb-1 text-sm">
             <code>{{ vol.name }}</code> → {{ vol.mount_path }}
           </div>
         }
         <form class="mt-3 flex flex-wrap gap-2" [formGroup]="volumeForm" (ngSubmit)="addVolume()">
-          <input class="input flex-1" placeholder="name" formControlName="name" />
-          <input class="input flex-1" placeholder="/mount/path" formControlName="mount_path" />
-          <button class="button" type="submit" [disabled]="volumeForm.invalid">Add volume</button>
+          <input class="input flex-1" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />
+          <input class="input flex-1" [placeholder]="'applications.detail.mountPathPlaceholder' | translate" formControlName="mount_path" />
+          <button class="button" type="submit" [disabled]="volumeForm.invalid">{{ 'applications.detail.addVolume' | translate }}</button>
         </form>
       </section>
 
       <!-- Ops -->
       <section class="box mb-6">
-        <h2 class="mb-3 font-semibold">Operations</h2>
+        <h2 class="mb-3 font-semibold">{{ 'applications.detail.operations' | translate }}</h2>
         <div class="mb-2 flex gap-2">
-          <button class="button-secondary" (click)="refreshStatus()">Status</button>
-          <button class="button-secondary" (click)="refreshMetrics()">Metrics</button>
+          <button class="button-secondary" (click)="refreshStatus()">{{ 'applications.detail.status' | translate }}</button>
+          <button class="button-secondary" (click)="refreshMetrics()">{{ 'applications.detail.metrics' | translate }}</button>
         </div>
         @if (opsOutput()) {
           <pre class="overflow-auto whitespace-pre-wrap font-mono text-xs">{{ opsOutput() }}</pre>
         }
         <form class="mt-3 flex gap-2" [formGroup]="execForm" (ngSubmit)="runExec()">
-          <input class="input flex-1" placeholder="command to run in container" formControlName="command" />
-          <button class="button" type="submit" [disabled]="execForm.invalid">Exec</button>
+          <input class="input flex-1" [placeholder]="'applications.detail.execPlaceholder' | translate" formControlName="command" />
+          <button class="button" type="submit" [disabled]="execForm.invalid">{{ 'applications.detail.exec' | translate }}</button>
         </form>
       </section>
 
       <!-- Firewall (WAF) -->
       <section class="box mb-6">
-        <h2 class="mb-3 font-semibold">Firewall (WAF)</h2>
+        <h2 class="mb-3 font-semibold">{{ 'applications.detail.firewall' | translate }}</h2>
         @if (firewall(); as fw) {
           <label class="mb-3 flex items-center gap-2 text-sm">
             <input type="checkbox" [checked]="fw.enabled" (change)="toggleFirewall(fw)" />
-            Enabled · {{ fw.total_blocked }} blocked / {{ fw.total_requests }} requests
+            {{ 'applications.detail.firewallStats' | translate: { blocked: fw.total_blocked, requests: fw.total_requests } }}
           </label>
           @for (rule of firewallRules(); track rule.id) {
             <div class="mb-1 flex items-center gap-3 text-sm">
               <span class="font-semibold">{{ rule.name }}</span>
               <span style="color: var(--color-text-secondary)">{{ rule.action }} (p{{ rule.priority }})</span>
-              <button class="ml-auto text-xs text-red-400" (click)="removeRule(rule)">delete</button>
+              <button class="ml-auto text-xs text-red-400" (click)="removeRule(rule)">{{ 'applications.detail.delete' | translate }}</button>
             </div>
           }
           <form class="mt-3 flex flex-wrap gap-2" [formGroup]="ruleForm" (ngSubmit)="addRule()">
-            <input class="input flex-1" placeholder="rule name" formControlName="name" />
-            <input class="input flex-1" placeholder='conditions JSON e.g. [{"field":"uri","operator":"contains","value":"/admin"}]' formControlName="conditions" />
-            <button class="button" type="submit" [disabled]="ruleForm.invalid">Add rule</button>
+            <input class="input flex-1" [placeholder]="'applications.detail.ruleNamePlaceholder' | translate" formControlName="name" />
+            <input class="input flex-1" [placeholder]="'applications.detail.conditionsPlaceholder' | translate" formControlName="conditions" />
+            <button class="button" type="submit" [disabled]="ruleForm.invalid">{{ 'applications.detail.addRule' | translate }}</button>
           </form>
-          <button class="button-secondary mt-3" (click)="deployFirewall()">Deploy firewall</button>
+          <button class="button-secondary mt-3" (click)="deployFirewall()">{{ 'applications.detail.deployFirewall' | translate }}</button>
         }
       </section>
 
       <!-- Pipeline (CI/CD) -->
       <section class="box mb-6">
-        <h2 class="mb-3 font-semibold">CI/CD Pipeline</h2>
+        <h2 class="mb-3 font-semibold">{{ 'applications.detail.cicdPipeline' | translate }}</h2>
         @if (pipeline(); as p) {
           <div class="mb-2 text-sm" style="color: var(--color-text-secondary)">
-            Stages: {{ p.stages.join(' → ') }} · {{ p.enabled ? 'enabled' : 'disabled' }}
+            {{ 'applications.detail.stagesLabel' | translate }} {{ p.stages.join(' → ') }} · {{ (p.enabled ? 'applications.detail.enabled' : 'applications.detail.disabled') | translate }}
           </div>
         }
-        <button class="button" (click)="runPipeline()">Run pipeline</button>
+        <button class="button" (click)="runPipeline()">{{ 'applications.detail.runPipeline' | translate }}</button>
         <div class="mt-3 space-y-1">
           @for (ex of pipelineExecutions(); track $index) {
             <div class="text-sm">
@@ -175,23 +176,23 @@ import {
 
       <!-- Deployments / rollback -->
       <section class="box">
-        <h2 class="mb-3 font-semibold">Deployment history</h2>
+        <h2 class="mb-3 font-semibold">{{ 'applications.detail.deploymentHistory' | translate }}</h2>
         @if (deployments().length === 0) {
-          <p class="text-sm" style="color: var(--color-text-secondary)">No deployments yet.</p>
+          <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'applications.detail.noDeployments' | translate }}</p>
         } @else {
           <div class="space-y-2">
             @for (dep of deployments(); track dep.deployment_uuid) {
               <div class="flex items-center gap-3 text-sm">
                 <span class="font-mono">{{ dep.commit }}</span>
                 <span>{{ dep.status }}</span>
-                <button class="ml-auto text-xs" (click)="rollback(dep)">Redeploy this commit</button>
+                <button class="ml-auto text-xs" (click)="rollback(dep)">{{ 'applications.detail.redeployCommit' | translate }}</button>
               </div>
             }
           </div>
         }
       </section>
     } @else {
-      <p class="text-sm" style="color: var(--color-text-secondary)">Loading…</p>
+      <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'applications.loading' | translate }}</p>
     }
   `,
 })

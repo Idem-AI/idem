@@ -1,22 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { ProxyStatus, Server, ServerValidation } from '../../../shared/models/ideploy.models';
 
 @Component({
   selector: 'app-servers-list',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6 flex items-center justify-between">
-      <h1 class="text-2xl font-bold">Servers</h1>
-      <a class="button" routerLink="/servers/new">+ Add server</a>
+      <h1 class="text-2xl font-bold">{{ 'servers.title' | translate }}</h1>
+      <a class="button" routerLink="/servers/new">{{ 'servers.addServerButton' | translate }}</a>
     </div>
 
     @if (loading()) {
-      <p class="text-sm" style="color: var(--color-text-secondary)">Loading…</p>
+      <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'servers.loading' | translate }}</p>
     } @else if (servers().length === 0) {
-      <div class="box">No servers yet. Add one to get started.</div>
+      <div class="box">{{ 'servers.empty' | translate }}</div>
     } @else {
       <div class="space-y-3">
         @for (server of servers(); track server.uuid) {
@@ -29,22 +30,22 @@ import { ProxyStatus, Server, ServerValidation } from '../../../shared/models/id
               @if (validations()[server.uuid]; as v) {
                 <div class="mt-1 text-xs">
                   <span [class.text-green-400]="v.reachable" [class.text-red-400]="!v.reachable">
-                    {{ v.reachable ? 'reachable' : 'unreachable' }}
+                    {{ (v.reachable ? 'servers.reachable' : 'servers.unreachable') | translate }}
                   </span>
-                  · Docker: {{ v.dockerInstalled ? 'installed' : 'missing' }}
+                  · Docker: {{ (v.dockerInstalled ? 'servers.installed' : 'servers.missing') | translate }}
                 </div>
               }
               @if (proxies()[server.uuid]; as p) {
-                <div class="mt-1 text-xs">Proxy: {{ p.status }}</div>
+                <div class="mt-1 text-xs">{{ 'servers.proxyStatus' | translate:{ status: p.status } }}</div>
               }
             </div>
             <div class="flex flex-wrap gap-2">
-              <button class="button-secondary" (click)="validate(server)">Validate</button>
-              <button class="button-secondary" (click)="install(server)">Install Docker</button>
-              <button class="button-secondary" (click)="proxyStatus(server)">Proxy status</button>
-              <button class="button-secondary" (click)="startProxy(server)">Start proxy</button>
-              <button class="button-secondary" (click)="installCrowdSec(server)">Install CrowdSec</button>
-              <button class="text-xs text-red-400" (click)="remove(server)">Delete</button>
+              <button class="button-secondary" (click)="validate(server)">{{ 'servers.validate' | translate }}</button>
+              <button class="button-secondary" (click)="install(server)">{{ 'servers.installDocker' | translate }}</button>
+              <button class="button-secondary" (click)="proxyStatus(server)">{{ 'servers.proxyStatusButton' | translate }}</button>
+              <button class="button-secondary" (click)="startProxy(server)">{{ 'servers.startProxy' | translate }}</button>
+              <button class="button-secondary" (click)="installCrowdSec(server)">{{ 'servers.installCrowdSec' | translate }}</button>
+              <button class="text-xs text-red-400" (click)="remove(server)">{{ 'servers.delete' | translate }}</button>
             </div>
           </div>
         }
