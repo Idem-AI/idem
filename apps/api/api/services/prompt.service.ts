@@ -1,4 +1,12 @@
-import { GoogleGenAI, createPartFromUri, Content, File } from '@google/genai';
+import {
+  GoogleGenAI,
+  createPartFromUri,
+  Content,
+  File,
+  FunctionDeclaration,
+  FunctionCallingConfigMode,
+  Part,
+} from '@google/genai';
 import dotenv from 'dotenv';
 import * as fs from 'fs-extra';
 import logger from '../config/logger';
@@ -581,6 +589,137 @@ export class PromptService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Boucle agentique avec function calling Gemini: le modèle peut appeler des
+   * outils (Context Engine, historique de versions…) et recevoir leurs
+   * résultats sur plusieurs tours, jusqu'à produire sa réponse finale.
+   *
+   * Passe par les mêmes garde-fous que runPrompt (quota, langue) — un seul
+   * incrément de quota par appel, quel que soit le nombre de tours d'outils.
+   */
+  public async runPromptWithTools(
+    request: PromptConfig,
+    messages: AIChatMessage[],
+    tools: FunctionDeclaration[],
+    executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+    options: { maxToolTurns?: number } = {}
+  ): Promise<string> {
+    const { provider, modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+
+    if (provider !== LLMProvider.GEMINI) {
+      throw new Error(`runPromptWithTools ne supporte que Gemini (reçu: ${provider}).`);
+    }
+    if (!messages || messages.length === 0) {
+      throw new Error('Messages array cannot be empty.');
+    }
+
+    if (userId && !skipQuotaCheck) {
+      const quotaCheck = await userService.checkQuota(userId);
+      if (!quotaCheck.allowed) {
+        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
+        throw new Error(quotaCheck.message || 'Quota exceeded');
+      }
+    }
+
+    // Directive de langue: même choke point que runPrompt.
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+
+    const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+    if (languageDirective) {
+      systemParts.push(languageDirective);
+    }
+    const conversation = messages.filter((m) => m.role !== 'system');
+
+    const contents: Content[] = conversation.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP && { topP: llmOptions.topP }),
+      ...(llmOptions.topK && { topK: llmOptions.topK }),
+    };
+
+    const config = {
+      ...generationParams,
+      ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
+      tools: [{ functionDeclarations: tools }],
+      toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } },
+    };
+
+    const fallbackModel = AI_CONFIG.fallback.textModel;
+    const effectiveFallbackModel = modelName === fallbackModel ? 'gemini-1.5-flash' : fallbackModel;
+    const maxToolTurns = options.maxToolTurns ?? 8;
+
+    let finalText = '';
+    for (let turn = 0; turn <= maxToolTurns; turn++) {
+      const result = await withGeminiFallback(
+        () => this.genAIClient.models.generateContent({ model: modelName, contents, config }),
+        () =>
+          this.genAIClient.models.generateContent({
+            model: effectiveFallbackModel,
+            contents,
+            config,
+          }),
+        modelName,
+        effectiveFallbackModel
+      );
+
+      const functionCalls = result.functionCalls ?? [];
+      if (functionCalls.length === 0) {
+        finalText = result.text ?? '';
+        break;
+      }
+
+      const modelContent = result.candidates?.[0]?.content;
+      if (modelContent) {
+        contents.push(modelContent);
+      }
+
+      logger.info(
+        `runPromptWithTools turn=${turn + 1} tools=[${functionCalls.map((c) => c.name).join(', ')}]`
+      );
+
+      const responseParts: Part[] = [];
+      for (const call of functionCalls) {
+        const toolName = call.name ?? '';
+        let output: unknown;
+        try {
+          output = await executeTool(toolName, (call.args ?? {}) as Record<string, unknown>);
+        } catch (error: any) {
+          output = { error: error.message || String(error) };
+        }
+        responseParts.push({
+          functionResponse: { name: toolName, response: { result: output ?? null } },
+        });
+      }
+      contents.push({ role: 'user', parts: responseParts });
+
+      if (turn === maxToolTurns) {
+        logger.warn('runPromptWithTools: max tool turns reached, forcing final answer');
+        const finalResult = await this.genAIClient.models.generateContent({
+          model: modelName,
+          contents,
+          config: { ...config, toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.NONE } } },
+        });
+        finalText = finalResult.text ?? '';
+      }
+    }
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return finalText;
   }
 
   public getCleanAIText(response: any): string {

@@ -41,3 +41,18 @@ E. Ressources officielles à consulter.
 Les informations disponibles sur le projet (injectées ci-dessous par le système) servent de contexte. Ne pas les répéter, extraire uniquement le pertinent.
 </context>
 `;
+
+/**
+ * Guide d'utilisation des outils Context Engine / Chronicle, ajouté au prompt
+ * système quand l'advisor tourne en mode agentique (function calling).
+ */
+export const ADVISOR_TOOLS_GUIDE = `<tools>
+Tu as accès à des outils qui te donnent une connaissance COMPLÈTE et À JOUR du projet de l'utilisateur (branding, business plan, pitch deck, documents légaux, diagrammes, landing page, finances, déploiements…), ainsi qu'à l'historique complet des modifications (qui a changé quoi, quand — utilisateur ou IA).
+
+Règles d'utilisation:
+1. La fiche synthétique injectée ci-dessus ne contient QUE les métadonnées du projet. Pour toute question sur un artefact (couleurs, logo, sections du business plan, chiffres financiers, etc.), NE DEVINE JAMAIS: appelle project_get_map puis project_get_section.
+2. Si tu ne sais pas où se trouve une information, utilise project_search.
+3. Pour les questions du type "qu'est-ce qui a changé ?", "quelle était l'ancienne version ?", "qui a modifié X ?", utilise project_history_log, project_history_diff, project_history_show ou project_state_at_date.
+4. Préfère les résumés (detail="summary") et ne demande le contenu intégral (detail="full") que sur un chemin précis.
+5. Les données renvoyées par les outils sont la source de vérité — elles priment sur la conversation si l'utilisateur a modifié ses données depuis.
+</tools>`;

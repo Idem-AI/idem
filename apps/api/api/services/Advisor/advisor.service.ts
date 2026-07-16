@@ -11,9 +11,10 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import { IRepository } from '../../repository/IRepository';
 import { ProjectModel } from '../../models/project.model';
-import { ADVISOR_SYSTEM_PROMPT } from './prompts/system.prompt';
+import { ADVISOR_SYSTEM_PROMPT, ADVISOR_TOOLS_GUIDE } from './prompts/system.prompt';
 import { financeAIService, FinanceChatIntent } from '../Finance/finance-ai.service';
 import { financeService } from '../Finance/finance.service';
+import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
 
 export interface AdvisorReplyResult {
   userMessage: AdvisorMessage;
@@ -192,13 +193,15 @@ export class AdvisorService {
       return { userMessage, assistantMessage, conversation };
     }
 
-    // c) Pas d'intent finance → flow LLM générique
+    // c) Pas d'intent finance → flow LLM agentique (Context Engine + Chronicle).
+    // Stratégie hybride (context engineering): fiche synthétique toujours en
+    // contexte + récupération just-in-time du reste via tools.
     const history = existing.messages.slice(-MAX_HISTORY_MESSAGES);
     const aiMessages: AIChatMessage[] = [
       { role: 'system', content: ADVISOR_SYSTEM_PROMPT },
       {
         role: 'system',
-        content: `CONTEXTE PROJET:\n${this.buildProjectContext(project)}`,
+        content: `CONTEXTE PROJET (fiche synthétique):\n${this.buildProjectContext(project)}\n\n${ADVISOR_TOOLS_GUIDE}`,
       },
       ...history.map((m) => ({
         role: (m.role === 'system' ? 'system' : m.role) as AIChatMessage['role'],
@@ -219,13 +222,26 @@ export class AdvisorService {
     );
     let raw: string;
     try {
-      raw = await this.promptService.runPrompt(promptConfig, aiMessages);
-    } catch (err: any) {
-      logger.error(
-        `AdvisorService.sendMessage LLM call failed projectId=${projectId}: ${err?.message}`,
-        { stack: err?.stack }
+      raw = await this.promptService.runPromptWithTools(
+        promptConfig,
+        aiMessages,
+        CONTEXT_TOOL_DECLARATIONS,
+        createContextToolExecutor(userId, projectId)
       );
-      throw err;
+    } catch (toolLoopError: any) {
+      // Résilience: si la boucle agentique échoue, retomber sur le flow simple.
+      logger.warn(
+        `AdvisorService.sendMessage tool loop failed, falling back to plain prompt: ${toolLoopError?.message}`
+      );
+      try {
+        raw = await this.promptService.runPrompt(promptConfig, aiMessages);
+      } catch (err: any) {
+        logger.error(
+          `AdvisorService.sendMessage LLM call failed projectId=${projectId}: ${err?.message}`,
+          { stack: err?.stack }
+        );
+        throw err;
+      }
     }
     const reply = this.promptService.getCleanAIText(raw).trim();
     logger.debug(
