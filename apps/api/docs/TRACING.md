@@ -18,6 +18,22 @@ déjà présents dans la codebase.
 
 L'ID est aussi renvoyé en en-tête `X-Request-Id` de la réponse HTTP.
 
+### Affichage console (terminal `npm run dev`)
+
+Le format console montre les métadonnées **inline** pour les événements de
+traçage — c'est le moyen le plus direct de suivre en temps réel dans le
+terminal où tourne l'API :
+
+```
+23:01:22 info: ai.agentic_turn · req=bb5282b4 turn=2 decision=tool_calls tools=[{"name":"project_finance_summary"}] userId=user123 projectId=proj456
+23:01:22 info: ai.tool_call_end · req=bb5282b4 tool=project_finance_summary durationMs=42 ok=true …
+23:01:22 info: chronicle.commit · req=bb5282b4 section=businessPlan version=3 authorType=user …
+```
+
+Les logs texte classiques (qui portent déjà tout dans leur message) restent
+affichés tels quels. Seuls les événements `logAIEvent` (avec un champ `event`)
+reçoivent le suffixe `· clé=valeur …`.
+
 ### Un fichier dédié : `logs/ai-trace.log`
 
 En plus des fichiers existants (`combined.log`, `error.log`), un nouveau
@@ -106,3 +122,18 @@ tous les logs suivants de la requête l'auront.
   événements de traçage sont au niveau `info`.
 - Les fichiers tournent automatiquement (5 fichiers de 10 Mo pour
   `ai-trace.log`, comme les autres logs).
+
+## 6. Piège: fichiers de log inscriptibles
+
+Winston ouvre les fichiers de `logs/` en écriture au démarrage. Si un fichier
+appartient à un autre utilisateur (typiquement un lancement Docker **en root**
+qui laisse `combined.log`/`error.log` possédés par `root`), le process de dev
+lancé en tant qu'utilisateur normal **ne peut plus écrire** dedans — l'échec
+est silencieux (`exitOnError: false`) et le fichier reste figé. Symptôme: le
+fichier ne bouge plus alors que l'API tourne.
+
+Correctif: rendre les fichiers inscriptibles par l'utilisateur qui lance l'API
+(`sudo chown "$USER" logs/*.log`), ou les renommer pour que Winston les
+recrée au prochain démarrage (`mv logs/combined.log logs/combined.log.bak`).
+Vérifier avec `ls -la logs/` que les fichiers actifs appartiennent bien à
+l'utilisateur courant.
