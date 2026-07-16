@@ -1,14 +1,14 @@
 <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
   <div
-    class="bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] border border-gray-700/50 flex flex-col"
+    class="bg-[var(--glass-bg-darker)] backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] border border-[var(--glass-border)] flex flex-col"
   >
     <!-- Header -->
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700/50">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--glass-border)]">
       <div class="flex items-center gap-3">
         <div
           class="w-10 h-10 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center"
         >
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -18,15 +18,15 @@
           </svg>
         </div>
         <div>
-          <h2 class="text-lg font-bold text-white">
+          <h2 class="text-lg font-bold text-text-primary">
             {{ 'dashboard.logoEditor.title' | translate }}
           </h2>
-          <p class="text-xs text-gray-400">{{ 'dashboard.logoEditor.subtitle' | translate }}</p>
+          <p class="text-xs text-text-tertiary">{{ 'dashboard.logoEditor.subtitle' | translate }}</p>
         </div>
       </div>
       <button
         (click)="close()"
-        class="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-800 rounded-lg"
+        class="text-text-tertiary hover:text-text-primary transition-colors p-2 hover:bg-[var(--glass-bg-light)] rounded-lg"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -48,7 +48,7 @@
             <div
               class="w-8 h-8 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center shrink-0"
             >
-              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-4 h-4 text-text-primary" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"
                 />
@@ -58,10 +58,10 @@
               </svg>
             </div>
             <div class="flex-1">
-              <div class="bg-gray-800/50 rounded-2xl rounded-tl-none px-4 py-3 max-w-2xl">
-                <p class="text-sm text-gray-200">{{ message.content }}</p>
+              <div class="bg-[var(--glass-bg-light)] rounded-2xl rounded-tl-none px-4 py-3 max-w-2xl">
+                <p class="text-sm text-text-secondary">{{ message.content }}</p>
               </div>
-              <span class="text-xs text-gray-500 mt-1 ml-2">{{
+              <span class="text-xs text-text-tertiary mt-1 ml-2">{{
                 message.timestamp | date: 'short'
               }}</span>
             </div>
@@ -74,11 +74,11 @@
               <div
                 class="bg-primary/20 border border-primary/30 rounded-2xl rounded-tr-none px-4 py-3 max-w-2xl"
               >
-                <p class="text-sm text-white">{{ message.content }}</p>
+                <p class="text-sm text-text-primary">{{ message.content }}</p>
               </div>
             </div>
-            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
-              <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+            <div class="w-8 h-8 rounded-full bg-[var(--color-surface-3)] flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4 text-text-secondary" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fill-rule="evenodd"
                   d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
@@ -93,7 +93,7 @@
           <div class="flex justify-center my-6">
             <div class="relative group">
               <div
-                class="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-700 hover:border-primary transition-all max-w-md"
+                class="bg-white rounded-2xl p-8 shadow-xl border-2 border-[var(--glass-border)] hover:border-primary transition-all max-w-md"
               >
                 <div
                   class="w-64 h-64 flex items-center justify-center"
@@ -123,7 +123,7 @@
 
               <!-- Timestamp -->
               <div class="text-center mt-2">
-                <span class="text-xs text-gray-500">{{ message.timestamp | date: 'short' }}</span>
+                <span class="text-xs text-text-tertiary">{{ message.timestamp | date: 'short' }}</span>
               </div>
             </div>
           </div>
@@ -136,7 +136,7 @@
           <div
             class="w-8 h-8 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center shrink-0"
           >
-            <svg class="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-text-primary animate-spin" fill="none" viewBox="0 0 24 24">
               <circle
                 class="opacity-25"
                 cx="12"
@@ -171,14 +171,14 @@
     </div>
 
     <!-- Input Area -->
-    <div class="border-t border-gray-700/50 p-4">
+    <div class="border-t border-[var(--glass-border)] p-4">
       <div class="flex gap-3">
         <div class="flex-1 relative">
           <textarea
             [(ngModel)]="userPrompt"
             (keydown)="handleKeyPress($event)"
             [disabled]="isEditing()"
-            class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
+            class="w-full px-4 py-3 bg-[var(--color-surface-2)] border border-[var(--glass-border)] rounded-xl text-text-primary placeholder-text-tertiary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
             rows="2"
             [placeholder]="'dashboard.logoEditor.placeholders.prompt' | translate"
           ></textarea>
@@ -208,34 +208,34 @@
 
       <!-- Quick Suggestions -->
       <div class="mt-3 flex flex-wrap gap-2">
-        <span class="text-xs text-gray-500">{{
+        <span class="text-xs text-text-tertiary">{{
           'dashboard.logoEditor.quickSuggestions.title' | translate
         }}</span>
         <button
           (click)="userPrompt.set('Make it more modern and minimalist')"
           [disabled]="isEditing()"
-          class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
+          class="text-xs px-3 py-1 bg-[var(--color-surface-2)] hover:bg-[var(--glass-bg-light)] text-text-secondary rounded-full transition-colors disabled:opacity-50"
         >
           {{ 'dashboard.logoEditor.quickSuggestions.modern' | translate }}
         </button>
         <button
           (click)="userPrompt.set('Add a gradient effect')"
           [disabled]="isEditing()"
-          class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
+          class="text-xs px-3 py-1 bg-[var(--color-surface-2)] hover:bg-[var(--glass-bg-light)] text-text-secondary rounded-full transition-colors disabled:opacity-50"
         >
           {{ 'dashboard.logoEditor.quickSuggestions.gradient' | translate }}
         </button>
         <button
           (click)="userPrompt.set('Simplify the design')"
           [disabled]="isEditing()"
-          class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
+          class="text-xs px-3 py-1 bg-[var(--color-surface-2)] hover:bg-[var(--glass-bg-light)] text-text-secondary rounded-full transition-colors disabled:opacity-50"
         >
           {{ 'dashboard.logoEditor.quickSuggestions.simplify' | translate }}
         </button>
         <button
           (click)="userPrompt.set('Make it more professional')"
           [disabled]="isEditing()"
-          class="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full transition-colors disabled:opacity-50"
+          class="text-xs px-3 py-1 bg-[var(--color-surface-2)] hover:bg-[var(--glass-bg-light)] text-text-secondary rounded-full transition-colors disabled:opacity-50"
         >
           {{ 'dashboard.logoEditor.quickSuggestions.professional' | translate }}
         </button>

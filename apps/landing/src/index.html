@@ -3,6 +3,28 @@
   <head>
     <meta charset="utf-8" />
     <script>
+      // No-flash theme boot: apply the shared `idem_theme` cookie (or the browser
+      // preference) before first paint. Keep in sync with theme-cookie.ts.
+      (function () {
+        try {
+          var m = document.cookie.match(/(?:^|;\s*)idem_theme=([^;]+)/);
+          var pref = m ? decodeURIComponent(m[1]) : null;
+          if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          var dark =
+            pref === 'dark' ||
+            (pref === 'system' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var el = document.documentElement;
+          el.classList.toggle('dark', dark);
+          el.classList.toggle('light', !dark);
+          el.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    <script>
       (function() {
         // Shared cross-app locale cookie: `idem_lang` on `.idem.africa` in prod
         // (shared across sub-domains), host-only on localhost. Keep this contract
@@ -69,7 +91,7 @@
     />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#6366f1" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
 
     <!-- Canonical and Alternate Language Links -->
     <link rel="canonical" href="https://idem.africa/en/" />

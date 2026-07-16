@@ -1,10 +1,10 @@
 <div class="feature-launcher mx-auto w-full max-w-4xl px-4 py-10 sm:py-14">
   <!-- En-tête centré -->
   <header class="text-center mb-8">
-    <h2 class="text-2xl sm:text-3xl font-bold text-white text-balance">
+    <h2 class="text-2xl sm:text-3xl font-bold text-text-primary text-balance">
       {{ 'chat.launcher.title' | translate: { name: projectName() } }}
     </h2>
-    <p class="mt-2 text-sm text-white/50 max-w-md mx-auto text-pretty">
+    <p class="mt-2 text-sm text-text-tertiary max-w-md mx-auto text-pretty">
       {{ 'chat.launcher.subtitle' | translate }}
     </p>
   </header>
@@ -21,10 +21,10 @@
         <i class="pi pi-palette"></i>
       </span>
       <span class="min-w-0 flex-1">
-        <span class="block text-sm font-semibold text-white">
+        <span class="block text-sm font-semibold text-text-primary">
           {{ 'chat.banner.title' | translate }}
         </span>
-        <span class="block text-xs text-white/55 mt-0.5">
+        <span class="block text-xs text-text-secondary mt-0.5">
           {{ 'chat.launcher.brandCalloutHint' | translate }}
         </span>
       </span>
@@ -123,7 +123,7 @@
         <!-- Pied : action ou raison de verrouillage -->
         <div class="fc-foot">
           @if (tile.state === 'locked') {
-            <span class="text-[11px] text-white/35">
+            <span class="text-[11px] text-text-tertiary">
               <i class="pi pi-lock text-[9px] mr-1"></i>{{ tile.lockReasonKey! | translate }}
             </span>
           } @else {
@@ -137,7 +137,7 @@
     }
   </div>
 
-  <p class="mt-8 text-center text-xs text-white/40">
+  <p class="mt-8 text-center text-xs text-text-tertiary">
     <i class="pi pi-comment text-[10px] mr-1"></i>{{ 'chat.launcher.hint' | translate }}
   </p>
 </div>

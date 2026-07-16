@@ -105,12 +105,12 @@
       </div>
       
       <div class="flex items-center justify-between mt-2 px-2">
-        <p class="text-xs text-gray-500/80">{{ 'chat.composer.hint' | translate }}</p>
+        <p class="text-xs text-text-tertiary/80">{{ 'chat.composer.hint' | translate }}</p>
         @if (showFormSwitch()) {
           <button
             type="button"
             (click)="switchToForm.emit()"
-            class="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary transition-colors duration-200"
+            class="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-primary transition-colors duration-200"
           >
             <i class="pi pi-list text-[10px]"></i>
             {{ 'dashboard.createProject.switchToForm' | translate }}
@@ -143,10 +143,10 @@
         ></path>
       </svg>
     </div>
-    <h3 class="text-xl font-semibold text-white mb-2">
+    <h3 class="text-xl font-semibold text-text-primary mb-2">
       {{ 'dashboard.colorSelection.auth.title' | translate }}
     </h3>
-    <p class="text-gray-400 text-sm">
+    <p class="text-text-tertiary text-sm">
       {{ 'dashboard.colorSelection.auth.message' | translate }}
     </p>
   </div>

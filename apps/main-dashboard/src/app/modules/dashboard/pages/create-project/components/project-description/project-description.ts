@@ -51,7 +51,7 @@ export class ProjectDescriptionComponent implements OnInit {
     const progress = this.characterProgress();
     if (progress >= 100) return 'text-red-400';
     if (progress >= 80) return 'text-yellow-400';
-    return 'text-gray-400';
+    return 'text-text-tertiary';
   });
 
   protected readonly progressBarColor = computed(() => {

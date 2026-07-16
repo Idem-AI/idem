@@ -35,8 +35,8 @@
             <div class="flex gap-3" [class.flex-row-reverse]="msg.role === 'user'">
               <!-- Avatar -->
               <div
-                class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold uppercase text-white"
-                [ngClass]="msg.role === 'user' ? 'bg-primary' : 'bg-white/5 border border-white/10'"
+                class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold uppercase text-text-primary"
+                [ngClass]="msg.role === 'user' ? 'bg-primary' : 'bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]'"
               >
                 {{ msg.role === 'user' ? 'Me' : 'AI' }}
               </div>
@@ -49,7 +49,7 @@
                     [ngClass]="
                       msg.role === 'user'
                         ? 'bg-primary text-white'
-                        : 'bg-white/5 text-gray-100 border border-white/5'
+                        : 'bg-[var(--glass-bg-subtle)] text-text-primary border border-[var(--glass-border-subtle)]'
                     "
                   >
                     @if (msg.role === 'user') {
@@ -154,12 +154,12 @@
           @if (pendingAssistant()) {
             <div class="flex gap-3">
               <div
-                class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs font-semibold uppercase text-white"
+                class="w-8 h-8 rounded-full bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] flex items-center justify-center text-xs font-semibold uppercase text-text-primary"
               >
                 AI
               </div>
               <div
-                class="bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 flex items-center gap-2"
+                class="bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] rounded-2xl px-4 py-3 flex items-center gap-2"
               >
                 <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
                 <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:150ms]"></span>
@@ -173,7 +173,7 @@
     </div>
 
     <!-- Composer -->
-    <div class="shrink-0 border-t border-white/5">
+    <div class="shrink-0 border-t border-[var(--glass-border-subtle)]">
       <div class="max-w-3xl mx-auto w-full px-4 py-4">
         @if (errorMessage()) {
           <p class="text-sm text-red-400 mb-3">{{ errorMessage() }}</p>
@@ -206,7 +206,7 @@
             {{ 'chat.composer.send' | translate }}
           </button>
         </div>
-        <p class="text-xs text-gray-500 mt-2">{{ 'chat.composer.hint' | translate }}</p>
+        <p class="text-xs text-text-tertiary mt-2">{{ 'chat.composer.hint' | translate }}</p>
       </div>
     </div>
   }

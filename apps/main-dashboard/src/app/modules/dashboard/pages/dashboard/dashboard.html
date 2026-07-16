@@ -35,7 +35,7 @@
       />
 
       <!-- Project Premium Header -->
-      <header class="project-header-panel mb-8 pb-6 border-b border-white/5">
+      <header class="project-header-panel mb-8 pb-6 border-b border-[var(--glass-border-subtle)]">
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
           <!-- Logo Frame -->
           <div class="header-logo-wrapper">
@@ -62,10 +62,10 @@
 
           <!-- Project Info -->
           <div class="flex-grow space-y-1">
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white m-0 flex items-center gap-2">
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary m-0 flex items-center gap-2">
                 {{ currentProject.name }}
               </h1>
-            <p class="text-xs sm:text-sm leading-relaxed text-white/50 max-w-4xl m-0">
+            <p class="text-xs sm:text-sm leading-relaxed text-text-tertiary max-w-4xl m-0">
               {{
                 currentProject.description ||
                   ('dashboard.dashboard.hero.defaultDescription' | translate)
@@ -318,10 +318,10 @@
                   />
                 </svg>
                 <div class="absolute flex flex-col items-center justify-center">
-                  <span class="text-xl font-bold tracking-tight text-white">
+                  <span class="text-xl font-bold tracking-tight text-text-primary">
                     {{ ((getCompletedSteps() / 6) * 100) | number:'1.0-0' }}%
                   </span>
-                  <span class="text-[8px] uppercase tracking-wider text-white/40">Complete</span>
+                  <span class="text-[8px] uppercase tracking-wider text-text-tertiary">Complete</span>
                 </div>
               </div>
               
@@ -454,13 +454,13 @@
               </div>
               <div class="meta-item">
                 <span class="meta-label">{{ 'dashboard.dashboard.info.team' | translate }}</span>
-                <span class="meta-value text-white truncate max-w-[140px]" [title]="currentProject.targets || 'None'">
+                <span class="meta-value text-text-primary truncate max-w-[140px]" [title]="currentProject.targets || 'None'">
                   {{ currentProject.targets || 'None' }}
                 </span>
               </div>
               <div class="meta-item">
                 <span class="meta-label">{{ 'dashboard.dashboard.info.scope' | translate }}</span>
-                <span class="meta-value text-white truncate max-w-[140px]" [title]="currentProject.scope || 'None'">
+                <span class="meta-value text-text-primary truncate max-w-[140px]" [title]="currentProject.scope || 'None'">
                   {{ currentProject.scope || 'None' }}
                 </span>
               </div>
@@ -473,7 +473,7 @@
       <div class="flex items-center justify-center min-h-[60vh]">
         <div class="text-center max-w-md">
           <svg
-            class="w-16 h-16 text-white/10 mx-auto mb-4"
+            class="w-16 h-16 text-text-disabled mx-auto mb-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -485,10 +485,10 @@
               d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
             />
           </svg>
-          <h2 class="text-2xl font-bold text-white mb-2">
+          <h2 class="text-2xl font-bold text-text-primary mb-2">
             {{ 'dashboard.dashboard.empty.title' | translate }}
           </h2>
-          <p class="text-white/40 mb-6 leading-relaxed">
+          <p class="text-text-tertiary mb-6 leading-relaxed">
             {{ 'dashboard.dashboard.empty.description' | translate }}
           </p>
           <button

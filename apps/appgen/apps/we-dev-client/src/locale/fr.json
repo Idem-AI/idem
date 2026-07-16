@@ -35,7 +35,13 @@
       "file_size_limit": "Le fichier {fileName} dépasse la limite de 5 Mo",
       "upload_failed": "Échec de l'importation",
       "paste_failed": "Échec du collage de l'image",
-      "add_image_failed": "Échec de l'ajout de l'image"
+      "add_image_failed": "Échec de l'ajout de l'image",
+      "load_history_failed": "Échec du chargement de l'historique des discussions",
+      "ollama_connection_failed": "Échec de la connexion au serveur Ollama, veuillez vérifier la configuration",
+      "start_generation_failed": "Erreur lors du démarrage de la génération",
+      "firebase_save_failed": "Erreur lors de la sauvegarde sur Firebase Storage",
+      "upload_files_failed": "Échec de l'envoi des fichiers",
+      "process_dropped_images_failed": "Échec du traitement des images déposées"
     },
     "success": {
       "images_uploaded": "Image importée avec succès",
@@ -43,7 +49,8 @@
       "image_pasted": "Image collée avec succès",
       "images_pasted_multiple": "{count} images collées avec succès",
       "image_added": "Image ajoutée à la saisie",
-      "images_added_multiple": "{count} images ajoutées à la saisie"
+      "images_added_multiple": "{count} images ajoutées à la saisie",
+      "firebase_save_success": "Code sauvegardé sur Firebase Storage ({count} fichiers)"
     },
     "placeholders": {
       "input": "Saisissez un message, appuyez sur Entrée pour envoyer, Maj+Entrée pour un saut de ligne...",
@@ -210,7 +217,9 @@
         "username": "Nom d'utilisateur de la base de données",
         "password": "Mot de passe de la base de données"
       }
-    }
+    },
+    "projectNotFound": "Projet introuvable",
+    "errorLoadingProject": "Échec du chargement du projet"
   },
   "preview": {
     "noserver": "Aucun serveur en cours d'exécution",
@@ -234,9 +243,22 @@
     "close": "Fermer",
     "visitSite": "Visiter le site",
     "open_directory": "Ouvrir le répertoire",
+    "copied_link": "Lien copié dans le presse-papiers !",
+    "github": {
+      "sending": "Envoi en cours...",
+      "send": "Envoyer vers GitHub",
+      "success": "Projet envoyé sur GitHub avec succès !",
+      "error_sending": "Échec de l'envoi vers GitHub. Veuillez réessayer.",
+      "no_project_id": "ID de projet introuvable"
+    },
+    "deploy_modal": {
+      "title": "Déploiement de votre projet",
+      "loading_text": "Veuillez patienter pendant le déploiement de votre application..."
+    },
     "error": {
       "open_directory": "Échec de l'ouverture du répertoire",
-      "deploy_failed": "Échec du déploiement, veuillez réessayer plus tard"
+      "deploy_failed": "Échec du déploiement, veuillez réessayer plus tard",
+      "deploy_failed_with_msg": "Échec du déploiement : {{message}}"
     }
   },
   "explorer": {
@@ -407,5 +429,26 @@
       "invalidOldPassword": "Ancien mot de passe non valide",
       "updateFailed": "Échec de la mise à jour du mot de passe"
     }
+  },
+  "deployModal": {
+    "title": "Déployer votre application",
+    "subtitle": "Choisissez comment vous souhaitez déployer",
+    "no_generation": "Aucune génération disponible à déployer",
+    "default_app_name": "Mon Application",
+    "quick_deploy_title": "Déploiement rapide",
+    "quick_deploy_subtitle": "Netlify · Sans compte requis",
+    "quick_deploy_desc": "Déployez instantanément avec CDN global et SSL automatique.",
+    "tag_instant": "Instantané",
+    "tag_ssl": "SSL auto",
+    "tag_cdn": "CDN global",
+    "idem_deploy_title": "Déploiement avec Idem",
+    "idem_deploy_subtitle": "iDeploy · Projet auto-configuré",
+    "idem_deploy_desc": "Votre application est transférée vers iDeploy avec toutes les métadonnées. Prête à déployer.",
+    "tag_auto_project": "Projet auto",
+    "tag_prefilled": "Données pré-remplies",
+    "login_required": "Connexion requise",
+    "connect_idem_title": "Connecter à un projet Idem",
+    "connect_idem_subtitle": "Créer ou associer à un projet existant",
+    "cancel": "Annuler"
   }
 }

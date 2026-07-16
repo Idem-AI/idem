@@ -52,7 +52,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="dark min-h-screen bg-transparent text-white">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">

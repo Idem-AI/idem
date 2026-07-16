@@ -386,7 +386,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     } catch (error) {
       console.error('Failed to load chat history:', error);
-      toast.error('Failed to load chat history');
+      toast.error(t('chat.errors.load_history_failed'));
     }
   };
 
@@ -661,7 +661,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
       // add Ollama error handling
       if (baseModal.from === 'ollama') {
-        toast.error('Ollama server connection failed, please check configuration');
+        toast.error(t('chat.errors.ollama_connection_failed'));
       }
     },
   });
@@ -842,7 +842,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       console.log('Generation started for project:', projectData.name);
     } catch (error) {
       console.error('Error starting generation:', error);
-      toast.error('Error starting generation');
+      toast.error(t('chat.errors.start_generation_failed'));
     }
   };
 
@@ -859,13 +859,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Upload ZIP to backend (Firebase Storage)
       await sendZipToBackend(projectId, zipBlob);
 
-      console.log('Code successfully saved to Firebase Storage');
       toast.success(
-        `Code sauvegardé sur Firebase Storage (${Object.keys(generatedFiles).length} fichiers)`
+        t('chat.success.firebase_save_success', {
+          count: Object.keys(generatedFiles).length,
+        })
       );
     } catch (error) {
       console.error('Error saving code to Firebase Storage:', error);
-      toast.error('Erreur lors de la sauvegarde sur Firebase Storage');
+      toast.error(t('chat.errors.firebase_save_failed'));
     }
   };
 
@@ -1063,7 +1064,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }, 100);
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Failed to upload files');
+      toast.error(t('chat.errors.upload_files_failed'));
     }
   };
 
@@ -1173,13 +1174,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       addImages(uploadResults);
 
       if (uploadResults.length === 1) {
-        toast.success('Image added to input box');
+        toast.success(t('chat.success.image_added'));
       } else {
-        toast.success(`${uploadResults.length} images added to input box`);
+        toast.success(
+          t('chat.success.images_added_multiple', {
+            count: uploadResults.length,
+          })
+        );
       }
     } catch (error) {
       console.error('Failed to process dropped images:', error);
-      toast.error('Failed to process dropped images');
+      toast.error(t('chat.errors.process_dropped_images_failed'));
     } finally {
       setIsUploading(false);
     }
@@ -1266,7 +1271,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                     />
                   ) : (
                     <svg
-                      className="w-8 h-8 text-white"
+                      className="w-8 h-8 text-gray-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -1406,8 +1411,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
           {isLoading && (
             <div className="group" key="loading-indicator">
-              <div className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.02] transition-colors">
-                <div className="w-6 h-6 rounded-md bg-[rgba(45,45,45)] text-gray-400 flex items-center justify-center text-xs border border-gray-700/50">
+              <div className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-[rgba(45,45,45)] text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs border border-gray-200 dark:border-gray-700/50">
                   <svg
                     className="w-4 h-4 animate-spin"
                     viewBox="0 0 24 24"
@@ -1431,13 +1436,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-4 rounded bg-gray-700/50 animate-pulse" />
-                    <div className="w-32 h-4 rounded bg-gray-700/50 animate-pulse" />
-                    <div className="w-16 h-4 rounded bg-gray-700/50 animate-pulse" />
+                    <div className="w-24 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+                    <div className="w-32 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+                    <div className="w-16 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
                   </div>
                   <div className="mt-2 space-y-2">
-                    <div className="w-full h-3 rounded bg-gray-700/50 animate-pulse" />
-                    <div className="w-4/5 h-3 rounded bg-gray-700/50 animate-pulse" />
+                    <div className="w-full h-3 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+                    <div className="w-4/5 h-3 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
                   </div>
                 </div>
               </div>

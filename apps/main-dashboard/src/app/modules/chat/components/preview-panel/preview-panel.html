@@ -8,17 +8,17 @@
 
   <!-- Panneau -->
   <div
-    class="relative h-full w-full md:w-[760px] bg-[#0f141b] border-l border-white/10 flex flex-col shadow-2xl preview-panel-slide"
+    class="relative h-full w-full md:w-[760px] bg-[var(--color-bg-darker)] border-l border-[var(--glass-border)] flex flex-col shadow-2xl preview-panel-slide"
   >
     <!-- En-tête -->
-    <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 shrink-0">
-      <h3 class="text-sm font-semibold text-white truncate">{{ title() }}</h3>
+    <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--glass-border)] shrink-0">
+      <h3 class="text-sm font-semibold text-text-primary truncate">{{ title() }}</h3>
       <div class="flex items-center gap-2 shrink-0">
         @if (pdfUrl()) {
           <button
             type="button"
             (click)="downloadRequested.emit()"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-semibold transition-all duration-200"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] border border-[var(--glass-border)] text-text-secondary text-xs font-semibold transition-all duration-200"
           >
             <i class="pi pi-download text-[11px]"></i>
             {{ 'chat.preview.download' | translate }}
@@ -27,7 +27,7 @@
         <button
           type="button"
           (click)="closed.emit()"
-          class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+          class="p-2 text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] rounded-lg transition-all duration-200"
           [attr.aria-label]="'chat.preview.close' | translate"
         >
           <i class="pi pi-times text-sm"></i>
@@ -38,14 +38,14 @@
     <!-- Contenu -->
     <div class="flex-1 min-h-0 overflow-y-auto p-2 md:p-4">
       @if (isLoading()) {
-        <div class="h-full flex flex-col items-center justify-center gap-3 text-gray-400">
+        <div class="h-full flex flex-col items-center justify-center gap-3 text-text-tertiary">
           <app-loader />
           <p class="text-xs">{{ 'chat.preview.loading' | translate }}</p>
         </div>
       } @else if (error()) {
         <div class="h-full flex flex-col items-center justify-center gap-4 text-center px-6">
           <i class="pi pi-file-excel text-3xl text-gray-600"></i>
-          <p class="text-sm text-gray-400">{{ error() }}</p>
+          <p class="text-sm text-text-tertiary">{{ error() }}</p>
           @if (canGenerate()) {
             <button
               type="button"

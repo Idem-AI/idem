@@ -5,12 +5,12 @@
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  background: rgba(6, 8, 13, 0.45);
+  background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: 24px;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--glass-shadow-xl);
   margin-bottom: 120px; /* Space before the fixed composer */
 }
 
@@ -53,9 +53,9 @@
 }
 
 .chat-avatar.assistant-avatar {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.03);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: none;
 }
 
 .chat-avatar.assistant-avatar i {
@@ -95,10 +95,10 @@
 }
 
 .assistant-bubble {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   backdrop-filter: blur(4px);
-  color: #e2e8f0;
+  color: var(--color-text-primary);
   border-top-left-radius: 4px;
 }
 
@@ -110,19 +110,19 @@
   right: 0;
   z-index: 40;
   padding: 1.25rem 1.5rem;
-  background: rgba(8, 10, 17, 0.95);
+  background: var(--glass-bg-intense);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  border-top: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg);
 }
 
 .chat-composer-box {
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border);
   border-radius: 18px;
   padding: 0.5rem 0.75rem;
   transition: all 0.3s ease;
@@ -132,7 +132,7 @@
 .chat-composer-box:focus-within {
   border-color: rgba(20, 71, 230, 0.55);
   box-shadow: 0 0 14px rgba(20, 71, 230, 0.25), inset 0 2px 4px rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg-light);
 }
 
 .chat-composer-box textarea {
@@ -140,7 +140,7 @@
   background: transparent !important;
   border: none !important;
   outline: none !important;
-  color: #f8fafc !important;
+  color: var(--color-text-primary) !important;
   font-size: 0.925rem;
   padding: 0.5rem;
   min-height: 40px !important;
@@ -151,7 +151,7 @@
 }
 
 .chat-composer-box textarea::placeholder {
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--color-text-tertiary);
 }
 
 .chat-send-btn {
@@ -182,7 +182,7 @@
 .chat-send-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg-light);
   border-color: transparent;
 }
 
@@ -208,7 +208,7 @@
 .typing-dot {
   width: 6px;
   height: 6px;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--color-text-tertiary);
   border-radius: 50%;
   animation: typingDotPulse 1.2s infinite ease-in-out;
 }

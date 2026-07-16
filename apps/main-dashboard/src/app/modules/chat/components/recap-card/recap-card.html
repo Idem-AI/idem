@@ -1,67 +1,67 @@
 <div
-  class="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20"
+  class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20"
 >
   <!-- En-tête -->
-  <div class="flex items-center gap-3 p-4 border-b border-white/5">
+  <div class="flex items-center gap-3 p-4 border-b border-[var(--glass-border-subtle)]">
     <div
       class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
     >
       <i class="pi pi-check-square text-primary text-lg"></i>
     </div>
     <div class="min-w-0">
-      <h4 class="text-sm font-semibold text-white truncate">{{ recap().name }}</h4>
-      <p class="text-[11px] text-gray-500">{{ 'chat.recap.subtitle' | translate }}</p>
+      <h4 class="text-sm font-semibold text-text-primary truncate">{{ recap().name }}</h4>
+      <p class="text-[11px] text-text-tertiary">{{ 'chat.recap.subtitle' | translate }}</p>
     </div>
   </div>
 
   <!-- Réponses -->
   <div class="px-4 py-3 space-y-2 text-xs">
-    <p class="text-gray-300 leading-relaxed">{{ recap().description }}</p>
+    <p class="text-text-secondary leading-relaxed">{{ recap().description }}</p>
     <div class="grid grid-cols-2 gap-2 pt-1">
-      <div class="rounded-lg bg-white/[0.02] border border-white/5 px-2.5 py-2">
-        <p class="text-[10px] uppercase tracking-wide text-gray-500">
+      <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
+        <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
           {{ 'chat.recap.fields.type' | translate }}
         </p>
-        <p class="text-gray-200 truncate">{{ recap().typeKey | translate }}</p>
+        <p class="text-text-secondary truncate">{{ recap().typeKey | translate }}</p>
       </div>
       @if (recap().targetsKey) {
-        <div class="rounded-lg bg-white/[0.02] border border-white/5 px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-gray-500">
+        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
+          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
             {{ 'chat.recap.fields.targets' | translate }}
           </p>
-          <p class="text-gray-200 truncate">{{ recap().targetsKey! | translate }}</p>
+          <p class="text-text-secondary truncate">{{ recap().targetsKey! | translate }}</p>
         </div>
       }
       @if (recap().scopeKey) {
-        <div class="rounded-lg bg-white/[0.02] border border-white/5 px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-gray-500">
+        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
+          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
             {{ 'chat.recap.fields.scope' | translate }}
           </p>
-          <p class="text-gray-200 truncate">{{ recap().scopeKey! | translate }}</p>
+          <p class="text-text-secondary truncate">{{ recap().scopeKey! | translate }}</p>
         </div>
       }
       @if (recap().teamSizeKey) {
-        <div class="rounded-lg bg-white/[0.02] border border-white/5 px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-gray-500">
+        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
+          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
             {{ 'chat.recap.fields.teamSize' | translate }}
           </p>
-          <p class="text-gray-200 truncate">{{ recap().teamSizeKey! | translate }}</p>
+          <p class="text-text-secondary truncate">{{ recap().teamSizeKey! | translate }}</p>
         </div>
       }
       @if (recap().budgetKey) {
-        <div class="rounded-lg bg-white/[0.02] border border-white/5 px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-gray-500">
+        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
+          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
             {{ 'chat.recap.fields.budget' | translate }}
           </p>
-          <p class="text-gray-200 truncate">{{ recap().budgetKey! | translate }}</p>
+          <p class="text-text-secondary truncate">{{ recap().budgetKey! | translate }}</p>
         </div>
       }
     </div>
   </div>
 
   <!-- Politiques -->
-  <div class="px-4 py-3 border-t border-white/5 space-y-2">
-    <label class="flex items-start gap-2 text-xs text-gray-300 cursor-pointer">
+  <div class="px-4 py-3 border-t border-[var(--glass-border-subtle)] space-y-2">
+    <label class="flex items-start gap-2 text-xs text-text-secondary cursor-pointer">
       <input
         type="checkbox"
         [checked]="privacy()"
@@ -80,7 +80,7 @@
         *
       </span>
     </label>
-    <label class="flex items-start gap-2 text-xs text-gray-300 cursor-pointer">
+    <label class="flex items-start gap-2 text-xs text-text-secondary cursor-pointer">
       <input
         type="checkbox"
         [checked]="terms()"
@@ -99,7 +99,7 @@
         *
       </span>
     </label>
-    <label class="flex items-start gap-2 text-xs text-gray-300 cursor-pointer">
+    <label class="flex items-start gap-2 text-xs text-text-secondary cursor-pointer">
       <input
         type="checkbox"
         [checked]="beta()"
@@ -108,7 +108,7 @@
       />
       <span>{{ 'chat.recap.policies.beta' | translate }} *</span>
     </label>
-    <label class="flex items-start gap-2 text-xs text-gray-400 cursor-pointer">
+    <label class="flex items-start gap-2 text-xs text-text-tertiary cursor-pointer">
       <input
         type="checkbox"
         [checked]="marketing()"
@@ -125,7 +125,7 @@
       type="button"
       (click)="restartRequested.emit()"
       [disabled]="busy()"
-      class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-white transition-colors duration-200 disabled:opacity-50"
+      class="inline-flex items-center gap-1.5 text-[11px] text-text-tertiary hover:text-text-primary transition-colors duration-200 disabled:opacity-50"
     >
       <i class="pi pi-refresh text-[10px]"></i>
       {{ 'chat.recap.actions.restart' | translate }}

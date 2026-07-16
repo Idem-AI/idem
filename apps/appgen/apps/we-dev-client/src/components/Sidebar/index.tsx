@@ -164,7 +164,7 @@ export function Sidebar({
     if (currentUser) {
       return (
         <div
-          className="p-3 cursor-pointer hover:bg-white/5"
+          className="p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
           onClick={() => openSettings(TAB_KEYS.Quota)}
         >
           <div className="flex items-center gap-2">
@@ -187,16 +187,16 @@ export function Sidebar({
               {!currentUser.photoURL && getInitials(currentUser.displayName || currentUser.email || "?")}
             </div>
             <div className="flex-1">
-              <div className="dark:text-white text-[14px] font-medium">
+              <div className="text-gray-900 dark:text-white text-[14px] font-medium">
                 {currentUser.displayName || currentUser.email}
               </div>
-              <div className="text-[13px] text-gray-400 translate uppercase">
+              <div className="text-[13px] text-gray-500 dark:text-gray-400 translate uppercase">
                 {`${currentUser.subscription} plan`}
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
             >
               <svg
                 className="w-[16px] h-[16px]"
@@ -220,7 +220,7 @@ export function Sidebar({
     else if (isAuthenticated) {
       return (
         <div
-          className="p-3 cursor-pointer hover:bg-white/5"
+          className="p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
           onClick={() => openSettings(TAB_KEYS.Quota)}
         >
           <div className="flex items-center gap-2">
@@ -243,16 +243,16 @@ export function Sidebar({
               {!storeUser?.avatar && getInitials(storeUser?.username || "?")}
             </div>
             <div className="flex-1">
-              <div className="dark:text-white text-[14px] font-medium">
+              <div className="text-gray-900 dark:text-white text-[14px] font-medium">
                 {storeUser?.username}
               </div>
-              <div className="text-[13px] text-gray-400 translate uppercase">
+              <div className="text-[13px] text-gray-500 dark:text-gray-400 translate uppercase">
                 {`${storeUser?.userQuota?.tierType} plan`}
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
             >
               <svg
                 className="w-[16px] h-[16px]"
@@ -275,7 +275,7 @@ export function Sidebar({
     // Not authenticated case
     return (
       <div
-        className="p-3 cursor-pointer hover:bg-white/5"
+        className="p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
         onClick={() => {
           openLoginModal();
         }}
@@ -285,10 +285,10 @@ export function Sidebar({
             ?
           </div>
           <div className="flex-1">
-            <div className="dark:text-white text-[14px] font-medium">
+            <div className="text-gray-900 dark:text-white text-[14px] font-medium">
               {t("login.title")}
             </div>
-            <div className="text-[13px] text-gray-400 translate">
+            <div className="text-[13px] text-gray-500 dark:text-gray-400 translate">
               {t("login.click_to_login")}
             </div>
           </div>

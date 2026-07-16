@@ -3,7 +3,7 @@
     type="button"
     [disabled]="disabled() || loading()"
     (click)="onClick($event)"
-    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-linear-to-r from-primary/20 to-accent/20 hover:from-primary/30 hover:to-accent/30 border border-primary/40 text-white text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/10"
+    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-linear-to-r from-primary/20 to-accent/20 hover:from-primary/30 hover:to-accent/30 border border-primary/40 text-text-primary text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/10"
   >
     @if (loading()) {
       <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

@@ -1,52 +1,52 @@
 <div class="grid grid-cols-12 gap-6 h-[75vh]">
   <!-- TAB 1: CATALOGUE -->
   <div
-    class="col-span-12 lg:col-span-3 bg-gray-900/50 rounded-xl border border-gray-800 flex flex-col"
+    class="col-span-12 lg:col-span-3 bg-[var(--glass-bg-light)] rounded-xl border border-[var(--glass-border-subtle)] flex flex-col"
   >
-    <div class="p-4 border-b border-gray-700">
-      <div class="flex gap-1 bg-gray-800 p-1 rounded-lg mb-4">
+    <div class="p-4 border-b border-[var(--glass-border)]">
+      <div class="flex gap-1 bg-[var(--color-surface-2)] p-1 rounded-lg mb-4">
         <button
           (click)="expertSelectedProvider.set('aws')"
           class="w-full px-3 py-1 text-sm rounded-md"
-          [ngClass]="expertSelectedProvider() === 'aws' ? 'bg-blue-600' : 'hover:bg-gray-700'"
+          [ngClass]="expertSelectedProvider() === 'aws' ? 'bg-blue-600' : 'hover:bg-[var(--glass-bg-light)]'"
         >
           AWS
         </button>
         <button
           (click)="expertSelectedProvider.set('gcp')"
           class="w-full px-3 py-1 text-sm rounded-md"
-          [ngClass]="expertSelectedProvider() === 'gcp' ? 'bg-green-600' : 'hover:bg-gray-700'"
+          [ngClass]="expertSelectedProvider() === 'gcp' ? 'bg-green-600' : 'hover:bg-[var(--glass-bg-light)]'"
         >
           GCP
         </button>
         <button
           (click)="expertSelectedProvider.set('azure')"
           class="w-full px-3 py-1 text-sm rounded-md"
-          [ngClass]="expertSelectedProvider() === 'azure' ? 'bg-purple-600' : 'hover:bg-gray-700'"
+          [ngClass]="expertSelectedProvider() === 'azure' ? 'bg-purple-600' : 'hover:bg-[var(--glass-bg-light)]'"
         >
           Azure
         </button>
       </div>
       <div class="relative">
-        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i
+        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"></i
         ><input
           [(ngModel)]="expertSearchTerm"
           type="text"
           [placeholder]="'common.search' | translate"
-          class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 pl-9 focus:outline-none focus:border-purple-500"
+          class="w-full bg-[var(--color-surface-2)] border border-[var(--glass-border)] rounded-lg p-2 pl-9 focus:outline-none focus:border-purple-500"
         />
       </div>
     </div>
     <div class="overflow-y-auto p-4 flex-grow custom-scrollbar">
       @for (category of objectKeys(filteredCatalogue()); track category) {
         <div class="mb-4">
-          <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          <h4 class="text-sm font-semibold text-text-tertiary uppercase tracking-wider mb-2">
             {{ category }}
           </h4>
           <div class="space-y-2">
             @for (component of filteredCatalogue()[category]; track component.id) {
               <div
-                class="bg-gray-800/70 p-3 rounded-lg flex justify-between items-center border border-transparent hover:border-gray-600"
+                class="bg-[var(--glass-bg-light)] p-3 rounded-lg flex justify-between items-center border border-transparent hover:border-[var(--glass-border-medium)]"
               >
                 <h5 class="font-medium flex items-center gap-2">
                   <i class="{{ component.icon }}"></i> {{ component.name }}
@@ -68,14 +68,14 @@
 
   <!-- VOLET 2: CANVAS -->
   <div
-    class="col-span-12 lg:col-span-5 bg-gray-900/50 rounded-xl border border-gray-800 flex flex-col"
+    class="col-span-12 lg:col-span-5 bg-[var(--glass-bg-light)] rounded-xl border border-[var(--glass-border-subtle)] flex flex-col"
   >
-    <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+    <div class="p-4 border-b border-[var(--glass-border)] flex justify-between items-center">
       <h3 class="text-lg font-semibold">
         {{ 'dashboard.expertDeployment.yourArchitecture' | translate }}
       </h3>
       <button
-        class="px-4 py-2 inner-button rounded-lg text-white font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-indigo-600/50"
+        class="px-4 py-2 inner-button rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-indigo-600/50"
         [disabled]="expertArchitecture().length === 0 || loadingDeployment()"
         (click)="openDeploymentNameDialog()"
       >
@@ -90,7 +90,7 @@
     <div class="overflow-y-auto p-4 flex-grow space-y-3 custom-scrollbar">
       @for (component of expertArchitecture(); track component.instanceId) {
         <div
-          class="bg-gray-800 p-4 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-between animate-fade-in"
+          class="bg-[var(--color-surface-2)] p-4 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-between animate-fade-in"
           [class.border-purple-500]="activeExpertComponent()?.instanceId === component.instanceId"
           [class.border-transparent]="activeExpertComponent()?.instanceId !== component.instanceId"
           (click)="selectComponentForConfiguration(component)"
@@ -115,7 +115,7 @@
             (click)="
               removeComponentFromArchitecture(component.instanceId); $event.stopPropagation()
             "
-            class="p-2 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-full"
+            class="p-2 text-text-tertiary hover:text-red-400 hover:bg-red-900/20 rounded-full"
           >
             <i class="pi pi-trash"></i>
           </button>
@@ -123,10 +123,10 @@
       }
       @if (expertArchitecture().length === 0) {
         <div
-          class="h-full flex flex-col items-center justify-center text-center text-gray-500 border-2 border-dashed border-gray-700 rounded-lg p-8"
+          class="h-full flex flex-col items-center justify-center text-center text-text-tertiary border-2 border-dashed border-[var(--glass-border)] rounded-lg p-8"
         >
           <i class="pi pi-sitemap text-4xl mb-4"></i>
-          <h4 class="font-semibold text-lg text-gray-400">
+          <h4 class="font-semibold text-lg text-text-tertiary">
             {{ 'dashboard.expertDeployment.empty.startBuilding' | translate }}
           </h4>
           <p>{{ 'dashboard.expertDeployment.empty.addComponents' | translate }}</p>
@@ -137,10 +137,10 @@
 
   <!-- VOLET 3: CONFIGURATION -->
   <div
-    class="col-span-12 lg:col-span-4 bg-gray-900/50 rounded-xl border border-gray-800 flex flex-col"
+    class="col-span-12 lg:col-span-4 bg-[var(--glass-bg-light)] rounded-xl border border-[var(--glass-border-subtle)] flex flex-col"
   >
     @if (activeExpertComponent(); as activeComponent) {
-      <div class="p-4 border-b border-gray-700">
+      <div class="p-4 border-b border-[var(--glass-border)]">
         <h3 class="text-lg font-semibold flex items-center gap-3">
           <i class="{{ activeComponent.icon }}"></i>
           {{
@@ -161,7 +161,7 @@
                 <span class="text-red-400">*</span>
               }
               @if (option.description) {
-                <i class="pi pi-info-circle text-gray-500" [title]="option.description"></i>
+                <i class="pi pi-info-circle text-text-tertiary" [title]="option.description"></i>
               }
             </label>
             @switch (option.type) {
@@ -171,7 +171,7 @@
                   type="text"
                   [formControlName]="option.name"
                   [placeholder]="option.placeholder"
-                  class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
+                  class="w-full bg-[var(--color-surface-2)] border border-[var(--glass-border)] rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
                 />
               }
               @case ('number') {
@@ -179,14 +179,14 @@
                   [id]="option.name"
                   type="number"
                   [formControlName]="option.name"
-                  class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
+                  class="w-full bg-[var(--color-surface-2)] border border-[var(--glass-border)] rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
                 />
               }
               @case ('select') {
                 <select
                   [id]="option.name"
                   [formControlName]="option.name"
-                  class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
+                  class="w-full bg-[var(--color-surface-2)] border border-[var(--glass-border)] rounded-lg p-2.5 focus:outline-none focus:border-purple-500"
                 >
                   @for (opt of option.options; track opt.value) {
                     <option [value]="opt.value">{{ opt.label }}</option>
@@ -197,7 +197,7 @@
                 <label class="relative inline-flex items-center cursor-pointer"
                   ><input type="checkbox" [formControlName]="option.name" class="sr-only peer" />
                   <div
-                    class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"
+                    class="w-11 h-6 bg-[var(--color-surface-3)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"
                   ></div
                 ></label>
               }
@@ -214,9 +214,9 @@
         }
       </div>
     } @else {
-      <div class="h-full flex flex-col items-center justify-center text-center text-gray-500 p-8">
+      <div class="h-full flex flex-col items-center justify-center text-center text-text-tertiary p-8">
         <i class="pi pi-sliders-h text-4xl mb-4"></i>
-        <h4 class="font-semibold text-lg text-gray-400">
+        <h4 class="font-semibold text-lg text-text-tertiary">
           {{ 'dashboard.expertDeployment.properties.title' | translate }}
         </h4>
         <p>{{ 'dashboard.expertDeployment.properties.selectComponent' | translate }}</p>
@@ -275,7 +275,7 @@
         <label for="repoUrl" class="text-sm font-medium mb-2 flex items-center gap-1">
           Git {{ 'dashboard.expertDeployment.deploymentConfig.git.repoUrl' | translate }}
           <i
-            class="pi pi-info-circle text-gray-500 text-xs"
+            class="pi pi-info-circle text-text-tertiary text-xs"
             [title]="'dashboard.expertDeployment.tooltips.repoUrl' | translate"
           ></i>
         </label>
@@ -322,7 +322,7 @@
         ></p-select>
         <small
           *ngIf="gitBranches().length === 0 && deploymentConfigForm.get('repoUrl')?.value"
-          class="text-gray-400"
+          class="text-text-tertiary"
         >
           {{ 'dashboard.expertDeployment.errors.noBranches' | translate }}
         </small>

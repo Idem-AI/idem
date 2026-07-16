@@ -43,7 +43,7 @@
           {{ 'common.retry' | translate }}
         </button>
         <button
-          class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+          class="bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary px-6 py-2 rounded-lg font-medium transition-colors"
           (click)="goToProjects()"
         >
           {{ 'dashboard.showBusinessPlan.buttons.backToProjects' | translate }}
@@ -81,7 +81,7 @@
             Compléter la génération
           </button>
           <button
-            class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            class="bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary px-6 py-2 rounded-lg font-medium transition-colors"
             (click)="generateBusinessPlan(true)"
           >
             Re-générer de zéro
@@ -106,7 +106,7 @@
     <div class="text-center py-20">
       <div class="mb-4">
         <svg
-          class="mx-auto h-16 w-16 text-gray-400"
+          class="mx-auto h-16 w-16 text-text-tertiary"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

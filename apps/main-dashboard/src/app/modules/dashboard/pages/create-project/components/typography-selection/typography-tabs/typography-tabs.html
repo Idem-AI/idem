@@ -1,10 +1,10 @@
-<div class="flex space-x-1 bg-gray-800/50 p-1 rounded-lg border border-gray-700/50 mb-6">
+<div class="flex space-x-1 bg-[var(--glass-bg-light)] p-1 rounded-lg border border-[var(--glass-border)] mb-6">
   <button
     class="flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center"
     [class]="
       activeTab === 'generated'
         ? 'bg-primary text-white shadow-lg transform scale-[1.02]'
-        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+        : 'text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)]'
     "
     (click)="onTabClick('generated')"
     [disabled]="!hasGeneratedTypographies"
@@ -28,7 +28,7 @@
     [class]="
       activeTab === 'custom'
         ? 'bg-primary text-white shadow-lg transform scale-[1.02]'
-        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+        : 'text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)]'
     "
     (click)="onTabClick('custom')"
   >

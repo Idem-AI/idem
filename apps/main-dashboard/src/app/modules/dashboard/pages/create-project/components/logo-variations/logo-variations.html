@@ -7,7 +7,7 @@
         <div
           class="w-20 h-20 mx-auto bg-linear-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mb-6 glow-primary"
         >
-          <i class="pi pi-palette text-3xl text-white"></i>
+          <i class="pi pi-palette text-3xl text-text-primary"></i>
         </div>
 
         <h1 class="text-4xl font-bold text-light-text text-glow-primary">
@@ -115,10 +115,10 @@
 @if (showLiveBoard()) {
   <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="text-center mb-8">
-      <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-100 mb-3">
+      <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-text-primary mb-3">
         {{ 'dashboard.logoVariations.live.title' | translate }}
       </h1>
-      <p class="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
+      <p class="text-text-tertiary text-sm sm:text-base max-w-2xl mx-auto">
         {{ 'dashboard.logoVariations.live.subtitle' | translate }}
       </p>
     </div>
@@ -127,20 +127,20 @@
       @for (slot of variationSlots(); track slot.kind) {
         <div
           class="relative rounded-2xl border-2 glass p-5 flex flex-col transition-all duration-300"
-          [class.border-white/10]="slot.status !== 'final'"
+          [class.border-surface-3]="slot.status !== 'final'"
           [class.border-green-500/40]="slot.status === 'final'"
           [class.opacity-50]="slot.status === 'cancelled'"
         >
           <!-- Libellé de la déclinaison -->
           <div class="text-center mb-3">
-            <span class="text-sm font-semibold text-gray-200">
+            <span class="text-sm font-semibold text-text-secondary">
               {{ slotLabelKey(slot.kind) | translate }}
             </span>
           </div>
 
           <!-- Zone logo sur son fond cible -->
           <div
-            class="relative w-full rounded-xl h-[150px] sm:h-[170px] flex items-center justify-center p-4 mb-4 overflow-hidden border border-white/10"
+            class="relative w-full rounded-xl h-[150px] sm:h-[170px] flex items-center justify-center p-4 mb-4 overflow-hidden border border-[var(--glass-border)]"
             [style.background-color]="slotBackground(slot.kind)"
           >
             @if (slot.svg) {
@@ -152,11 +152,11 @@
                 <div
                   class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2"
                 >
-                  <svg class="w-7 h-7 text-white animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <svg class="w-7 h-7 text-text-primary animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                   </svg>
-                  <span class="text-xs font-medium text-white">
+                  <span class="text-xs font-medium text-text-primary">
                     {{ 'dashboard.logoVariations.live.status.revising' | translate }}
                   </span>
                 </div>
@@ -185,7 +185,7 @@
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
               </svg>
             }
-            <span class="text-sm text-gray-300 truncate">
+            <span class="text-sm text-text-secondary truncate">
               {{ slotStatusKey(slot.status) | translate }}
             </span>
           </div>
@@ -214,14 +214,14 @@
                       {{ 'dashboard.logoVariations.live.critique.revised' | translate }}
                     </span>
                   }
-                  <span class="text-xs text-gray-400">{{ critique.score }}/100</span>
+                  <span class="text-xs text-text-tertiary">{{ critique.score }}/100</span>
                 </span>
               </div>
-              <p class="text-xs text-gray-300 leading-relaxed">{{ critique.summary }}</p>
+              <p class="text-xs text-text-secondary leading-relaxed">{{ critique.summary }}</p>
               @if (critique.verdict === 'fail' && critique.remarks.length > 0) {
                 <ul class="mt-2 space-y-1">
                   @for (remark of critique.remarks; track remark.issue) {
-                    <li class="text-xs text-gray-400 flex gap-1.5">
+                    <li class="text-xs text-text-tertiary flex gap-1.5">
                       <span class="text-amber-400 shrink-0">•</span>
                       <span>{{ remark.issue }}</span>
                     </li>
@@ -243,11 +243,11 @@
   >
     <div class="text-center mb-8">
       <h1
-        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
+        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-primary mb-4 max-w-4xl"
       >
         {{ 'dashboard.logoVariations.generating.title' | translate }}
       </h1>
-      <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
+      <p class="text-text-tertiary sm:text-lg text-sm max-w-2xl mx-auto">
         {{ 'dashboard.logoVariations.generating.subtitle' | translate }}
       </p>
     </div>
@@ -264,14 +264,14 @@
         [infinite]="false"
       >
         <ng-template let-item>
-          <div class="p-4 sm:p-6 border-2 border-gray-700/50 glass rounded-xl">
+          <div class="p-4 sm:p-6 border-2 border-[var(--glass-border)] glass rounded-xl">
             <div
-              class="w-full h-32 mb-4 bg-gray-800/50 rounded-xl flex items-center justify-center"
+              class="w-full h-32 mb-4 bg-[var(--glass-bg-light)] rounded-xl flex items-center justify-center"
             >
-              <div class="w-16 h-16 bg-gray-700/50 rounded-lg animate-pulse"></div>
+              <div class="w-16 h-16 bg-[var(--glass-bg-subtle)] rounded-lg animate-pulse"></div>
             </div>
-            <div class="h-5 bg-gray-700/50 rounded animate-pulse mb-2"></div>
-            <div class="h-4 bg-gray-700/30 rounded animate-pulse w-2/3"></div>
+            <div class="h-5 bg-[var(--glass-bg-subtle)] rounded animate-pulse mb-2"></div>
+            <div class="h-4 bg-[var(--glass-bg-subtle)] rounded animate-pulse w-2/3"></div>
           </div>
         </ng-template>
       </app-carousel>
@@ -279,11 +279,11 @@
 
     <!-- Progress Bar -->
     <div class="w-full max-w-2xl mx-auto mt-8">
-      <div class="flex justify-between text-sm text-gray-400 mb-2">
+      <div class="flex justify-between text-sm text-text-tertiary mb-2">
         <span>{{ 'dashboard.logoVariations.progress.label' | translate }}</span>
         <span>{{ generationProgress() }}%</span>
       </div>
-      <div class="w-full bg-gray-800 rounded-full h-3">
+      <div class="w-full bg-[var(--color-surface-2)] rounded-full h-3">
         <div
           class="bg-linear-to-r from-primary to-secondary h-3 rounded-full transition-all duration-500"
           [style.width.%]="generationProgress()"
@@ -430,7 +430,7 @@
                   <div
                     class="w-6 h-6 bg-success rounded-full flex items-center justify-center glow-success"
                   >
-                    <i class="pi pi-check text-white text-sm"></i>
+                    <i class="pi pi-check text-text-primary text-sm"></i>
                   </div>
                 </div>
 
@@ -467,7 +467,7 @@
         <div class="flex justify-center mt-8">
           <button
             (click)="onNextStep()"
-            class="inner-button inline-flex items-center px-8 py-3 text-lg font-semibold text-white"
+            class="inner-button inline-flex items-center px-8 py-3 text-lg font-semibold"
           >
             {{ 'common.next' | translate }}
             <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
