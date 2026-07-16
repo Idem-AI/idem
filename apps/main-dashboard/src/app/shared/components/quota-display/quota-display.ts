@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslateModule } from '@ngx-translate/core';
 import {
   QuotaStatus,
   QuotaDisplayData,
@@ -10,7 +11,7 @@ import {
 @Component({
   selector: 'app-quota-display',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!isLoading && quotaDisplay) {
@@ -20,7 +21,7 @@ import {
           <span
             class="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30"
           >
-            <span class="w-1 h-1 bg-orange-400 rounded-full mr-0.5"></span>BETA
+            <span class="w-1 h-1 bg-orange-400 rounded-full mr-0.5"></span>{{ 'dashboard.dashboard.quotaWarning.beta' | translate }}
           </span>
         }
 
@@ -33,7 +34,7 @@ import {
               [style.width.%]="quotaDisplay.dailyPercentage"
             ></div>
           </div>
-          <span class="sm:text-lg text-xs whitespace-nowrap text-text-primary">Credits</span>
+          <span class="sm:text-lg text-xs whitespace-nowrap text-text-primary">{{ 'dashboard.dashboard.quotaWarning.credits' | translate }}</span>
           <span class="sm:text-lg text-xs whitespace-nowrap" [class]="getDailyStatusClass()">
             {{ quotaInfo?.remainingDaily || 0 }}/{{ quotaInfo?.dailyLimit || 0 }}
           </span>

@@ -25,11 +25,9 @@
         type="button"
         (click)="switchTo('chat')"
         class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
-        [class.bg-primary]="current() === 'chat'"
-        [class.text-text-primary]="current() === 'chat'"
-        [class.shadow-lg]="current() === 'chat'"
-        [class.shadow-primary/30]="current() === 'chat'"
-        [class.text-text-tertiary]="current() !== 'chat'"
+        [class.inner-button]="current() === 'chat'"
+        [class.text-white]="current() === 'chat'"
+        [class.text-text-secondary]="current() !== 'chat'"
         [class.hover:text-text-primary]="current() !== 'chat'"
       >
         <i class="pi pi-comments text-[11px]"></i>
@@ -39,11 +37,9 @@
         type="button"
         (click)="switchTo('advanced')"
         class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
-        [class.bg-primary]="current() === 'advanced'"
-        [class.text-text-primary]="current() === 'advanced'"
-        [class.shadow-lg]="current() === 'advanced'"
-        [class.shadow-primary/30]="current() === 'advanced'"
-        [class.text-text-tertiary]="current() !== 'advanced'"
+        [class.inner-button]="current() === 'advanced'"
+        [class.text-white]="current() === 'advanced'"
+        [class.text-text-secondary]="current() !== 'advanced'"
         [class.hover:text-text-primary]="current() !== 'advanced'"
       >
         <i class="pi pi-table text-[11px]"></i>
