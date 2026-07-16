@@ -79,8 +79,12 @@ body {
   --glass-bg: rgba(255, 255, 255, 0.85);
   --glass-bg-darker: rgba(245, 246, 248, 0.8);
   --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 4px 16px 0 rgba(15, 23, 42, 0.04);
   --glass-blur: 12px;
+
+  /* Button shadows */
+  --button-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --button-shadow-hover: 0 6px 16px rgba(20, 71, 230, 0.15);
 
   /* Original shadcn variables */
   --background: 224 71.4% 4.1%;
@@ -118,6 +122,10 @@ body {
   --glass-bg-darker: rgba(20, 20, 30, 0.6);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+  /* Button shadows dark mode override */
+  --button-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --button-shadow-hover: 0 8px 20px rgba(60, 164, 250, 0.4);
 
   --background: 224 71.4% 4.1%;
   --foreground: 210 20% 98%;
@@ -174,7 +182,7 @@ body {
 
 .glass-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px 0 rgba(15, 23, 42, 0.05);
 }
 
 .dark .glass-card:hover {
@@ -213,7 +221,7 @@ body {
   color: #111827;
   cursor: pointer;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--button-shadow);
   text-transform: uppercase;
   font-weight: 500;
   font-size: 1rem;
@@ -243,7 +251,7 @@ body {
   font-size: 1rem;
   cursor: pointer;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--button-shadow);
   text-transform: uppercase;
   font-weight: 500;
   font-size: 1rem;
@@ -291,7 +299,7 @@ body {
 .outer-button:hover,
 .inner-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(60, 164, 250, 0.4);
+  box-shadow: var(--button-shadow-hover);
   cursor: pointer;
 }
 

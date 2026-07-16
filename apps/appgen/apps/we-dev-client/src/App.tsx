@@ -100,7 +100,7 @@ function App() {
       >
         <div className="flex flex-col items-center gap-4">
           <img
-            src="/assets/icons/logo_white.png"
+            src={isDarkMode ? "/assets/icons/logo_white.png" : "/assets/icons/idem-logo.png"}
             alt="logo"
             className="w-12 h-auto animate-pulse"
           />

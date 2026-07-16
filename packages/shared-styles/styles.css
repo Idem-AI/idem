@@ -76,10 +76,10 @@ body {
   --glass-border: rgba(15, 23, 42, 0.1);
   --glass-border-medium: rgba(15, 23, 42, 0.15);
   --glass-border-strong: rgba(15, 23, 42, 0.22);
-  --glass-shadow-sm: 0 4px 16px 0 rgba(15, 23, 42, 0.06);
-  --glass-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.1);
-  --glass-shadow-lg: 0 12px 40px 0 rgba(15, 23, 42, 0.14);
-  --glass-shadow-xl: 0 20px 60px 0 rgba(15, 23, 42, 0.18);
+  --glass-shadow-sm: 0 2px 8px 0 rgba(15, 23, 42, 0.03);
+  --glass-shadow: 0 4px 16px 0 rgba(15, 23, 42, 0.04);
+  --glass-shadow-lg: 0 8px 24px 0 rgba(15, 23, 42, 0.05);
+  --glass-shadow-xl: 0 12px 32px 0 rgba(15, 23, 42, 0.06);
 
   /* Glass gradients / shimmer / body grid */
   --gradient-glass: linear-gradient(135deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.02));
@@ -139,6 +139,16 @@ body {
 
   --idem-placeholder: rgba(255, 255, 255, 0.4);
   --idem-placeholder-focus: rgba(255, 255, 255, 0.6);
+
+  /* Restore deep standard shadows for dark mode */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
 }
 
 @theme {
@@ -307,14 +317,14 @@ body {
      SHADOW SYSTEM - Elevation layers
      -------------------------------------------------------------------------- */
 
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.015);
+  --shadow-sm: 0 1px 3px 0 rgb(15 23 42 / 0.03), 0 1px 2px -1px rgb(15 23 42 / 0.03);
+  --shadow: 0 4px 6px -1px rgb(15 23 42 / 0.04), 0 2px 4px -2px rgb(15 23 42 / 0.04);
+  --shadow-md: 0 4px 6px -1px rgb(15 23 42 / 0.04), 0 2px 4px -2px rgb(15 23 42 / 0.04);
+  --shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.05), 0 4px 6px -4px rgb(15 23 42 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 0.06), 0 8px 10px -6px rgb(15 23 42 / 0.06);
+  --shadow-2xl: 0 25px 50px -12px rgb(15 23 42 / 0.1);
+  --shadow-inner: inset 0 2px 4px 0 rgb(15 23 42 / 0.02);
 
   /* --------------------------------------------------------------------------
      Z-INDEX SYSTEM - Stacking order
@@ -1589,4 +1599,10 @@ meter::-webkit-meter-even-less-good-value {
 
 .lds-heart {
   animation: lds-heart 1.2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* Brand logo replacement on light theme */
+html.light img[src*='logo_white'] {
+  content: url('/assets/icons/idem-logo.png') !important;
+  filter: none !important;
 }

@@ -1,7 +1,10 @@
 import { ProjectTitle } from './ProjectTitle';
 import { HeaderActions } from './HeaderActions';
+import useThemeStore from '@/stores/themeSlice';
 
 function Header() {
+  const { isDarkMode } = useThemeStore();
+
   return (
     <header className="min-h-12 flex items-center px-4 h-12 glass border-b bg-white dark:bg-gray-900">
       <div className="flex-1">
@@ -11,8 +14,8 @@ function Header() {
       {/* Logo and Brand */}
       <div className="flex items-center space-x-2">
         <img
-          className="w-20 h-auto [filter:invert(1)_hue-rotate(180deg)] dark:[filter:none]"
-          src="/assets/icons/logo_white.png"
+          className="w-20 h-auto"
+          src={isDarkMode ? "/assets/icons/logo_white.png" : "/assets/icons/idem-logo.png"}
           alt="logo"
         />
         <h1 className="opacity-90 text-[18px] font-bold text-gray-900 dark:text-white">APPGEN</h1>
