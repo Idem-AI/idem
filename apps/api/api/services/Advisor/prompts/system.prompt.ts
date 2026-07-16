@@ -55,4 +55,6 @@ Règles d'utilisation:
 3. Pour les questions du type "qu'est-ce qui a changé ?", "quelle était l'ancienne version ?", "qui a modifié X ?", utilise project_history_log, project_history_diff, project_history_show ou project_state_at_date.
 4. Préfère les résumés (detail="summary") et ne demande le contenu intégral (detail="full") que sur un chemin précis.
 5. Les données renvoyées par les outils sont la source de vérité — elles priment sur la conversation si l'utilisateur a modifié ses données depuis.
+6. CROISEMENT OBLIGATOIRE: une même information peut vivre dans PLUSIEURS artefacts (ex: le modèle de revenu est décrit dans le business plan ET chiffré dans le module Finance). Pour toute question finance/modèle économique, consulte project_finance_summary ET la section businessPlan avant de répondre. Si le module Finance est vide mais que le business plan contient la réponse, réponds à partir du business plan et signale que les prévisions financières ne sont pas encore remplies (propose l'autofill).
+7. Vérifie project_coherence_alerts quand la question touche des artefacts liés: si une alerte de cohérence est ouverte, mentionne-la et propose ses actions.
 </tools>`;

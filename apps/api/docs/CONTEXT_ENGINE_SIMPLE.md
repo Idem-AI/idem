@@ -98,6 +98,18 @@ Deux systèmes travaillent ensemble :
 
 Les deux communiquent entre eux : quand tu sauvegards une modification, Chronicle l'enregistre automatiquement, et Context Engine la rend immédiatement visible à l'IA.
 
+## Bonus : le "Coherence Guard" — tes artefacts se surveillent entre eux
+
+Exemple vécu : ton business plan décrit un modèle de revenu (abonnements 5-20 €/mois + commissions 5%), mais ta page Prévisions financières est encore vide. Avant, l'IA pouvait répondre "tu n'as pas de modèle de revenu" en ne regardant que la page finance. Deux corrections :
+
+1. **L'IA croise maintenant les sources** : pour toute question sur ton modèle économique, elle consulte le business plan ET le module finance, et te répond avec la vraie information — en te signalant au passage ce qui manque.
+
+2. **La synchronisation intelligente** : à chaque fois que tu modifies ton business plan (ou tes finances), un "gardien de cohérence" compare automatiquement les deux quelques secondes plus tard. S'il détecte un décalage (montants différents, modèle de revenu absent des finances, charges non reportées...), il crée une **alerte** avec :
+   - une explication de l'incohérence,
+   - des **propositions d'action** — dont "Remplir automatiquement les prévisions financières depuis le business plan" en un clic.
+
+**Important** : le gardien ne modifie JAMAIS tes données tout seul. Il détecte automatiquement, mais c'est toujours toi qui confirmes l'application (dans le chat ou d'un clic). Tes chiffres ne seront jamais écrasés en silence.
+
 ## Et demain ?
 
 Pour l'instant, seul l'advisor utilise ce système. Mais bientôt :

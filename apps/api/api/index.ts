@@ -21,6 +21,7 @@ import { storageService } from './services/storage.service';
 import { User } from './schemas/user.schema';
 import { Project } from './schemas/project.schema';
 import { ProjectRevision } from './schemas/revision.schema';
+import { CoherenceAlert } from './schemas/coherence.schema';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -59,6 +60,7 @@ function initFirebase(): void {
 
 import { projectRoutes } from './routes/project.routes';
 import { contextRoutes } from './routes/context.routes';
+import { coherenceRoutes } from './routes/coherence.routes';
 import { brandingRoutes } from './routes/branding.routes';
 import { diagramRoutes } from './routes/diagram.routes';
 import { businessPlanRoutes } from './routes/businessPlan.routes';
@@ -127,6 +129,7 @@ app.use(revisionContextMiddleware);
 
 app.use('/projects', projectRoutes);
 app.use('/project', contextRoutes);
+app.use('/project', coherenceRoutes);
 app.use('/project', brandingRoutes);
 app.use('/project', diagramRoutes);
 app.use('/project', businessPlanRoutes);
@@ -233,6 +236,7 @@ function startServer() {
         User.init(), // Creates all indexes defined in UserSchema
         Project.init(), // Creates all indexes defined in ProjectSchema
         ProjectRevision.init(), // Chronicle: unique (projectId, section, version) + log indexes
+        CoherenceAlert.init(), // Coherence Guard: alertes de synchronisation inter-artefacts
       ]);
       console.log('MongoDB indexes created successfully');
     } catch (error) {

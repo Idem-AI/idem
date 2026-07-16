@@ -164,10 +164,48 @@ la boucle agentique, repli automatique sur le flow simple (résilience).
 - **Écritures concurrentes** : index unique (projectId, section, version) +
   retry — jamais deux révisions avec le même numéro.
 
+## 4 bis. Coherence Guard — synchronisation intelligente entre artefacts
+
+Cas réel à l'origine de ce module : l'utilisateur demande « quel est mon modèle
+de revenu » ; le business plan contient la réponse (abonnements 5–20 €/mois +
+commissions 5 %), mais le module Finance est vide — et l'advisor répondait
+depuis le seul module Finance (« aucun produit enregistré »). Deux problèmes :
+
+1. **Court-circuit** : la détection d'intention finance répondait AVANT la
+   boucle agentique. → Corrigé : les intentions de *lecture* passent désormais
+   par la boucle agentique, qui croise `project_finance_summary` **et**
+   `project_get_section('businessPlan')` (règle de croisement obligatoire dans
+   le prompt système). Le flux de *mutation* avec confirmation reste intact.
+2. **Désynchronisation** : business plan et prévisions financières décrivent la
+   même réalité économique mais vivaient sans lien. → Le **Coherence Guard** :
+
+- **Règles déclaratives** (`coherence-rules.ts`) : chaque règle lie deux
+  sections et décrit son « contrat de cohérence » (v1 : businessPlan↔finance,
+  overview↔businessPlan ; extensible : branding↔landing…).
+- **Détection automatique** : le hook Chronicle, après chaque commit de
+  section, programme un audit IA (debounce 8 s) de chaque règle touchée.
+  L'audit compare les deux sections (résumés bornés) et rend un verdict JSON
+  (cohérent / incohérences + actions). Pas de quota utilisateur consommé.
+- **Alertes** : collection `coherence_alerts` — une seule alerte ouverte par
+  (projet, règle), les précédentes sont marquées `superseded`.
+- **Application EXPLICITE, jamais silencieuse** : la proposition
+  `finance_autofill` réutilise l'autofill Finance existant (attribution `ai`
+  dans Chronicle) après confirmation de l'utilisateur. Principe produit :
+  *détection automatique, application confirmée* — on n'écrase jamais les
+  données utilisateur sans son accord.
+- **Anti-boucle** : les écritures issues d'un apply (`/coherence/` dans la
+  source) ne redéclenchent pas d'audit.
+- **Exposition** : REST (`GET /project/coherence/:projectId`, `POST …/check`,
+  `POST …/:alertId/apply`, `POST …/:alertId/dismiss`) + outil agent
+  `project_coherence_alerts` (l'advisor signale les désynchronisations en
+  conversation et propose les actions).
+- Désactivable via `COHERENCE_CHECKS_ENABLED=false`.
+
 ## 5. Feuille de route
 
 1. **Fait** — socle : registry, Context Engine, Chronicle, hook repository,
-   boucle FC Gemini, 7 outils, API REST, advisor branché.
+   boucle FC Gemini, 9 outils, API REST, advisor branché, Coherence Guard
+   (businessPlan↔finance).
 2. **Étendre aux autres agents** : injecter la carte + outils dans les
    générations branding / business plan / communication / déploiement (chaque
    génération devient « consciente » des autres artefacts → cohérence

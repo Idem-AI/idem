@@ -1,5 +1,6 @@
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
+import { ProjectSectionKey } from '../../models/revision.model';
 import { getRevisionContext } from '../../utils/revision-context.util';
 import { ALL_SECTION_KEYS, sectionHasContent, sectionRegistry } from '../context-engine/context-registry';
 import { versionHistoryService } from './version-history.service';
@@ -28,6 +29,8 @@ export async function recordProjectRevisions(
   } as const;
   const source = context?.source ?? 'system';
 
+  const changedSections: ProjectSectionKey[] = [];
+
   for (const key of ALL_SECTION_KEYS) {
     try {
       const definition = sectionRegistry.get(key)!;
@@ -38,7 +41,7 @@ export async function recordProjectRevisions(
       // Pas de baseline v1 pour une section encore vide (anti-bruit).
       if (beforeValue === undefined && !sectionHasContent(afterValue)) continue;
 
-      await versionHistoryService.record({
+      const revision = await versionHistoryService.record({
         projectId,
         userId,
         section: key,
@@ -48,9 +51,23 @@ export async function recordProjectRevisions(
         source,
         summary: context?.note,
       });
+      if (revision) changedSections.push(key);
     } catch (error: any) {
       // L'historique ne doit jamais casser l'écriture métier.
       logger.error(`recordProjectRevisions(${projectId}/${key}) failed: ${error.message}`);
+    }
+  }
+
+  // Coherence Guard: programme un audit IA des règles touchées par ce commit.
+  // Import différé (pas de cycle statique repository → coherence → repository)
+  // et garde anti-boucle: les écritures issues du Coherence Guard lui-même
+  // (route /coherence/) ne redéclenchent pas d'audit.
+  if (changedSections.length > 0 && !/\/coherence\//.test(source)) {
+    try {
+      const { coherenceService } = await import('../coherence/coherence.service');
+      coherenceService.onSectionsChanged(projectId, userId, changedSections);
+    } catch (error: any) {
+      logger.error(`Coherence trigger failed for ${projectId}: ${error.message}`);
     }
   }
 }
