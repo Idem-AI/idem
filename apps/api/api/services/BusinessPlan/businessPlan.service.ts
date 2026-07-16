@@ -1,4 +1,4 @@
-import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { LLMProvider, PromptConfig, PromptService, AIChatMessage } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 
 import { ProjectModel } from '../../models/project.model';
@@ -8,7 +8,7 @@ import { GenericService, IPromptStep, ISectionResult } from '../common/generic.s
 import { SectionModel } from '../../models/section.model';
 import { PdfService } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
-import { getRequestLanguage } from '../../utils/request-language';
+import { getRequestLanguage, SupportedLanguage } from '../../utils/request-language';
 import crypto from 'crypto';
 import { AGENT_COVER_PROMPT } from './prompts/agent-cover.prompt';
 import { AGENT_COMPANY_SUMMARY_PROMPT } from './prompts/agent-company-summary.prompt';
@@ -98,6 +98,45 @@ export class BusinessPlanService extends GenericService {
     const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
       brandColors
     )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
+
+    // Build finance context if finance module exists
+    let financeContext = '';
+    if (project.analysisResultModel?.finance) {
+      const finance = project.analysisResultModel.finance;
+      const summaryText = [];
+      if (finance.computed) {
+        const ce = finance.computed.compteExploitation || [];
+        const seuil = finance.computed.seuilRentabilite || [];
+        const ft = finance.computed.fluxTresorerie || [];
+        
+        summaryText.push('--- DONNÉES FINANCIÈRES RÉELLES DU MODULE FINANCE ---');
+        summaryText.push(`Devise: ${finance.meta?.currency || 'FCFA'}`);
+        
+        summaryText.push('Projections de Chiffre d\'Affaires et Résultat Net:');
+        ce.forEach((y: any) => {
+          summaryText.push(`- Année ${y.year}: CA = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, Résultat Net = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, Marge brute = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
+        });
+        
+        if (seuil.length > 0) {
+          summaryText.push('Seuil de rentabilité (Break-even):');
+          seuil.forEach((s: any) => {
+            summaryText.push(`- Année ${s.year}: Seuil = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, Point Mort = ${s.pointMortJours} jours`);
+          });
+        }
+        
+        if (ft.length > 0) {
+          summaryText.push('Trésorerie de clôture:');
+          ft.forEach((f: any) => {
+            summaryText.push(`- Année ${f.year}: Trésorerie clôture = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
+          });
+        }
+      } else {
+        summaryText.push('--- DONNÉES DU MODULE FINANCE (Non calculées) ---');
+        summaryText.push(`Produits: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
+      }
+      financeContext = '\n\n' + summaryText.join('\n');
+    }
+
     try {
       // Define business plan steps with specialized agents
       const steps: IPromptStep[] = [
@@ -132,7 +171,7 @@ export class BusinessPlanService extends GenericService {
           hasDependencies: false,
         },
         {
-          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
           stepName: 'Financial Plan',
           hasDependencies: false,
         },
@@ -563,5 +602,149 @@ export class BusinessPlanService extends GenericService {
       project: savedProject,
       uploadedImages: Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
     };
+  }
+
+  /**
+   * Met à jour uniquement la section Financial Plan du business plan
+   * suite à une mise à jour des données financières du projet.
+   */
+  async updateFinancialPlanSection(userId: string, projectId: string, requestLanguage?: SupportedLanguage): Promise<void> {
+    logger.info(`Updating Financial Plan section of Business Plan for project ${projectId}`);
+    const project = await this.getProject(projectId, userId);
+    if (!project || !project.analysisResultModel?.businessPlan) {
+      logger.info(`No business plan exists to sync for project ${projectId}`);
+      return;
+    }
+
+    const bp = project.analysisResultModel.businessPlan;
+    const existingSections = bp.sections || [];
+    const finPlanIndex = existingSections.findIndex(s => s.name === 'Financial Plan');
+    if (finPlanIndex === -1) {
+      logger.info(`Financial Plan section not found in business plan for project ${projectId}`);
+      return;
+    }
+
+    const projectDescription =
+      this.extractProjectDescription(project) +
+      '\n' +
+      'Additional infos: ' +
+      JSON.stringify(project.additionalInfos);
+
+    const brandName = project.name || 'Startup';
+    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
+    const brandColors = project.analysisResultModel?.branding?.colors || {
+      primary: '#007bff',
+      secondary: '#6c757d',
+    };
+    const typography = project.analysisResultModel?.branding?.typography || {
+      primary: 'Arial, sans-serif',
+    };
+    const language = (requestLanguage || getRequestLanguage()) === 'fr' ? 'French' : 'English';
+
+    const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
+      brandColors
+    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
+
+    // Build finance context
+    let financeContext = '';
+    if (project.analysisResultModel?.finance) {
+      const finance = project.analysisResultModel.finance;
+      const summaryText = [];
+      if (finance.computed) {
+        const ce = finance.computed.compteExploitation || [];
+        const seuil = finance.computed.seuilRentabilite || [];
+        const ft = finance.computed.fluxTresorerie || [];
+        
+        summaryText.push('--- DONNÉES FINANCIÈRES RÉELLES DU MODULE FINANCE ---');
+        summaryText.push(`Devise: ${finance.meta?.currency || 'FCFA'}`);
+        
+        summaryText.push('Projections de Chiffre d\'Affaires et Résultat Net:');
+        ce.forEach((y: any) => {
+          summaryText.push(`- Année ${y.year}: CA = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, Résultat Net = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, Marge brute = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
+        });
+        
+        if (seuil.length > 0) {
+          summaryText.push('Seuil de rentabilité (Break-even):');
+          seuil.forEach((s: any) => {
+            summaryText.push(`- Année ${s.year}: Seuil = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, Point Mort = ${s.pointMortJours} jours`);
+          });
+        }
+        
+        if (ft.length > 0) {
+          summaryText.push('Trésorerie de clôture:');
+          ft.forEach((f: any) => {
+            summaryText.push(`- Année ${f.year}: Trésorerie clôture = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
+          });
+        }
+      } else {
+        summaryText.push('--- DONNÉES DU MODULE FINANCE (Non calculées) ---');
+        summaryText.push(`Produits: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
+      }
+      financeContext = '\n\n' + summaryText.join('\n');
+    }
+
+    const step: IPromptStep = {
+      promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
+      stepName: 'Financial Plan',
+      hasDependencies: false,
+    };
+
+    const promptConfig: PromptConfig = {
+      provider: AI_CONFIG.businessPlan.provider,
+      modelName: AI_CONFIG.businessPlan.modelName,
+      skipQuotaCheck: true,
+    };
+
+    const messages: AIChatMessage[] = [
+      {
+        role: 'user',
+        content: step.promptConstant,
+      },
+    ];
+
+    try {
+      const content = await this.runStepAndAppend(
+        step,
+        project,
+        true,
+        messages,
+        userId,
+        'Financial Plan Auto-Update',
+        '',
+        promptConfig
+      );
+
+      existingSections[finPlanIndex] = {
+        ...existingSections[finPlanIndex],
+        data: content,
+        summary: `Financial Plan for Project ${project.id} (Updated from Finance module)`,
+        updatedAt: new Date()
+      } as any;
+
+      const newProject = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          businessPlan: {
+            ...bp,
+            sections: existingSections,
+            updatedAt: new Date(),
+          },
+        },
+      };
+
+      await this.projectRepository.update(
+        projectId,
+        newProject,
+        `users/${userId}/projects`
+      );
+
+      const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+      await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+
+      logger.info(`Successfully auto-updated Financial Plan section in business plan for project ${projectId}`);
+    } catch (err: any) {
+      logger.error(`Failed to auto-update Financial Plan section: ${err.message}`, { stack: err.stack });
+    }
   }
 }

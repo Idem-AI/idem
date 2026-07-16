@@ -186,7 +186,7 @@
                     (click)="selectConversation(conversation.id)"
                     class="flex-1 min-w-0 flex items-center gap-2 px-3 py-2 text-left text-sm"
                     [ngClass]="{
-                      'text-text-primary': store.activeConversationId() === conversation.id,
+                      'text-white': store.activeConversationId() === conversation.id,
                       'text-text-secondary group-hover/conv:text-text-primary':
                         store.activeConversationId() !== conversation.id,
                     }"
@@ -198,7 +198,13 @@
                   <button
                     type="button"
                     (click)="deleteConversation($event, conversation.id)"
-                    class="shrink-0 p-1.5 mr-1 rounded-lg text-text-tertiary opacity-0 group-hover/conv:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+                    class="shrink-0 p-1.5 mr-1 rounded-lg opacity-0 group-hover/conv:opacity-100 transition-all duration-150"
+                    [ngClass]="{
+                      'text-white/60 hover:text-white hover:bg-white/10':
+                        store.activeConversationId() === conversation.id,
+                      'text-text-tertiary hover:text-red-400 hover:bg-red-500/10':
+                        store.activeConversationId() !== conversation.id,
+                    }"
                     [title]="'chat.sidebar.deleteConversation' | translate"
                   >
                     <i class="pi pi-trash text-[10px]"></i>
