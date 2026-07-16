@@ -30,6 +30,7 @@ export class BrandingDisplayComponent implements OnInit {
   protected readonly pdfSrc = signal<string | null>(null);
   protected readonly isDownloadingPdf = signal<boolean>(false);
   protected readonly pdfError = signal<string | null>(null);
+  protected readonly loadError = signal<string | null>(null);
 
   async ngOnInit(): Promise<void> {
     const projectId = this.cookieService.get('projectId');
@@ -57,18 +58,24 @@ export class BrandingDisplayComponent implements OnInit {
             }
             this.isLoading.set(false);
           },
-          error: async () => {
+          error: async (err: any) => {
+            console.error('Error downloading PDF:', err);
             // No PDF available, try loading from backend with auth
             if (brandingData?.sections) {
               try {
                 await this.tokenService.waitForAuthReady();
                 await this.loadPdfFromBackend();
               } catch (error: any) {
-                console.error('Authentication error:', error);
-                this.pdfError.set(
-                  this.translate.instant('dashboard.brandingDisplay.errors.authFailed'),
+                console.error('Error loading PDF from backend:', error);
+                this.loadError.set(
+                  this.translate.instant('dashboard.brandingDisplay.errors.loadPdf'),
                 );
               }
+            } else {
+              // No sections available, cannot generate PDF
+              this.loadError.set(
+                this.translate.instant('dashboard.brandingDisplay.errors.noBrandingData'),
+              );
             }
             this.isLoading.set(false);
           },
