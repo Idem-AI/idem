@@ -57,11 +57,8 @@ export class IncompleteProjectBannerComponent {
   }
 
   protected get isIncomplete(): boolean {
-    const branding = this.project().analysisResultModel?.branding as any;
-    // Incomplet tant que le workflow n'a pas été finalisé
-    if (branding && !branding.isComplete) {
-      return true;
-    }
+    // Show banner only if there are actually missing elements, not based on isComplete flag
+    // isComplete is set only after user finalizes the workflow, but generated assets are sufficient to show content
     return this.missingElements.length > 0;
   }
 
