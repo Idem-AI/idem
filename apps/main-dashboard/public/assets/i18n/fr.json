@@ -202,6 +202,12 @@
       },
       "pdf": {
         "download": "Télécharger le rapport PDF"
+      },
+      "bpMissingDialog": {
+        "title": "Business Plan requis",
+        "headline": "Générez d'abord votre Business Plan",
+        "description": "L'IA a besoin de votre Business Plan pour générer des prévisions financières cohérentes et personnalisées. Veuillez générer votre business plan avant de continuer.",
+        "generateCta": "Créer mon Business Plan"
       }
     },
     "sidebar": {

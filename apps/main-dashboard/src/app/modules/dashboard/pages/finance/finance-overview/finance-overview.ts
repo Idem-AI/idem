@@ -9,8 +9,11 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { Dialog } from 'primeng/dialog';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { FinanceService } from '../../../services/finance.service';
+import { ProjectService } from '../../../services/project.service';
+import { ProjectModel } from '@idem/shared-models';
 import {
   FINANCE_SECTIONS,
   FinanceModel,
@@ -33,7 +36,7 @@ interface SectionCardVM {
 @Component({
   selector: 'app-finance-overview',
   standalone: true,
-  imports: [CommonModule, RouterLink, TranslateModule, AiFillButtonComponent],
+  imports: [CommonModule, RouterLink, TranslateModule, AiFillButtonComponent, Dialog],
   templateUrl: './finance-overview.html',
   styleUrl: './finance-overview.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,6 +46,10 @@ export class FinanceOverviewComponent implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
+  private readonly projectService = inject(ProjectService);
+
+  protected readonly project = signal<ProjectModel | null>(null);
+  protected readonly bpMissingDialogVisible = signal<boolean>(false);
 
   protected readonly isLoading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
@@ -164,6 +171,15 @@ export class FinanceOverviewComponent implements OnInit {
     }
 
     this.isLoading.set(true);
+    this.projectService.getProjectById(projectId).subscribe({
+      next: (proj) => {
+        this.project.set(proj);
+      },
+      error: (err) => {
+        console.error('[FinanceOverview] Failed to load project', err);
+      }
+    });
+
     this.financeService.getSummary(projectId).subscribe({
       next: (response: FinanceSummaryResponse) => {
         this.finance.set(response.finance);
@@ -192,6 +208,17 @@ export class FinanceOverviewComponent implements OnInit {
   protected onAutoFillGlobal(): void {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) return;
+
+    // Check if Business Plan is generated
+    const project = this.project();
+    const hasBp = !!(project?.analysisResultModel?.businessPlan?.sections &&
+                    project.analysisResultModel.businessPlan.sections.length > 0);
+
+    if (!hasBp) {
+      this.bpMissingDialogVisible.set(true);
+      return;
+    }
+
     this.aiGlobalLoading.set(true);
     this.financeService.autoFillAll(projectId).subscribe({
       next: () => {
@@ -206,6 +233,11 @@ export class FinanceOverviewComponent implements OnInit {
         );
       },
     });
+  }
+
+  protected navigateToBpGeneration(): void {
+    this.bpMissingDialogVisible.set(false);
+    this.router.navigate(['/project/business-plan/generate']);
   }
 
   protected onAutoFillSection(sectionKey: string): void {

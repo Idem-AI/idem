@@ -386,9 +386,20 @@ export class FinanceAIService {
   private summarizeBusinessPlanForContext(project: ProjectModel): string {
     const bp: any = project.analysisResultModel?.businessPlan;
     if (!bp || !bp.sections || bp.sections.length === 0) return 'Aucun business plan disponible.';
+
+    const IMPORTANT_SECTIONS = [
+      'company summary',
+      'opportunity',
+      'products & services',
+      'products services',
+      'marketing & sales',
+      'marketing sales',
+      'financial plan'
+    ];
+
     return bp.sections
-      .map((s: any) => `### ${s.name}\n${s.summary || s.data?.slice(0, 400) || ''}`)
-      .slice(0, 8)
+      .filter((s: any) => s && s.name && IMPORTANT_SECTIONS.includes(s.name.toLowerCase()))
+      .map((s: any) => `### ${s.name}\n${s.summary || s.data?.slice(0, 800) || ''}`)
       .join('\n\n');
   }
 

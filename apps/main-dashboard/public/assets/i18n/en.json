@@ -202,6 +202,12 @@
       },
       "pdf": {
         "download": "Download PDF report"
+      },
+      "bpMissingDialog": {
+        "title": "Business Plan Required",
+        "headline": "Generate Your Business Plan First",
+        "description": "The AI needs your Business Plan to generate consistent and personalized financial forecasts. Please generate your business plan before continuing.",
+        "generateCta": "Create My Business Plan"
       }
     },
     "sidebar": {
