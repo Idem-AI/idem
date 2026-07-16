@@ -46,7 +46,7 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
               <div class="space-y-2 text-xs">
                 @if (warning.dailyWarning) {
                   <div class="flex justify-between items-center">
-                    <span>{{ 'dashboard.quotaWarning.daily' | translate }}:</span>
+                    <span>{{ 'dashboard.dashboard.quotaWarning.daily' | translate }}</span>
                     <span class="font-medium"
                       >{{ warning.dailyUsage }}/{{ warning.dailyLimit }}</span
                     >
@@ -54,7 +54,7 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
                 }
                 @if (warning.weeklyWarning) {
                   <div class="flex justify-between items-center">
-                    <span>{{ 'dashboard.quotaWarning.weekly' | translate }}:</span>
+                    <span>{{ 'dashboard.dashboard.quotaWarning.weekly' | translate }}</span>
                     <span class="font-medium"
                       >{{ warning.weeklyUsage }}/{{ warning.weeklyLimit }}</span
                     >
@@ -74,7 +74,7 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
                   (click)="showQuotaDetails()"
                   class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
                 >
-                  {{ 'dashboard.quotaWarning.buttons.viewDetails' | translate }}
+                  {{ 'dashboard.dashboard.quotaWarning.buttons.viewDetails' | translate }}
                 </button>
               </div>
             </div>
@@ -142,15 +142,15 @@ export class QuotaWarningComponent implements OnInit {
       return;
     }
 
-    let title = this.translate.instant('dashboard.quotaWarning.title');
-    let message = this.translate.instant('dashboard.quotaWarning.messages.approaching');
+    let title = this.translate.instant('dashboard.dashboard.quotaWarning.title');
+    let message = this.translate.instant('dashboard.dashboard.quotaWarning.messages.approaching');
 
     if (dailyWarning && weeklyWarning) {
-      message = this.translate.instant('dashboard.quotaWarning.messages.dailyAndWeekly');
+      message = this.translate.instant('dashboard.dashboard.quotaWarning.messages.dailyAndWeekly');
     } else if (dailyWarning) {
-      message = this.translate.instant('dashboard.quotaWarning.messages.daily');
+      message = this.translate.instant('dashboard.dashboard.quotaWarning.messages.daily');
     } else if (weeklyWarning) {
-      message = this.translate.instant('dashboard.quotaWarning.messages.weekly');
+      message = this.translate.instant('dashboard.dashboard.quotaWarning.messages.weekly');
     }
 
     this.shouldShowWarning.set({
@@ -267,7 +267,7 @@ export class QuotaWarningComponent implements OnInit {
         duration: 6000,
         actions: [
           {
-            label: this.translate.instant('dashboard.quotaWarning.buttons.viewDetails'),
+            label: this.translate.instant('dashboard.dashboard.quotaWarning.buttons.viewDetails'),
             action: () => this.showQuotaDetails(),
           },
         ],

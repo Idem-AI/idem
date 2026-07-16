@@ -168,10 +168,17 @@
                       class="w-32 h-32 bg-white rounded-2xl flex items-center justify-center shadow-lg border-2 border-[var(--glass-border-medium)] group-hover/logo:shadow-xl group-hover/logo:bg-[var(--glass-bg-subtle)] transition-all duration-300"
                     >
                       @if (existingBranding()?.logo?.svg) {
-                        <img
-                          [src]="existingBranding()!.logo.svg"
-                          class="w-24 h-24 object-contain"
-                        />
+                        @if (existingBranding()!.logo.svg.startsWith('<')) {
+                          <div
+                            class="w-24 h-24 flex items-center justify-center svg-logo"
+                            [innerHTML]="existingBranding()!.logo.svg | safeHtml"
+                          ></div>
+                        } @else {
+                          <img
+                            [src]="existingBranding()!.logo.svg"
+                            class="w-24 h-24 object-contain"
+                          />
+                        }
                       } @else {
                         <svg
                           class="w-16 h-16 text-text-secondary"

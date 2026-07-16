@@ -25,6 +25,7 @@ html.light {
   font-optical-sizing: auto;
   scroll-behavior: smooth;
   font-display: swap;
+  letter-spacing: -0.07em;
 }
 
 body {
@@ -268,13 +269,6 @@ html.dark body::before {
   --line-height-relaxed: 1.625;
   --line-height-loose: 2;
 
-  /* Letter Spacing */
-  --letter-spacing-tighter: -0.05em;
-  --letter-spacing-tight: -0.025em;
-  --letter-spacing-normal: 0;
-  --letter-spacing-wide: 0.025em;
-  --letter-spacing-wider: 0.05em;
-  --letter-spacing-widest: 0.1em;
 
   /* --------------------------------------------------------------------------
      SPACING SYSTEM - Based on 4px base unit
@@ -585,7 +579,6 @@ html.dark body::before {
     var(--shadow-md),
     0 0 12px var(--color-primary-glow-subtle);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
   position: relative;
   overflow: hidden;
   transition: all var(--duration-300) var(--ease-out);
@@ -651,7 +644,6 @@ html.dark body::before {
   border-radius: var(--radius-xl);
   box-shadow: var(--glass-shadow-sm);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
   position: relative;
   overflow: hidden;
   transition: all var(--duration-300) var(--ease-out);
@@ -724,7 +716,6 @@ html.dark body::before {
   cursor: pointer;
   border-radius: var(--radius-xl);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
   transition: all var(--duration-300) var(--ease-out);
 }
 
@@ -1175,7 +1166,6 @@ label {
   font-size: var(--font-size-sm);
   font-weight: 500;
   margin-bottom: var(--spacing-2);
-  letter-spacing: 0.025em;
   cursor: pointer;
 }
 

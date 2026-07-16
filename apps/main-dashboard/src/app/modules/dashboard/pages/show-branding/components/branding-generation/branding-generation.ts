@@ -187,10 +187,10 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
     // Wait 4 seconds to allow backend to complete saving
     setTimeout(() => {
-      console.log('Post-processing complete, redirecting to logo selection');
+      console.log('Post-processing complete, redirecting to branding display');
       this.isPostProcessing.set(false);
-      // Redirect to logo selection workflow instead of direct display
-      this.router.navigate(['/console/project/branding/select-logo']);
+      // Redirect to display the generated branding PDF and elements
+      this.router.navigate(['/project/branding/display']);
     }, 4000);
   }
 }

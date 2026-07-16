@@ -3,6 +3,32 @@
     <app-loader />
     <p class="text-text-tertiary mt-4">{{ 'common.loading' | translate }}</p>
   </div>
+} @else if (loadError()) {
+  <!-- Error State -->
+  <div class="w-full min-h-[600px] flex items-center justify-center p-6">
+    <div class="max-w-2xl mx-auto text-center">
+      <div class="glass-card rounded-2xl p-12 space-y-8">
+        <div class="mx-auto">
+          <i class="pi pi-exclamation-triangle text-6xl text-red-400"></i>
+        </div>
+        <div class="space-y-4">
+          <h3 class="text-3xl font-bold text-text-primary">
+            {{ 'common.error' | translate }}
+          </h3>
+          <p class="text-lg text-text-secondary">{{ loadError() }}</p>
+        </div>
+        <button
+          (click)="goBack()"
+          class="group inner-button relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold"
+        >
+          <span class="relative flex items-center space-x-2">
+            <i class="pi pi-arrow-left"></i>
+            <span>{{ 'dashboard.showBranding.buttons.backToOverview' | translate }}</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
 } @else if (pdfSrc()) {
   <!-- Back Button -->
   <div class="mb-4">
