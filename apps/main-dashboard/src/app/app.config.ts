@@ -5,7 +5,7 @@ import {
   importProvidersFrom,
   SecurityContext,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, TitleStrategy } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService, provideTranslateLoader } from '@ngx-translate/core';
@@ -18,12 +18,14 @@ import { environment } from '../environments/environment';
 import { authInterceptor } from './shared/interceptors/auth.interceptor';
 import { MyPreset } from './my-preset';
 import { provideMarkdown, MARKED_OPTIONS, MERMAID_OPTIONS } from 'ngx-markdown';
+import { CustomTitleStrategy } from './shared/services/custom-title-strategy';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
+    { provide: TitleStrategy, useClass: CustomTitleStrategy },
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimations(),
     provideFirebaseApp(() => initializeApp(environment.firebase)),

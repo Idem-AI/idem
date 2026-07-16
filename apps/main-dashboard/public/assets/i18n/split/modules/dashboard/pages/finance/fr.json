@@ -1,0 +1,90 @@
+{
+  "dashboard": {
+    "finance": {
+      "title": "Prévisions financières",
+      "subtitle": "Vue d'ensemble de la santé financière de votre projet",
+      "loading": "Chargement des données financières...",
+      "empty": {
+        "title": "Commencez avec l'IA",
+        "description": "Aucune donnée financière pour l'instant. Laissez l'IA analyser votre projet et générer des prévisions cohérentes, que vous pourrez ensuite ajuster.",
+        "cta": "Générer avec l'IA"
+      },
+      "aiFill": {
+        "button": "Remplir avec l'IA",
+        "global": "Tout remplir avec l'IA",
+        "section": "Remplir cette section avec l'IA",
+        "tooltip": "Suggérer une valeur avec l'IA"
+      },
+      "alerts": {
+        "title": "Recommandations IA"
+      },
+      "kpi": {
+        "caY1": "CA An 1",
+        "resultatNet": "Résultat net",
+        "year3": "An 3",
+        "margeBrute": "Marge brute",
+        "tresorerieY1": "Trésorerie clôture An 1",
+        "pointMort": "Point mort (jours)",
+        "bfr": "BFR",
+        "coutTotal": "Coût total du projet",
+        "tri": "TRI",
+        "van": "VAN"
+      },
+      "charts": {
+        "revenue36": "Chiffre d'affaires mensuel (36 mois)",
+        "revenue36Sub": "Progression prévisionnelle sur 3 ans",
+        "chargesMix": "Répartition des charges (An 1)",
+        "treasury": "Trésorerie (3 ans)",
+        "netResult": "Résultat net An 1 → An 3",
+        "fixed": "Charges fixes",
+        "variable": "Charges variables",
+        "noData": "Aucune donnée disponible"
+      },
+      "sections": {
+        "title": "Sections financières",
+        "open": "Ouvrir",
+        "overview": "Vue d'ensemble",
+        "products": "Produits & Prix",
+        "sales": "Objectifs de ventes",
+        "revenue": "Paramètres de revenus",
+        "charges": "Charges Variables",
+        "fixedCharges": "Charges Fixes & Salaires",
+        "taxes": "Fiscalité",
+        "investments": "Investissements",
+        "amortization": "Amortissements",
+        "financing": "Financement",
+        "ratiosParams": "Paramètres Ratios",
+        "exploitation": "Compte d'exploitation",
+        "bilan": "Bilan prévisionnel",
+        "cashflow": "Flux de trésorerie",
+        "ratios": "Ratios & Indicateurs"
+      },
+      "status": {
+        "empty": "Vide",
+        "inProgress": "En cours",
+        "completed": "Complété",
+        "computed": "Calculé"
+      },
+      "stub": {
+        "title": "Section en cours d'implémentation",
+        "description": "Cette section sera éditable entièrement dans la prochaine phase. En attendant, utilisez l'IA pour pré-remplir des valeurs que vous pourrez ajuster ensuite.",
+        "computed": "Cette section est calculée automatiquement à partir de vos données."
+      },
+      "errors": {
+        "title": "Impossible de charger",
+        "noProjectSelected": "Veuillez d'abord sélectionner un projet.",
+        "failedToLoad": "Échec du chargement des données financières.",
+        "aiFillFailed": "Le remplissage IA a échoué. Veuillez réessayer."
+      },
+      "pdf": {
+        "download": "Télécharger le rapport PDF"
+      },
+      "bpMissingDialog": {
+        "title": "Business Plan requis",
+        "headline": "Générez d'abord votre Business Plan",
+        "description": "L'IA a besoin de votre Business Plan pour générer des prévisions financières cohérentes et personnalisées. Veuillez générer votre business plan avant de continuer.",
+        "generateCta": "Créer mon Business Plan"
+      }
+    }
+  }
+}
