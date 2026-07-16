@@ -5,4 +5,15 @@
 /* PrimeNG Icons */
 @import 'primeicons/primeicons.css';
 
+/* Tailwind v4 dark variant, driven by the `.dark` class on <html> (set by the
+   theme boot script / ThemeService from the shared `idem_theme` cookie). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The brand logo asset (logo_white.webp) is white — darken it on the light theme
+   so it stays visible. Global (not component-scoped) because `html.light` can't
+   be matched from ViewEncapsulation-scoped component styles. */
+html.light img[src*='logo_white'] {
+  filter: brightness(0.15);
+}
+
 /* Angular-specific or project-specific styles can be added below */

@@ -36,7 +36,7 @@ import { ApiService } from '../../../shared/services/api.service';
           </div>
           <div class="mt-3">
             @if (subscription()?.plan === plan['name']) {
-              <span class="status-badge" style="background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.28);">{{ 'subscription.current' | translate }}</span>
+              <span class="status-badge" style="background:color-mix(in srgb, var(--color-success) 12%, transparent);color:var(--color-success);border:1px solid color-mix(in srgb, var(--color-success) 28%, transparent);">{{ 'subscription.current' | translate }}</span>
             } @else {
               <button class="button w-full" (click)="select(plan)">{{ plan['price'] && +(plan['price'] || 0) > 0 ? ('subscription.subscribe' | translate) : ('subscription.switch' | translate) }}</button>
             }

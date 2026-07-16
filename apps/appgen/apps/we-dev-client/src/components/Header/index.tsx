@@ -10,7 +10,11 @@ function Header() {
 
       {/* Logo and Brand */}
       <div className="flex items-center space-x-2">
-        <img className="w-20 h-auto" src="/assets/icons/logo_white.png" alt="logo" />
+        <img
+          className="w-20 h-auto [filter:invert(1)_hue-rotate(180deg)] dark:[filter:none]"
+          src="/assets/icons/logo_white.png"
+          alt="logo"
+        />
         <h1 className="opacity-90 text-[18px] font-bold text-gray-900 dark:text-white">APPGEN</h1>
       </div>
 

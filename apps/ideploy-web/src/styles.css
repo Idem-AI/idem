@@ -84,17 +84,23 @@
  * navbar-topbar / dashboard so the Angular UI is visually identical.
  * ============================================================ */
 
-/* Sidebar items */
+/* Sidebar items — token-based so they adapt to light/dark */
 .sbi {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 12px;
   font-size: 14px; font-weight: 500; text-decoration: none;
   font-family: 'Jura', sans-serif;
-  transition: all 0.18s ease; color: #9ba3c0; width: 100%;
+  transition: all 0.18s ease; color: var(--color-text-secondary); width: 100%;
   position: relative; overflow: hidden;
 }
-.sbi:hover { background: #2563eb; color: #fff; box-shadow: 0 4px 16px rgba(37,99,235,0.28); }
-.sbi.active { background: #2563eb; color: #fff; box-shadow: 0 4px 16px rgba(37,99,235,0.32); }
+.sbi:hover {
+  background: var(--color-primary-500); color: #fff;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-primary-500) 28%, transparent);
+}
+.sbi.active {
+  background: var(--color-primary-500); color: #fff;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-primary-500) 32%, transparent);
+}
 .sbi.active::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0;
   width: 3px; border-radius: 0 3px 3px 0; background: #fff;
@@ -102,16 +108,19 @@
 .sbi .sbi-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 14px; }
 .sbi-section {
   font-size: 9px; font-weight: 700; letter-spacing: .12em;
-  text-transform: uppercase; color: rgba(155,163,192,.38); padding: 0 12px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text-tertiary) 55%, transparent);
+  padding: 0 12px;
   display: block; margin-bottom: 2px; font-family: 'Jura', sans-serif;
 }
 .sbi-disabled {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 12px;
   font-size: 14px; font-weight: 500; font-family: 'Jura', sans-serif;
-  color: rgba(155,163,192,.35); width: 100%; cursor: not-allowed;
+  color: var(--color-text-disabled); width: 100%; cursor: not-allowed;
 }
 .sbi-badge-soon {
+  /* Amber accent - intentionally theme-invariant (readable on both themes) */
   font-size: 9px; font-weight: 700; padding: 2px 7px;
   border-radius: 5px; letter-spacing: .06em; text-transform: uppercase;
   background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.28);
@@ -120,13 +129,13 @@
 .sidebar-scroll::-webkit-scrollbar { display: none; }
 
 .sidebar-shell {
-  background: rgba(2,6,23,0.92);
+  background: color-mix(in srgb, var(--color-bg-darker) 92%, transparent);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(255,255,255,0.06);
+  border-right: 1px solid var(--glass-border-subtle);
 }
 .topbar-shell {
-  background: #080c18;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: var(--color-bg-darker);
+  border-bottom: 1px solid var(--glass-border-subtle);
 }
 
 /* Headings (Coolify uses Playfair Display for section titles) */
@@ -134,19 +143,19 @@
 
 /* Dashboard glass cards */
 .db-glass {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: 16px;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
 .db-add {
-  border: 2px dashed rgba(255,255,255,0.12); border-radius: 16px;
+  border: 2px dashed var(--glass-border-medium); border-radius: 16px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 28px; cursor: pointer; transition: all .25s; min-height: 160px;
 }
-.db-add:hover { border-color: #2563eb; }
+.db-add:hover { border-color: var(--color-primary-500); }
 .db-stat {
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+  background: var(--glass-bg-subtle); border: 1px solid var(--glass-border-subtle);
   border-radius: 10px;
 }
 .dbpulse { animation: dbpulse 1.6s ease-in-out infinite; }

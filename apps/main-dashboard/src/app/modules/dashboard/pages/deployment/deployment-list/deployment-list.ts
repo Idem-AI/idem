@@ -121,11 +121,11 @@ export class DeploymentList implements OnInit {
         return `${base} bg-red-500/15 text-red-400`;
       case 'configuring':
       case 'pending':
-        return `${base} bg-gray-500/15 text-gray-300`;
+        return `${base} bg-gray-500/15 text-text-secondary`;
       case 'rollback':
         return `${base} bg-yellow-500/15 text-yellow-400`;
       default:
-        return `${base} bg-white/10 text-gray-200`;
+        return `${base} bg-[var(--glass-bg-subtle)] text-text-secondary`;
     }
   }
 
@@ -147,7 +147,7 @@ export class DeploymentList implements OnInit {
       case 'rollback':
         return `${base} bg-yellow-400`;
       default:
-        return `${base} bg-white/40`;
+        return `${base} bg-[var(--glass-border-strong)]`;
     }
   }
 
@@ -161,7 +161,7 @@ export class DeploymentList implements OnInit {
       case 'production':
         return `${base} bg-green-500/15 text-green-400`;
       default:
-        return `${base} bg-white/10 text-gray-200`;
+        return `${base} bg-[var(--glass-bg-subtle)] text-text-secondary`;
     }
   }
 

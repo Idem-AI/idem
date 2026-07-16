@@ -1,4 +1,4 @@
-<div class="min-h-screen text-white flex flex-col mt-16">
+<div class="min-h-screen text-text-primary flex flex-col mt-16">
   <!-- MAIN CONTENT -->
   <div class="flex-1 flex px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
     <main
@@ -32,7 +32,7 @@
             <!-- Create Project Card -->
             <button
               (click)="openCreateProject()"
-              class="h-[200px] sm:h-[220px] lg:h-[240px] flex flex-col justify-center items-center text-center border-2 border-dashed border-secondary/50 rounded-xl glass hover:bg-white/5 hover:shadow-[0_0_20px_-5px_var(--color-primary)] hover:scale-[1.01] transition-all duration-300 p-4 hover:cursor-pointer group"
+              class="h-[200px] sm:h-[220px] lg:h-[240px] flex flex-col justify-center items-center text-center border-2 border-dashed border-secondary/50 rounded-xl glass hover:bg-[var(--glass-bg-light)] hover:shadow-[0_0_20px_-5px_var(--color-primary)] hover:scale-[1.01] transition-all duration-300 p-4 hover:cursor-pointer group"
             >
               <div
                 class="w-12 h-12 mb-3 bg-primary/20 rounded-full flex items-center justify-center group-hover:bg-primary/30 transition"
@@ -43,7 +43,7 @@
                 {{ 'dashboard.globalDashboard.cards.createProject.title' | translate }}
               </div>
               <div
-                class="text-xs sm:text-sm text-gray-400 group-hover:text-white transition-colors"
+                class="text-xs sm:text-sm text-text-tertiary group-hover:text-text-primary transition-colors"
               >
                 {{ 'dashboard.globalDashboard.cards.createProject.subtitle' | translate }}
               </div>
@@ -71,10 +71,10 @@
               <app-project-card [project]="project" />
             } @empty {
               <div
-                class="col-span-full text-center py-12 sm:py-16 border-2 border-dashed border-gray-800 rounded-xl"
+                class="col-span-full text-center py-12 sm:py-16 border-2 border-dashed border-[var(--glass-border-subtle)] rounded-xl"
               >
                 <i class="pi pi-folder text-3xl sm:text-4xl text-gray-600 mb-3"></i>
-                <div class="text-gray-400 text-sm sm:text-base mb-2">
+                <div class="text-text-tertiary text-sm sm:text-base mb-2">
                   {{ 'dashboard.globalDashboard.empty.noProjects' | translate }}
                 </div>
                 <button

@@ -22,8 +22,8 @@ interface EnvRow {
   template: `
     @if (project(); as p) {
       <div class="mb-6 flex items-center gap-2">
-        <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i>
-        <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:#fff;">{{ p.name }}</h1>
+        <i class="fa-solid fa-layer-group" style="color:var(--color-primary-500);"></i>
+        <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ p.name }}</h1>
       </div>
 
       @for (env of environments(); track env.id) {
@@ -36,7 +36,7 @@ interface EnvRow {
           <!-- Applications in this environment -->
           @for (app of appsByEnv()[env.id] ?? []; track app.uuid) {
             <div class="mb-1 flex items-center gap-3 text-sm">
-              <i class="fa-solid fa-cube" style="color:#60a5fa;"></i>
+              <i class="fa-solid fa-cube" style="color:var(--color-primary-400);"></i>
               <a class="font-semibold hover:underline" [routerLink]="['/applications', app.uuid]">{{ app.name }}</a>
               <span style="color: var(--color-text-secondary)">{{ app.git_repository }} · {{ app.status }}</span>
             </div>

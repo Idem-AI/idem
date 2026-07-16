@@ -13,12 +13,12 @@
   </h1>
 
   <!-- Subtitle -->
-  <h2 class="text-lg sm:text-xl text-gray-400 mb-6 sm:mb-8">
+  <h2 class="text-lg sm:text-xl text-text-tertiary mb-6 sm:mb-8">
     {{ 'dashboard.projectDescription.whatToBuild' | translate }}
   </h2>
 
   <!-- Prototype Label -->
-  <p class="text-gray-400 text-sm mb-3 sm:mb-4">
+  <p class="text-text-tertiary text-sm mb-3 sm:mb-4">
     {{ 'dashboard.projectDescription.tellUsMore' | translate }}
   </p>
 
@@ -29,7 +29,7 @@
         id="projectDescription"
         [(ngModel)]="project()!.description"
         rows="3"
-        class="w-full glass p-3 sm:p-4 text-[var(--color-light-text)] placeholder-gray-400 text-sm sm:text-base resize-none outline-none transition-all duration-200 focus:border-primary border-2 min-h-[120px] sm:min-h-[140px]"
+        class="w-full glass p-3 sm:p-4 text-[var(--color-light-text)] placeholder-text-tertiary text-sm sm:text-base resize-none outline-none transition-all duration-200 focus:border-primary border-2 min-h-[120px] sm:min-h-[140px]"
         [class.rounded-lg]="!hasContent()"
         [class.rounded-2xl]="hasContent()"
         [class.border]="!hasContent()"
@@ -44,7 +44,7 @@
       <!-- TAB indicator - only show when no content -->
       @if (!hasContent()) {
         <div class="absolute top-3 sm:top-4 right-3 sm:right-4">
-          <span class="text-xs text-gray-400 glass-dark px-2 py-1 rounded"> TAB </span>
+          <span class="text-xs text-text-tertiary glass-dark px-2 py-1 rounded"> TAB </span>
         </div>
       }
     </div>
@@ -78,7 +78,7 @@
   <div class="w-full mt-6 sm:mt-8">
     <!-- Section Title -->
     <h3
-      class="text-base sm:text-lg font-medium text-gray-300 mb-4 sm:mb-6 text-center sm:text-left"
+      class="text-base sm:text-lg font-medium text-text-secondary mb-4 sm:mb-6 text-center sm:text-left"
     >
       {{ 'dashboard.projectDescription.needInspiration' | translate }}
     </h3>

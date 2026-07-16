@@ -31,6 +31,10 @@ export const appConfig: ApplicationConfig = {
     providePrimeNG({
       theme: {
         preset: MyPreset,
+        options: {
+          // Dual color scheme driven by the `.dark` class (shared idem_theme cookie)
+          darkModeSelector: '.dark',
+        },
       },
     }),
     provideTranslateService({

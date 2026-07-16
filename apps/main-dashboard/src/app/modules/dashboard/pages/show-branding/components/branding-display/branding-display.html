@@ -1,14 +1,14 @@
 @if (isLoading()) {
   <div class="w-full min-h-screen flex flex-col items-center justify-center">
     <app-loader />
-    <p class="text-gray-400 mt-4">{{ 'common.loading' | translate }}</p>
+    <p class="text-text-tertiary mt-4">{{ 'common.loading' | translate }}</p>
   </div>
 } @else if (pdfSrc()) {
   <!-- Back Button -->
   <div class="mb-4">
     <button
       (click)="goBack()"
-      class="glass-card px-4 py-2 text-white hover:bg-white/20 transition-all duration-300 inline-flex items-center gap-2"
+      class="glass-card px-4 py-2 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-300 inline-flex items-center gap-2"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -42,44 +42,44 @@
 
         <!-- Header Text -->
         <div class="space-y-4">
-          <h3 class="text-3xl font-bold text-white">
+          <h3 class="text-3xl font-bold text-text-primary">
             {{ 'dashboard.brandingDisplay.empty.title' | translate }}
           </h3>
-          <p class="text-lg text-gray-300 leading-relaxed">
+          <p class="text-lg text-text-secondary leading-relaxed">
             {{ 'dashboard.brandingDisplay.empty.subtitle' | translate }}
           </p>
         </div>
 
         <!-- Features List -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-          <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
+          <div class="flex items-start space-x-3 p-4 bg-[var(--glass-bg-subtle)] rounded-lg border border-[var(--glass-border)]">
             <div>
-              <h4 class="text-white font-semibold text-sm mb-1">
+              <h4 class="text-text-primary font-semibold text-sm mb-1">
                 {{ 'dashboard.brandingDisplay.features.colors.title' | translate }}
               </h4>
-              <p class="text-gray-400 text-xs">
+              <p class="text-text-tertiary text-xs">
                 {{ 'dashboard.brandingDisplay.features.colors.description' | translate }}
               </p>
             </div>
           </div>
 
-          <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
+          <div class="flex items-start space-x-3 p-4 bg-[var(--glass-bg-subtle)] rounded-lg border border-[var(--glass-border)]">
             <div>
-              <h4 class="text-white font-semibold text-sm mb-1">
+              <h4 class="text-text-primary font-semibold text-sm mb-1">
                 {{ 'dashboard.brandingDisplay.features.logo.title' | translate }}
               </h4>
-              <p class="text-gray-400 text-xs">
+              <p class="text-text-tertiary text-xs">
                 {{ 'dashboard.brandingDisplay.features.logo.description' | translate }}
               </p>
             </div>
           </div>
 
-          <div class="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/10">
+          <div class="flex items-start space-x-3 p-4 bg-[var(--glass-bg-subtle)] rounded-lg border border-[var(--glass-border)]">
             <div>
-              <h4 class="text-white font-semibold text-sm mb-1">
+              <h4 class="text-text-primary font-semibold text-sm mb-1">
                 {{ 'dashboard.brandingDisplay.features.typography.title' | translate }}
               </h4>
-              <p class="text-gray-400 text-xs">
+              <p class="text-text-tertiary text-xs">
                 {{ 'dashboard.brandingDisplay.features.typography.description' | translate }}
               </p>
             </div>
@@ -90,7 +90,7 @@
         <div class="pt-4">
           <button
             (click)="handleGenerateRequest()"
-            class="group inner-button relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+            class="group inner-button relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
           >
             <!-- Button Content -->
             <span class="relative flex items-center space-x-3">
@@ -99,7 +99,7 @@
             </span>
           </button>
 
-          <p class="text-gray-500 text-sm mt-4">
+          <p class="text-text-tertiary text-sm mt-4">
             <i class="pi pi-info-circle mr-1"></i>
             {{ 'dashboard.brandingDisplay.generationTime' | translate }}
           </p>

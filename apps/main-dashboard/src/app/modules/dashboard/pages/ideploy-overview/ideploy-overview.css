@@ -59,7 +59,7 @@
   font-weight: 900;
   margin: 0;
   letter-spacing: -0.035em;
-  color: #fff;
+  color: var(--color-text-primary);
 }
 .ht-accent {
   background: linear-gradient(135deg, #818cf8, #a78bfa);
@@ -70,7 +70,7 @@
 
 .hero-sub {
   font-size: 0.92rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-tertiary);
   max-width: 520px;
   line-height: 1.6;
   margin: 0;
@@ -104,7 +104,7 @@
 .hp-val {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--color-text-primary);
   line-height: 1;
 }
 .hp-lbl {
@@ -112,7 +112,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-tertiary);
 }
 .hp-live {
   display: inline-flex;
@@ -164,8 +164,8 @@
   align-items: center;
   padding: 2rem 1.5rem 1.5rem;
   text-align: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: 18px;
   cursor: pointer;
   transition:
@@ -246,17 +246,17 @@
   font-weight: 900;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: #fff;
+  color: var(--color-text-primary);
 }
 .rc-name {
   font-size: 0.92rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
   margin-top: 0.15rem;
 }
 .rc-note {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
   margin-top: 0.2rem;
 }
 
@@ -316,7 +316,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.2rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--glass-border-subtle);
 }
 .panel-head-l {
   display: flex;
@@ -354,11 +354,11 @@
   font-size: 0.95rem;
   font-weight: 700;
   margin: 0;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
 }
 .ph-sub {
   font-size: 0.73rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
   margin: 0.1rem 0 0;
 }
 
@@ -376,8 +376,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--color-text-tertiary);
+  border-bottom: 1px solid var(--glass-border-subtle);
 }
 
 .al-row {
@@ -385,7 +385,7 @@
   grid-template-columns: 1fr 140px 220px 110px;
   align-items: center;
   padding: 0.85rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--glass-border-subtle);
   border-left: 3px solid transparent;
   transition: background 0.13s;
 }
@@ -393,7 +393,7 @@
   border-bottom: none;
 }
 .al-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--glass-bg-subtle);
 }
 
 .status-running {
@@ -439,7 +439,7 @@
 .al-name {
   font-size: 0.85rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -449,7 +449,7 @@
   align-items: center;
   gap: 0.2rem;
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--color-text-tertiary);
   margin-top: 0.1rem;
 }
 
@@ -457,7 +457,7 @@
 .al-ip {
   letter-spacing: 0.04em;
   font-feature-settings: "tnum" 1;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
 }
 
 /* status chips */
@@ -532,13 +532,13 @@
 }
 .url-btn:hover {
   background: rgba(99, 102, 241, 0.22);
-  color: #fff;
+  color: var(--color-text-primary);
   border-color: #6366f1;
 }
 
 .url-muted {
   font-size: 0.73rem;
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--color-text-disabled);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -546,13 +546,13 @@
 }
 .url-none {
   font-size: 0.73rem;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-disabled);
   font-style: italic;
 }
 
 .al-time {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--color-text-tertiary);
 }
 
 /* server LED */
@@ -584,7 +584,7 @@
   gap: 0.75rem;
   padding: 3.5rem 1.5rem;
   text-align: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
 }
 .empty.small {
   padding: 1.5rem 1rem;
@@ -615,7 +615,7 @@
 .empty h3 {
   font-size: 0.95rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 .empty p {
@@ -643,13 +643,13 @@
 .sk-card {
   height: 200px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg-subtle);
   animation: pulse 1.4s ease-in-out infinite;
 }
 .sk-row {
   height: 54px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg-subtle);
   animation: pulse 1.4s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -684,11 +684,11 @@
   display: block;
   font-size: 0.88rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
 }
 .err-banner p {
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
   margin: 0.1rem 0 0;
 }
 

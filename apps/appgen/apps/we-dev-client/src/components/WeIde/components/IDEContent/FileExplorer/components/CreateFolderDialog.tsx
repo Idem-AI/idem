@@ -26,7 +26,7 @@ export function CreateFolderDialog({ path, onSubmit, onCancel }: CreateFolderDia
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <form 
         onSubmit={handleSubmit}
-        className="bg-[#1a1a1c] rounded-lg shadow-xl w-[400px] p-4"
+        className="bg-white text-gray-900 dark:bg-[#1a1a1c] dark:text-gray-200 rounded-lg shadow-xl w-[400px] p-4"
       >
         <h2 className="text-sm font-semibold mb-4">Create New Folder</h2>
         <div className="mb-4">
@@ -38,12 +38,12 @@ export function CreateFolderDialog({ path, onSubmit, onCancel }: CreateFolderDia
               setError('');
             }}
             placeholder="Enter folder name"
-            className="w-full px-3 py-2 bg-[#3c3c3c] rounded border border-[#454545] text-sm focus:border-[#007acc] outline-none"
+            className="w-full px-3 py-2 bg-white dark:bg-[#3c3c3c] text-gray-900 dark:text-white rounded border border-gray-300 dark:border-[#454545] text-sm focus:border-[#007acc] outline-none placeholder-gray-500 dark:placeholder-gray-400"
             autoFocus
           />
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           {path && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Will be created in: {path}
             </p>
           )}
@@ -52,14 +52,14 @@ export function CreateFolderDialog({ path, onSubmit, onCancel }: CreateFolderDia
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 text-sm hover:bg-[#2d2d2d] rounded"
+            className="px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-[#2d2d2d] rounded"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!folderName.trim()}
-            className="px-3 py-1.5 text-sm bg-[#007acc] hover:bg-[#006bb3] rounded disabled:opacity-50"
+            className="px-3 py-1.5 text-sm bg-[#007acc] hover:bg-[#006bb3] text-white rounded disabled:opacity-50"
           >
             Create
           </button>

@@ -3,18 +3,18 @@
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
     @for (template of availableTemplates(); track template.id) {
       <div
-        class="template-card backdrop-blur-md bg-gray-900/40 rounded-xl border border-gray-800/50 p-6 flex flex-col hover:border-teal-500/50 hover:-translate-y-1 transition-all cursor-pointer shadow-lg hover:shadow-teal-500/10"
+        class="template-card backdrop-blur-md bg-[var(--glass-bg-subtle)] rounded-xl border border-[var(--glass-border-subtle)] p-6 flex flex-col hover:border-teal-500/50 hover:-translate-y-1 transition-all cursor-pointer shadow-lg hover:shadow-teal-500/10"
         (click)="selectTemplate(template)"
       >
         <div class="grow items-center gap-4 mb-4">
           <div
             class="bg-linear-to-br from-teal-400 to-teal-600 p-2 rounded-lg shadow-inner shadow-teal-500/20"
           >
-            <i class="{{ template.icon }} text-xl text-white"></i>
+            <i class="{{ template.icon }} text-xl text-text-primary"></i>
           </div>
-          <h3 class="text-lg font-semibold text-gray-100">{{ template.name }}</h3>
+          <h3 class="text-lg font-semibold text-text-primary">{{ template.name }}</h3>
         </div>
-        <p class="text-gray-300 text-sm flex-grow">{{ template.description }}</p>
+        <p class="text-text-secondary text-sm flex-grow">{{ template.description }}</p>
         <div class="mt-4 flex flex-wrap gap-2">
           @for (tag of template.tags; track tag) {
             <span
@@ -30,7 +30,7 @@
 <!-- Step 2: Display configuration form for the selected template -->
 @else {
   <div
-    class="backdrop-blur-xl bg-gray-900/30 rounded-xl border border-gray-700/30 p-8 shadow-2xl max-w-3xl mx-auto animate-fade-in relative overflow-hidden"
+    class="backdrop-blur-xl bg-[var(--glass-bg-subtle)] rounded-xl border border-[var(--glass-border-subtle)] p-8 shadow-2xl max-w-3xl mx-auto animate-fade-in relative overflow-hidden"
   >
     <!-- Decorative glass elements -->
     <div class="absolute -top-20 -right-20 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl"></div>
@@ -39,10 +39,10 @@
     <div class="relative z-10">
       <div class="grow items-center gap-4 mb-4">
         <div class="bg-linear-to-br from-teal-400 to-teal-600 p-3 rounded-lg shadow-lg">
-          <i class="{{ selectedTemplate()?.icon }} text-xl text-white"></i>
+          <i class="{{ selectedTemplate()?.icon }} text-xl text-text-primary"></i>
         </div>
         <div>
-          <h3 class="text-xl font-semibold text-white">{{ selectedTemplate()?.name }}</h3>
+          <h3 class="text-xl font-semibold text-text-primary">{{ selectedTemplate()?.name }}</h3>
           <p class="text-teal-200 text-sm">
             {{ selectedTemplate()?.provider ? selectedTemplate()?.provider!.toUpperCase() : '' }}
             {{ 'dashboard.templateDeployment.template' | translate }}
@@ -50,33 +50,33 @@
         </div>
       </div>
 
-      <p class="text-gray-300 mb-8 border-l-2 border-teal-500/50 pl-4 italic">
+      <p class="text-text-secondary mb-8 border-l-2 border-teal-500/50 pl-4 italic">
         {{ selectedTemplate()?.description }}
       </p>
 
       <form [formGroup]="deploymentConfigForm" class="space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label for="name" class="block text-sm font-medium text-gray-200 mb-2">{{
+            <label for="name" class="block text-sm font-medium text-text-secondary mb-2">{{
               'dashboard.templateDeployment.fields.name' | translate
             }}</label>
             <input
               id="name"
               type="text"
               formControlName="name"
-              class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-teal-500 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all placeholder-gray-500"
+              class="w-full backdrop-blur-md bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] focus:border-teal-500 text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all placeholder-text-tertiary"
               [placeholder]="'dashboard.templateDeployment.placeholders.name' | translate"
             />
           </div>
 
           <div>
-            <label for="environment" class="block text-sm font-medium text-gray-200 mb-2">{{
+            <label for="environment" class="block text-sm font-medium text-text-secondary mb-2">{{
               'dashboard.templateDeployment.fields.environment' | translate
             }}</label>
             <select
               id="environment"
               formControlName="environment"
-              class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-teal-500 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all"
+              class="w-full backdrop-blur-md bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] focus:border-teal-500 text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all"
             >
               <option value="development">
                 {{ 'dashboard.templateDeployment.environments.development' | translate }}
@@ -98,7 +98,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="repoUrl" class="block text-xs font-medium text-gray-300 mb-1">{{
+              <label for="repoUrl" class="block text-xs font-medium text-text-secondary mb-1">{{
                 'dashboard.templateDeployment.git.repoUrl' | translate
               }}</label>
               <input
@@ -106,12 +106,12 @@
                 type="text"
                 formControlName="repoUrl"
                 [placeholder]="'dashboard.templateDeployment.placeholders.repoUrl' | translate"
-                class="w-full backdrop-blur-md bg-gray-800/60 border border-gray-700/50 focus:border-teal-500 text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all text-sm"
+                class="w-full backdrop-blur-md bg-[var(--glass-bg-light)] border border-[var(--glass-border)] focus:border-teal-500 text-text-secondary rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all text-sm"
               />
             </div>
 
             <div>
-              <label for="branch" class="block text-xs font-medium text-gray-300 mb-1">{{
+              <label for="branch" class="block text-xs font-medium text-text-secondary mb-1">{{
                 'dashboard.templateDeployment.fields.branch' | translate
               }}</label>
               <input
@@ -119,7 +119,7 @@
                 type="text"
                 formControlName="branch"
                 [placeholder]="'dashboard.templateDeployment.placeholders.branch' | translate"
-                class="w-full backdrop-blur-md bg-gray-800/60 border border-gray-700/50 focus:border-teal-500 text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all text-sm"
+                class="w-full backdrop-blur-md bg-[var(--glass-bg-light)] border border-[var(--glass-border)] focus:border-teal-500 text-text-secondary rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500/30 focus:outline-none transition-all text-sm"
               />
             </div>
           </div>
@@ -147,11 +147,11 @@
           </div>
         }
 
-        <div class="grow justify-end gap-4 pt-6 border-t border-gray-700/30">
+        <div class="grow justify-end gap-4 pt-6 border-t border-[var(--glass-border-subtle)]">
           <button
             type="button"
             (click)="selectedTemplate.set(null)"
-            class="px-6 py-2.5 bg-gray-800/50 hover:bg-gray-700/50 backdrop-blur-sm border border-gray-700/50 rounded-lg text-gray-300 transition-all hover:text-white"
+            class="px-6 py-2.5 bg-[var(--glass-bg-light)] hover:bg-[var(--glass-bg-light)] backdrop-blur-sm border border-[var(--glass-border)] rounded-lg text-text-secondary transition-all hover:text-text-primary"
           >
             {{ 'dashboard.templateDeployment.buttons.changeTemplate' | translate }}
           </button>

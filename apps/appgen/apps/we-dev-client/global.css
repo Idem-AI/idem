@@ -63,9 +63,10 @@ body {
   --color-accent-glow: rgba(34, 211, 238, 0.6);
 
   --color-bg-dark: #06080d;
-  --color-bg-light: #0f141b;
+  /* Theme-aware surface color: light by default, overridden in .dark */
+  --color-bg-light: #ffffff;
 
-  --color-light-text: #f5f5f5;
+  --color-light-text: #111827;
   --color-success: #219653;
   --color-danger: #d34053;
   --color-warning: #ffa70b;
@@ -75,10 +76,10 @@ body {
   --font-size-subtitle: 1.7rem;
   --font-size-light-text: 1rem;
 
-  --glass-bg: rgba(15, 20, 27, 0.7);
-  --glass-bg-darker: rgba(20, 20, 30, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-bg-darker: rgba(245, 246, 248, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
   --glass-blur: 12px;
 
   /* Original shadcn variables */
@@ -110,6 +111,14 @@ body {
 }
 
 .dark {
+  --color-bg-light: #0f141b;
+  --color-light-text: #f5f5f5;
+
+  --glass-bg: rgba(15, 20, 27, 0.7);
+  --glass-bg-darker: rgba(20, 20, 30, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
   --background: 224 71.4% 4.1%;
   --foreground: 210 20% 98%;
   --card: 224 71.4% 4.1%;
@@ -165,6 +174,10 @@ body {
 
 .glass-card:hover {
   transform: translateY(-3px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.12);
+}
+
+.dark .glass-card:hover {
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
 }
 
@@ -192,12 +205,12 @@ body {
 /* Enhanced Buttons */
 .outer-button {
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding: 0.5rem 1rem;
   font-size: 1rem;
-  color: white;
+  color: #111827;
   cursor: pointer;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -208,6 +221,12 @@ body {
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.dark .outer-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 

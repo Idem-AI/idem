@@ -1,6 +1,6 @@
 @if (isIncomplete) {
   <div
-    class="relative overflow-hidden flex items-stretch rounded-3xl border border-white/10 backdrop-blur-xl mb-8 min-h-[260px]"
+    class="relative overflow-hidden flex items-stretch rounded-3xl border border-[var(--glass-border)] backdrop-blur-xl mb-8 min-h-[260px]"
     style="background: var(--glass-bg-medium); box-shadow: var(--glass-shadow-lg), 0 0 80px rgba(20,71,230,0.10);"
   >
     <!-- Ambient glow blobs -->
@@ -13,12 +13,12 @@
   
 
       <!-- Title -->
-      <h2 class="text-2xl font-bold leading-tight text-white max-w-md m-0">
+      <h2 class="text-2xl font-bold leading-tight text-text-primary max-w-md m-0">
         {{ 'dashboard.incompleteBanner.title' | translate }}
       </h2>
 
       <!-- Description -->
-      <p class="text-sm leading-relaxed text-white/60 max-w-sm m-0">
+      <p class="text-sm leading-relaxed text-text-secondary max-w-sm m-0">
         {{ 'dashboard.incompleteBanner.description' | translate }}
       </p>
 
@@ -34,7 +34,7 @@
                 style="box-shadow: 0 0 8px rgba(34,211,238,0.8);"
               ></span>
             </span>
-            <span class="text-sm font-semibold text-white/90 tracking-wide">{{ element }}</span>
+            <span class="text-sm font-semibold text-text-primary tracking-wide">{{ element }}</span>
           </div>
         }
       </div>

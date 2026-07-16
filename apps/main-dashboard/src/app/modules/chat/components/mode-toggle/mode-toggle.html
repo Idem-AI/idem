@@ -3,7 +3,7 @@
   <button
     type="button"
     (click)="toggle()"
-    class="w-8 h-8 mx-auto flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-primary/40 hover:bg-primary/10 transition-all duration-200"
+    class="w-8 h-8 mx-auto flex items-center justify-center rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] text-text-secondary hover:text-text-primary hover:border-primary/40 hover:bg-primary/10 transition-all duration-200"
     [title]="(current() === 'chat' ? 'chat.modeToggle.advanced' : 'chat.modeToggle.chat') | translate"
   >
     <i class="pi text-sm" [class]="current() === 'chat' ? 'pi pi-table' : 'pi pi-comments'"></i>
@@ -11,13 +11,13 @@
 } @else {
   <div class="flex flex-col gap-1.5 w-full">
     <div class="flex items-center justify-between px-1">
-      <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Interface</span>
+      <span class="text-[9px] font-bold text-text-tertiary uppercase tracking-widest">Interface</span>
       <span class="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-secondary/15 text-secondary border border-secondary/30">
         {{ 'common.new' | translate }}
       </span>
     </div>
     <div
-      class="flex items-center p-1 rounded-xl bg-white/5 border border-white/10 text-xs font-medium select-none"
+      class="flex items-center p-1 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] text-xs font-medium select-none"
       role="group"
       [attr.aria-label]="'chat.modeToggle.label' | translate"
     >
@@ -26,11 +26,11 @@
         (click)="switchTo('chat')"
         class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
         [class.bg-primary]="current() === 'chat'"
-        [class.text-white]="current() === 'chat'"
+        [class.text-text-primary]="current() === 'chat'"
         [class.shadow-lg]="current() === 'chat'"
         [class.shadow-primary/30]="current() === 'chat'"
-        [class.text-gray-400]="current() !== 'chat'"
-        [class.hover:text-white]="current() !== 'chat'"
+        [class.text-text-tertiary]="current() !== 'chat'"
+        [class.hover:text-text-primary]="current() !== 'chat'"
       >
         <i class="pi pi-comments text-[11px]"></i>
         <span>{{ 'chat.modeToggle.chat' | translate }}</span>
@@ -40,11 +40,11 @@
         (click)="switchTo('advanced')"
         class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
         [class.bg-primary]="current() === 'advanced'"
-        [class.text-white]="current() === 'advanced'"
+        [class.text-text-primary]="current() === 'advanced'"
         [class.shadow-lg]="current() === 'advanced'"
         [class.shadow-primary/30]="current() === 'advanced'"
-        [class.text-gray-400]="current() !== 'advanced'"
-        [class.hover:text-white]="current() !== 'advanced'"
+        [class.text-text-tertiary]="current() !== 'advanced'"
+        [class.hover:text-text-primary]="current() !== 'advanced'"
       >
         <i class="pi pi-table text-[11px]"></i>
         <span>{{ 'chat.modeToggle.advanced' | translate }}</span>

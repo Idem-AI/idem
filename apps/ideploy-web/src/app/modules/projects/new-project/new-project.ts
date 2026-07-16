@@ -18,19 +18,19 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
   template: `
     <!-- Top bar -->
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
-      <a routerLink="/dashboard" class="flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
+      <a routerLink="/dashboard" class="flex items-center gap-2 text-sm transition-colors hover:text-text-primary" style="color:var(--color-text-secondary);">
         <i class="fa-solid fa-arrow-left"></i> {{ 'projects.common.back' | translate }}
       </a>
-      <span class="text-sm font-semibold font-mono text-white/90">{{ 'projects.common.newProject' | translate }}</span>
+      <span class="text-sm font-semibold font-mono text-text-primary">{{ 'projects.common.newProject' | translate }}</span>
       <span class="w-12"></span>
     </div>
 
     <div class="mx-auto max-w-5xl px-6 py-12">
-      <h1 class="heading-serif mb-8 text-center" style="font-size:40px;font-weight:700;color:#fff;">{{ 'projects.new.heading' | translate }}</h1>
+      <h1 class="heading-serif mb-8 text-center" style="font-size:40px;font-weight:700;color:var(--color-text-primary);">{{ 'projects.new.heading' | translate }}</h1>
 
       <!-- Git URL prompt -->
       <div class="mb-2 flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 border"
-           style="background:rgba(255,255,255,0.02);border-color:rgba(255,255,255,0.08);"
+           style="background:var(--glass-bg-subtle);border-color:var(--glass-border);"
            [class.focus-within:border-blue-500/80]="true"
            [class.focus-within:ring-2]="true"
            [class.focus-within:ring-blue-500/20]="true">
@@ -49,13 +49,13 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
       <div class="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <!-- ===== Import Git Repository ===== -->
         <div>
-          <h2 class="mb-4 text-xl font-semibold font-mono text-white/95">{{ 'projects.new.importGitRepo' | translate }}</h2>
+          <h2 class="mb-4 text-xl font-semibold font-mono text-text-primary">{{ 'projects.new.importGitRepo' | translate }}</h2>
 
           @if (githubUser() === undefined) {
             <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.checkingGithub' | translate }}</p>
           } @else if (githubUser() === null) {
             <div class="db-glass text-center p-8 rounded-2xl">
-              <i class="fa-brands fa-github mb-3 text-4xl text-white/80"></i>
+              <i class="fa-brands fa-github mb-3 text-4xl text-text-secondary"></i>
               <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">
                 {{ 'projects.new.connectGithubDesc' | translate }}
               </p>
@@ -65,11 +65,11 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
             </div>
           } @else {
             <div class="mb-4 flex items-center gap-3">
-              <span class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-mono border" style="background:rgba(255,255,255,0.02);border-color:rgba(255,255,255,0.08);color:var(--color-text-secondary);">
-                <i class="fa-brands fa-github text-white/80"></i> {{ githubUser() }}
+              <span class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-mono border" style="background:var(--glass-bg-subtle);border-color:var(--glass-border);color:var(--color-text-secondary);">
+                <i class="fa-brands fa-github text-text-secondary"></i> {{ githubUser() }}
               </span>
               <div class="relative flex-1">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[10px]" style="color:#8d919a;"></i>
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[10px]" style="color:var(--color-text-tertiary);"></i>
                 <input class="input font-mono text-xs" style="padding-left:30px;height:36px;" [placeholder]="'projects.new.searchReposPlaceholder' | translate" [attr.aria-label]="'projects.new.searchReposLabel' | translate" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
               </div>
             </div>
@@ -78,22 +78,22 @@ import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.mode
             } @else {
               <div class="overflow-y-auto rounded-xl db-glass p-0" style="max-height: 400px;">
                 @for (repo of filteredRepos(); track repo.fullName) {
-                  <div class="flex items-center gap-4 p-3.5 hover:bg-white/[0.02] transition-colors duration-150" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                  <div class="flex items-center gap-4 p-3.5 hover:bg-[var(--glass-bg-subtle)] transition-colors duration-150" style="border-bottom:1px solid var(--glass-border-subtle);">
                     <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
                       <i class="fa-solid fa-code-branch"></i>
                     </div>
                     <div class="min-w-0 flex-1">
-                      <div class="truncate text-sm font-semibold text-white/90 font-mono">{{ repo.name }}
+                      <div class="truncate text-sm font-semibold text-text-primary font-mono">{{ repo.name }}
                         @if (repo.private) { <i class="fa-solid fa-lock ml-1.5 text-[10px]" style="color:var(--color-text-tertiary);" [title]="'projects.new.privateRepo' | translate"></i> }
                       </div>
                       <div class="truncate text-[10px] font-mono mt-0.5" style="color:var(--color-text-tertiary);">{{ 'projects.new.updated' | translate }} {{ repo.updatedAt | slice:0:10 }}</div>
                     </div>
-                    <button class="button-secondary cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors" (click)="importRepo(repo)">{{ 'projects.new.import' | translate }}</button>
+                    <button class="button-secondary cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[var(--glass-bg-subtle)] transition-colors" (click)="importRepo(repo)">{{ 'projects.new.import' | translate }}</button>
                   </div>
                 }
               </div>
             }
-            <button class="mt-3 text-xs hover:text-white transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="disconnectGithub()">{{ 'projects.new.disconnectGithub' | translate }}</button>
+            <button class="mt-3 text-xs hover:text-text-primary transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="disconnectGithub()">{{ 'projects.new.disconnectGithub' | translate }}</button>
           }
         </div>
 

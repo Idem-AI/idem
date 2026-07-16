@@ -173,7 +173,7 @@ interface DeployRow {
         <!-- Deploy / templates panel — always visible -->
         <div class="db-glass p-6 rounded-2xl">
             <!-- Highlighted Import Project Box -->
-            <div class="db-glass p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-200" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(0, 0, 0, 0) 100%);">
+            <div class="db-glass p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-200" style="background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 5%, transparent) 0%, rgba(0, 0, 0, 0) 100%);">
               <div class="flex items-center gap-4">
                 <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400">
                   <i class="fa-brands fa-github text-xl animate-pulse"></i>
@@ -189,10 +189,10 @@ interface DeployRow {
             </div>
 
             @if (error()) {
-              <div class="mb-4 rounded-md p-3 text-sm text-red-400" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
+              <div class="mb-4 rounded-md p-3 text-sm text-red-400" style="background:color-mix(in srgb, var(--color-danger) 8%, transparent);border:1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);">
                 {{ error() }}
                 @if (error()!.toLowerCase().includes('server')) {
-                  · <a routerLink="/servers/new" style="color:#60a5fa;">{{ 'dashboard.addServer' | translate }}</a>
+                  · <a routerLink="/servers/new" style="color:var(--color-primary-400);">{{ 'dashboard.addServer' | translate }}</a>
                 }
               </div>
             }
@@ -208,7 +208,7 @@ interface DeployRow {
             </div>
 
             <!-- Deploy rows (Vercel-style list) -->
-            <div class="overflow-hidden rounded-xl border border-white/10" style="background-color: rgba(0, 0, 0, 0.1);">
+            <div class="overflow-hidden rounded-xl border border-white/10" style="background-color: color-mix(in srgb, var(--color-bg-darker) 10%, transparent);">
               <!-- Template rows / loading skeletons -->
               @if (loading()) {
                 @for (i of [1, 2, 3]; track i) {
@@ -223,7 +223,7 @@ interface DeployRow {
                 }
               } @else {
                 @for (row of templateRows(); track row.id) {
-                  <div class="flex items-center gap-4 p-4 hover:bg-white/[0.01] transition-colors" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                  <div class="flex items-center gap-4 p-4 hover:bg-white/[0.01] transition-colors" style="border-bottom:1px solid var(--glass-border-subtle);">
                     <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5">
                       <i [class]="getTemplateIcon(row.title)"></i>
                     </div>
@@ -289,10 +289,10 @@ export class DashboardComponent implements OnInit {
   protected readonly usageMetrics = computed(() => {
     const q = this.quota();
     return [
-      { label: this.translate.instant('dashboard.metricApplications'), icon: 'fa-solid fa-cube', color: '#60a5fa', value: `${q.apps.used} / ${q.apps.limit || '∞'}` },
-      { label: this.translate.instant('dashboard.metricServers'), icon: 'fa-solid fa-server', color: '#4ade80', value: `${q.servers.used} / ${q.servers.limit || '∞'}` },
+      { label: this.translate.instant('dashboard.metricApplications'), icon: 'fa-solid fa-cube', color: 'var(--color-primary-400)', value: `${q.apps.used} / ${q.apps.limit || '∞'}` },
+      { label: this.translate.instant('dashboard.metricServers'), icon: 'fa-solid fa-server', color: 'var(--color-success)', value: `${q.servers.used} / ${q.servers.limit || '∞'}` },
       { label: this.translate.instant('dashboard.metricDatabases'), icon: 'fa-solid fa-database', color: '#a78bfa', value: `${this.dbCount()}` },
-      { label: this.translate.instant('dashboard.metricProjects'), icon: 'fa-solid fa-layer-group', color: '#2563eb', value: `${this.projects().length}` },
+      { label: this.translate.instant('dashboard.metricProjects'), icon: 'fa-solid fa-layer-group', color: 'var(--color-primary-500)', value: `${this.projects().length}` },
     ];
   });
 
