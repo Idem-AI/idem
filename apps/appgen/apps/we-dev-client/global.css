@@ -25,7 +25,13 @@
   display: none;
 }
 
+html {
+  background-color: #06080d;
+}
+
 body {
+  position: relative;
+  isolation: isolate;
   background-size: 50px 50px;
   background-image: linear-gradient(
       to right,
@@ -35,7 +41,28 @@ body {
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   overflow-x: hidden;
   min-height: 100vh;
-  background-color: #06080d;
+  background-color: transparent;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background-image: url('/assets/images/motif.png');
+  background-repeat: repeat;
+  background-position: top left;
+  pointer-events: none;
+  opacity: 0.08;
+}
+
+.dark body::before,
+html.dark body::before {
+  filter: invert(1);
+  opacity: 0.15;
 }
 
 .ant-modal {
@@ -386,7 +413,10 @@ body {
   * {
     @apply border-border;
   }
+  html {
+    @apply bg-background;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground bg-transparent;
   }
 }

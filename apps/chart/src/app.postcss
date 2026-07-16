@@ -17,8 +17,31 @@
   }
 
   body {
-    background-color: hsl(222.2 84% 4.9%);
+    position: relative;
+    isolation: isolate;
+    background-color: transparent;
     transition: background-color 0.2s ease;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background-image: url('/assets/images/motif.png');
+    background-repeat: repeat;
+    background-position: top left;
+    pointer-events: none;
+    opacity: 0.08;
+  }
+
+  html.dark body::before,
+  .dark body::before {
+    filter: invert(1);
+    opacity: 0.15;
   }
 
   /* Light theme override */
@@ -27,7 +50,7 @@
   }
 
   html.light body {
-    background-color: hsl(0 0% 100%);
+    background-color: transparent;
   }
 
   :root {

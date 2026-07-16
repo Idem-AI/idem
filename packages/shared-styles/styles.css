@@ -11,6 +11,7 @@
    `idem_theme` cookie, defaulting to the browser's prefers-color-scheme). */
 html {
   color-scheme: light dark;
+  background-color: var(--color-bg-darker);
 }
 html.dark {
   color-scheme: dark;
@@ -27,13 +28,35 @@ html.light {
 }
 
 body {
+  position: relative;
+  isolation: isolate;
   background-size: 50px 50px;
   background-image:
     linear-gradient(to right, var(--idem-grid-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--idem-grid-line) 1px, transparent 1px);
   overflow-x: hidden;
   min-height: 100vh;
-  background-color: var(--color-bg-darker);
+  background-color: transparent;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background-image: url('/assets/images/motif.png');
+  background-repeat: repeat;
+  background-position: top left;
+  pointer-events: none;
+  opacity: 0.08;
+}
+
+html.dark body::before {
+  filter: invert(1);
+  opacity: 0.15;
 }
 
 /* ============================================================================
