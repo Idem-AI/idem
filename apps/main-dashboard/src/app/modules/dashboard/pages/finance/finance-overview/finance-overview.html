@@ -417,4 +417,41 @@
       </div>
     </section>
   </div>
+
+  <!-- Business Plan Missing Dialog -->
+  <p-dialog
+    [header]="'dashboard.finance.bpMissingDialog.title' | translate"
+    [modal]="true"
+    [(visible)]="bpMissingDialogVisible"
+    [style]="{ width: '28rem' }"
+    styleClass="bp-missing-dialog centered-modal"
+  >
+    <div class="text-center p-4">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+        <i class="pi pi-exclamation-triangle text-amber-500 text-3xl"></i>
+      </div>
+      <h3 class="text-lg font-semibold text-text-primary mb-2 font-bold">
+        {{ 'dashboard.finance.bpMissingDialog.headline' | translate }}
+      </h3>
+      <p class="text-text-tertiary text-sm mb-6">
+        {{ 'dashboard.finance.bpMissingDialog.description' | translate }}
+      </p>
+      
+      <div class="flex flex-col sm:flex-row justify-center gap-3">
+        <button 
+          class="px-4 py-2 rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] border border-[var(--glass-border)] text-text-primary text-sm font-medium transition-colors cursor-pointer"
+          (click)="bpMissingDialogVisible.set(false)"
+        >
+          {{ 'common.cancel' | translate }}
+        </button>
+        <button 
+          class="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          (click)="navigateToBpGeneration()"
+        >
+          <i class="pi pi-sparkles"></i>
+          {{ 'dashboard.finance.bpMissingDialog.generateCta' | translate }}
+        </button>
+      </div>
+    </div>
+  </p-dialog>
 }

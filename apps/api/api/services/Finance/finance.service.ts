@@ -140,6 +140,22 @@ export class FinanceService {
     if (!updated) {
       throw new Error(`Failed to persist finance for project ${projectId}`);
     }
+
+    // Mettre à jour la section Financial Plan du business plan en arrière-plan
+    if (project.analysisResultModel?.businessPlan) {
+      try {
+        const { BusinessPlanService } = require('../BusinessPlan/businessPlan.service');
+        const { PromptService } = require('../prompt.service');
+        const { getRequestLanguage } = require('../../utils/request-language');
+        const bpService = new BusinessPlanService(new PromptService());
+        bpService.updateFinancialPlanSection(userId, projectId, getRequestLanguage()).catch((err: any) => {
+          logger.error(`Error in background updateFinancialPlanSection: ${err.message}`);
+        });
+      } catch (err: any) {
+        logger.error(`Failed to load BusinessPlanService for background update: ${err.message}`);
+      }
+    }
+
     return finance;
   }
 
