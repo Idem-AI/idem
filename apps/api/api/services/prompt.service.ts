@@ -18,6 +18,7 @@ dotenv.config();
 import { LLMProvider, LLMOptions, AI_CONFIG } from '../config/ai.config';
 import { withGeminiFallback } from '../utils/gemini-fallback';
 import { getRequestLanguage } from '../utils/request-language';
+import { logAIEvent, previewValue } from '../utils/ai-trace.util';
 export { LLMProvider, LLMOptions };
 
 
@@ -656,8 +657,18 @@ export class PromptService {
     const effectiveFallbackModel = modelName === fallbackModel ? 'gemini-1.5-flash' : fallbackModel;
     const maxToolTurns = options.maxToolTurns ?? 8;
 
+    const loopStartedAt = Date.now();
+    logAIEvent('ai.agentic_loop_start', {
+      modelName,
+      promptType: request.promptType,
+      toolCount: tools.length,
+      maxToolTurns,
+    });
+
     let finalText = '';
+    let turnsUsed = 0;
     for (let turn = 0; turn <= maxToolTurns; turn++) {
+      turnsUsed = turn + 1;
       const result = await withGeminiFallback(
         () => this.genAIClient.models.generateContent({ model: modelName, contents, config }),
         () =>
@@ -673,6 +684,11 @@ export class PromptService {
       const functionCalls = result.functionCalls ?? [];
       if (functionCalls.length === 0) {
         finalText = result.text ?? '';
+        logAIEvent('ai.agentic_turn', {
+          turn: turn + 1,
+          decision: 'final_answer',
+          finalTextLength: finalText.length,
+        });
         break;
       }
 
@@ -681,6 +697,11 @@ export class PromptService {
         contents.push(modelContent);
       }
 
+      logAIEvent('ai.agentic_turn', {
+        turn: turn + 1,
+        decision: 'tool_calls',
+        tools: functionCalls.map((c) => ({ name: c.name, args: previewValue(c.args) })),
+      });
       logger.info(
         `runPromptWithTools turn=${turn + 1} tools=[${functionCalls.map((c) => c.name).join(', ')}]`
       );
@@ -702,6 +723,7 @@ export class PromptService {
 
       if (turn === maxToolTurns) {
         logger.warn('runPromptWithTools: max tool turns reached, forcing final answer');
+        logAIEvent('ai.agentic_turn', { turn: turn + 1, decision: 'max_turns_forced' });
         const finalResult = await this.genAIClient.models.generateContent({
           model: modelName,
           contents,
@@ -710,6 +732,13 @@ export class PromptService {
         finalText = finalResult.text ?? '';
       }
     }
+
+    logAIEvent('ai.agentic_loop_end', {
+      modelName,
+      turnsUsed,
+      finalTextLength: finalText.length,
+      durationMs: Date.now() - loopStartedAt,
+    });
 
     if (userId && !skipQuotaCheck) {
       try {

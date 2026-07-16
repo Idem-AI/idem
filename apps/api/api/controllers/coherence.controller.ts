@@ -23,7 +23,7 @@ export const listCoherenceAlertsController = async (
   const { projectId } = req.params;
   try {
     const status = req.query.status ? String(req.query.status) : undefined;
-    const alerts = await coherenceService.listAlerts(projectId as string, { status });
+    const alerts = await coherenceService.listAlerts(projectId as string, userId, { status });
     res.status(200).json({ projectId, alerts, rules: COHERENCE_RULES.map((r) => r.id) });
   } catch (error: any) {
     logger.error(`listCoherenceAlertsController error: ${error.message}`);
@@ -85,7 +85,11 @@ export const applyCoherenceProposalController = async (
     res.status(200).json(result);
   } catch (error: any) {
     logger.error(`applyCoherenceProposalController error: ${error.message}`);
-    const status = error.message?.includes('introuvable') ? 404 : 400;
+    const status = error.message?.includes('introuvable')
+      ? 404
+      : error.message?.includes('ouverte') || error.message?.includes('cours d')
+        ? 409 // conflit d'état: déjà appliquée/rejetée/en cours (course concurrente)
+        : 400;
     res.status(status).json({ message: error.message });
   }
 };
@@ -103,7 +107,11 @@ export const dismissCoherenceAlertController = async (
     res.status(200).json({ message: 'Alerte rejetée.' });
   } catch (error: any) {
     logger.error(`dismissCoherenceAlertController error: ${error.message}`);
-    const status = error.message?.includes('introuvable') ? 404 : 500;
+    const status = error.message?.includes('introuvable')
+      ? 404
+      : error.message?.includes('ouverte')
+        ? 409 // conflit d'état: déjà appliquée/rejetée/en cours
+        : 500;
     res.status(status).json({ message: error.message });
   }
 };

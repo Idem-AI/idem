@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
 import { metricsMiddleware } from './middleware/metrics.middleware';
 import { languageMiddleware } from './middleware/language.middleware';
+import { requestTraceMiddleware } from './middleware/request-trace.middleware';
 import { revisionContextMiddleware } from './utils/revision-context.util';
 import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
@@ -88,6 +89,11 @@ import { financeRoutes } from './routes/finance.routes';
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
+
+// Ouvre le contexte de traçage (requestId) en tout premier: tout ce qui suit
+// dans la chaîne (sécurité, morgan, routes, services IA) hérite de la
+// corrélation automatiquement via le logger (voir config/logger.ts).
+app.use(requestTraceMiddleware);
 
 // Hardening (helmet, hpp, trust proxy, hide X-Powered-By).
 applySecurity(app);

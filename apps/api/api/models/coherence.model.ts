@@ -10,7 +10,13 @@ import { ProjectSectionKey } from './revision.model';
  * données de l'utilisateur.
  */
 
-export type CoherenceAlertStatus = 'open' | 'applied' | 'dismissed' | 'superseded';
+/**
+ * 'applying' est un état transitoire posé atomiquement (findOneAndUpdate
+ * open→applying) avant de lancer une proposition longue (ex: autofill
+ * finance ~10-30s) — il empêche un double-clic ou un doublon d'onglet de
+ * déclencher deux exécutions concurrentes de la même proposition.
+ */
+export type CoherenceAlertStatus = 'open' | 'applying' | 'applied' | 'dismissed' | 'superseded';
 
 export type CoherenceProposalKind =
   /** Remplir/synchroniser le module Finance depuis le business plan (autofill IA existant). */

@@ -14,6 +14,7 @@ import {
   summarizePatch,
   JsonPatchOp,
 } from '../../utils/json-patch.util';
+import { logAIEvent } from '../../utils/ai-trace.util';
 
 /**
  * "Chronicle" — historique versionné des artefacts projet, interrogeable comme
@@ -89,6 +90,15 @@ export class VersionHistoryService {
           logger.info(
             `VersionHistory.record ${input.projectId}/${input.section}@v${version} by ${input.author.type} (${input.source})`
           );
+          logAIEvent('chronicle.commit', {
+            projectId: input.projectId,
+            section: input.section,
+            version,
+            authorType: input.author.type,
+            source: input.source,
+            isSnapshot,
+            changedPaths: revision.changedPaths,
+          });
           return { ...revision, id: created._id?.toString() };
         } catch (err: any) {
           // Collision d'index unique = écriture concurrente sur la même section → retry.
@@ -128,6 +138,13 @@ export class VersionHistoryService {
       .select('section version author source summary changedPaths createdAt')
       .lean();
 
+    logAIEvent('chronicle.query', {
+      op: 'log',
+      projectId,
+      section: options.section,
+      resultCount: docs.length,
+    });
+
     return docs.map((d) => ({
       section: d.section as ProjectSectionKey,
       version: d.version,
@@ -158,6 +175,7 @@ export class VersionHistoryService {
     }
 
     if (snapshotRev.version === version) {
+      logAIEvent('chronicle.query', { op: 'show', projectId, section, version, fromSnapshot: true });
       return snapshotRev.snapshot;
     }
 
@@ -185,6 +203,14 @@ export class VersionHistoryService {
         state = applyJsonPatch(state, delta.patch as JsonPatchOp[]);
       }
     }
+    logAIEvent('chronicle.query', {
+      op: 'show',
+      projectId,
+      section,
+      version,
+      reconstructedFromSnapshotVersion: snapshotRev.version,
+      deltasApplied: deltas.length,
+    });
     return state;
   }
 
@@ -200,6 +226,14 @@ export class VersionHistoryService {
       this.show(projectId, section, toVersion),
     ]);
     const patch = compareJson(from, to);
+    logAIEvent('chronicle.query', {
+      op: 'diff',
+      projectId,
+      section,
+      fromVersion,
+      toVersion,
+      opsCount: patch.length,
+    });
     return {
       section,
       fromVersion,
@@ -246,6 +280,14 @@ export class VersionHistoryService {
     date: Date
   ): Promise<{ version: number; state: unknown } | null> {
     const entry = await this.versionAt(projectId, section, date);
+    logAIEvent('chronicle.query', {
+      op: 'stateAt',
+      projectId,
+      section,
+      date: date.toISOString(),
+      found: !!entry,
+      resolvedVersion: entry?.version,
+    });
     if (!entry) return null;
     const state = await this.show(projectId, section, entry.version);
     return { version: entry.version, state };

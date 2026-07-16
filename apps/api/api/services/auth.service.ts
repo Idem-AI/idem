@@ -3,6 +3,7 @@ import admin from 'firebase-admin';
 import { CustomRequest } from '../interfaces/express.interface';
 import logger from '../config/logger';
 import { refreshTokenService } from './refreshToken.service';
+import { setTraceUserId } from '../utils/trace.util';
 
 /**
  * Middleware to authenticate requests using Firebase Admin SDK.
@@ -26,6 +27,7 @@ export async function authenticate(
     try {
       const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true); // true checks for revocation
       req.user = decodedToken;
+      setTraceUserId(decodedToken.uid);
       logger.info(`User authenticated successfully via session cookie: ${decodedToken.uid}`);
       return next();
     } catch (error: any) {
@@ -52,6 +54,7 @@ export async function authenticate(
             // Vérifier le nouveau cookie
             const decodedToken = await admin.auth().verifySessionCookie(newSessionCookie, true);
             req.user = decodedToken;
+            setTraceUserId(decodedToken.uid);
 
             // Mettre à jour le cookie dans la réponse
             const options: CookieOptions = {
@@ -84,6 +87,7 @@ export async function authenticate(
     try {
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       req.user = decodedToken;
+      setTraceUserId(decodedToken.uid);
       logger.info(`User authenticated successfully via Bearer token: ${decodedToken.uid}`);
       return next();
     } catch (error: any) {

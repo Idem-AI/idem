@@ -16,6 +16,15 @@ export interface RevisionContext {
   source: string;
   /** Optional human message describing the change (like a commit message). */
   note?: string;
+  /**
+   * When true, the versioning hook must NOT schedule a Coherence Guard audit
+   * for this write. Set explicitly by code that is ITSELF the result of
+   * applying a coherence proposal (e.g. CoherenceService.applyProposal before
+   * calling financeAIService.autoFillAll) — an explicit flag rather than
+   * matching the request path against a naming convention, so it stays
+   * correct regardless of which route ends up performing the write.
+   */
+  suppressCoherenceTrigger?: boolean;
 }
 
 const storage = new AsyncLocalStorage<RevisionContext>();
@@ -45,6 +54,12 @@ export function markRevisionAsAI(note?: string): void {
 export function setRevisionNote(note: string): void {
   const store = storage.getStore();
   if (store) store.note = note;
+}
+
+/** Prevent subsequent project writes in this async context from re-triggering a Coherence Guard audit. */
+export function suppressCoherenceTrigger(): void {
+  const store = storage.getStore();
+  if (store) store.suppressCoherenceTrigger = true;
 }
 
 /** Routes whose writes are AI-generated content by construction. */
