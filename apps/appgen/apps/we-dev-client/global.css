@@ -103,8 +103,8 @@ html.dark body::before {
   --glass-blur: 12px;
 
   /* Button shadows */
-  --button-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-  --button-shadow-hover: 0 6px 16px rgba(20, 71, 230, 0.15);
+  --button-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  --button-shadow-hover: 0 6px 16px rgba(20, 71, 230, 0.1);
 
   /* Original shadcn variables */
   --background: 224 71.4% 4.1%;
@@ -144,8 +144,8 @@ html.dark body::before {
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 
   /* Button shadows dark mode override */
-  --button-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-  --button-shadow-hover: 0 8px 20px rgba(60, 164, 250, 0.4);
+  --button-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --button-shadow-hover: 0 6px 16px rgba(60, 164, 250, 0.2);
 
   --background: 224 71.4% 4.1%;
   --foreground: 210 20% 98%;

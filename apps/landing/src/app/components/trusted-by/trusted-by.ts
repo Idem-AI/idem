@@ -17,6 +17,7 @@ export interface Partner {
 export class TrustedByComponent {
   // Communautés tech camerounaises partenaires
   partners: Partner[] = [
+
     {
       name: 'GDG Douala',
       logo: '/assets/images/trust-by/gdg douala.png',
@@ -33,15 +34,15 @@ export class TrustedByComponent {
       logo: '/assets/images/trust-by/aws user group douala.png',
       url: 'https://www.meetup.com/awsugdouala/',
     },
-        {
+    {
+      name: 'Orange S.A.',
+      logo: '/assets/images/trust-by/orange logo.svg',
+      url: 'https://www.orange.com',
+    },
+    {
       name: 'DevGirls',
       logo: '/assets/images/trust-by/devgirl logo 1.png',
       url: 'https://www.devgirls.org/home',
-    },
-    {
-      name: 'Rhopen',
-      logo: '/assets/images/trust-by/rhopen logo.png',
-      url: 'https://rhopen.fr',
     },
     {
       name: 'AWS User Group Yaoundé',
@@ -63,12 +64,6 @@ export class TrustedByComponent {
       name: 'RAVISA',
       logo: '/assets/images/trust-by/RAVISA_2 2 1.png',
       url: 'https://ravisa.org/index.html',
-    },
-
-    {
-      name: 'GDG Afrique Francophone',
-      logo: '/assets/images/trust-by/gdgs afrique francophone logo.png',
-      url: 'https://gdg.community.dev/',
     },
   ];
 }

@@ -1,40 +1,51 @@
-<div class="cta-section flex items-center justify-center text-text-primary my-[70px]">
-  <div
-    class="flex cta-glass-card m-4 p-2 md:p-8 w-full md:w-[60%] flex-col md:flex-row items-start relative overflow-hidden"
-  >
-    <div class="w-full md:w-1/2 flex-col flex gap-4">
-      <h2
-        i18n="@@cta.startBuildingToday"
-        class="reveal-left text-start text-2xl w-full md:text-5xl font-bold py-8 text-glow-secondary"
+<div class="cta-section flex flex-col items-center justify-center text-center mt-[40px] mb-[100px] px-4 relative overflow-hidden">
+  <!-- Immersive Aurora Background -->
+  <div class="absolute top-[20%] left-1/2 -translate-x-1/2 w-[800px] h-[350px] rounded-full bg-radial from-primary/15 via-accent/5 to-transparent blur-[110px] pointer-events-none z-0"></div>
+  
+  <div class="relative z-10 max-w-4xl mx-auto flex flex-col items-center gap-6 mb-14">
+    <h2
+      i18n="@@cta.startBuildingToday"
+      class="reveal-up text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight cta-gradient-title pb-1"
+      style="transition-delay: 50ms"
+    >
+      Start Building Today
+    </h2>
+    
+    <p 
+      i18n="@@cta.description" 
+      class="reveal-up text-base sm:text-lg md:text-xl text-text-secondary leading-relaxed max-w-2xl" 
+      style="transition-delay: 100ms"
+    >
+      Join Idem and transform your ideas into complete projects with our AI-powered open source
+      platform. Generate logos, business plans, and deploy applications - all for free.
+    </p>
+    
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 reveal-up pt-4 w-full sm:w-auto" style="transition-delay: 150ms">
+      <a
+        class="inner-button px-8 py-4 rounded-xl font-semibold text-base shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 w-full sm:w-auto text-center"
+        href="{{ dashboardUrl }}/login"
+        i18n="@@cta.signUpButton"
       >
-        Start Building Today
-      </h2>
-      <p i18n="@@cta.description" class="reveal-left" style="transition-delay: 100ms">
-        Join Idem and transform your ideas into complete projects with our AI-powered open source
-        platform. Generate logos, business plans, and deploy applications - all for free.
-      </p>
-      <div class="gap-4 flex reveal-left" style="transition-delay: 200ms">
-        <a
-          class="inner-button cta-primary-button px-6 py-3 rounded-xl font-semibold"
-          href="{{ dashboardUrl }}/login"
-          i18n="@@cta.signUpButton"
-          >Sign Up</a
-        >
-        <a
-          href="{{ dashboardUrl }}/create-project"
-          class="outer-button cta-secondary-button px-6 py-3 rounded-xl font-semibold"
-          i18n="@@cta.getStartedButton"
-        >
-          Get Started
-        </a>
-      </div>
+        Sign Up
+      </a>
+      <a
+        href="{{ dashboardUrl }}/create-project"
+        class="outer-button px-8 py-4 rounded-xl font-semibold text-base transition-all duration-300 w-full sm:w-auto text-center"
+        i18n="@@cta.getStartedButton"
+      >
+        Get Started
+      </a>
     </div>
-    <div class="md:w-1/2 reveal-right">
+  </div>
+
+  <!-- Perspective Mockup Display -->
+  <div class="relative z-10 w-full max-w-sm mx-auto perspective-container reveal-up mt-6" style="transition-delay: 200ms">
+    <div class="perspective-card p-1.5 bg-white/5 dark:bg-black/40 rounded-3xl border border-white/10 shadow-2xl">
       <img
         src="/assets/images/home/ideo.webp"
         i18n-alt="@@cta.alt.idemPlatformInterface"
         alt="Idem AI platform interface showing project creation workflow"
-        class="floating-enhanced"
+        class="rounded-2xl w-full h-auto perspective-image"
       />
     </div>
   </div>

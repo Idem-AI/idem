@@ -582,8 +582,8 @@ html.dark body::before {
   border: none;
   border-radius: var(--radius-xl);
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    0 0 20px var(--color-primary-glow-subtle);
+    var(--shadow-md),
+    0 0 12px var(--color-primary-glow-subtle);
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-wide);
   position: relative;
@@ -609,8 +609,8 @@ html.dark body::before {
 .inner-button:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.4),
-    0 0 30px var(--color-primary-glow);
+    var(--shadow-lg),
+    0 0 20px var(--color-primary-glow);
 }
 
 .inner-button:hover::before {
@@ -619,7 +619,7 @@ html.dark body::before {
 
 .inner-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .inner-button:disabled {
