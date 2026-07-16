@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../services/auth.service';
+import { rateLimitByEndpoint } from '../middleware/rate-limit.middleware';
 import {
   listCoherenceAlertsController,
   runCoherenceCheckController,
@@ -10,11 +11,9 @@ import {
 /**
  * Coherence Guard — synchronisation intelligente entre artefacts (business
  * plan ↔ finance, …). Détection automatique à chaque modification, application
- * explicite par l'utilisateur.
- *
- * NOTE: le chemin contient "/coherence/" — le hook Chronicle s'en sert comme
- * garde anti-boucle (les écritures issues d'un apply ne redéclenchent pas
- * d'audit).
+ * explicite par l'utilisateur (le hook Chronicle reconnaît une écriture issue
+ * d'un apply via un flag explicite posé par CoherenceService, pas via ce
+ * chemin d'URL — voir utils/revision-context.util.ts).
  */
 export const coherenceRoutes = Router();
 
@@ -38,7 +37,15 @@ coherenceRoutes.get('/coherence/:projectId', authenticate, listCoherenceAlertsCo
  *     security:
  *       - bearerAuth: []
  */
-coherenceRoutes.post('/coherence/:projectId/check', authenticate, runCoherenceCheckController);
+coherenceRoutes.post(
+  '/coherence/:projectId/check',
+  authenticate,
+  // Cette route appelle le LLM avec skipQuotaCheck (audit système, pas de coût
+  // pour le quota utilisateur) — sans limite dédiée, un appel répété martelé
+  // devient un vecteur d'appels Gemini gratuits illimités pour la plateforme.
+  rateLimitByEndpoint('coherence-check', { windowMs: 60_000, maxRequests: 5 }),
+  runCoherenceCheckController
+);
 
 /**
  * @openapi

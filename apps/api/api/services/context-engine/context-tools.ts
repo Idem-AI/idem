@@ -6,6 +6,8 @@ import { financeService } from '../Finance/finance.service';
 import { coherenceService } from '../coherence/coherence.service';
 import { contextEngineService } from './context-engine.service';
 import { ALL_SECTION_KEYS, isSectionKey } from './context-registry';
+import { setTraceProjectId } from '../../utils/trace.util';
+import { logAIEvent, previewValue } from '../../utils/ai-trace.util';
 
 /**
  * Boîte à outils "connaissance projet" exposée aux agents IA via le function
@@ -174,104 +176,129 @@ export type ToolExecutor = (name: string, args: Record<string, unknown>) => Prom
  */
 export function createContextToolExecutor(userId: string, projectId: string): ToolExecutor {
   return async (name, args) => {
+    setTraceProjectId(projectId);
+    const startedAt = Date.now();
+    logAIEvent('ai.tool_call_start', { tool: name, args: previewValue(args) });
     try {
-      switch (name) {
-        case 'project_get_map':
-          return boundResult(await contextEngineService.getProjectMap(userId, projectId));
-
-        case 'project_get_section':
-          return boundResult(
-            await contextEngineService.getSection(
-              userId,
-              projectId,
-              String(args.section ?? ''),
-              args.detail === 'full' ? 'full' : 'summary',
-              args.path ? String(args.path) : undefined
-            )
-          );
-
-        case 'project_search':
-          return boundResult(
-            await contextEngineService.searchProject(userId, projectId, String(args.query ?? ''))
-          );
-
-        case 'project_history_log': {
-          const section = args.section ? requireSection(args.section) : undefined;
-          const limit = Math.min(Number(args.limit) || 10, 50);
-          return boundResult(await versionHistoryService.log(projectId, { section, limit }));
-        }
-
-        case 'project_history_show': {
-          const section = requireSection(args.section);
-          const version = Number(args.version);
-          if (!Number.isInteger(version) || version < 1) {
-            throw new Error(`Version invalide "${args.version}" (entier ≥ 1 attendu).`);
-          }
-          return boundResult(await versionHistoryService.show(projectId, section, version));
-        }
-
-        case 'project_history_diff': {
-          const section = requireSection(args.section);
-          return boundResult(
-            await versionHistoryService.diff(
-              projectId,
-              section,
-              Number(args.fromVersion),
-              Number(args.toVersion)
-            )
-          );
-        }
-
-        case 'project_finance_summary': {
-          const result = await financeService.getSummary(userId, projectId);
-          if (!result) {
-            return {
-              exists: false,
-              message:
-                "Aucune donnée financière saisie dans le module Finance. Le modèle économique est peut-être décrit dans la section businessPlan (utiliser project_get_section) — proposer à l'utilisateur de remplir ses prévisions financières (autofill IA disponible).",
-            };
-          }
-          return boundResult({ exists: true, summary: result.summary });
-        }
-
-        case 'project_coherence_alerts': {
-          const alerts = await coherenceService.listAlerts(projectId);
-          if (alerts.length === 0) {
-            return { alerts: [], message: 'Aucune alerte de cohérence ouverte.' };
-          }
-          return boundResult({
-            alerts: alerts.map((a) => ({
-              id: a.id,
-              rule: a.ruleId,
-              analysis: a.analysis,
-              issues: a.issues,
-              proposals: a.proposals,
-              createdAt: a.createdAt,
-            })),
-          });
-        }
-
-        case 'project_state_at_date': {
-          const section = requireSection(args.section);
-          const date = new Date(String(args.date ?? ''));
-          if (Number.isNaN(date.getTime())) {
-            throw new Error(`Date invalide "${args.date}" (format ISO 8601 attendu).`);
-          }
-          const result = await versionHistoryService.stateAt(projectId, section, date);
-          return boundResult(
-            result ?? {
-              exists: false,
-              message: `La section "${section}" n'existait pas encore au ${date.toISOString()}.`,
-            }
-          );
-        }
-
-        default:
-          return { error: `Outil inconnu: "${name}".` };
-      }
+      const result = await executeToolCall(name, args, userId, projectId);
+      logAIEvent('ai.tool_call_end', {
+        tool: name,
+        durationMs: Date.now() - startedAt,
+        ok: !(result && typeof result === 'object' && 'error' in (result as Record<string, unknown>)),
+        result: previewValue(result),
+      });
+      return result;
     } catch (error: any) {
+      logAIEvent('ai.tool_call_end', {
+        tool: name,
+        durationMs: Date.now() - startedAt,
+        ok: false,
+        error: error.message,
+      });
       logger.warn(`Context tool "${name}" failed: ${error.message}`);
       return { error: error.message };
     }
   };
+}
+
+async function executeToolCall(
+  name: string,
+  args: Record<string, unknown>,
+  userId: string,
+  projectId: string
+): Promise<unknown> {
+  switch (name) {
+    case 'project_get_map':
+      return boundResult(await contextEngineService.getProjectMap(userId, projectId));
+
+    case 'project_get_section':
+      return boundResult(
+        await contextEngineService.getSection(
+          userId,
+          projectId,
+          String(args.section ?? ''),
+          args.detail === 'full' ? 'full' : 'summary',
+          args.path ? String(args.path) : undefined
+        )
+      );
+
+    case 'project_search':
+      return boundResult(
+        await contextEngineService.searchProject(userId, projectId, String(args.query ?? ''))
+      );
+
+    case 'project_history_log': {
+      const section = args.section ? requireSection(args.section) : undefined;
+      const limit = Math.min(Number(args.limit) || 10, 50);
+      return boundResult(await versionHistoryService.log(projectId, { section, limit }));
+    }
+
+    case 'project_history_show': {
+      const section = requireSection(args.section);
+      const version = Number(args.version);
+      if (!Number.isInteger(version) || version < 1) {
+        throw new Error(`Version invalide "${args.version}" (entier ≥ 1 attendu).`);
+      }
+      return boundResult(await versionHistoryService.show(projectId, section, version));
+    }
+
+    case 'project_history_diff': {
+      const section = requireSection(args.section);
+      return boundResult(
+        await versionHistoryService.diff(
+          projectId,
+          section,
+          Number(args.fromVersion),
+          Number(args.toVersion)
+        )
+      );
+    }
+
+    case 'project_finance_summary': {
+      const result = await financeService.getSummary(userId, projectId);
+      if (!result) {
+        return {
+          exists: false,
+          message:
+            "Aucune donnée financière saisie dans le module Finance. Le modèle économique est peut-être décrit dans la section businessPlan (utiliser project_get_section) — proposer à l'utilisateur de remplir ses prévisions financières (autofill IA disponible).",
+        };
+      }
+      return boundResult({ exists: true, summary: result.summary });
+    }
+
+    case 'project_coherence_alerts': {
+      const alerts = await coherenceService.listAlerts(projectId, userId);
+      if (alerts.length === 0) {
+        return { alerts: [], message: 'Aucune alerte de cohérence ouverte.' };
+      }
+      return boundResult({
+        alerts: alerts.map((a) => ({
+          id: a.id,
+          rule: a.ruleId,
+          analysis: a.analysis,
+          issues: a.issues,
+          proposals: a.proposals,
+          createdAt: a.createdAt,
+        })),
+      });
+    }
+
+    case 'project_state_at_date': {
+      const section = requireSection(args.section);
+      const date = new Date(String(args.date ?? ''));
+      if (Number.isNaN(date.getTime())) {
+        throw new Error(`Date invalide "${args.date}" (format ISO 8601 attendu).`);
+      }
+      const result = await versionHistoryService.stateAt(projectId, section, date);
+      return boundResult(
+        result ?? {
+          exists: false,
+          message: `La section "${section}" n'existait pas encore au ${date.toISOString()}.`,
+        }
+      );
+    }
+
+    default:
+      return { error: `Outil inconnu: "${name}".` };
+  }
 }

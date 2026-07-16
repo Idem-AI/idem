@@ -14,6 +14,8 @@ import { ProjectModel } from '../../models/project.model';
 import { ADVISOR_SYSTEM_PROMPT, ADVISOR_TOOLS_GUIDE } from './prompts/system.prompt';
 import { financeAIService, FinanceChatIntent } from '../Finance/finance-ai.service';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
+import { setTraceProjectId } from '../../utils/trace.util';
+import { logAIEvent } from '../../utils/ai-trace.util';
 
 export interface AdvisorReplyResult {
   userMessage: AdvisorMessage;
@@ -50,13 +52,7 @@ export class AdvisorService {
 
   async clearConversation(userId: string, projectId: string): Promise<void> {
     logger.info(`AdvisorService.clearConversation userId=${userId} projectId=${projectId}`);
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    if (!project) {
-      logger.warn(`AdvisorService.clearConversation: project not found ${projectId}`);
-      return;
-    }
-    project.analysisResultModel.advisorConversation = { messages: [], updatedAt: new Date() };
-    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
+    await this.persistConversationField(userId, projectId, { messages: [], updatedAt: new Date() });
     logger.info(`AdvisorService.clearConversation: cleared projectId=${projectId}`);
   }
 
@@ -86,6 +82,7 @@ export class AdvisorService {
     content: string
   ): Promise<AdvisorReplyResult> {
     const startedAt = Date.now();
+    setTraceProjectId(projectId);
     const trimmed = (content || '').trim();
     if (!trimmed) {
       logger.warn(`AdvisorService.sendMessage: empty message from userId=${userId}`);
@@ -94,6 +91,7 @@ export class AdvisorService {
     logger.info(
       `AdvisorService.sendMessage userId=${userId} projectId=${projectId} length=${trimmed.length}`
     );
+    logAIEvent('advisor.message_received', { projectId, messageLength: trimmed.length });
 
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
@@ -123,6 +121,11 @@ export class AdvisorService {
       logger.debug(
         `AdvisorService.sendMessage finance intent: kind=${financeIntent?.kind} isFin=${financeIntent?.isFinanceIntent}`
       );
+      logAIEvent('advisor.finance_intent', {
+        projectId,
+        isFinanceIntent: financeIntent?.isFinanceIntent,
+        kind: financeIntent?.kind,
+      });
     } catch (err: any) {
       logger.warn(`AdvisorService.sendMessage parseChatIntent failed: ${err?.message}`);
       financeIntent = null;
@@ -164,7 +167,6 @@ export class AdvisorService {
       const conversation = await this.persistConversation(
         userId,
         projectId,
-        project,
         existing,
         userMessage,
         assistantMessage
@@ -212,6 +214,7 @@ export class AdvisorService {
       logger.warn(
         `AdvisorService.sendMessage tool loop failed, falling back to plain prompt: ${toolLoopError?.message}`
       );
+      logAIEvent('advisor.tool_loop_fallback', { projectId, reason: toolLoopError?.message });
       try {
         raw = await this.promptService.runPrompt(promptConfig, aiMessages);
       } catch (err: any) {
@@ -226,6 +229,11 @@ export class AdvisorService {
     logger.debug(
       `AdvisorService.sendMessage LLM replyLen=${reply.length} durationMs=${Date.now() - startedAt}`
     );
+    logAIEvent('advisor.reply_ready', {
+      projectId,
+      replyLength: reply.length,
+      durationMs: Date.now() - startedAt,
+    });
 
     const assistantMessage: AdvisorMessage = {
       id: uuidv4(),
@@ -240,17 +248,7 @@ export class AdvisorService {
       updatedAt: new Date(),
     };
 
-    await this.projectRepository.update(
-      projectId,
-      {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          advisorConversation: conversation,
-        },
-      },
-      `users/${userId}/projects`
-    );
+    await this.persistConversationField(userId, projectId, conversation);
 
     logger.info(
       `AdvisorService.sendMessage done projectId=${projectId} totalMessages=${conversation.messages.length} durationMs=${Date.now() - startedAt}`
@@ -339,17 +337,7 @@ export class AdvisorService {
       updatedAt: new Date(),
     };
 
-    await this.projectRepository.update(
-      projectId,
-      {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          advisorConversation: conversation,
-        },
-      },
-      `users/${userId}/projects`
-    );
+    await this.persistConversationField(userId, projectId, conversation);
     return { userMessage, assistantMessage, conversation };
   }
 
@@ -361,7 +349,6 @@ export class AdvisorService {
   private async persistConversation(
     userId: string,
     projectId: string,
-    project: ProjectModel,
     existing: AdvisorConversationModel,
     userMessage: AdvisorMessage,
     assistantMessage: AdvisorMessage
@@ -370,17 +357,41 @@ export class AdvisorService {
       messages: [...existing.messages, userMessage, assistantMessage],
       updatedAt: new Date(),
     };
-    await this.projectRepository.update(
+    await this.persistConversationField(userId, projectId, conversation);
+    return conversation;
+  }
+
+  /**
+   * Écrit UNIQUEMENT `analysisResultModel.advisorConversation` (notation
+   * pointée MongoDB), jamais le projet entier.
+   *
+   * Le pattern précédent — relire le projet en début de requête puis réécrire
+   * `{...project, analysisResultModel: {...project.analysisResultModel, advisorConversation}}`
+   * — capture un instantané figé AVANT l'appel LLM (10-60s pour la boucle
+   * agentique). Toute écriture concurrente sur une autre section pendant ce
+   * délai (ex: un autofill Finance déclenché par le Coherence Guard) se
+   * retrouvait silencieusement écrasée par cet instantané périmé, et Chronicle
+   * enregistrait la régression comme une révision utilisateur légitime,
+   * déclenchant même un audit de cohérence fantôme.
+   *
+   * `MongooseRepository.update` passe l'objet tel quel à un `$set` natif
+   * MongoDB: une clé en notation pointée ne touche que ce champ imbriqué,
+   * quel que soit l'état courant du reste du document.
+   */
+  private async persistConversationField(
+    userId: string,
+    projectId: string,
+    conversation: AdvisorConversationModel
+  ): Promise<void> {
+    const updated = await this.projectRepository.update(
       projectId,
-      {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          advisorConversation: conversation,
-        },
-      },
+      { 'analysisResultModel.advisorConversation': conversation } as unknown as Partial<
+        Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt'>
+      >,
       `users/${userId}/projects`
     );
-    return conversation;
+    if (!updated) {
+      logger.warn(`AdvisorService.persistConversationField: project not found ${projectId}`);
+    }
   }
 }

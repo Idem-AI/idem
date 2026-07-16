@@ -29,7 +29,7 @@ const CoherenceAlertSchema = new Schema<CoherenceAlertDocument>(
     ruleId: { type: String, required: true },
     status: {
       type: String,
-      enum: ['open', 'applied', 'dismissed', 'superseded'],
+      enum: ['open', 'applying', 'applied', 'dismissed', 'superseded'],
       required: true,
       default: 'open',
     },
@@ -46,8 +46,16 @@ const CoherenceAlertSchema = new Schema<CoherenceAlertDocument>(
 
 // Alertes ouvertes d'un projet (requête principale du dashboard/advisor).
 CoherenceAlertSchema.index({ projectId: 1, status: 1, createdAt: -1 });
-// Dédoublonnage: une seule alerte ouverte par (projet, règle).
-CoherenceAlertSchema.index({ projectId: 1, ruleId: 1, status: 1 });
+
+// Invariant appliqué EN BASE (pas seulement en best-effort applicatif): une
+// seule alerte 'open' par (projet, règle). Deux audits concurrents qui
+// supersede puis créent chacun une nouvelle alerte se font départager ici —
+// le second create() échoue en E11000, checkRule() l'interprète comme
+// "un audit plus frais a déjà produit un résultat" et abandonne proprement.
+CoherenceAlertSchema.index(
+  { projectId: 1, ruleId: 1 },
+  { unique: true, partialFilterExpression: { status: 'open' }, name: 'one_open_alert_per_rule' }
+);
 
 export const CoherenceAlert = mongoose.model<CoherenceAlertDocument>(
   'CoherenceAlert',

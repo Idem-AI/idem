@@ -60,9 +60,10 @@ export async function recordProjectRevisions(
 
   // Coherence Guard: programme un audit IA des règles touchées par ce commit.
   // Import différé (pas de cycle statique repository → coherence → repository)
-  // et garde anti-boucle: les écritures issues du Coherence Guard lui-même
-  // (route /coherence/) ne redéclenchent pas d'audit.
-  if (changedSections.length > 0 && !/\/coherence\//.test(source)) {
+  // et garde anti-boucle EXPLICITE (flag ALS posé par CoherenceService.applyProposal
+  // avant sa propre écriture) plutôt qu'une convention d'URL — reste correcte
+  // quelle que soit la route qui finit par appliquer une proposition de cohérence.
+  if (changedSections.length > 0 && !context?.suppressCoherenceTrigger) {
     try {
       const { coherenceService } = await import('../coherence/coherence.service');
       coherenceService.onSectionsChanged(projectId, userId, changedSections);

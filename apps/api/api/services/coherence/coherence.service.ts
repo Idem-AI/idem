@@ -12,7 +12,8 @@ import {
 } from '../../models/coherence.model';
 import { CoherenceAlert } from '../../schemas/coherence.schema';
 import { AIChatMessage, promptService } from '../prompt.service';
-import { markRevisionAsAI } from '../../utils/revision-context.util';
+import { markRevisionAsAI, suppressCoherenceTrigger } from '../../utils/revision-context.util';
+import { logAIEvent } from '../../utils/ai-trace.util';
 import { sectionHasContent, sectionRegistry, summarizeValue } from '../context-engine/context-registry';
 import { CoherenceRule, getRule, rulesForSection } from './coherence-rules';
 
@@ -29,7 +30,11 @@ import { CoherenceRule, getRule, rulesForSection } from './coherence-rules';
  */
 
 const DEBOUNCE_MS = 8_000;
+/** Plafond du debounce: des écritures continues (autosave) ne repoussent plus l'audit indéfiniment. */
+const MAX_DEBOUNCE_WAIT_MS = 60_000;
 const SECTION_CONTEXT_MAX_CHARS = 7_000;
+/** Code MongoDB pour une violation de contrainte unique (course gagnée par un autre audit/apply concurrent). */
+const MONGO_DUPLICATE_KEY_ERROR = 11000;
 
 const COHERENCE_SYSTEM_PROMPT = `Tu es un auditeur de cohérence pour la plateforme IDEM.
 On te donne deux artefacts d'un même projet d'entreprise et le contrat de cohérence qui les lie.
@@ -49,12 +54,14 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, au format:
   "financeAutofillRecommended": boolean
 }
 
-"financeAutofillRecommended" = true UNIQUEMENT si la section finance est vide ou très incomplète alors que le business plan définit un modèle économique exploitable.
-Si les deux artefacts sont cohérents (ou si l'un des deux est trop vide pour juger), renvoie coherent=true avec issues=[].`;
+"financeAutofillRecommended" = true si la section finance est vide ou très incomplète alors que le business plan définit un modèle économique exploitable — DANS CE CAS, mets-le à true MÊME SI tu réponds coherent=true avec issues=[] (une finance vide n'est pas "incohérente" en soi, mais reste une action recommandée: ce champ est indépendant de "coherent").
+Si les deux artefacts sont cohérents et qu'il n'y a rien à recommander (ou si l'un des deux est trop vide pour juger sans rapport avec l'autre), renvoie coherent=true, issues=[], financeAutofillRecommended=false.`;
 
 export class CoherenceService {
   private readonly projectRepository: IRepository<ProjectModel>;
   private readonly pendingChecks = new Map<string, NodeJS.Timeout>();
+  /** Horodatage de la 1ère écriture de la rafale en cours, par clé — sert au plafond de debounce. */
+  private readonly pendingSince = new Map<string, number>();
 
   constructor() {
     this.projectRepository = RepositoryFactory.getRepository<ProjectModel>();
@@ -63,6 +70,10 @@ export class CoherenceService {
   /**
    * Point d'entrée appelé par le hook Chronicle après chaque écriture projet.
    * Programme (avec debounce) un audit pour chaque règle touchée.
+   *
+   * Le délai avant exécution est plafonné à MAX_DEBOUNCE_WAIT_MS: une rafale
+   * d'écritures continues (autosave toutes les ~5s) repousserait sinon l'audit
+   * indéfiniment tant que l'utilisateur édite (famine).
    */
   onSectionsChanged(
     projectId: string,
@@ -78,21 +89,30 @@ export class CoherenceService {
       }
     }
 
+    const now = Date.now();
     for (const { rule, trigger } of rules.values()) {
       const key = `${projectId}:${rule.id}`;
       const existing = this.pendingChecks.get(key);
       if (existing) clearTimeout(existing);
 
-      this.pendingChecks.set(
-        key,
-        setTimeout(() => {
-          this.pendingChecks.delete(key);
-          this.checkRule(userId, projectId, rule.id, trigger).catch((err) =>
-            logger.error(`CoherenceService scheduled check failed (${key}): ${err.message}`)
-          );
-        }, DEBOUNCE_MS)
-      );
-      logger.info(`CoherenceService: audit "${rule.id}" programmé pour ${projectId} (déclencheur: ${trigger})`);
+      const since = this.pendingSince.get(key) ?? now;
+      if (!this.pendingSince.has(key)) this.pendingSince.set(key, now);
+      const elapsed = now - since;
+      const delay = Math.max(0, Math.min(DEBOUNCE_MS, MAX_DEBOUNCE_WAIT_MS - elapsed));
+
+      const timer = setTimeout(() => {
+        this.pendingChecks.delete(key);
+        this.pendingSince.delete(key);
+        this.checkRule(userId, projectId, rule.id, trigger).catch((err) =>
+          logger.error(`CoherenceService scheduled check failed (${key}): ${err.message}`)
+        );
+      }, delay);
+      // Ne bloque pas l'arrêt propre du process en attendant ce timer.
+      timer.unref?.();
+      this.pendingChecks.set(key, timer);
+
+      logger.info(`CoherenceService: audit "${rule.id}" programmé pour ${projectId} (déclencheur: ${trigger}, delayMs=${delay})`);
+      logAIEvent('coherence.scheduled', { ruleId: rule.id, projectId, trigger, delayMs: delay });
     }
   }
 
@@ -151,11 +171,24 @@ export class CoherenceService {
       messages
     );
     const verdict = this.parseVerdict(raw);
+    const hasFinanceProposal = rule.supportsFinanceAutofill && verdict.financeAutofillRecommended;
+
+    logAIEvent('coherence.verdict', {
+      ruleId,
+      projectId,
+      coherent: verdict.coherent,
+      issuesCount: verdict.issues.length,
+      financeAutofillRecommended: verdict.financeAutofillRecommended,
+    });
 
     await this.supersedeOpenAlerts(projectId, ruleId);
 
-    if (verdict.coherent || verdict.issues.length === 0) {
-      logger.info(`CoherenceService: "${ruleId}" cohérent pour ${projectId}`);
+    // Une alerte est créée dès qu'il y a quelque chose à proposer — incohérence
+    // détectée OU recommandation d'autofill — indépendamment du booléen
+    // "coherent" (une finance vide n'est pas "incohérente" en soi mais reste
+    // une action à proposer).
+    if (verdict.issues.length === 0 && !hasFinanceProposal) {
+      logger.info(`CoherenceService: "${ruleId}" cohérent pour ${projectId}, rien à proposer`);
       return null;
     }
 
@@ -166,7 +199,7 @@ export class CoherenceService {
       description: issue.suggestedAction,
     }));
 
-    if (rule.supportsFinanceAutofill && verdict.financeAutofillRecommended) {
+    if (hasFinanceProposal) {
       proposals.unshift({
         id: uuidv4(),
         kind: 'finance_autofill',
@@ -181,25 +214,51 @@ export class CoherenceService {
       userId,
       ruleId,
       status: 'open',
-      analysis: verdict.analysis,
+      analysis:
+        verdict.analysis ||
+        (hasFinanceProposal
+          ? 'Le business plan définit un modèle économique, mais les prévisions financières sont vides ou très incomplètes.'
+          : 'Incohérence détectée.'),
       issues: verdict.issues,
       proposals,
       triggeredBySection: triggeredBySection ?? rule.sections[0],
     };
 
-    const created = await CoherenceAlert.create(alert);
-    logger.info(
-      `CoherenceService: alerte "${ruleId}" créée pour ${projectId} (${verdict.issues.length} incohérence(s))`
-    );
-    return { ...alert, id: created._id?.toString() };
+    try {
+      const created = await CoherenceAlert.create(alert);
+      logger.info(
+        `CoherenceService: alerte "${ruleId}" créée pour ${projectId} (${verdict.issues.length} incohérence(s), autofill=${hasFinanceProposal})`
+      );
+      logAIEvent('coherence.alert_created', {
+        ruleId,
+        projectId,
+        issuesCount: verdict.issues.length,
+        hasFinanceProposal,
+      });
+      return { ...alert, id: created._id?.toString() };
+    } catch (err: any) {
+      // Index unique partiel (projectId, ruleId, status='open'): un autre audit
+      // concurrent (autre instance, ou requête POST /check manuelle en parallèle
+      // du debounce) a créé sa propre alerte 'open' entre notre supersede et
+      // notre create. On abandonne proprement plutôt que produire un doublon —
+      // l'alerte gagnante reflète un audit tout aussi récent.
+      if (err?.code === MONGO_DUPLICATE_KEY_ERROR) {
+        logger.info(
+          `CoherenceService: audit "${ruleId}" pour ${projectId} abandonné (alerte concurrente déjà créée)`
+        );
+        return null;
+      }
+      throw err;
+    }
   }
 
-  /** Alertes d'un projet (ouvertes par défaut). */
+  /** Alertes d'un projet (ouvertes par défaut). Filtrées par propriétaire (anti-IDOR). */
   async listAlerts(
     projectId: string,
+    userId: string,
     options: { status?: string; limit?: number } = {}
   ): Promise<CoherenceAlertModel[]> {
-    const query: Record<string, unknown> = { projectId };
+    const query: Record<string, unknown> = { projectId, userId };
     query.status = options.status ?? 'open';
 
     const docs = await CoherenceAlert.find(query)
@@ -233,29 +292,56 @@ export class CoherenceService {
     alertId: string,
     proposalId: string
   ): Promise<{ message: string }> {
-    const alert = await CoherenceAlert.findOne({ _id: alertId, projectId, userId });
-    if (!alert) throw new Error(`Alerte introuvable: ${alertId}`);
-    if (alert.status !== 'open') {
-      throw new Error(`Cette alerte n'est plus ouverte (statut: ${alert.status}).`);
+    // Transition atomique open→applying, conditionnée sur status='open' dans
+    // la requête elle-même: un double-clic ou un doublon d'onglet trouve la
+    // requête sans match (l'autre l'a déjà fait passer en 'applying') et
+    // échoue proprement au lieu de lancer un second autofill en parallèle.
+    const claimed = await CoherenceAlert.findOneAndUpdate(
+      { _id: alertId, projectId, userId, status: 'open' },
+      { $set: { status: 'applying' } },
+      { new: true }
+    );
+    if (!claimed) {
+      const existing = await CoherenceAlert.findOne({ _id: alertId, projectId, userId }).lean();
+      if (!existing) throw new Error(`Alerte introuvable: ${alertId}`);
+      throw new Error(
+        existing.status === 'applying'
+          ? 'Cette proposition est déjà en cours d’application.'
+          : `Cette alerte n'est plus ouverte (statut: ${existing.status}).`
+      );
     }
 
-    const proposal = (alert.proposals ?? []).find((p) => p.id === proposalId);
-    if (!proposal) throw new Error(`Proposition introuvable: ${proposalId}`);
+    const proposal = (claimed.proposals ?? []).find((p) => p.id === proposalId);
+    if (!proposal) {
+      // Revert: l'alerte n'a rien à faire rester bloquée en 'applying' si la
+      // proposition demandée n'existe pas.
+      await CoherenceAlert.updateOne({ _id: alertId }, { $set: { status: 'open' } });
+      throw new Error(`Proposition introuvable: ${proposalId}`);
+    }
 
     if (proposal.kind !== 'finance_autofill') {
+      await CoherenceAlert.updateOne({ _id: alertId }, { $set: { status: 'open' } });
       throw new Error(
         'Cette proposition est une action manuelle — appliquez-la depuis l’éditeur concerné, puis l’alerte sera automatiquement réévaluée.'
       );
     }
 
-    // Import différé: évite un cycle statique (finance-ai → repository → hook).
-    const { financeAIService } = await import('../Finance/finance-ai.service');
+    try {
+      // Import différé: évite un cycle statique (finance-ai → repository → hook).
+      const { financeAIService } = await import('../Finance/finance-ai.service');
 
-    markRevisionAsAI('Synchronisation des finances depuis le business plan (Coherence Guard)');
-    await financeAIService.autoFillAll(userId, projectId);
+      markRevisionAsAI('Synchronisation des finances depuis le business plan (Coherence Guard)');
+      suppressCoherenceTrigger();
+      await financeAIService.autoFillAll(userId, projectId);
 
-    alert.status = 'applied';
-    await alert.save();
+      await CoherenceAlert.updateOne({ _id: alertId }, { $set: { status: 'applied' } });
+    } catch (err: any) {
+      // L'autofill a échoué: rendre la main à l'utilisateur plutôt que de
+      // laisser l'alerte bloquée en 'applying' pour toujours.
+      await CoherenceAlert.updateOne({ _id: alertId }, { $set: { status: 'open' } });
+      logger.error(`CoherenceService: applyProposal autofill failed (alerte ${alertId}): ${err.message}`);
+      throw err;
+    }
 
     logger.info(`CoherenceService: proposition ${proposalId} appliquée (alerte ${alertId})`);
     return {
@@ -264,12 +350,17 @@ export class CoherenceService {
     };
   }
 
-  /** Rejette une alerte (elle ne sera plus proposée pour cet état des données). */
+  /** Rejette une alerte ouverte (elle ne sera plus proposée pour cet état des données). */
   async dismissAlert(userId: string, projectId: string, alertId: string): Promise<void> {
-    const alert = await CoherenceAlert.findOne({ _id: alertId, projectId, userId });
-    if (!alert) throw new Error(`Alerte introuvable: ${alertId}`);
-    alert.status = 'dismissed';
-    await alert.save();
+    const result = await CoherenceAlert.findOneAndUpdate(
+      { _id: alertId, projectId, userId, status: 'open' },
+      { $set: { status: 'dismissed' } }
+    );
+    if (!result) {
+      const existing = await CoherenceAlert.findOne({ _id: alertId, projectId, userId }).lean();
+      if (!existing) throw new Error(`Alerte introuvable: ${alertId}`);
+      throw new Error(`Cette alerte n'est plus ouverte (statut: ${existing.status}).`);
+    }
   }
 
   // -------------------------------------------------------------------
