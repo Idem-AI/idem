@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Refuse commits containing Claude or Anthropic co-author signatures
+if grep -i -q "Co-Authored-By:.*claude" "$1" || grep -i -q "Co-Authored-By:.*anthropic" "$1" || grep -i -q "Co-Authored-By:.*haiku" "$1"; then
+  echo "========================================================================" >&2
+  echo "❌ COMMIT REJECTED" >&2
+  echo "La signature de co-auteur (Claude/Anthropic) est interdite." >&2
+  echo "Veuillez retirer la ligne 'Co-Authored-By' de votre message de commit." >&2
+  echo "========================================================================" >&2
+  exit 1
+fi
