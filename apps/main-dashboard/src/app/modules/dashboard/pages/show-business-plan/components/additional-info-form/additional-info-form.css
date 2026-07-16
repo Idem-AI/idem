@@ -169,7 +169,6 @@
 
 /* Skeleton Overrides */
 ::ng-deep .p-skeleton {
-  background: var(--glass-bg) !important;
   border-radius: 0.375rem !important;
 }
 
