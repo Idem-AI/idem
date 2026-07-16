@@ -2,6 +2,8 @@ import { FunctionDeclaration, Type } from '@google/genai';
 import logger from '../../config/logger';
 import { ProjectSectionKey } from '../../models/revision.model';
 import { versionHistoryService } from '../history/version-history.service';
+import { financeService } from '../Finance/finance.service';
+import { coherenceService } from '../coherence/coherence.service';
 import { contextEngineService } from './context-engine.service';
 import { ALL_SECTION_KEYS, isSectionKey } from './context-registry';
 
@@ -113,6 +115,18 @@ export const CONTEXT_TOOL_DECLARATIONS: FunctionDeclaration[] = [
     },
   },
   {
+    name: 'project_finance_summary',
+    description:
+      "Résumé calculé des prévisions financières: chiffre d'affaires par année, résultat net, marge brute, trésorerie, point mort, TRI, VAN et alertes. Utiliser pour toute question sur les chiffres/indicateurs financiers. Si aucune donnée n'existe, croiser avec la section businessPlan (le modèle économique y est souvent décrit) via project_get_section.",
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
+    name: 'project_coherence_alerts',
+    description:
+      "Alertes de cohérence ouvertes entre artefacts du projet (ex: le business plan décrit un modèle de revenu absent des prévisions financières). Chaque alerte contient une analyse, les incohérences et des propositions d'action. Utiliser quand une question touche deux artefacts liés, ou pour signaler proactivement une désynchronisation.",
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
     name: 'project_state_at_date',
     description:
       "État d'une section telle qu'elle était à une date/heure donnée (ISO 8601), comme un checkout temporel. Utiliser pour \"comment était X la semaine dernière ?\" ou retrouver une donnée modifiée depuis par l'utilisateur.",
@@ -206,6 +220,35 @@ export function createContextToolExecutor(userId: string, projectId: string): To
               Number(args.toVersion)
             )
           );
+        }
+
+        case 'project_finance_summary': {
+          const result = await financeService.getSummary(userId, projectId);
+          if (!result) {
+            return {
+              exists: false,
+              message:
+                "Aucune donnée financière saisie dans le module Finance. Le modèle économique est peut-être décrit dans la section businessPlan (utiliser project_get_section) — proposer à l'utilisateur de remplir ses prévisions financières (autofill IA disponible).",
+            };
+          }
+          return boundResult({ exists: true, summary: result.summary });
+        }
+
+        case 'project_coherence_alerts': {
+          const alerts = await coherenceService.listAlerts(projectId);
+          if (alerts.length === 0) {
+            return { alerts: [], message: 'Aucune alerte de cohérence ouverte.' };
+          }
+          return boundResult({
+            alerts: alerts.map((a) => ({
+              id: a.id,
+              rule: a.ruleId,
+              analysis: a.analysis,
+              issues: a.issues,
+              proposals: a.proposals,
+              createdAt: a.createdAt,
+            })),
+          });
         }
 
         case 'project_state_at_date': {

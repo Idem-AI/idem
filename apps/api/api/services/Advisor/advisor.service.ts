@@ -13,7 +13,6 @@ import { IRepository } from '../../repository/IRepository';
 import { ProjectModel } from '../../models/project.model';
 import { ADVISOR_SYSTEM_PROMPT, ADVISOR_TOOLS_GUIDE } from './prompts/system.prompt';
 import { financeAIService, FinanceChatIntent } from '../Finance/finance-ai.service';
-import { financeService } from '../Finance/finance.service';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
 
 export interface AdvisorReplyResult {
@@ -129,30 +128,10 @@ export class AdvisorService {
       financeIntent = null;
     }
 
-    // a) Intent lecture → on répond directement avec le résumé
-    if (
-      financeIntent?.isFinanceIntent &&
-      (financeIntent.kind === 'read_summary' || financeIntent.kind === 'read_section')
-    ) {
-      const replyText =
-        financeIntent.summaryText ||
-        (await this.buildFinanceSummaryFallback(userId, projectId, financeIntent));
-      const assistantMessage: AdvisorMessage = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: replyText,
-        createdAt: new Date(),
-      };
-      const conversation = await this.persistConversation(
-        userId,
-        projectId,
-        project,
-        existing,
-        userMessage,
-        assistantMessage
-      );
-      return { userMessage, assistantMessage, conversation };
-    }
+    // a) Les intentions de LECTURE finance ne court-circuitent PLUS la boucle
+    // agentique: l'agent croise le module Finance (project_finance_summary) et
+    // le business plan (project_get_section) au lieu de répondre depuis le seul
+    // module Finance — c'est la garantie de cohérence entre artefacts.
 
     // b) Intent mutation → on renvoie la phrase de confirmation + intent stockée
     if (
@@ -403,43 +382,5 @@ export class AdvisorService {
       `users/${userId}/projects`
     );
     return conversation;
-  }
-
-  /** Construit un résumé finance de secours si l'IA n'a pas renvoyé `summaryText`. */
-  private async buildFinanceSummaryFallback(
-    userId: string,
-    projectId: string,
-    intent: FinanceChatIntent
-  ): Promise<string> {
-    try {
-      const result = await financeService.getSummary(userId, projectId);
-      if (!result) {
-        return 'Aucune donn\u00e9e financi\u00e8re disponible pour le moment. Voulez-vous que je remplisse une premi\u00e8re \u00e9bauche avec l\u2019IA ?';
-      }
-      const s = result.summary;
-      const fmt = (v: number) =>
-        Math.round(v)
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
-      const lines = [
-        `Voici un r\u00e9sum\u00e9 de vos finances :`,
-        `- Chiffre d\u2019affaires An 1: ${fmt(s.caY1)}`,
-        `- R\u00e9sultat net An 3: ${fmt(s.resultatNetY3)}`,
-        `- Marge brute: ${s.margeBrutePct.toFixed(1)}%`,
-        `- Tr\u00e9sorerie cl\u00f4ture An 1: ${fmt(s.tresorerieClotureY1)}`,
-        `- Point mort: ${Math.round(s.pointMortJours)} jours`,
-        `- Co\u00fbt total du projet: ${fmt(s.coutTotalProjet)}`,
-        `- TRI: ${s.tri.toFixed(1)}%`,
-        `- VAN: ${fmt(s.van)}`,
-      ];
-      if (s.alerts && s.alerts.length > 0) {
-        lines.push('', 'Points de vigilance:');
-        s.alerts.forEach((a) => lines.push(`- ${a}`));
-      }
-      return lines.join('\n');
-    } catch (err: any) {
-      logger.warn(`buildFinanceSummaryFallback failed: ${err?.message}`);
-      return 'Je n\u2019ai pas pu r\u00e9cup\u00e9rer le r\u00e9sum\u00e9 de vos finances pour le moment.';
-    }
   }
 }
