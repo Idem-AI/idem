@@ -32,13 +32,6 @@ html {
 body {
   position: relative;
   isolation: isolate;
-  background-size: 50px 50px;
-  background-image: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px
-    ),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   overflow-x: hidden;
   min-height: 100vh;
   background-color: transparent;
@@ -56,13 +49,13 @@ body::before {
   background-repeat: repeat;
   background-position: top left;
   pointer-events: none;
-  opacity: 0.08;
+  opacity: 0.3;
 }
 
 .dark body::before,
 html.dark body::before {
   filter: invert(1);
-  opacity: 0.15;
+  opacity: 0.35;
 }
 
 .ant-modal {
