@@ -20,10 +20,10 @@
   @if (showLiveBoard()) {
     <div class="w-full max-w-7xl mx-auto">
       <div class="text-center mb-8">
-        <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-100 mb-3">
+        <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-text-primary mb-3">
           {{ 'dashboard.logoSelection.live.title' | translate }}
         </h1>
-        <p class="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
+        <p class="text-text-tertiary text-sm sm:text-base max-w-2xl mx-auto">
           {{ 'dashboard.logoSelection.live.subtitle' | translate }}
         </p>
         <p
@@ -45,7 +45,7 @@
         @for (slot of conceptSlots(); track slot.index) {
           <div
             class="relative rounded-2xl border-2 glass p-5 flex flex-col transition-all duration-300"
-            [class.border-white/10]="slot.status !== 'final'"
+            [class.border-surface-3]="slot.status !== 'final'"
             [class.border-green-500/40]="slot.status === 'final'"
             [class.opacity-50]="slot.status === 'cancelled'"
             [class.cursor-pointer]="!!slot.logo && slot.status !== 'cancelled' && slot.status !== 'error'"
@@ -77,7 +77,7 @@
                   </div>
                 }
               } @else if (slot.status === 'cancelled') {
-                <div class="flex flex-col items-center gap-2 text-gray-400">
+                <div class="flex flex-col items-center gap-2 text-text-tertiary">
                   <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                   </svg>
@@ -107,11 +107,11 @@
                   <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                 </svg>
               }
-              <span class="text-sm text-gray-300 truncate">
+              <span class="text-sm text-text-secondary truncate">
                 {{ slotStatusKey(slot.status) | translate }}
               </span>
               @if (slot.logo?.name) {
-                <span class="text-xs text-gray-500 truncate ml-auto">{{ slot.logo?.name }}</span>
+                <span class="text-xs text-text-tertiary truncate ml-auto">{{ slot.logo?.name }}</span>
               }
             </div>
 
@@ -139,14 +139,14 @@
                         {{ 'dashboard.logoSelection.live.critique.revised' | translate }}
                       </span>
                     }
-                    <span class="text-xs text-gray-400">{{ critique.score }}/100</span>
+                    <span class="text-xs text-text-tertiary">{{ critique.score }}/100</span>
                   </span>
                 </div>
-                <p class="text-xs text-gray-300 leading-relaxed">{{ critique.summary }}</p>
+                <p class="text-xs text-text-secondary leading-relaxed">{{ critique.summary }}</p>
                 @if (critique.verdict === 'fail' && critique.remarks.length > 0) {
                   <ul class="mt-2 space-y-1">
                     @for (remark of critique.remarks; track remark.issue) {
-                      <li class="text-xs text-gray-400 flex gap-1.5">
+                      <li class="text-xs text-text-tertiary flex gap-1.5">
                         <span class="text-amber-400 shrink-0">•</span>
                         <span>{{ remark.issue }}</span>
                       </li>
@@ -165,11 +165,11 @@
   @if (shouldShowLoader()) {
     <div class="text-center mb-8">
       <h1
-        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
+        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-primary mb-4 max-w-4xl"
       >
         {{ 'dashboard.logoSelection.generating.title' | translate }}
       </h1>
-      <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto">
+      <p class="text-text-tertiary sm:text-lg text-sm max-w-2xl mx-auto">
         {{ 'dashboard.logoSelection.generating.subtitle' | translate }}
       </p>
     </div>
@@ -186,14 +186,14 @@
         [infinite]="false"
       >
         <ng-template let-item>
-          <div class="p-4 sm:p-6 border-2 border-gray-700/50 glass rounded-xl">
+          <div class="p-4 sm:p-6 border-2 border-[var(--glass-border)] glass rounded-xl">
             <div
-              class="w-full h-48 mb-4 bg-gray-800/50 rounded-xl flex items-center justify-center"
+              class="w-full h-48 mb-4 bg-[var(--glass-bg-light)] rounded-xl flex items-center justify-center"
             >
-              <div class="w-20 h-20 bg-gray-700/50 rounded-lg animate-pulse"></div>
+              <div class="w-20 h-20 bg-[var(--glass-bg-subtle)] rounded-lg animate-pulse"></div>
             </div>
-            <div class="h-6 bg-gray-700/50 rounded-lg animate-pulse mb-2"></div>
-            <div class="h-4 bg-gray-700/30 rounded-lg animate-pulse w-3/4"></div>
+            <div class="h-6 bg-[var(--glass-bg-subtle)] rounded-lg animate-pulse mb-2"></div>
+            <div class="h-4 bg-[var(--glass-bg-subtle)] rounded-lg animate-pulse w-3/4"></div>
           </div>
         </ng-template>
       </app-carousel>
@@ -201,12 +201,12 @@
 
     <div class="mt-12 text-center">
       <div
-        class="bg-gray-900/30 backdrop-blur-sm border border-gray-700/30 rounded-xl p-6 max-w-2xl mx-auto"
+        class="bg-[var(--glass-bg-subtle)] backdrop-blur-sm border border-[var(--glass-border-subtle)] rounded-xl p-6 max-w-2xl mx-auto"
       >
-        <h3 class="text-lg font-semibold text-white mb-3">
+        <h3 class="text-lg font-semibold text-text-primary mb-3">
           💡 {{ 'dashboard.logoSelection.generating.whileYouWait' | translate }}
         </h3>
-        <p class="text-gray-300 text-sm leading-relaxed">
+        <p class="text-text-secondary text-sm leading-relaxed">
           {{ 'dashboard.logoSelection.generating.tip' | translate }}
         </p>
       </div>
@@ -230,10 +230,10 @@
               ></path>
             </svg>
           </div>
-          <h3 class="text-xl font-semibold text-white mb-2">
+          <h3 class="text-xl font-semibold text-text-primary mb-2">
             {{ 'dashboard.logoSelection.errors.title' | translate }}
           </h3>
-          <p class="text-gray-400 mb-6">{{ error() }}</p>
+          <p class="text-text-tertiary mb-6">{{ error() }}</p>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-3 justify-center">
@@ -261,11 +261,11 @@
     <div class="w-full max-w-7xl mx-auto mt-[50px] sm:mt-0">
       <!-- Header -->
       <div class="text-center mb-4">
-        <h1 class="text-2xl sm:text-4xl font-bold text-white mb-1">
+        <h1 class="text-2xl sm:text-4xl font-bold text-text-primary mb-1">
           {{ 'dashboard.logoSelection.success.title' | translate }}
         </h1>
 
-        <p class="text-xs md:text-xl text-gray-300 mb-4">
+        <p class="text-xs md:text-xl text-text-secondary mb-4">
           {{ 'dashboard.logoSelection.success.subtitle' | translate }}
         </p>
 
@@ -288,7 +288,7 @@
             </button>
             <button
               (click)="onNextStep()"
-              class="inner-button inline-flex items-center px-6 py-2 text-sm font-semibold text-white"
+              class="inner-button inline-flex items-center px-6 py-2 text-sm font-semibold"
             >
               {{ 'common.next' | translate }}
               <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -333,12 +333,12 @@
             [attr.aria-pressed]="selectedLogoComputed() === logo.id"
           >
             <div
-              class="relative bg-gray-900/40 backdrop-blur-sm border-2 border-transparent glass hover:border-gray-600 rounded-2xl p-6 transition-all duration-300 cursor-pointer group overflow-hidden hover:-translate-y-1"
+              class="relative bg-[var(--glass-bg-subtle)] backdrop-blur-sm border-2 border-transparent glass hover:border-[var(--glass-border-medium)] rounded-2xl p-6 transition-all duration-300 cursor-pointer group overflow-hidden hover:-translate-y-1"
               [style.boxShadow]="
                 selectedLogoComputed() === logo.id ? '0 0 15px rgba(99, 102, 241, 0.5)' : 'none'
               "
               [class.border-primary]="selectedLogoComputed() === logo.id"
-              [class.bg-gray-900]="selectedLogoComputed() === logo.id"
+              [class.bg-surface-1]="selectedLogoComputed() === logo.id"
               [style.borderColor]="selectedLogoComputed() === logo.id ? 'rgb(99, 102, 241)' : ''"
             >
               <!-- Selection Indicator -->
@@ -346,7 +346,7 @@
                 <div
                   class="absolute top-3 right-3 z-50 w-10 h-10 bg-primary rounded-full flex items-center justify-center"
                 >
-                  <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg class="w-5 h-5 text-text-primary" fill="currentColor" viewBox="0 0 20 20">
                     <path
                       fill-rule="evenodd"
                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -376,24 +376,24 @@
                 <!-- Logo Info -->
                 <div class="text-center">
                   <h3
-                    class="text-lg font-bold text-white mb-2 group-hover:text-primary transition-colors duration-300"
+                    class="text-lg font-bold text-text-primary mb-2 group-hover:text-primary transition-colors duration-300"
                   >
                     {{ logo.name }}
                   </h3>
                   <p
-                    class="text-gray-400 text-sm mb-4 leading-relaxed line-clamp-2 h-12 overflow-hidden"
+                    class="text-text-tertiary text-sm mb-4 leading-relaxed line-clamp-2 h-12 overflow-hidden"
                   >
                     {{ logo.concept }}
                   </p>
 
                   <!-- Color Palette -->
                   <div class="flex items-center justify-center space-x-2 mb-3">
-                    <span class="text-xs text-gray-500 mr-2"
+                    <span class="text-xs text-text-tertiary mr-2"
                       >{{ 'dashboard.logoSelection.cards.colors' | translate }}:</span
                     >
                     @for (color of logo.colors; track color) {
                       <div
-                        class="w-4 h-4 rounded-full border-2 border-gray-600"
+                        class="w-4 h-4 rounded-full border-2 border-[var(--glass-border-medium)]"
                         [style.background-color]="color"
                         [title]="color"
                       ></div>
@@ -403,7 +403,7 @@
                   <!-- Fonts -->
                   <div class="flex flex-wrap justify-center gap-2">
                     @for (font of logo.fonts; track font) {
-                      <span class="text-xs bg-gray-700/50 text-gray-300 px-2 py-1 rounded-full">{{
+                      <span class="text-xs bg-[var(--glass-bg-subtle)] text-text-secondary px-2 py-1 rounded-full">{{
                         font
                       }}</span>
                     }

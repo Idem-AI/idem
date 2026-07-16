@@ -44,18 +44,18 @@ export const GlobalLimitModal = ({ onLogin }: { onLogin: () => void }) => {
           <div className="glass-card w-[400px] relative">
             <button
               onClick={closeModal}
-              className="absolute right-4 top-4 text-gray-400 hover:text-gray-200 transition-colors"
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="p-6">
-              <h3 className="text-xl font-medium text-white mb-2">
+              <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
                 {type === "login"
                   ? t("login.chat_limit_reached")
                   : t("login.usage_limit_reached")}
               </h3>
-              <p className="text-gray-400 text-sm mb-6">
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
                 {type === "login"
                   ? t("login.chat_limit_reached_tips")
                   : t("login.usage_limit_reached_tips")}
@@ -84,7 +84,7 @@ export const GlobalLimitModal = ({ onLogin }: { onLogin: () => void }) => {
                 )}
                 <button
                   onClick={closeModal}
-                  className="flex-1 bg-[#333] hover:bg-[#444] text-white rounded-lg py-2 text-sm font-medium transition-colors"
+                  className="flex-1 bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-[#333] dark:hover:bg-[#444] dark:text-white rounded-lg py-2 text-sm font-medium transition-colors"
                 >
                   {t("common.close")}
                 </button>

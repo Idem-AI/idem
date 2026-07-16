@@ -7,7 +7,7 @@ import { ApiService } from '../../../shared/services/api.service';
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">{{ 'sources.title' | translate }}</h1>
+    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ 'sources.title' | translate }}</h1>
     @if (sources().length === 0) {
       <div class="box">{{ 'sources.empty' | translate }}</div>
     } @else {

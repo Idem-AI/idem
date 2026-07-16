@@ -8,8 +8,8 @@
   width: 100%;
   min-height: 180px;
   padding: 1.5rem;
-  background: rgba(15, 23, 42, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: 1.25rem;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -20,9 +20,9 @@
 
 .project-tile:hover {
   transform: translateY(-2px);
-  background-color: rgba(255, 255, 255, 0.02);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  background-color: var(--glass-bg-light);
+  border-color: var(--glass-border-medium);
+  box-shadow: var(--glass-shadow-lg);
 }
 
 .project-tile:active {
@@ -30,8 +30,8 @@
 }
 
 .project-tile:focus-visible {
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+  border-color: var(--glass-border-strong);
+  box-shadow: 0 0 0 3px var(--glass-border-subtle);
 }
 
 /* ===== Card Header (Inline Logo, Title, and Chevron) ===== */
@@ -60,7 +60,7 @@
   width: auto;
   padding: 0.25rem 0.6rem;
   background: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--glass-border-medium);
   border-radius: 0.85rem;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -68,7 +68,7 @@
 }
 
 .project-tile:hover .tile-logo-inner {
-  border-color: rgba(255, 255, 255, 0.35);
+  border-color: var(--glass-border-strong);
   transform: scale(1.03);
 }
 
@@ -94,7 +94,7 @@
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
   box-shadow: 
     inset 0 2px 4px rgba(255, 255, 255, 0.25), 
     inset 0 -2px 4px rgba(0, 0, 0, 0.3),
@@ -126,7 +126,7 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -139,12 +139,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--color-text-tertiary);
   transition: color 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .project-tile:hover .tile-action-chevron {
-  color: #ffffff;
+  color: var(--color-text-primary);
   transform: translateX(3px);
 }
 
@@ -166,7 +166,7 @@
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-tertiary);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;

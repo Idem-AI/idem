@@ -1,4 +1,5 @@
 import useThemeStore from "@/stores/themeSlice";
+import { isThemeMode, writeThemeCookie } from "@/utils/themeCookie";
 import { useState, useEffect, useRef } from "react";
 import useChatStore from "@/stores/chatSlice";
 import i18n from "@/utils/i18";
@@ -383,6 +384,10 @@ export function GeneralSettings() {
   const handleThemeChange = (theme: string) => {
     setCurrentTheme(theme);
     localStorage.setItem("theme", theme);
+    // Propagate to all Idem apps via the shared cookie.
+    if (isThemeMode(theme)) {
+      writeThemeCookie(theme);
+    }
 
     if (theme === "system") {
       const prefersDark = window.matchMedia(

@@ -1,9 +1,9 @@
 <div class="h-full flex flex-col">
   <!-- Custom Typography Creator -->
   <div
-    class="bg-gray-800/40 border border-gray-700/50 rounded-xl p-6 backdrop-blur-sm flex-1 flex flex-col"
+    class="bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-xl p-6 backdrop-blur-sm flex-1 flex flex-col"
   >
-    <h3 class="text-white font-semibold mb-6 flex items-center">
+    <h3 class="text-text-primary font-semibold mb-6 flex items-center">
       <svg
         class="w-5 h-5 mr-2 text-indigo-400"
         fill="none"
@@ -28,14 +28,14 @@
         [class.bg-indigo-900_20]="selectedPrimaryFont"
         [class.border-indigo-500_50]="selectedPrimaryFont"
         [class.bg-gray-800_50]="!selectedPrimaryFont"
-        [class.border-gray-700]="!selectedPrimaryFont"
+        [class.border-surface-3]="!selectedPrimaryFont"
       >
         <div class="text-xs text-indigo-400 font-bold uppercase tracking-wider mb-2">
           {{ 'dashboard.typographySelection.custom.primaryFont' | translate }}
         </div>
         <div
-          class="text-white font-medium text-lg truncate"
-          [class.text-gray-500]="!selectedPrimaryFont"
+          class="text-text-primary font-medium text-lg truncate"
+          [class.text-text-disabled]="!selectedPrimaryFont"
         >
           {{
             selectedPrimaryFont || ('dashboard.typographySelection.custom.notSelected' | translate)
@@ -49,14 +49,14 @@
         [class.bg-purple-900_20]="selectedSecondaryFont"
         [class.border-purple-500_50]="selectedSecondaryFont"
         [class.bg-gray-800_50]="!selectedSecondaryFont"
-        [class.border-gray-700]="!selectedSecondaryFont"
+        [class.border-surface-3]="!selectedSecondaryFont"
       >
         <div class="text-xs text-purple-400 font-bold uppercase tracking-wider mb-2">
           {{ 'dashboard.typographySelection.custom.secondaryFont' | translate }}
         </div>
         <div
-          class="text-white font-medium text-lg truncate"
-          [class.text-gray-500]="!selectedSecondaryFont"
+          class="text-text-primary font-medium text-lg truncate"
+          [class.text-text-disabled]="!selectedSecondaryFont"
         >
           {{
             selectedSecondaryFont ||
@@ -68,7 +68,7 @@
 
     <!-- Typography Search Component -->
     <div class="flex-1 min-h-0 flex flex-col">
-      <div class="text-sm text-gray-400 mb-3">Search and select fonts to apply:</div>
+      <div class="text-sm text-text-tertiary mb-3">Search and select fonts to apply:</div>
       <app-typography-search
         class="flex-1 min-h-0 flex flex-col"
         [searchResults]="searchResults"

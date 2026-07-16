@@ -19,7 +19,7 @@ export function QuotaSettings() {
 
   if (!user?.id) {
     return (
-      <div className="flex flex-col items-center justify-center h-[200px] text-gray-400">
+      <div className="flex flex-col items-center justify-center h-[200px] text-gray-500 dark:text-gray-400">
         <div className="mb-4 translate">{t("common.please_login")}</div>
         <button
           onClick={() => {
@@ -61,7 +61,7 @@ export function QuotaSettings() {
 
   return (
     <div>
-      <h2 className="text-[16px] font-medium text-white mb-4 translate">
+      <h2 className="text-[16px] font-medium text-gray-900 dark:text-white mb-4 translate">
         {t("usage.usage")}
       </h2>
 
@@ -93,17 +93,17 @@ export function QuotaSettings() {
       {/* Usage Stats */}
       <div className="space-y-4">
         <div className="flex justify-between items-center text-[14px]">
-          <span className="text-gray-400 translate">
+          <span className="text-gray-500 dark:text-gray-400 translate">
             {t("usage.billing_cycle")}
           </span>
-          <span className=" dark:text-white translate">
+          <span className="text-gray-900 dark:text-white translate">
             {userQuota.resetTime?.toLocaleString() || "1970-01-01"}
           </span>
         </div>
 
         <div className="flex justify-between items-center text-[14px]">
-          <span className="text-gray-400 translate">{t("usage.type")}</span>
-          <span className="dark:text-white">{userQuota.tierType}</span>
+          <span className="text-gray-500 dark:text-gray-400 translate">{t("usage.type")}</span>
+          <span className="text-gray-900 dark:text-white">{userQuota.tierType}</span>
         </div>
       </div>
 

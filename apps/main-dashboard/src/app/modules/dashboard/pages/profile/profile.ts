@@ -155,7 +155,7 @@ export class ProfileComponent implements OnInit {
 
   protected getDailyStatusClass(): string {
     const display = this.quotaDisplay();
-    if (!display) return 'text-gray-400';
+    if (!display) return 'text-text-tertiary';
 
     switch (display.dailyStatus) {
       case QuotaStatus.EXCEEDED:
@@ -169,7 +169,7 @@ export class ProfileComponent implements OnInit {
 
   protected getWeeklyStatusClass(): string {
     const display = this.quotaDisplay();
-    if (!display) return 'text-gray-400';
+    if (!display) return 'text-text-tertiary';
 
     switch (display.weeklyStatus) {
       case QuotaStatus.EXCEEDED:
@@ -183,7 +183,7 @@ export class ProfileComponent implements OnInit {
 
   protected getDailyProgressClass(): string {
     const display = this.quotaDisplay();
-    if (!display) return 'bg-gray-600';
+    if (!display) return 'bg-[var(--color-surface-3)]';
 
     switch (display.dailyStatus) {
       case QuotaStatus.EXCEEDED:
@@ -197,7 +197,7 @@ export class ProfileComponent implements OnInit {
 
   protected getWeeklyProgressClass(): string {
     const display = this.quotaDisplay();
-    if (!display) return 'bg-gray-600';
+    if (!display) return 'bg-[var(--color-surface-3)]';
 
     switch (display.weeklyStatus) {
       case QuotaStatus.EXCEEDED:

@@ -78,7 +78,7 @@ button {
   width: 6.5rem;
   height: 6.5rem;
   border-radius: 1.5rem;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--glass-border);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   transition: transform 0.3s ease;
 }
@@ -178,7 +178,7 @@ button {
 
 /* All cards share a single subtle accent for consistency */
 .module-card {
-  --accent-color: rgba(255, 255, 255, 0.7);
+  --accent-color: var(--color-text-secondary);
 }
 
 /* Completed State Card */
@@ -229,8 +229,8 @@ button {
   color: transparent;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.015) 60%,
+    color-mix(in srgb, var(--color-text-primary) 6%, transparent) 0%,
+    color-mix(in srgb, var(--color-text-primary) 1.5%, transparent) 60%,
     transparent 100%
   );
   -webkit-background-clip: text;
@@ -244,8 +244,8 @@ button {
 .module-card:hover .step-watermark {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0.025) 60%,
+    color-mix(in srgb, var(--color-text-primary) 10%, transparent) 0%,
+    color-mix(in srgb, var(--color-text-primary) 2.5%, transparent) 60%,
     transparent 100%
   );
   -webkit-background-clip: text;
@@ -281,69 +281,69 @@ button {
 
 /* SVG Colors & Animations */
 .svg-bg {
-  fill: rgba(255, 255, 255, 0.015);
-  stroke: rgba(255, 255, 255, 0.035);
+  fill: color-mix(in srgb, var(--color-text-primary) 1.5%, transparent);
+  stroke: color-mix(in srgb, var(--color-text-primary) 3.5%, transparent);
   stroke-width: 1px;
   transition: fill 0.3s ease, stroke 0.3s ease;
 }
 
 .module-card:hover .svg-bg {
-  fill: rgba(255, 255, 255, 0.03);
-  stroke: rgba(255, 255, 255, 0.07);
+  fill: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  stroke: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
 }
 
 .svg-stroke-primary {
-  stroke: rgba(255, 255, 255, 0.5);
+  stroke: color-mix(in srgb, var(--color-text-primary) 50%, transparent);
   transition: stroke 0.3s ease;
 }
 
 .module-card:hover .svg-stroke-primary {
-  stroke: #ffffff;
+  stroke: var(--color-text-primary);
 }
 
 .svg-stroke-accent {
-  stroke: rgba(255, 255, 255, 0.2);
+  stroke: color-mix(in srgb, var(--color-text-primary) 20%, transparent);
   transition: stroke 0.3s ease, filter 0.3s ease;
 }
 
 .module-card:hover .svg-stroke-accent {
-  stroke: rgba(255, 255, 255, 0.6);
+  stroke: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
 }
 
 .svg-stroke-dim {
-  stroke: rgba(255, 255, 255, 0.12);
+  stroke: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
   transition: stroke 0.3s ease;
 }
 
 .module-card:hover .svg-stroke-dim {
-  stroke: rgba(255, 255, 255, 0.22);
+  stroke: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
 }
 
 .svg-fill-primary {
-  fill: rgba(255, 255, 255, 0.4);
+  fill: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
   transition: fill 0.3s ease;
 }
 
 .module-card:hover .svg-fill-primary {
-  fill: #ffffff;
+  fill: var(--color-text-primary);
 }
 
 .svg-fill-accent {
-  fill: rgba(255, 255, 255, 0.15);
+  fill: color-mix(in srgb, var(--color-text-primary) 15%, transparent);
   transition: fill 0.3s ease, filter 0.3s ease;
 }
 
 .module-card:hover .svg-fill-accent {
-  fill: rgba(255, 255, 255, 0.45);
+  fill: color-mix(in srgb, var(--color-text-primary) 45%, transparent);
 }
 
 .svg-fill-dim {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   transition: fill 0.3s ease;
 }
 
 .module-card:hover .svg-fill-dim {
-  fill: rgba(255, 255, 255, 0.18);
+  fill: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
 }
 
 /* Card Body Details */
@@ -441,7 +441,7 @@ button {
 }
 
 .gauge-bg {
-  stroke: rgba(255, 255, 255, 0.03);
+  stroke: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
 }
 
 .gauge-fill {
@@ -458,12 +458,12 @@ button {
 .stats-count {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .stats-label {
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
   text-transform: uppercase;
   letter-spacing: 0.02em;
   margin-top: 0.1rem;
@@ -473,7 +473,7 @@ button {
 .milestones-timeline {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 5%, transparent);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -486,7 +486,7 @@ button {
   bottom: 2rem;
   left: 11px;
   width: 1px;
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
 }
 
 .timeline-item {
@@ -501,8 +501,8 @@ button {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1.5px solid rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-3);
+  border: 1.5px solid var(--glass-border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;

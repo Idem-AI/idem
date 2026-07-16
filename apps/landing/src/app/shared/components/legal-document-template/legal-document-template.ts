@@ -89,24 +89,24 @@ export class LegalDocumentTemplate {
   getWarningClasses(type: string): string {
     switch (type) {
       case 'warning':
-        return 'bg-yellow-900/20 border-yellow-600/30 text-yellow-300';
+        return 'bg-yellow-500/10 border-yellow-600/30 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300';
       case 'error':
-        return 'bg-red-900/20 border-red-600/30 text-red-300';
+        return 'bg-red-500/10 border-red-600/30 text-red-700 dark:bg-red-900/20 dark:text-red-300';
       case 'info':
       default:
-        return 'bg-blue-900/20 border-blue-600/30 text-blue-300';
+        return 'bg-blue-500/10 border-blue-600/30 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300';
     }
   }
 
   getWarningContentClasses(type: string): string {
     switch (type) {
       case 'warning':
-        return 'text-yellow-200';
+        return 'text-yellow-800 dark:text-yellow-200';
       case 'error':
-        return 'text-red-200';
+        return 'text-red-800 dark:text-red-200';
       case 'info':
       default:
-        return 'text-blue-200';
+        return 'text-blue-800 dark:text-blue-200';
     }
   }
 }

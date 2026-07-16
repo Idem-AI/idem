@@ -5,6 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
+import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
 
 interface NavItem {
   path: string;
@@ -23,7 +24,14 @@ interface NavSection {
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, LanguageSelectorComponent],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    TranslateModule,
+    LanguageSelectorComponent,
+    ThemeToggleComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed top-0 left-0 right-0 z-50 h-16 topbar-shell">
@@ -36,42 +44,43 @@ interface NavSection {
         <div class="flex items-center gap-3">
           @if (me()?.idemRole === 'admin') {
             <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-md"
-                 style="background:rgba(255,180,171,0.12);color:#ffb4ab;border:1px solid rgba(255,180,171,0.28);">
+                 style="background:color-mix(in srgb, var(--color-danger) 12%, transparent);color:var(--color-danger);border:1px solid color-mix(in srgb, var(--color-danger) 28%, transparent);">
               <i class="fa-solid fa-shield-halved text-xs"></i>
               <span style="font-size:11px;font-weight:700;letter-spacing:.05em;">{{ 'shell.admin' | translate }}</span>
             </div>
           }
           <a routerLink="/subscription"
              class="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:opacity-80"
-             style="background:rgba(37,99,235,0.12);color:#60a5fa;border:1px solid rgba(37,99,235,0.28);">
+             style="background:color-mix(in srgb, var(--color-primary-500) 12%, transparent);color:var(--color-primary-400);border:1px solid color-mix(in srgb, var(--color-primary-500) 28%, transparent);">
             <i class="fa-solid fa-star text-[10px]"></i>
             <span style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">{{ plan() }}</span>
           </a>
-          <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:rgba(255,255,255,0.04);">
-            <i class="fa-solid fa-cube text-[10px]" style="color:#60a5fa;"></i>
+          <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
+            <i class="fa-solid fa-cube text-[10px]" style="color:var(--color-primary-400);"></i>
             <div class="flex flex-col gap-0.5">
               <div class="flex items-center justify-between gap-2">
-                <span style="font-size:9px;color:#8d919a;text-transform:uppercase;">{{ 'shell.apps' | translate }}</span>
-                <span style="font-size:9px;font-weight:700;color:#e3e1e6;">{{ appsUsed() }}/{{ appsLimit() }}</span>
+                <span style="font-size:9px;color:var(--color-text-tertiary);text-transform:uppercase;">{{ 'shell.apps' | translate }}</span>
+                <span style="font-size:9px;font-weight:700;color:var(--color-text-primary);">{{ appsUsed() }}/{{ appsLimit() }}</span>
               </div>
-              <div class="w-14 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);">
-                <div class="h-full rounded-full" [style.width.%]="appsPercent()" style="background:#2563eb;"></div>
+              <div class="w-14 h-0.5 rounded-full overflow-hidden" style="background:var(--glass-border);">
+                <div class="h-full rounded-full" [style.width.%]="appsPercent()" style="background:var(--color-primary-500);"></div>
               </div>
             </div>
           </div>
-          <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:rgba(255,255,255,0.04);">
-            <i class="fa-solid fa-server text-[10px]" style="color:#4ade80;"></i>
+          <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
+            <i class="fa-solid fa-server text-[10px]" style="color:var(--color-success);"></i>
             <div class="flex flex-col gap-0.5">
               <div class="flex items-center justify-between gap-2">
-                <span style="font-size:9px;color:#8d919a;text-transform:uppercase;">{{ 'shell.srv' | translate }}</span>
-                <span style="font-size:9px;font-weight:700;color:#e3e1e6;">{{ serversUsed() }}/{{ serversLimit() }}</span>
+                <span style="font-size:9px;color:var(--color-text-tertiary);text-transform:uppercase;">{{ 'shell.srv' | translate }}</span>
+                <span style="font-size:9px;font-weight:700;color:var(--color-text-primary);">{{ serversUsed() }}/{{ serversLimit() }}</span>
               </div>
-              <div class="w-14 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);">
-                <div class="h-full rounded-full" [style.width.%]="serversPercent()" style="background:#4ade80;"></div>
+              <div class="w-14 h-0.5 rounded-full overflow-hidden" style="background:var(--glass-border);">
+                <div class="h-full rounded-full" [style.width.%]="serversPercent()" style="background:var(--color-success);"></div>
               </div>
             </div>
           </div>
           <app-language-selector />
+          <app-theme-toggle />
           <div class="flex items-center gap-2">
             <a routerLink="/settings" class="flex items-center gap-2 p-1.5 rounded-lg" [title]="authUser()?.email ?? ''" [attr.aria-label]="'shell.userMenu' | translate">
               @if (photoUrl()) {
@@ -83,7 +92,7 @@ interface NavSection {
               }
             </a>
             <button class="p-1.5 rounded-lg" [title]="'shell.logout' | translate" (click)="logout()">
-              <i class="fa-solid fa-arrow-right-from-bracket text-xs" style="color:#8d919a;"></i>
+              <i class="fa-solid fa-arrow-right-from-bracket text-xs" style="color:var(--color-text-tertiary);"></i>
             </button>
           </div>
         </div>
@@ -92,9 +101,9 @@ interface NavSection {
 
     <div class="fixed top-16 bottom-0 left-0 z-40 w-64 flex flex-col">
       <nav class="flex flex-col flex-1 sidebar-scroll sidebar-shell overflow-y-auto">
-        <div style="padding:16px 12px; border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="padding:16px 12px; border-bottom:1px solid var(--glass-border-subtle);">
           <div class="flex items-center gap-2 px-1">
-            <i class="fa-solid fa-users-rectangle" style="color:#60a5fa;"></i>
+            <i class="fa-solid fa-users-rectangle" style="color:var(--color-primary-400);"></i>
             <span class="text-sm font-semibold text-white">{{ me()?.team?.name ?? ('shell.myTeam' | translate) }}</span>
           </div>
         </div>

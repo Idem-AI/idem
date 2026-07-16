@@ -3,7 +3,7 @@
   <div class="w-full max-w-2xl mx-auto mb-4 sm:mb-8">
     <div class="relative flex items-center justify-between">
       <div
-        class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-white/10 rounded-full z-0"
+        class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-[var(--glass-bg-subtle)] rounded-full z-0"
       ></div>
       @for (step of stepsList; track step.key) {
         <div class="relative z-10 flex flex-col items-center gap-2.5">
@@ -13,7 +13,7 @@
               'bg-primary border-primary text-white shadow-lg shadow-primary/30':
                 currentStep() === step.key,
               'bg-primary border-primary text-white': isStepCompleted(step.key),
-              'bg-gray-900 border-gray-700 text-gray-500':
+              'bg-[var(--color-surface-1)] border-[var(--glass-border)] text-text-tertiary':
                 !isStepCompleted(step.key) && currentStep() !== step.key,
             }"
           >
@@ -33,7 +33,7 @@
           <span
             class="text-xs font-medium uppercase tracking-wider transition-colors duration-300 hidden sm:block"
             [ngClass]="{
-              'text-white': currentStep() === step.key || isStepCompleted(step.key),
+              'text-text-primary': currentStep() === step.key || isStepCompleted(step.key),
               'text-gray-600': !isStepCompleted(step.key) && currentStep() !== step.key,
             }"
           >
@@ -51,11 +51,11 @@
     <div class="w-full max-w-6xl mx-auto animate-fade-in">
       <div class="text-center mb-4 sm:mb-6">
         <h1
-          class="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3 tracking-tight"
+          class="text-xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-2 sm:mb-3 tracking-tight"
         >
           {{ 'dashboard.logoPreferences.steps.type.title' | translate }}
         </h1>
-        <p class="text-gray-400 text-sm sm:text-lg max-w-2xl mx-auto font-light">
+        <p class="text-text-tertiary text-sm sm:text-lg max-w-2xl mx-auto font-light">
           {{ 'dashboard.logoPreferences.steps.type.subtitle' | translate }}
         </p>
       </div>
@@ -66,14 +66,14 @@
             (click)="selectType(option.type)"
             class="group relative flex flex-col h-full rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
             [ngClass]="{
-              'ring-2 ring-primary shadow-xl shadow-primary/20 bg-gray-900/60 border border-primary/30':
+              'ring-2 ring-primary shadow-xl shadow-primary/20 bg-[var(--glass-bg-light)] border border-primary/30':
                 selectedType() === option.type,
-              'bg-gray-900/40 border border-white/5 hover:border-white/15 hover:shadow-lg':
+              'bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] hover:border-[var(--glass-border-medium)] hover:shadow-lg':
                 selectedType() !== option.type,
             }"
           >
             <!-- Logo Showcase Area -->
-            <div class="relative h-32 sm:h-40 w-full overflow-hidden bg-gray-800/30">
+            <div class="relative h-32 sm:h-40 w-full overflow-hidden bg-[var(--glass-bg-subtle)]">
               <div class="absolute inset-0 flex items-center justify-center p-5">
                 <!-- Icon-Based Logos: Apple, X, Nike -->
                 @if (option.type === 'icon') {
@@ -181,7 +181,7 @@
                   class="absolute top-3 right-3 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/40 animate-scale-in"
                 >
                   <svg
-                    class="w-4 h-4 text-white"
+                    class="w-4 h-4 text-text-primary"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -199,17 +199,17 @@
 
             <!-- Card Content -->
             <div class="p-3 sm:p-4 flex-1 flex flex-col">
-              <h3 class="text-base sm:text-lg font-bold text-white mb-1">
+              <h3 class="text-base sm:text-lg font-bold text-text-primary mb-1">
                 {{ option.titleKey | translate }}
               </h3>
-              <p class="text-xs sm:text-sm text-gray-400 leading-relaxed mb-2 sm:mb-3 flex-1">
+              <p class="text-xs sm:text-sm text-text-tertiary leading-relaxed mb-2 sm:mb-3 flex-1">
                 {{ option.descriptionKey | translate }}
               </p>
-              <div class="pt-2 border-t border-white/5 flex items-center gap-2">
-                <span class="text-xs text-gray-500 uppercase tracking-wider font-medium">
+              <div class="pt-2 border-t border-[var(--glass-border-subtle)] flex items-center gap-2">
+                <span class="text-xs text-text-tertiary uppercase tracking-wider font-medium">
                   {{ 'dashboard.logoPreferences.types.examplesLabel' | translate }}
                 </span>
-                <span class="text-xs text-gray-300 font-medium">
+                <span class="text-xs text-text-secondary font-medium">
                   {{ option.exampleKey | translate }}
                 </span>
               </div>
@@ -250,11 +250,11 @@
     <div class="w-full max-w-5xl mx-auto animate-fade-in">
       <div class="text-center mb-4 sm:mb-6">
         <h1
-          class="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3 tracking-tight"
+          class="text-xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-2 sm:mb-3 tracking-tight"
         >
           {{ 'dashboard.logoPreferences.steps.mode.title' | translate }}
         </h1>
-        <p class="text-gray-400 text-sm sm:text-lg max-w-xl mx-auto font-light">
+        <p class="text-text-tertiary text-sm sm:text-lg max-w-xl mx-auto font-light">
           {{ 'dashboard.logoPreferences.steps.mode.subtitle' | translate }}
         </p>
       </div>
@@ -267,12 +267,12 @@
           [ngClass]="{
             'ring-2 ring-primary shadow-[0_0_50px_rgba(var(--primary-rgb),0.3)] scale-[1.02]':
               generationMode() === 'ai',
-            'ring-1 ring-white/10 hover:ring-primary/50 hover:shadow-2xl hover:scale-[1.01]':
+            'ring-1 ring-[var(--glass-border)] hover:ring-primary/50 hover:shadow-2xl hover:scale-[1.01]':
               generationMode() !== 'ai',
           }"
         >
           <!-- Background & Effects -->
-          <div class="absolute inset-0 bg-gray-900">
+          <div class="absolute inset-0 bg-[var(--color-surface-1)]">
             <div class="absolute inset-0 bg-linear-to-b from-gray-800/50 to-gray-950"></div>
             <!-- Animated Glow -->
             <div
@@ -376,7 +376,7 @@
             <!-- Text Content -->
             <div class="text-center mt-2 sm:mt-4">
               <div class="flex items-center justify-center gap-2 sm:gap-3 mb-1.5 sm:mb-2">
-                <h3 class="text-lg sm:text-2xl font-bold text-white tracking-tight">
+                <h3 class="text-lg sm:text-2xl font-bold text-text-primary tracking-tight">
                   {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
                 </h3>
                 <span
@@ -387,17 +387,17 @@
               </div>
 
               <p
-                class="text-gray-400 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 max-w-xs mx-auto"
+                class="text-text-tertiary text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 max-w-xs mx-auto"
               >
                 {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
               </p>
 
               <!-- Features Grid -->
               <div
-                class="grid grid-cols-1 gap-1 sm:gap-1.5 text-left bg-white/5 rounded-xl p-2 sm:p-3 border border-white/5 backdrop-blur-sm"
+                class="grid grid-cols-1 gap-1 sm:gap-1.5 text-left bg-[var(--glass-bg-subtle)] rounded-xl p-2 sm:p-3 border border-[var(--glass-border-subtle)] backdrop-blur-sm"
               >
                 @for (feature of aiFeatures; track feature) {
-                  <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-300">
+                  <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-text-secondary">
                     <svg
                       class="w-4 h-4 text-primary shrink-0"
                       fill="none"
@@ -423,7 +423,7 @@
                 class="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary-rgb),0.6)] animate-scale-in"
               >
                 <svg
-                  class="w-6 h-6 text-white"
+                  class="w-6 h-6 text-text-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -447,12 +447,12 @@
           [ngClass]="{
             'ring-2 ring-secondary shadow-[0_0_50px_rgba(var(--secondary-rgb),0.3)] scale-[1.02]':
               generationMode() === 'custom',
-            'ring-1 ring-white/10 hover:ring-secondary/50 hover:shadow-2xl hover:scale-[1.01]':
+            'ring-1 ring-[var(--glass-border)] hover:ring-secondary/50 hover:shadow-2xl hover:scale-[1.01]':
               generationMode() !== 'custom',
           }"
         >
           <!-- Background & Effects -->
-          <div class="absolute inset-0 bg-gray-900">
+          <div class="absolute inset-0 bg-[var(--color-surface-1)]">
             <div class="absolute inset-0 bg-linear-to-b from-gray-800/50 to-gray-950"></div>
             <!-- Grid Pattern -->
             <div class="absolute inset-0 bg-[url('/assets/images/grid.svg')] opacity-[0.03]"></div>
@@ -538,22 +538,22 @@
 
             <!-- Text Content -->
             <div class="text-center mt-2 sm:mt-4">
-              <h3 class="text-lg sm:text-2xl font-bold text-white tracking-tight mb-1.5 sm:mb-2">
+              <h3 class="text-lg sm:text-2xl font-bold text-text-primary tracking-tight mb-1.5 sm:mb-2">
                 {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
               </h3>
 
               <p
-                class="text-gray-400 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 max-w-xs mx-auto"
+                class="text-text-tertiary text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 max-w-xs mx-auto"
               >
                 {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
               </p>
 
               <!-- Features Grid -->
               <div
-                class="grid grid-cols-1 gap-1 sm:gap-1.5 text-left bg-white/5 rounded-xl p-2 sm:p-3 border border-white/5 backdrop-blur-sm"
+                class="grid grid-cols-1 gap-1 sm:gap-1.5 text-left bg-[var(--glass-bg-subtle)] rounded-xl p-2 sm:p-3 border border-[var(--glass-border-subtle)] backdrop-blur-sm"
               >
                 @for (feature of customFeatures; track feature) {
-                  <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-300">
+                  <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-text-secondary">
                     <svg
                       class="w-4 h-4 text-secondary shrink-0"
                       fill="none"
@@ -579,7 +579,7 @@
                 class="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 bg-secondary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(var(--secondary-rgb),0.6)] animate-scale-in"
               >
                 <svg
-                  class="w-6 h-6 text-white"
+                  class="w-6 h-6 text-text-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -642,21 +642,21 @@
   @if (currentStep() === 'description') {
     <div class="w-full max-w-4xl mx-auto animate-fade-in">
       <div class="text-center mb-4 sm:mb-6">
-        <h1 class="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
+        <h1 class="text-xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-2 sm:mb-3">
           {{ 'dashboard.logoPreferences.steps.description.title' | translate }}
         </h1>
-        <p class="text-gray-400 text-sm sm:text-lg">
+        <p class="text-text-tertiary text-sm sm:text-lg">
           {{ 'dashboard.logoPreferences.steps.description.subtitle' | translate }}
         </p>
       </div>
 
       <div
-        class="bg-gray-900/50 rounded-2xl sm:rounded-3xl border border-white/10 p-1 shadow-2xl mb-5 sm:mb-6"
+        class="bg-[var(--glass-bg-light)] rounded-2xl sm:rounded-3xl border border-[var(--glass-border)] p-1 shadow-2xl mb-5 sm:mb-6"
       >
-        <div class="bg-gray-950/80 rounded-[22px] overflow-hidden">
+        <div class="bg-[var(--color-bg-darker)] rounded-[22px] overflow-hidden">
           <!-- Toolbar -->
           <div
-            class="px-4 sm:px-6 py-3 sm:py-4 bg-white/5 border-b border-white/5 flex items-center justify-between"
+            class="px-4 sm:px-6 py-3 sm:py-4 bg-[var(--glass-bg-subtle)] border-b border-[var(--glass-border-subtle)] flex items-center justify-between"
           >
             <div class="flex items-center gap-2 sm:gap-3">
               <div
@@ -676,7 +676,7 @@
                   />
                 </svg>
               </div>
-              <span class="text-white font-semibold text-sm sm:text-base">{{
+              <span class="text-text-primary font-semibold text-sm sm:text-base">{{
                 'dashboard.logoPreferences.fields.description.label' | translate
               }}</span>
             </div>
@@ -702,7 +702,7 @@
             <textarea
               [value]="customDescription()"
               (input)="updateDescription($event)"
-              class="w-full h-32 sm:h-48 bg-transparent text-base sm:text-lg text-white p-4 sm:p-6 focus:outline-none resize-none placeholder-gray-600 leading-relaxed"
+              class="w-full h-32 sm:h-48 bg-transparent text-base sm:text-lg text-text-primary p-4 sm:p-6 focus:outline-none resize-none placeholder-text-tertiary leading-relaxed"
               [placeholder]="'dashboard.logoPreferences.fields.description.placeholder' | translate"
             ></textarea>
             <div
@@ -727,7 +727,7 @@
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p class="text-xs sm:text-sm text-gray-300">
+            <p class="text-xs sm:text-sm text-text-secondary">
               {{ 'dashboard.logoPreferences.fields.description.tip' | translate }}
             </p>
           </div>

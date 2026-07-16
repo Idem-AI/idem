@@ -27,7 +27,7 @@
   top: 0;
   z-index: 2;
   background: var(--glass-bg-dark);
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   font-weight: 600;
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -48,13 +48,13 @@
 .finance-table tbody td {
   padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--glass-border-subtle);
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-primary);
   white-space: nowrap;
   transition: background 0.15s ease;
 }
 
 .finance-table tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--glass-bg-subtle);
 }
 
 .finance-table tbody tr:last-child td {
@@ -79,7 +79,7 @@
   font-weight: 700;
   color: white;
   border-top: 2px solid var(--glass-border-medium);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg-subtle);
 }
 
 /* Positive / negative coloring */
@@ -117,7 +117,7 @@
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.15s ease;
   font-size: 0.85rem;
@@ -125,7 +125,7 @@
 
 .row-action:hover {
   color: white;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg-light);
   border-color: var(--glass-border);
 }
 
@@ -155,7 +155,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-tertiary);
   margin-bottom: 0.35rem;
   font-weight: 600;
 }
@@ -242,7 +242,7 @@
   border-radius: 8px;
   border: 1px solid var(--glass-border);
   background: transparent;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.15s ease;
 }

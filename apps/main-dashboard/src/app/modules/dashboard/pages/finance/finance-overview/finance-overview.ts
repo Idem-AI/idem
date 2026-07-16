@@ -288,7 +288,7 @@ export class FinanceOverviewComponent implements OnInit {
       case 'computed':
         return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
       default:
-        return 'bg-gray-500/15 text-gray-400 border-gray-500/30';
+        return 'bg-[var(--glass-bg-subtle)] text-text-tertiary border-gray-500/30';
     }
   }
 

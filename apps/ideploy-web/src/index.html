@@ -2,6 +2,28 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
+    <script>
+      // No-flash theme boot: apply the shared `idem_theme` cookie (or the browser
+      // preference) before first paint. Keep in sync with theme-cookie.ts.
+      (function () {
+        try {
+          var m = document.cookie.match(/(?:^|;\s*)idem_theme=([^;]+)/);
+          var pref = m ? decodeURIComponent(m[1]) : null;
+          if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          var dark =
+            pref === 'dark' ||
+            (pref === 'system' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var el = document.documentElement;
+          el.classList.toggle('dark', dark);
+          el.classList.toggle('light', !dark);
+          el.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
     <title>iDeploy</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

@@ -33,10 +33,10 @@ export function ContextMenu({ x, y, item, onClose, onRename, onDelete }: Context
 
   return (
     <div
-      className="fixed bg-[#1a1a1c] border border-[#454545] rounded shadow-lg py-1 z-50"
+      className="fixed bg-white dark:bg-[#1a1a1c] border border-gray-200 dark:border-[#454545] rounded shadow-lg py-1 z-50"
       style={{ left: x, top: y }}
     >
-      <div className="px-3 py-1.5 text-[13px] text-gray-400 border-b border-[#454545] flex items-center">
+      <div className="px-3 py-1.5 text-[13px] text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-[#454545] flex items-center">
         {item.type === 'folder' ? (
           <FolderIcon className="w-3.5 h-3.5 mr-1.5 text-[#dcb67a]" />
         ) : (
@@ -47,7 +47,7 @@ export function ContextMenu({ x, y, item, onClose, onRename, onDelete }: Context
       {menuItems.map((menuItem, index) => (
         <button
           key={index}
-          className="w-full px-3 py-1.5 text-[13px] text-left hover:bg-[#2d2d2d] flex items-center"
+          className="w-full px-3 py-1.5 text-[13px] text-left text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2d2d2d] flex items-center"
           onClick={() => {
             menuItem.onClick();
             onClose();

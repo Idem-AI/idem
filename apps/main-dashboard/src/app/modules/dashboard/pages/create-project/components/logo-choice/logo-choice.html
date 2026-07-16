@@ -1,10 +1,10 @@
 <section
-  class="flex flex-col min-h-[60vh] items-center justify-center text-gray-100 w-full px-4 sm:px-6 lg:px-8"
+  class="flex flex-col min-h-[60vh] items-center justify-center text-text-primary w-full px-4 sm:px-6 lg:px-8"
 >
   <!-- Title -->
   <div class="text-center mb-8 sm:mb-12 max-w-4xl">
     <h1
-      class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 leading-tight px-4"
+      class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-primary leading-tight px-4"
     >
       @if (choice() === 'import' && importStep() === 'decision') {
         {{ 'dashboard.logoChoice.postImport.title' | translate }}
@@ -12,7 +12,7 @@
         {{ 'dashboard.logoChoice.title' | translate }}
       }
     </h1>
-    <p class="text-sm sm:text-base text-gray-400 mt-3 max-w-2xl mx-auto">
+    <p class="text-sm sm:text-base text-text-tertiary mt-3 max-w-2xl mx-auto">
       @if (choice() === 'import' && importStep() === 'decision') {
         {{ 'dashboard.logoChoice.postImport.subtitle' | translate }}
       } @else {
@@ -28,15 +28,15 @@
         <!-- Option 1: I have a logo -->
         <button
           (click)="selectImport()"
-          class="group relative rounded-xl border border-white/10 glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
+          class="group relative rounded-xl border border-[var(--glass-border)] glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
           <div class="flex flex-col items-center text-center space-y-4">
             <!-- Icon -->
             <div
-              class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
+              class="w-16 h-16 rounded-full bg-[var(--glass-bg-subtle)] flex items-center justify-center group-hover:bg-primary/10 transition-colors"
             >
               <svg
-                class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
+                class="w-8 h-8 text-text-tertiary group-hover:text-primary transition-colors"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -51,10 +51,10 @@
             </div>
 
             <div>
-              <h3 class="text-lg font-semibold text-gray-100 mb-2">
+              <h3 class="text-lg font-semibold text-text-primary mb-2">
                 {{ 'dashboard.logoChoice.import.title' | translate }}
               </h3>
-              <p class="text-sm text-gray-400 leading-relaxed">
+              <p class="text-sm text-text-tertiary leading-relaxed">
                 {{ 'dashboard.logoChoice.import.description' | translate }}
               </p>
             </div>
@@ -62,19 +62,19 @@
             <!-- Supported formats -->
             <div class="flex flex-wrap items-center justify-center gap-1.5 pt-2">
               <span
-                class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-500 border border-white/10"
+                class="px-2 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
                 >SVG</span
               >
               <span
-                class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-500 border border-white/10"
+                class="px-2 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
                 >PNG</span
               >
               <span
-                class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-500 border border-white/10"
+                class="px-2 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
                 >JPG</span
               >
               <span
-                class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-500 border border-white/10"
+                class="px-2 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
                 >WebP</span
               >
             </div>
@@ -84,15 +84,15 @@
         <!-- Option 2: Create with AI -->
         <button
           (click)="selectAI()"
-          class="group relative rounded-xl border border-white/10 glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
+          class="group relative rounded-xl border border-[var(--glass-border)] glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
           <div class="flex flex-col items-center text-center space-y-4">
             <!-- Icon -->
             <div
-              class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
+              class="w-16 h-16 rounded-full bg-[var(--glass-bg-subtle)] flex items-center justify-center group-hover:bg-primary/10 transition-colors"
             >
               <svg
-                class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
+                class="w-8 h-8 text-text-tertiary group-hover:text-primary transition-colors"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -107,10 +107,10 @@
             </div>
 
             <div>
-              <h3 class="text-lg font-semibold text-gray-100 mb-2">
+              <h3 class="text-lg font-semibold text-text-primary mb-2">
                 {{ 'dashboard.logoChoice.ai.title' | translate }}
               </h3>
-              <p class="text-sm text-gray-400 leading-relaxed">
+              <p class="text-sm text-text-tertiary leading-relaxed">
                 {{ 'dashboard.logoChoice.ai.description' | translate }}
               </p>
             </div>
@@ -143,7 +143,7 @@
       <!-- Back to choice -->
       <button
         (click)="backToChoice()"
-        class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors mb-6"
+        class="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors mb-6"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -173,7 +173,7 @@
       <button
         (click)="backToUpload()"
         [disabled]="isAnalyzing()"
-        class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-secondary transition-colors mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -201,14 +201,14 @@
           type="button"
           (click)="useLogoAsIs()"
           [disabled]="isAnalyzing()"
-          class="group relative rounded-xl border border-white/10 glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="group relative rounded-xl border border-[var(--glass-border)] glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div class="flex flex-col items-center text-center space-y-4">
             <div
-              class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
+              class="w-16 h-16 rounded-full bg-[var(--glass-bg-subtle)] flex items-center justify-center group-hover:bg-primary/10 transition-colors"
             >
               <svg
-                class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
+                class="w-8 h-8 text-text-tertiary group-hover:text-primary transition-colors"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -223,10 +223,10 @@
             </div>
 
             <div>
-              <h3 class="text-lg font-semibold text-gray-100 mb-2">
+              <h3 class="text-lg font-semibold text-text-primary mb-2">
                 {{ 'dashboard.logoChoice.postImport.useAsIs.title' | translate }}
               </h3>
-              <p class="text-sm text-gray-400 leading-relaxed">
+              <p class="text-sm text-text-tertiary leading-relaxed">
                 {{ 'dashboard.logoChoice.postImport.useAsIs.description' | translate }}
               </p>
             </div>
@@ -238,11 +238,11 @@
           type="button"
           (click)="improveLogoWithAI()"
           [disabled]="isAnalyzing()"
-          class="group relative rounded-xl border border-white/10 glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed"
+          class="group relative rounded-xl border border-[var(--glass-border)] glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed"
         >
           <div class="flex flex-col items-center text-center space-y-4">
             <div
-              class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
+              class="w-16 h-16 rounded-full bg-[var(--glass-bg-subtle)] flex items-center justify-center group-hover:bg-primary/10 transition-colors"
             >
               @if (isAnalyzing()) {
                 <svg
@@ -267,7 +267,7 @@
                 </svg>
               } @else {
                 <svg
-                  class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
+                  class="w-8 h-8 text-text-tertiary group-hover:text-primary transition-colors"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -283,14 +283,14 @@
             </div>
 
             <div>
-              <h3 class="text-lg font-semibold text-gray-100 mb-2">
+              <h3 class="text-lg font-semibold text-text-primary mb-2">
                 @if (isAnalyzing()) {
                   {{ 'dashboard.logoChoice.postImport.analyzing' | translate }}
                 } @else {
                   {{ 'dashboard.logoChoice.postImport.improve.title' | translate }}
                 }
               </h3>
-              <p class="text-sm text-gray-400 leading-relaxed">
+              <p class="text-sm text-text-tertiary leading-relaxed">
                 {{ 'dashboard.logoChoice.postImport.improve.description' | translate }}
               </p>
             </div>

@@ -1,8 +1,8 @@
 <!-- Contact Page - Modern Design -->
-<div class="relative min-h-screen bg-black">
+<div class="relative min-h-screen bg-bg-darker">
   <!-- Background -->
   <div class="absolute inset-0">
-    <div class="absolute inset-0 bg-linear-to-b from-black via-primary/5 to-black"></div>
+    <div class="absolute inset-0 bg-linear-to-b from-bg-darker via-primary/5 to-bg-darker"></div>
     <div
       class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.1),transparent_50%)]"
     ></div>
@@ -22,18 +22,18 @@
             d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
           />
         </svg>
-        <span class="text-white" i18n="@@contact-page.hero.badge">Get in Touch</span>
+        <span class="text-text-primary" i18n="@@contact-page.hero.badge">Get in Touch</span>
       </div>
 
       <h1
-        class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6"
+        class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary mb-6"
         i18n="@@contact-page.hero.title"
       >
         Let's Build Something <span class="i-underline">Amazing</span> Together
       </h1>
 
       <p
-        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        class="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed"
         i18n="@@contact-page.hero.description"
       >
         Have questions about IDEM? Need a custom solution? Want to partner with us? We'd love to
@@ -44,15 +44,15 @@
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
       <!-- Contact Form -->
-      <div class="glass-card p-8 rounded-2xl border border-white/10">
+      <div class="glass-card p-8 rounded-2xl border border-[var(--glass-border)]">
         <div class="mb-8">
           <h2
-            class="text-2xl sm:text-3xl font-bold text-white mb-4"
+            class="text-2xl sm:text-3xl font-bold text-text-primary mb-4"
             i18n="@@contact-page.form.title"
           >
             Send us a Message
           </h2>
-          <p class="text-gray-400" i18n="@@contact-page.form.description">
+          <p class="text-text-tertiary" i18n="@@contact-page.form.description">
             Fill out the form below and we'll get back to you within 24 hours.
           </p>
         </div>
@@ -63,7 +63,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label
-                  class="block text-sm font-medium text-gray-300 mb-2"
+                  class="block text-sm font-medium text-text-secondary mb-2"
                   i18n="@@contact-page.form.name"
                 >
                   Full Name *
@@ -79,7 +79,7 @@
               </div>
               <div>
                 <label
-                  class="block text-sm font-medium text-gray-300 mb-2"
+                  class="block text-sm font-medium text-text-secondary mb-2"
                   i18n="@@contact-page.form.email"
                 >
                   Email Address *
@@ -98,7 +98,7 @@
             <!-- Company -->
             <div>
               <label
-                class="block text-sm font-medium text-gray-300 mb-2"
+                class="block text-sm font-medium text-text-secondary mb-2"
                 i18n="@@contact-page.form.company"
               >
                 Company (Optional)
@@ -115,7 +115,7 @@
             <!-- Subject -->
             <div>
               <label
-                class="block text-sm font-medium text-gray-300 mb-2"
+                class="block text-sm font-medium text-text-secondary mb-2"
                 i18n="@@contact-page.form.subject"
               >
                 Subject *
@@ -149,7 +149,7 @@
             <!-- Message -->
             <div>
               <label
-                class="block text-sm font-medium text-gray-300 mb-2"
+                class="block text-sm font-medium text-text-secondary mb-2"
                 i18n="@@contact-page.form.message"
               >
                 Message *
@@ -219,10 +219,10 @@
                 />
               </svg>
             </div>
-            <h3 class="text-xl font-bold text-white mb-2" i18n="@@contact-page.form.success.title">
+            <h3 class="text-xl font-bold text-text-primary mb-2" i18n="@@contact-page.form.success.title">
               Message Sent Successfully!
             </h3>
-            <p class="text-gray-400 mb-6" i18n="@@contact-page.form.success.description">
+            <p class="text-text-tertiary mb-6" i18n="@@contact-page.form.success.description">
               Thank you for reaching out. We'll get back to you within 24 hours.
             </p>
             <button
@@ -242,7 +242,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           @for (info of contactInfo; track info.title) {
             <div
-              class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/50 transition-all"
+              class="glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/50 transition-all"
             >
               <div class="flex items-start gap-4">
                 <div
@@ -258,16 +258,16 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-white mb-1">{{ info.title }}</h3>
+                  <h3 class="font-semibold text-text-primary mb-1">{{ info.title }}</h3>
                   @if (info.link) {
                     <a
                       [href]="info.link"
-                      class="text-gray-400 hover:text-primary transition-colors"
+                      class="text-text-tertiary hover:text-primary transition-colors"
                     >
                       {{ info.content }}
                     </a>
                   } @else {
-                    <p class="text-gray-400">{{ info.content }}</p>
+                    <p class="text-text-tertiary">{{ info.content }}</p>
                   }
                 </div>
               </div>
@@ -280,24 +280,24 @@
     <!-- FAQ Section -->
     <div class="mb-20">
       <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4" i18n="@@contact-page.faq.title">
+        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary mb-4" i18n="@@contact-page.faq.title">
           Frequently Asked Questions
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@contact-page.faq.description">
+        <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@contact-page.faq.description">
           Quick answers to common questions. Can't find what you're looking for? Send us a message!
         </p>
       </div>
 
       <div class="max-w-4xl mx-auto space-y-4">
         @for (faq of faqs(); track $index) {
-          <div class="glass-card rounded-xl border border-white/10 overflow-hidden">
+          <div class="glass-card rounded-xl border border-[var(--glass-border)] overflow-hidden">
             <button
               (click)="toggleFAQ($index)"
-              class="w-full p-6 text-left flex items-center justify-between hover:bg-white/5 transition-colors"
+              class="w-full p-6 text-left flex items-center justify-between hover:bg-[var(--glass-bg-subtle)] transition-colors"
             >
-              <h3 class="font-semibold text-white pr-4">{{ faq.question }}</h3>
+              <h3 class="font-semibold text-text-primary pr-4">{{ faq.question }}</h3>
               <svg
-                class="w-5 h-5 text-gray-400 transition-transform"
+                class="w-5 h-5 text-text-tertiary transition-transform"
                 [class.rotate-180]="faq.isOpen"
                 fill="none"
                 stroke="currentColor"
@@ -313,7 +313,7 @@
             </button>
             @if (faq.isOpen) {
               <div class="px-6 pb-6">
-                <p class="text-gray-400 leading-relaxed">{{ faq.answer }}</p>
+                <p class="text-text-tertiary leading-relaxed">{{ faq.answer }}</p>
               </div>
             }
           </div>
@@ -322,11 +322,11 @@
     </div>
 
     <!-- CTA Section -->
-    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
-      <h2 class="text-3xl font-bold text-white mb-4" i18n="@@contact-page.cta.title">
+    <div class="text-center glass-card p-12 rounded-2xl border border-[var(--glass-border)]">
+      <h2 class="text-3xl font-bold text-text-primary mb-4" i18n="@@contact-page.cta.title">
         Ready to Transform Your Business?
       </h2>
-      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto" i18n="@@contact-page.cta.description">
+      <p class="text-lg text-text-tertiary mb-8 max-w-2xl mx-auto" i18n="@@contact-page.cta.description">
         Join thousands of African entrepreneurs who are already using IDEM to build their dreams.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">

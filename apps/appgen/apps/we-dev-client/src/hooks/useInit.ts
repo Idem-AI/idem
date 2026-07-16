@@ -2,6 +2,7 @@ import useThemeStore from '@/stores/themeSlice';
 import useUserStore from '@/stores/userSlice';
 import i18n from '@/utils/i18';
 import { readLocaleCookie } from '@/utils/localeCookie';
+import { readThemeCookie, resolveIsDark } from '@/utils/themeCookie';
 import { useEffect } from 'react';
 import useMCPStore from '@/stores/useMCPSlice';
 import { eventEmitter } from '@/components/AiChat/utils/EventEmitter';
@@ -131,7 +132,13 @@ const useInit = (): { isDarkMode: boolean } => {
     }
 
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const savedTheme = localStorage.getItem('theme') || 'system';
+    // Theme priority: shared cross-app cookie (idem_theme) > localStorage > system.
+    const cookieTheme = readThemeCookie();
+    const savedTheme = cookieTheme ?? localStorage.getItem('theme') ?? 'system';
+    if (cookieTheme) {
+      // Mirror back so GeneralSettings' localStorage-driven state stays coherent.
+      localStorage.setItem('theme', cookieTheme);
+    }
     if (savedTheme !== 'system') {
       setTheme(savedTheme === 'dark');
     } else {
@@ -144,8 +151,21 @@ const useInit = (): { isDarkMode: boolean } => {
       }
     };
     mql.addEventListener('change', handleStorageChange);
+
+    // Cross-app sync: pick up a theme another Idem app set while this tab was hidden.
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      const cookie = readThemeCookie();
+      if (cookie && cookie !== localStorage.getItem('theme')) {
+        localStorage.setItem('theme', cookie);
+        setTheme(resolveIsDark(cookie));
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       mql.removeEventListener('change', handleStorageChange);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [isDarkMode]);
 

@@ -6,9 +6,17 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap');
 
-/* Force dark mode only */
+/* Dual theme (dark + light). The active theme is driven by the `.dark` / `.light`
+   class on <html> (set by each app's ThemeService / boot script from the shared
+   `idem_theme` cookie, defaulting to the browser's prefers-color-scheme). */
 html {
+  color-scheme: light dark;
+}
+html.dark {
   color-scheme: dark;
+}
+html.light {
+  color-scheme: light;
 }
 
 * {
@@ -21,11 +29,116 @@ html {
 body {
   background-size: 50px 50px;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(to right, var(--idem-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--idem-grid-line) 1px, transparent 1px);
   overflow-x: hidden;
   min-height: 100vh;
-  background-color: #06080d;
+  background-color: var(--color-bg-darker);
+}
+
+/* ============================================================================
+   THEME-REACTIVE RAW VARIABLES
+   Light values on :root/.light, dark values (the original design) under .dark.
+   Tailwind tokens that must flip with the theme are mapped from these via the
+   `@theme inline` block below, so BOTH generated utilities (bg-surface-1, …)
+   and raw var(--color-*) references react to the theme.
+   ============================================================================ */
+
+:root,
+.light {
+  /* Backgrounds (legacy names; semantics: darker = page-deepest, dark = page-base,
+     light = raised). Slightly muted (not pure white) so white cards/surfaces
+     stand out and the page feels softer and more professional. */
+  --idem-bg-darker: oklch(0.965 0.004 264);
+  --idem-bg-dark: oklch(0.95 0.005 264);
+  --idem-bg-light: oklch(0.92 0.008 264);
+
+  /* Surfaces - cards and elevated elements (lighter than the page background) */
+  --idem-surface-1: oklch(0.995 0.002 264);
+  --idem-surface-2: oklch(0.975 0.004 264);
+  --idem-surface-3: oklch(0.95 0.007 264);
+
+  /* Text */
+  --idem-text-primary: oklch(0.15 0.01 264);
+  --idem-text-secondary: oklch(0.35 0.01 264);
+  --idem-text-tertiary: oklch(0.5 0.01 264);
+  --idem-text-disabled: oklch(0.65 0.005 264);
+
+  /* Glass system - light: white-tinted translucent panels, black-alpha borders */
+  --glass-bg-subtle: rgba(255, 255, 255, 0.35);
+  --glass-bg-light: rgba(255, 255, 255, 0.55);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-bg-medium: rgba(255, 255, 255, 0.7);
+  --glass-bg-dark: rgba(255, 255, 255, 0.8);
+  --glass-bg-darker: rgba(255, 255, 255, 0.88);
+  --glass-bg-intense: rgba(255, 255, 255, 0.95);
+  --glass-border-subtle: rgba(15, 23, 42, 0.06);
+  --glass-border: rgba(15, 23, 42, 0.1);
+  --glass-border-medium: rgba(15, 23, 42, 0.15);
+  --glass-border-strong: rgba(15, 23, 42, 0.22);
+  --glass-shadow-sm: 0 4px 16px 0 rgba(15, 23, 42, 0.06);
+  --glass-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.1);
+  --glass-shadow-lg: 0 12px 40px 0 rgba(15, 23, 42, 0.14);
+  --glass-shadow-xl: 0 20px 60px 0 rgba(15, 23, 42, 0.18);
+
+  /* Glass gradients / shimmer / body grid */
+  --gradient-glass: linear-gradient(135deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.02));
+  --gradient-glass-vertical: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.05),
+    rgba(15, 23, 42, 0.02)
+  );
+  --gradient-shimmer: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  /* Subtle background grid - low opacity for a calm, professional canvas */
+  --idem-grid-line: rgba(15, 23, 42, 0.028);
+
+  /* Form-control placeholders */
+  --idem-placeholder: rgba(15, 23, 42, 0.4);
+  --idem-placeholder-focus: rgba(15, 23, 42, 0.6);
+}
+
+.dark {
+  /* Original dark design values - moved verbatim so dark rendering is unchanged */
+  --idem-bg-darker: oklch(0.05 0.01 264);
+  --idem-bg-dark: oklch(0.1 0.01 264);
+  --idem-bg-light: oklch(0.15 0.01 264);
+
+  --idem-surface-1: oklch(0.12 0.01 264);
+  --idem-surface-2: oklch(0.15 0.01 264);
+  --idem-surface-3: oklch(0.18 0.01 264);
+
+  --idem-text-primary: oklch(0.96 0 0);
+  --idem-text-secondary: oklch(0.75 0 0);
+  --idem-text-tertiary: oklch(0.55 0 0);
+  --idem-text-disabled: oklch(0.4 0 0);
+
+  --glass-bg-subtle: rgba(15, 20, 27, 0.2);
+  --glass-bg-light: rgba(15, 20, 27, 0.631);
+  --glass-bg: rgba(15, 20, 27, 0.5);
+  --glass-bg-medium: rgba(15, 20, 27, 0.6);
+  --glass-bg-dark: rgba(20, 20, 30, 0.7);
+  --glass-bg-darker: rgba(20, 20, 30, 0.8);
+  --glass-bg-intense: rgba(10, 15, 22, 0.9);
+  --glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-medium: rgba(255, 255, 255, 0.15);
+  --glass-border-strong: rgba(255, 255, 255, 0.2);
+  --glass-shadow-sm: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-shadow-lg: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+  --glass-shadow-xl: 0 20px 60px 0 rgba(0, 0, 0, 0.55);
+
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  --gradient-glass-vertical: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
+  --gradient-shimmer: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  --idem-grid-line: rgba(255, 255, 255, 0.03);
+
+  --idem-placeholder: rgba(255, 255, 255, 0.4);
+  --idem-placeholder-focus: rgba(255, 255, 255, 0.6);
 }
 
 @theme {
@@ -79,21 +192,9 @@ body {
   --color-warning: oklch(0.7 0.18 75);
   --color-info: oklch(0.6 0.15 240);
 
-  /* Background Colors */
-  --color-bg-dark: oklch(0.1 0.01 264);
-  --color-bg-light: oklch(0.15 0.01 264);
-  --color-bg-darker: oklch(0.05 0.01 264);
-
-  /* Surface Colors - For cards and elevated elements */
-  --color-surface-1: oklch(0.12 0.01 264);
-  --color-surface-2: oklch(0.15 0.01 264);
-  --color-surface-3: oklch(0.18 0.01 264);
-
-  /* Text Colors */
-  --color-text-primary: oklch(0.96 0 0);
-  --color-text-secondary: oklch(0.75 0 0);
-  --color-text-tertiary: oklch(0.55 0 0);
-  --color-text-disabled: oklch(0.4 0 0);
+  /* NOTE: background / surface / text tokens are THEME-REACTIVE and therefore
+     defined in the `@theme inline` block below (mapped onto the --idem-* raw
+     variables that flip with .dark / .light). */
 
   /* --------------------------------------------------------------------------
      TYPOGRAPHY SYSTEM
@@ -284,35 +385,44 @@ body {
 }
 
 /* ============================================================================
+   THEME-REACTIVE TAILWIND TOKENS
+   `@theme inline` makes Tailwind emit utilities that reference the underlying
+   variable (e.g. .bg-surface-1 { background-color: var(--idem-surface-1) }),
+   so both generated utilities and raw var(--color-*) references flip with the
+   .dark / .light class.
+   ============================================================================ */
+
+@theme inline {
+  --color-bg-dark: var(--idem-bg-dark);
+  --color-bg-light: var(--idem-bg-light);
+  --color-bg-darker: var(--idem-bg-darker);
+
+  --color-surface-1: var(--idem-surface-1);
+  --color-surface-2: var(--idem-surface-2);
+  --color-surface-3: var(--idem-surface-3);
+
+  --color-text-primary: var(--idem-text-primary);
+  --color-text-secondary: var(--idem-text-secondary);
+  --color-text-tertiary: var(--idem-text-tertiary);
+  --color-text-disabled: var(--idem-text-disabled);
+
+  /* Bug fix: --color-light-text was referenced across the design system but
+     never defined; alias it to the primary text token. */
+  --color-light-text: var(--idem-text-primary);
+}
+
+/* ============================================================================
    RUNTIME CSS VARIABLES (Not part of @theme)
    These use CSS functions not supported in @theme
    ============================================================================ */
 
 :root {
   /* --------------------------------------------------------------------------
-     GLASS MORPHISM SYSTEM - Professional frosted glass effects
+     GLASS MORPHISM SYSTEM
+     NOTE: glass backgrounds / borders / shadows are THEME-REACTIVE and live in
+     the :root,.light / .dark blocks at the top of this file. Only the
+     theme-invariant parts remain here.
      -------------------------------------------------------------------------- */
-
-  /* Glass Backgrounds - Multiple opacity levels */
-  --glass-bg-subtle: rgba(15, 20, 27, 0.2);
-  --glass-bg-light: rgba(15, 20, 27, 0.631);
-  --glass-bg: rgba(15, 20, 27, 0.5);
-  --glass-bg-medium: rgba(15, 20, 27, 0.6);
-  --glass-bg-dark: rgba(20, 20, 30, 0.7);
-  --glass-bg-darker: rgba(20, 20, 30, 0.8);
-  --glass-bg-intense: rgba(10, 15, 22, 0.9);
-
-  /* Glass Borders - Subtle edge definition */
-  --glass-border-subtle: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-border-medium: rgba(255, 255, 255, 0.15);
-  --glass-border-strong: rgba(255, 255, 255, 0.2);
-
-  /* Glass Shadows - Depth and elevation */
-  --glass-shadow-sm: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --glass-shadow-lg: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-  --glass-shadow-xl: 0 20px 60px 0 rgba(0, 0, 0, 0.55);
 
   /* Glass Blur Levels */
   --glass-blur-sm: 4px;
@@ -353,16 +463,8 @@ body {
   );
   --gradient-accent: linear-gradient(135deg, var(--color-accent-500), var(--color-accent-700));
 
-  /* Glass Gradients - Subtle overlays */
-  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-  --gradient-glass-vertical: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0.05)
-  );
-
-  /* Shimmer Effect */
-  --gradient-shimmer: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  /* Glass gradients & shimmer are theme-reactive - defined in the
+     :root,.light / .dark blocks at the top of this file. */
 
   /* Radial Glows */
   --gradient-radial-primary: radial-gradient(
@@ -406,7 +508,7 @@ body {
 
 .glass-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-shadow-lg);
 }
 
 /* Glow Effects */
@@ -442,7 +544,8 @@ body {
   background: var(--gradient-primary);
   background-size: 200% 100%;
   animation: gradient-shift 3s ease infinite;
-  color: var(--color-text-primary);
+  /* White in BOTH themes: the button sits on the brand gradient, not a surface */
+  color: #ffffff;
   padding: var(--spacing-3) var(--spacing-6);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
@@ -695,7 +798,7 @@ input[type='number']::placeholder,
 input[type='url']::placeholder,
 input[type='tel']::placeholder,
 input[type='search']::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--idem-placeholder);
   transition: color var(--duration-200) var(--ease-out);
 }
 
@@ -731,7 +834,7 @@ input[type='search']:focus {
   background: var(--glass-bg-medium);
   box-shadow:
     0 0 0 3px var(--color-primary-glow),
-    0 4px 12px rgba(34, 211, 238, 0.15);
+    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
   transform: translateY(-1px);
 }
 
@@ -742,7 +845,7 @@ input[type='number']:focus::placeholder,
 input[type='url']:focus::placeholder,
 input[type='tel']:focus::placeholder,
 input[type='search']:focus::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--idem-placeholder-focus);
 }
 
 input[type='text']:disabled,
@@ -791,7 +894,7 @@ textarea {
 }
 
 textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--idem-placeholder);
   transition: color var(--duration-200) var(--ease-out);
 }
 
@@ -805,11 +908,11 @@ textarea:focus {
   background: var(--glass-bg-medium);
   box-shadow:
     0 0 0 3px var(--color-primary-glow),
-    0 4px 12px rgba(34, 211, 238, 0.15);
+    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
 }
 
 textarea:focus::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--idem-placeholder-focus);
 }
 
 textarea:disabled {
@@ -850,7 +953,7 @@ select:focus {
   background-color: var(--glass-bg-medium);
   box-shadow:
     0 0 0 3px var(--color-primary-glow),
-    0 4px 12px rgba(34, 211, 238, 0.15);
+    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
 }
 
 select:disabled {
@@ -861,7 +964,7 @@ select:disabled {
 
 /* Option elements */
 select option {
-  background: #0f141b;
+  background: var(--color-surface-2);
   color: var(--color-light-text);
   padding: var(--spacing-2);
 }
@@ -1158,7 +1261,7 @@ meter::-webkit-meter-even-less-good-value {
 }
 
 .container {
-  background: rgba(15, 20, 27, 0.7);
+  background: var(--glass-bg-medium);
 }
 
 /* Loading Spinner */
@@ -1221,7 +1324,7 @@ meter::-webkit-meter-even-less-good-value {
 }
 
 .shadow-glass-hover {
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-shadow-lg);
 }
 
 /* --------------------------------------------------------------------------

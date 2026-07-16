@@ -1,10 +1,11 @@
 import { Component, inject, LOCALE_ID } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { isSupportedLocale, writeLocaleCookie } from '../../shared/utils/locale-cookie';
+import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
 
 @Component({
   selector: 'app-footer',
-  imports: [CommonModule],
+  imports: [CommonModule, ThemeToggleComponent],
   templateUrl: './footer.html',
   styleUrl: './footer.css',
 })

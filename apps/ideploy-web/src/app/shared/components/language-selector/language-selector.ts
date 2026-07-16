@@ -13,15 +13,15 @@ import { LanguageService } from '../../services/language.service';
   template: `
     <div
       class="flex items-center gap-0.5 rounded-md p-0.5"
-      style="background:rgba(255,255,255,0.04);"
+      style="background:var(--glass-bg-subtle);"
       role="group"
       aria-label="Language">
       @for (lang of languages; track lang.code) {
         <button
           type="button"
           class="px-2 py-1 rounded text-[11px] font-bold uppercase transition-opacity"
-          [style.background]="current() === lang.code ? 'rgba(37,99,235,0.20)' : 'transparent'"
-          [style.color]="current() === lang.code ? '#60a5fa' : '#8d919a'"
+          [style.background]="current() === lang.code ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : 'transparent'"
+          [style.color]="current() === lang.code ? 'var(--color-primary-400)' : 'var(--color-text-tertiary)'"
           [attr.aria-pressed]="current() === lang.code"
           (click)="select(lang.code)">
           {{ lang.code }}
