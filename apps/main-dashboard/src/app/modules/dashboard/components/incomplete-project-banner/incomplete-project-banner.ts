@@ -34,8 +34,14 @@ export class IncompleteProjectBannerComponent {
       return missing;
     }
 
+    // Check if there are generated logos waiting for selection
+    const hasGeneratedLogos = branding.generatedLogos && branding.generatedLogos.length > 0;
+
     if (!branding.logo) {
-      missing.push(this.translate.instant('dashboard.incompleteBanner.elements.logo'));
+      // Only report missing logo if there are no generated logos either
+      if (!hasGeneratedLogos) {
+        missing.push(this.translate.instant('dashboard.incompleteBanner.elements.logo'));
+      }
     } else if (!branding.logo.variations?.withText) {
       // Logo sélectionné mais variations non générées → workflow non terminé
       missing.push(this.translate.instant('dashboard.incompleteBanner.elements.logo'));
@@ -45,11 +51,6 @@ export class IncompleteProjectBannerComponent {
     }
     if (!branding.typography && (!branding.generatedTypography || !branding.generatedTypography.length)) {
       missing.push(this.translate.instant('dashboard.incompleteBanner.elements.typography'));
-    }
-
-    // Même si rien ne manque individuellement, si isComplete n'est pas true, on considère le workflow incomplet
-    if (missing.length === 0 && !branding.isComplete) {
-      missing.push(this.translate.instant('dashboard.incompleteBanner.elements.logo'));
     }
 
     return missing;
