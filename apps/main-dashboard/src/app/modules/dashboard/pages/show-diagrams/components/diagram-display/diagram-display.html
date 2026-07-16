@@ -29,7 +29,7 @@
           </button>
 
           <button
-            class="p-2 rounded-md text-xs font-medium bg-gray-900 hover:bg-black text-white shadow-sm transition-colors flex items-center dark:bg-gray-700 dark:hover:bg-gray-600"
+            class="p-2 rounded-md text-xs font-medium bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-2)] text-text-primary shadow-sm transition-colors flex items-center"
             (click)="makePdf()"
             [title]="'dashboard.diagramDisplay.actions.download' | translate"
           >
@@ -87,7 +87,7 @@
 
           <!-- Download PDF -->
           <button
-            class="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 hover:bg-black text-white shadow-sm transition-colors flex items-center dark:bg-gray-700 dark:hover:bg-gray-600"
+            class="px-3 py-2 rounded-md text-sm font-medium bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-2)] text-text-primary shadow-sm transition-colors flex items-center"
             (click)="makePdf()"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,7 +189,7 @@
                   ></markdown>
                 </div>
               } @else {
-                <p class="text-gray-500 italic text-sm sm:text-base">
+                <p class="text-text-tertiary italic text-sm sm:text-base">
                   {{ 'common.noContent' | translate }}
                 </p>
               }

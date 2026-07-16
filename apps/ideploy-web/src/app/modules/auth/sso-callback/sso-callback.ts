@@ -16,8 +16,8 @@ import { AuthService } from '../../../shared/services/auth.service';
   template: `
     <div class="flex min-h-screen items-center justify-center" style="background: var(--color-bg-dark);">
       <div class="text-center">
-        <i class="fa-solid fa-circle-notch fa-spin text-2xl" style="color:#2563eb;"></i>
-        <p class="mt-4 text-sm" style="color:#8d919a;">{{ 'auth.signingIn' | translate }}</p>
+        <i class="fa-solid fa-circle-notch fa-spin text-2xl" style="color:var(--color-primary-500);"></i>
+        <p class="mt-4 text-sm" style="color:var(--color-text-tertiary);">{{ 'auth.signingIn' | translate }}</p>
       </div>
     </div>
   `,

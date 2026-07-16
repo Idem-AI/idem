@@ -3,7 +3,7 @@
   <div class="w-full min-h-[78vh] flex flex-col items-center justify-center sm:mt-0">
     <!-- Header Section -->
     <div class="text-center mb-12">
-      <h1 class="sm:text-4xl text-2xl font-bold text-white mb-4">
+      <h1 class="sm:text-4xl text-2xl font-bold text-text-primary mb-4">
         {{ 'dashboard.colorSelection.generating.title' | translate }}
       </h1>
     </div>
@@ -20,18 +20,18 @@
         [infinite]="false"
       >
         <ng-template let-item>
-          <div class="p-4 sm:p-6 border-2 border-gray-700/50 glass rounded-xl">
-            <div class="h-6 bg-gray-700/50 rounded-lg animate-pulse mb-3"></div>
+          <div class="p-4 sm:p-6 border-2 border-[var(--glass-border)] glass rounded-xl">
+            <div class="h-6 bg-[var(--glass-bg-subtle)] rounded-lg animate-pulse mb-3"></div>
             <div class="flex gap-2 mb-4">
               @for (color of [1, 2, 3, 4]; track color) {
-                <div class="w-8 h-8 bg-gray-700/50 rounded-full animate-pulse"></div>
+                <div class="w-8 h-8 bg-[var(--glass-bg-subtle)] rounded-full animate-pulse"></div>
               }
             </div>
-            <div class="p-3 rounded-lg bg-gray-800/30">
-              <div class="h-4 bg-gray-700/50 rounded animate-pulse mb-2"></div>
+            <div class="p-3 rounded-lg bg-[var(--glass-bg-subtle)]">
+              <div class="h-4 bg-[var(--glass-bg-subtle)] rounded animate-pulse mb-2"></div>
               <div class="flex gap-2">
-                <div class="w-16 h-6 bg-gray-700/50 rounded animate-pulse"></div>
-                <div class="w-12 h-6 bg-gray-700/50 rounded animate-pulse"></div>
+                <div class="w-16 h-6 bg-[var(--glass-bg-subtle)] rounded animate-pulse"></div>
+                <div class="w-12 h-6 bg-[var(--glass-bg-subtle)] rounded animate-pulse"></div>
               </div>
             </div>
           </div>
@@ -42,12 +42,12 @@
     <!-- Tips Section -->
     <div class="mt-12 text-center">
       <div
-        class="bg-gray-900/30 backdrop-blur-sm border border-gray-700/30 rounded-xl p-6 max-w-2xl mx-auto"
+        class="bg-[var(--glass-bg-subtle)] backdrop-blur-sm border border-[var(--glass-border-subtle)] rounded-xl p-6 max-w-2xl mx-auto"
       >
-        <h3 class="text-lg font-semibold text-white mb-3">
+        <h3 class="text-lg font-semibold text-text-primary mb-3">
           {{ 'dashboard.colorSelection.generating.whileYouWait' | translate }}
         </h3>
-        <p class="text-gray-300 text-sm leading-relaxed">
+        <p class="text-text-secondary text-sm leading-relaxed">
           {{ 'dashboard.colorSelection.generating.tip' | translate }}
         </p>
       </div>
@@ -72,10 +72,10 @@
             ></path>
           </svg>
         </div>
-        <h3 class="text-xl font-semibold text-white mb-2">
+        <h3 class="text-xl font-semibold text-text-primary mb-2">
           {{ 'dashboard.colorSelection.errors.title' | translate }}
         </h3>
-        <p class="text-gray-400 mb-6">{{ error() }}</p>
+        <p class="text-text-tertiary mb-6">{{ error() }}</p>
       </div>
 
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
@@ -96,7 +96,7 @@
 
         <button
           (click)="goToPreviousStep()"
-          class="flex items-center justify-center px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+          class="flex items-center justify-center px-6 py-3 bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary font-medium rounded-lg transition-colors duration-200"
         >
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -129,11 +129,11 @@
   >
     <div class="text-center mb-8">
       <h1
-        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 mb-4 max-w-4xl"
+        class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-primary mb-4 max-w-4xl"
       >
         {{ 'dashboard.colorSelection.success.title' | translate }}
       </h1>
-      <p class="text-gray-400 sm:text-lg text-sm max-w-2xl mx-auto mb-4">
+      <p class="text-text-tertiary sm:text-lg text-sm max-w-2xl mx-auto mb-4">
         {{ 'dashboard.colorSelection.success.subtitle' | translate }}
       </p>
 
@@ -175,7 +175,7 @@
             class="relative rounded-2xl cursor-pointer transition-all duration-500 overflow-hidden group hover:-translate-y-2 border-2"
             [ngClass]="{
               'scale-[1.02]': selectedColorId() === color.id,
-              'border-transparent hover:border-white/10': selectedColorId() !== color.id,
+              'border-transparent hover:border-[var(--glass-border)]': selectedColorId() !== color.id,
             }"
             [style.boxShadow]="
               selectedColorId() === color.id
@@ -197,7 +197,7 @@
                 [title]="'dashboard.colorSelection.tooltips.primary' | translate"
               >
                 <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/70 uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
                   >Primary</span
                 >
               </div>
@@ -207,7 +207,7 @@
                 [title]="'dashboard.colorSelection.tooltips.secondary' | translate"
               >
                 <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/70 uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
                   >Secondary</span
                 >
               </div>
@@ -217,7 +217,7 @@
                 [title]="'dashboard.colorSelection.tooltips.accent' | translate"
               >
                 <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/70 uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
                   >Accent</span
                 >
               </div>
@@ -234,10 +234,10 @@
             </div>
 
             <!-- Card Info -->
-            <div class="relative bg-gray-950 p-4 sm:p-5">
+            <div class="relative bg-[var(--color-bg-darker)] p-4 sm:p-5">
               <!-- Palette Name + Check -->
               <div class="flex items-center justify-between mb-4">
-                <h3 class="text-white text-base font-bold tracking-tight">{{ color.name }}</h3>
+                <h3 class="text-text-primary text-base font-bold tracking-tight">{{ color.name }}</h3>
                 @if (selectedColorId() === color.id) {
                   <div
                     class="w-7 h-7 rounded-full flex items-center justify-center shadow-lg"
@@ -247,7 +247,7 @@
                     "
                   >
                     <svg
-                      class="w-4 h-4 text-white"
+                      class="w-4 h-4 text-text-primary"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -265,7 +265,7 @@
 
               <!-- Live Typography Preview -->
               <div
-                class="rounded-xl overflow-hidden border border-white/5"
+                class="rounded-xl overflow-hidden border border-[var(--glass-border-subtle)]"
                 [style.backgroundColor]="color.colors.background"
               >
                 <div class="p-4">
@@ -280,7 +280,7 @@
                       class="h-7 px-4 rounded-lg flex items-center justify-center"
                       [style.backgroundColor]="color.colors.primary"
                     >
-                      <span class="text-[10px] font-bold text-white tracking-wide">Button</span>
+                      <span class="text-[10px] font-bold text-text-primary tracking-wide">Button</span>
                     </div>
                     <div
                       class="h-7 px-4 rounded-lg flex items-center justify-center border"
@@ -308,7 +308,7 @@
       <!-- Navigation Hint -->
       @if (selectedColorId()) {
         <div class="text-center mt-8">
-          <p class="text-gray-400 text-sm">
+          <p class="text-text-tertiary text-sm">
             {{ 'dashboard.colorSelection.success.greatChoice' | translate }}
           </p>
         </div>
@@ -339,10 +339,10 @@
         ></path>
       </svg>
     </div>
-    <h3 class="text-xl font-semibold text-white mb-2">
+    <h3 class="text-xl font-semibold text-text-primary mb-2">
       {{ 'dashboard.colorSelection.auth.title' | translate }}
     </h3>
-    <p class="text-gray-400 text-sm">
+    <p class="text-text-tertiary text-sm">
       {{ 'dashboard.colorSelection.auth.message' | translate }}
     </p>
   </div>

@@ -1,24 +1,24 @@
-<div class="min-h-screen text-white flex flex-col mt-16 projects-page">
+<div class="min-h-screen text-text-primary flex flex-col mt-16 projects-page">
   <div class="flex-1 flex px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
     <main class="flex-1 max-w-7xl mx-auto w-full space-y-8">
       
       @if (isLoading()) {
         <div class="flex flex-col justify-center items-center h-64 space-y-4">
           <app-loader />
-          <p class="text-xs text-white/40 tracking-widest uppercase animate-pulse">Loading Workspace…</p>
+          <p class="text-xs text-text-tertiary tracking-widest uppercase animate-pulse">Loading Workspace…</p>
         </div>
       } @else {
         
         <!-- Clean Header Panel -->
-        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-white/5">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--glass-border-subtle)]">
           <div class="space-y-1">
-            <p class="text-xs font-bold uppercase tracking-wider text-white/40">
+            <p class="text-xs font-bold uppercase tracking-wider text-text-tertiary">
               {{ greeting() }}
             </p>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary">
               {{ 'dashboard.globalDashboard.title' | translate }}
             </h1>
-            <p class="text-xs sm:text-sm text-white/40">
+            <p class="text-xs sm:text-sm text-text-tertiary">
               {{ 'dashboard.projectsList.cards.create.subtitle' | translate }}
             </p>
           </div>

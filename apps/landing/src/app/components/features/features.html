@@ -3,13 +3,13 @@
   <!-- Header -->
   <div class="text-center mb-16 px-4 relative z-10">
     <h2
-      class="text-4xl lg:text-6xl font-bold text-white mb-6 tracking-tight"
+      class="text-4xl lg:text-6xl font-bold text-text-primary mb-6 tracking-tight"
       i18n="@@features.title"
     >
       What IDEM <span class="i-underline">Generates</span><br />For You
     </h2>
     <p
-      class="text-xl text-white/60 max-w-2xl mx-auto leading-relaxed"
+      class="text-xl text-text-secondary max-w-2xl mx-auto leading-relaxed"
       i18n="@@features.description"
     >
       From your idea, IDEM creates everything you need to launch your business.
@@ -20,10 +20,10 @@
     <!-- SECTION 1: Administrative & Identity -->
     <div class="space-y-12">
       <div class="text-center">
-        <h3 class="text-2xl lg:text-3xl font-bold text-white mb-3" i18n="@@features.admin.sectionTitle">
+        <h3 class="text-2xl lg:text-3xl font-bold text-text-primary mb-3" i18n="@@features.admin.sectionTitle">
           Administrative & Identity
         </h3>
-        <p class="text-white/60" i18n="@@features.admin.sectionDesc">
+        <p class="text-text-secondary" i18n="@@features.admin.sectionDesc">
           Brand identity, business strategy, and legal compliance
         </p>
       </div>
@@ -34,7 +34,7 @@
           (click)="setActiveAdminTab('logo')"
           [ngClass]="{
             'bg-primary text-white': activeAdminTab() === 'logo',
-            'bg-white/5 text-white/60 hover:bg-white/10': activeAdminTab() !== 'logo'
+            'bg-[var(--glass-bg-subtle)] text-text-secondary hover:bg-[var(--glass-bg-light)]': activeAdminTab() !== 'logo'
           }"
           class="px-6 py-3 rounded-xl font-medium transition-all duration-300"
           i18n="@@features.tabs.logo"
@@ -45,7 +45,7 @@
           (click)="setActiveAdminTab('brand')"
           [ngClass]="{
             'bg-primary text-white': activeAdminTab() === 'brand',
-            'bg-white/5 text-white/60 hover:bg-white/10': activeAdminTab() !== 'brand'
+            'bg-[var(--glass-bg-subtle)] text-text-secondary hover:bg-[var(--glass-bg-light)]': activeAdminTab() !== 'brand'
           }"
           class="px-6 py-3 rounded-xl font-medium transition-all duration-300"
           i18n="@@features.tabs.brand"
@@ -56,7 +56,7 @@
           (click)="setActiveAdminTab('business')"
           [ngClass]="{
             'bg-primary text-white': activeAdminTab() === 'business',
-            'bg-white/5 text-white/60 hover:bg-white/10': activeAdminTab() !== 'business'
+            'bg-[var(--glass-bg-subtle)] text-text-secondary hover:bg-[var(--glass-bg-light)]': activeAdminTab() !== 'business'
           }"
           class="px-6 py-3 rounded-xl font-medium transition-all duration-300"
           i18n="@@features.tabs.business"
@@ -67,7 +67,7 @@
           (click)="setActiveAdminTab('legal')"
           [ngClass]="{
             'bg-primary text-white': activeAdminTab() === 'legal',
-            'bg-white/5 text-white/60 hover:bg-white/10': activeAdminTab() !== 'legal'
+            'bg-[var(--glass-bg-subtle)] text-text-secondary hover:bg-[var(--glass-bg-light)]': activeAdminTab() !== 'legal'
           }"
           class="px-6 py-3 rounded-xl font-medium transition-all duration-300"
           i18n="@@features.tabs.legal"
@@ -82,10 +82,10 @@
         @if (activeAdminTab() === 'logo') {
         <div class="space-y-8">
           <div class="text-center">
-            <h4 class="text-2xl lg:text-4xl font-bold text-white mb-4" i18n="@@features.logo.title">
+            <h4 class="text-2xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@features.logo.title">
               AI-Generated Logos
             </h4>
-            <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@features.logo.description">
+            <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@features.logo.description">
               Professional logo designs created instantly with custom colors and vector format
             </p>
           </div>
@@ -102,10 +102,10 @@
         @if (activeAdminTab() === 'brand') {
         <div class="space-y-8">
           <div class="text-center">
-            <h4 class="text-2xl lg:text-4xl font-bold text-white mb-4" i18n="@@features.brand.title">
+            <h4 class="text-2xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@features.brand.title">
               Complete Brand Charter
             </h4>
-            <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@features.brand.description">
+            <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@features.brand.description">
               Comprehensive brand guidelines with color palettes, typography, and visual identity
             </p>
           </div>
@@ -122,10 +122,10 @@
         @if (activeAdminTab() === 'business') {
         <div class="space-y-8">
           <div class="text-center">
-            <h4 class="text-2xl lg:text-4xl font-bold text-white mb-4" i18n="@@features.business.title">
+            <h4 class="text-2xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@features.business.title">
               Investor-Ready Business Plan
             </h4>
-            <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@features.business.description">
+            <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@features.business.description">
               Complete business plan with market analysis, financial projections, and strategic roadmaps
             </p>
           </div>
@@ -142,10 +142,10 @@
         @if (activeAdminTab() === 'legal') {
         <div class="space-y-8">
           <div class="text-center">
-            <h4 class="text-2xl lg:text-4xl font-bold text-white mb-4" i18n="@@features.legal.title">
+            <h4 class="text-2xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@features.legal.title">
               Legal Documents
             </h4>
-            <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@features.legal.description">
+            <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@features.legal.description">
               All legal documents you need: terms of service, privacy policy, contracts, and compliance
             </p>
           </div>
@@ -163,10 +163,10 @@
     <!-- SECTION 2: Technical -->
     <div class="space-y-12">
       <div class="text-center">
-        <h3 class="text-2xl lg:text-3xl font-bold text-white mb-3" i18n="@@features.tech.sectionTitle">
+        <h3 class="text-2xl lg:text-3xl font-bold text-text-primary mb-3" i18n="@@features.tech.sectionTitle">
           Technical Development
         </h3>
-        <p class="text-white/60" i18n="@@features.tech.sectionDesc">
+        <p class="text-text-secondary" i18n="@@features.tech.sectionDesc">
           Full-stack application, deployment, and documentation
         </p>
       </div>
@@ -177,7 +177,7 @@
           (click)="setActiveTechTab('webapp')"
           [ngClass]="{
             'bg-primary text-white': activeTechTab() === 'webapp',
-            'bg-white/5 text-white/60 hover:bg-white/10': activeTechTab() !== 'webapp'
+            'bg-[var(--glass-bg-subtle)] text-text-secondary hover:bg-[var(--glass-bg-light)]': activeTechTab() !== 'webapp'
           }"
           class="px-6 py-3 rounded-xl font-medium transition-all duration-300"
           i18n="@@features.tabs.webapp"
@@ -188,7 +188,7 @@
           (click)="setActiveTechTab('deployment')"
           [ngClass]="{
             'bg-primary text-white': activeTechTab() === 'deployment',
-            'bg-white/5 text-white/60 hover:bg-white/10': activeTechTab() !== 'deployment'
+            'bg-[var(--glass-bg-subtle)] text-text-secondary hover:bg-[var(--glass-bg-light)]': activeTechTab() !== 'deployment'
           }"
           class="px-6 py-3 rounded-xl font-medium transition-all duration-300"
           i18n="@@features.tabs.deployment"
@@ -199,7 +199,7 @@
           (click)="setActiveTechTab('documentation')"
           [ngClass]="{
             'bg-primary text-white': activeTechTab() === 'documentation',
-            'bg-white/5 text-white/60 hover:bg-white/10': activeTechTab() !== 'documentation'
+            'bg-[var(--glass-bg-subtle)] text-text-secondary hover:bg-[var(--glass-bg-light)]': activeTechTab() !== 'documentation'
           }"
           class="px-6 py-3 rounded-xl font-medium transition-all duration-300"
           i18n="@@features.tabs.documentation"
@@ -214,10 +214,10 @@
         @if (activeTechTab() === 'webapp') {
         <div class="space-y-8">
           <div class="text-center">
-            <h4 class="text-2xl lg:text-4xl font-bold text-white mb-4" i18n="@@features.webapp.title">
+            <h4 class="text-2xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@features.webapp.title">
               Full-Stack Web Application
             </h4>
-            <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@features.webapp.description">
+            <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@features.webapp.description">
               Complete web app with modern frontend, scalable backend, database, and authentication
             </p>
           </div>
@@ -264,10 +264,10 @@
         @if (activeTechTab() === 'deployment') {
         <div class="space-y-8">
           <div class="text-center">
-            <h4 class="text-2xl lg:text-4xl font-bold text-white mb-4" i18n="@@features.deployment.title">
+            <h4 class="text-2xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@features.deployment.title">
               Automatic Deployment
             </h4>
-            <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@features.deployment.description">
+            <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@features.deployment.description">
               Your app deployed to the cloud with custom domain, SSL, and CDN in minutes
             </p>
           </div>
@@ -277,28 +277,28 @@
                 <div class="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 z-10">
                   1
                 </div>
-                <div class="flex-1 bg-white/5 p-3 rounded-lg border border-white/5 flex justify-between items-center">
-                  <span class="text-white font-medium text-sm">Build</span>
+                <div class="flex-1 bg-[var(--glass-bg-subtle)] p-3 rounded-lg border border-[var(--glass-border-subtle)] flex justify-between items-center">
+                  <span class="text-text-primary font-medium text-sm">Build</span>
                   <span class="text-xs text-green-400">Success</span>
                 </div>
               </div>
-              <div class="h-6 w-0.5 bg-white/10 ml-5 -my-3"></div>
+              <div class="h-6 w-0.5 bg-[var(--glass-border)] ml-5 -my-3"></div>
               <div class="flex items-center gap-4">
                 <div class="w-10 h-10 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 z-10">
                   2
                 </div>
-                <div class="flex-1 bg-white/5 p-3 rounded-lg border border-white/5 flex justify-between items-center">
-                  <span class="text-white font-medium text-sm">Test</span>
+                <div class="flex-1 bg-[var(--glass-bg-subtle)] p-3 rounded-lg border border-[var(--glass-border-subtle)] flex justify-between items-center">
+                  <span class="text-text-primary font-medium text-sm">Test</span>
                   <span class="text-xs text-green-400">Passed</span>
                 </div>
               </div>
-              <div class="h-6 w-0.5 bg-white/10 ml-5 -my-3"></div>
+              <div class="h-6 w-0.5 bg-[var(--glass-border)] ml-5 -my-3"></div>
               <div class="flex items-center gap-4">
                 <div class="w-10 h-10 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center text-green-400 z-10">
                   3
                 </div>
-                <div class="flex-1 bg-white/5 p-3 rounded-lg border border-white/5 flex justify-between items-center">
-                  <span class="text-white font-medium text-sm">Deploy</span>
+                <div class="flex-1 bg-[var(--glass-bg-subtle)] p-3 rounded-lg border border-[var(--glass-border-subtle)] flex justify-between items-center">
+                  <span class="text-text-primary font-medium text-sm">Deploy</span>
                   <span class="text-xs text-green-400">Live</span>
                 </div>
               </div>
@@ -311,10 +311,10 @@
         @if (activeTechTab() === 'documentation') {
         <div class="space-y-8">
           <div class="text-center">
-            <h4 class="text-2xl lg:text-4xl font-bold text-white mb-4" i18n="@@features.documentation.title">
+            <h4 class="text-2xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@features.documentation.title">
               Complete Documentation
             </h4>
-            <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@features.documentation.description">
+            <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@features.documentation.description">
               Professional UML diagrams, API documentation, and technical specifications
             </p>
           </div>

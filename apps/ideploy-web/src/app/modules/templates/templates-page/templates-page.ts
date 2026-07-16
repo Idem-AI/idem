@@ -16,7 +16,7 @@ import { ServiceTemplate } from '../../../shared/models/ideploy.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6 flex items-center justify-between gap-4">
-      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:#fff;">{{ 'templates.title' | translate }}</h1>
+      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ 'templates.title' | translate }}</h1>
       <span class="text-sm" style="color:var(--color-text-secondary);">{{ filtered().length }} / {{ templates().length }}</span>
     </div>
 
@@ -24,10 +24,10 @@ import { ServiceTemplate } from '../../../shared/models/ideploy.models';
            [ngModel]="query()" (ngModelChange)="query.set($event)" />
 
     @if (error()) {
-      <div class="mb-4 rounded-md p-3 text-sm text-red-400" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
+      <div class="mb-4 rounded-md p-3 text-sm" style="color:var(--color-danger);background:color-mix(in srgb, var(--color-danger) 8%, transparent);border:1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);">
         {{ error() }}
         @if (error()!.toLowerCase().includes('server')) {
-          · <a href="/servers/new" style="color:#60a5fa;">{{ 'templates.addServer' | translate }}</a>
+          · <a href="/servers/new" style="color:var(--color-primary-400);">{{ 'templates.addServer' | translate }}</a>
         }
       </div>
     }
@@ -40,7 +40,7 @@ import { ServiceTemplate } from '../../../shared/models/ideploy.models';
           <div class="box flex flex-col">
             <div class="mb-3 flex items-center gap-3">
               <div class="flex h-10 w-10 items-center justify-center rounded-lg" style="background:var(--color-surface-2);">
-                <i class="fa-solid fa-cube" style="color:#60a5fa;"></i>
+                <i class="fa-solid fa-cube" style="color:var(--color-primary-400);"></i>
               </div>
               <div class="min-w-0">
                 <div class="truncate font-semibold capitalize">{{ t.name }}</div>

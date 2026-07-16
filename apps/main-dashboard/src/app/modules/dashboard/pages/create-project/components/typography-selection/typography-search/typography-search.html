@@ -6,10 +6,10 @@
       [value]="searchQuery()"
       (input)="onSearchInput($event)"
       placeholder="{{ 'dashboard.typographySelection.searchPlaceholder' | translate }}"
-      class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+      class="w-full px-4 py-3 bg-[var(--color-surface-2)] border border-[var(--glass-border)] rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
     />
     <svg
-      class="absolute right-3 top-3.5 w-5 h-5 text-gray-400"
+      class="absolute right-3 top-3.5 w-5 h-5 text-text-tertiary"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -27,7 +27,7 @@
   @if (isSearching) {
     <div class="flex items-center justify-center py-8">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      <span class="ml-3 text-gray-400">{{
+      <span class="ml-3 text-text-tertiary">{{
         'dashboard.typographySelection.searching' | translate
       }}</span>
     </div>
@@ -35,13 +35,13 @@
     <div class="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar">
       @for (font of searchResults; track font.family) {
         <div
-          class="flex items-center justify-between p-3 bg-gray-800/50 border border-gray-700 rounded-lg hover:border-primary/50 transition-colors"
+          class="flex items-center justify-between p-3 bg-[var(--glass-bg-light)] border border-[var(--glass-border)] rounded-lg hover:border-primary/50 transition-colors"
         >
           <div>
-            <div class="text-white font-medium text-sm" [style.fontFamily]="font.family">
+            <div class="text-text-primary font-medium text-sm" [style.fontFamily]="font.family">
               {{ font.family }}
             </div>
-            <div class="text-gray-400 text-xs">{{ font.category }}</div>
+            <div class="text-text-tertiary text-xs">{{ font.category }}</div>
           </div>
           <div class="flex gap-2">
             <button
@@ -61,7 +61,7 @@
       }
     </div>
   } @else if (searchQuery()) {
-    <div class="text-center py-8 text-gray-400">
+    <div class="text-center py-8 text-text-tertiary">
       <svg
         class="w-12 h-12 mx-auto mb-3 text-gray-600"
         fill="none"
@@ -78,7 +78,7 @@
       <p>{{ 'dashboard.typographySelection.noResults' | translate }}</p>
     </div>
   } @else {
-    <div class="text-center py-8 text-gray-400">
+    <div class="text-center py-8 text-text-tertiary">
       <svg
         class="w-12 h-12 mx-auto mb-3 text-gray-600"
         fill="none"

@@ -82,7 +82,7 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
             <!-- Close button -->
             <button
               (click)="dismissWarning()"
-              class="flex-shrink-0 ml-2 p-1 rounded-full hover:bg-white/20 transition-colors"
+              class="flex-shrink-0 ml-2 p-1 rounded-full hover:bg-[var(--glass-bg-light)] transition-colors"
             >
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path

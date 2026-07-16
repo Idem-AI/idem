@@ -1,22 +1,17 @@
 <!-- About Page -->
-<div class="relative min-h-screen bg-black overflow-hidden">
+<div class="relative min-h-screen bg-transparent overflow-hidden">
   <!-- Background -->
   <div class="absolute inset-0">
-    <div class="absolute inset-0 bg-gradient-to-b from-black via-primary/5 to-black"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-bg-darker via-primary/5 to-bg-darker"></div>
   </div>
 
   <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
     <!-- Hero Section -->
     <div class="mb-16 lg:mb-20">
       <div class="text-center mb-8 lg:mb-12">
-        <div
-          class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
-        >
-          <i class="pi pi-building text-primary"></i>
-          <span class="text-white" i18n="@@about-page.about_idem">About IDEM</span>
-        </div>
+ 
 
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary mb-6">
           <span i18n="@@about-page.africa_first">Africa's First</span>
           <br />
           <span class="i-underline" i18n="@@about-page.sovereign_platform"
@@ -25,7 +20,7 @@
         </h1>
 
         <p
-          class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed px-4"
+          class="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed px-4"
           i18n="@@about-page.description"
         >
           Founded in Cameroon with a mission to democratize tech entrepreneurship across Africa
@@ -64,7 +59,7 @@
           </div>
         </div>
         <div class="space-y-4 lg:space-y-6">
-          <div class="rounded-xl overflow-hidden border border-white/10 relative">
+          <div class="rounded-xl overflow-hidden border border-[var(--glass-border)] relative">
             <img
               src="assets/images/african-market-page/developer.webp"
               i18n-alt="@@about-page.alt.womanEntrepreneur"
@@ -73,11 +68,11 @@
               class="w-full h-48 sm:h-56 lg:h-60 object-cover"
             />
           </div>
-          <div class="glass-card p-6 rounded-xl border border-white/10">
-            <h3 class="text-xl font-bold text-white mb-2" i18n="@@about-page.made_cameroon">
+          <div class="glass-card p-6 rounded-xl border border-[var(--glass-border)]">
+            <h3 class="text-xl font-bold text-text-primary mb-2" i18n="@@about-page.made_cameroon">
               Made in Cameroon
             </h3>
-            <p class="text-sm text-gray-400" i18n="@@about-page.for_all_africa">
+            <p class="text-sm text-text-tertiary" i18n="@@about-page.for_all_africa">
               For all of Africa
             </p>
           </div>
@@ -90,11 +85,11 @@
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         @for (stat of stats; track stat.label) {
           <div
-            class="glass-card p-6 lg:p-8 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all"
+            class="glass-card p-6 lg:p-8 rounded-xl border border-[var(--glass-border)] text-center hover:border-primary/50 transition-all"
           >
             <div class="text-3xl lg:text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
             <div
-              class="text-sm lg:text-base text-white font-semibold"
+              class="text-sm lg:text-base text-text-primary font-semibold"
               i18n="@@about-page.stats.label"
             >
               {{ stat.label }}
@@ -107,7 +102,7 @@
 
     <!-- Mission Section - Split with Image -->
     <div class="mb-16 lg:mb-20">
-      <div class="glass-card rounded-2xl border border-white/10 overflow-hidden">
+      <div class="glass-card rounded-2xl border border-[var(--glass-border)] overflow-hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2">
           <!-- Content -->
           <div class="p-8 sm:p-10 lg:p-12 order-2 lg:order-1">
@@ -115,20 +110,20 @@
               <span class="text-primary" i18n="@@about-page.our_mission">Our Mission</span>
             </div>
             <h2
-              class="text-3xl sm:text-4xl font-bold text-white mb-6"
+              class="text-3xl sm:text-4xl font-bold text-text-primary mb-6"
               i18n="@@about-page.mission.title"
             >
               Democratizing Tech Entrepreneurship in Africa
             </h2>
             <p
-              class="text-base sm:text-lg text-gray-400 mb-6 leading-relaxed"
+              class="text-base sm:text-lg text-text-tertiary mb-6 leading-relaxed"
               i18n="@@about-page.mission.description1"
             >
               We believe every African entrepreneur deserves access to world-class AI tools without
               the prohibitive costs and complexity of traditional solutions.
             </p>
             <p
-              class="text-base sm:text-lg text-gray-400 mb-8 leading-relaxed"
+              class="text-base sm:text-lg text-text-tertiary mb-8 leading-relaxed"
               i18n="@@about-page.mission.description2"
             >
               IDEM combines cutting-edge multi-agent AI architecture with open source principles to
@@ -139,10 +134,10 @@
               <div class="flex items-start gap-3">
                 <i class="pi pi-check-circle text-primary mt-1 text-lg"></i>
                 <div>
-                  <h3 class="text-white font-semibold mb-1" i18n="@@about-page.accessible_pricing">
+                  <h3 class="text-text-primary font-semibold mb-1" i18n="@@about-page.accessible_pricing">
                     Accessible Pricing
                   </h3>
-                  <p class="text-sm text-gray-400" i18n="@@about-page.mission.pricing.description">
+                  <p class="text-sm text-text-tertiary" i18n="@@about-page.mission.pricing.description">
                     60-80% cheaper than international alternatives
                   </p>
                 </div>
@@ -150,10 +145,10 @@
               <div class="flex items-start gap-3">
                 <i class="pi pi-check-circle text-primary mt-1 text-lg"></i>
                 <div>
-                  <h3 class="text-white font-semibold mb-1" i18n="@@about-page.data_sovereignty">
+                  <h3 class="text-text-primary font-semibold mb-1" i18n="@@about-page.data_sovereignty">
                     Data Sovereignty
                   </h3>
-                  <p class="text-sm text-gray-400" i18n="@@about-page.your_data_stays">
+                  <p class="text-sm text-text-tertiary" i18n="@@about-page.your_data_stays">
                     Your data stays in Africa, under your control
                   </p>
                 </div>
@@ -161,10 +156,10 @@
               <div class="flex items-start gap-3">
                 <i class="pi pi-check-circle text-primary mt-1 text-lg"></i>
                 <div>
-                  <h3 class="text-white font-semibold mb-1" i18n="@@about-page.open_source">
+                  <h3 class="text-text-primary font-semibold mb-1" i18n="@@about-page.open_source">
                     Open Source
                   </h3>
-                  <p class="text-sm text-gray-400" i18n="@@about-page.full_transparency_with">
+                  <p class="text-sm text-text-tertiary" i18n="@@about-page.full_transparency_with">
                     Full transparency with Apache 2.0 license
                   </p>
                 </div>
@@ -191,10 +186,10 @@
     <!-- Values Section -->
     <div class="mb-16 lg:mb-20">
       <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4" i18n="@@about-page.our_values">
+        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary mb-4" i18n="@@about-page.our_values">
           Nos Valeurs
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto px-4" i18n="@@about-page.values.description">
+        <p class="text-text-tertiary max-w-2xl mx-auto px-4" i18n="@@about-page.values.description">
           Les principes qui guident tout ce que nous faisons chez IDEM
         </p>
       </div>
@@ -232,13 +227,13 @@
             </div>
 
             <h3
-              class="text-2xl lg:text-3xl font-bold text-white mb-4"
+              class="text-2xl lg:text-3xl font-bold text-text-primary mb-4"
               i18n="@@about-page.value.title"
             >
               {{ values[0].title }}
             </h3>
             <p
-              class="text-base lg:text-lg text-gray-300 leading-relaxed"
+              class="text-base lg:text-lg text-text-secondary leading-relaxed"
               i18n="@@about-page.value.description"
             >
               {{ values[0].description }}
@@ -255,7 +250,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <!-- Discipline -->
           <div
-            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
+            class="glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
           >
             <div
               class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors"
@@ -275,17 +270,17 @@
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-bold text-white mb-2" i18n="@@about-page.value.title">
+            <h3 class="text-lg font-bold text-text-primary mb-2" i18n="@@about-page.value.title">
               {{ values[1].title }}
             </h3>
-            <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
+            <p class="text-sm text-text-tertiary leading-relaxed" i18n="@@about-page.value.description">
               {{ values[1].description }}
             </p>
           </div>
 
           <!-- Passion -->
           <div
-            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
+            class="glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
           >
             <div
               class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors"
@@ -297,17 +292,17 @@
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-bold text-white mb-2" i18n="@@about-page.value.title">
+            <h3 class="text-lg font-bold text-text-primary mb-2" i18n="@@about-page.value.title">
               {{ values[2].title }}
             </h3>
-            <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
+            <p class="text-sm text-text-tertiary leading-relaxed" i18n="@@about-page.value.description">
               {{ values[2].description }}
             </p>
           </div>
 
           <!-- Patience -->
           <div
-            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
+            class="glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
           >
             <div
               class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors"
@@ -327,17 +322,17 @@
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-bold text-white mb-2" i18n="@@about-page.value.title">
+            <h3 class="text-lg font-bold text-text-primary mb-2" i18n="@@about-page.value.title">
               {{ values[3].title }}
             </h3>
-            <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
+            <p class="text-sm text-text-tertiary leading-relaxed" i18n="@@about-page.value.description">
               {{ values[3].description }}
             </p>
           </div>
 
           <!-- Persévérance -->
           <div
-            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
+            class="glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/30 transition-all hover:transform hover:scale-[1.02] group"
           >
             <div
               class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors"
@@ -357,10 +352,10 @@
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-bold text-white mb-2" i18n="@@about-page.value.title">
+            <h3 class="text-lg font-bold text-text-primary mb-2" i18n="@@about-page.value.title">
               {{ values[4].title }}
             </h3>
-            <p class="text-sm text-gray-400 leading-relaxed" i18n="@@about-page.value.description">
+            <p class="text-sm text-text-tertiary leading-relaxed" i18n="@@about-page.value.description">
               {{ values[4].description }}
             </p>
           </div>
@@ -371,10 +366,10 @@
     <!-- Timeline Section - Vertical Layout -->
     <div class="mb-16 lg:mb-20">
       <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4" i18n="@@about-page.our_journey">
+        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary mb-4" i18n="@@about-page.our_journey">
           Our Journey
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto px-4" i18n="@@about-page.journey.description">
+        <p class="text-text-tertiary max-w-2xl mx-auto px-4" i18n="@@about-page.journey.description">
           From inception to becoming Africa's leading sovereign AI platform
         </p>
       </div>
@@ -400,16 +395,16 @@
 
                 <!-- Content Card -->
                 <div
-                  class="flex-1 glass-card p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all"
+                  class="flex-1 glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/30 transition-all"
                 >
                   <h3
-                    class="text-lg sm:text-xl font-bold text-white mb-2"
+                    class="text-lg sm:text-xl font-bold text-text-primary mb-2"
                     i18n="@@about-page.milestone.title"
                   >
                     {{ milestone.title }}
                   </h3>
                   <p
-                    class="text-sm sm:text-base text-gray-400 leading-relaxed"
+                    class="text-sm sm:text-base text-text-tertiary leading-relaxed"
                     i18n="@@about-page.milestone.description"
                   >
                     {{ milestone.description }}
@@ -424,7 +419,7 @@
 
     <!-- Vision Section - Full Width Image with Overlay -->
     <div class="mb-16 lg:mb-20">
-      <div class="relative rounded-2xl lg:rounded-3xl overflow-hidden border border-white/10">
+      <div class="relative rounded-2xl lg:rounded-3xl overflow-hidden border border-[var(--glass-border)]">
         <img
           src="assets/images/about-page/entrepreneur-vision.webp"
           i18n-alt="@@about-page.alt.entrepreneurVision"
@@ -464,15 +459,15 @@
     </div>
 
     <!-- Contact CTA -->
-    <div class="text-center glass-card p-8 sm:p-12 rounded-2xl border border-white/10">
+    <div class="text-center glass-card p-8 sm:p-12 rounded-2xl border border-[var(--glass-border)]">
       <h2
-        class="text-2xl sm:text-3xl font-bold text-white mb-4"
+        class="text-2xl sm:text-3xl font-bold text-text-primary mb-4"
         i18n="@@about-page.want_learn_more"
       >
         Want to Learn More?
       </h2>
       <p
-        class="text-base sm:text-lg text-gray-400 mb-8 max-w-2xl mx-auto"
+        class="text-base sm:text-lg text-text-tertiary mb-8 max-w-2xl mx-auto"
         i18n="@@about-page.contact.description"
       >
         Get in touch with our team to discuss partnerships, collaborations, or just to say hello.

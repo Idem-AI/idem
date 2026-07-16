@@ -26,14 +26,14 @@ import {
 
         <!-- Daily quota indicator -->
         <div class="flex-grow flex items-center space-x-1 max-w-[120px]">
-          <div class="relative w-full bg-gray-700 rounded-full h-1.5">
+          <div class="relative w-full bg-[var(--color-surface-3)] rounded-full h-1.5">
             <div
               class="h-1.5 rounded-full transition-all duration-300"
               [class]="getDailyProgressClass()"
               [style.width.%]="quotaDisplay.dailyPercentage"
             ></div>
           </div>
-          <span class="sm:text-lg text-xs whitespace-nowrap text-white">Credits</span>
+          <span class="sm:text-lg text-xs whitespace-nowrap text-text-primary">Credits</span>
           <span class="sm:text-lg text-xs whitespace-nowrap" [class]="getDailyStatusClass()">
             {{ quotaInfo?.remainingDaily || 0 }}/{{ quotaInfo?.dailyLimit || 0 }}
           </span>
@@ -66,13 +66,13 @@ import {
       </div>
     } @else if (isLoading) {
       <div
-        class="navbar-quota-display flex items-center space-x-2 px-2 py-1 bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700"
+        class="navbar-quota-display flex items-center space-x-2 px-2 py-1 bg-[var(--glass-bg-light)] backdrop-blur-sm rounded-lg border border-[var(--glass-border)]"
       >
         <div class="animate-pulse flex-grow">
-          <div class="h-1.5 bg-gray-700 rounded w-full"></div>
+          <div class="h-1.5 bg-[var(--color-surface-3)] rounded w-full"></div>
         </div>
         <div class="animate-pulse">
-          <div class="h-3 w-8 bg-gray-700 rounded"></div>
+          <div class="h-3 w-8 bg-[var(--color-surface-3)] rounded"></div>
         </div>
       </div>
     }
@@ -88,7 +88,7 @@ export class QuotaDisplayComponent {
   protected readonly QuotaStatus = QuotaStatus;
 
   protected getDailyStatusClass(): string {
-    if (!this.quotaDisplay) return 'text-gray-400';
+    if (!this.quotaDisplay) return 'text-text-tertiary';
 
     switch (this.quotaDisplay.dailyStatus) {
       case QuotaStatus.EXCEEDED:
@@ -101,7 +101,7 @@ export class QuotaDisplayComponent {
   }
 
   protected getWeeklyStatusClass(): string {
-    if (!this.quotaDisplay) return 'text-gray-400';
+    if (!this.quotaDisplay) return 'text-text-tertiary';
 
     switch (this.quotaDisplay.weeklyStatus) {
       case QuotaStatus.EXCEEDED:
@@ -114,7 +114,7 @@ export class QuotaDisplayComponent {
   }
 
   protected getDailyProgressClass(): string {
-    if (!this.quotaDisplay) return 'bg-gray-600';
+    if (!this.quotaDisplay) return 'bg-[var(--color-surface-3)]';
 
     switch (this.quotaDisplay.dailyStatus) {
       case QuotaStatus.EXCEEDED:
@@ -127,7 +127,7 @@ export class QuotaDisplayComponent {
   }
 
   protected getWeeklyProgressClass(): string {
-    if (!this.quotaDisplay) return 'bg-gray-600';
+    if (!this.quotaDisplay) return 'bg-[var(--color-surface-3)]';
 
     switch (this.quotaDisplay.weeklyStatus) {
       case QuotaStatus.EXCEEDED:

@@ -1,5 +1,5 @@
 <!-- African Market Page -->
-<div class="relative min-h-screen bg-black overflow-hidden">
+<div class="relative min-h-screen bg-transparent overflow-hidden">
   <!-- Background Effects -->
   <div class="absolute inset-0 overflow-hidden">
     <div
@@ -17,19 +17,19 @@
         class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
       >
         <i class="pi pi-map-marker text-primary"></i>
-        <span class="text-white" i18n="@@african-market-page.panafrican_vision"
+        <span class="text-text-primary" i18n="@@african-market-page.panafrican_vision"
           >Pan-African Vision</span
         >
       </div>
 
-      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary mb-6">
         Built in <span class="i-underline" i18n="@@african-market-page.cameroon">Cameroon</span>
         <br />
         for <span class="i-underline" i18n="@@african-market-page.all_africa">All of Africa</span>
       </h1>
 
       <p
-        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+        class="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed"
         i18n="@@african-market-page.description"
       >
         IDEM is Africa's first sovereign open source AI platform, founded in Cameroon with a
@@ -66,7 +66,7 @@
           </p>
         </div>
       </div>
-      <div class="rounded-lg lg:rounded-xl overflow-hidden border border-white/10">
+      <div class="rounded-lg lg:rounded-xl overflow-hidden border border-[var(--glass-border)]">
         <img
           src="assets/images/african-market-page/entrepreneur-1.webp"
           i18n-alt="@@african-market-page.alt.entrepreneur"
@@ -75,7 +75,7 @@
           class="w-full h-full object-cover min-h-[140px] sm:min-h-[170px] lg:min-h-[190px]"
         />
       </div>
-      <div class="rounded-lg lg:rounded-xl overflow-hidden border border-white/10">
+      <div class="rounded-lg lg:rounded-xl overflow-hidden border border-[var(--glass-border)]">
         <img
           src="assets/images/african-market-page/developer.webp"
           i18n-alt="@@african-market-page.alt.developer"
@@ -85,7 +85,7 @@
         />
       </div>
       <div
-        class="col-span-2 rounded-lg lg:rounded-xl overflow-hidden border border-white/10 relative"
+        class="col-span-2 rounded-lg lg:rounded-xl overflow-hidden border border-[var(--glass-border)] relative"
       >
         <img
           src="assets/images/african-market-page/tech-team.webp"
@@ -111,13 +111,13 @@
     <div class="mb-20">
       <div class="text-center mb-12">
         <h2
-          class="text-3xl sm:text-4xl font-bold text-white mb-4"
+          class="text-3xl sm:text-4xl font-bold text-text-primary mb-4"
           i18n="@@african-market-page.why_africa"
         >
           Why Africa?
         </h2>
         <p
-          class="text-gray-400 max-w-2xl mx-auto"
+          class="text-text-tertiary max-w-2xl mx-auto"
           i18n="@@african-market-page.whyAfrica.description"
         >
           Unprecedented opportunities for innovation and entrepreneurship across the continent
@@ -127,7 +127,7 @@
       <!-- Inspiring Images - Asymmetric Grid -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-12">
         <div
-          class="md:col-span-2 rounded-xl lg:rounded-2xl overflow-hidden border border-white/10 relative group"
+          class="md:col-span-2 rounded-xl lg:rounded-2xl overflow-hidden border border-[var(--glass-border)] relative group"
         >
           <img
             src="assets/images/african-market-page/business-celebrating.webp"
@@ -139,7 +139,7 @@
           <div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
         </div>
         <div class="space-y-4 lg:space-y-6">
-          <div class="rounded-xl overflow-hidden border border-white/10 relative">
+          <div class="rounded-xl overflow-hidden border border-[var(--glass-border)] relative">
             <img
               src="assets/images/african-market-page/entrepreneur-smiling.webp"
               i18n-alt="@@african-market-page.alt.entrepreneurSmiling"
@@ -148,15 +148,15 @@
               class="w-full h-32 sm:h-36 lg:h-40 object-cover"
             />
           </div>
-          <div class="glass-card p-4 lg:p-6 rounded-xl border border-white/10">
+          <div class="glass-card p-4 lg:p-6 rounded-xl border border-[var(--glass-border)]">
             <h4
-              class="text-base lg:text-lg font-bold text-white mb-2"
+              class="text-base lg:text-lg font-bold text-text-primary mb-2"
               i18n="@@african-market-page.14b_people"
             >
               1.4B People
             </h4>
             <p
-              class="text-xs lg:text-sm text-gray-400"
+              class="text-xs lg:text-sm text-text-tertiary"
               i18n="@@african-market-page.youngest_population_globally"
             >
               Youngest population globally
@@ -168,7 +168,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         @for (reason of whyAfrica; track reason.title) {
           <div
-            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/50 transition-all hover:transform hover:scale-[1.02]"
+            class="glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/50 transition-all hover:transform hover:scale-[1.02]"
           >
             <div
               class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mx-auto mb-4"
@@ -176,13 +176,13 @@
               <i [class]="'pi ' + reason.icon + ' text-2xl text-primary'"></i>
             </div>
             <h3
-              class="text-lg font-bold text-white mb-3 text-center"
+              class="text-lg font-bold text-text-primary mb-3 text-center"
               i18n="@@african-market-page.reason.title"
             >
               {{ reason.title }}
             </h3>
             <p
-              class="text-sm text-gray-400 mb-4 text-center leading-relaxed"
+              class="text-sm text-text-tertiary mb-4 text-center leading-relaxed"
               i18n="@@african-market-page.reason.description"
             >
               {{ reason.description }}
@@ -206,12 +206,12 @@
     <div class="mb-20">
       <div class="text-center mb-12">
         <h2
-          class="text-3xl sm:text-4xl font-bold text-white mb-4"
+          class="text-3xl sm:text-4xl font-bold text-text-primary mb-4"
           i18n="@@african-market-page.whyIdem.title"
         >
           Why IDEM is Different for Africa
         </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto" i18n="@@african-market-page.whyIdem.description">
+        <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@african-market-page.whyIdem.description">
           Built by Africans, for Africans, with deep understanding of the continent's unique context
         </p>
       </div>
@@ -219,26 +219,26 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @for (advantage of idemAdvantages; track advantage.title) {
           <div
-            class="glass-card p-6 rounded-xl border border-white/10 hover:border-primary/50 transition-all"
+            class="glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/50 transition-all"
           >
             <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
               <i [class]="'pi ' + advantage.icon + ' text-2xl text-primary'"></i>
             </div>
             <h3
-              class="text-lg font-bold text-white mb-3"
+              class="text-lg font-bold text-text-primary mb-3"
               i18n="@@african-market-page.advantage.title"
             >
               {{ advantage.title }}
             </h3>
             <p
-              class="text-sm text-gray-400 mb-4 leading-relaxed"
+              class="text-sm text-text-tertiary mb-4 leading-relaxed"
               i18n="@@african-market-page.advantage.description"
             >
               {{ advantage.description }}
             </p>
             <ul class="space-y-2">
               @for (benefit of advantage.benefits.slice(0, 3); track benefit) {
-                <li class="text-xs text-gray-400 flex items-start gap-2">
+                <li class="text-xs text-text-tertiary flex items-start gap-2">
                   <i class="pi pi-check-circle text-primary mt-0.5 flex-shrink-0"></i>
                   <span i18n="@@african-market-page.advantage.benefit">{{ benefit }}</span>
                 </li>
@@ -253,12 +253,12 @@
     <app-team />
 
     <!-- CTA Section -->
-    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
-      <h2 class="text-3xl font-bold text-white mb-4" i18n="@@african-market-page.join_africas_tech">
+    <div class="text-center glass-card p-12 rounded-2xl border border-[var(--glass-border)]">
+      <h2 class="text-3xl font-bold text-text-primary mb-4" i18n="@@african-market-page.join_africas_tech">
         Join Africa's Tech Revolution
       </h2>
       <p
-        class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto"
+        class="text-lg text-text-tertiary mb-8 max-w-2xl mx-auto"
         i18n="@@african-market-page.cta.description"
       >
         Start building with IDEM today. Free tier available with 10 credits to create your first

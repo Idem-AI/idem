@@ -396,7 +396,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
         <OptimizedPromptWord input={input} setInput={setInput}></OptimizedPromptWord>
         </div>
 
-        <div className="relative bg-transparent dark:bg-[#1a1a1c] rounded-lg border border-gray-600/30">
+        <div className="relative bg-white dark:bg-[#1a1a1c] rounded-lg border border-gray-200 dark:border-gray-600/30">
           <div
             className={classNames(
               "relative",
@@ -469,7 +469,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                   width: "200px",
                 }}
               >
-                <div className="dark:bg-[#1c1c1c] bg-transparent rounded-md border border-gray-600/30 shadow-lg overflow-hidden">
+                <div className="bg-white dark:bg-[#1c1c1c] rounded-md border border-gray-200 dark:border-gray-600/30 shadow-lg overflow-hidden">
                   <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600/50 scrollbar-track-transparent">
                     {filteredMentionOptions.map((option, index) => (
                       <div
@@ -477,8 +477,8 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                         className={classNames(
                           "px-2 py-1.5 flex items-center gap-2 text-xs cursor-pointer",
                           selectedMentionIndex === index
-                            ? "bg-blue-500/20 text-blue-400"
-                            : "text-gray-300 hover:bg-gray-700/30"
+                            ? "bg-blue-500/20 text-blue-600 dark:text-blue-400"
+                            : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/30"
                         )}
                         onClick={() => {
                           handleMentionSelect(option);
@@ -503,7 +503,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
             )}
 
 
-            <div className="flex items-center justify-between px-2 py-2 border-t border-gray-600/30">
+            <div className="flex items-center justify-between px-2 py-2 border-t border-gray-200 dark:border-gray-600/30">
               <div className="flex items-center">
                 <UploadButtons
                   isLoading={isLoading}
@@ -521,7 +521,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                 <button
                   className={classNames(
                     "p-2 rounded-md transition-colors",
-                    "hover:bg-gray-700/30",
+                    "hover:bg-gray-100 dark:hover:bg-gray-700/30",
                     "group relative"
                   )}
                   onClick={() => {

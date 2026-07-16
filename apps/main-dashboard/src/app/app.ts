@@ -2,6 +2,7 @@ import { AsyncPipe } from '@angular/common';
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { RouterOutlet, NavigationEnd } from '@angular/router';
 import { LanguageService } from './shared/services/language.service';
+import { ThemeService } from './shared/services/theme.service';
 import { AuthSyncService } from './shared/services/auth-sync.service';
 import { GlobalLayoutComponent } from './layouts/global-layout/global-layout';
 import { EmptyLayout } from './layouts/empty-layout/empty-layout';
@@ -31,6 +32,9 @@ import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
 export class App implements OnInit {
   protected readonly title = signal('main-dashboard');
   private readonly languageService = inject(LanguageService);
+  // Applies the shared `idem_theme` cookie (light/dark/system) and keeps it in
+  // sync across Idem apps.
+  private readonly themeService = inject(ThemeService);
   private readonly authSyncService = inject(AuthSyncService);
 
   protected readonly router = inject(Router);
@@ -66,12 +70,6 @@ export class App implements OnInit {
   );
 
   ngOnInit(): void {
-    // Force dark mode only - prevent light mode
-    this.forceDarkMode();
-
-    // Monitor and override any theme changes
-    this.monitorThemeChanges();
-
     // Masquer le splash screen après le chargement initial
     this.hideInitialSplashScreen();
 
@@ -81,81 +79,6 @@ export class App implements OnInit {
         window.scrollTo({ top: 0, behavior: 'auto' });
       }, 0);
     });
-  }
-
-  private forceDarkMode(): void {
-    // Force dark class on html element
-    document.documentElement.classList.add('dark');
-    // Remove light class if it exists
-    document.documentElement.classList.remove('light');
-    // Set color-scheme to dark
-    document.documentElement.style.colorScheme = 'dark';
-
-    // Override any CSS media queries that might detect light mode
-    const style = document.createElement('style');
-    style.textContent = `
-      /* Force dark mode regardless of system preference */
-      :root {
-        color-scheme: dark !important;
-      }
-
-      /* Override any light mode media queries */
-      @media (prefers-color-scheme: light) {
-        :root {
-          color-scheme: dark !important;
-        }
-        html {
-          background-color: #0f141b !important;
-          color: #ffffff !important;
-        }
-      }
-
-      /* Ensure PrimeNG components use dark theme */
-      .p-component {
-        color-scheme: dark !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  private monitorThemeChanges(): void {
-    // Create a MutationObserver to watch for class changes on html element
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          const htmlElement = document.documentElement;
-          if (!htmlElement.classList.contains('dark')) {
-            // Force dark mode back if it was removed
-            htmlElement.classList.add('dark');
-            htmlElement.classList.remove('light');
-            htmlElement.style.colorScheme = 'dark';
-          }
-        }
-      });
-    });
-
-    // Start observing
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-
-    // Also monitor system theme changes and override them
-    if (window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-      const handleChange = () => {
-        // Always force dark mode regardless of system preference
-        this.forceDarkMode();
-      };
-
-      mediaQuery.addEventListener('change', handleChange);
-
-      // Store the observer for cleanup
-      this.destroy$.subscribe(() => {
-        observer.disconnect();
-        mediaQuery.removeEventListener('change', handleChange);
-      });
-    }
   }
 
   private hideInitialSplashScreen(): void {

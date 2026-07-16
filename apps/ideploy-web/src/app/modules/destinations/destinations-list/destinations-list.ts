@@ -15,7 +15,7 @@ interface ServerDestinations {
   imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">{{ 'destinations.title' | translate }}</h1>
+    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ 'destinations.title' | translate }}</h1>
     @if (rows().length === 0) {
       <div class="box">{{ 'destinations.empty' | translate }}</div>
     } @else {
@@ -23,7 +23,7 @@ interface ServerDestinations {
         @for (row of rows(); track row.server.uuid) {
           <div class="box">
             <div class="mb-2 flex items-center gap-2">
-              <i class="fa-solid fa-server" style="color:#2563eb;"></i>
+              <i class="fa-solid fa-server" style="color:var(--color-primary-500);"></i>
               <span class="font-semibold">{{ row.server.name }}</span>
             </div>
             @if (row.destinations.length === 0) {
@@ -31,7 +31,7 @@ interface ServerDestinations {
             } @else {
               @for (d of row.destinations; track d.uuid) {
                 <div class="text-sm">
-                  <i class="fa-solid fa-network-wired mr-2" style="color:#8d919a;"></i>
+                  <i class="fa-solid fa-network-wired mr-2" style="color:var(--color-text-tertiary);"></i>
                   {{ d.name }} · {{ 'destinations.network' | translate }} <code>{{ d.network }}</code>
                 </div>
               }

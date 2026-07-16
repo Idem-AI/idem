@@ -30,7 +30,7 @@
   @if (hasResult()) {
     <div class="space-y-4 animate-fadeIn">
       <!-- Success card -->
-      <div class="rounded-xl border border-white/10 glass p-6">
+      <div class="rounded-xl border border-[var(--glass-border)] glass p-6">
         <div class="flex items-center gap-4">
           <!-- Success icon -->
           <div
@@ -53,10 +53,10 @@
 
           <!-- File info -->
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-200">
+            <p class="text-sm font-medium text-text-secondary">
               {{ 'dashboard.logoImport.result.title' | translate }}
             </p>
-            <p class="text-xs text-gray-500 mt-0.5">
+            <p class="text-xs text-text-tertiary mt-0.5">
               {{ importedWidth() }} x {{ importedHeight() }}px
             </p>
           </div>
@@ -64,7 +64,7 @@
           <!-- Change file button -->
           <button
             (click)="reset()"
-            class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-gray-200 transition-colors shrink-0"
+            class="p-2 rounded-lg hover:bg-[var(--glass-bg-light)] text-text-tertiary hover:text-text-secondary transition-colors shrink-0"
             [title]="'dashboard.logoImport.result.changeFile' | translate"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,19 +81,19 @@
 
       <!-- Extracted colors (primary and secondary) -->
       @if (extractedColors().length > 0) {
-        <div class="rounded-xl border border-white/10 glass p-6">
-          <h3 class="text-sm font-medium text-gray-200 mb-4">
+        <div class="rounded-xl border border-[var(--glass-border)] glass p-6">
+          <h3 class="text-sm font-medium text-text-secondary mb-4">
             {{ 'dashboard.logoImport.result.extractedColors' | translate }}
           </h3>
           <div class="grid grid-cols-2 gap-4">
             @for (color of extractedColors(); track color; let i = $index) {
               <div class="flex flex-col items-center gap-3 group">
                 <div
-                  class="w-full aspect-square rounded-lg border-2 border-white/20 group-hover:border-white/40 transition-all shadow-lg group-hover:scale-105"
+                  class="w-full aspect-square rounded-lg border-2 border-[var(--glass-border-medium)] group-hover:border-[var(--glass-border-strong)] transition-all shadow-lg group-hover:scale-105"
                   [style.background-color]="color"
                 ></div>
                 <div class="text-center">
-                  <p class="text-xs font-medium text-gray-300 mb-1">
+                  <p class="text-xs font-medium text-text-secondary mb-1">
                     {{
                       i === 0
                         ? ('dashboard.logoImport.result.primaryColor' | translate)
@@ -101,7 +101,7 @@
                     }}
                   </p>
                   <span
-                    class="text-xs font-mono text-gray-400 group-hover:text-gray-200 transition-colors uppercase"
+                    class="text-xs font-mono text-text-tertiary group-hover:text-text-secondary transition-colors uppercase"
                     >{{ color }}</span
                   >
                 </div>
@@ -119,7 +119,7 @@
         class="relative rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer group"
         [ngClass]="{
           'border-primary bg-primary/5': isDragOver(),
-          'border-white/20 hover:border-white/40 hover:bg-white/5': !isDragOver(),
+          'border-[var(--glass-border-medium)] hover:border-[var(--glass-border-strong)] hover:bg-[var(--glass-bg-light)]': !isDragOver(),
         }"
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
@@ -129,10 +129,10 @@
         <div class="flex flex-col items-center justify-center py-12 px-6 text-center">
           <!-- Upload icon -->
           <div
-            class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:bg-white/10 transition-colors"
+            class="w-16 h-16 rounded-full bg-[var(--glass-bg-subtle)] flex items-center justify-center mb-4 group-hover:bg-[var(--glass-bg-light)] transition-colors"
           >
             <svg
-              class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
+              class="w-8 h-8 text-text-tertiary group-hover:text-primary transition-colors"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -146,29 +146,29 @@
             </svg>
           </div>
 
-          <p class="text-sm font-medium text-gray-300 mb-1">
+          <p class="text-sm font-medium text-text-secondary mb-1">
             {{ 'dashboard.logoImport.dropzone.title' | translate }}
           </p>
-          <p class="text-xs text-gray-500 mb-3">
+          <p class="text-xs text-text-tertiary mb-3">
             {{ 'dashboard.logoImport.dropzone.subtitle' | translate }}
           </p>
 
           <!-- Accepted formats -->
           <div class="flex flex-wrap items-center justify-center gap-2">
             <span
-              class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10"
+              class="px-2 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
               >SVG</span
             >
             <span
-              class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10"
+              class="px-2 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
               >PNG</span
             >
             <span
-              class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10"
+              class="px-2 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
               >JPG</span
             >
             <span
-              class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10"
+              class="px-2 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
               >WebP</span
             >
           </div>
@@ -188,12 +188,12 @@
       </div>
     } @else {
       <!-- File selected: preview + upload button -->
-      <div class="rounded-xl border border-white/10 glass p-6 space-y-4">
+      <div class="rounded-xl border border-[var(--glass-border)] glass p-6 space-y-4">
         <!-- Local preview -->
         <div class="flex items-center gap-4">
           @if (localPreviewUrl()) {
             <div
-              class="w-20 h-20 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0"
+              class="w-20 h-20 rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0"
             >
               <img
                 [src]="localPreviewUrl()"
@@ -203,14 +203,14 @@
             </div>
           }
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-200 truncate">{{ selectedFile()!.name }}</p>
-            <p class="text-xs text-gray-500 mt-0.5">
+            <p class="text-sm font-medium text-text-secondary truncate">{{ selectedFile()!.name }}</p>
+            <p class="text-xs text-text-tertiary mt-0.5">
               {{ (selectedFile()!.size / 1024).toFixed(1) }} KB
             </p>
           </div>
           <button
             (click)="reset()"
-            class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-gray-200 transition-colors shrink-0"
+            class="p-2 rounded-lg hover:bg-[var(--glass-bg-light)] text-text-tertiary hover:text-text-secondary transition-colors shrink-0"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -227,7 +227,7 @@
         @if (isUploading() || isProcessing()) {
           <div class="space-y-3">
             <app-loader></app-loader>
-            <p class="text-xs text-gray-400 text-center">
+            <p class="text-xs text-text-tertiary text-center">
               @if (isProcessing()) {
                 {{ 'dashboard.logoImport.upload.processing' | translate }}
               } @else {

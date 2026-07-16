@@ -9,7 +9,7 @@ import { ApiService } from '../../../shared/services/api.service';
   imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:#fff;">{{ 'sharedVariables.title' | translate }}</h1>
+    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ 'sharedVariables.title' | translate }}</h1>
     <p class="mb-4 text-sm" style="color: var(--color-text-secondary)">{{ 'sharedVariables.description' | translate }}</p>
 
     <div class="box max-w-2xl">

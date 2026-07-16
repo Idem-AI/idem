@@ -25,8 +25,8 @@
         <div class="mb-4">
           <app-loader />
         </div>
-        <h3 class="text-lg font-medium text-white mb-2">{{ 'common.loading' | translate }}</h3>
-        <p class="text-gray-400">{{ 'dashboard.showBranding.loading.checking' | translate }}</p>
+        <h3 class="text-lg font-medium text-text-primary mb-2">{{ 'common.loading' | translate }}</h3>
+        <p class="text-text-tertiary">{{ 'dashboard.showBranding.loading.checking' | translate }}</p>
       </div>
     </div>
   } @else if (hasError() && isRetryable()) {
@@ -36,15 +36,15 @@
         <div class="mb-6">
           <i class="pi pi-exclamation-triangle text-6xl text-red-400 mb-4"></i>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-4">{{ 'common.error' | translate }}</h3>
-        <p class="text-gray-300 mb-8">{{ errorMessage() }}</p>
+        <h3 class="text-2xl font-bold text-text-primary mb-4">{{ 'common.error' | translate }}</h3>
+        <p class="text-text-secondary mb-8">{{ errorMessage() }}</p>
         <div class="flex gap-4 justify-center">
           <button class="inner-button" (click)="retryLoadBranding()">
             <i class="pi pi-refresh mr-2"></i>
             {{ 'common.retry' | translate }}
           </button>
           <button
-            class="glass-card px-6 py-3 text-white hover:bg-white/20 transition-all duration-300 rounded-lg"
+            class="glass-card px-6 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-300 rounded-lg"
             (click)="goToProjects()"
           >
             <i class="pi pi-arrow-left mr-2"></i>
@@ -67,7 +67,7 @@
       <!-- Incomplete Guidelines Sections Banner -->
       @if (currentProject() && isBrandingComplete() && isBrandingIncomplete()) {
         <div
-          class="relative overflow-hidden flex items-stretch rounded-3xl border border-white/10 backdrop-blur-xl mb-8 min-h-[160px]"
+          class="relative overflow-hidden flex items-stretch rounded-3xl border border-[var(--glass-border)] backdrop-blur-xl mb-8 min-h-[160px]"
           style="background: var(--glass-bg-medium); box-shadow: var(--glass-shadow-lg), 0 0 80px rgba(234,179,8,0.10);"
         >
           <!-- Ambient glow blobs -->
@@ -77,12 +77,12 @@
           <!-- Content -->
           <div class="relative z-10 flex-1 flex flex-col justify-center gap-4 py-6 px-10">
             <!-- Title -->
-            <h2 class="text-2xl font-bold leading-tight text-white max-w-md m-0">
+            <h2 class="text-2xl font-bold leading-tight text-text-primary max-w-md m-0">
               Votre Charte Graphique est incomplète
             </h2>
 
             <!-- Description -->
-            <p class="text-sm leading-relaxed text-white/60 max-w-xl m-0">
+            <p class="text-sm leading-relaxed text-text-secondary max-w-xl m-0">
               Seulement {{ brandingSectionCount() }} sur 11 sections de la charte graphique ont été générées. Vous pouvez compléter la génération ou recommencer de zéro.
             </p>
 
@@ -91,7 +91,7 @@
               <button (click)="generateBranding(false)" class="inner-button">
                 Compléter la génération
               </button>
-              <button (click)="generateBranding(true)" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+              <button (click)="generateBranding(true)" class="bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary px-6 py-2 rounded-lg font-medium transition-colors">
                 Re-générer de zéro
               </button>
             </div>
@@ -103,10 +103,10 @@
       <div class="glass-card p-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h1 class="text-3xl font-bold text-white mb-2">
+            <h1 class="text-3xl font-bold text-text-primary mb-2">
               {{ 'dashboard.showBranding.title' | translate }}
             </h1>
-            <p class="text-gray-300">
+            <p class="text-text-secondary">
               @if (currentProject()) {
                 {{ currentProject()!.name }}
               }
@@ -151,10 +151,10 @@
             <div class="relative z-10">
               <!-- Header -->
               <div class="text-center mb-8">
-                <h3 class="text-3xl sm:text-4xl font-bold text-white mb-3">
+                <h3 class="text-3xl sm:text-4xl font-bold text-text-primary mb-3">
                   {{ 'dashboard.showBranding.identityCard.existing.title' | translate }}
                 </h3>
-                <p class="text-gray-300 text-lg max-w-2xl mx-auto">
+                <p class="text-text-secondary text-lg max-w-2xl mx-auto">
                   {{ 'dashboard.showBranding.identityCard.existing.subtitle' | translate }}
                 </p>
               </div>
@@ -165,7 +165,7 @@
                 <div class="lg:col-span-1 flex justify-center">
                   <div class="relative group/logo">
                     <div
-                      class="w-32 h-32 bg-white rounded-2xl flex items-center justify-center shadow-lg border-2 border-white/20 group-hover/logo:shadow-xl group-hover/logo:bg-white/15 transition-all duration-300"
+                      class="w-32 h-32 bg-white rounded-2xl flex items-center justify-center shadow-lg border-2 border-[var(--glass-border-medium)] group-hover/logo:shadow-xl group-hover/logo:bg-[var(--glass-bg-subtle)] transition-all duration-300"
                     >
                       @if (existingBranding()?.logo?.svg) {
                         <img
@@ -174,7 +174,7 @@
                         />
                       } @else {
                         <svg
-                          class="w-16 h-16 text-white/70"
+                          class="w-16 h-16 text-text-secondary"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -207,12 +207,12 @@
                       track feature
                     ) {
                       <div
-                        class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10"
+                        class="flex items-start gap-3 p-4 bg-[var(--glass-bg-subtle)] rounded-xl border border-[var(--glass-border)]"
                       >
                         <div
                           class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shrink-0 mt-0.5"
                         >
-                          <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <svg class="w-3 h-3 text-text-primary" fill="currentColor" viewBox="0 0 20 20">
                             <path
                               fill-rule="evenodd"
                               d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -221,7 +221,7 @@
                           </svg>
                         </div>
                         <div>
-                          <span class="text-sm font-semibold text-white">{{
+                          <span class="text-sm font-semibold text-text-primary">{{
                             feature | translate
                           }}</span>
                         </div>
@@ -266,10 +266,10 @@
         <div (click)="generateBranding()" class="relative overflow-hidden cursor-pointer group">
           <!-- Main Card -->
           <div
-            class="glass-card border border-white/20 hover:border-white/30 transition-all duration-500"
+            class="glass-card border border-[var(--glass-border-medium)] hover:border-[var(--glass-border-strong)] transition-all duration-500"
           >
             <!-- Header with Icon -->
-            <div class="p-6 sm:p-8 lg:p-10 border-b border-white/10">
+            <div class="p-6 sm:p-8 lg:p-10 border-b border-[var(--glass-border)]">
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div class="flex items-center gap-4">
                   <!-- Icon Container -->
@@ -283,7 +283,7 @@
 
                   <!-- Title & Status -->
                   <div>
-                    <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">
+                    <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-text-primary mb-1">
                       {{ 'dashboard.showBranding.identityCard.generate.title' | translate }}
                     </h3>
                     <div class="flex items-center gap-2">
@@ -331,7 +331,7 @@
 
             <!-- Content -->
             <div class="p-6 sm:p-8 lg:p-10">
-              <p class="text-gray-300 text-base sm:text-lg mb-4 max-w-2xl">
+              <p class="text-text-secondary text-base sm:text-lg mb-4 max-w-2xl">
                 {{ 'dashboard.showBranding.identityCard.generate.subtitle' | translate }}
               </p>
 
@@ -362,7 +362,7 @@
                   track feature
                 ) {
                   <div
-                    class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+                    class="flex items-center gap-3 p-3 bg-[var(--glass-bg-subtle)] rounded-lg border border-[var(--glass-border)]"
                   >
                     <svg
                       class="w-5 h-5 text-blue-400 shrink-0"
@@ -375,7 +375,7 @@
                         clip-rule="evenodd"
                       />
                     </svg>
-                    <span class="text-sm text-gray-300 font-medium">{{ feature | translate }}</span>
+                    <span class="text-sm text-text-secondary font-medium">{{ feature | translate }}</span>
                   </div>
                 }
               </div>
@@ -390,10 +390,10 @@
         <div class="glass-card p-6">
           <div class="flex items-center justify-between mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">
+              <h3 class="text-xl font-semibold text-text-primary">
                 {{ 'dashboard.showBranding.sections.logos.title' | translate }}
               </h3>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.sections.logos.subtitle' | translate }}
               </p>
             </div>
@@ -403,7 +403,7 @@
             ) {
               <button
                 (click)="showDialog()"
-                class="glass-card px-4 py-2 text-white hover:bg-white/20 transition-all duration-300 rounded-lg flex items-center gap-2"
+                class="glass-card px-4 py-2 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-300 rounded-lg flex items-center gap-2"
                 [title]="'dashboard.showBranding.tooltips.downloadZip' | translate"
               >
                 <i class="pi pi-download text-sm"></i>
@@ -436,13 +436,13 @@
                       <img [src]="existingBranding()!.logo.svg" class="w-full h-full object-contain" />
                     }
                   </div>
-                  <p class="text-white font-medium">
+                  <p class="text-text-primary font-medium">
                     {{
                       existingBranding()!.logo.name ||
                         ('dashboard.showBranding.sections.logos.main' | translate)
                     }}
                   </p>
-                  <p class="text-gray-400 text-sm">
+                  <p class="text-text-tertiary text-sm">
                     {{ 'dashboard.showBranding.sections.logos.selected' | translate }}
                   </p>
                 </div>
@@ -467,7 +467,7 @@
                           <img [src]="existingBranding()!.logo!.variations!.withText!.lightBackground" class="w-full h-full object-contain" />
                         }
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.lightBg' | translate }}
                       </p>
                     </div>
@@ -477,7 +477,7 @@
                   @if (existingBranding()!.logo!.variations!.withText?.darkBackground) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-gray-800/50 rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-16 h-16 mx-auto mb-2 bg-[var(--glass-bg-light)] rounded flex items-center justify-center p-1 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.withText!.darkBackground!.startsWith('<')) {
                           <div
@@ -488,7 +488,7 @@
                           <img [src]="existingBranding()!.logo!.variations!.withText!.darkBackground" class="w-full h-full object-contain" />
                         }
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }}
                       </p>
                     </div>
@@ -498,7 +498,7 @@
                   @if (existingBranding()!.logo!.variations!.withText?.monochrome) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white/10 rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-16 h-16 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded flex items-center justify-center p-1 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.withText!.monochrome!.startsWith('<')) {
                           <div
@@ -509,7 +509,7 @@
                           <img [src]="existingBranding()!.logo!.variations!.withText!.monochrome" class="w-full h-full object-contain" />
                         }
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }}
                       </p>
                     </div>
@@ -530,7 +530,7 @@
                           <img [src]="existingBranding()!.logo!.variations!.iconOnly!.lightBackground" class="w-full h-full object-contain" />
                         }
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.iconOnly' | translate }}
                       </p>
                     </div>
@@ -540,7 +540,7 @@
                   @if (existingBranding()!.logo!.variations!.iconOnly?.darkBackground) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-gray-800/50 rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-16 h-16 mx-auto mb-2 bg-[var(--glass-bg-light)] rounded flex items-center justify-center p-1 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.iconOnly!.darkBackground!.startsWith('<')) {
                           <div
@@ -551,7 +551,7 @@
                           <img [src]="existingBranding()!.logo!.variations!.iconOnly!.darkBackground" class="w-full h-full object-contain" />
                         }
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }} (icon)
                       </p>
                     </div>
@@ -561,7 +561,7 @@
                   @if (existingBranding()!.logo!.variations!.iconOnly?.monochrome) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white/10 rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-16 h-16 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded flex items-center justify-center p-1 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.iconOnly!.monochrome!.startsWith('<')) {
                           <div
@@ -572,7 +572,7 @@
                           <img [src]="existingBranding()!.logo!.variations!.iconOnly!.monochrome" class="w-full h-full object-contain" />
                         }
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }} (icon)
                       </p>
                     </div>
@@ -583,8 +583,8 @@
             </div>
           } @else {
             <div class="bg-linear-to-r py-8">
-              <i class="pi pi-image text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">{{ 'dashboard.showBranding.empty.noLogos' | translate }}</p>
+              <i class="pi pi-image text-4xl text-text-tertiary mb-3"></i>
+              <p class="text-text-tertiary">{{ 'dashboard.showBranding.empty.noLogos' | translate }}</p>
             </div>
           }
         </div>
@@ -593,10 +593,10 @@
         <div class="glass-card p-6">
           <div class="flex items-center mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">
+              <h3 class="text-xl font-semibold text-text-primary">
                 {{ 'dashboard.showBranding.sections.colors.title' | translate }}
               </h3>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.sections.colors.subtitle' | translate }}
               </p>
             </div>
@@ -611,7 +611,7 @@
               @if (existingBranding()!.colors!.colors) {
                 <!-- Selected Color Palette -->
                 <div class="space-y-3">
-                  <p class="text-white font-medium mb-3">
+                  <p class="text-text-primary font-medium mb-3">
                     {{
                       existingBranding()!.colors.name ||
                         ('dashboard.showBranding.sections.colors.selected' | translate)
@@ -624,10 +624,10 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.primary"
                         ></div>
-                        <p class="text-white text-sm font-medium">
+                        <p class="text-text-primary text-sm font-medium">
                           {{ 'dashboard.showBranding.sections.colors.primary' | translate }}
                         </p>
-                        <p class="text-gray-400 text-xs">
+                        <p class="text-text-tertiary text-xs">
                           {{ existingBranding()!.colors.colors.primary }}
                         </p>
                       </div>
@@ -638,10 +638,10 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.secondary"
                         ></div>
-                        <p class="text-white text-sm font-medium">
+                        <p class="text-text-primary text-sm font-medium">
                           {{ 'dashboard.showBranding.sections.colors.secondary' | translate }}
                         </p>
-                        <p class="text-gray-400 text-xs">
+                        <p class="text-text-tertiary text-xs">
                           {{ existingBranding()!.colors.colors.secondary }}
                         </p>
                       </div>
@@ -652,10 +652,10 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.accent"
                         ></div>
-                        <p class="text-white text-sm font-medium">
+                        <p class="text-text-primary text-sm font-medium">
                           {{ 'dashboard.showBranding.sections.colors.accent' | translate }}
                         </p>
-                        <p class="text-gray-400 text-xs">
+                        <p class="text-text-tertiary text-xs">
                           {{ existingBranding()!.colors.colors.accent }}
                         </p>
                       </div>
@@ -666,10 +666,10 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.background"
                         ></div>
-                        <p class="text-white text-sm font-medium">
+                        <p class="text-text-primary text-sm font-medium">
                           {{ 'dashboard.showBranding.sections.colors.background' | translate }}
                         </p>
-                        <p class="text-gray-400 text-xs">
+                        <p class="text-text-tertiary text-xs">
                           {{ existingBranding()!.colors.colors.background }}
                         </p>
                       </div>
@@ -680,8 +680,8 @@
             </div>
           } @else {
             <div class="bg-linear-to-r py-8">
-              <i class="pi pi-palette text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">{{ 'dashboard.showBranding.empty.noColors' | translate }}</p>
+              <i class="pi pi-palette text-4xl text-text-tertiary mb-3"></i>
+              <p class="text-text-tertiary">{{ 'dashboard.showBranding.empty.noColors' | translate }}</p>
             </div>
           }
         </div>
@@ -690,10 +690,10 @@
         <div class="glass-card p-6">
           <div class="flex items-center mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">
+              <h3 class="text-xl font-semibold text-text-primary">
                 {{ 'dashboard.showBranding.sections.typography.title' | translate }}
               </h3>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.sections.typography.subtitle' | translate }}
               </p>
             </div>
@@ -709,7 +709,7 @@
               @if (existingBranding()!.typography!.primaryFont) {
                 <!-- Selected Typography -->
                 <div class="space-y-3">
-                  <p class="text-white font-medium mb-3">
+                  <p class="text-text-primary font-medium mb-3">
                     {{
                       existingBranding()!.typography.name ||
                         ('dashboard.showBranding.sections.typography.selected' | translate)
@@ -719,29 +719,29 @@
                   <!-- Primary Font -->
                   <div class="glass-card p-4">
                     <h4
-                      class="text-2xl font-bold text-white mb-2"
+                      class="text-2xl font-bold text-text-primary mb-2"
                       [style.font-family]="existingBranding()!.typography.primaryFont"
                     >
                       {{ existingBranding()!.typography.primaryFont }}
                     </h4>
-                    <p class="text-gray-400 text-sm mb-3">
+                    <p class="text-text-tertiary text-sm mb-3">
                       {{ 'dashboard.showBranding.sections.typography.primary' | translate }}
                     </p>
                     <div class="space-y-1">
                       <p
-                        class="text-white text-lg font-bold"
+                        class="text-text-primary text-lg font-bold"
                         [style.font-family]="existingBranding()!.typography.primaryFont"
                       >
                         Aa Bb Cc
                       </p>
                       <p
-                        class="text-gray-300 text-base font-medium"
+                        class="text-text-secondary text-base font-medium"
                         [style.font-family]="existingBranding()!.typography.primaryFont"
                       >
                         Aa Bb Cc
                       </p>
                       <p
-                        class="text-gray-400 text-sm"
+                        class="text-text-tertiary text-sm"
                         [style.font-family]="existingBranding()!.typography.primaryFont"
                       >
                         Aa Bb Cc
@@ -753,23 +753,23 @@
                   @if (existingBranding()!.typography.secondaryFont) {
                     <div class="glass-card p-4">
                       <h4
-                        class="text-xl text-white mb-2"
+                        class="text-xl text-text-primary mb-2"
                         [style.font-family]="existingBranding()!.typography.secondaryFont"
                       >
                         {{ existingBranding()!.typography.secondaryFont }}
                       </h4>
-                      <p class="text-gray-400 text-sm mb-3">
+                      <p class="text-text-tertiary text-sm mb-3">
                         {{ 'dashboard.showBranding.sections.typography.secondary' | translate }}
                       </p>
                       <div class="space-y-1">
                         <p
-                          class="text-white text-base"
+                          class="text-text-primary text-base"
                           [style.font-family]="existingBranding()!.typography.secondaryFont"
                         >
                           Aa Bb Cc
                         </p>
                         <p
-                          class="text-gray-300 text-sm"
+                          class="text-text-secondary text-sm"
                           [style.font-family]="existingBranding()!.typography.secondaryFont"
                         >
                           Aa Bb Cc
@@ -782,8 +782,8 @@
             </div>
           } @else {
             <div class="bg-linear-to-r py-8">
-              <i class="pi pi-font text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">
+              <i class="pi pi-font text-4xl text-text-tertiary mb-3"></i>
+              <p class="text-text-tertiary">
                 {{ 'dashboard.showBranding.empty.noTypography' | translate }}
               </p>
             </div>
@@ -796,12 +796,12 @@
     <div class="max-w-4xl mx-auto text-center py-20">
       <div class="glass-card p-8">
         <div class="mb-6">
-          <i class="pi pi-exclamation-triangle text-6xl text-gray-400 mb-4"></i>
+          <i class="pi pi-exclamation-triangle text-6xl text-text-tertiary mb-4"></i>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-4">
+        <h3 class="text-2xl font-bold text-text-primary mb-4">
           {{ 'dashboard.showBranding.empty.noProject.title' | translate }}
         </h3>
-        <p class="text-gray-300 mb-8">
+        <p class="text-text-secondary mb-8">
           {{ 'dashboard.showBranding.empty.noProject.subtitle' | translate }}
         </p>
         <div class="flex justify-center">
@@ -830,7 +830,7 @@
     <div class="space-y-3 mb-6">
       <!-- SVG Option -->
       <div
-        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-white/10"
+        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-[var(--glass-bg-light)]"
         [class.ring-2]="selectedExtension === 'svg'"
         [class.ring-blue-400]="selectedExtension === 'svg'"
         (click)="selectExtension('svg')"
@@ -845,10 +845,10 @@
               />
             </div>
             <div>
-              <h4 class="text-white font-medium">
+              <h4 class="text-text-primary font-medium">
                 {{ 'dashboard.showBranding.dialog.formats.svg.name' | translate }}
               </h4>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.dialog.formats.svg.description' | translate }}
               </p>
             </div>
@@ -861,7 +861,7 @@
 
       <!-- PNG Option -->
       <div
-        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-white/10"
+        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-[var(--glass-bg-light)]"
         [class.ring-2]="selectedExtension === 'png'"
         [class.ring-green-400]="selectedExtension === 'png'"
         (click)="selectExtension('png')"
@@ -876,10 +876,10 @@
               />
             </div>
             <div>
-              <h4 class="text-white font-medium">
+              <h4 class="text-text-primary font-medium">
                 {{ 'dashboard.showBranding.dialog.formats.png.name' | translate }}
               </h4>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.dialog.formats.png.description' | translate }}
               </p>
             </div>
@@ -892,7 +892,7 @@
 
       <!-- PSD Option -->
       <div
-        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-white/10"
+        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-[var(--glass-bg-light)]"
         [class.ring-2]="selectedExtension === 'psd'"
         [class.ring-purple-400]="selectedExtension === 'psd'"
         (click)="selectExtension('psd')"
@@ -907,10 +907,10 @@
               />
             </div>
             <div>
-              <h4 class="text-white font-medium">
+              <h4 class="text-text-primary font-medium">
                 {{ 'dashboard.showBranding.dialog.formats.psd.name' | translate }}
               </h4>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.dialog.formats.psd.description' | translate }}
               </p>
             </div>
@@ -938,10 +938,10 @@
       >
         <div class="bg-linear-to-r">
           <app-loader />
-          <p class="text-white mt-4 font-medium">
+          <p class="text-text-primary mt-4 font-medium">
             {{ 'dashboard.showBranding.dialog.preparing' | translate }}
           </p>
-          <p class="text-gray-400 text-sm">
+          <p class="text-text-tertiary text-sm">
             {{ 'dashboard.showBranding.dialog.wait' | translate }}
           </p>
         </div>

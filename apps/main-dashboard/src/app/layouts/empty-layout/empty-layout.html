@@ -5,7 +5,7 @@
 
 <!-- Top Navigation Bar -->
 <nav
-  class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10 px-3 py-3 lg:px-6 transition-all duration-300"
+  class="fixed top-0 left-0 right-0 z-50 glass border-b border-[var(--glass-border)] px-3 py-3 lg:px-6 transition-all duration-300"
 >
   <div class="flex items-center justify-between">
     <!-- Left Section with Logo and Mobile Menu Button -->
@@ -16,7 +16,7 @@
           href="{{ landingUrl }}"
           class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
         >
-          <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto" />
+          <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0" />
           <app-beta-badge></app-beta-badge>
         </a>
       </div>
@@ -26,6 +26,7 @@
     <div class="flex items-center gap-4">
       <!-- Language Selector -->
       <app-language-selector direction="down" align="right" />
+      <app-theme-toggle />
 
       @if (user()) {
         <!-- Quota Display - Desktop only -->
@@ -43,29 +44,29 @@
         <div class="relative">
           <button
             (click)="toggleDropdown()"
-            class="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-all duration-200"
+            class="flex items-center gap-2 p-1 rounded-full hover:bg-[var(--glass-bg-light)] transition-all duration-200"
           >
             <img
               [src]="user()!.photoURL"
               alt="Avatar"
-              class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white/20"
+              class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-[var(--glass-border-medium)]"
             />
           </button>
 
           <!-- User Dropdown -->
           @if (isDropdownOpen()) {
             <div
-              class="absolute right-0 mt-2 w-56 bg-bg-dark border border-white/10 rounded-xl shadow-xl z-50 py-2"
+              class="absolute right-0 mt-2 w-56 bg-bg-dark border border-[var(--glass-border)] rounded-xl shadow-xl z-50 py-2"
             >
-              <div class="px-4 py-3 border-b border-white/10">
-                <p class="text-white font-medium truncate">{{ user()!.displayName }}</p>
-                <p class="text-gray-400 text-sm truncate">{{ user()!.email }}</p>
+              <div class="px-4 py-3 border-b border-[var(--glass-border)]">
+                <p class="text-text-primary font-medium truncate">{{ user()!.displayName }}</p>
+                <p class="text-text-tertiary text-sm truncate">{{ user()!.email }}</p>
               </div>
 
               <a
                 routerLink="/project/profile"
                 (click)="navigateTo('/project/profile')"
-                class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
+                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
                 <i class="pi pi-user text-primary"></i>
                 <span>Profile</span>
@@ -74,7 +75,7 @@
               <a
                 routerLink="/projects"
                 (click)="navigateTo('/projects')"
-                class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
+                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
                 <i class="pi pi-folder text-accent"></i>
                 <span>All Projects</span>
@@ -83,13 +84,13 @@
               <a
                 routerLink="/settings"
                 (click)="navigateTo('/settings')"
-                class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
+                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
                 <i class="pi pi-cog text-secondary"></i>
                 <span>Settings</span>
               </a>
 
-              <hr class="border-white/10 my-2" />
+              <hr class="border-[var(--glass-border)] my-2" />
 
               <button
                 (click)="logout()"

@@ -2,18 +2,18 @@
   <!-- Breadcrumb + header -->
   <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
     <div>
-      <nav class="text-xs text-gray-400 mb-2 flex items-center gap-2">
+      <nav class="text-xs text-text-tertiary mb-2 flex items-center gap-2">
         <a routerLink="/project/finance" class="hover:text-primary transition-colors">
           {{ 'dashboard.finance.title' | translate }}
         </a>
         <i class="pi pi-chevron-right text-[10px]"></i>
-        <span class="text-white">
+        <span class="text-text-primary">
           @if (descriptor()) {
             {{ descriptor()!.labelKey | translate }}
           }
         </span>
       </nav>
-      <h1 class="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+      <h1 class="text-2xl md:text-3xl font-bold text-text-primary flex items-center gap-3">
         @if (descriptor()) {
           <i [class]="descriptor()!.icon" class="text-primary"></i>
           {{ descriptor()!.labelKey | translate }}
@@ -40,7 +40,7 @@
       <!-- Toolbar for year-based sections -->
       @if (['salesObjectives', 'amortization', 'compteExploitation', 'bilan', 'fluxTresorerie'].includes(sectionKey())) {
         <div class="flex items-center gap-2 mb-6">
-          <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold mr-2">Année :</span>
+          <span class="text-xs text-text-tertiary uppercase tracking-wider font-semibold mr-2">Année :</span>
           <div class="year-tabs">
             @for (year of yearLabels(); track $index) {
               <button class="year-tab" [class.active]="selectedYear() === $index" (click)="selectYear($index)">
@@ -55,7 +55,7 @@
         <!-- ============================================== PRODUCTS ============================================== -->
         @case ('products') {
           <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Produits & Services</h3>
+            <h3 class="text-lg font-semibold text-text-primary">Produits & Services</h3>
             <button class="outer-button button-sm" (click)="addProduct()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
           </div>
           <div class="finance-table-wrap">
@@ -113,7 +113,7 @@
         <!-- ============================================== VARIABLE CHARGES ============================================== -->
         @case ('variableCharges') {
           <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Charges Variables</h3>
+            <h3 class="text-lg font-semibold text-text-primary">Charges Variables</h3>
             <button class="outer-button button-sm" (click)="addVariableChargeLine()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
           </div>
           <div class="finance-table-wrap mb-8">
@@ -153,7 +153,7 @@
               </tbody>
             </table>
           </div>
-          <div class="param-grid border-t border-white/10 pt-6">
+          <div class="param-grid border-t border-[var(--glass-border)] pt-6">
             <div class="param-field">
               <label>Taux de dette Fournisseurs (%)</label>
               <input type="number" [(ngModel)]="variableCharges()!.supplierDebtRatePct" (ngModelChange)="markDirty()">
@@ -164,7 +164,7 @@
         <!-- ============================================== FIXED CHARGES ============================================== -->
         @case ('fixedCharges') {
           <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Charges Fixes (Fonctionnement)</h3>
+            <h3 class="text-lg font-semibold text-text-primary">Charges Fixes (Fonctionnement)</h3>
             <button class="outer-button button-sm" (click)="addFixedChargeLine()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
           </div>
           <div class="finance-table-wrap mb-8">
@@ -204,8 +204,8 @@
             </table>
           </div>
 
-          <div class="mb-4 flex justify-between items-center border-t border-white/10 pt-6">
-            <h3 class="text-lg font-semibold text-white">Salaires & Personnel</h3>
+          <div class="mb-4 flex justify-between items-center border-t border-[var(--glass-border)] pt-6">
+            <h3 class="text-lg font-semibold text-text-primary">Salaires & Personnel</h3>
             <button class="outer-button button-sm" (click)="addSalary()"><i class="pi pi-plus mr-2"></i> Ajouter Salaire</button>
           </div>
           <div class="finance-table-wrap mb-8">
@@ -232,7 +232,7 @@
               </tbody>
             </table>
           </div>
-          <div class="param-grid border-t border-white/10 pt-6">
+          <div class="param-grid border-t border-[var(--glass-border)] pt-6">
             <div class="param-field">
               <label>Taux Charges Patronales (%)</label>
               <input type="number" [(ngModel)]="fixedCharges()!.socialChargesRatePct" (ngModelChange)="markDirty()">
@@ -246,7 +246,7 @@
         <!-- ============================================== INVESTMENTS ============================================== -->
         @case ('investments') {
           <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Investissements (CAPEX)</h3>
+            <h3 class="text-lg font-semibold text-text-primary">Investissements (CAPEX)</h3>
             <button class="outer-button button-sm" (click)="addInvestment()"><i class="pi pi-plus mr-2"></i> Ajouter</button>
           </div>
           <div class="finance-table-wrap">
@@ -425,8 +425,8 @@
                     <td class="col-num">{{ formatCurrency(amort.base) }}</td>
                     <td class="col-num">{{ formatPercent(amort.ratePct) }}</td>
                     <td class="col-num">{{ formatCurrency(amort.annualDotations[selectedYear()]) }}</td>
-                    <td class="col-num text-gray-400">{{ formatCurrency(amort.cumulative[selectedYear()]) }}</td>
-                    <td class="col-num text-white">{{ formatCurrency(amort.vna[selectedYear()]) }}</td>
+                    <td class="col-num text-text-tertiary">{{ formatCurrency(amort.cumulative[selectedYear()]) }}</td>
+                    <td class="col-num text-text-primary">{{ formatCurrency(amort.vna[selectedYear()]) }}</td>
                   </tr>
                 }
               </tbody>
@@ -468,7 +468,7 @@
           <div class="grid md:grid-cols-2 gap-6">
             <!-- Actif -->
             <div class="finance-table-wrap">
-              <h4 class="font-bold mb-3 text-white">ACTIF</h4>
+              <h4 class="font-bold mb-3 text-text-primary">ACTIF</h4>
               <table class="finance-table">
                 <tbody>
                   @if (computedData()?.bilan; as bsArr) {
@@ -485,7 +485,7 @@
             </div>
             <!-- Passif -->
             <div class="finance-table-wrap">
-              <h4 class="font-bold mb-3 text-white">PASSIF</h4>
+              <h4 class="font-bold mb-3 text-text-primary">PASSIF</h4>
               <table class="finance-table">
                 <tbody>
                   @if (computedData()?.bilan; as bsArr) {
@@ -532,16 +532,16 @@
           <div class="grid md:grid-cols-3 gap-6">
             @if (computedData()?.ratios; as ratios) {
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-gray-400 uppercase tracking-wide mb-2">Valeur Actuelle Nette (VAN)</div>
-                <div class="text-2xl font-bold text-white">{{ formatCurrency(ratios.van) }}</div>
+                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Valeur Actuelle Nette (VAN)</div>
+                <div class="text-2xl font-bold text-text-primary">{{ formatCurrency(ratios.van) }}</div>
               </div>
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-gray-400 uppercase tracking-wide mb-2">Taux de Rentabilité Interne (TRI)</div>
-                <div class="text-2xl font-bold text-white">{{ formatPercent(ratios.tri) }}</div>
+                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Taux de Rentabilité Interne (TRI)</div>
+                <div class="text-2xl font-bold text-text-primary">{{ formatPercent(ratios.tri) }}</div>
               </div>
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-gray-400 uppercase tracking-wide mb-2">Délai de Récupération (DRCI)</div>
-                <div class="text-2xl font-bold text-white">{{ ratios.drci }} ans</div>
+                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Délai de Récupération (DRCI)</div>
+                <div class="text-2xl font-bold text-text-primary">{{ ratios.drci }} ans</div>
               </div>
             }
           </div>

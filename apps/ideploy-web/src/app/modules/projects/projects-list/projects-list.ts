@@ -11,7 +11,7 @@ import { Project } from '../../../shared/models/ideploy.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6 flex items-center justify-between">
-      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:#fff;">{{ 'projects.list.title' | translate }}</h1>
+      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ 'projects.list.title' | translate }}</h1>
       <button class="button" (click)="creating.set(!creating())">
         {{ (creating() ? 'projects.common.cancel' : 'projects.list.newProject') | translate }}
       </button>
@@ -28,7 +28,7 @@ import { Project } from '../../../shared/models/ideploy.models';
           <input class="input" formControlName="description" />
         </div>
         @if (error()) {
-          <p class="text-sm text-red-400">{{ error() }}</p>
+          <p class="text-sm" style="color:var(--color-danger);">{{ error() }}</p>
         }
         <button class="button" type="submit" [disabled]="form.invalid || saving()">
           {{ (saving() ? 'projects.list.creating' : 'projects.list.createProject') | translate }}
@@ -45,14 +45,14 @@ import { Project } from '../../../shared/models/ideploy.models';
         @for (project of projects(); track project.uuid) {
           <div class="db-glass p-5">
             <div class="mb-2 flex items-center justify-between">
-              <a class="font-semibold hover:underline" style="color:#fff;" [routerLink]="['/projects', project.uuid]">{{ project.name }}</a>
-              <button class="text-xs text-red-400" (click)="remove(project)">{{ 'projects.list.delete' | translate }}</button>
+              <a class="font-semibold hover:underline" style="color:var(--color-text-primary);" [routerLink]="['/projects', project.uuid]">{{ project.name }}</a>
+              <button class="text-xs" style="color:var(--color-danger);" (click)="remove(project)">{{ 'projects.list.delete' | translate }}</button>
             </div>
             @if (project.description) {
               <p class="text-sm" style="color: var(--color-text-secondary)">{{ project.description }}</p>
             }
             <div class="mt-3 flex justify-end">
-              <a [routerLink]="['/projects', project.uuid]" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#b4c5ff;">
+              <a [routerLink]="['/projects', project.uuid]" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--color-primary-400);">
                 {{ 'projects.list.viewDetails' | translate }} <i class="fa-solid fa-chevron-right text-[10px]"></i>
               </a>
             </div>

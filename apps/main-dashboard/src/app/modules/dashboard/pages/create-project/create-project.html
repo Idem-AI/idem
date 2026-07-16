@@ -4,10 +4,10 @@
     <div class="text-center space-y-6 max-w-md mx-auto px-6">
       <app-loader></app-loader>
       <div class="space-y-2">
-        <h3 class="text-xl font-semibold text-white">
+        <h3 class="text-xl font-semibold text-text-primary">
           {{ 'dashboard.createProject.loading.title' | translate }}
         </h3>
-        <p class="text-gray-400">
+        <p class="text-text-tertiary">
           {{ 'dashboard.createProject.loading.subtitle' | translate }}
         </p>
       </div>
@@ -25,7 +25,7 @@
           <div
             class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0"
           >
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -35,13 +35,13 @@
             </svg>
           </div>
           <div>
-            <p class="text-sm font-semibold text-white">Importé depuis AppGen</p>
+            <p class="text-sm font-semibold text-text-primary">Importé depuis AppGen</p>
             <p class="text-xs text-blue-300">Votre génération a été pré-remplie ci-dessous</p>
           </div>
         </div>
         <a
           href="javascript:history.back()"
-          class="text-xs text-blue-300 hover:text-white flex items-center gap-1 transition-colors"
+          class="text-xs text-blue-300 hover:text-text-primary flex items-center gap-1 transition-colors"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -63,7 +63,7 @@
       [class.toggle-standard]="!fromAppGen()"
     >
       <div
-        class="flex items-center p-1 rounded-xl bg-white/5 border border-white/10 text-xs font-medium backdrop-blur"
+        class="flex items-center p-1 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] text-xs font-medium backdrop-blur"
         role="group"
         [attr.aria-label]="'dashboard.createProject.modeLabel' | translate"
       >
@@ -72,10 +72,10 @@
           (click)="setMode('chat')"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
           [class.bg-primary]="mode() === 'chat'"
-          [class.text-white]="mode() === 'chat'"
+          [class.text-text-primary]="mode() === 'chat'"
           [class.shadow-lg]="mode() === 'chat'"
-          [class.text-gray-400]="mode() !== 'chat'"
-          [class.hover:text-white]="mode() !== 'chat'"
+          [class.text-text-tertiary]="mode() !== 'chat'"
+          [class.hover:text-text-primary]="mode() !== 'chat'"
         >
           <i class="pi pi-comments text-[11px]"></i>
           <span>{{ 'dashboard.createProject.modeChat' | translate }}</span>
@@ -85,10 +85,10 @@
           (click)="setMode('form')"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
           [class.bg-primary]="mode() === 'form'"
-          [class.text-white]="mode() === 'form'"
+          [class.text-text-primary]="mode() === 'form'"
           [class.shadow-lg]="mode() === 'form'"
-          [class.text-gray-400]="mode() !== 'form'"
-          [class.hover:text-white]="mode() !== 'form'"
+          [class.text-text-tertiary]="mode() !== 'form'"
+          [class.hover:text-text-primary]="mode() !== 'form'"
         >
           <i class="pi pi-list text-[11px]"></i>
           <span>{{ 'dashboard.createProject.modeForm' | translate }}</span>
@@ -165,14 +165,14 @@
     <!-- Navigation Controls -->
     @if (currentStepIndex() !== 0 && mode() !== 'chat') {
       <div
-        class="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700"
+        class="fixed bottom-0 left-0 right-0 z-40 bg-[var(--glass-bg-darker)] backdrop-blur-sm border-t border-[var(--glass-border)]"
       >
         <div class="max-w-4xl mx-auto px-4 py-4">
           <div class="flex justify-between items-center">
             <button
               (click)="goToPreviousStep()"
               [disabled]="!canGoPrevious()"
-              class="flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="flex items-center px-4 py-2 text-sm font-medium text-text-secondary bg-[var(--color-surface-2)] border border-[var(--glass-border-medium)] rounded-lg hover:bg-[var(--glass-bg-light)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -190,7 +190,7 @@
                 <div
                   class="w-2 h-2 rounded-full transition-colors"
                   [class.bg-primary]="i <= currentStepIndex()"
-                  [class.bg-gray-600]="i > currentStepIndex()"
+                  [class.bg-surface-3]="i > currentStepIndex()"
                 ></div>
               }
             </div>
@@ -199,7 +199,7 @@
               <button
                 (click)="goToNextStep()"
                 [disabled]="!canGoNext()"
-                class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                class="flex items-center px-4 py-2 text-sm font-medium inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {{ 'common.next' | translate }}
                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,10 +242,10 @@
         ></path>
       </svg>
     </div>
-    <h3 class="text-xl font-semibold text-white mb-2">
+    <h3 class="text-xl font-semibold text-text-primary mb-2">
       {{ 'dashboard.colorSelection.auth.title' | translate }}
     </h3>
-    <p class="text-gray-400 text-sm">
+    <p class="text-text-tertiary text-sm">
       {{ 'dashboard.colorSelection.auth.message' | translate }}
     </p>
   </div>

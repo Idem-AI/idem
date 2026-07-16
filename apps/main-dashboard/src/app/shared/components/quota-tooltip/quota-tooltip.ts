@@ -14,7 +14,7 @@ import { QuotaService } from '../../services/quota.service';
 
       <!-- Tooltip -->
       <div
-        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 min-w-max"
+        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--color-surface-1)] text-text-primary text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 min-w-max"
       >
         @if (tooltipContent(); as content) {
           <div class="text-center">
@@ -22,11 +22,11 @@ import { QuotaService } from '../../services/quota.service';
             <div class="font-medium mb-1">{{ content.title }}</div>
 
             <!-- Main message -->
-            <div class="text-gray-300 mb-2">{{ content.message }}</div>
+            <div class="text-text-secondary mb-2">{{ content.message }}</div>
 
             <!-- Quota information -->
             @if (content.quotaInfo) {
-              <div class="border-t border-gray-700 pt-2 space-y-1">
+              <div class="border-t border-[var(--glass-border)] pt-2 space-y-1">
                 <div class="flex justify-between text-xs">
                   <span>Daily:</span>
                   <span [class]="content.quotaInfo.dailyStatus">
@@ -44,7 +44,7 @@ import { QuotaService } from '../../services/quota.service';
 
             <!-- Beta restrictions -->
             @if (content.betaRestrictions) {
-              <div class="border-t border-gray-700 pt-2 text-xs">
+              <div class="border-t border-[var(--glass-border)] pt-2 text-xs">
                 <div class="text-orange-300 font-medium mb-1">Beta limitations:</div>
                 <ul class="text-left space-y-1">
                   @for (restriction of content.betaRestrictions; track restriction) {

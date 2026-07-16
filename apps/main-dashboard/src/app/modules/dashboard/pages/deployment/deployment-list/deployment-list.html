@@ -1,4 +1,4 @@
-<div class="mx-auto p-4 text-gray-100">
+<div class="mx-auto p-4 text-text-primary">
   <div class="mb-8">
     <h1
       class="text-3xl md:text-4xl font-bold bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent"
@@ -9,7 +9,7 @@
 
     <div class="mt-4 flex justify-end">
       <button
-        class="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 transition"
+        class="inline-flex items-center gap-2 rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] px-3 py-2 text-sm hover:bg-[var(--glass-bg-light)] transition"
         [routerLink]="['/project/deployments/create']"
       >
         <i class="pi pi-plus"></i>
@@ -39,7 +39,7 @@
       <p class="mb-4">{{ error() }}</p>
       @if (projectId()) {
         <button
-          class="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 transition"
+          class="inline-flex items-center gap-2 rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] px-3 py-2 text-sm hover:bg-[var(--glass-bg-light)] transition"
           (click)="fetchDeployments(projectId()!)"
         >
           {{ 'common.retry' | translate }}
@@ -65,7 +65,7 @@
         {{ 'dashboard.deploymentList.empty.subtitle' | translate }}
       </p>
       <button
-        class="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 transition"
+        class="inline-flex items-center gap-2 rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] px-4 py-2 text-sm hover:bg-[var(--glass-bg-light)] transition"
         [routerLink]="['/project/deployments/create']"
       >
         {{ 'dashboard.deploymentList.buttons.create' | translate }}
@@ -91,28 +91,28 @@
         <table class="w-full text-left">
           <thead>
             <tr>
-              <th class="bg-slate-950/60 font-semibold text-gray-100 whitespace-nowrap px-4 py-3">
+              <th class="bg-slate-950/60 font-semibold text-text-primary whitespace-nowrap px-4 py-3">
                 {{ 'dashboard.deploymentList.table.name' | translate }}
               </th>
-              <th class="bg-slate-950/60 font-semibold text-gray-100 whitespace-nowrap px-4 py-3">
+              <th class="bg-slate-950/60 font-semibold text-text-primary whitespace-nowrap px-4 py-3">
                 {{ 'dashboard.deploymentList.table.environment' | translate }}
               </th>
-              <th class="bg-slate-950/60 font-semibold text-gray-100 whitespace-nowrap px-4 py-3">
+              <th class="bg-slate-950/60 font-semibold text-text-primary whitespace-nowrap px-4 py-3">
                 {{ 'dashboard.deploymentList.table.status' | translate }}
               </th>
-              <th class="bg-slate-950/60 font-semibold text-gray-100 whitespace-nowrap px-4 py-3">
+              <th class="bg-slate-950/60 font-semibold text-text-primary whitespace-nowrap px-4 py-3">
                 {{ 'dashboard.deploymentList.table.version' | translate }}
               </th>
-              <th class="bg-slate-950/60 font-semibold text-gray-100 whitespace-nowrap px-4 py-3">
+              <th class="bg-slate-950/60 font-semibold text-text-primary whitespace-nowrap px-4 py-3">
                 {{ 'dashboard.deploymentList.table.url' | translate }}
               </th>
-              <th class="bg-slate-950/60 font-semibold text-gray-100 whitespace-nowrap px-4 py-3">
+              <th class="bg-slate-950/60 font-semibold text-text-primary whitespace-nowrap px-4 py-3">
                 {{ 'dashboard.deploymentList.table.created' | translate }}
               </th>
-              <th class="bg-slate-950/60 font-semibold text-gray-100 whitespace-nowrap px-4 py-3">
+              <th class="bg-slate-950/60 font-semibold text-text-primary whitespace-nowrap px-4 py-3">
                 {{ 'dashboard.deploymentList.table.lastUpdated' | translate }}
               </th>
-              <th class="bg-slate-950/60 font-semibold text-gray-100 whitespace-nowrap px-4 py-3">
+              <th class="bg-slate-950/60 font-semibold text-text-primary whitespace-nowrap px-4 py-3">
                 {{ 'dashboard.deploymentList.table.actions' | translate }}
               </th>
             </tr>
@@ -121,7 +121,7 @@
             @for (deployment of deployments(); track deployment.id) {
               <tr
                 (click)="viewDeploymentDetails(deployment.id, $event)"
-                class="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                class="border-b border-[var(--glass-border-subtle)] hover:bg-[var(--glass-bg-light)] transition-colors cursor-pointer"
               >
                 <td class="min-w-[180px] px-4 py-3">
                   <div class="font-medium">{{ deployment.name }}</div>
@@ -158,7 +158,7 @@
                 <td class="w-[120px] px-4 py-3">
                   <div class="flex gap-2">
                     <button
-                      class="bg-transparent text-gray-200 border border-white/10 rounded w-[30px] h-[30px] grid place-items-center hover:bg-white/10 transition"
+                      class="bg-transparent text-text-secondary border border-[var(--glass-border)] rounded w-[30px] h-[30px] grid place-items-center hover:bg-[var(--glass-bg-light)] transition"
                       [title]="'dashboard.deploymentList.actions.viewDetails' | translate"
                       [routerLink]="[
                         '/project/dashboard',
@@ -171,7 +171,7 @@
                     </button>
                     @if (deployment.logs) {
                       <button
-                        class="bg-transparent text-gray-200 border border-white/10 rounded w-[30px] h-[30px] grid place-items-center hover:bg-white/10 transition"
+                        class="bg-transparent text-text-secondary border border-[var(--glass-border)] rounded w-[30px] h-[30px] grid place-items-center hover:bg-[var(--glass-bg-light)] transition"
                         [title]="'dashboard.deploymentList.actions.viewLogs' | translate"
                         [routerLink]="[
                           '/project/dashboard',
@@ -186,7 +186,7 @@
                     }
                     @if (deployment.status === 'deployed' || deployment.status === 'failed') {
                       <button
-                        class="bg-transparent text-gray-200 border border-white/10 rounded w-[30px] h-[30px] grid place-items-center hover:bg-white/10 transition"
+                        class="bg-transparent text-text-secondary border border-[var(--glass-border)] rounded w-[30px] h-[30px] grid place-items-center hover:bg-[var(--glass-bg-light)] transition"
                         [title]="'dashboard.deploymentList.actions.redeploy' | translate"
                       >
                         <i class="pi pi-refresh"></i>

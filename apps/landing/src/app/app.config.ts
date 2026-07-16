@@ -9,6 +9,8 @@ import { provideHttpClient, withFetch } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { providePrimeNG } from 'primeng/config';
+import { MyPreset } from './my-preset';
 import {
   getAnalytics,
   provideAnalytics,
@@ -41,5 +43,14 @@ export const appConfig: ApplicationConfig = {
     UserTrackingService,
     provideRouter(routes),
     provideClientHydration(withEventReplay()),
+    providePrimeNG({
+      theme: {
+        preset: MyPreset,
+        options: {
+          // Dual color scheme driven by the `.dark` class (shared idem_theme cookie)
+          darkModeSelector: '.dark',
+        },
+      },
+    }),
   ],
 };

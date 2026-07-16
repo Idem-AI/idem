@@ -1,20 +1,20 @@
 @if (isSubmitting()) {
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/5 backdrop-blur-sm h-screen w-full"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--glass-bg-subtle)] backdrop-blur-sm h-screen w-full"
   >
     <div class="text-center space-y-6 max-w-md mx-auto px-6">
       <app-loader></app-loader>
-      <p class="text-gray-300 text-sm">{{ 'dashboard.projectSummary.loading' | translate }}</p>
+      <p class="text-text-secondary text-sm">{{ 'dashboard.projectSummary.loading' | translate }}</p>
     </div>
   </div>
 } @else {
   <section
-    class="flex flex-col items-center justify-center text-gray-100 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10"
+    class="flex flex-col items-center justify-center text-text-primary w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10"
   >
     <!-- Title -->
     <div class="text-center mb-8 sm:mb-10 max-w-3xl">
       <h1
-        class="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight mb-2"
+        class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary leading-tight mb-2"
       >
         {{ 'dashboard.projectSummary.title' | translate }}
       </h1>
@@ -26,7 +26,7 @@
 
         <!-- Project name + type -->
         <div class="flex items-baseline justify-between gap-4 pb-5" style="border-bottom: 1px solid var(--glass-border)">
-          <h2 class="text-xl font-semibold text-white truncate">{{ project().name }}</h2>
+          <h2 class="text-xl font-semibold text-text-primary truncate">{{ project().name }}</h2>
           <span class="text-xs text-[var(--color-text-secondary)] flex-shrink-0">
             {{ formattedProjectType() }}
           </span>
@@ -53,7 +53,7 @@
 
         <!-- Legal agreements -->
         <div class="pt-5 space-y-3" style="border-top: 1px solid var(--glass-border)">
-          <h3 class="text-sm font-semibold text-white">
+          <h3 class="text-sm font-semibold text-text-primary">
             {{ 'dashboard.projectSummary.sections.legal' | translate }}
           </h3>
 

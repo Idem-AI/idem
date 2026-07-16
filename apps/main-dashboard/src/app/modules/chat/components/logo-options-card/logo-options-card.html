@@ -1,17 +1,17 @@
 <div
-  class="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20"
+  class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20"
 >
-  <div class="flex items-center gap-3 p-4 border-b border-white/5">
+  <div class="flex items-center gap-3 p-4 border-b border-[var(--glass-border-subtle)]">
     <div
       class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
     >
       <i class="pi pi-sparkles text-primary text-lg"></i>
     </div>
     <div class="min-w-0">
-      <h4 class="text-sm font-semibold text-white">
+      <h4 class="text-sm font-semibold text-text-primary">
         {{ 'chat.branding.cards.logosTitle' | translate }}
       </h4>
-      <p class="text-[11px] text-gray-500">
+      <p class="text-[11px] text-text-tertiary">
         {{ 'chat.branding.cards.logosSubtitle' | translate }}
       </p>
     </div>
@@ -43,7 +43,7 @@
             <img [src]="option.svg" [alt]="option.name" class="max-h-20 max-w-[80%] object-contain" />
           }
         </span>
-        <span class="mt-2 text-[11px] font-medium text-gray-300 truncate w-full text-center">
+        <span class="mt-2 text-[11px] font-medium text-text-secondary truncate w-full text-center">
           {{ option.name }}
         </span>
       </button>

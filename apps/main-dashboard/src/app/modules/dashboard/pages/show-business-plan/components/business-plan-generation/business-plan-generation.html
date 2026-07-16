@@ -16,10 +16,10 @@
         >
           <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
         </div>
-        <h3 class="text-xl font-bold text-white mb-2">
+        <h3 class="text-xl font-bold text-text-primary mb-2">
           {{ 'dashboard.businessPlanGeneration.saving.title' | translate }}
         </h3>
-        <p class="text-gray-400 mb-4">
+        <p class="text-text-tertiary mb-4">
           {{ 'dashboard.businessPlanGeneration.saving.subtitle' | translate }}
         </p>
 
@@ -48,23 +48,23 @@
 } @else if (isGenerating() || isPostProcessing()) {
   <!-- Sticky Progress Header - Always Visible -->
   <div
-    class="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-md border-b border-gray-700/50"
+    class="fixed top-0 left-0 right-0 z-50 bg-[var(--glass-bg-darker)] backdrop-blur-md border-b border-[var(--glass-border)]"
   >
     <div class="max-w-7xl mx-auto px-6 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <div class="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center">
-            <i class="pi pi-cog animate-spin text-xl text-white"></i>
+            <i class="pi pi-cog animate-spin text-xl text-text-primary"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-white">
+            <h2 class="text-xl font-bold text-text-primary">
               @if (isPostProcessing()) {
                 {{ 'dashboard.businessPlanGeneration.finalizing' | translate }}
               } @else {
                 {{ 'dashboard.businessPlanGeneration.generating' | translate }}
               }
             </h2>
-            <p class="text-gray-300 text-sm">
+            <p class="text-text-secondary text-sm">
               @if (isPostProcessing()) {
                 {{ postProcessingMessage() }}
               } @else {
@@ -85,10 +85,10 @@
         <div class="flex flex-col md:flex-row items-center space-x-6">
           <!-- Progress Stats -->
           <div class="text-right">
-            <div class="text-2xl font-bold text-white">
+            <div class="text-2xl font-bold text-text-primary">
               {{ generationState().completedSteps.length }}/{{ generationState().totalSteps }}
             </div>
-            <div class="text-sm text-gray-300">
+            <div class="text-sm text-text-secondary">
               {{ 'dashboard.businessPlanGeneration.stepsCompleted' | translate }}
             </div>
             @if (generationState().completedSteps.length > 0) {
@@ -101,11 +101,11 @@
 
           <!-- Progress Bar -->
           <div class="w-32">
-            <div class="flex justify-between text-xs text-gray-300 mb-1">
+            <div class="flex justify-between text-xs text-text-secondary mb-1">
               <span>{{ 'dashboard.businessPlanGeneration.progress' | translate }}</span>
               <span>{{ progressPercentage() }}%</span>
             </div>
-            <div class="w-full bg-gray-700 rounded-full h-2">
+            <div class="w-full bg-[var(--color-surface-3)] rounded-full h-2">
               <div
                 class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
                 [style.width.%]="progressPercentage()"
@@ -133,20 +133,20 @@
       <!-- Post Processing Section -->
       @if (isPostProcessing()) {
         <div class="space-y-4">
-          <div class="glass-card rounded-xl shadow-lg border border-gray-800/30">
+          <div class="glass-card rounded-xl shadow-lg border border-[var(--glass-border-subtle)]">
             <div class="bg-gradient-to-r px-6 py-4 border-b">
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                   <div
                     class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse"
                   >
-                    <i class="pi pi-save animate-pulse text-white"></i>
+                    <i class="pi pi-save animate-pulse text-text-primary"></i>
                   </div>
                   <div>
-                    <h3 class="text-lg font-semibold text-white">
+                    <h3 class="text-lg font-semibold text-text-primary">
                       {{ 'dashboard.businessPlanGeneration.savingData' | translate }}
                     </h3>
-                    <p class="text-gray-300 text-sm">{{ postProcessingMessage() }}</p>
+                    <p class="text-text-secondary text-sm">{{ postProcessingMessage() }}</p>
                   </div>
                 </div>
                 <div class="flex items-center space-x-2">
@@ -163,8 +163,8 @@
               </div>
             </div>
             <div class="p-6 space-y-4">
-              <p class="text-gray-300">{{ 'dashboard.businessPlanGeneration.wait' | translate }}</p>
-              <div class="w-full bg-gray-700 rounded-full h-2">
+              <p class="text-text-secondary">{{ 'dashboard.businessPlanGeneration.wait' | translate }}</p>
+              <div class="w-full bg-[var(--color-surface-3)] rounded-full h-2">
                 <div
                   class="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full animate-pulse"
                   style="width: 100%"
@@ -176,18 +176,18 @@
       } @else if (generationState().stepsInProgress.length > 0) {
         <div class="space-y-4">
           @for (stepName of generationState().stepsInProgress; track stepName) {
-            <div class="glass-card rounded-xl shadow-lg border border-gray-800/30">
+            <div class="glass-card rounded-xl shadow-lg border border-[var(--glass-border-subtle)]">
               <div class="bg-gradient-to-r px-6 py-4 border-b">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-3">
                     <div
                       class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"
                     >
-                      <i class="pi pi-cog animate-spin text-white"></i>
+                      <i class="pi pi-cog animate-spin text-text-primary"></i>
                     </div>
                     <div>
-                      <h3 class="text-lg font-semibold text-white">{{ stepName }}</h3>
-                      <p class="text-gray-300 text-sm">{{ 'common.inProgress' | translate }}</p>
+                      <h3 class="text-lg font-semibold text-text-primary">{{ stepName }}</h3>
+                      <p class="text-text-secondary text-sm">{{ 'common.inProgress' | translate }}</p>
                     </div>
                   </div>
                   <div class="flex items-center space-x-2">
@@ -217,7 +217,7 @@
           <div class="grid gap-6">
             @for (step of completedSteps(); track step.name) {
               <div
-                class="glass-card rounded-xl shadow-md border border-gray-800/30 overflow-hidden"
+                class="glass-card rounded-xl shadow-md border border-[var(--glass-border-subtle)] overflow-hidden"
               >
                 <div class="px-6 py-4 border-b">
                   <div class="flex items-center justify-between">
@@ -225,11 +225,11 @@
                       <div
                         class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center"
                       >
-                        <i class="pi pi-check text-white text-sm"></i>
+                        <i class="pi pi-check text-text-primary text-sm"></i>
                       </div>
                       <div>
-                        <h4 class="font-semibold text-white">{{ step.name }}</h4>
-                        <p class="text-gray-400 text-sm">
+                        <h4 class="font-semibold text-text-primary">{{ step.name }}</h4>
+                        <p class="text-text-tertiary text-sm">
                           {{
                             'dashboard.businessPlanGeneration.stepCompletedAt'
                               | translate: { time: (step.timestamp | date: 'short') }
@@ -270,10 +270,10 @@
             ></path>
           </svg>
         </div>
-        <h3 class="text-xl font-bold text-white mb-2">
+        <h3 class="text-xl font-bold text-text-primary mb-2">
           {{ 'dashboard.businessPlanGeneration.errors.title' | translate }}
         </h3>
-        <p class="text-gray-400 mb-6">{{ generationError() }}</p>
+        <p class="text-text-tertiary mb-6">{{ generationError() }}</p>
         <button (click)="generateBusinessPlan()" class="w-full inner-button">
           {{ 'common.retry' | translate }}
         </button>
@@ -302,7 +302,7 @@
             ></path>
           </svg>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-4">
+        <h3 class="text-2xl font-bold text-text-primary mb-4">
           {{ 'dashboard.businessPlanGeneration.empty.title' | translate }}
         </h3>
         <p class="text-gray-600 mb-8">
