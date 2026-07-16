@@ -40,6 +40,11 @@ export class TrustedByComponent {
       url: 'https://www.orange.com',
     },
     {
+      name: '10000 Codeurs',
+      logo: '/assets/images/trust-by/10000codeurs-logo.png',
+      url: 'https://10000codeurs.com',
+    },
+    {
       name: 'DevGirls',
       logo: '/assets/images/trust-by/devgirl logo 1.png',
       url: 'https://www.devgirls.org/home',
