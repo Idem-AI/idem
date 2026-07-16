@@ -24,11 +24,56 @@ const aiTraceFilter = winston.format((info) => {
   return AI_TRACE_PREFIXES.some((p) => event.startsWith(p)) ? info : false;
 });
 
+// Champs "de structure" à ne PAS répéter comme métadonnées inline en console.
+const CONSOLE_HIDDEN_FIELDS = new Set([
+  'timestamp',
+  'level',
+  'message',
+  'service',
+  'environment',
+  'stack',
+  'event',
+]);
+
+/**
+ * Rendu compact des métadonnées d'une ligne de log pour la console: transforme
+ * `{ tool: 'project_get_map', ok: true, durationMs: 42 }` en
+ * `tool=project_get_map ok=true durationMs=42`. Sans cela la console
+ * n'afficherait que le nom de l'événement (`ai.tool_call_end`) sans aucun
+ * détail — inutilisable pour suivre ce que fait l'IA en temps réel.
+ */
+function formatConsoleMeta(info: Record<string, unknown>): string {
+  const parts: string[] = [];
+  // requestId d'abord (corrélation), raccourci à 8 caractères pour la lisibilité.
+  if (typeof info.requestId === 'string') {
+    parts.push(`req=${info.requestId.slice(0, 8)}`);
+  }
+  for (const key of Object.keys(info)) {
+    if (CONSOLE_HIDDEN_FIELDS.has(key) || key === 'requestId') continue;
+    const value = info[key];
+    if (value === undefined) continue;
+    const rendered =
+      value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value);
+    parts.push(`${key}=${rendered}`);
+  }
+  return parts.join(' ');
+}
+
 // Define different logging formats
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.printf((info) => `${info.timestamp} ${info.level}: ${info.message}`)
+  winston.format.printf((info) => {
+    const base = `${info.timestamp} ${info.level}: ${info.message}`;
+    // Pour les événements de traçage (logAIEvent), afficher les métadonnées
+    // inline afin de suivre en temps réel dans le terminal. Les logs texte
+    // classiques (qui portent déjà tout dans leur message) restent inchangés.
+    if (typeof info.event === 'string') {
+      const meta = formatConsoleMeta(info as Record<string, unknown>);
+      return meta ? `${base} · ${meta}` : base;
+    }
+    return base;
+  })
 );
 
 const fileFormat = winston.format.combine(
