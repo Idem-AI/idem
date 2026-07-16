@@ -156,3 +156,12 @@ code, pre, i, .pi, [class^="pi-"], [class*=" pi-"] {
   .choice-check { animation: none; }
   .choice-enter { animation: none; }
 }
+
+/* Theme-reactive overrides for PrimeNG skeleton loaders */
+.p-skeleton {
+  background: rgba(15, 23, 42, 0.08) !important;
+}
+
+.dark .p-skeleton {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
