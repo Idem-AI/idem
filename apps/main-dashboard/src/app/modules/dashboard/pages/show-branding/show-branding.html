@@ -165,23 +165,23 @@
                 <div class="lg:col-span-1 flex justify-center">
                   <div class="relative group/logo">
                     <div
-                      class="w-32 h-32 bg-white rounded-2xl flex items-center justify-center shadow-lg border-2 border-[var(--glass-border-medium)] group-hover/logo:shadow-xl group-hover/logo:bg-[var(--glass-bg-subtle)] transition-all duration-300"
+                      class="w-40 h-40 sm:w-44 sm:h-44 bg-white rounded-2xl flex items-center justify-center p-4 shadow-lg border-2 border-[var(--glass-border-medium)] group-hover/logo:shadow-xl group-hover/logo:bg-[var(--glass-bg-subtle)] transition-all duration-300"
                     >
                       @if (existingBranding()?.logo?.svg) {
                         @if (existingBranding()!.logo.svg.startsWith('<')) {
                           <div
-                            class="w-24 h-24 flex items-center justify-center svg-logo"
+                            class="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center svg-logo"
                             [innerHTML]="existingBranding()!.logo.svg | safeHtml"
                           ></div>
                         } @else {
                           <img
                             [src]="existingBranding()!.logo.svg"
-                            class="w-24 h-24 object-contain"
+                            class="w-32 h-32 sm:w-36 sm:h-36 object-contain"
                           />
                         }
                       } @else {
                         <svg
-                          class="w-16 h-16 text-text-secondary"
+                          class="w-20 h-20 text-text-secondary"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -430,7 +430,7 @@
                 <!-- Selected Logo -->
                 <div class="glass-card p-4 text-center">
                   <div
-                    class="w-24 h-24 mx-auto mb-3 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
+                    class="w-36 h-36 sm:w-40 sm:h-40 mx-auto mb-3 bg-white rounded-xl flex items-center justify-center p-3 overflow-hidden"
                   >
                     @if (existingBranding()!.logo.svg.startsWith('<')) {
                       <!-- Raw SVG inline -->
@@ -463,7 +463,7 @@
                   @if (existingBranding()!.logo!.variations!.withText?.lightBackground) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.withText!.lightBackground!.startsWith('<')) {
                           <div
@@ -482,9 +482,9 @@
 
                   <!-- withText · dark -->
                   @if (existingBranding()!.logo!.variations!.withText?.darkBackground) {
-                    <div class="glass-card p-3 text-center">
+                    <div class="glass-card !bg-gray-900 border border-gray-800 p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-[var(--glass-bg-light)] rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.withText!.darkBackground!.startsWith('<')) {
                           <div
@@ -495,7 +495,7 @@
                           <img [src]="existingBranding()!.logo!.variations!.withText!.darkBackground" class="w-full h-full object-contain" />
                         }
                       </div>
-                      <p class="text-text-primary text-xs">
+                      <p class="text-white text-xs font-medium">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }}
                       </p>
                     </div>
@@ -505,7 +505,7 @@
                   @if (existingBranding()!.logo!.variations!.withText?.monochrome) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.withText!.monochrome!.startsWith('<')) {
                           <div
@@ -526,7 +526,7 @@
                   @if (existingBranding()!.logo!.variations!.iconOnly?.lightBackground) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.iconOnly!.lightBackground!.startsWith('<')) {
                           <div
@@ -545,9 +545,9 @@
 
                   <!-- iconOnly · dark -->
                   @if (existingBranding()!.logo!.variations!.iconOnly?.darkBackground) {
-                    <div class="glass-card p-3 text-center">
+                    <div class="glass-card !bg-gray-900 border border-gray-800 p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-[var(--glass-bg-light)] rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.iconOnly!.darkBackground!.startsWith('<')) {
                           <div
@@ -558,7 +558,7 @@
                           <img [src]="existingBranding()!.logo!.variations!.iconOnly!.darkBackground" class="w-full h-full object-contain" />
                         }
                       </div>
-                      <p class="text-text-primary text-xs">
+                      <p class="text-white text-xs font-medium">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }} (icon)
                       </p>
                     </div>
@@ -568,7 +568,7 @@
                   @if (existingBranding()!.logo!.variations!.iconOnly?.monochrome) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (existingBranding()!.logo!.variations!.iconOnly!.monochrome!.startsWith('<')) {
                           <div

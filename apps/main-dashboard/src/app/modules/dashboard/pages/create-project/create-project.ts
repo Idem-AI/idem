@@ -138,6 +138,12 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
       type: typeCode,
       typeLabel,
       projectId: p.id ?? null,
+      // Réponses cœur déjà saisies (formulaire) → pré-remplissage/synchro du chat.
+      targets: p.targets ?? '',
+      scope: p.scope ?? '',
+      teamSize: p.teamSize ?? '',
+      currency: p.currency ?? '',
+      constraints: p.constraints ?? [],
     };
   });
 

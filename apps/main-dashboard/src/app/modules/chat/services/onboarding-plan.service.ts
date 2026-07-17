@@ -5,7 +5,7 @@ import { ProjectModel } from '@idem/shared-models';
 import { OnboardingAiService } from './onboarding-ai.service';
 import { OnboardingFieldKey, OnboardingPlanQuestion } from '../models/chat.model';
 
-/** Fondations minimales pour amorcer un plan de questions. */
+/** Fondations minimales pour amorcer les questions contextuelles. */
 export interface OnboardingPlanInput {
   description: string;
   name?: string;
@@ -26,36 +26,116 @@ export interface OnboardingResolvedAnswer {
   prompt?: string;
 }
 
+const MIN_CONTEXTUAL = 3;
+const MAX_CONTEXTUAL = 5;
+
 /**
- * Cerveau partagé de l'onboarding IA de création de projet.
+ * Cerveau partagé de l'onboarding de création de projet.
  *
- * Centralise ce qui doit rester identique entre le mode chat
- * (`onboarding-chat`) et le mode formulaire (`dynamic-details-form`) :
- *  - récupération + cache du plan de questions adapté au projet ;
- *  - injection des questions d'identité (nom/type) quand elles manquent ;
- *  - mapping des réponses → champs du projet (dont les contraintes « Q: R »).
+ * Deux familles de questions :
+ *  - COEUR (déterministe, immédiat, sans appel IA) : devise, cible, portée,
+ *    équipe — `buildFixedCoreQuestions`. Le nom et le type s'y ajoutent en chat
+ *    via `injectIdentityQuestions`.
+ *  - CONTEXTUELLES (IA, 3 à 5) : adaptées au projet, chargées à part avec un
+ *    loader — `getContextualQuestions` (cache par description).
  *
- * Aucun état de conversation : uniquement un cache de plan par description.
+ * Centralise aussi le mapping réponses → champs projet (contrat unique chat +
+ * formulaire), pour que les deux modes restent synchronisés.
  */
 @Injectable({ providedIn: 'root' })
 export class OnboardingPlanService {
   private readonly aiService = inject(OnboardingAiService);
 
-  /** Cache du dernier plan généré, clé = description normalisée. */
+  /** Cache des questions contextuelles, clé = description normalisée. */
   private cacheKey: string | null = null;
-  private cachedQuestions: OnboardingPlanQuestion[] | null = null;
+  private cachedContextual: OnboardingPlanQuestion[] | null = null;
+
+  // ─────────────────────────────────────────────── Questions cœur (fixes)
 
   /**
-   * Récupère le plan de questions adapté au projet décrit.
-   * Met en cache par description : une bascule de mode ou un retour arrière
-   * ne re-sollicite pas le LLM.
+   * Questions cœur, déterministes et affichées immédiatement (aucun appel IA).
+   * Ordre : devise → cible → portée → équipe. Le budget a été retiré.
    */
-  async getPlan(input: OnboardingPlanInput): Promise<OnboardingPlanQuestion[]> {
+  buildFixedCoreQuestions(language: 'fr' | 'en'): OnboardingPlanQuestion[] {
+    const en = language === 'en';
+    return [
+      {
+        id: 'currency',
+        field: 'currency',
+        kind: 'choice',
+        optional: false,
+        prompt: en
+          ? 'Which currency should your project use?'
+          : 'Quelle devise votre projet doit-il utiliser ?',
+        chips: [
+          { label: 'FCFA (XAF)', value: 'XAF' },
+          { label: 'Euro (€)', value: 'EUR' },
+          { label: en ? 'US Dollar ($)' : 'Dollar US ($)', value: 'USD' },
+          { label: 'Naira (₦)', value: 'NGN' },
+          { label: en ? 'Other (specify)' : 'Autre (préciser)', value: 'other' },
+        ],
+      },
+      {
+        id: 'targets',
+        field: 'targets',
+        kind: 'choice',
+        optional: false,
+        prompt: en ? 'Who is your main target audience?' : 'Qui est votre public cible principal ?',
+        chips: [
+          { label: en ? 'Companies' : 'Entreprises', value: 'business' },
+          { label: en ? 'Students' : 'Étudiants', value: 'students' },
+          { label: en ? 'General Public' : 'Grand public', value: 'general-public' },
+          { label: en ? 'Administrations' : 'Administrations', value: 'government' },
+          { label: en ? 'Healthcare Professionals' : 'Professionnels de santé', value: 'healthcare' },
+        ],
+      },
+      {
+        id: 'scope',
+        field: 'scope',
+        kind: 'choice',
+        optional: true,
+        prompt: en
+          ? 'What geographic reach do you envision?'
+          : 'Quelle portée géographique visez-vous ?',
+        chips: [
+          { label: en ? 'Local' : 'Locale', value: 'local' },
+          { label: en ? 'Departmental' : 'Départementale', value: 'departmental' },
+          { label: en ? 'Regional' : 'Régionale', value: 'regional' },
+          { label: en ? 'National' : 'Nationale', value: 'national' },
+          { label: en ? 'International' : 'Internationale', value: 'international' },
+        ],
+      },
+      {
+        id: 'teamSize',
+        field: 'teamSize',
+        kind: 'choice',
+        optional: true,
+        prompt: en
+          ? 'How many people are on your core team?'
+          : 'Combien de personnes composent votre équipe ?',
+        chips: [
+          { label: 'Solo', value: '1' },
+          { label: en ? '2 to 5' : '2 à 5', value: '2-5' },
+          { label: en ? '6 to 10' : '6 à 10', value: '6-10' },
+          { label: en ? 'More than 10' : 'Plus de 10', value: '10+' },
+        ],
+      },
+    ];
+  }
+
+  // ─────────────────────────────────────────────── Questions contextuelles (IA)
+
+  /**
+   * Questions contextuelles générées par l'IA (3 à 5), adaptées au projet.
+   * Cache par description. Repli local si l'IA échoue.
+   */
+  async getContextualQuestions(input: OnboardingPlanInput): Promise<OnboardingPlanQuestion[]> {
     const key = this.normalize(input.description);
-    if (this.cachedQuestions && this.cacheKey === key) {
-      return this.cachedQuestions;
+    if (this.cachedContextual && this.cacheKey === key) {
+      return this.cachedContextual;
     }
 
+    let questions: OnboardingPlanQuestion[];
     try {
       const res = await firstValueFrom(
         this.aiService.generateQuestions({
@@ -66,68 +146,45 @@ export class OnboardingPlanService {
           knownAnswers: input.knownAnswers,
         }),
       );
-      const base = res?.questions?.length ? res.questions : this.localFallbackQuestions(input.language);
-      const questions = this.withCurrency(base, input.language);
-      this.cacheKey = key;
-      this.cachedQuestions = questions;
-      return questions;
+      const contextual = (res?.questions ?? []).filter((q) => q.field === 'constraints');
+      questions = this.normalizeContextual(contextual, input.language);
     } catch (error) {
-      // Échec HTTP total : plan de repli local pour ne jamais bloquer la création.
-      console.error('OnboardingPlanService.getPlan failed', error);
-      const questions = this.withCurrency(this.localFallbackQuestions(input.language), input.language);
-      this.cacheKey = key;
-      this.cachedQuestions = questions;
-      return questions;
+      console.error('OnboardingPlanService.getContextualQuestions failed', error);
+      questions = this.fallbackContextual(input.language);
     }
+
+    this.cacheKey = key;
+    this.cachedContextual = questions;
+    return questions;
   }
 
-  /**
-   * Insère la question « devise » en tête des questions cœur (juste avant
-   * targets). Déterministe (options fixes), donc gérée côté client plutôt que
-   * par l'IA. Présente dans les deux modes (chat + formulaire).
-   */
-  private withCurrency(
+  /** Borne les questions contextuelles à [3, 5], en complétant si nécessaire. */
+  private normalizeContextual(
     questions: OnboardingPlanQuestion[],
     language: 'fr' | 'en',
   ): OnboardingPlanQuestion[] {
-    if (questions.some((q) => q.field === 'currency')) return questions;
-    return [this.buildCurrencyQuestion(language), ...questions];
-  }
-
-  /** Question « devise du projet » — options courantes + « Autre » (saisie libre en chat). */
-  buildCurrencyQuestion(language: 'fr' | 'en'): OnboardingPlanQuestion {
-    const en = language === 'en';
-    return {
-      id: 'currency',
-      field: 'currency',
-      kind: 'choice',
-      optional: false,
-      prompt: en
-        ? 'Which currency should your project use?'
-        : 'Quelle devise votre projet doit-il utiliser ?',
-      chips: [
-        { label: 'FCFA (XAF)', value: 'XAF' },
-        { label: 'Euro (€)', value: 'EUR' },
-        { label: en ? 'US Dollar ($)' : 'Dollar US ($)', value: 'USD' },
-        { label: en ? 'Naira (₦)' : 'Naira (₦)', value: 'NGN' },
-        { label: en ? 'Other (specify)' : 'Autre (préciser)', value: 'other' },
-      ],
-    };
+    const out = questions.slice(0, MAX_CONTEXTUAL);
+    if (out.length < MIN_CONTEXTUAL) {
+      for (const fb of this.fallbackContextual(language)) {
+        if (out.length >= MIN_CONTEXTUAL) break;
+        if (!out.some((q) => q.prompt === fb.prompt)) out.push(fb);
+      }
+    }
+    return out;
   }
 
   /** Invalide le cache (ex. redémarrage du flux). */
   clearCache(): void {
     this.cacheKey = null;
-    this.cachedQuestions = null;
+    this.cachedContextual = null;
   }
 
+  // ─────────────────────────────────────────────── Identité (nom / type)
+
   /**
-   * Préfixe le plan avec les questions d'identité (nom puis type).
+   * Préfixe la liste avec les questions d'identité (nom puis type) manquantes.
    * Utilisé par le mode chat, où nom/type sont posés dans la conversation.
-   *
-   * Pour un NOUVEAU projet (pas encore d'`projectId`), le nom et le type sont
-   * toujours demandés (exigence produit : « toujours demander le nom »). Pour un
-   * projet existant, on ne demande que ce qui manque.
+   * Si le champ est déjà connu (rempli en formulaire), il n'est pas re-posé.
    */
   injectIdentityQuestions(
     questions: OnboardingPlanQuestion[],
@@ -136,13 +193,12 @@ export class OnboardingPlanService {
   ): OnboardingPlanQuestion[] {
     const out = [...questions];
     const en = language === 'en';
-    const isNew = !foundations.projectId;
 
-    if (isNew || !foundations.type) {
+    if (!foundations.type) {
       out.unshift(this.buildTypeQuestion(language));
     }
 
-    if (isNew || !foundations.name) {
+    if (!foundations.name) {
       out.unshift({
         id: 'name',
         field: 'name',
@@ -150,7 +206,7 @@ export class OnboardingPlanService {
         optional: false,
         prompt: en
           ? 'First, what is the name of your project?'
-          : "Pour commencer, quel est le nom de votre projet ?",
+          : 'Pour commencer, quel est le nom de votre projet ?',
       });
     }
 
@@ -158,9 +214,9 @@ export class OnboardingPlanService {
   }
 
   /**
-   * Question « type de projet » recontextualisée pour l'entrepreneuriat
-   * (création d'entreprise, commerce…), avec une option « Autres » qui ouvre
-   * la saisie manuelle. Les valeurs correspondent à l'enum `ProjectType`.
+   * Question « type de projet » recontextualisée pour l'entrepreneuriat, avec
+   * une option « Autres » qui ouvre la saisie manuelle. Les valeurs
+   * correspondent à l'enum `ProjectType`.
    */
   buildTypeQuestion(language: 'fr' | 'en'): OnboardingPlanQuestion {
     const en = language === 'en';
@@ -174,13 +230,15 @@ export class OnboardingPlanService {
         : 'Quel type de projet souhaitez-vous lancer ?',
       chips: [
         { label: en ? 'Business creation' : "Création d'entreprise", value: 'enterprise' },
-        { label: en ? 'Commerce / E-commerce' : 'Commerce / E-commerce', value: 'ecommerce' },
+        { label: 'Commerce / E-commerce', value: 'ecommerce' },
         { label: en ? 'Web app / SaaS' : 'Application web / SaaS', value: 'web' },
         { label: en ? 'Mobile app' : 'Application mobile', value: 'mobile' },
         { label: en ? 'Other (specify)' : 'Autres (à préciser)', value: 'other' },
       ],
     };
   }
+
+  // ─────────────────────────────────────────────── Mapping réponses → projet
 
   /**
    * Convertit une liste de réponses résolues en champs de projet.
@@ -212,9 +270,6 @@ export class OnboardingPlanService {
         case 'teamSize':
           fields.teamSize = value;
           break;
-        case 'budgetIntervals':
-          fields.budgetIntervals = value;
-          break;
         case 'currency':
           // 'other' → on garde le libellé saisi (devise libre) plutôt que le code.
           fields.currency = value === 'other' ? (a.display || '').trim() : value;
@@ -239,64 +294,35 @@ export class OnboardingPlanService {
     return (description || '').trim().toLowerCase();
   }
 
-  /** Plan de repli local (4 questions cœur) si l'IA est totalement injoignable. */
-  private localFallbackQuestions(language: 'fr' | 'en'): OnboardingPlanQuestion[] {
+  /** Repli local : 3 questions contextuelles simples si l'IA est injoignable. */
+  private fallbackContextual(language: 'fr' | 'en'): OnboardingPlanQuestion[] {
     const en = language === 'en';
+    const make = (id: string, prompt: string): OnboardingPlanQuestion => ({
+      id,
+      field: 'constraints',
+      kind: 'open',
+      optional: true,
+      prompt,
+    });
     return [
-      {
-        id: 'targets',
-        field: 'targets',
-        kind: 'choice',
-        optional: false,
-        prompt: en ? 'Who is your main target audience?' : 'Qui est votre public cible principal ?',
-        chips: [
-          { label: en ? 'Companies' : 'Entreprises', value: 'business' },
-          { label: en ? 'Students' : 'Étudiants', value: 'students' },
-          { label: en ? 'General Public' : 'Grand public', value: 'general-public' },
-          { label: en ? 'Administrations' : 'Administrations', value: 'government' },
-          { label: en ? 'Healthcare Professionals' : 'Professionnels de santé', value: 'healthcare' },
-        ],
-      },
-      {
-        id: 'scope',
-        field: 'scope',
-        kind: 'choice',
-        optional: true,
-        prompt: en ? 'What is the target geographic scope?' : 'Quelle est la portée géographique visée ?',
-        chips: [
-          { label: en ? 'Local' : 'Locale', value: 'local' },
-          { label: en ? 'Departmental' : 'Départementale', value: 'departmental' },
-          { label: en ? 'Regional' : 'Régionale', value: 'regional' },
-          { label: en ? 'National' : 'Nationale', value: 'national' },
-          { label: en ? 'International' : 'Internationale', value: 'international' },
-        ],
-      },
-      {
-        id: 'teamSize',
-        field: 'teamSize',
-        kind: 'choice',
-        optional: true,
-        prompt: en ? 'How many people are on your team?' : 'Combien de personnes composent votre équipe ?',
-        chips: [
-          { label: 'Solo', value: '1' },
-          { label: en ? '2 to 5' : '2 à 5', value: '2-5' },
-          { label: en ? '6 to 10' : '6 à 10', value: '6-10' },
-          { label: en ? 'More than 10' : 'Plus de 10', value: '10+' },
-        ],
-      },
-      {
-        id: 'budget',
-        field: 'budgetIntervals',
-        kind: 'choice',
-        optional: true,
-        prompt: en ? 'What is your budget range?' : 'Quelle est votre fourchette de budget ?',
-        chips: [
-          { label: en ? 'Less than €5,000' : 'Moins de 5 000 €', value: 'lt-5k' },
-          { label: '5 000 € - 20 000 €', value: '5k-20k' },
-          { label: '20 000 € - 50 000 €', value: '20k-50k' },
-          { label: en ? 'More than €50,000' : 'Plus de 50 000 €', value: 'gt-50k' },
-        ],
-      },
+      make(
+        'ctx_1',
+        en
+          ? 'What is the main problem your project solves?'
+          : 'Quel est le principal problème que votre projet résout ?',
+      ),
+      make(
+        'ctx_2',
+        en
+          ? 'What makes your project different from what already exists?'
+          : "Qu'est-ce qui distingue votre projet de l'existant ?",
+      ),
+      make(
+        'ctx_3',
+        en
+          ? 'What would success look like for you in one year?'
+          : 'À quoi ressemblerait le succès dans un an ?',
+      ),
     ];
   }
 }

@@ -22,12 +22,16 @@ import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../../dashboard/services/project.service';
 import { initEmptyObject } from '../../../../utils/init-empty-object';
 import { OnboardingAiService } from '../../services/onboarding-ai.service';
-import { OnboardingPlanService } from '../../services/onboarding-plan.service';
+import {
+  OnboardingPlanService,
+  OnboardingResolvedAnswer,
+} from '../../services/onboarding-plan.service';
 import { SuggestionChipsComponent } from '../suggestion-chips/suggestion-chips';
 import { RecapCardComponent } from '../recap-card/recap-card';
 import {
   ChatChip,
   ChatMessageModel,
+  OnboardingFieldKey,
   OnboardingPlanQuestion,
   OnboardingPolicyAcceptances,
   OnboardingRecapData,
@@ -45,6 +49,13 @@ export interface OnboardingFoundations {
   typeLabel: string;
   /** Projet déjà créé en base (sinon le composant le créera à la fin) */
   projectId: string | null;
+  /** Réponses cœur déjà saisies (ex. en mode formulaire) — pour la synchro. */
+  targets?: string;
+  scope?: string;
+  teamSize?: string;
+  currency?: string;
+  /** Réponses contextuelles déjà saisies, au format « Question: Réponse ». */
+  constraints?: string[];
 }
 
 interface PersistedAnswer {
@@ -113,6 +124,8 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   readonly created = output<string>();
   readonly switchToForm = output<void>();
+  /** Émis à chaque réponse pour synchroniser le projet (partage avec le formulaire). */
+  readonly projectUpdate = output<Partial<ProjectModel>>();
 
   @ViewChild('scrollAnchor') private scrollAnchor?: ElementRef<HTMLDivElement>;
 
@@ -132,6 +145,10 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private notes: ConstraintNote[] = [];
   /** L'utilisateur a choisi « Autre » (type ou devise) : on attend sa saisie libre. */
   private customPending: 'type' | 'currency' | null = null;
+  /** Chargement des questions contextuelles (IA) en arrière-plan. */
+  private contextualLoading = false;
+  /** On a épuisé les questions cœur mais le contextuel n'est pas encore prêt. */
+  private waitingForContextual = false;
 
   protected readonly lastMessageId = computed(() => {
     const m = this.messages();
@@ -146,7 +163,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   ngOnInit(): void {
     if (this.restore()) return;
-    void this.startFlow();
+    this.startFlow();
   }
 
   ngAfterViewChecked(): void {
@@ -164,48 +181,108 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     return (this.translate.currentLang || 'en') === 'fr' ? 'fr' : 'en';
   }
 
-  private async startFlow(): Promise<void> {
-    const name = this.foundations().name?.trim();
+  private startFlow(): void {
+    const f = this.foundations();
+    const name = f.name?.trim();
     // Welcome personnalisé si un nom existe déjà, générique sinon (pas de « votre projet »).
     this.appendAssistant(
       name
         ? this.translate.instant('chat.onboarding.aiWelcome', { name })
         : this.translate.instant('chat.onboarding.aiWelcomeNoName'),
     );
-    this.pending.set(true);
+
+    const lang = this.currentLang();
+    // Questions cœur (immédiates) + identité manquante — aucun appel IA ici.
+    const core = this.planService.buildFixedCoreQuestions(lang);
+    const immediate = this.planService.injectIdentityQuestions(
+      core,
+      { name: f.name, type: f.type, projectId: f.projectId },
+      lang,
+    );
+
+    // Réponses déjà saisies (formulaire) : cœur + contextuelles → synchro sans re-poser.
+    this.hydrateNotesFromConstraints(f.constraints);
+    this.questions = this.prefillKnown(immediate, f);
+    this.index = 0;
+
+    // Charge les questions contextuelles (IA) en arrière-plan et les ajoute.
+    this.contextualLoading = true;
+    void this.loadContextual(lang);
+
+    if (this.questions.length === 0) {
+      // Tout le cœur est déjà rempli : on attend le contextuel puis on enchaîne.
+      this.waitingForContextual = true;
+      this.pending.set(true);
+    } else {
+      this.askCurrent();
+    }
+  }
+
+  /** Récupère les questions contextuelles IA et les ajoute à la file. */
+  private async loadContextual(lang: 'fr' | 'en'): Promise<void> {
     try {
-      const lang = this.currentLang();
-      const plan = await this.planService.getPlan({
+      const contextual = await this.planService.getContextualQuestions({
         description: this.foundations().description,
         name: this.foundations().name || undefined,
         type: this.foundations().type || undefined,
         language: lang,
       });
-      // Injecte les questions d'identité (nom/type) — toujours pour un nouveau projet.
-      this.questions = this.planService.injectIdentityQuestions(
-        plan,
-        {
-          name: this.foundations().name,
-          type: this.foundations().type,
-          projectId: this.foundations().projectId,
-        },
-        lang,
+      const existing = new Set(this.questions.map((q) => q.id));
+      // Ne pas re-poser une question contextuelle déjà répondue (synchro formulaire).
+      const answeredPrompts = new Set(this.notes.map((n) => n.prompt));
+      this.questions.push(
+        ...contextual.filter((q) => !existing.has(q.id) && !answeredPrompts.has(q.prompt)),
       );
-
-      this.index = 0;
-      this.pending.set(false);
-      if (this.questions.length === 0) {
-        this.goToRecap();
-      } else {
+    } catch (error) {
+      console.error('Onboarding: contextual load failed', error);
+    } finally {
+      this.contextualLoading = false;
+      this.persist();
+      if (this.waitingForContextual) {
+        this.waitingForContextual = false;
+        this.pending.set(false);
         this.askCurrent();
       }
-    } catch (error) {
-      console.error('Onboarding: plan generation failed', error);
-      this.pending.set(false);
-      this.errorMessage.set(this.translate.instant('chat.onboarding.errors.planFailed'));
-      // Sans plan, on propose directement le récap (champs cœur vides)
-      this.goToRecap();
     }
+  }
+
+  /**
+   * Pré-enregistre les réponses déjà connues (fondations) et retire ces
+   * questions de la file, pour ne poser que ce qui manque (synchro formulaire↔chat).
+   */
+  /** Reconstitue les notes contextuelles depuis les chaînes « Question: Réponse ». */
+  private hydrateNotesFromConstraints(constraints?: string[]): void {
+    for (const c of constraints ?? []) {
+      const idx = c.indexOf(': ');
+      if (idx > 0) {
+        this.notes.push({ prompt: c.slice(0, idx), value: c.slice(idx + 2) });
+      } else if (c.trim()) {
+        this.notes.push({ prompt: '', value: c.trim() });
+      }
+    }
+  }
+
+  private prefillKnown(
+    questions: OnboardingPlanQuestion[],
+    f: OnboardingFoundations,
+  ): OnboardingPlanQuestion[] {
+    const knownByField: Record<string, string | undefined> = {
+      targets: f.targets,
+      scope: f.scope,
+      teamSize: f.teamSize,
+      currency: f.currency,
+    };
+    const toAsk: OnboardingPlanQuestion[] = [];
+    for (const q of questions) {
+      const known = knownByField[q.field];
+      if (known && known.trim()) {
+        const display = q.chips?.find((c) => c.value === known)?.label ?? known;
+        this.answers.push({ field: q.field, value: known, display });
+      } else {
+        toAsk.push(q);
+      }
+    }
+    return toAsk;
   }
 
   private currentQuestion(): OnboardingPlanQuestion | null {
@@ -364,8 +441,15 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   private advance(): void {
     this.index += 1;
+    this.emitProgress();
     this.persist();
     if (this.index >= this.questions.length) {
+      if (this.contextualLoading) {
+        // Cœur épuisé mais contextuel pas encore prêt : on patiente.
+        this.waitingForContextual = true;
+        this.pending.set(true);
+        return;
+      }
       this.goToRecap();
     } else {
       // Petit délai pour un rythme naturel
@@ -375,6 +459,24 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
         this.askCurrent();
       }, 350);
     }
+  }
+
+  /** Synchronise les réponses courantes vers le projet (partage avec le formulaire). */
+  private emitProgress(): void {
+    const resolved: OnboardingResolvedAnswer[] = [
+      ...this.answers.map((a) => ({
+        field: a.field as OnboardingFieldKey,
+        value: a.value,
+        display: a.display,
+      })),
+      ...this.notes.map((n) => ({
+        field: 'constraints' as const,
+        value: n.value,
+        display: n.value,
+        prompt: n.prompt,
+      })),
+    ];
+    this.projectUpdate.emit(this.planService.buildProjectFieldsFromAnswers(resolved));
   }
 
   // ─────────────────────────────────────────────── Récap & création
@@ -464,14 +566,17 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   protected onRecapRestart(): void {
     this.clearPersisted();
+    this.planService.clearCache();
     this.messages.set([]);
     this.questions = [];
     this.index = 0;
     this.answers = [];
     this.notes = [];
     this.customPending = null;
+    this.contextualLoading = false;
+    this.waitingForContextual = false;
     this.phase.set('asking');
-    void this.startFlow();
+    this.startFlow();
   }
 
   /** Crée (ou met à jour si déjà créé) puis finalise le projet. */
@@ -576,6 +681,9 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   }
 
   private restore(): boolean {
+    // Nouveau projet (pas d'id) : on repart toujours des fondations synchronisées
+    // (le draft + project() assurent la continuité), jamais d'un état résiduel.
+    if (!this.foundations().projectId) return false;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
