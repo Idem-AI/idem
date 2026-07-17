@@ -32,7 +32,7 @@ export interface ProjectPolicyAcceptance {
  *           type: string
  *         type:
  *           type: string
- *           enum: [web, mobile, iot, desktop, enterprise, api, ai, blockchain, landing]
+ *           enum: [web, mobile, iot, desktop, enterprise, ecommerce, api, ai, blockchain, landing, other]
  *         constraints:
  *           type: array
  *           items:
@@ -128,10 +128,12 @@ export interface ProjectModel {
     | 'iot'
     | 'desktop'
     | 'enterprise'
+    | 'ecommerce'
     | 'api'
     | 'ai'
     | 'blockchain'
-    | 'landing';
+    | 'landing'
+    | 'other';
   constraints: string[];
   teamSize: string;
   scope: string;

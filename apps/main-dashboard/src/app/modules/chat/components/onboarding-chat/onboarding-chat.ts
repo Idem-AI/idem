@@ -130,6 +130,8 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private index = 0;
   private answers: PersistedAnswer[] = [];
   private notes: ConstraintNote[] = [];
+  /** L'utilisateur a choisi « Autres » pour le type : on attend sa saisie libre. */
+  private customTypePending = false;
 
   protected readonly lastMessageId = computed(() => {
     const m = this.messages();
@@ -167,10 +169,14 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
         type: this.foundations().type || undefined,
         language: lang,
       });
-      // Injecte les questions d'identité (nom/type) manquantes.
+      // Injecte les questions d'identité (nom/type) — toujours pour un nouveau projet.
       this.questions = this.planService.injectIdentityQuestions(
         plan,
-        { name: this.foundations().name, type: this.foundations().type },
+        {
+          name: this.foundations().name,
+          type: this.foundations().type,
+          projectId: this.foundations().projectId,
+        },
         lang,
       );
 
@@ -243,6 +249,14 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       return;
     }
     if (chip.action === 'answer') {
+      const q = this.currentQuestion();
+      // « Autres » sur la question de type → saisie manuelle
+      if (q?.field === 'type' && chip.payload === 'other') {
+        this.appendUser(chip.label ?? chip.payload ?? '');
+        this.appendAssistant(this.translate.instant('chat.onboarding.customType'));
+        this.customTypePending = true;
+        return;
+      }
       const label = chip.label ?? chip.payload ?? '';
       this.appendUser(label);
       this.recordAnswer(chip.payload ?? '', label);
@@ -253,6 +267,14 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private async handleAnswer(text: string, viaSkip: boolean): Promise<void> {
     const q = this.currentQuestion();
     if (!q) return;
+
+    // Saisie manuelle du type (après « Autres ») : type = 'other' + on conserve le texte.
+    if (this.customTypePending && q.field === 'type') {
+      this.customTypePending = false;
+      this.setCustomType(q, text);
+      this.advance();
+      return;
+    }
 
     if (q.kind === 'open') {
       // Question contextuelle : on garde le texte tel quel (enrichit constraints)
@@ -275,15 +297,32 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
         }),
       );
       this.pending.set(false);
-      this.recordAnswer(res?.value ?? '', res?.display || text);
+      const value = res?.value ?? '';
+      // Type libre non reconnu → 'other' + conservation du texte saisi.
+      if (!value && q.field === 'type') {
+        this.setCustomType(q, text);
+      } else {
+        this.recordAnswer(value, res?.display || text);
+      }
       this.advance();
     } catch (error) {
       console.error('Onboarding: answer parse failed', error);
       this.pending.set(false);
       // On accepte le texte brut pour ne pas bloquer l'utilisateur
-      this.recordAnswer('', text);
+      if (q.field === 'type') {
+        this.setCustomType(q, text);
+      } else {
+        this.recordAnswer('', text);
+      }
       this.advance();
     }
+  }
+
+  /** Type personnalisé : stocke le code 'other' et conserve le texte dans les contraintes. */
+  private setCustomType(q: OnboardingPlanQuestion, text: string): void {
+    this.recordAnswer('other', text);
+    const clean = text.trim();
+    if (clean) this.notes.push({ prompt: q.prompt, value: clean });
   }
 
   private recordAnswer(value: string, display: string): void {
@@ -404,6 +443,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     this.index = 0;
     this.answers = [];
     this.notes = [];
+    this.customTypePending = false;
     this.phase.set('asking');
     void this.startFlow();
   }

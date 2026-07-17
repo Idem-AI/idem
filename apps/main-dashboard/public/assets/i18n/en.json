@@ -2488,7 +2488,9 @@
           "desktop": "Desktop application",
           "api": "API / Backend",
           "ai": "AI / ML",
-          "blockchain": "Blockchain"
+          "blockchain": "Blockchain",
+          "ecommerce": "Commerce / E-commerce",
+          "other": "Other"
         },
         "targets": {
           "business": "Companies",
@@ -2518,7 +2520,8 @@
         }
       },
       "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
-      "composerPlaceholder": "Type your answer, or pick a suggestion…"
+      "composerPlaceholder": "Type your answer, or pick a suggestion…",
+      "customType": "Great. Describe your project type in a few words:"
     },
     "branding": {
       "invite": "Now let's work on your **brand identity** (logo, colors, typography). Do you want to generate it with AI, or import your own logo?",

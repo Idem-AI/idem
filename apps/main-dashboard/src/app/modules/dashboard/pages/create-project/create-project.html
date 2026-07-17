@@ -15,7 +15,12 @@
   </div>
 } @else {
   <!-- Main Content -->
-  <div class="w-full min-h-screen">
+  <div
+    class="w-full"
+    [class.min-h-screen]="!isChatConversation()"
+    [class.h-screen]="isChatConversation()"
+    [class.overflow-hidden]="isChatConversation()"
+  >
     <!-- AppGen Handoff Banner -->
     @if (fromAppGen()) {
       <div
