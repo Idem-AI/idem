@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed, OnInit, inject } from '@angular/core';
+import { Component, input, output, signal, computed, OnInit, inject, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
@@ -15,8 +15,13 @@ import { AuthService } from '../../../../../auth/services/auth.service';
 })
 export class ProjectDescriptionComponent implements OnInit {
   readonly project = input.required<ProjectModel>();
+  readonly isImprovingPrompt = input<boolean>(false);
+  readonly isGeneratingLucky = input<boolean>(false);
+
   readonly nextStep = output<void>();
   readonly projectUpdate = output<Partial<ProjectModel>>();
+  readonly improvePromptRequest = output<void>();
+  readonly feelingLuckyRequest = output<void>();
 
   private readonly authService = inject(AuthService);
   private readonly translate = inject(TranslateService);
@@ -32,6 +37,28 @@ export class ProjectDescriptionComponent implements OnInit {
 
   // Character limits based on beta status
   protected readonly maxCharacters = environment.isBeta ? 500 : 2000;
+
+  constructor() {
+    // Sync textareaContent & auto-resize whenever project().description changes externally
+    effect(() => {
+      const desc = this.project()?.description ?? '';
+      if (desc !== this.textareaContent()) {
+        this.textareaContent.set(desc);
+        this.characterCount.set(desc.length);
+        if (typeof document !== 'undefined') {
+          setTimeout(() => {
+            const textarea = document.getElementById('projectDescription') as HTMLTextAreaElement;
+            if (textarea) {
+              textarea.value = desc;
+              textarea.style.height = 'auto';
+              const newHeight = Math.min(textarea.scrollHeight, 400);
+              textarea.style.height = newHeight + 'px';
+            }
+          }, 0);
+        }
+      }
+    });
+  }
 
   // Computed properties for character limit styling
   protected readonly characterProgress = computed(() => {
@@ -262,4 +289,13 @@ export class ProjectDescriptionComponent implements OnInit {
   protected goToNextStep(): void {
     this.nextStep.emit();
   }
+
+  protected onImprovePrompt(): void {
+    this.improvePromptRequest.emit();
+  }
+
+  protected onFeelingLucky(): void {
+    this.feelingLuckyRequest.emit();
+  }
 }
+

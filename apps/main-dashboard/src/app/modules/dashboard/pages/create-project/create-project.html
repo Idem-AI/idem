@@ -111,8 +111,12 @@
         >
           <app-project-description
             [project]="project()"
+            [isImprovingPrompt]="isImprovingPrompt()"
+            [isGeneratingLucky]="isGeneratingLucky()"
             (nextStep)="goToNextStep()"
             (projectUpdate)="onProjectUpdate($event)"
+            (improvePromptRequest)="onImprovePromptRequested()"
+            (feelingLuckyRequest)="onFeelingLuckyRequested()"
           ></app-project-description>
         </div>
       } @else {
@@ -142,8 +146,12 @@
       @if (isStepActive(0)) {
         <app-project-description
           [project]="project()"
+          [isImprovingPrompt]="isImprovingPrompt()"
+          [isGeneratingLucky]="isGeneratingLucky()"
           (nextStep)="goToNextStep()"
           (projectUpdate)="onProjectUpdate($event)"
+          (improvePromptRequest)="onImprovePromptRequested()"
+          (feelingLuckyRequest)="onFeelingLuckyRequested()"
         ></app-project-description>
       }
       @if (isStepActive(1)) {
