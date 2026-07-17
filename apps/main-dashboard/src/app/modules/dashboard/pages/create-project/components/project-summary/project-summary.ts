@@ -45,6 +45,16 @@ export class ProjectSummaryComponent implements OnInit {
   protected readonly isBeta = signal(environment.isBeta);
   protected readonly isSubmitting = signal(false);
 
+  protected readonly requiredCount = computed(() => (this.isBeta() ? 3 : 2));
+
+  protected readonly acceptedCount = computed(() => {
+    let count = 0;
+    if (this.privacyPolicyAccepted()) count++;
+    if (this.termsOfServiceAccepted()) count++;
+    if (this.isBeta() && this.betaPolicyAccepted()) count++;
+    return count;
+  });
+
   protected readonly canSubmit = computed(() => {
     const requiredPolicies = this.privacyPolicyAccepted() && this.termsOfServiceAccepted();
     const betaRequired = this.isBeta() ? this.betaPolicyAccepted() : true;
@@ -75,22 +85,34 @@ export class ProjectSummaryComponent implements OnInit {
     this.labelFromCode(this.project().targets, CreateProjectDatas.groupedTargets),
   );
 
-  protected readonly formattedBudget = computed(() => {
-    const budget = this.project().budgetIntervals;
-    if (typeof budget === 'object' && budget !== null) {
-      const budgetObj = budget as any;
-      if (budgetObj.min && budgetObj.max) {
-        return `${budgetObj.min} - ${budgetObj.max}`;
-      }
-      return budgetObj.name || JSON.stringify(budget);
+  protected readonly formattedCurrency = computed(() => {
+    const currency = (this.project() as any).currency;
+    if (typeof currency === 'string' && currency.trim()) {
+      return currency;
     }
-    return budget || 'Non spécifié';
+    return 'Non spécifiée';
   });
 
   ngOnInit(): void {
     console.log('=== PROJECT SUMMARY DEBUG ===');
     console.log('Project:', this.project());
     console.log('============================');
+  }
+
+  protected togglePrivacyPolicy(): void {
+    this.privacyPolicyChange.emit(!this.privacyPolicyAccepted());
+  }
+
+  protected toggleTermsOfService(): void {
+    this.termsOfServiceChange.emit(!this.termsOfServiceAccepted());
+  }
+
+  protected toggleBetaPolicy(): void {
+    this.betaPolicyChange.emit(!this.betaPolicyAccepted());
+  }
+
+  protected toggleMarketingConsent(): void {
+    this.marketingConsentChange.emit(!this.marketingConsentAccepted());
   }
 
   protected onPrivacyPolicyChange(event: Event): void {

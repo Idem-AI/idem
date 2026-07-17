@@ -1,154 +1,170 @@
 <div
-  class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20"
+  class="w-full max-w-md rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden"
 >
   <!-- En-tête -->
-  <div class="flex items-center gap-3 p-4 border-b border-[var(--glass-border-subtle)]">
-    <div
-      class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
-    >
-      <i class="pi pi-check-square text-primary text-lg"></i>
-    </div>
-    <div class="min-w-0">
-      <h4 class="text-sm font-semibold text-text-primary truncate">{{ recap().name }}</h4>
-      <p class="text-[11px] text-text-tertiary">{{ 'chat.recap.subtitle' | translate }}</p>
-    </div>
+  <div class="p-4 border-b border-[var(--glass-border-subtle)]">
+    <h4 class="text-sm font-semibold text-text-primary truncate">{{ recap().name }}</h4>
+    <p class="text-xs text-text-tertiary">{{ 'chat.recap.subtitle' | translate }}</p>
   </div>
 
-  <!-- Réponses -->
-  <div class="px-4 py-3 space-y-2 text-xs">
-    <p class="text-text-secondary leading-relaxed">{{ recap().description }}</p>
-    <div class="grid grid-cols-2 gap-2 pt-1">
-      <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
-        <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
+  <!-- Content -->
+  <div class="p-4 space-y-3 text-xs">
+    @if (recap().description) {
+      <p class="text-text-secondary leading-relaxed font-normal">{{ recap().description }}</p>
+    }
+    
+    <!-- Specs -->
+    <div class="grid grid-cols-2 gap-3 pt-1">
+      <div>
+        <span class="text-[10px] uppercase font-medium text-text-tertiary block">
           {{ 'chat.recap.fields.type' | translate }}
-        </p>
-        <p class="text-text-secondary truncate">{{ recap().typeKey | translate }}</p>
+        </span>
+        <span class="text-text-primary font-medium truncate block mt-0.5">{{ recap().typeKey | translate }}</span>
       </div>
+
       @if (recap().targetsKey) {
-        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
+        <div>
+          <span class="text-[10px] uppercase font-medium text-text-tertiary block">
             {{ 'chat.recap.fields.targets' | translate }}
-          </p>
-          <p class="text-text-secondary truncate">{{ recap().targetsKey! | translate }}</p>
+          </span>
+          <span class="text-text-primary font-medium truncate block mt-0.5">{{ recap().targetsKey! | translate }}</span>
         </div>
       }
+
       @if (recap().scopeKey) {
-        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
+        <div>
+          <span class="text-[10px] uppercase font-medium text-text-tertiary block">
             {{ 'chat.recap.fields.scope' | translate }}
-          </p>
-          <p class="text-text-secondary truncate">{{ recap().scopeKey! | translate }}</p>
+          </span>
+          <span class="text-text-primary font-medium truncate block mt-0.5">{{ recap().scopeKey! | translate }}</span>
         </div>
       }
+
       @if (recap().teamSizeKey) {
-        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
+        <div>
+          <span class="text-[10px] uppercase font-medium text-text-tertiary block">
             {{ 'chat.recap.fields.teamSize' | translate }}
-          </p>
-          <p class="text-text-secondary truncate">{{ recap().teamSizeKey! | translate }}</p>
+          </span>
+          <span class="text-text-primary font-medium truncate block mt-0.5">{{ recap().teamSizeKey! | translate }}</span>
         </div>
       }
-      @if (recap().budgetKey) {
-        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
-            {{ 'chat.recap.fields.budget' | translate }}
-          </p>
-          <p class="text-text-secondary truncate">{{ recap().budgetKey! | translate }}</p>
-        </div>
-      }
+
       @if (recap().currencyKey) {
-        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
-          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
+        <div>
+          <span class="text-[10px] uppercase font-medium text-text-tertiary block">
             {{ 'chat.recap.fields.currency' | translate }}
-          </p>
-          <p class="text-text-secondary truncate">{{ recap().currencyKey! | translate }}</p>
+          </span>
+          <span class="text-text-primary font-medium truncate block mt-0.5">{{ recap().currencyKey! | translate }}</span>
         </div>
       }
     </div>
   </div>
 
   <!-- Politiques -->
-  <div class="px-4 py-3 border-t border-[var(--glass-border-subtle)] space-y-2">
-    <label class="flex items-start gap-2 text-xs text-text-secondary cursor-pointer">
+  <div class="px-4 py-3 border-t border-[var(--glass-border-subtle)] space-y-2 text-xs">
+    <label 
+      (click)="togglePrivacy()"
+      class="flex items-start gap-2.5 cursor-pointer select-none"
+    >
       <input
         type="checkbox"
         [checked]="privacy()"
         (change)="privacy.set($any($event.target).checked)"
-        class="mt-0.5 accent-[#1447e6]"
+        (click)="$event.stopPropagation()"
+        class="w-3.5 h-3.5 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
       />
-      <span>
+      <span class="text-text-secondary leading-snug">
         {{ 'chat.recap.policies.accept' | translate }}
         <a
           [href]="landingUrl + '/privacy-policy'"
           target="_blank"
           rel="noopener"
-          class="text-primary hover:underline"
-          >{{ 'chat.recap.policies.privacy' | translate }}</a
+          (click)="$event.stopPropagation()"
+          class="text-primary font-medium hover:underline ml-0.5"
         >
-        *
+          {{ 'chat.recap.policies.privacy' | translate }}
+        </a>
+        <span class="text-danger ml-0.5">*</span>
       </span>
     </label>
-    <label class="flex items-start gap-2 text-xs text-text-secondary cursor-pointer">
+
+    <label 
+      (click)="toggleTerms()"
+      class="flex items-start gap-2.5 cursor-pointer select-none"
+    >
       <input
         type="checkbox"
         [checked]="terms()"
         (change)="terms.set($any($event.target).checked)"
-        class="mt-0.5 accent-[#1447e6]"
+        (click)="$event.stopPropagation()"
+        class="w-3.5 h-3.5 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
       />
-      <span>
+      <span class="text-text-secondary leading-snug">
         {{ 'chat.recap.policies.accept' | translate }}
         <a
           [href]="landingUrl + '/terms-of-service'"
           target="_blank"
           rel="noopener"
-          class="text-primary hover:underline"
-          >{{ 'chat.recap.policies.terms' | translate }}</a
+          (click)="$event.stopPropagation()"
+          class="text-primary font-medium hover:underline ml-0.5"
         >
-        *
+          {{ 'chat.recap.policies.terms' | translate }}
+        </a>
+        <span class="text-danger ml-0.5">*</span>
       </span>
     </label>
-    <label class="flex items-start gap-2 text-xs text-text-secondary cursor-pointer">
+
+    <label 
+      (click)="toggleBeta()"
+      class="flex items-start gap-2.5 cursor-pointer select-none"
+    >
       <input
         type="checkbox"
         [checked]="beta()"
         (change)="beta.set($any($event.target).checked)"
-        class="mt-0.5 accent-[#1447e6]"
+        (click)="$event.stopPropagation()"
+        class="w-3.5 h-3.5 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
       />
-      <span>{{ 'chat.recap.policies.beta' | translate }} *</span>
+      <span class="text-text-secondary leading-snug">
+        {{ 'chat.recap.policies.beta' | translate }}
+        <span class="text-danger ml-0.5">*</span>
+      </span>
     </label>
-    <label class="flex items-start gap-2 text-xs text-text-tertiary cursor-pointer">
+
+    <label 
+      (click)="toggleMarketing()"
+      class="flex items-start gap-2.5 cursor-pointer select-none"
+    >
       <input
         type="checkbox"
         [checked]="marketing()"
         (change)="marketing.set($any($event.target).checked)"
-        class="mt-0.5 accent-[#1447e6]"
+        (click)="$event.stopPropagation()"
+        class="w-3.5 h-3.5 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
       />
-      <span>{{ 'chat.recap.policies.marketing' | translate }}</span>
+      <span class="text-text-tertiary leading-snug">
+        {{ 'chat.recap.policies.marketing' | translate }}
+      </span>
     </label>
   </div>
 
   <!-- Actions -->
-  <div class="px-4 pb-4 pt-2 flex items-center justify-between gap-2">
+  <div class="p-4 flex items-center justify-between gap-2 border-t border-[var(--glass-border-subtle)]">
     <button
       type="button"
       (click)="restartRequested.emit()"
       [disabled]="busy()"
-      class="inline-flex items-center gap-1.5 text-[11px] text-text-tertiary hover:text-text-primary transition-colors duration-200 disabled:opacity-50"
+      class="text-[11px] text-text-tertiary hover:text-text-primary transition-colors disabled:opacity-50"
     >
-      <i class="pi pi-refresh text-[10px]"></i>
       {{ 'chat.recap.actions.restart' | translate }}
     </button>
+
     <button
       type="button"
       (click)="confirm()"
       [disabled]="!canConfirm()"
-      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/80 text-white text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      class="inner-button px-4 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      @if (busy()) {
-        <i class="pi pi-spinner pi-spin text-[11px]"></i>
-      } @else {
-        <i class="pi pi-check text-[11px]"></i>
-      }
       {{ 'chat.recap.actions.confirm' | translate }}
     </button>
   </div>
