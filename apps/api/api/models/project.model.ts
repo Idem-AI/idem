@@ -46,6 +46,9 @@ export interface ProjectPolicyAcceptance {
  *           nullable: true
  *         targets:
  *           type: string
+ *         currency:
+ *           type: string
+ *           nullable: true
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -139,6 +142,7 @@ export interface ProjectModel {
   scope: string;
   budgetIntervals?: string;
   targets: string;
+  currency?: string;
   createdAt: Date;
   updatedAt: Date;
   userId: string;

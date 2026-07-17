@@ -66,18 +66,53 @@ export class OnboardingPlanService {
           knownAnswers: input.knownAnswers,
         }),
       );
-      const questions = res?.questions?.length ? res.questions : this.localFallbackQuestions(input.language);
+      const base = res?.questions?.length ? res.questions : this.localFallbackQuestions(input.language);
+      const questions = this.withCurrency(base, input.language);
       this.cacheKey = key;
       this.cachedQuestions = questions;
       return questions;
     } catch (error) {
       // Échec HTTP total : plan de repli local pour ne jamais bloquer la création.
       console.error('OnboardingPlanService.getPlan failed', error);
-      const questions = this.localFallbackQuestions(input.language);
+      const questions = this.withCurrency(this.localFallbackQuestions(input.language), input.language);
       this.cacheKey = key;
       this.cachedQuestions = questions;
       return questions;
     }
+  }
+
+  /**
+   * Insère la question « devise » en tête des questions cœur (juste avant
+   * targets). Déterministe (options fixes), donc gérée côté client plutôt que
+   * par l'IA. Présente dans les deux modes (chat + formulaire).
+   */
+  private withCurrency(
+    questions: OnboardingPlanQuestion[],
+    language: 'fr' | 'en',
+  ): OnboardingPlanQuestion[] {
+    if (questions.some((q) => q.field === 'currency')) return questions;
+    return [this.buildCurrencyQuestion(language), ...questions];
+  }
+
+  /** Question « devise du projet » — options courantes + « Autre » (saisie libre en chat). */
+  buildCurrencyQuestion(language: 'fr' | 'en'): OnboardingPlanQuestion {
+    const en = language === 'en';
+    return {
+      id: 'currency',
+      field: 'currency',
+      kind: 'choice',
+      optional: false,
+      prompt: en
+        ? 'Which currency should your project use?'
+        : 'Quelle devise votre projet doit-il utiliser ?',
+      chips: [
+        { label: 'FCFA (XAF)', value: 'XAF' },
+        { label: 'Euro (€)', value: 'EUR' },
+        { label: en ? 'US Dollar ($)' : 'Dollar US ($)', value: 'USD' },
+        { label: en ? 'Naira (₦)' : 'Naira (₦)', value: 'NGN' },
+        { label: en ? 'Other (specify)' : 'Autre (préciser)', value: 'other' },
+      ],
+    };
   }
 
   /** Invalide le cache (ex. redémarrage du flux). */
@@ -179,6 +214,10 @@ export class OnboardingPlanService {
           break;
         case 'budgetIntervals':
           fields.budgetIntervals = value;
+          break;
+        case 'currency':
+          // 'other' → on garde le libellé saisi (devise libre) plutôt que le code.
+          fields.currency = value === 'other' ? (a.display || '').trim() : value;
           break;
         case 'constraints': {
           const answerText = (a.display || a.value || '').trim();

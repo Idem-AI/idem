@@ -15,12 +15,18 @@ export const ONBOARDING_QUESTIONS_PROMPT = `<role>Onboarding assistant for IDEM<
      chips values: 1, 2-5, 6-10, 10+
   4. id "budget", field "budgetIntervals", kind "choice", optional true
      chips values: lt-5k, 5k-20k, 20k-50k, gt-50k
-- Rephrase the core question prompts to feel personal to the project. Keep each to 1 short sentence.
-- Add 2-3 CONTEXTUAL questions specific to this project:
-  IDs: "ctx_1", "ctx_2", "ctx_3"
+- Rephrase the core question prompts to feel personal to the project. Keep each to 1 short, SIMPLE sentence.
+- Add EXACTLY 2 CONTEXTUAL questions:
+  IDs: "ctx_1", "ctx_2"
   field: "constraints"
   kind: "open" (no chips), optional true
-- Maximum 7 questions total. Never ask for name or type.
+- SIMPLICITY IS MANDATORY for the contextual questions. They must be very simple, basic,
+  everyday questions that a non-technical founder can answer in one sentence, just to learn
+  a bit more about the project. Think: the main goal, what makes it different, who it helps,
+  what success looks like in the first year.
+  FORBIDDEN: technical, infrastructure, equipment, legal, regulatory, investor-requirement,
+  architecture or jargon questions. No "requirements", no "specifications".
+- Maximum 6 questions total. Never ask for name, type, currency or budget currency.
 </rules>
 
 <output_shape>

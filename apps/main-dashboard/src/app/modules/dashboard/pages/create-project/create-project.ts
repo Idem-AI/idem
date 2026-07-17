@@ -301,7 +301,12 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
       case 'description':
         return !!project.description?.trim();
       case 'details':
-        return !!project.name?.trim() && !!project.type && !!project.targets?.trim();
+        return (
+          !!project.name?.trim() &&
+          !!project.type &&
+          !!project.targets?.trim() &&
+          !!project.currency?.trim()
+        );
       case 'summary':
         const acceptances = this.acceptances();
         return acceptances.privacy && acceptances.terms && acceptances.beta;

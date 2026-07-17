@@ -73,12 +73,22 @@ export class DynamicDetailsFormComponent implements OnInit {
   protected readonly name = signal('');
   protected readonly type = signal('');
   protected readonly answers = signal<Record<string, string>>({});
+  /** Saisie libre associée à une option « Autre » (clé = id de question). */
+  protected readonly customText = signal<Record<string, string>>({});
 
-  /** Champs requis : nom + type + cible principale (targets). */
+  /** Champs requis : nom + type + cible + devise (renseignée, texte libre si « Autre »). */
   protected readonly formValid = computed(() => {
+    const answers = this.answers();
     const targets = this.questions().find((q) => q.field === 'targets');
-    const targetsAnswered = targets ? !!this.answers()[targets.id] : true;
-    return this.name().trim().length > 0 && !!this.type() && targetsAnswered;
+    const targetsAnswered = targets ? !!answers[targets.id] : true;
+    const currency = this.questions().find((q) => q.field === 'currency');
+    const currencyAnswered = currency
+      ? !!answers[currency.id] &&
+        (answers[currency.id] !== 'other' || !!this.customText()[currency.id]?.trim())
+      : true;
+    return (
+      this.name().trim().length > 0 && !!this.type() && targetsAnswered && currencyAnswered
+    );
   });
 
   ngOnInit(): void {
@@ -100,7 +110,8 @@ export class DynamicDetailsFormComponent implements OnInit {
     this.pending.set(true);
     this.loadError.set(false);
     const p = this.project();
-    const lang = this.translate.currentLang === 'en' ? 'en' : 'fr';
+    // Défaut anglais : tout ce qui n'est pas « fr » (dont undefined) → 'en'.
+    const lang: 'fr' | 'en' = (this.translate.currentLang || 'en') === 'fr' ? 'fr' : 'en';
     try {
       const questions = await this.planService.getPlan({
         description: p?.description ?? '',
@@ -126,11 +137,22 @@ export class DynamicDetailsFormComponent implements OnInit {
     const p = this.project();
     const known: Record<string, string> = {};
     const constraints = p?.constraints ?? [];
+    const customs: Record<string, string> = {};
     for (const q of questions) {
       if (q.field === 'targets' && p?.targets) known[q.id] = p.targets;
       if (q.field === 'scope' && p?.scope) known[q.id] = p.scope;
       if (q.field === 'teamSize' && p?.teamSize) known[q.id] = p.teamSize;
       if (q.field === 'budgetIntervals' && p?.budgetIntervals) known[q.id] = p.budgetIntervals;
+      if (q.field === 'currency' && p?.currency) {
+        const match = q.chips?.find((c) => c.value === p.currency);
+        if (match) {
+          known[q.id] = match.value;
+        } else {
+          // Devise personnalisée → option « Autre » + texte pré-rempli.
+          known[q.id] = 'other';
+          customs[q.id] = p.currency;
+        }
+      }
       if (q.field === 'constraints' && constraints.length) {
         const prefix = `${q.prompt.trim()}: `;
         const match = constraints.find((c) => c.startsWith(prefix));
@@ -139,6 +161,9 @@ export class DynamicDetailsFormComponent implements OnInit {
     }
     if (Object.keys(known).length) {
       this.answers.update((a) => ({ ...a, ...known }));
+    }
+    if (Object.keys(customs).length) {
+      this.customText.update((c) => ({ ...c, ...customs }));
     }
   }
 
@@ -159,23 +184,41 @@ export class DynamicDetailsFormComponent implements OnInit {
     this.emitUpdate();
   }
 
+  protected onCustomTextChange(question: OnboardingPlanQuestion, value: string): void {
+    this.customText.update((c) => ({ ...c, [question.id]: value ?? '' }));
+    this.emitUpdate();
+  }
+
   protected answerValue(question: OnboardingPlanQuestion): string {
     return this.answers()[question.id] ?? '';
+  }
+
+  protected customValue(question: OnboardingPlanQuestion): string {
+    return this.customText()[question.id] ?? '';
   }
 
   protected isChoice(question: OnboardingPlanQuestion): boolean {
     return question.kind === 'choice';
   }
 
+  /** Vrai quand l'option « Autre » est sélectionnée pour cette question. */
+  protected isOther(question: OnboardingPlanQuestion): boolean {
+    return this.answers()[question.id] === 'other';
+  }
+
   /** Recalcule les champs projet et les remonte au parent. */
   private emitUpdate(): void {
     const resolved: OnboardingResolvedAnswer[] = this.questions().map((q) => {
       const value = this.answers()[q.id] ?? '';
-      const display =
-        q.kind === 'choice'
-          ? (q.chips?.find((c) => c.value === value)?.label ?? value)
-          : value;
-      return { field: q.field, value, display, prompt: q.prompt };
+      if (q.kind === 'choice') {
+        // « Autre » : le texte libre devient le libellé exploité (ex. devise).
+        if (value === 'other') {
+          return { field: q.field, value, display: (this.customText()[q.id] ?? '').trim(), prompt: q.prompt };
+        }
+        const display = q.chips?.find((c) => c.value === value)?.label ?? value;
+        return { field: q.field, value, display, prompt: q.prompt };
+      }
+      return { field: q.field, value, display: value, prompt: q.prompt };
     });
 
     const fields = this.planService.buildProjectFieldsFromAnswers(resolved);

@@ -131,6 +131,17 @@
                       class="w-full text-sm sm:text-base"
                     />
                   </div>
+                  @if (isOther(question)) {
+                    <input
+                      pInputText
+                      [id]="'dyn_q_' + question.id + '_other'"
+                      [ngModel]="customValue(question)"
+                      (ngModelChange)="onCustomTextChange(question, $event)"
+                      autocomplete="off"
+                      class="w-full mt-2 text-sm sm:text-base"
+                      [placeholder]="'dashboard.projectDetails.dynamic.otherPlaceholder' | translate"
+                    />
+                  }
                 } @else {
                   <textarea
                     pInputTextarea

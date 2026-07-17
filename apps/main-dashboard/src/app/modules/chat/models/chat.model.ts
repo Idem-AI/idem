@@ -119,6 +119,7 @@ export interface OnboardingRecapData {
   scopeKey?: string;
   teamSizeKey?: string;
   budgetKey?: string;
+  currencyKey?: string;
 }
 
 export interface ChatMessageModel {
@@ -164,6 +165,7 @@ export type OnboardingFieldKey =
   | 'scope'
   | 'teamSize'
   | 'budgetIntervals'
+  | 'currency'
   | 'constraints';
 
 /** Question du plan d'onboarding généré par l'IA (déjà localisée) */

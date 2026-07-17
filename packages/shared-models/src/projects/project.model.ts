@@ -74,6 +74,8 @@ export interface ProjectModel {
   scope: string;
   budgetIntervals?: string;
   targets: string;
+  /** Devise du projet (ex. XAF, EUR, USD…). Utilisée par toutes les générations. */
+  currency?: string;
 
   // Propriétaire et équipes
   userId: string; // Propriétaire du projet
@@ -109,6 +111,7 @@ export interface CreateProjectDTO {
   scope: string;
   budgetIntervals?: string;
   targets: string;
+  currency?: string;
   selectedPhases: string[];
 }
 
@@ -124,6 +127,7 @@ export interface UpdateProjectDTO {
   scope?: string;
   budgetIntervals?: string;
   targets?: string;
+  currency?: string;
   selectedPhases?: string[];
   additionalInfos?: Partial<ProjectAdditionalInfos>;
 }

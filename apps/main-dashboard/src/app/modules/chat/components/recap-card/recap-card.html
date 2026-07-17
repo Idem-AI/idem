@@ -56,6 +56,14 @@
           <p class="text-text-secondary truncate">{{ recap().budgetKey! | translate }}</p>
         </div>
       }
+      @if (recap().currencyKey) {
+        <div class="rounded-lg bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] px-2.5 py-2">
+          <p class="text-[10px] uppercase tracking-wide text-text-tertiary">
+            {{ 'chat.recap.fields.currency' | translate }}
+          </p>
+          <p class="text-text-secondary truncate">{{ recap().currencyKey! | translate }}</p>
+        </div>
+      }
     </div>
   </div>
 
