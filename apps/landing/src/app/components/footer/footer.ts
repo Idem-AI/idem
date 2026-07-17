@@ -1,13 +1,14 @@
-import { Component, inject, LOCALE_ID } from '@angular/core';
-import { CommonModule, DOCUMENT } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, LOCALE_ID } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { isSupportedLocale, writeLocaleCookie } from '../../shared/utils/locale-cookie';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
 
 @Component({
   selector: 'app-footer',
-  imports: [CommonModule, ThemeToggleComponent],
+  imports: [ThemeToggleComponent],
   templateUrl: './footer.html',
   styleUrl: './footer.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Footer {
   protected readonly locale = inject(LOCALE_ID);

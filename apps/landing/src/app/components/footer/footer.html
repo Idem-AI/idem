@@ -1,60 +1,103 @@
-<footer class="glass text-text-primary py-16 border-t border-[var(--glass-border)] relative overflow-hidden">
+<footer class="site-footer glass text-text-primary relative overflow-hidden py-16 sm:py-20">
+  <!-- Decorative brand glow (non-interactive) -->
+  <div
+    class="footer-glow pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full opacity-60 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
   <div class="container mx-auto px-6 relative z-10">
-    <!-- Ultra-modern asymmetric grid layout -->
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
-      <!-- Section 1: Logo and Description -->
-      <div
-        class="mb-8 md:mb-0 md:col-span-4 glass rounded-2xl p-6 hover:bg-[var(--glass-bg-subtle)] hover:border-[var(--glass-border)] hover:-translate-y-1 transition-all duration-300"
-      >
-        <div class="flex items-center mb-3">
-          <a href="#" class="text-2xl font-bold text-text-primary relative group">
-            IDEM
-            <span
-              class="absolute -top-1 -right-3 w-2 h-2 bg-primary rounded-full opacity-60"
-            ></span>
+    <div class="grid grid-cols-2 lg:grid-cols-12 gap-x-8 gap-y-12">
+      <!-- Brand -->
+      <div class="col-span-2 lg:col-span-4 flex flex-col gap-6">
+        <div>
+          <a href="/" class="inline-flex items-center text-2xl font-bold text-text-primary">
+            <span class="relative">
+              IDEM
+              <span
+                class="absolute -top-1 -right-3 h-2 w-2 rounded-full bg-primary opacity-70"
+                aria-hidden="true"
+              ></span>
+            </span>
           </a>
+          <p class="mt-4 max-w-sm text-text-secondary leading-relaxed" i18n="@@footer.description">
+            Africa's first sovereign open source AI platform. Built in Cameroon for pan-African tech
+            entrepreneurship.
+          </p>
         </div>
-        <div
-          class="h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent my-3 -rotate-1"
-        ></div>
-        <p class="mt-4 text-text-secondary leading-relaxed mb-3" i18n="@@footer.description">
-          Africa's first sovereign open source AI platform. Built in Cameroon for pan-African tech
-          entrepreneurship.
-        </p>
-        <div class="flex items-center gap-2 text-sm text-text-tertiary">
-          <i class="pi pi-code text-primary"></i>
+
+        <!-- Social Media -->
+        <div>
+          <p class="mb-3 text-sm font-medium text-text-tertiary" i18n="@@footer.followUs">
+            Follow Us
+          </p>
+          <div class="flex flex-wrap gap-2.5">
+            <a
+              href="https://github.com/Idem-AI"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.github"
+              aria-label="Visit Idem Engine on GitHub"
+              class="footer-social"
+            >
+              <i class="pi pi-github text-xl" aria-hidden="true"></i>
+            </a>
+            <a
+              href="https://www.linkedin.com/company/idemafrica"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.linkedin"
+              aria-label="Visit Idem Engine on LinkedIn"
+              class="footer-social"
+            >
+              <i class="pi pi-linkedin text-xl" aria-hidden="true"></i>
+            </a>
+            <a
+              href="https://www.facebook.com/profile.php?id=61580303204333"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.facebook"
+              aria-label="Visit Idem Engine on Facebook"
+              class="footer-social"
+            >
+              <i class="pi pi-facebook text-xl" aria-hidden="true"></i>
+            </a>
+            <a
+              href="https://www.instagram.com/idemafrica/"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.instagram"
+              aria-label="Visit Idem Engine on Instagram"
+              class="footer-social"
+            >
+              <i class="pi pi-instagram text-xl" aria-hidden="true"></i>
+            </a>
+            <a
+              href="https://x.com/idem_ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              i18n-aria-label="@@footer.aria.x"
+              aria-label="Visit Idem Engine on X"
+              class="footer-social"
+            >
+              <i class="pi pi-twitter text-xl" aria-hidden="true"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- License badge -->
+        <div class="mt-auto flex items-center gap-2 text-sm text-text-secondary">
+          <i class="pi pi-code text-primary" aria-hidden="true"></i>
           <span i18n="@@footer.apache_license">Apache 2.0 License</span>
         </div>
       </div>
 
-      <!-- Section 2: Quick Links -->
-      <div
-        class="mb-8 md:mb-0 md:col-span-3 md:col-start-6 glass rounded-2xl p-6 hover:bg-[var(--glass-bg-subtle)] hover:border-[var(--glass-border)] hover:-translate-y-1 transition-all duration-300"
-      >
-        <h3
-          class="text-lg font-semibold text-text-primary mb-4 flex items-center"
-          i18n="@@footer.platform"
-        >
-          <span class="w-1.5 h-1.5 bg-text-primary rounded-full mr-2 opacity-70"></span>
-          Platform
-        </h3>
-        <div
-          class="h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent my-3 -rotate-1"
-        ></div>
-        <ul class="space-y-3 mt-5">
+      <!-- Platform -->
+      <nav class="lg:col-span-2" aria-labelledby="footer-platform-heading">
+        <h3 id="footer-platform-heading" class="footer-heading" i18n="@@footer.platform">Platform</h3>
+        <ul class="mt-4 space-y-3">
+          <li><a href="/" class="footer-link" i18n="@@footer.home">Home</a></li>
           <li>
-            <a
-              href="#"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
-              i18n="@@footer.home"
-              >Home</a
-            >
-          </li>
-          <li>
-            <a
-              href="/documentation"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
-              i18n="@@footer.documentation"
+            <a href="/documentation" class="footer-link" i18n="@@footer.documentation"
               >Documentation</a
             >
           </li>
@@ -62,149 +105,38 @@
             <a
               href="https://github.com/Idem-AI"
               target="_blank"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
+              rel="noopener noreferrer"
+              class="footer-link"
               i18n="@@footer.openSource"
               >Open Source</a
             >
           </li>
           <li>
-            <a
-              href="/premium-beta"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
-              i18n="@@footer.betaProgram"
-              >Beta Program</a
-            >
+            <a href="/premium-beta" class="footer-link" i18n="@@footer.betaProgram">Beta Program</a>
           </li>
         </ul>
-      </div>
+      </nav>
 
-      <!-- Section 2b: Apps (Ecosystem) -->
-      <div
-        class="mb-8 md:mb-0 md:col-span-2 glass rounded-2xl p-6 hover:bg-[var(--glass-bg-subtle)] hover:border-[var(--glass-border)] hover:-translate-y-1 transition-all duration-300"
-      >
-        <h3
-          class="text-lg font-semibold text-text-primary mb-4 flex items-center"
-          i18n="@@footer.apps"
-        >
-          <span class="w-1.5 h-1.5 bg-text-primary rounded-full mr-2 opacity-70"></span>
-          Apps
-        </h3>
-        <div
-          class="h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent my-3 -rotate-1"
-        ></div>
-        <ul class="space-y-3 mt-5">
-          <li>
-            <a
-              href="/idev"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
-              i18n="@@footer.idev"
-              >IDEV</a
-            >
-          </li>
-          <li>
-            <a
-              href="/ideploy"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
-              i18n="@@footer.ideploy"
-              >iDeploy</a
-            >
-          </li>
+      <!-- Apps -->
+      <nav class="lg:col-span-2" aria-labelledby="footer-apps-heading">
+        <h3 id="footer-apps-heading" class="footer-heading" i18n="@@footer.apps">Apps</h3>
+        <ul class="mt-4 space-y-3">
+          <li><a href="/idev" class="footer-link" i18n="@@footer.idev">IDEV</a></li>
+          <li><a href="/ideploy" class="footer-link" i18n="@@footer.ideploy">iDeploy</a></li>
         </ul>
-      </div>
+      </nav>
 
-      <!-- Section 3: Social Media -->
-      <div
-        class="mb-8 md:mb-0 md:col-span-2 md:col-start-10 glass rounded-2xl p-6 hover:bg-[var(--glass-bg-subtle)] hover:border-[var(--glass-border)] hover:-translate-y-1 transition-all duration-300"
-      >
-        <h3
-          class="text-lg font-semibold text-text-primary mb-4 flex items-center"
-          i18n="@@footer.followUs"
-        >
-          <span class="w-1.5 h-1.5 bg-text-primary rounded-full mr-2 opacity-70"></span>
-          Follow Us
-        </h3>
-        <div
-          class="h-px bg-linear-to-r from-transparent via-[var(--glass-border)] to-transparent my-3 -rotate-1"
-        ></div>
-        <div class="flex space-x-3 mt-5 flex-wrap">
-          <a
-            href="https://github.com/Idem-AI"
-            target="_blank"
-            rel="noopener noreferrer"
-            i18n-aria-label="@@footer.aria.github"
-            aria-label="Visit Idem Engine on GitHub"
-            class="glass w-12 h-12 flex items-center justify-center text-text-secondary hover:text-text-primary transition-all duration-300 rounded-xl hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)] hover:-translate-y-1 hover:scale-105"
-          >
-            <i class="pi pi-github" style="font-size: 1.5rem"></i>
-          </a>
-          <a
-            href="https://www.linkedin.com/company/idemafrica"
-            target="_blank"
-            rel="noopener noreferrer"
-            i18n-aria-label="@@footer.aria.linkedin"
-            aria-label="Visit Idem Engine on LinkedIn"
-            class="glass w-12 h-12 flex items-center justify-center text-text-secondary hover:text-text-primary transition-all duration-300 rounded-xl hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)] hover:-translate-y-1 hover:scale-105"
-          >
-            <i class="pi pi-linkedin" style="font-size: 1.5rem"></i>
-          </a>
-          <a
-            href="https://www.facebook.com/profile.php?id=61580303204333"
-            target="_blank"
-            rel="noopener noreferrer"
-            i18n-aria-label="@@footer.aria.facebook"
-            aria-label="Visit Idem Engine on Facebook"
-            class="glass w-12 h-12 flex items-center justify-center text-text-secondary hover:text-text-primary transition-all duration-300 rounded-xl hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)] hover:-translate-y-1 hover:scale-105"
-          >
-            <i class="pi pi-facebook" style="font-size: 1.5rem"></i>
-          </a>
-          <a
-            href="https://www.instagram.com/idemafrica/"
-            target="_blank"
-            rel="noopener noreferrer"
-            i18n-aria-label="@@footer.aria.instagram"
-            aria-label="Visit Idem Engine on Instagram"
-            class="glass w-12 h-12 flex items-center justify-center text-text-secondary hover:text-text-primary transition-all duration-300 rounded-xl hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)] hover:-translate-y-1 hover:scale-105"
-          >
-            <i class="pi pi-instagram" style="font-size: 1.5rem"></i>
-          </a>
-          <a
-            href="https://x.com/idem_ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            i18n-aria-label="@@footer.aria.x"
-            aria-label="Visit Idem Engine on X"
-            class="glass w-12 h-12 flex items-center justify-center text-text-secondary hover:text-text-primary transition-all duration-300 rounded-xl hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)] hover:-translate-y-1 hover:scale-105"
-          >
-            <i class="pi pi-twitter" style="font-size: 1.5rem"></i>
-          </a>
-        </div>
-      </div>
-
-      <!-- Section 4: Legal & Company -->
-      <div
-        class="md:col-span-3 md:mt-8 glass rounded-2xl p-6 hover:bg-[var(--glass-bg-subtle)] hover:border-[var(--glass-border)] hover:-translate-y-1 transition-all duration-300"
-      >
-        <h3 class="text-lg font-semibold text-text-primary mb-4 flex items-center" i18n="@@footer.legal">
-          <span class="w-1.5 h-1.5 bg-text-primary rounded-full mr-2 opacity-70"></span>
-          Legal
-        </h3>
-        <div
-          class="h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent my-3 -rotate-1"
-        ></div>
-        <ul class="space-y-3 mt-5">
+      <!-- Legal -->
+      <nav class="lg:col-span-2" aria-labelledby="footer-legal-heading">
+        <h3 id="footer-legal-heading" class="footer-heading" i18n="@@footer.legal">Legal</h3>
+        <ul class="mt-4 space-y-3">
           <li>
-            <a
-              href="/privacy-policy"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
-              i18n="@@footer.privacyPolicy"
+            <a href="/privacy-policy" class="footer-link" i18n="@@footer.privacyPolicy"
               >Privacy Policy</a
             >
           </li>
           <li>
-            <a
-              href="/terms-of-service"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
-              i18n="@@footer.termsOfService"
+            <a href="/terms-of-service" class="footer-link" i18n="@@footer.termsOfService"
               >Terms of Service</a
             >
           </li>
@@ -212,56 +144,47 @@
             <a
               href="https://github.com/Idem-AI/idem/blob/main/LICENSE"
               target="_blank"
-              class="text-text-secondary hover:text-text-primary transition-all duration-300 inline-block relative hover:pl-3 before:content-[''] before:absolute before:-left-2 before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-0 before:bg-[var(--color-text-tertiary)] before:rounded-full before:opacity-0 before:transition-all before:duration-300 hover:before:w-1 hover:before:h-1 hover:before:opacity-70"
+              rel="noopener noreferrer"
+              class="footer-link"
               i18n="@@footer.apacheLicense"
               >Apache 2.0 License</a
             >
           </li>
         </ul>
-      </div>
+      </nav>
 
-      <!-- Section 5: Founders -->
-      <div
-        class="md:col-span-4 md:mt-8 glass rounded-2xl p-6 hover:bg-[var(--glass-bg-subtle)] hover:border-[var(--glass-border)] hover:-translate-y-1 transition-all duration-300"
-      >
-        <h3
-          class="text-lg font-semibold text-text-primary mb-4 flex items-center"
-          i18n="@@footer.founders"
-        >
-          <span class="w-1.5 h-1.5 bg-text-primary rounded-full mr-2 opacity-70"></span>
-          Cameroonian Founders
-        </h3>
-        <div
-          class="h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent my-3 -rotate-1"
-        ></div>
-        <div class="space-y-3 mt-5 text-sm">
+      <!-- Founders -->
+      <div class="lg:col-span-2">
+        <h3 class="footer-heading" i18n="@@footer.founders">Cameroonian Founders</h3>
+        <div class="mt-4 space-y-3 text-sm">
           <div>
-            <div class="text-text-primary font-semibold" i18n="@@footer.ceoName">
+            <div class="font-semibold text-text-primary leading-snug" i18n="@@footer.ceoName">
               Arolle Dubois Aguekeng
             </div>
-            <div class="text-text-tertiary" i18n="@@footer.ceoTitle">CEO & Co-Founder</div>
+            <div class="text-text-secondary text-xs" i18n="@@footer.ceoTitle">CEO & Co-Founder</div>
           </div>
           <div>
-            <div class="text-text-primary font-semibold" i18n="@@footer.ctoName">Romuald Djeteje</div>
-            <div class="text-text-tertiary" i18n="@@footer.ctoTitle">CTO & Co-Founder</div>
+            <div class="font-semibold text-text-primary leading-snug" i18n="@@footer.ctoName">
+              Romuald Djeteje
+            </div>
+            <div class="text-text-secondary text-xs" i18n="@@footer.ctoTitle">CTO & Co-Founder</div>
           </div>
-          <div class="text-text-tertiary text-xs mt-4" i18n="@@footer.buildingAfrica">
+          <p class="text-text-tertiary text-xs pt-1" i18n="@@footer.buildingAfrica">
             Building Africa's tech future from Cameroon
-          </div>
+          </p>
         </div>
       </div>
     </div>
 
-    <!-- Copyright Section -->
-    <div class="mt-12 pt-8 text-center relative flex flex-col items-center justify-center gap-4">
-      <div
-        class="w-full h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent my-6 -rotate-1"
-      ></div>
-      <div>
-        <p class="text-text-secondary mb-2" i18n="@@footer.2025_idem_all">
+    <!-- Bottom bar -->
+    <div class="footer-divider mt-14" aria-hidden="true"></div>
+
+    <div class="mt-8 flex flex-col items-center gap-6 md:flex-row md:justify-between">
+      <div class="text-center md:text-left">
+        <p class="text-text-secondary text-sm" i18n="@@footer.2025_idem_all">
           &copy; 2026 IDEM. All rights reserved.
         </p>
-        <p class="text-text-tertiary text-sm">
+        <p class="mt-1 text-text-tertiary text-sm">
           <span class="text-primary font-semibold" i18n="@@footer.african_you_too"
             >African, you too can build</span
           >
@@ -269,22 +192,25 @@
         </p>
       </div>
 
-      <!-- Language Selector (Footer) -->
-      <div class="flex items-center gap-3 mt-2">
+      <div class="flex items-center gap-2">
         <button
+          type="button"
           (click)="switchLanguage('en')"
-          [ngClass]="{ 'bg-[var(--glass-bg-light)] text-text-primary border-[var(--glass-border-medium)] font-semibold': locale === 'en', 'bg-[var(--glass-bg-subtle)] text-text-tertiary border-[var(--glass-border-subtle)] hover:text-text-primary hover:bg-[var(--glass-bg-light)]': locale !== 'en' }"
-          class="py-1 px-3 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+          [class.footer-lang-active]="locale === 'en'"
+          [attr.aria-pressed]="locale === 'en'"
+          class="footer-lang"
         >
-          <span>🇬🇧</span>
+          <span aria-hidden="true">🇬🇧</span>
           <span>English</span>
         </button>
         <button
+          type="button"
           (click)="switchLanguage('fr')"
-          [ngClass]="{ 'bg-[var(--glass-bg-light)] text-text-primary border-[var(--glass-border-medium)] font-semibold': locale === 'fr', 'bg-[var(--glass-bg-subtle)] text-text-tertiary border-[var(--glass-border-subtle)] hover:text-text-primary hover:bg-[var(--glass-bg-light)]': locale !== 'fr' }"
-          class="py-1 px-3 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+          [class.footer-lang-active]="locale === 'fr'"
+          [attr.aria-pressed]="locale === 'fr'"
+          class="footer-lang"
         >
-          <span>🇫🇷</span>
+          <span aria-hidden="true">🇫🇷</span>
           <span>Français</span>
         </button>
         <app-theme-toggle />
