@@ -80,7 +80,11 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
 
   // Authentication Modal State
   protected readonly showLoginModal = signal<boolean>(false);
-  private pendingAction: 'nextStep' | 'foundations' | null = null;
+  private pendingAction: 'nextStep' | 'foundations' | 'improvePrompt' | 'feelingLucky' | null = null;
+
+  // Prompt generation loading states
+  protected readonly isImprovingPrompt = signal<boolean>(false);
+  protected readonly isGeneratingLucky = signal<boolean>(false);
 
   // AppGen handoff
   protected readonly fromAppGen = signal<boolean>(false);
@@ -376,6 +380,71 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
       }
     } else if (action === 'foundations') {
       await this.createProjectInDatabase();
+    } else if (action === 'improvePrompt') {
+      await this.executeImprovePrompt();
+    } else if (action === 'feelingLucky') {
+      await this.executeFeelingLucky();
+    }
+  }
+
+  /**
+   * Handle request to improve prompt
+   */
+  protected async onImprovePromptRequested(): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.pendingAction = 'improvePrompt';
+      this.showLoginModal.set(true);
+      return;
+    }
+    await this.executeImprovePrompt();
+  }
+
+  /**
+   * Handle request for feeling lucky / random idea
+   */
+  protected async onFeelingLuckyRequested(): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.pendingAction = 'feelingLucky';
+      this.showLoginModal.set(true);
+      return;
+    }
+    await this.executeFeelingLucky();
+  }
+
+  private async executeImprovePrompt(): Promise<void> {
+    const currentDesc = this.project().description?.trim();
+    if (!currentDesc || this.isImprovingPrompt()) return;
+
+    try {
+      this.isImprovingPrompt.set(true);
+      const res = await this.projectService.improvePrompt(currentDesc).toPromise();
+      if (res?.improvedPrompt) {
+        this.project.update((p) => ({ ...p, description: res.improvedPrompt }));
+        this.saveDraftProject();
+      }
+    } catch (error) {
+      console.error('Failed to improve prompt:', error);
+    } finally {
+      this.isImprovingPrompt.set(false);
+    }
+  }
+
+  private async executeFeelingLucky(): Promise<void> {
+    if (this.isGeneratingLucky()) return;
+
+    try {
+      this.isGeneratingLucky.set(true);
+      const res = await this.projectService.generateFeelingLucky().toPromise();
+      if (res?.idea) {
+        this.project.update((p) => ({ ...p, description: res.idea }));
+        this.saveDraftProject();
+      }
+    } catch (error) {
+      console.error('Failed to generate lucky project idea:', error);
+    } finally {
+      this.isGeneratingLucky.set(false);
     }
   }
 
