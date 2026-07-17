@@ -2,164 +2,226 @@
   <div
     class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--glass-bg-subtle)] backdrop-blur-sm h-screen w-full"
   >
-    <div class="text-center space-y-6 max-w-md mx-auto px-6">
+    <div class="text-center space-y-4 max-w-sm mx-auto px-6">
       <app-loader></app-loader>
-      <p class="text-text-secondary text-sm">{{ 'dashboard.projectSummary.loading' | translate }}</p>
+      <p class="text-text-secondary text-sm font-medium">{{ 'dashboard.projectSummary.loading' | translate }}</p>
     </div>
   </div>
 } @else {
-  <section
-    class="flex flex-col items-center justify-center text-text-primary w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10"
-  >
-    <!-- Title -->
-    <div class="text-center mb-8 sm:mb-10 max-w-3xl">
-      <h1
-        class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary leading-tight mb-2"
-      >
+  <section class="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    
+    <!-- Header -->
+    <div class="space-y-1 pb-4 border-b border-[var(--glass-border)]">
+      <h1 class="text-2xl font-bold text-text-primary">
         {{ 'dashboard.projectSummary.title' | translate }}
       </h1>
+      <p class="text-sm text-text-tertiary">
+        Relisez les informations de votre projet et acceptez les conditions légales.
+      </p>
     </div>
 
-    <!-- Summary card -->
-    <div class="w-full max-w-3xl mx-auto">
-      <div class="glass-card p-6 sm:p-8 space-y-6">
+    <!-- 2 Columns Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        <!-- Project name + type -->
-        <div class="flex items-baseline justify-between gap-4 pb-5" style="border-bottom: 1px solid var(--glass-border)">
-          <h2 class="text-xl font-semibold text-text-primary truncate">{{ project().name }}</h2>
-          <span class="text-xs text-[var(--color-text-secondary)] flex-shrink-0">
-            {{ formattedProjectType() }}
-          </span>
-        </div>
-
-        <!-- Description -->
-        @if (project().description) {
-          <p
-            class="text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap"
-          >{{ project().description }}</p>
-        }
-
-        <!-- Specs row -->
-        <div class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
-          <div>
-            <span class="text-[var(--color-text-tertiary)]">{{ 'dashboard.projectSummary.fields.scope' | translate }}</span>
-            <span class="ml-2 text-[var(--color-text-primary)]">{{ formattedScope() }}</span>
-          </div>
-          <div>
-            <span class="text-[var(--color-text-tertiary)]">{{ 'dashboard.projectSummary.fields.target' | translate }}</span>
-            <span class="ml-2 text-[var(--color-text-primary)]">{{ formattedTargets() }}</span>
-          </div>
-        </div>
-
-        <!-- Legal agreements -->
-        <div class="pt-5 space-y-3" style="border-top: 1px solid var(--glass-border)">
-          <h3 class="text-sm font-semibold text-text-primary">
-            {{ 'dashboard.projectSummary.sections.legal' | translate }}
-          </h3>
-
-          <!-- Privacy Policy -->
-          <label for="privacyPolicy" class="flex items-start gap-3 cursor-pointer text-sm text-[var(--color-text-secondary)]">
-            <input
-              type="checkbox"
-              id="privacyPolicy"
-              [checked]="privacyPolicyAccepted()"
-              (change)="onPrivacyPolicyChange($event)"
-              class="mt-0.5 accent-[var(--color-primary)]"
-              required
-            />
-            <span>
-              {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
-              <a
-                href="{{ landingUrl }}/privacy-policy"
-                class="text-primary hover:underline"
-                target="_blank"
-              >{{ 'dashboard.projectSummary.agreements.privacyPolicy' | translate }}</a>
-              <span class="text-danger">*</span>
+      <!-- Left Column: Project Details (7 cols) -->
+      <div class="lg:col-span-7">
+        <div class="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-6 space-y-5">
+          
+          <div class="flex items-center justify-between pb-3 border-b border-[var(--glass-border-subtle)]">
+            <h2 class="text-sm font-semibold text-text-primary">
+              {{ 'dashboard.projectSummary.sections.projectInfo' | translate }}
+            </h2>
+            <span class="text-xs text-text-tertiary font-medium">
+              {{ formattedProjectType() }}
             </span>
-          </label>
+          </div>
 
-          <!-- Terms of Service -->
-          <label for="termsOfService" class="flex items-start gap-3 cursor-pointer text-sm text-[var(--color-text-secondary)]">
-            <input
-              type="checkbox"
-              id="termsOfService"
-              [checked]="termsOfServiceAccepted()"
-              (change)="onTermsOfServiceChange($event)"
-              class="mt-0.5 accent-[var(--color-primary)]"
-              required
-            />
-            <span>
-              {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
-              <a
-                href="{{ landingUrl }}/terms-of-service"
-                class="text-primary hover:underline"
-                target="_blank"
-              >{{ 'dashboard.projectSummary.agreements.termsOfService' | translate }}</a>
-              <span class="text-danger">*</span>
-            </span>
-          </label>
+          <!-- Project Name & Description -->
+          <div class="space-y-3">
+            <div>
+              <span class="text-xs text-text-tertiary">Nom du projet</span>
+              <h3 class="text-lg font-bold text-text-primary mt-0.5">{{ project().name }}</h3>
+            </div>
 
-          <!-- Beta Policy -->
-          @if (isBeta()) {
-            <label for="betaPolicy" class="flex items-start gap-3 cursor-pointer text-sm text-[var(--color-text-secondary)]">
+            @if (project().description) {
+              <div class="space-y-1">
+                <span class="text-xs text-text-tertiary">Description</span>
+                <p class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                  {{ project().description }}
+                </p>
+              </div>
+            }
+          </div>
+
+          <!-- Key Specs -->
+          <div class="grid grid-cols-3 gap-3 pt-2 border-t border-[var(--glass-border-subtle)]">
+            <div>
+              <span class="text-xs text-text-tertiary block">
+                {{ 'dashboard.projectSummary.fields.scope' | translate }}
+              </span>
+              <span class="text-sm font-medium text-text-primary block truncate mt-0.5">{{ formattedScope() }}</span>
+            </div>
+
+            <div>
+              <span class="text-xs text-text-tertiary block">
+                {{ 'dashboard.projectSummary.fields.target' | translate }}
+              </span>
+              <span class="text-sm font-medium text-text-primary block truncate mt-0.5">{{ formattedTargets() }}</span>
+            </div>
+
+            <div>
+              <span class="text-xs text-text-tertiary block">
+                Devise
+              </span>
+              <span class="text-sm font-medium text-text-primary block truncate mt-0.5">{{ formattedCurrency() }}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right Column: Legal Agreements (5 cols) -->
+      <div class="lg:col-span-5">
+        <div class="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-6 space-y-5">
+          
+          <div class="pb-3 border-b border-[var(--glass-border-subtle)]">
+            <h2 class="text-sm font-semibold text-text-primary">
+              {{ 'dashboard.projectSummary.sections.legal' | translate }}
+            </h2>
+          </div>
+
+          <!-- Legal Policy Checkboxes -->
+          <div class="space-y-3 text-sm">
+
+            <!-- 1. Privacy Policy -->
+            <label 
+              (click)="togglePrivacyPolicy()"
+              class="flex items-start gap-3 cursor-pointer select-none"
+            >
               <input
                 type="checkbox"
-                id="betaPolicy"
-                [checked]="betaPolicyAccepted()"
-                (change)="onBetaPolicyChange($event)"
-                class="mt-0.5 accent-[var(--color-warning)]"
-                required
+                [checked]="privacyPolicyAccepted()"
+                (change)="onPrivacyPolicyChange($event)"
+                (click)="$event.stopPropagation()"
+                class="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
               />
-              <span>
+              <span class="text-text-secondary leading-snug">
                 {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
                 <a
-                  href="{{ landingUrl }}/beta-policy"
-                  class="text-warning hover:underline"
+                  [href]="landingUrl + '/privacy-policy'"
                   target="_blank"
-                >{{ 'dashboard.projectSummary.agreements.betaTerms' | translate }}</a>
-                <span class="text-danger">*</span>
+                  rel="noopener"
+                  (click)="$event.stopPropagation()"
+                  class="text-primary font-medium hover:underline"
+                >
+                  {{ 'dashboard.projectSummary.agreements.privacyPolicy' | translate }}
+                </a>
+                <span class="text-danger ml-0.5">*</span>
               </span>
             </label>
-          }
 
-          <!-- Marketing Consent -->
-          <label for="marketingConsent" class="flex items-start gap-3 cursor-pointer text-sm text-[var(--color-text-secondary)]">
-            <input
-              type="checkbox"
-              id="marketingConsent"
-              [checked]="marketingConsentAccepted()"
-              (change)="onMarketingConsentChange($event)"
-              class="mt-0.5 accent-[var(--color-primary)]"
-            />
-            <span>
-              {{ 'dashboard.projectSummary.agreements.marketing' | translate }}
-              <span class="text-[var(--color-text-tertiary)]">({{ 'common.optional' | translate }})</span>
-            </span>
-          </label>
+            <!-- 2. Terms of Service -->
+            <label 
+              (click)="toggleTermsOfService()"
+              class="flex items-start gap-3 cursor-pointer select-none"
+            >
+              <input
+                type="checkbox"
+                [checked]="termsOfServiceAccepted()"
+                (change)="onTermsOfServiceChange($event)"
+                (click)="$event.stopPropagation()"
+                class="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
+              />
+              <span class="text-text-secondary leading-snug">
+                {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
+                <a
+                  [href]="landingUrl + '/terms-of-service'"
+                  target="_blank"
+                  rel="noopener"
+                  (click)="$event.stopPropagation()"
+                  class="text-primary font-medium hover:underline"
+                >
+                  {{ 'dashboard.projectSummary.agreements.termsOfService' | translate }}
+                </a>
+                <span class="text-danger ml-0.5">*</span>
+              </span>
+            </label>
 
-          <p class="text-xs text-[var(--color-text-tertiary)] pt-1">
+            <!-- 3. Beta Policy (If beta) -->
+            @if (isBeta()) {
+              <label 
+                (click)="toggleBetaPolicy()"
+                class="flex items-start gap-3 cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="betaPolicyAccepted()"
+                  (change)="onBetaPolicyChange($event)"
+                  (click)="$event.stopPropagation()"
+                  class="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
+                />
+                <span class="text-text-secondary leading-snug">
+                  {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
+                  <a
+                    [href]="landingUrl + '/beta-policy'"
+                    target="_blank"
+                    rel="noopener"
+                    (click)="$event.stopPropagation()"
+                    class="text-primary font-medium hover:underline"
+                  >
+                    {{ 'dashboard.projectSummary.agreements.betaTerms' | translate }}
+                  </a>
+                  <span class="text-danger ml-0.5">*</span>
+                </span>
+              </label>
+            }
+
+            <!-- 4. Marketing Consent (Optional) -->
+            <label 
+              (click)="toggleMarketingConsent()"
+              class="flex items-start gap-3 cursor-pointer select-none"
+            >
+              <input
+                type="checkbox"
+                [checked]="marketingConsentAccepted()"
+                (change)="onMarketingConsentChange($event)"
+                (click)="$event.stopPropagation()"
+                class="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
+              />
+              <span class="text-text-secondary leading-snug">
+                {{ 'dashboard.projectSummary.agreements.marketing' | translate }}
+                <span class="text-text-tertiary text-xs">({{ 'common.optional' | translate }})</span>
+              </span>
+            </label>
+
+          </div>
+
+          <p class="text-xs text-text-tertiary pt-1">
             <span class="text-danger">*</span>
             {{ 'dashboard.projectSummary.errors.requiredFields' | translate }}
           </p>
-        </div>
 
-        <!-- Submit -->
-        <div class="flex justify-end pt-2">
-          <button
-            (click)="submitProject()"
-            [disabled]="!canSubmit()"
-            class="inner-button"
-            [class.opacity-40]="!canSubmit()"
-            [class.cursor-not-allowed]="!canSubmit()"
-          >
-            @if (canSubmit()) {
-              {{ 'dashboard.projectSummary.buttons.create' | translate }}
-            } @else {
-              {{ 'dashboard.projectSummary.buttons.acceptPolicies' | translate }}
-            }
-          </button>
+          <!-- Submit CTA -->
+          <div class="pt-2">
+            <button
+              (click)="submitProject()"
+              [disabled]="!canSubmit() || isSubmitting()"
+              class="w-full inner-button py-2.5 rounded-lg font-medium text-sm transition-all"
+              [class.opacity-40]="!canSubmit()"
+              [class.cursor-not-allowed]="!canSubmit()"
+            >
+              @if (canSubmit()) {
+                {{ 'dashboard.projectSummary.buttons.create' | translate }}
+              } @else {
+                {{ 'dashboard.projectSummary.buttons.acceptPolicies' | translate }}
+              }
+            </button>
+          </div>
+
         </div>
       </div>
+
     </div>
+
   </section>
 }
