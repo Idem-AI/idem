@@ -104,42 +104,55 @@ export class LogoChoiceComponent {
   }
 
   /**
-   * Sauvegarde le logo importé dans le projet (sans navigation)
+   * Construit le patch branding du logo importé (logo + couleurs extraites).
+   * Retourne null si les données sont incomplètes.
    */
-  public saveImportedLogo(): void {
+  private buildImportedLogoBranding(): Record<string, unknown> | null {
     const svg = this.importedSvg();
     const colors = this.importedColors();
     const variations = this.importedVariations();
-    const currentProject = this.project();
 
-    if (!svg || !currentProject || colors.length === 0) {
+    if (!svg || colors.length === 0) {
+      return null;
+    }
+
+    return {
+      logo: {
+        id: `imported-${Date.now()}`,
+        name: 'Imported Logo',
+        svg: svg,
+        iconSvg: svg,
+        concept: 'User-imported logo',
+        colors: colors,
+        fonts: [],
+        // Include programmatic variations if available
+        ...(variations ? { variations } : {}),
+      },
+      importedLogoColors: colors,
+    };
+  }
+
+  /**
+   * Sauvegarde le logo importé dans le projet (sans navigation)
+   */
+  public saveImportedLogo(): void {
+    const currentProject = this.project();
+    const brandingPatch = this.buildImportedLogoBranding();
+
+    if (!currentProject || !brandingPatch) {
       console.warn('Cannot save logo - missing data');
       return;
     }
 
-    const projectUpdate = {
+    this.projectUpdate.emit({
       analysisResultModel: {
         ...currentProject.analysisResultModel,
         branding: {
           ...currentProject.analysisResultModel?.branding,
-          logo: {
-            id: `imported-${Date.now()}`,
-            name: 'Imported Logo',
-            svg: svg,
-            iconSvg: svg,
-            concept: 'User-imported logo',
-            colors: colors,
-            fonts: [],
-            // Include programmatic variations if available
-            ...(variations ? { variations } : {}),
-          },
-          importedLogoColors: colors,
+          ...brandingPatch,
         },
       },
-    } as Partial<ProjectModel>;
-
-    console.log('🔵 Saving imported logo with variations:', !!variations);
-    this.projectUpdate.emit(projectUpdate);
+    } as Partial<ProjectModel>);
   }
 
   /**
@@ -192,9 +205,6 @@ export class LogoChoiceComponent {
 
     this.logoImportService.analyzeLogo(svg).subscribe({
       next: (analysis) => {
-        // Conserver le logo importé comme référence (logo + couleurs extraites)
-        this.saveImportedLogo();
-
         const reference =
           `Original logo reference — shapes: ${analysis.shapes}; ` +
           `colors: ${analysis.colors.join(', ')}; symbolism: ${analysis.symbolism}; ` +
@@ -206,9 +216,20 @@ export class LogoChoiceComponent {
           customDescription: `${analysis.improvementBrief}\n\n${reference}`,
         };
 
+        // Un SEUL patch combiné (logo importé en référence + préférences IA) :
+        // deux émissions successives déclenchaient deux updateProject concurrents
+        // dont l'ordre d'arrivée pouvait écraser l'un ou l'autre.
+        const currentProject = this.project();
+        const importedBranding = this.buildImportedLogoBranding() ?? {};
+
         this.projectUpdate.emit({
           analysisResultModel: {
-            branding: { logoPreferences: preferences },
+            ...currentProject?.analysisResultModel,
+            branding: {
+              ...currentProject?.analysisResultModel?.branding,
+              ...importedBranding,
+              logoPreferences: preferences,
+            },
           },
         } as unknown as Partial<ProjectModel>);
 

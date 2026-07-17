@@ -2,8 +2,20 @@ import { ProjectTeam } from '../auth/project-team.model';
 
 /**
  * Type de projet
+ *
+ * Union alignée sur les choix proposés dans l'UI de création
+ * (`create-project/datas.ts`) et sur les types injectés par le mode chat.
  */
-export type ProjectType = 'web' | 'mobile' | 'iot' | 'desktop';
+export type ProjectType =
+  | 'web'
+  | 'mobile'
+  | 'iot'
+  | 'desktop'
+  | 'enterprise'
+  | 'api'
+  | 'ai'
+  | 'blockchain'
+  | 'landing';
 
 /**
  * Membre d'équipe dans le projet (legacy)

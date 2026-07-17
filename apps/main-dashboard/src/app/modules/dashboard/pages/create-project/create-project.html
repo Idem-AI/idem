@@ -72,7 +72,7 @@
           (click)="setMode('chat')"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
           [class.bg-primary]="mode() === 'chat'"
-          [class.text-text-primary]="mode() === 'chat'"
+          [class.text-white]="mode() === 'chat'"
           [class.shadow-lg]="mode() === 'chat'"
           [class.text-text-tertiary]="mode() !== 'chat'"
           [class.hover:text-text-primary]="mode() !== 'chat'"
@@ -85,7 +85,7 @@
           (click)="setMode('form')"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
           [class.bg-primary]="mode() === 'form'"
-          [class.text-text-primary]="mode() === 'form'"
+          [class.text-white]="mode() === 'form'"
           [class.shadow-lg]="mode() === 'form'"
           [class.text-text-tertiary]="mode() !== 'form'"
           [class.hover:text-text-primary]="mode() !== 'form'"
@@ -98,26 +98,33 @@
 
     @if (mode() === 'chat') {
       <!-- ═══ MODE CONVERSATION ═══ -->
-      <div
-        class="w-full content-wrapper pb-36"
-        [class.content-with-banner]="fromAppGen()"
-        [class.content-standard]="!fromAppGen()"
-      >
-        @if (currentStepIndex() === 0) {
+      @if (currentStepIndex() === 0) {
+        <div
+          class="w-full content-wrapper pb-36"
+          [class.content-with-banner]="fromAppGen()"
+          [class.content-standard]="!fromAppGen()"
+        >
           <app-project-description
             [project]="project()"
             (nextStep)="goToNextStep()"
             (projectUpdate)="onProjectUpdate($event)"
           ></app-project-description>
-        } @else {
+        </div>
+      } @else {
+        <!-- Viewport à hauteur fixe : seul le fil de messages défile -->
+        <div
+          class="w-full"
+          [class.chat-viewport-banner]="fromAppGen()"
+          [class.chat-viewport-standard]="!fromAppGen()"
+        >
           <app-onboarding-chat
             [foundations]="conversationFoundations()"
             [showFormSwitch]="true"
             (created)="onConversationCreated($event)"
             (switchToForm)="setMode('form')"
           ></app-onboarding-chat>
-        }
-      </div>
+        </div>
+      }
     } @else {
     <!-- ═══ MODE FORMULAIRE CLASSIQUE ═══ -->
     <!-- Content Area -->
@@ -135,15 +142,11 @@
         ></app-project-description>
       }
       @if (isStepActive(1)) {
-        <app-project-details
+        <app-dynamic-details-form
           [project]="project()"
           [groupedProjectTypes]="projectTypes"
-          [groupedTargets]="targets"
-          [groupedScopes]="scopes"
-          (nextStep)="goToNextStep()"
-          (previousStep)="goToPreviousStep()"
           (projectUpdate)="onProjectUpdate($event)"
-        ></app-project-details>
+        ></app-dynamic-details-form>
       }
       @if (isStepActive(2)) {
         <app-project-summary

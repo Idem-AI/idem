@@ -10,7 +10,7 @@ import CreateProjectDatas, { SelectElement } from './datas';
 
 // Import components
 import { ProjectDescriptionComponent } from './components/project-description/project-description';
-import { ProjectDetailsComponent } from './components/project-details/project-details';
+import { DynamicDetailsFormComponent } from './components/dynamic-details-form/dynamic-details-form';
 import { ColorSelectionComponent } from './components/color-selection/color-selection';
 import { TypographySelectionComponent } from './components/typography-selection/typography-selection';
 import { LogoSelectionComponent } from './components/logo-selection/logo-selection';
@@ -47,7 +47,7 @@ const CREATE_MODE_KEY = 'idem_create_project_mode';
     CommonModule,
     SkeletonModule,
     ProjectDescriptionComponent,
-    ProjectDetailsComponent,
+    DynamicDetailsFormComponent,
     ProjectSummaryComponent,
     TranslateModule,
     Loader,
@@ -266,7 +266,7 @@ export class CreateProjectComponent implements OnInit {
       case 'description':
         return !!project.description?.trim();
       case 'details':
-        return !!project.name?.trim() && !!project.type;
+        return !!project.name?.trim() && !!project.type && !!project.targets?.trim();
       case 'summary':
         const acceptances = this.acceptances();
         return acceptances.privacy && acceptances.terms && acceptances.beta;
