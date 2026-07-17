@@ -13,8 +13,8 @@
   <!-- Conteneur du formulaire -->
   <div class="w-full max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
     <div class="rounded-xl p-4 sm:p-6 lg:p-8 border border-[var(--glass-border)] glass">
-      <!-- Champs d'identité (toujours demandés) -->
-      <div class="mb-6 sm:mb-8">
+      <!-- Champs d'identité + questions cœur (toujours affichés, immédiats) -->
+      <div class="mb-8">
         <h2 class="text-lg sm:text-xl font-semibold text-text-primary mb-4 sm:mb-6">
           {{ 'dashboard.projectDetails.sections.details' | translate }}
         </h2>
@@ -37,7 +37,7 @@
         </div>
 
         <!-- Type de projet -->
-        <div class="mb-2">
+        <div class="mb-6">
           <label for="dyn_project_type" class="block text-sm sm:text-base font-medium mb-2">
             {{ 'dashboard.projectDetails.fields.projectType' | translate }}
           </label>
@@ -55,9 +55,18 @@
             />
           </div>
         </div>
+
+        <!-- Questions cœur (devise, cible, portée, équipe) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+          @for (question of coreQuestions(); track question.id) {
+            <ng-container
+              *ngTemplateOutlet="questionTpl; context: { $implicit: question }"
+            ></ng-container>
+          }
+        </div>
       </div>
 
-      <!-- Questions générées par l'IA -->
+      <!-- Questions contextuelles générées par l'IA -->
       <div>
         <div class="flex items-center gap-2 mb-4 sm:mb-6">
           <i class="pi pi-sparkles text-primary text-sm"></i>
@@ -66,8 +75,8 @@
           </h2>
         </div>
 
-        @if (pending()) {
-          <!-- Chargement du plan IA -->
+        @if (contextualPending()) {
+          <!-- Chargement des questions contextuelles -->
           <div class="space-y-6" aria-live="polite">
             <p class="text-sm text-text-tertiary flex items-center gap-2">
               <i class="pi pi-spin pi-spinner"></i>
@@ -81,8 +90,7 @@
             }
           </div>
         } @else {
-          @if (loadError()) {
-            <!-- Erreur de génération : bannière + réessayer -->
+          @if (contextualError()) {
             <div
               class="mb-6 flex items-center justify-between gap-3 rounded-lg border border-[var(--glass-border)] bg-[var(--color-surface-2)] px-4 py-3"
               role="alert"
@@ -93,7 +101,7 @@
               </span>
               <button
                 type="button"
-                (click)="loadPlan()"
+                (click)="loadContextual()"
                 class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium inner-button rounded-lg transition-colors"
               >
                 <i class="pi pi-refresh text-xs"></i>
@@ -102,59 +110,11 @@
             </div>
           }
 
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-            @for (question of questions(); track question.id) {
-              <div class="space-y-2" [class.lg:col-span-2]="!isChoice(question)">
-                <label
-                  [for]="'dyn_q_' + question.id"
-                  class="block text-sm sm:text-base font-medium"
-                >
-                  {{ question.prompt }}
-                  @if (question.optional) {
-                    <span class="text-xs text-text-tertiary font-normal">
-                      · {{ 'dashboard.projectDetails.dynamic.optional' | translate }}</span
-                    >
-                  }
-                </label>
-
-                @if (isChoice(question)) {
-                  <div class="card flex justify-start w-full">
-                    <p-select
-                      [inputId]="'dyn_q_' + question.id"
-                      [options]="question.chips ?? []"
-                      [ngModel]="answerValue(question)"
-                      (ngModelChange)="onAnswerChange(question, $event)"
-                      [placeholder]="'dashboard.projectDetails.dynamic.selectPlaceholder' | translate"
-                      [editable]="false"
-                      optionLabel="label"
-                      optionValue="value"
-                      class="w-full text-sm sm:text-base"
-                    />
-                  </div>
-                  @if (isOther(question)) {
-                    <input
-                      pInputText
-                      [id]="'dyn_q_' + question.id + '_other'"
-                      [ngModel]="customValue(question)"
-                      (ngModelChange)="onCustomTextChange(question, $event)"
-                      autocomplete="off"
-                      class="w-full mt-2 text-sm sm:text-base"
-                      [placeholder]="'dashboard.projectDetails.dynamic.otherPlaceholder' | translate"
-                    />
-                  }
-                } @else {
-                  <textarea
-                    pInputTextarea
-                    [id]="'dyn_q_' + question.id"
-                    [ngModel]="answerValue(question)"
-                    (ngModelChange)="onAnswerChange(question, $event)"
-                    rows="2"
-                    maxlength="500"
-                    class="w-full text-sm sm:text-base"
-                    [placeholder]="'dashboard.projectDetails.dynamic.textPlaceholder' | translate"
-                  ></textarea>
-                }
-              </div>
+          <div class="grid grid-cols-1 gap-4 sm:gap-6">
+            @for (question of contextualQuestions(); track question.id) {
+              <ng-container
+                *ngTemplateOutlet="questionTpl; context: { $implicit: question }"
+              ></ng-container>
             }
           </div>
         }
@@ -162,3 +122,55 @@
     </div>
   </div>
 </section>
+
+<!-- Rendu d'une question (choix → select + « Autre » ; ouverte → zone de texte) -->
+<ng-template #questionTpl let-question>
+  <div class="space-y-2" [class.lg:col-span-2]="!isChoice(question)">
+    <label [for]="'dyn_q_' + question.id" class="block text-sm sm:text-base font-medium">
+      {{ question.prompt }}
+      @if (question.optional) {
+        <span class="text-xs text-text-tertiary font-normal">
+          · {{ 'dashboard.projectDetails.dynamic.optional' | translate }}</span
+        >
+      }
+    </label>
+
+    @if (isChoice(question)) {
+      <div class="card flex justify-start w-full">
+        <p-select
+          [inputId]="'dyn_q_' + question.id"
+          [options]="question.chips ?? []"
+          [ngModel]="answerValue(question)"
+          (ngModelChange)="onAnswerChange(question, $event)"
+          [placeholder]="'dashboard.projectDetails.dynamic.selectPlaceholder' | translate"
+          [editable]="false"
+          optionLabel="label"
+          optionValue="value"
+          class="w-full text-sm sm:text-base"
+        />
+      </div>
+      @if (isOther(question)) {
+        <input
+          pInputText
+          [id]="'dyn_q_' + question.id + '_other'"
+          [ngModel]="customValue(question)"
+          (ngModelChange)="onCustomTextChange(question, $event)"
+          autocomplete="off"
+          class="w-full mt-2 text-sm sm:text-base"
+          [placeholder]="'dashboard.projectDetails.dynamic.otherPlaceholder' | translate"
+        />
+      }
+    } @else {
+      <textarea
+        pInputTextarea
+        [id]="'dyn_q_' + question.id"
+        [ngModel]="answerValue(question)"
+        (ngModelChange)="onAnswerChange(question, $event)"
+        rows="2"
+        maxlength="500"
+        class="w-full text-sm sm:text-base"
+        [placeholder]="'dashboard.projectDetails.dynamic.textPlaceholder' | translate"
+      ></textarea>
+    }
+  </div>
+</ng-template>

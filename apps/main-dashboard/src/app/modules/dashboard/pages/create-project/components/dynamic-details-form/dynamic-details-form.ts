@@ -61,13 +61,20 @@ export class DynamicDetailsFormComponent implements OnInit {
 
   readonly projectUpdate = output<Partial<ProjectModel>>();
 
-  // État du plan IA
-  protected readonly pending = signal(true);
-  protected readonly loadError = signal(false);
-  protected readonly questions = signal<OnboardingPlanQuestion[]>([]);
+  // Questions cœur (fixes, immédiates) et contextuelles (IA, chargées à part)
+  protected readonly coreQuestions = signal<OnboardingPlanQuestion[]>([]);
+  protected readonly contextualQuestions = signal<OnboardingPlanQuestion[]>([]);
+  protected readonly contextualPending = signal(true);
+  protected readonly contextualError = signal(false);
 
-  /** Nombre de lignes de squelette affichées pendant le chargement du plan. */
-  protected readonly skeletonRows = [0, 1, 2, 3];
+  /** Toutes les questions (cœur + contextuelles) pour la validation/émission. */
+  protected readonly questions = computed(() => [
+    ...this.coreQuestions(),
+    ...this.contextualQuestions(),
+  ]);
+
+  /** Nombre de lignes de squelette affichées pendant le chargement contextuel. */
+  protected readonly skeletonRows = [0, 1, 2];
 
   // Réponses : champs d'identité fixes + réponses aux questions (clé = id)
   protected readonly name = signal('');
@@ -91,11 +98,23 @@ export class DynamicDetailsFormComponent implements OnInit {
     );
   });
 
+  private lang(): 'fr' | 'en' {
+    // Défaut anglais : tout ce qui n'est pas « fr » (dont undefined) → 'en'.
+    return (this.translate.currentLang || 'en') === 'fr' ? 'fr' : 'en';
+  }
+
   ngOnInit(): void {
     const p = this.project();
     this.name.set(p?.name?.trim() ?? '');
     this.type.set(this.coerceType(p?.type));
-    void this.loadPlan();
+
+    // Questions cœur : immédiates, sans attendre l'IA.
+    const core = this.planService.buildFixedCoreQuestions(this.lang());
+    this.coreQuestions.set(core);
+    this.prefillFromProject(core);
+
+    // Questions contextuelles : chargées en arrière-plan (loader dédié).
+    void this.loadContextual();
   }
 
   private coerceType(type: unknown): string {
@@ -106,25 +125,23 @@ export class DynamicDetailsFormComponent implements OnInit {
     return t?.code ?? '';
   }
 
-  protected async loadPlan(): Promise<void> {
-    this.pending.set(true);
-    this.loadError.set(false);
+  protected async loadContextual(): Promise<void> {
+    this.contextualPending.set(true);
+    this.contextualError.set(false);
     const p = this.project();
-    // Défaut anglais : tout ce qui n'est pas « fr » (dont undefined) → 'en'.
-    const lang: 'fr' | 'en' = (this.translate.currentLang || 'en') === 'fr' ? 'fr' : 'en';
     try {
-      const questions = await this.planService.getPlan({
+      const questions = await this.planService.getContextualQuestions({
         description: p?.description ?? '',
         name: this.name() || undefined,
         type: this.type() || undefined,
-        language: lang,
+        language: this.lang(),
       });
-      this.questions.set(questions);
+      this.contextualQuestions.set(questions);
       this.prefillFromProject(questions);
     } catch {
-      this.loadError.set(true);
+      this.contextualError.set(true);
     } finally {
-      this.pending.set(false);
+      this.contextualPending.set(false);
     }
   }
 
