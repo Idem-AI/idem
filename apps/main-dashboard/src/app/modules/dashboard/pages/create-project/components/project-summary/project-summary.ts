@@ -10,6 +10,7 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule } from '@ngx-translate/core';
 import { switchMap } from 'rxjs';
 import { AuthService } from '../../../../../auth/services/auth.service';
+import CreateProjectDatas, { SelectElement } from '../../datas';
 
 @Component({
   selector: 'app-project-summary',
@@ -50,30 +51,29 @@ export class ProjectSummaryComponent implements OnInit {
     return requiredPolicies && betaRequired;
   });
 
+  /** Résout un code d'option vers son libellé lisible (ou renvoie la valeur telle quelle). */
+  private labelFromCode(value: unknown, options: SelectElement[]): string {
+    if (typeof value === 'object' && value !== null) {
+      return (value as any).name || JSON.stringify(value);
+    }
+    if (typeof value === 'string' && value) {
+      return options.find((o) => o.code === value)?.name || value;
+    }
+    return 'Non spécifié';
+  }
+
   // Computed properties for formatted display
-  protected readonly formattedProjectType = computed(() => {
-    const type = this.project().type;
-    if (typeof type === 'object' && type !== null) {
-      return (type as any).name || JSON.stringify(type);
-    }
-    return type || 'Non spécifié';
-  });
+  protected readonly formattedProjectType = computed(() =>
+    this.labelFromCode(this.project().type, CreateProjectDatas.groupedProjectTypes),
+  );
 
-  protected readonly formattedScope = computed(() => {
-    const scope = this.project().scope;
-    if (typeof scope === 'object' && scope !== null) {
-      return (scope as any).name || JSON.stringify(scope);
-    }
-    return scope || 'Non spécifié';
-  });
+  protected readonly formattedScope = computed(() =>
+    this.labelFromCode(this.project().scope, CreateProjectDatas.groupedScopes),
+  );
 
-  protected readonly formattedTargets = computed(() => {
-    const targets = this.project().targets;
-    if (typeof targets === 'object' && targets !== null) {
-      return (targets as any).name || JSON.stringify(targets);
-    }
-    return targets || 'Non spécifié';
-  });
+  protected readonly formattedTargets = computed(() =>
+    this.labelFromCode(this.project().targets, CreateProjectDatas.groupedTargets),
+  );
 
   protected readonly formattedBudget = computed(() => {
     const budget = this.project().budgetIntervals;

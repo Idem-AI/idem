@@ -22,6 +22,7 @@ import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../../dashboard/services/project.service';
 import { initEmptyObject } from '../../../../utils/init-empty-object';
 import { OnboardingAiService } from '../../services/onboarding-ai.service';
+import { OnboardingPlanService } from '../../services/onboarding-plan.service';
 import { SuggestionChipsComponent } from '../suggestion-chips/suggestion-chips';
 import { RecapCardComponent } from '../recap-card/recap-card';
 import {
@@ -52,12 +53,17 @@ interface PersistedAnswer {
   display: string;
 }
 
+interface ConstraintNote {
+  prompt: string;
+  value: string;
+}
+
 interface PersistedState {
   key: string;
   questions: OnboardingPlanQuestion[];
   index: number;
   answers: PersistedAnswer[];
-  notes: string[];
+  notes: ConstraintNote[];
   thread: ChatMessageModel[];
   phase: 'asking' | 'recap';
 }
@@ -95,6 +101,7 @@ let msgCounter = 0;
 })
 export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private readonly aiService = inject(OnboardingAiService);
+  private readonly planService = inject(OnboardingPlanService);
   private readonly projectService = inject(ProjectService);
   private readonly translate = inject(TranslateService);
   private readonly authService = inject(AuthService);
@@ -122,7 +129,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private questions: OnboardingPlanQuestion[] = [];
   private index = 0;
   private answers: PersistedAnswer[] = [];
-  private notes: string[] = [];
+  private notes: ConstraintNote[] = [];
 
   protected readonly lastMessageId = computed(() => {
     const m = this.messages();
@@ -154,48 +161,18 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     this.pending.set(true);
     try {
       const lang = this.translate.currentLang === 'en' ? 'en' : 'fr';
-      const res = await firstValueFrom(
-        this.aiService.generateQuestions({
-          description: this.foundations().description,
-          name: this.foundations().name || undefined,
-          type: this.foundations().type || undefined,
-          language: lang,
-        }),
+      const plan = await this.planService.getPlan({
+        description: this.foundations().description,
+        name: this.foundations().name || undefined,
+        type: this.foundations().type || undefined,
+        language: lang,
+      });
+      // Injecte les questions d'identité (nom/type) manquantes.
+      this.questions = this.planService.injectIdentityQuestions(
+        plan,
+        { name: this.foundations().name, type: this.foundations().type },
+        lang,
       );
-      this.questions = res?.questions ?? [];
-      
-      // Inject Name question if not provided in foundations
-      if (!this.foundations().name) {
-        this.questions.unshift({
-          id: 'name',
-          field: 'name',
-          kind: 'open',
-          optional: false,
-          prompt: this.translate.currentLang === 'en'
-            ? 'First, what is the name of your project?'
-            : 'Tout d\'abord, quel est le nom de votre projet ?',
-        });
-      }
-
-      // Inject Type question if not provided in foundations
-      if (!this.foundations().type) {
-        const insertIndex = !this.foundations().name ? 1 : 0;
-        this.questions.splice(insertIndex, 0, {
-          id: 'type',
-          field: 'type',
-          kind: 'choice',
-          optional: false,
-          prompt: this.translate.currentLang === 'en'
-            ? 'What type of application are we building?'
-            : 'Quel type d\'application allons-nous construire ?',
-          chips: [
-            { label: this.translate.currentLang === 'en' ? 'Web Application' : 'Application Web', value: 'web' },
-            { label: this.translate.currentLang === 'en' ? 'Mobile Application' : 'Application Mobile', value: 'mobile' },
-            { label: this.translate.currentLang === 'en' ? 'Landing Page' : 'Site Vitrine', value: 'landing' },
-            { label: this.translate.currentLang === 'en' ? 'Other / API' : 'Autre / API', value: 'api' }
-          ]
-        });
-      }
 
       this.index = 0;
       this.pending.set(false);
@@ -313,7 +290,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     const q = this.currentQuestion();
     if (!q) return;
     if (q.field === 'constraints') {
-      if (value.trim()) this.notes.push(value.trim());
+      if (value.trim()) this.notes.push({ prompt: q.prompt, value: value.trim() });
     } else {
       // Remplace toute réponse précédente pour ce champ
       this.answers = this.answers.filter((a) => a.field !== q.field);
@@ -434,12 +411,21 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   /** Crée (ou met à jour si déjà créé) puis finalise le projet. */
   private async persistProject(acceptances: OnboardingPolicyAcceptances): Promise<string> {
     const f = this.foundations();
+    // Contraintes formatées « Question: Réponse » (contrat partagé avec le formulaire).
+    const constraintFields = this.planService.buildProjectFieldsFromAnswers(
+      this.notes.map((n) => ({
+        field: 'constraints' as const,
+        value: n.value,
+        display: n.value,
+        prompt: n.prompt,
+      })),
+    );
     const fields: Partial<ProjectModel> = {
       targets: this.answerValue('targets'),
       scope: this.answerValue('scope'),
       teamSize: this.answerValue('teamSize'),
       budgetIntervals: this.answerValue('budgetIntervals'),
-      constraints: this.notes.slice(),
+      constraints: constraintFields.constraints ?? [],
     };
 
     const chatName = this.answerValue('name');
@@ -532,7 +518,10 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       this.questions = state.questions ?? [];
       this.index = state.index ?? 0;
       this.answers = state.answers ?? [];
-      this.notes = state.notes ?? [];
+      // Rétrocompat : les anciennes sessions stockaient notes en string[].
+      this.notes = (state.notes ?? []).map((n) =>
+        typeof n === 'string' ? { prompt: '', value: n } : n,
+      );
       this.phase.set(state.phase ?? 'asking');
       this.messages.set(state.thread);
       return true;
