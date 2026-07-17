@@ -126,6 +126,8 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   readonly switchToForm = output<void>();
   /** Émis à chaque réponse pour synchroniser le projet (partage avec le formulaire). */
   readonly projectUpdate = output<Partial<ProjectModel>>();
+  /** Émis lorsque la phase de récapitulatif/validation est active. */
+  readonly recapPhaseActive = output<boolean>();
 
   @ViewChild('scrollAnchor') private scrollAnchor?: ElementRef<HTMLDivElement>;
 
@@ -483,6 +485,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   private goToRecap(): void {
     this.phase.set('recap');
+    this.recapPhaseActive.emit(true);
     const recap = this.buildRecap();
     this.messages.update((m) => [
       ...m,
@@ -576,6 +579,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     this.contextualLoading = false;
     this.waitingForContextual = false;
     this.phase.set('asking');
+    this.recapPhaseActive.emit(false);
     this.startFlow();
   }
 
