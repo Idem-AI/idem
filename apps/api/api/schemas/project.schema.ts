@@ -78,6 +78,8 @@ const ProjectSchema = new Schema<ProjectDocument>(
     scope: { type: String, default: '' },
     budgetIntervals: { type: String },
     targets: { type: String, required: true },
+    // Devise du projet (ex. XAF, EUR, USD…), utilisée par toutes les générations.
+    currency: { type: String, default: '' },
     userId: { type: String, required: true },
     selectedPhases: [{ type: String }],
     analysisResultModel: { type: Schema.Types.Mixed },

@@ -24,7 +24,8 @@
         "retry": "Retry",
         "optional": "optional",
         "selectPlaceholder": "Select an option",
-        "textPlaceholder": "Your answer (optional)"
+        "textPlaceholder": "Your answer (optional)",
+        "otherPlaceholder": "Please specify…"
       }
     }
   }

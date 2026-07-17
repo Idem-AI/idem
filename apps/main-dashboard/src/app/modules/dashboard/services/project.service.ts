@@ -138,6 +138,7 @@ export class ProjectService {
         - Composition de l'équipe : ${project.teamSize} développeurs
         - Périmètre fonctionnel couvert : ${project.scope}
         - Fourchette budgétaire prévue : ${project.budgetIntervals}
+        - Devise du projet : ${project.currency || 'non spécifiée'}
         - Publics cibles concernés : ${project.targets}
 `;
 

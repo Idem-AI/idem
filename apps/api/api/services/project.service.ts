@@ -275,6 +275,7 @@ class ProjectService {
       project.teamSize !== undefined ? `${project.teamSize} développeurs` : 'Non spécifiée';
     const scope = project.scope || 'Non spécifié';
     const budgetIntervals = project.budgetIntervals || 'Non spécifiée';
+    const currency = project.currency || 'Non spécifiée';
     const targets = project.targets || 'Non spécifié';
     const type = project.type || 'Non spécifié';
     const description = project.description || 'Non spécifiée';
@@ -288,6 +289,7 @@ class ProjectService {
         - Composition de l'équipe : ${teamSize}
         - Périmètre fonctionnel couvert : ${scope}
         - Fourchette budgétaire prévue : ${budgetIntervals}
+        - Devise du projet (à utiliser pour tous les montants générés) : ${currency}
         - Publics cibles concernés : ${targets}
     `;
     logger.debug(`Generated project description for prompt for project: ${project.id || 'N/A'}`);

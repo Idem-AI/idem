@@ -27,7 +27,8 @@
         "retry": "Réessayer",
         "optional": "facultatif",
         "selectPlaceholder": "Sélectionnez une option",
-        "textPlaceholder": "Votre réponse (facultatif)"
+        "textPlaceholder": "Votre réponse (facultatif)",
+        "otherPlaceholder": "Précisez…"
       }
     }
   }

@@ -130,8 +130,8 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private index = 0;
   private answers: PersistedAnswer[] = [];
   private notes: ConstraintNote[] = [];
-  /** L'utilisateur a choisi « Autres » pour le type : on attend sa saisie libre. */
-  private customTypePending = false;
+  /** L'utilisateur a choisi « Autre » (type ou devise) : on attend sa saisie libre. */
+  private customPending: 'type' | 'currency' | null = null;
 
   protected readonly lastMessageId = computed(() => {
     const m = this.messages();
@@ -155,14 +155,26 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   // ─────────────────────────────────────────────── Démarrage / plan IA
 
+  /**
+   * Langue courante normalisée. La langue par défaut de l'app est l'anglais :
+   * tout ce qui n'est pas explicitement « fr » (y compris `undefined` avant que
+   * `translate.use()` ait résolu) doit retomber sur l'anglais, pas le français.
+   */
+  private currentLang(): 'fr' | 'en' {
+    return (this.translate.currentLang || 'en') === 'fr' ? 'fr' : 'en';
+  }
+
   private async startFlow(): Promise<void> {
-    const welcomeName = this.foundations().name || (this.translate.currentLang === 'en' ? 'your project' : 'votre projet');
+    const name = this.foundations().name?.trim();
+    // Welcome personnalisé si un nom existe déjà, générique sinon (pas de « votre projet »).
     this.appendAssistant(
-      this.translate.instant('chat.onboarding.aiWelcome', { name: welcomeName }),
+      name
+        ? this.translate.instant('chat.onboarding.aiWelcome', { name })
+        : this.translate.instant('chat.onboarding.aiWelcomeNoName'),
     );
     this.pending.set(true);
     try {
-      const lang = this.translate.currentLang === 'en' ? 'en' : 'fr';
+      const lang = this.currentLang();
       const plan = await this.planService.getPlan({
         description: this.foundations().description,
         name: this.foundations().name || undefined,
@@ -250,11 +262,15 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     }
     if (chip.action === 'answer') {
       const q = this.currentQuestion();
-      // « Autres » sur la question de type → saisie manuelle
-      if (q?.field === 'type' && chip.payload === 'other') {
+      // « Autre » sur type / devise → saisie manuelle
+      if (chip.payload === 'other' && (q?.field === 'type' || q?.field === 'currency')) {
         this.appendUser(chip.label ?? chip.payload ?? '');
-        this.appendAssistant(this.translate.instant('chat.onboarding.customType'));
-        this.customTypePending = true;
+        this.appendAssistant(
+          this.translate.instant(
+            q.field === 'type' ? 'chat.onboarding.customType' : 'chat.onboarding.customCurrency',
+          ),
+        );
+        this.customPending = q.field;
         return;
       }
       const label = chip.label ?? chip.payload ?? '';
@@ -268,10 +284,10 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     const q = this.currentQuestion();
     if (!q) return;
 
-    // Saisie manuelle du type (après « Autres ») : type = 'other' + on conserve le texte.
-    if (this.customTypePending && q.field === 'type') {
-      this.customTypePending = false;
-      this.setCustomType(q, text);
+    // Saisie manuelle (après « Autre ») pour le type ou la devise.
+    if (this.customPending && this.customPending === q.field) {
+      this.customPending = null;
+      this.recordCustom(q, text);
       this.advance();
       return;
     }
@@ -286,7 +302,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     // Question à choix répondue en texte libre → analyse IA
     this.pending.set(true);
     try {
-      const lang = this.translate.currentLang === 'en' ? 'en' : 'fr';
+      const lang = this.currentLang();
       const res = await firstValueFrom(
         this.aiService.parseAnswer({
           field: q.field,
@@ -298,9 +314,9 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       );
       this.pending.set(false);
       const value = res?.value ?? '';
-      // Type libre non reconnu → 'other' + conservation du texte saisi.
-      if (!value && q.field === 'type') {
-        this.setCustomType(q, text);
+      // Type/devise libre non reconnu → on conserve la saisie de l'utilisateur.
+      if (!value && (q.field === 'type' || q.field === 'currency')) {
+        this.recordCustom(q, text);
       } else {
         this.recordAnswer(value, res?.display || text);
       }
@@ -309,8 +325,8 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       console.error('Onboarding: answer parse failed', error);
       this.pending.set(false);
       // On accepte le texte brut pour ne pas bloquer l'utilisateur
-      if (q.field === 'type') {
-        this.setCustomType(q, text);
+      if (q.field === 'type' || q.field === 'currency') {
+        this.recordCustom(q, text);
       } else {
         this.recordAnswer('', text);
       }
@@ -318,10 +334,19 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  /** Type personnalisé : stocke le code 'other' et conserve le texte dans les contraintes. */
-  private setCustomType(q: OnboardingPlanQuestion, text: string): void {
-    this.recordAnswer('other', text);
+  /**
+   * Réponse personnalisée (« Autre ») :
+   *  - type : code enum 'other' + texte conservé dans les contraintes ;
+   *  - devise : le libellé saisi devient directement la devise (champ libre).
+   */
+  private recordCustom(q: OnboardingPlanQuestion, text: string): void {
     const clean = text.trim();
+    if (q.field === 'currency') {
+      this.recordAnswer(clean, clean);
+      return;
+    }
+    // type
+    this.recordAnswer('other', clean);
     if (clean) this.notes.push({ prompt: q.prompt, value: clean });
   }
 
@@ -383,6 +408,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       scopeKey: this.answerDisplay('scope'),
       teamSizeKey: this.answerDisplay('teamSize'),
       budgetKey: this.answerDisplay('budgetIntervals'),
+      currencyKey: this.answerDisplay('currency'),
     };
   }
 
@@ -443,7 +469,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     this.index = 0;
     this.answers = [];
     this.notes = [];
-    this.customTypePending = false;
+    this.customPending = null;
     this.phase.set('asking');
     void this.startFlow();
   }
@@ -465,6 +491,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       scope: this.answerValue('scope'),
       teamSize: this.answerValue('teamSize'),
       budgetIntervals: this.answerValue('budgetIntervals'),
+      currency: this.answerValue('currency'),
       constraints: constraintFields.constraints ?? [],
     };
 
@@ -486,6 +513,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       project.scope = fields.scope ?? '';
       project.teamSize = fields.teamSize ?? '';
       project.budgetIntervals = fields.budgetIntervals ?? '';
+      project.currency = fields.currency ?? '';
       project.constraints = fields.constraints ?? [];
       project.selectedPhases = [];
       projectId = await firstValueFrom(this.projectService.createProject(project));

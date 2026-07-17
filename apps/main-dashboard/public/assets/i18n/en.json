@@ -689,7 +689,8 @@
         "retry": "Retry",
         "optional": "optional",
         "selectPlaceholder": "Select an option",
-        "textPlaceholder": "Your answer (optional)"
+        "textPlaceholder": "Your answer (optional)",
+        "otherPlaceholder": "Please specify…"
       }
     },
     "projectSummary": {
@@ -2442,7 +2443,8 @@
         "targets": "Audience",
         "scope": "Scope",
         "teamSize": "Team",
-        "budget": "Budget"
+        "budget": "Budget",
+        "currency": "Currency"
       },
       "policies": {
         "accept": "I accept the",
@@ -2523,7 +2525,9 @@
       },
       "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
       "composerPlaceholder": "Type your answer, or pick a suggestion…",
-      "customType": "Great. Describe your project type in a few words:"
+      "customType": "Great. Describe your project type in a few words:",
+      "aiWelcomeNoName": "Perfect! 🚀 I've got your idea. Let me ask a few simple questions to shape your project.",
+      "customCurrency": "Alright. Which currency would you like to use?"
     },
     "branding": {
       "invite": "Now let's work on your **brand identity** (logo, colors, typography). Do you want to generate it with AI, or import your own logo?",
