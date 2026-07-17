@@ -87,37 +87,27 @@ export class OnboardingPlanService {
   }
 
   /**
-   * Préfixe le plan avec les questions d'identité (nom puis type) manquantes.
+   * Préfixe le plan avec les questions d'identité (nom puis type).
    * Utilisé par le mode chat, où nom/type sont posés dans la conversation.
-   * (En mode formulaire, nom/type sont des champs fixes du formulaire.)
+   *
+   * Pour un NOUVEAU projet (pas encore d'`projectId`), le nom et le type sont
+   * toujours demandés (exigence produit : « toujours demander le nom »). Pour un
+   * projet existant, on ne demande que ce qui manque.
    */
   injectIdentityQuestions(
     questions: OnboardingPlanQuestion[],
-    foundations: { name?: string; type?: string },
+    foundations: { name?: string; type?: string; projectId?: string | null },
     language: 'fr' | 'en',
   ): OnboardingPlanQuestion[] {
     const out = [...questions];
     const en = language === 'en';
+    const isNew = !foundations.projectId;
 
-    if (!foundations.type) {
-      out.unshift({
-        id: 'type',
-        field: 'type',
-        kind: 'choice',
-        optional: false,
-        prompt: en
-          ? 'What type of application are we building?'
-          : "Quel type d'application allons-nous construire ?",
-        chips: [
-          { label: en ? 'Web Application' : 'Application Web', value: 'web' },
-          { label: en ? 'Mobile Application' : 'Application Mobile', value: 'mobile' },
-          { label: en ? 'Landing Page' : 'Site Vitrine', value: 'landing' },
-          { label: en ? 'Other / API' : 'Autre / API', value: 'api' },
-        ],
-      });
+    if (isNew || !foundations.type) {
+      out.unshift(this.buildTypeQuestion(language));
     }
 
-    if (!foundations.name) {
+    if (isNew || !foundations.name) {
       out.unshift({
         id: 'name',
         field: 'name',
@@ -125,11 +115,36 @@ export class OnboardingPlanService {
         optional: false,
         prompt: en
           ? 'First, what is the name of your project?'
-          : "Tout d'abord, quel est le nom de votre projet ?",
+          : "Pour commencer, quel est le nom de votre projet ?",
       });
     }
 
     return out;
+  }
+
+  /**
+   * Question « type de projet » recontextualisée pour l'entrepreneuriat
+   * (création d'entreprise, commerce…), avec une option « Autres » qui ouvre
+   * la saisie manuelle. Les valeurs correspondent à l'enum `ProjectType`.
+   */
+  buildTypeQuestion(language: 'fr' | 'en'): OnboardingPlanQuestion {
+    const en = language === 'en';
+    return {
+      id: 'type',
+      field: 'type',
+      kind: 'choice',
+      optional: false,
+      prompt: en
+        ? 'What kind of project do you want to launch?'
+        : 'Quel type de projet souhaitez-vous lancer ?',
+      chips: [
+        { label: en ? 'Business creation' : "Création d'entreprise", value: 'enterprise' },
+        { label: en ? 'Commerce / E-commerce' : 'Commerce / E-commerce', value: 'ecommerce' },
+        { label: en ? 'Web app / SaaS' : 'Application web / SaaS', value: 'web' },
+        { label: en ? 'Mobile app' : 'Application mobile', value: 'mobile' },
+        { label: en ? 'Other (specify)' : 'Autres (à préciser)', value: 'other' },
+      ],
+    };
   }
 
   /**

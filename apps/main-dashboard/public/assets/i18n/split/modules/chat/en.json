@@ -266,6 +266,7 @@
       "welcome": "Hi! 👋 Let's create your project together, step by step. First question: **describe your idea in a few sentences.** What do you want to build, and what problem does it solve?",
       "resume": "Welcome back! 👋 Let's pick up your project creation exactly where you left off.",
       "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
+      "customType": "Great. Describe your project type in a few words:",
       "composerPlaceholder": "Type your answer, or pick a suggestion…",
       "questions": {
         "description": "Describe your idea in a few sentences: what do you want to build, and what problem does it solve?",
@@ -292,13 +293,15 @@
       "options": {
         "type": {
           "enterprise": "Enterprise creation",
+          "ecommerce": "Commerce / E-commerce",
           "web": "Web application",
           "mobile": "Mobile application",
           "iot": "IoT",
           "desktop": "Desktop application",
           "api": "API / Backend",
           "ai": "AI / ML",
-          "blockchain": "Blockchain"
+          "blockchain": "Blockchain",
+          "other": "Other"
         },
         "targets": {
           "business": "Companies",

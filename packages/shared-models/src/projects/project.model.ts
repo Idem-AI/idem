@@ -12,10 +12,12 @@ export type ProjectType =
   | 'iot'
   | 'desktop'
   | 'enterprise'
+  | 'ecommerce'
   | 'api'
   | 'ai'
   | 'blockchain'
-  | 'landing';
+  | 'landing'
+  | 'other';
 
 /**
  * Membre d'équipe dans le projet (legacy)

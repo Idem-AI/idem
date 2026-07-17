@@ -1,4 +1,13 @@
-import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+  effect,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
@@ -59,7 +68,7 @@ const CREATE_MODE_KEY = 'idem_create_project_mode';
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
 })
-export class CreateProjectComponent implements OnInit {
+export class CreateProjectComponent implements OnInit, OnDestroy {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
@@ -84,6 +93,28 @@ export class CreateProjectComponent implements OnInit {
 
   // Dual-mode : conversation (défaut) ⇄ formulaire classique
   protected readonly mode = signal<CreateMode>(this.readMode());
+
+  /** Vue conversationnelle active (chat + au-delà de l'étape description). */
+  protected readonly isChatConversation = computed(
+    () => this.mode() === 'chat' && this.currentStepIndex() !== 0,
+  );
+
+  constructor() {
+    // En vue conversationnelle, on verrouille le scroll global de la page :
+    // seul le fil de messages défile (comportement type Claude).
+    effect(() => {
+      const lock = this.isChatConversation();
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = lock ? 'hidden' : '';
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  }
 
   /** En mode chat : Fondations tant que description/nom/type ou projet manquent. */
   protected readonly chatReadyForConversation = computed(() => {

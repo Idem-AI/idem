@@ -266,6 +266,7 @@
       "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
       "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",
       "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
+      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
       "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
       "questions": {
         "description": "Décrivez votre idée en quelques phrases : que voulez-vous construire, et pour résoudre quel problème ?",
@@ -292,13 +293,15 @@
       "options": {
         "type": {
           "enterprise": "Création d'entreprise",
+          "ecommerce": "Commerce / E-commerce",
           "web": "Application web",
           "mobile": "Application mobile",
           "iot": "IoT",
           "desktop": "Application desktop",
           "api": "API / Backend",
           "ai": "IA / ML",
-          "blockchain": "Blockchain"
+          "blockchain": "Blockchain",
+          "other": "Autres"
         },
         "targets": {
           "business": "Entreprises",
