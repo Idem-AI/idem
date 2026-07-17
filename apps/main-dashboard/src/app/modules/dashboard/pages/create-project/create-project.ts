@@ -97,6 +97,12 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
 
   // Dual-mode : conversation (défaut) ⇄ formulaire classique
   protected readonly mode = signal<CreateMode>(this.readMode());
+  protected readonly isChatRecapActive = signal<boolean>(false);
+
+  /** Indique si la page actuelle est la page de synthèse / validation des politiques (où le changement de mode doit être masqué) */
+  protected readonly isSummaryPage = computed(
+    () => (this.mode() === 'form' && this.currentStepIndex() === 2) || (this.mode() === 'chat' && this.isChatRecapActive()),
+  );
 
   /** Vue conversationnelle active (chat + au-delà de l'étape description). */
   protected readonly isChatConversation = computed(
