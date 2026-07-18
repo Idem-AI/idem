@@ -98,6 +98,13 @@ export const generatePitchDeckStreamingController = async (
 
     const forceRegenerate = req.query.force === 'true' || req.body.force === true;
 
+    // Sections ciblées à régénérer (ex: ?sections=Financials,Ask)
+    const sectionsParam = typeof req.query.sections === 'string' ? req.query.sections : '';
+    const targetSections = sectionsParam
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     // Fetch project to see if this is a retry/resume
     const project = await projectService.getUserProjectById(userId, projectId as string);
     const isRetry = !!(project && !forceRegenerate && (project.analysisResultModel?.pitchDeck?.sections?.length ?? 0) > 0);
@@ -106,7 +113,8 @@ export const generatePitchDeckStreamingController = async (
       userId,
       projectId as string,
       streamCallback,
-      forceRegenerate
+      forceRegenerate,
+      targetSections
     );
 
     if (!updatedProject) {

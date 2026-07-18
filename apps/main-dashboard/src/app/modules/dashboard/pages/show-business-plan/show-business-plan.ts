@@ -9,6 +9,11 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
+import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
+import {
+  analyzeGenerationCompleteness,
+  BUSINESS_PLAN_SECTION_NAMES,
+} from '../../models/generation-completeness';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 
@@ -21,6 +26,7 @@ import { ProjectModel } from '@idem/shared-models';
     Loader,
     TranslateModule,
     IncompleteProjectBannerComponent,
+    GenerationStatusPanelComponent,
   ],
   templateUrl: './show-business-plan.html',
   styleUrls: ['./show-business-plan.css'],
@@ -48,13 +54,16 @@ export class ShowBusinessPlan implements OnInit {
   protected readonly brandingMissingElements = signal<string[]>([]);
   protected readonly project = signal<ProjectModel | null>(null);
 
-  protected readonly isBusinessPlanIncomplete = computed(() => {
-    const sections = this.project()?.analysisResultModel?.businessPlan?.sections || [];
-    return sections.length > 0 && sections.length < 9;
-  });
+  protected readonly completeness = computed(() =>
+    analyzeGenerationCompleteness(
+      BUSINESS_PLAN_SECTION_NAMES,
+      this.project()?.analysisResultModel?.businessPlan?.sections,
+    ),
+  );
 
-  protected readonly businessPlanSectionCount = computed(() => {
-    return this.project()?.analysisResultModel?.businessPlan?.sections?.length || 0;
+  protected readonly isBusinessPlanIncomplete = computed(() => {
+    const completeness = this.completeness();
+    return completeness.hasStarted && !completeness.isComplete;
   });
 
   ngOnInit(): void {
@@ -162,6 +171,15 @@ export class ShowBusinessPlan implements OnInit {
     console.log('Navigating to business plan generation page, force:', force);
     this.router.navigate(['/project/business-plan/generate'], {
       queryParams: force ? { force: 'true' } : {}
+    });
+  }
+
+  /**
+   * Regenerate a single business plan section (canonical backend step name)
+   */
+  protected regenerateSection(sectionName: string): void {
+    this.router.navigate(['/project/business-plan/generate'], {
+      queryParams: { sections: sectionName },
     });
   }
 

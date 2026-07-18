@@ -41,14 +41,20 @@ export class BrandingService {
     projectId: string,
     pdfFormat: string = 'SLIDE_16_9',
     force = false,
+    sections: string[] = [],
   ): Observable<SSEStepEvent> {
     console.log('Starting branding generation with SSE and format:', pdfFormat);
 
     // Close any existing SSE connection
     this.closeSSEConnection();
 
+    const params = new URLSearchParams();
+    params.set('format', pdfFormat);
+    if (force) params.set('force', 'true');
+    if (sections.length > 0) params.set('sections', sections.join(','));
+
     const config: SSEConnectionConfig = {
-      url: `${this.apiUrl}/generate/${projectId}?format=${pdfFormat}${force ? '&force=true' : ''}`,
+      url: `${this.apiUrl}/generate/${projectId}?${params.toString()}`,
       keepAlive: true,
       reconnectionDelay: 1000,
     };

@@ -22,6 +22,18 @@ import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 
+export const BUSINESS_PLAN_SECTION_NAMES = [
+  'Cover Page',
+  'Company Summary',
+  'Opportunity',
+  'Target Audience',
+  'Products & Services',
+  'Marketing & Sales',
+  'Financial Plan',
+  'Goal Planning',
+  'Appendix',
+];
+
 export class BusinessPlanService extends GenericService {
   private pdfService: PdfService;
 
@@ -35,10 +47,11 @@ export class BusinessPlanService extends GenericService {
     userId: string,
     projectId: string,
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
-    forceRegenerate = false
+    forceRegenerate = false,
+    targetSections: string[] = []
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}`
+      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     // Generate cache key based on project content
@@ -67,15 +80,24 @@ export class BusinessPlanService extends GenericService {
 
     const cacheKey = cacheService.generateAIKey('business-plan', userId, projectId, contentHash);
 
-    // Check cache first
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: 'ai',
-      ttl: 7200, // 2 hours
-    });
+    // The cached result may be an incomplete plan (it is updated after each step),
+    // so only short-circuit on it when nothing needs to be (re)generated.
+    const currentSections = project.analysisResultModel?.businessPlan?.sections || [];
+    const skipCacheRead =
+      forceRegenerate ||
+      targetSections.length > 0 ||
+      currentSections.length < BUSINESS_PLAN_SECTION_NAMES.length;
 
-    if (cachedResult) {
-      logger.info(`Business plan cache hit for projectId: ${projectId}`);
-      return cachedResult;
+    if (!skipCacheRead) {
+      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+        prefix: 'ai',
+        ttl: 7200, // 2 hours
+      });
+
+      if (cachedResult) {
+        logger.info(`Business plan cache hit for projectId: ${projectId}`);
+        return cachedResult;
+      }
     }
 
     logger.info(`Business plan cache miss, generating new content for projectId: ${projectId}`);
@@ -191,10 +213,14 @@ export class BusinessPlanService extends GenericService {
         modelName: AI_CONFIG.businessPlan.modelName,
       };
 
-      // Load existing sections if not forcing regeneration
-      const existingSections = (!forceRegenerate && project.analysisResultModel?.businessPlan?.sections)
-        ? project.analysisResultModel.businessPlan.sections
-        : [];
+      // Load existing sections if not forcing regeneration.
+      // Sections listed in targetSections are dropped so they get regenerated,
+      // while the others are kept as-is (resume semantics).
+      const existingSections = forceRegenerate
+        ? []
+        : targetSections.length > 0
+          ? currentSections.filter((s) => !targetSections.includes(s.name))
+          : currentSections;
 
       // Initialize sections array with existing sections to collect results
       let sectionResults: SectionModel[] = [...existingSections];
@@ -296,6 +322,10 @@ export class BusinessPlanService extends GenericService {
           existingSections
         );
 
+        // The stored PDF no longer matches the regenerated sections
+        const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+        await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+
         // Return the updated project (it should be available in cache or fetch it again)
         const finalProject = await this.projectRepository.findById(
           projectId,
@@ -351,6 +381,10 @@ export class BusinessPlanService extends GenericService {
             ttl: 7200, // 2 hours
           });
           logger.info(`Business plan cached for projectId: ${projectId}`);
+
+          // The stored PDF no longer matches the regenerated sections
+          const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+          await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
         }
         return updatedProject;
       }
