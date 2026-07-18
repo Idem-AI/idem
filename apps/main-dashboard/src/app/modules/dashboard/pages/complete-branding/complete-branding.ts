@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -84,6 +85,14 @@ export class CompleteBrandingPage implements OnInit {
   /** Préférences IA (stockées avant de passer à la génération) */
   protected readonly aiLogoPreferences = signal<LogoPreferencesModel | null>(null);
 
+  /**
+   * File de sauvegarde séquentielle : les updateProject partent dans l'ordre
+   * d'émission, une requête à la fois. Sans cela, plusieurs écritures
+   * concurrentes (logo importé, couleurs générées, préférences…) arrivaient
+   * dans un ordre aléatoire et la dernière pouvait écraser les autres.
+   */
+  private saveQueue: Promise<void> = Promise.resolve();
+
   // ─── Steps dynamiques selon le workflow ─────────────────────────────────────
 
   protected get steps(): { id: string; label: string }[] {
@@ -131,6 +140,16 @@ export class CompleteBrandingPage implements OnInit {
     return this.project()?.analysisResultModel?.branding?.logo ?? null;
   }
 
+  /**
+   * Logos générés par l'IA uniquement — exclut le logo importé qui a pu être
+   * historiquement recopié dans generatedLogos, pour que logo-selection ne
+   * l'affiche pas comme un concept IA (ce qui bloquait la vraie génération).
+   */
+  protected get aiGeneratedLogos(): LogoModel[] {
+    const logos = this.project()?.analysisResultModel?.branding?.generatedLogos ?? [];
+    return logos.filter((l: LogoModel) => !l.id?.startsWith('imported-'));
+  }
+
   /** Couleur sélectionnée */
   protected get selectedColor(): ColorModel | null {
     return this.project()?.analysisResultModel?.branding?.colors ?? null;
@@ -169,7 +188,13 @@ export class CompleteBrandingPage implements OnInit {
         const branding = project?.analysisResultModel?.branding;
         if (branding) {
           const hasAiPreferences = !!branding.logoPreferences;
-          const hasGeneratedLogos = !!(branding.generatedLogos && branding.generatedLogos.length > 0);
+          // Ne compter que les VRAIS logos générés par l'IA : d'anciennes données
+          // pouvaient contenir le logo importé dans generatedLogos, ce qui basculait
+          // à tort un utilisateur « tel quel » dans le workflow IA à la reprise.
+          const aiLogos = (branding.generatedLogos ?? []).filter(
+            (l: LogoModel) => !l.id?.startsWith('imported-'),
+          );
+          const hasGeneratedLogos = aiLogos.length > 0;
 
           if (hasAiPreferences || hasGeneratedLogos) {
             this.logoChoice.set('ai');
@@ -330,9 +355,9 @@ export class CompleteBrandingPage implements OnInit {
       this.router.navigate(['/project/dashboard']);
     };
 
-    this.projectService.updateProject(proj.id!, {
-      analysisResultModel: updated.analysisResultModel,
-    }).subscribe({ next: doNavigate, error: doNavigate });
+    // Passe par la file séquentielle : la finalisation (isComplete) ne doit pas
+    // pouvoir être doublée puis écrasée par une écriture précédente en vol.
+    this.persistProject(proj.id!, { analysisResultModel: updated.analysisResultModel }, doNavigate);
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -344,6 +369,22 @@ export class CompleteBrandingPage implements OnInit {
   private saveTypographySelection(): void {
     const data = this.typographyComponent?.prepareTypographyData();
     if (data) this.onProjectUpdate(data);
+  }
+
+  /**
+   * Persiste le projet via la file séquentielle. `onDone` (optionnel) est
+   * appelé une fois la requête terminée (succès ou échec).
+   */
+  private persistProject(projectId: string, data: Partial<ProjectModel>, onDone?: () => void): void {
+    this.saveQueue = this.saveQueue.then(async () => {
+      try {
+        await firstValueFrom(this.projectService.updateProject(projectId, data));
+      } catch (err) {
+        console.error('Failed to update project:', err);
+      } finally {
+        onDone?.();
+      }
+    });
   }
 
   // ─── Child component handlers ────────────────────────────────────────────────
@@ -420,17 +461,9 @@ export class CompleteBrandingPage implements OnInit {
     // Persister et attendre la fin de la requête avant de naviguer
     // pour éviter les conditions de course avec la génération
     this.isSaving.set(true);
-    this.projectService.updateProject(current.id, updated).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.navigateToStep(this.currentStepIndex() + 1);
-      },
-      error: (err) => {
-        console.error('Failed to update project with preferences:', err);
-        this.isSaving.set(false);
-        // Continue anyway
-        this.navigateToStep(this.currentStepIndex() + 1);
-      },
+    this.persistProject(current.id, updated, () => {
+      this.isSaving.set(false);
+      this.navigateToStep(this.currentStepIndex() + 1);
     });
   }
 
@@ -466,9 +499,7 @@ export class CompleteBrandingPage implements OnInit {
     this.project.set(updated);
 
     if (current.id) {
-      this.projectService.updateProject(current.id, updated).subscribe({
-        error: (err) => console.error('Failed to update project:', err),
-      });
+      this.persistProject(current.id, updated);
     }
   }
 
@@ -476,9 +507,7 @@ export class CompleteBrandingPage implements OnInit {
   protected onProjectFullUpdate(updated: ProjectModel): void {
     this.project.set(updated);
     if (updated.id) {
-      this.projectService.updateProject(updated.id, updated).subscribe({
-        error: (err) => console.error('Failed to update project:', err),
-      });
+      this.persistProject(updated.id, updated);
     }
   }
 }

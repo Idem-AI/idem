@@ -626,7 +626,9 @@
       "placeholder": "Une application qui génère des poèmes à partir de photos",
       "buttons": {
         "improvePrompt": "Améliorer l'invite",
+        "improving": "Amélioration...",
         "feelingLucky": "J'ai de la chance",
+        "generatingIdea": "Génération...",
         "continue": "Continuer"
       },
       "needInspiration": "Besoin d'inspiration ?",
@@ -682,6 +684,16 @@
         "selectType": "Sélectionnez un type",
         "selectScope": "Sélectionnez une portée",
         "selectTarget": "Sélectionnez une cible"
+      },
+      "dynamic": {
+        "sectionTitle": "Questions adaptées à votre projet",
+        "loading": "Analyse de votre projet pour adapter les questions…",
+        "error": "Impossible de générer les questions. Vous pouvez réessayer.",
+        "retry": "Réessayer",
+        "optional": "facultatif",
+        "selectPlaceholder": "Sélectionnez une option",
+        "textPlaceholder": "Votre réponse (facultatif)",
+        "otherPlaceholder": "Précisez…"
       }
     },
     "projectSummary": {
@@ -2397,7 +2409,8 @@
         "targets": "Cible",
         "scope": "Portée",
         "teamSize": "Équipe",
-        "budget": "Budget"
+        "budget": "Budget",
+        "currency": "Devise"
       },
       "policies": {
         "accept": "J'accepte la",
@@ -2445,7 +2458,9 @@
           "desktop": "Application desktop",
           "api": "API / Backend",
           "ai": "IA / ML",
-          "blockchain": "Blockchain"
+          "blockchain": "Blockchain",
+          "ecommerce": "Commerce / E-commerce",
+          "other": "Autres"
         },
         "targets": {
           "business": "Entreprises",
@@ -2475,7 +2490,10 @@
         }
       },
       "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
-      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…"
+      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
+      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
+      "aiWelcomeNoName": "Parfait ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions simples pour bien cadrer votre projet.",
+      "customCurrency": "D'accord. Quelle devise souhaitez-vous utiliser ?"
     },
     "branding": {
       "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",

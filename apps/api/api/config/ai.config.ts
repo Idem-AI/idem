@@ -34,10 +34,12 @@ export const AI_CONFIG = {
 
 
   // Onboarding service configurations
+  // gemini-2.5-flash : modèle rapide pour la génération des questions et le
+  // parsing des réponses lors de la création de projet (chat + formulaire).
   onboarding: {
     default: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      modelName: 'gemini-2.5-flash',
       promptType: 'onboarding',
       llmOptions: {
         temperature: 0.5,
@@ -46,7 +48,7 @@ export const AI_CONFIG = {
     } as FeatureAIConfig,
     parseAnswer: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      modelName: 'gemini-2.5-flash',
       promptType: 'onboarding',
       llmOptions: {
         temperature: 0.1,

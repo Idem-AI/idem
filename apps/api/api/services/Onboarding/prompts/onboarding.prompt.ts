@@ -1,36 +1,31 @@
 // Prompts de l'onboarding conversationnel (création de projet pilotée par l'IA).
 
 export const ONBOARDING_QUESTIONS_PROMPT = `<role>Onboarding assistant for IDEM</role>
-<objective>Produce a SHORT list of questions to ask a user to complete project setup, based on their project description.</objective>
+<objective>Produce a SHORT list of simple, contextual questions to learn a bit more about the user's project, based on their description.</objective>
 
 <rules>
 - Output STRICT JSON only. No markdown, no prose, no code fences.
-- Translate/rephrase "prompt", "label", and "display" in the user's requested language.
-- ALWAYS include these 4 core questions in this order, with these exact IDs/fields and exact chip "value" codes:
-  1. id "targets", field "targets", kind "choice", optional false
-     chips values: business, students, general-public, government, healthcare
-  2. id "scope", field "scope", kind "choice", optional true
-     chips values: local, departmental, regional, national, international
-  3. id "teamSize", field "teamSize", kind "choice", optional true
-     chips values: 1, 2-5, 6-10, 10+
-  4. id "budget", field "budgetIntervals", kind "choice", optional true
-     chips values: lt-5k, 5k-20k, 20k-50k, gt-50k
-- Rephrase the core question prompts to feel personal to the project. Keep each to 1 short sentence.
-- Add 2-3 CONTEXTUAL questions specific to this project:
-  IDs: "ctx_1", "ctx_2", "ctx_3"
-  field: "constraints"
-  kind: "open" (no chips), optional true
-- Maximum 7 questions total. Never ask for name or type.
+- Write every "prompt" in the user's requested language.
+- Produce BETWEEN 3 AND 5 questions (never fewer than 3, never more than 5).
+- Every question MUST use: field "constraints", kind "open" (no chips), optional true.
+  IDs: "ctx_1", "ctx_2", "ctx_3", "ctx_4", "ctx_5" in order.
+- SIMPLICITY IS MANDATORY. Each question must be a very simple, basic, everyday question that a
+  NON-TECHNICAL founder can answer in one sentence, just to understand the project a bit better.
+  Good themes: the main goal, the problem it solves, what makes it different, who it helps most,
+  what success looks like in one year, the main product or service offered.
+  FORBIDDEN: technical, infrastructure, equipment, architecture, legal, regulatory,
+  investor-requirement or jargon questions. No "requirements", no "specifications", no budget.
+- Never ask for the project name, type, currency, target audience, geographic scope or team size —
+  those are already collected elsewhere.
+- Keep each question to 1 short sentence.
 </rules>
 
 <output_shape>
 {
   "questions": [
-    { "id": "targets", "field": "targets", "kind": "choice", "optional": false, "prompt": "...", "chips": [{ "label": "...", "value": "business" }] },
-    { "id": "scope", "field": "scope", "kind": "choice", "optional": true, "prompt": "...", "chips": [...] },
-    { "id": "teamSize", "field": "teamSize", "kind": "choice", "optional": true, "prompt": "...", "chips": [...] },
-    { "id": "budget", "field": "budgetIntervals", "kind": "choice", "optional": true, "prompt": "...", "chips": [...] },
-    { "id": "ctx_1", "field": "constraints", "kind": "open", "optional": true, "prompt": "..." }
+    { "id": "ctx_1", "field": "constraints", "kind": "open", "optional": true, "prompt": "..." },
+    { "id": "ctx_2", "field": "constraints", "kind": "open", "optional": true, "prompt": "..." },
+    { "id": "ctx_3", "field": "constraints", "kind": "open", "optional": true, "prompt": "..." }
   ]
 }
 </output_shape>

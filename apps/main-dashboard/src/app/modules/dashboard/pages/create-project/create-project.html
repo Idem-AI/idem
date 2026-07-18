@@ -15,7 +15,12 @@
   </div>
 } @else {
   <!-- Main Content -->
-  <div class="w-full min-h-screen">
+  <div
+    class="w-full"
+    [class.min-h-screen]="!isChatConversation()"
+    [class.h-screen]="isChatConversation()"
+    [class.overflow-hidden]="isChatConversation()"
+  >
     <!-- AppGen Handoff Banner -->
     @if (fromAppGen()) {
       <div
@@ -56,68 +61,83 @@
       </div>
     }
 
-    <!-- Mode toggle (toujours visible au dessus du contenu, fixe sous la navbar) -->
-    <div
-      class="fixed-toggle-container"
-      [class.toggle-with-banner]="fromAppGen()"
-      [class.toggle-standard]="!fromAppGen()"
-    >
+    <!-- Mode toggle (masqué sur la page de synthèse / validation des politiques) -->
+    @if (!isSummaryPage()) {
       <div
-        class="flex items-center p-1 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] text-xs font-medium backdrop-blur"
-        role="group"
-        [attr.aria-label]="'dashboard.createProject.modeLabel' | translate"
+        class="fixed-toggle-container"
+        [class.toggle-with-banner]="fromAppGen()"
+        [class.toggle-standard]="!fromAppGen()"
       >
-        <button
-          type="button"
-          (click)="setMode('chat')"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
-          [class.bg-primary]="mode() === 'chat'"
-          [class.text-text-primary]="mode() === 'chat'"
-          [class.shadow-lg]="mode() === 'chat'"
-          [class.text-text-tertiary]="mode() !== 'chat'"
-          [class.hover:text-text-primary]="mode() !== 'chat'"
+        <div
+          class="flex items-center p-1 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] text-xs font-medium backdrop-blur"
+          role="group"
+          [attr.aria-label]="'dashboard.createProject.modeLabel' | translate"
         >
-          <i class="pi pi-comments text-[11px]"></i>
-          <span>{{ 'dashboard.createProject.modeChat' | translate }}</span>
-        </button>
-        <button
-          type="button"
-          (click)="setMode('form')"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
-          [class.bg-primary]="mode() === 'form'"
-          [class.text-text-primary]="mode() === 'form'"
-          [class.shadow-lg]="mode() === 'form'"
-          [class.text-text-tertiary]="mode() !== 'form'"
-          [class.hover:text-text-primary]="mode() !== 'form'"
-        >
-          <i class="pi pi-list text-[11px]"></i>
-          <span>{{ 'dashboard.createProject.modeForm' | translate }}</span>
-        </button>
+          <button
+            type="button"
+            (click)="setMode('chat')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+            [class.bg-primary]="mode() === 'chat'"
+            [class.text-white]="mode() === 'chat'"
+            [class.shadow-lg]="mode() === 'chat'"
+            [class.text-text-tertiary]="mode() !== 'chat'"
+            [class.hover:text-text-primary]="mode() !== 'chat'"
+          >
+            <i class="pi pi-comments text-[11px]"></i>
+            <span>{{ 'dashboard.createProject.modeChat' | translate }}</span>
+          </button>
+          <button
+            type="button"
+            (click)="setMode('form')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+            [class.bg-primary]="mode() === 'form'"
+            [class.text-white]="mode() === 'form'"
+            [class.shadow-lg]="mode() === 'form'"
+            [class.text-text-tertiary]="mode() !== 'form'"
+            [class.hover:text-text-primary]="mode() !== 'form'"
+          >
+            <i class="pi pi-list text-[11px]"></i>
+            <span>{{ 'dashboard.createProject.modeForm' | translate }}</span>
+          </button>
+        </div>
       </div>
-    </div>
+    }
 
     @if (mode() === 'chat') {
       <!-- ═══ MODE CONVERSATION ═══ -->
-      <div
-        class="w-full content-wrapper pb-36"
-        [class.content-with-banner]="fromAppGen()"
-        [class.content-standard]="!fromAppGen()"
-      >
-        @if (currentStepIndex() === 0) {
+      @if (currentStepIndex() === 0) {
+        <div
+          class="w-full content-wrapper pb-36"
+          [class.content-with-banner]="fromAppGen()"
+          [class.content-standard]="!fromAppGen()"
+        >
           <app-project-description
             [project]="project()"
+            [isImprovingPrompt]="isImprovingPrompt()"
+            [isGeneratingLucky]="isGeneratingLucky()"
             (nextStep)="goToNextStep()"
             (projectUpdate)="onProjectUpdate($event)"
+            (improvePromptRequest)="onImprovePromptRequested()"
+            (feelingLuckyRequest)="onFeelingLuckyRequested()"
           ></app-project-description>
-        } @else {
+        </div>
+      } @else {
+        <!-- Viewport à hauteur fixe : seul le fil de messages défile -->
+        <div
+          class="w-full"
+          [class.chat-viewport-banner]="fromAppGen()"
+          [class.chat-viewport-standard]="!fromAppGen()"
+        >
           <app-onboarding-chat
             [foundations]="conversationFoundations()"
-            [showFormSwitch]="true"
+            [showFormSwitch]="!isSummaryPage()"
             (created)="onConversationCreated($event)"
             (switchToForm)="setMode('form')"
+            (projectUpdate)="onProjectUpdate($event)"
+            (recapPhaseActive)="isChatRecapActive.set($event)"
           ></app-onboarding-chat>
-        }
-      </div>
+        </div>
+      }
     } @else {
     <!-- ═══ MODE FORMULAIRE CLASSIQUE ═══ -->
     <!-- Content Area -->
@@ -130,20 +150,20 @@
       @if (isStepActive(0)) {
         <app-project-description
           [project]="project()"
+          [isImprovingPrompt]="isImprovingPrompt()"
+          [isGeneratingLucky]="isGeneratingLucky()"
           (nextStep)="goToNextStep()"
           (projectUpdate)="onProjectUpdate($event)"
+          (improvePromptRequest)="onImprovePromptRequested()"
+          (feelingLuckyRequest)="onFeelingLuckyRequested()"
         ></app-project-description>
       }
       @if (isStepActive(1)) {
-        <app-project-details
+        <app-dynamic-details-form
           [project]="project()"
           [groupedProjectTypes]="projectTypes"
-          [groupedTargets]="targets"
-          [groupedScopes]="scopes"
-          (nextStep)="goToNextStep()"
-          (previousStep)="goToPreviousStep()"
           (projectUpdate)="onProjectUpdate($event)"
-        ></app-project-details>
+        ></app-dynamic-details-form>
       }
       @if (isStepActive(2)) {
         <app-project-summary

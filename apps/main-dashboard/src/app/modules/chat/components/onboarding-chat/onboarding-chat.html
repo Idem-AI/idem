@@ -106,7 +106,7 @@
       
       <div class="flex items-center justify-between mt-2 px-2">
         <p class="text-xs text-text-tertiary/80">{{ 'chat.composer.hint' | translate }}</p>
-        @if (showFormSwitch()) {
+        @if (showFormSwitch() && phase() !== 'recap') {
           <button
             type="button"
             (click)="switchToForm.emit()"

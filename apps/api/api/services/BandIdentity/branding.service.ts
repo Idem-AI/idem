@@ -3156,8 +3156,10 @@ ${LOGO_EDIT_PROMPT}`;
       `Generating colors and typography from imported logo for userId: ${userId}, logo colors: ${logoColors.join(', ')}`
     );
 
-    // Variations déjà générées à l'import côté front (repli si le moteur échoue ici)
-    const existingVariations = project.analysisResultModel?.branding?.logo?.variations;
+    // Logo importé déjà sauvegardé côté front (avec ses variations générées à
+    // l'import). On le préserve tel quel : cet endpoint génère couleurs et
+    // typographies, il ne doit pas remplacer le logo de l'utilisateur.
+    const payloadLogo = project.analysisResultModel?.branding?.logo;
 
     // Réutiliser le projet existant (workflow complete-branding) au lieu de créer
     // un doublon : les couleurs/typographies doivent être persistées sur le projet
@@ -3234,38 +3236,51 @@ ${LOGO_EDIT_PROMPT}`;
     const generationTime = Date.now() - startTime;
     logger.info(`Logo-based colors and typography generation completed in ${generationTime}ms`);
 
-    // Generate logo variations (light/dark/monochrome) with the hybrid engine:
-    // deterministic OKLCH transforms + rendered QA, AI recolor as last resort.
+    // Préserver le logo déjà persisté (workflow complete-branding) ; repli sur
+    // celui du payload si l'écriture front n'a pas encore atteint la base.
+    const existingLogo = createdProject.analysisResultModel?.branding?.logo ?? payloadLogo;
+
+    // Generate logo variations (light/dark/monochrome) with the hybrid engine —
+    // UNIQUEMENT si le logo n'en a pas déjà (elles sont normalement générées à
+    // l'import). Les regénérer ici était redondant et ajoutait une surface
+    // d'échec/latence à chaque génération de palette.
     // logo.svg may hold a MinIO URL — resolve it to inline SVG first.
     // Non-fatal: colors/typography must succeed even if variations fail.
-    logger.info(`Generating logo variations from imported SVG`);
-    let optimizedVariations = existingVariations;
-    try {
-      const svgContent = await resolveSvgContent(logoSvg);
-      const logoVariations = await generateLogoVariations(svgContent, {
-        aiRecolor: (request) => this.aiRecolorLogoVariation(request, createdProject),
-      });
-      optimizedVariations = {
-        withText: this.optimizeVariationSet(logoVariations.withText),
-        iconOnly: this.optimizeVariationSet(logoVariations.iconOnly),
-      };
-    } catch (error) {
-      logger.error(
-        `Logo variation generation failed, falling back to ${existingVariations ? 'existing front-generated variations' : 'no variations'}:`,
-        error
-      );
+    let optimizedVariations = existingLogo?.variations;
+    if (!optimizedVariations?.withText) {
+      logger.info(`Generating logo variations from imported SVG`);
+      try {
+        const svgContent = await resolveSvgContent(logoSvg);
+        const logoVariations = await generateLogoVariations(svgContent, {
+          aiRecolor: (request) => this.aiRecolorLogoVariation(request, createdProject),
+        });
+        optimizedVariations = {
+          withText: this.optimizeVariationSet(logoVariations.withText),
+          iconOnly: this.optimizeVariationSet(logoVariations.iconOnly),
+        };
+      } catch (error) {
+        logger.error(`Logo variation generation failed, falling back to no variations:`, error);
+      }
     }
 
-    // Update project with generated colors, typography, logo, and variations
-    const importedLogo: LogoModel = {
-      id: `imported-${Date.now()}`,
-      name: 'Imported Logo',
-      svg: logoSvg,
-      concept: 'User-imported logo',
-      colors: logoColors,
-      fonts: [],
-      ...(optimizedVariations ? { variations: optimizedVariations } : {}),
-    };
+    // Conserver le logo importé de l'utilisateur (complété des variations si
+    // besoin). Ne JAMAIS écrire generatedLogos ici : ce champ est réservé aux
+    // logos générés par l'IA — le polluer avec le logo importé faussait la
+    // reprise du workflow et l'étape logo-selection.
+    const importedLogo: LogoModel = existingLogo
+      ? {
+          ...existingLogo,
+          ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+        }
+      : {
+          id: `imported-${Date.now()}`,
+          name: 'Imported Logo',
+          svg: logoSvg,
+          concept: 'User-imported logo',
+          colors: logoColors,
+          fonts: [],
+          ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+        };
 
     const updatedProjectData = {
       ...createdProject,
@@ -3276,7 +3291,7 @@ ${LOGO_EDIT_PROMPT}`;
           generatedColors: colors,
           generatedTypography: typography,
           logo: importedLogo,
-          generatedLogos: [importedLogo],
+          importedLogoColors: logoColors,
           updatedAt: new Date(),
         },
       },
@@ -3308,6 +3323,21 @@ ${LOGO_EDIT_PROMPT}`;
   }
 
   /**
+   * Parse tolérant du JSON renvoyé par le LLM : supprime les fences markdown
+   * (```json … ```) et le texte parasite autour de l'objet JSON.
+   */
+  private parseLlmJson(content: string): Record<string, unknown> {
+    const cleaned = content
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/, '');
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    const jsonStr = start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
+    return JSON.parse(jsonStr);
+  }
+
+  /**
    * Generates colors using the logo-based prompt
    */
   private async generateColorsFromLogoPrompt(
@@ -3322,7 +3352,10 @@ ${LOGO_EDIT_PROMPT}`;
         stepName: 'Colors From Logo Generation',
         modelParser: (content) => {
           try {
-            const parsedColors = JSON.parse(content);
+            const parsedColors = this.parseLlmJson(content);
+            if (!Array.isArray(parsedColors.colors) || parsedColors.colors.length === 0) {
+              throw new Error('Response JSON has no non-empty "colors" array');
+            }
             return parsedColors.colors;
           } catch (error) {
             logger.error(`Error parsing logo-based colors:`, error);
@@ -3356,7 +3389,13 @@ ${LOGO_EDIT_PROMPT}`;
         stepName: 'Typography From Logo Generation',
         modelParser: (content) => {
           try {
-            const parsedTypography = JSON.parse(content);
+            const parsedTypography = this.parseLlmJson(content);
+            if (
+              !Array.isArray(parsedTypography.typography) ||
+              parsedTypography.typography.length === 0
+            ) {
+              throw new Error('Response JSON has no non-empty "typography" array');
+            }
             return parsedTypography.typography;
           } catch (error) {
             logger.error(`Error parsing logo-based typography:`, error);
