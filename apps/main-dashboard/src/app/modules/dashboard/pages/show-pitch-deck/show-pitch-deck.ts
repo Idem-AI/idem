@@ -19,6 +19,11 @@ import { SSEStepEvent } from '../../../../shared/models/sse-step.model';
 import { PitchDeckPdfViewer } from './pitch-deck-pdf-viewer/pitch-deck-pdf-viewer';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
+import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
+import {
+  analyzeGenerationCompleteness,
+  PITCH_DECK_SECTION_NAMES,
+} from '../../models/generation-completeness';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 
@@ -27,19 +32,7 @@ interface GenerationStep {
   status: 'pending' | 'in-progress' | 'completed';
 }
 
-const PITCH_DECK_STEP_NAMES = [
-  'Cover',
-  'Problem',
-  'Solution',
-  'Market',
-  'Product',
-  'Business Model',
-  'Traction',
-  'Competition',
-  'Team',
-  'Financials',
-  'Ask',
-];
+const PITCH_DECK_STEP_NAMES: readonly string[] = PITCH_DECK_SECTION_NAMES;
 
 @Component({
   selector: 'app-show-pitch-deck',
@@ -50,6 +43,7 @@ const PITCH_DECK_STEP_NAMES = [
     Loader,
     PitchDeckPdfViewer,
     IncompleteProjectBannerComponent,
+    GenerationStatusPanelComponent,
   ],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -90,14 +84,14 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
     () => this.steps().filter((s) => s.status === 'completed').length,
   );
 
-  protected readonly isPitchDeckIncomplete = computed(() => {
-    const deck = this.pitchDeck();
-    if (this.isGenerating()) return false;
-    return deck ? (deck.sections?.length > 0 && deck.sections?.length < 11) : false;
-  });
+  protected readonly completeness = computed(() =>
+    analyzeGenerationCompleteness(PITCH_DECK_SECTION_NAMES, this.pitchDeck()?.sections),
+  );
 
-  protected readonly pitchDeckSectionCount = computed(() => {
-    return this.pitchDeck()?.sections?.length || 0;
+  protected readonly isPitchDeckIncomplete = computed(() => {
+    if (this.isGenerating()) return false;
+    const completeness = this.completeness();
+    return completeness.hasStarted && !completeness.isComplete;
   });
 
   ngOnInit(): void {
@@ -180,15 +174,16 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
       });
   }
 
-  protected startGeneration(force = false): void {
+  protected startGeneration(force = false, sections: string[] = []): void {
     const pid = this.projectId();
     if (!pid) return;
     this.errorMessage.set(null);
     this.isGenerating.set(true);
+    this.pdfBlob.set(null);
     this.steps.set(PITCH_DECK_STEP_NAMES.map((n) => ({ name: n, status: 'pending' as const })));
 
     this.pitchDeckService
-      .generatePitchDeck(pid, force)
+      .generatePitchDeck(pid, force, sections)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (event: SSEStepEvent) => this.handleSseEvent(event),
@@ -273,5 +268,12 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
         },
         error: () => this.startGeneration(true),
       });
+  }
+
+  /**
+   * Régénère une seule diapositive (nom canonique backend), en conservant les autres.
+   */
+  protected regenerateSection(sectionName: string): void {
+    this.startGeneration(false, [sectionName]);
   }
 }

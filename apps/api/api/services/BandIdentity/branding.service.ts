@@ -571,10 +571,11 @@ export class BrandingService extends GenericService {
     projectId: string,
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
     pdfFormat: string = 'SLIDE_16_9',
-    forceRegenerate = false
+    forceRegenerate = false,
+    targetSections: string[] = []
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}, pdfFormat: ${pdfFormat}, force: ${forceRegenerate}`
+      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}, pdfFormat: ${pdfFormat}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     // Get project
@@ -608,15 +609,25 @@ export class BrandingService extends GenericService {
 
     const cacheKey = cacheService.generateAIKey('branding', userId, projectId, contentHash);
 
-    // Check cache first
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: 'ai',
-      ttl: 7200, // 2 hours
-    });
+    // The cached result may be an incomplete brand guide (it is updated after each
+    // step), so only short-circuit on it when nothing needs to be (re)generated.
+    const expectedSectionCount = 8 + MOCKUP_CONFIG.MOCKUP_COUNT;
+    const currentSections = project.analysisResultModel?.branding?.sections || [];
+    const skipCacheRead =
+      forceRegenerate ||
+      targetSections.length > 0 ||
+      currentSections.length < expectedSectionCount;
 
-    if (cachedResult) {
-      logger.info(`Branding cache hit for projectId: ${projectId}`);
-      return cachedResult;
+    if (!skipCacheRead) {
+      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+        prefix: 'ai',
+        ttl: 7200, // 2 hours
+      });
+
+      if (cachedResult) {
+        logger.info(`Branding cache hit for projectId: ${projectId}`);
+        return cachedResult;
+      }
     }
 
     logger.info(`Branding cache miss, generating new content for projectId: ${projectId}`);
@@ -715,10 +726,14 @@ export class BrandingService extends GenericService {
       //   hasDependencies: false,
       // });
 
-      // Load existing sections if not forcing regeneration
-      const existingSections = (!forceRegenerate && project.analysisResultModel?.branding?.sections)
-        ? project.analysisResultModel.branding.sections
-        : [];
+      // Load existing sections if not forcing regeneration.
+      // Sections listed in targetSections are dropped so they get regenerated,
+      // while the others are kept as-is (resume semantics).
+      const existingSections = forceRegenerate
+        ? []
+        : targetSections.length > 0
+          ? currentSections.filter((s) => !targetSections.includes(s.name))
+          : currentSections;
 
       // Initialize sections array to collect results
       let sections: SectionModel[] = [...existingSections];
@@ -961,6 +976,10 @@ export class BrandingService extends GenericService {
           undefined, // finalizationCallback
           existingSections
         );
+
+        // The stored PDF no longer matches the regenerated sections
+        const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId);
+        await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
 
         // Return the updated project (it should be available in cache or fetch it again)
         const finalProject = await this.projectRepository.findById(

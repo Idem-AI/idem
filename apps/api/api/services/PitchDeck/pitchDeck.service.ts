@@ -49,10 +49,11 @@ export class PitchDeckService extends GenericService {
     userId: string,
     projectId: string,
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
-    forceRegenerate = false
+    forceRegenerate = false,
+    targetSections: string[] = []
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}`
+      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     const project = await this.getProject(projectId, userId);
@@ -78,13 +79,24 @@ export class PitchDeckService extends GenericService {
       .substring(0, 16);
 
     const cacheKey = cacheService.generateAIKey('pitch-deck', userId, projectId, contentHash);
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: 'ai',
-      ttl: 7200,
-    });
-    if (cachedResult) {
-      logger.info(`Pitch deck cache hit for projectId: ${projectId}`);
-      return cachedResult;
+
+    // The cached result may be an incomplete deck (it is updated after each step),
+    // so only short-circuit on it when nothing needs to be (re)generated.
+    const currentSections = project.analysisResultModel?.pitchDeck?.sections || [];
+    const skipCacheRead =
+      forceRegenerate ||
+      targetSections.length > 0 ||
+      currentSections.length < PITCH_DECK_SLIDE_ORDER.length;
+
+    if (!skipCacheRead) {
+      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+        prefix: 'ai',
+        ttl: 7200,
+      });
+      if (cachedResult) {
+        logger.info(`Pitch deck cache hit for projectId: ${projectId}`);
+        return cachedResult;
+      }
     }
 
     const brandName = project.name || 'Startup';
@@ -166,10 +178,14 @@ export class PitchDeckService extends GenericService {
     };
 
 
-    // Load existing sections if not forcing regeneration
-    const existingSections = (!forceRegenerate && project.analysisResultModel?.pitchDeck?.sections)
-      ? project.analysisResultModel.pitchDeck.sections
-      : [];
+    // Load existing sections if not forcing regeneration.
+    // Sections listed in targetSections are dropped so they get regenerated,
+    // while the others are kept as-is (resume semantics).
+    const existingSections = forceRegenerate
+      ? []
+      : targetSections.length > 0
+        ? currentSections.filter((s) => !targetSections.includes(s.name))
+        : currentSections;
 
     let sectionResults: SectionModel[] = [...existingSections];
 
@@ -237,6 +253,11 @@ export class PitchDeckService extends GenericService {
         existingSections
       );
 
+      // The stored PDF no longer matches the regenerated sections
+      await cacheService.delete(cacheService.generateAIKey('pitch-deck-pdf', userId, projectId), {
+        prefix: 'pdf',
+      });
+
       return this.projectRepository.findById(projectId, `users/${userId}/projects`);
     }
 
@@ -268,6 +289,10 @@ export class PitchDeckService extends GenericService {
 
     if (updated) {
       await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
+      // The stored PDF no longer matches the regenerated sections
+      await cacheService.delete(cacheService.generateAIKey('pitch-deck-pdf', userId, projectId), {
+        prefix: 'pdf',
+      });
     }
     return updated;
   }

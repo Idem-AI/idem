@@ -43,6 +43,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   private readonly translate = inject(TranslateService);
   private readonly destroy$ = new Subject<void>();
   private isForcingRegeneration = false;
+  private targetSections: string[] = [];
 
   // Outputs
   readonly businessPlanGenerated = output<BusinessPlanModel>();
@@ -85,6 +86,19 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
     this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
+
+    const sectionsParam = this.route.snapshot.queryParams['sections'];
+    this.targetSections =
+      typeof sectionsParam === 'string' && sectionsParam.length > 0
+        ? sectionsParam.split(',').filter(Boolean)
+        : [];
+
+    // Régénération ciblée : les infos additionnelles existent déjà côté projet,
+    // on saute le formulaire et on lance directement la génération.
+    if (this.targetSections.length > 0) {
+      this.showAdditionalInfoForm.set(false);
+      this.generateBusinessPlanWithoutAdditionalInfo();
+    }
   }
 
   ngOnDestroy(): void {
@@ -133,7 +147,8 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     const sseConnection = this.businessPlanService.createBusinessplanItem(
       this.projectId()!,
       undefined,
-      this.isForcingRegeneration
+      this.isForcingRegeneration,
+      this.targetSections
     );
 
     this.startGenerationProcess(sseConnection);

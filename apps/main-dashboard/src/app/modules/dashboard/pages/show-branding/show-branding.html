@@ -64,39 +64,15 @@
         />
       }
 
-      <!-- Incomplete Guidelines Sections Banner -->
-      @if (currentProject() && isBrandingComplete() && isBrandingIncomplete()) {
-        <div
-          class="relative overflow-hidden flex items-stretch rounded-3xl border border-[var(--glass-border)] backdrop-blur-xl mb-8 min-h-[160px]"
-          style="background: var(--glass-bg-medium); box-shadow: var(--glass-shadow-lg), 0 0 80px rgba(234,179,8,0.10);"
-        >
-          <!-- Ambient glow blobs -->
-          <div class="absolute -top-24 right-36 size-80 rounded-full bg-yellow-600/20 blur-3xl pointer-events-none"></div>
-          <div class="absolute -bottom-20 left-[5%] size-72 rounded-full bg-yellow-400/15 blur-3xl pointer-events-none"></div>
-
-          <!-- Content -->
-          <div class="relative z-10 flex-1 flex flex-col justify-center gap-4 py-6 px-10">
-            <!-- Title -->
-            <h2 class="text-2xl font-bold leading-tight text-text-primary max-w-md m-0">
-              Votre Charte Graphique est incomplète
-            </h2>
-
-            <!-- Description -->
-            <p class="text-sm leading-relaxed text-text-secondary max-w-xl m-0">
-              Seulement {{ brandingSectionCount() }} sur 11 sections de la charte graphique ont été générées. Vous pouvez compléter la génération ou recommencer de zéro.
-            </p>
-
-            <!-- Actions -->
-            <div class="flex gap-4">
-              <button (click)="generateBranding(false)" class="inner-button">
-                Compléter la génération
-              </button>
-              <button (click)="generateBranding(true)" class="bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary px-6 py-2 rounded-lg font-medium transition-colors">
-                Re-générer de zéro
-              </button>
-            </div>
-          </div>
-        </div>
+      <!-- Guidelines completion status + per-section regeneration -->
+      @if (currentProject() && isBrandingComplete() && guidelinesCompleteness().hasStarted) {
+        <app-generation-status-panel
+          [completeness]="guidelinesCompleteness()"
+          sectionLabelPrefix="dashboard.generationPanel.sections.branding."
+          (resume)="generateBranding(false)"
+          (regenerateAll)="generateBranding(true)"
+          (regenerateSection)="regenerateSection($event)"
+        />
       }
 
       <!-- Header Section -->
