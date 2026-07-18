@@ -4,6 +4,7 @@
     "modules/chat",
     "modules/dashboard/components/add-team-member-modal",
     "modules/dashboard/components/add-team-to-project-modal",
+    "modules/dashboard/components/generation-status-panel",
     "modules/dashboard/components/project-card",
     "modules/dashboard/components/sidebar-dashboard",
     "modules/dashboard/components/sidebar-global",

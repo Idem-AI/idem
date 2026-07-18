@@ -121,6 +121,15 @@
         </div>
       </div>
 
+      <!-- Régénération d'une diapositive particulière -->
+      <app-generation-status-panel
+        [completeness]="completeness()"
+        sectionLabelPrefix="dashboard.showPitchDeck.slides."
+        (resume)="startGeneration(false)"
+        (regenerateAll)="startGeneration(true)"
+        (regenerateSection)="regenerateSection($event)"
+      />
+
       @if (pdfLoading() && !pdfBlob()) {
         <div class="glass-card p-10 text-center">
           <div
@@ -145,42 +154,16 @@
     </div>
   } @else if (isPitchDeckIncomplete()) {
     <!-- Incomplete Pitch Deck State -->
-    <div class="max-w-2xl mx-auto text-center py-20">
-      <div class="mb-6 flex justify-center">
-        <div
-          class="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center"
-        >
-          <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
-            />
-          </svg>
-        </div>
-      </div>
-      <div class="flex flex-col items-center justify-center">
-        <h2 class="text-2xl font-bold text-text-primary mb-3">
-          Votre Pitch Deck est incomplet
-        </h2>
-        <p class="text-text-tertiary mb-8 max-w-lg mx-auto">
-          Seulement {{ pitchDeckSectionCount() }} sur 11 diapositives ont été générées. Vous pouvez compléter les diapositives manquantes ou recommencer la génération complète.
-        </p>
-        <div class="flex justify-center gap-4">
-          <button class="inner-button" (click)="startGeneration(false)">
-            Compléter la génération
-          </button>
-          <button
-            class="bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary px-6 py-2 rounded-lg font-medium transition-colors"
-            (click)="startGeneration(true)"
-          >
-            Re-générer de zéro
-          </button>
-        </div>
-      </div>
+    <div class="max-w-3xl mx-auto py-10">
+      <app-generation-status-panel
+        [completeness]="completeness()"
+        sectionLabelPrefix="dashboard.showPitchDeck.slides."
+        (resume)="startGeneration(false)"
+        (regenerateAll)="startGeneration(true)"
+        (regenerateSection)="regenerateSection($event)"
+      />
       @if (errorMessage()) {
-        <p class="mt-6 text-sm text-red-400">{{ errorMessage() }}</p>
+        <p class="mt-6 text-sm text-red-400 text-center">{{ errorMessage() }}</p>
       }
     </div>
   } @else {
