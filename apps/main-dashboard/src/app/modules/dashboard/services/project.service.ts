@@ -138,9 +138,44 @@ export class ProjectService {
         - Composition de l'équipe : ${project.teamSize} développeurs
         - Périmètre fonctionnel couvert : ${project.scope}
         - Fourchette budgétaire prévue : ${project.budgetIntervals}
+        - Devise du projet : ${project.currency || 'non spécifiée'}
         - Publics cibles concernés : ${project.targets}
 `;
 
     return projectDescription;
   }
+
+  /**
+   * Improves the user project prompt using AI
+   * @param prompt User prompt to refine
+   * @returns Observable with improved prompt
+   */
+  improvePrompt(prompt: string): Observable<{ success: boolean; improvedPrompt: string }> {
+    const promptUrl = `${environment.services.api.url}/prompt/improve`;
+    return this.http
+      .post<{ success: boolean; improvedPrompt: string }>(promptUrl, { prompt })
+      .pipe(
+        tap((response) => console.log('improvePrompt response:', response)),
+        catchError((error) => {
+          console.error('Error in improvePrompt:', error);
+          return throwError(() => error);
+        }),
+      );
+  }
+
+  /**
+   * Generates a random project idea focused on Africa
+   * @returns Observable with generated project idea
+   */
+  generateFeelingLucky(): Observable<{ success: boolean; idea: string }> {
+    const promptUrl = `${environment.services.api.url}/prompt/feeling-lucky`;
+    return this.http.post<{ success: boolean; idea: string }>(promptUrl, {}).pipe(
+      tap((response) => console.log('generateFeelingLucky response:', response)),
+      catchError((error) => {
+        console.error('Error in generateFeelingLucky:', error);
+        return throwError(() => error);
+      }),
+    );
+  }
 }
+

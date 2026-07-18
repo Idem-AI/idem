@@ -22,11 +22,16 @@ import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../../dashboard/services/project.service';
 import { initEmptyObject } from '../../../../utils/init-empty-object';
 import { OnboardingAiService } from '../../services/onboarding-ai.service';
+import {
+  OnboardingPlanService,
+  OnboardingResolvedAnswer,
+} from '../../services/onboarding-plan.service';
 import { SuggestionChipsComponent } from '../suggestion-chips/suggestion-chips';
 import { RecapCardComponent } from '../recap-card/recap-card';
 import {
   ChatChip,
   ChatMessageModel,
+  OnboardingFieldKey,
   OnboardingPlanQuestion,
   OnboardingPolicyAcceptances,
   OnboardingRecapData,
@@ -44,6 +49,13 @@ export interface OnboardingFoundations {
   typeLabel: string;
   /** Projet déjà créé en base (sinon le composant le créera à la fin) */
   projectId: string | null;
+  /** Réponses cœur déjà saisies (ex. en mode formulaire) — pour la synchro. */
+  targets?: string;
+  scope?: string;
+  teamSize?: string;
+  currency?: string;
+  /** Réponses contextuelles déjà saisies, au format « Question: Réponse ». */
+  constraints?: string[];
 }
 
 interface PersistedAnswer {
@@ -52,12 +64,17 @@ interface PersistedAnswer {
   display: string;
 }
 
+interface ConstraintNote {
+  prompt: string;
+  value: string;
+}
+
 interface PersistedState {
   key: string;
   questions: OnboardingPlanQuestion[];
   index: number;
   answers: PersistedAnswer[];
-  notes: string[];
+  notes: ConstraintNote[];
   thread: ChatMessageModel[];
   phase: 'asking' | 'recap';
 }
@@ -95,6 +112,7 @@ let msgCounter = 0;
 })
 export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private readonly aiService = inject(OnboardingAiService);
+  private readonly planService = inject(OnboardingPlanService);
   private readonly projectService = inject(ProjectService);
   private readonly translate = inject(TranslateService);
   private readonly authService = inject(AuthService);
@@ -106,6 +124,10 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   readonly created = output<string>();
   readonly switchToForm = output<void>();
+  /** Émis à chaque réponse pour synchroniser le projet (partage avec le formulaire). */
+  readonly projectUpdate = output<Partial<ProjectModel>>();
+  /** Émis lorsque la phase de récapitulatif/validation est active. */
+  readonly recapPhaseActive = output<boolean>();
 
   @ViewChild('scrollAnchor') private scrollAnchor?: ElementRef<HTMLDivElement>;
 
@@ -122,7 +144,13 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   private questions: OnboardingPlanQuestion[] = [];
   private index = 0;
   private answers: PersistedAnswer[] = [];
-  private notes: string[] = [];
+  private notes: ConstraintNote[] = [];
+  /** L'utilisateur a choisi « Autre » (type ou devise) : on attend sa saisie libre. */
+  private customPending: 'type' | 'currency' | null = null;
+  /** Chargement des questions contextuelles (IA) en arrière-plan. */
+  private contextualLoading = false;
+  /** On a épuisé les questions cœur mais le contextuel n'est pas encore prêt. */
+  private waitingForContextual = false;
 
   protected readonly lastMessageId = computed(() => {
     const m = this.messages();
@@ -137,7 +165,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   ngOnInit(): void {
     if (this.restore()) return;
-    void this.startFlow();
+    this.startFlow();
   }
 
   ngAfterViewChecked(): void {
@@ -146,71 +174,117 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   // ─────────────────────────────────────────────── Démarrage / plan IA
 
-  private async startFlow(): Promise<void> {
-    const welcomeName = this.foundations().name || (this.translate.currentLang === 'en' ? 'your project' : 'votre projet');
+  /**
+   * Langue courante normalisée. La langue par défaut de l'app est l'anglais :
+   * tout ce qui n'est pas explicitement « fr » (y compris `undefined` avant que
+   * `translate.use()` ait résolu) doit retomber sur l'anglais, pas le français.
+   */
+  private currentLang(): 'fr' | 'en' {
+    return (this.translate.currentLang || 'en') === 'fr' ? 'fr' : 'en';
+  }
+
+  private startFlow(): void {
+    const f = this.foundations();
+    const name = f.name?.trim();
+    // Welcome personnalisé si un nom existe déjà, générique sinon (pas de « votre projet »).
     this.appendAssistant(
-      this.translate.instant('chat.onboarding.aiWelcome', { name: welcomeName }),
+      name
+        ? this.translate.instant('chat.onboarding.aiWelcome', { name })
+        : this.translate.instant('chat.onboarding.aiWelcomeNoName'),
     );
-    this.pending.set(true);
+
+    const lang = this.currentLang();
+    // Questions cœur (immédiates) + identité manquante — aucun appel IA ici.
+    const core = this.planService.buildFixedCoreQuestions(lang);
+    const immediate = this.planService.injectIdentityQuestions(
+      core,
+      { name: f.name, type: f.type, projectId: f.projectId },
+      lang,
+    );
+
+    // Réponses déjà saisies (formulaire) : cœur + contextuelles → synchro sans re-poser.
+    this.hydrateNotesFromConstraints(f.constraints);
+    this.questions = this.prefillKnown(immediate, f);
+    this.index = 0;
+
+    // Charge les questions contextuelles (IA) en arrière-plan et les ajoute.
+    this.contextualLoading = true;
+    void this.loadContextual(lang);
+
+    if (this.questions.length === 0) {
+      // Tout le cœur est déjà rempli : on attend le contextuel puis on enchaîne.
+      this.waitingForContextual = true;
+      this.pending.set(true);
+    } else {
+      this.askCurrent();
+    }
+  }
+
+  /** Récupère les questions contextuelles IA et les ajoute à la file. */
+  private async loadContextual(lang: 'fr' | 'en'): Promise<void> {
     try {
-      const lang = this.translate.currentLang === 'en' ? 'en' : 'fr';
-      const res = await firstValueFrom(
-        this.aiService.generateQuestions({
-          description: this.foundations().description,
-          name: this.foundations().name || undefined,
-          type: this.foundations().type || undefined,
-          language: lang,
-        }),
+      const contextual = await this.planService.getContextualQuestions({
+        description: this.foundations().description,
+        name: this.foundations().name || undefined,
+        type: this.foundations().type || undefined,
+        language: lang,
+      });
+      const existing = new Set(this.questions.map((q) => q.id));
+      // Ne pas re-poser une question contextuelle déjà répondue (synchro formulaire).
+      const answeredPrompts = new Set(this.notes.map((n) => n.prompt));
+      this.questions.push(
+        ...contextual.filter((q) => !existing.has(q.id) && !answeredPrompts.has(q.prompt)),
       );
-      this.questions = res?.questions ?? [];
-      
-      // Inject Name question if not provided in foundations
-      if (!this.foundations().name) {
-        this.questions.unshift({
-          id: 'name',
-          field: 'name',
-          kind: 'open',
-          optional: false,
-          prompt: this.translate.currentLang === 'en'
-            ? 'First, what is the name of your project?'
-            : 'Tout d\'abord, quel est le nom de votre projet ?',
-        });
-      }
-
-      // Inject Type question if not provided in foundations
-      if (!this.foundations().type) {
-        const insertIndex = !this.foundations().name ? 1 : 0;
-        this.questions.splice(insertIndex, 0, {
-          id: 'type',
-          field: 'type',
-          kind: 'choice',
-          optional: false,
-          prompt: this.translate.currentLang === 'en'
-            ? 'What type of application are we building?'
-            : 'Quel type d\'application allons-nous construire ?',
-          chips: [
-            { label: this.translate.currentLang === 'en' ? 'Web Application' : 'Application Web', value: 'web' },
-            { label: this.translate.currentLang === 'en' ? 'Mobile Application' : 'Application Mobile', value: 'mobile' },
-            { label: this.translate.currentLang === 'en' ? 'Landing Page' : 'Site Vitrine', value: 'landing' },
-            { label: this.translate.currentLang === 'en' ? 'Other / API' : 'Autre / API', value: 'api' }
-          ]
-        });
-      }
-
-      this.index = 0;
-      this.pending.set(false);
-      if (this.questions.length === 0) {
-        this.goToRecap();
-      } else {
+    } catch (error) {
+      console.error('Onboarding: contextual load failed', error);
+    } finally {
+      this.contextualLoading = false;
+      this.persist();
+      if (this.waitingForContextual) {
+        this.waitingForContextual = false;
+        this.pending.set(false);
         this.askCurrent();
       }
-    } catch (error) {
-      console.error('Onboarding: plan generation failed', error);
-      this.pending.set(false);
-      this.errorMessage.set(this.translate.instant('chat.onboarding.errors.planFailed'));
-      // Sans plan, on propose directement le récap (champs cœur vides)
-      this.goToRecap();
     }
+  }
+
+  /**
+   * Pré-enregistre les réponses déjà connues (fondations) et retire ces
+   * questions de la file, pour ne poser que ce qui manque (synchro formulaire↔chat).
+   */
+  /** Reconstitue les notes contextuelles depuis les chaînes « Question: Réponse ». */
+  private hydrateNotesFromConstraints(constraints?: string[]): void {
+    for (const c of constraints ?? []) {
+      const idx = c.indexOf(': ');
+      if (idx > 0) {
+        this.notes.push({ prompt: c.slice(0, idx), value: c.slice(idx + 2) });
+      } else if (c.trim()) {
+        this.notes.push({ prompt: '', value: c.trim() });
+      }
+    }
+  }
+
+  private prefillKnown(
+    questions: OnboardingPlanQuestion[],
+    f: OnboardingFoundations,
+  ): OnboardingPlanQuestion[] {
+    const knownByField: Record<string, string | undefined> = {
+      targets: f.targets,
+      scope: f.scope,
+      teamSize: f.teamSize,
+      currency: f.currency,
+    };
+    const toAsk: OnboardingPlanQuestion[] = [];
+    for (const q of questions) {
+      const known = knownByField[q.field];
+      if (known && known.trim()) {
+        const display = q.chips?.find((c) => c.value === known)?.label ?? known;
+        this.answers.push({ field: q.field, value: known, display });
+      } else {
+        toAsk.push(q);
+      }
+    }
+    return toAsk;
   }
 
   private currentQuestion(): OnboardingPlanQuestion | null {
@@ -266,6 +340,18 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       return;
     }
     if (chip.action === 'answer') {
+      const q = this.currentQuestion();
+      // « Autre » sur type / devise → saisie manuelle
+      if (chip.payload === 'other' && (q?.field === 'type' || q?.field === 'currency')) {
+        this.appendUser(chip.label ?? chip.payload ?? '');
+        this.appendAssistant(
+          this.translate.instant(
+            q.field === 'type' ? 'chat.onboarding.customType' : 'chat.onboarding.customCurrency',
+          ),
+        );
+        this.customPending = q.field;
+        return;
+      }
       const label = chip.label ?? chip.payload ?? '';
       this.appendUser(label);
       this.recordAnswer(chip.payload ?? '', label);
@@ -277,6 +363,14 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     const q = this.currentQuestion();
     if (!q) return;
 
+    // Saisie manuelle (après « Autre ») pour le type ou la devise.
+    if (this.customPending && this.customPending === q.field) {
+      this.customPending = null;
+      this.recordCustom(q, text);
+      this.advance();
+      return;
+    }
+
     if (q.kind === 'open') {
       // Question contextuelle : on garde le texte tel quel (enrichit constraints)
       this.recordAnswer(text, text);
@@ -287,7 +381,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     // Question à choix répondue en texte libre → analyse IA
     this.pending.set(true);
     try {
-      const lang = this.translate.currentLang === 'en' ? 'en' : 'fr';
+      const lang = this.currentLang();
       const res = await firstValueFrom(
         this.aiService.parseAnswer({
           field: q.field,
@@ -298,22 +392,48 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
         }),
       );
       this.pending.set(false);
-      this.recordAnswer(res?.value ?? '', res?.display || text);
+      const value = res?.value ?? '';
+      // Type/devise libre non reconnu → on conserve la saisie de l'utilisateur.
+      if (!value && (q.field === 'type' || q.field === 'currency')) {
+        this.recordCustom(q, text);
+      } else {
+        this.recordAnswer(value, res?.display || text);
+      }
       this.advance();
     } catch (error) {
       console.error('Onboarding: answer parse failed', error);
       this.pending.set(false);
       // On accepte le texte brut pour ne pas bloquer l'utilisateur
-      this.recordAnswer('', text);
+      if (q.field === 'type' || q.field === 'currency') {
+        this.recordCustom(q, text);
+      } else {
+        this.recordAnswer('', text);
+      }
       this.advance();
     }
+  }
+
+  /**
+   * Réponse personnalisée (« Autre ») :
+   *  - type : code enum 'other' + texte conservé dans les contraintes ;
+   *  - devise : le libellé saisi devient directement la devise (champ libre).
+   */
+  private recordCustom(q: OnboardingPlanQuestion, text: string): void {
+    const clean = text.trim();
+    if (q.field === 'currency') {
+      this.recordAnswer(clean, clean);
+      return;
+    }
+    // type
+    this.recordAnswer('other', clean);
+    if (clean) this.notes.push({ prompt: q.prompt, value: clean });
   }
 
   private recordAnswer(value: string, display: string): void {
     const q = this.currentQuestion();
     if (!q) return;
     if (q.field === 'constraints') {
-      if (value.trim()) this.notes.push(value.trim());
+      if (value.trim()) this.notes.push({ prompt: q.prompt, value: value.trim() });
     } else {
       // Remplace toute réponse précédente pour ce champ
       this.answers = this.answers.filter((a) => a.field !== q.field);
@@ -323,8 +443,15 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   private advance(): void {
     this.index += 1;
+    this.emitProgress();
     this.persist();
     if (this.index >= this.questions.length) {
+      if (this.contextualLoading) {
+        // Cœur épuisé mais contextuel pas encore prêt : on patiente.
+        this.waitingForContextual = true;
+        this.pending.set(true);
+        return;
+      }
       this.goToRecap();
     } else {
       // Petit délai pour un rythme naturel
@@ -336,10 +463,29 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
+  /** Synchronise les réponses courantes vers le projet (partage avec le formulaire). */
+  private emitProgress(): void {
+    const resolved: OnboardingResolvedAnswer[] = [
+      ...this.answers.map((a) => ({
+        field: a.field as OnboardingFieldKey,
+        value: a.value,
+        display: a.display,
+      })),
+      ...this.notes.map((n) => ({
+        field: 'constraints' as const,
+        value: n.value,
+        display: n.value,
+        prompt: n.prompt,
+      })),
+    ];
+    this.projectUpdate.emit(this.planService.buildProjectFieldsFromAnswers(resolved));
+  }
+
   // ─────────────────────────────────────────────── Récap & création
 
   private goToRecap(): void {
     this.phase.set('recap');
+    this.recapPhaseActive.emit(true);
     const recap = this.buildRecap();
     this.messages.update((m) => [
       ...m,
@@ -367,6 +513,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       scopeKey: this.answerDisplay('scope'),
       teamSizeKey: this.answerDisplay('teamSize'),
       budgetKey: this.answerDisplay('budgetIntervals'),
+      currencyKey: this.answerDisplay('currency'),
     };
   }
 
@@ -422,24 +569,39 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
 
   protected onRecapRestart(): void {
     this.clearPersisted();
+    this.planService.clearCache();
     this.messages.set([]);
     this.questions = [];
     this.index = 0;
     this.answers = [];
     this.notes = [];
+    this.customPending = null;
+    this.contextualLoading = false;
+    this.waitingForContextual = false;
     this.phase.set('asking');
-    void this.startFlow();
+    this.recapPhaseActive.emit(false);
+    this.startFlow();
   }
 
   /** Crée (ou met à jour si déjà créé) puis finalise le projet. */
   private async persistProject(acceptances: OnboardingPolicyAcceptances): Promise<string> {
     const f = this.foundations();
+    // Contraintes formatées « Question: Réponse » (contrat partagé avec le formulaire).
+    const constraintFields = this.planService.buildProjectFieldsFromAnswers(
+      this.notes.map((n) => ({
+        field: 'constraints' as const,
+        value: n.value,
+        display: n.value,
+        prompt: n.prompt,
+      })),
+    );
     const fields: Partial<ProjectModel> = {
       targets: this.answerValue('targets'),
       scope: this.answerValue('scope'),
       teamSize: this.answerValue('teamSize'),
       budgetIntervals: this.answerValue('budgetIntervals'),
-      constraints: this.notes.slice(),
+      currency: this.answerValue('currency'),
+      constraints: constraintFields.constraints ?? [],
     };
 
     const chatName = this.answerValue('name');
@@ -460,6 +622,7 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       project.scope = fields.scope ?? '';
       project.teamSize = fields.teamSize ?? '';
       project.budgetIntervals = fields.budgetIntervals ?? '';
+      project.currency = fields.currency ?? '';
       project.constraints = fields.constraints ?? [];
       project.selectedPhases = [];
       projectId = await firstValueFrom(this.projectService.createProject(project));
@@ -522,6 +685,9 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
   }
 
   private restore(): boolean {
+    // Nouveau projet (pas d'id) : on repart toujours des fondations synchronisées
+    // (le draft + project() assurent la continuité), jamais d'un état résiduel.
+    if (!this.foundations().projectId) return false;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
@@ -532,7 +698,10 @@ export class OnboardingChatComponent implements OnInit, AfterViewChecked {
       this.questions = state.questions ?? [];
       this.index = state.index ?? 0;
       this.answers = state.answers ?? [];
-      this.notes = state.notes ?? [];
+      // Rétrocompat : les anciennes sessions stockaient notes en string[].
+      this.notes = (state.notes ?? []).map((n) =>
+        typeof n === 'string' ? { prompt: '', value: n } : n,
+      );
       this.phase.set(state.phase ?? 'asking');
       this.messages.set(state.thread);
       return true;

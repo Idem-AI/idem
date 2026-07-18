@@ -62,7 +62,7 @@
       @if (isStepActive('logo-selection')) {
         <app-logo-selection
           [project]="project()!"
-          [logos]="project()!.analysisResultModel?.branding?.generatedLogos ?? []"
+          [logos]="aiGeneratedLogos"
           [projectId]="project()!.id!"
           [initialPreferences]="aiLogoPreferences()"
           (logoSelected)="onLogoSelected($event)"
