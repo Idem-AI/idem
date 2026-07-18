@@ -21,6 +21,11 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
+import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
+import {
+  analyzeGenerationCompleteness,
+  BRANDING_SECTION_NAMES,
+} from '../../models/generation-completeness';
 import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
 
 @Component({
@@ -34,6 +39,7 @@ import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
     ButtonModule,
     TranslateModule,
     IncompleteProjectBannerComponent,
+    GenerationStatusPanelComponent,
     SafeHtmlPipe,
   ],
   templateUrl: './show-branding.html',
@@ -83,14 +89,18 @@ export class ShowBrandingComponent implements OnInit {
     return branding && branding.sections && branding.sections.length > 0;
   });
 
-  protected readonly isBrandingIncomplete = computed(() => {
-    const branding = this.existingBranding();
-    // 8 base slides + 3 mockups = 11 sections total
-    return branding && branding.sections ? (branding.sections.length > 0 && branding.sections.length < 11) : false;
-  });
+  /**
+   * Complétude des sections de la charte graphique générée. La pseudo-section
+   * « Brand Guide » ajoutée quand le PDF existe est ignorée (seuls les noms
+   * canoniques attendus sont analysés).
+   */
+  protected readonly guidelinesCompleteness = computed(() =>
+    analyzeGenerationCompleteness(BRANDING_SECTION_NAMES, this.existingBranding()?.sections),
+  );
 
-  protected readonly brandingSectionCount = computed(() => {
-    return this.existingBranding()?.sections?.length || 0;
+  protected readonly isBrandingIncomplete = computed(() => {
+    const completeness = this.guidelinesCompleteness();
+    return completeness.hasStarted && !completeness.isComplete;
   });
 
   protected readonly hasBrandingData = computed(() => {
@@ -304,6 +314,19 @@ export class ShowBrandingComponent implements OnInit {
    */
   protected navigateToBrandingGeneration(force = false): void {
     this.generateBranding(force);
+  }
+
+  /**
+   * Regenerate a single brand guide section (canonical backend step name).
+   * Le format PDF déjà choisi est transmis pour sauter l'écran de sélection.
+   */
+  protected regenerateSection(sectionName: string): void {
+    const queryParams: Record<string, string> = { sections: sectionName };
+    const format = this.existingBranding()?.pdfFormat;
+    if (format) {
+      queryParams['format'] = format;
+    }
+    this.router.navigate(['/project/branding/generate'], { queryParams });
   }
 
   /**

@@ -78,10 +78,30 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
   );
 
   private isForcingRegeneration = false;
+  private targetSections: string[] = [];
 
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
     this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
+
+    const sectionsParam = this.route.snapshot.queryParams['sections'];
+    this.targetSections =
+      typeof sectionsParam === 'string' && sectionsParam.length > 0
+        ? sectionsParam.split(',').filter(Boolean)
+        : [];
+
+    // Régénération ciblée : le format PDF a déjà été choisi lors de la
+    // génération initiale, on saute l'écran de sélection et on lance direct.
+    if (this.targetSections.length > 0) {
+      const formatParam = this.route.snapshot.queryParams['format'];
+      if (typeof formatParam === 'string' && formatParam.length > 0) {
+        this.pdfFormat.set(formatParam);
+      }
+      this.isSelectingFormat.set(false);
+      this.generateBranding();
+      return;
+    }
+
     // Start with format selection screen
     this.isSelectingFormat.set(true);
   }
@@ -119,6 +139,7 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
       this.projectId()!,
       this.pdfFormat(),
       this.isForcingRegeneration,
+      this.targetSections,
     );
 
     this.generationService

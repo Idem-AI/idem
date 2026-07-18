@@ -29,16 +29,22 @@ export class BusinessPlanService {
   createBusinessplanItem(
     projectId: string,
     additionalInfos?: any,
-    force = false
+    force = false,
+    sections: string[] = []
   ): Observable<SSEStepEvent> {
     console.log('Starting business plan generation with SSE...', {
       projectId,
       hasAdditionalInfos: !!additionalInfos,
       force,
+      sections,
     });
 
     // Close any existing SSE connection
     this.closeSSEConnection();
+
+    const generationParams = new URLSearchParams();
+    if (force) generationParams.set('force', 'true');
+    if (sections.length > 0) generationParams.set('sections', sections.join(','));
 
     // If additional infos are provided, send them first then start SSE
     if (additionalInfos) {
@@ -87,8 +93,9 @@ export class BusinessPlanService {
             console.log('Additional info sent successfully, starting SSE generation...');
 
             // Now start the SSE generation with additional info flag
+            generationParams.set('withAdditionalInfo', 'true');
             const config: SSEConnectionConfig = {
-              url: `${this.apiUrl}/generate/${projectId}?withAdditionalInfo=true${force ? '&force=true' : ''}`,
+              url: `${this.apiUrl}/generate/${projectId}?${generationParams.toString()}`,
               keepAlive: true,
               reconnectionDelay: 1000,
             };
@@ -107,8 +114,9 @@ export class BusinessPlanService {
       });
     } else {
       // Standard generation without additional info
+      const query = generationParams.toString();
       const config: SSEConnectionConfig = {
-        url: `${this.apiUrl}/generate/${projectId}${force ? '?force=true' : ''}`,
+        url: `${this.apiUrl}/generate/${projectId}${query ? `?${query}` : ''}`,
         keepAlive: true,
         reconnectionDelay: 1000,
       };

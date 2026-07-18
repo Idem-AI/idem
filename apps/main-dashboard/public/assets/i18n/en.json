@@ -2147,6 +2147,50 @@
         "typography": "Typography"
       },
       "completeButton": "Complete Brand Identity"
+    },
+    "generationPanel": {
+      "incompleteTitle": "Incomplete generation",
+      "incompleteSubtitle": "{{completed}} of {{total}} sections have been generated. The generation was probably interrupted: finish it to get a complete document.",
+      "completeTitle": "Complete document — all sections have been generated",
+      "status": {
+        "complete": "Generated",
+        "missing": "Missing",
+        "empty": "Incomplete"
+      },
+      "actions": {
+        "resume": "Finish generation",
+        "regenerateAll": "Regenerate everything",
+        "regenerateSection": "Regenerate",
+        "regenerateSectionAria": "Regenerate the {{section}} section",
+        "showSections": "Regenerate a section",
+        "hideSections": "Hide sections"
+      },
+      "sections": {
+        "businessPlan": {
+          "Cover Page": "Cover page",
+          "Company Summary": "Company summary",
+          "Opportunity": "Opportunity",
+          "Target Audience": "Target audience",
+          "Products & Services": "Products & services",
+          "Marketing & Sales": "Marketing & sales",
+          "Financial Plan": "Financial plan",
+          "Goal Planning": "Goal planning",
+          "Appendix": "Appendix"
+        },
+        "branding": {
+          "Brand Header": "Brand header",
+          "Logo Principal": "Primary logo",
+          "Logo Variation Fond Clair": "Logo — light background",
+          "Logo Variation Fond Sombre": "Logo — dark background",
+          "Logo Variation Monochrome": "Logo — monochrome",
+          "Logo Bonnes Pratiques": "Logo best practices",
+          "Color Palette": "Color palette",
+          "Typography": "Typography",
+          "Brand Mockup 1": "Mockup 1",
+          "Brand Mockup 2": "Mockup 2",
+          "Brand Mockup 3": "Mockup 3"
+        }
+      }
     }
   },
   "deployment": {

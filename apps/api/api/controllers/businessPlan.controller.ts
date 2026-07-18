@@ -283,6 +283,13 @@ export const generateBusinessPlanStreamingController = async (
     // Appel au service avec le callback de streaming
     const forceRegenerate = req.query.force === 'true' || req.body.force === true;
 
+    // Sections ciblées à régénérer (ex: ?sections=Financial%20Plan,Appendix)
+    const sectionsParam = typeof req.query.sections === 'string' ? req.query.sections : '';
+    const targetSections = sectionsParam
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     // Fetch project to see if this is a retry/resume
     const project = await projectService.getUserProjectById(userId, projectId as string);
     const isRetry = !!(project && !forceRegenerate && (project.analysisResultModel?.businessPlan?.sections?.length ?? 0) > 0);
@@ -291,7 +298,8 @@ export const generateBusinessPlanStreamingController = async (
       userId,
       projectId as string,
       streamCallback, // Passer le callback de streaming
-      forceRegenerate
+      forceRegenerate,
+      targetSections
     );
 
     if (!updatedProject) {
