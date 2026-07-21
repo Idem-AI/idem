@@ -36,6 +36,7 @@ import {
   QuotaStatus,
 } from '../../../../shared/models/quota.model';
 import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/components/language-selector/language-selector';
+import { ThemeToggleComponent } from 'apps/main-dashboard/src/app/shared/components/theme-toggle/theme-toggle';
 import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-toggle';
 
 @Component({
@@ -51,6 +52,7 @@ import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-t
     QuotaDisplayComponent,
     TranslateModule,
     LanguageSelectorComponent,
+    ThemeToggleComponent,
     ModeToggleComponent,
   ],
   animations: [
@@ -152,7 +154,6 @@ export class SidebarDashboard implements OnInit {
       icon: 'pi pi-chart-pie',
       route: 'project/finance',
       isActive: false,
-      isNew: true,
       isExpanded: false,
       children: [
         {
@@ -228,28 +229,24 @@ export class SidebarDashboard implements OnInit {
       icon: 'pi pi-desktop',
       route: 'project/pitch-deck',
       isActive: false,
-      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.communication',
       icon: 'pi pi-megaphone',
       route: 'project/communication',
       isActive: false,
-      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.legalDocs',
       icon: 'pi pi-file-edit',
       route: 'project/legal-docs',
       isActive: false,
-      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.advisor',
       icon: 'pi pi-comments',
       route: 'project/advisor',
       isActive: false,
-      isNew: true,
     },
     {
       labelKey: 'dashboard.sidebar.diagrams',

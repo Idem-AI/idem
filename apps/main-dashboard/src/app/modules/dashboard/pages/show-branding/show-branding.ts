@@ -21,6 +21,11 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
+import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
+import {
+  analyzeGenerationCompleteness,
+  BRANDING_SECTION_NAMES,
+} from '../../models/generation-completeness';
 import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
 
 @Component({
@@ -34,6 +39,7 @@ import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
     ButtonModule,
     TranslateModule,
     IncompleteProjectBannerComponent,
+    GenerationStatusPanelComponent,
     SafeHtmlPipe,
   ],
   templateUrl: './show-branding.html',
@@ -81,6 +87,20 @@ export class ShowBrandingComponent implements OnInit {
   protected readonly hasBrandingSections = computed(() => {
     const branding = this.existingBranding();
     return branding && branding.sections && branding.sections.length > 0;
+  });
+
+  /**
+   * Complétude des sections de la charte graphique générée. La pseudo-section
+   * « Brand Guide » ajoutée quand le PDF existe est ignorée (seuls les noms
+   * canoniques attendus sont analysés).
+   */
+  protected readonly guidelinesCompleteness = computed(() =>
+    analyzeGenerationCompleteness(BRANDING_SECTION_NAMES, this.existingBranding()?.sections),
+  );
+
+  protected readonly isBrandingIncomplete = computed(() => {
+    const completeness = this.guidelinesCompleteness();
+    return completeness.hasStarted && !completeness.isComplete;
   });
 
   protected readonly hasBrandingData = computed(() => {
@@ -139,13 +159,33 @@ export class ShowBrandingComponent implements OnInit {
    * Load existing branding data for the project
    * Load branding data from project and check for PDF
    */
+  /**
+   * Le branding issu du workflow d'import peut être partiel (couleurs ou
+   * typographie pas encore sélectionnées, sections absentes). On normalise
+   * pour que le template puisse lire colors.colors, generatedColors.length,
+   * logo.variations, etc. sans planter — les sections correspondantes
+   * basculent alors sur leur état vide.
+   */
+  private normalizeBranding(branding: BrandIdentityModel): BrandIdentityModel {
+    return {
+      ...branding,
+      logo: branding.logo ?? ({} as LogoModel),
+      colors: branding.colors ?? ({} as ColorModel),
+      typography: branding.typography ?? ({} as TypographyModel),
+      generatedLogos: branding.generatedLogos ?? [],
+      generatedColors: branding.generatedColors ?? [],
+      generatedTypography: branding.generatedTypography ?? [],
+      sections: branding.sections ?? [],
+    };
+  }
+
   private loadExistingBranding(project: ProjectModel): void {
     // Load branding data from project
     const brandingData = project.analysisResultModel?.branding;
 
     if (brandingData) {
       console.log('Branding data found in project:', brandingData);
-      this.existingBranding.set(brandingData);
+      this.existingBranding.set(this.normalizeBranding(brandingData));
 
       // Also check for PDF if available
       this.checkForBrandingPdf(project.id!);
@@ -170,7 +210,7 @@ export class ShowBrandingComponent implements OnInit {
               ...currentBranding,
               pdfBlob: pdfBlob,
               sections: [
-                ...currentBranding.sections,
+                ...(currentBranding.sections ?? []),
                 {
                   name: 'Brand Guide',
                   type: 'pdf',
@@ -262,16 +302,31 @@ export class ShowBrandingComponent implements OnInit {
   /**
    * Navigate to branding generation page
    */
-  protected generateBranding(): void {
-    console.log('Navigating to branding generation page');
-    this.router.navigate(['/project/branding/generate']);
+  protected generateBranding(force = false): void {
+    console.log('Navigating to branding generation page, force:', force);
+    this.router.navigate(['/project/branding/generate'], {
+      queryParams: force ? { force: 'true' } : {}
+    });
   }
 
   /**
    * Navigate to branding generation (alias for banner)
    */
-  protected navigateToBrandingGeneration(): void {
-    this.generateBranding();
+  protected navigateToBrandingGeneration(force = false): void {
+    this.generateBranding(force);
+  }
+
+  /**
+   * Regenerate a single brand guide section (canonical backend step name).
+   * Le format PDF déjà choisi est transmis pour sauter l'écran de sélection.
+   */
+  protected regenerateSection(sectionName: string): void {
+    const queryParams: Record<string, string> = { sections: sectionName };
+    const format = this.existingBranding()?.pdfFormat;
+    if (format) {
+      queryParams['format'] = format;
+    }
+    this.router.navigate(['/project/branding/generate'], { queryParams });
   }
 
   /**

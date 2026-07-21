@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { SseClient } from 'ngx-sse-client';
 import { SSEStepEvent, SSEServiceEventType, SSEConnectionConfig } from '../models/sse-step.model';
+import { readLocaleCookie } from '../utils/locale-cookie';
 
 @Injectable({
   providedIn: 'root',
@@ -21,14 +22,18 @@ export class SSEService {
     config: SSEConnectionConfig,
     serviceType: SSEServiceEventType,
   ): Observable<SSEStepEvent> {
-    console.log(`Creating ${serviceType} SSE connection to:`, config.url);
+    // SSE bypasses the HttpClient auth interceptor, so the UI language cannot be
+    // sent as an Accept-Language header. Carry it as a `lang` query param instead
+    // so backend AI generation streams content in the user's language.
+    const url = this.withLanguageParam(config.url);
+    console.log(`Creating ${serviceType} SSE connection to:`, url);
 
     // Close existing connection if any
     this.closeConnection(serviceType);
 
     return new Observable<SSEStepEvent>((observer) => {
       const subscription = this.sseClient
-        .stream(config.url, {
+        .stream(url, {
           keepAlive: config.keepAlive || true,
           reconnectionDelay: config.reconnectionDelay || 1000,
         })
@@ -75,6 +80,16 @@ export class SSEService {
 
       this.connections.set(serviceType, subscription);
     });
+  }
+
+  /**
+   * Append the current UI language as a `lang` query param, preserving any
+   * existing query string.
+   */
+  private withLanguageParam(url: string): string {
+    const lang = readLocaleCookie() ?? 'en';
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}lang=${lang}`;
   }
 
   /**

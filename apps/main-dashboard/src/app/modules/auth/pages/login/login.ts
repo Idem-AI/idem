@@ -95,10 +95,13 @@ export class Login implements OnInit {
 
       // Check if we need to redirect to AppGen (webgen)
       if (this.from === 'appgen' && this.returnUrl) {
+        console.log('AppGen redirect requested. returnUrl:', this.returnUrl);
         const appgenUrl = environment.services.webgen.url;
         const isDev = environment.environment === 'dev';
-        const isValidRedirect = this.returnUrl.startsWith(appgenUrl) || 
-                               (isDev && this.returnUrl.startsWith('http://localhost:5173'));
+        
+        // More permissive check for local development to avoid blocking valid redirects
+        const isLocalhost = this.returnUrl.includes('localhost') || this.returnUrl.includes('127.0.0.1');
+        const isValidRedirect = this.returnUrl.startsWith(appgenUrl) || isLocalhost;
         
         if (isValidRedirect) {
           console.log('Redirecting back to AppGen:', this.returnUrl);
@@ -106,6 +109,17 @@ export class Login implements OnInit {
           return;
         } else {
           console.warn('Blocked redirect to untrusted returnUrl:', this.returnUrl);
+        }
+      }
+
+      // Check if we need to redirect to a local returnUrl
+      if (this.returnUrl) {
+        const isRelative = this.returnUrl.startsWith('/') || this.returnUrl.startsWith('./');
+        const isSameOrigin = this.returnUrl.startsWith(window.location.origin);
+        if (isRelative || isSameOrigin) {
+          console.log('Redirecting to local returnUrl:', this.returnUrl);
+          await this.router.navigateByUrl(this.returnUrl);
+          return;
         }
       }
 

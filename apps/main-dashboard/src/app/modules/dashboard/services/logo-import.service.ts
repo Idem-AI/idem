@@ -22,6 +22,21 @@ export interface LogoImportResponse {
 }
 
 /**
+ * Structured result of the AI vision analysis of an imported logo
+ * (used by the "improve my logo" flow)
+ */
+export interface LogoAnalysisResult {
+  logoType: 'icon' | 'name' | 'initial';
+  style: string;
+  shapes: string;
+  colors: string[];
+  typographyStyle: string;
+  symbolism: string;
+  weaknesses: string;
+  improvementBrief: string;
+}
+
+/**
  * Upload progress tracking
  */
 export interface LogoUploadProgress {
@@ -91,6 +106,20 @@ export class LogoImportService {
         };
       }),
     );
+  }
+
+  /**
+   * Run the AI vision analysis of an imported logo.
+   * Returns a redesign brief that maps onto LogoPreferencesModel.
+   */
+  analyzeLogo(svg: string): Observable<LogoAnalysisResult> {
+    return this.http
+      .post<{ success: boolean; analysis: LogoAnalysisResult }>(
+        `${this.apiUrl}/analyze`,
+        { svg },
+        { withCredentials: true },
+      )
+      .pipe(map((response) => response.analysis));
   }
 
   /**

@@ -11,6 +11,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
+
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import { IRepository } from '../../repository/IRepository';
 import { ProjectModel } from '../../models/project.model';
@@ -63,14 +65,14 @@ export interface FinanceChatIntent {
 }
 
 const DEFAULT_PROMPT_CONFIG: PromptConfig = {
-  provider: LLMProvider.GEMINI,
-  modelName: 'gemini-3-flash-preview',
-  promptType: 'finance',
+  provider: AI_CONFIG.finance.autofill.provider,
+  modelName: AI_CONFIG.finance.autofill.modelName,
+  promptType: AI_CONFIG.finance.autofill.promptType,
   llmOptions: {
-    temperature: 0.4,
-    maxOutputTokens: 8192,
+    ...AI_CONFIG.finance.autofill.llmOptions,
   },
 };
+
 
 export class FinanceAIService {
   private readonly projectRepository: IRepository<ProjectModel>;
@@ -191,7 +193,7 @@ export class FinanceAIService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, llmOptions: { temperature: 0.2, maxOutputTokens: 1024 } },
+      { ...DEFAULT_PROMPT_CONFIG, userId, llmOptions: { ...AI_CONFIG.finance.intent.llmOptions } },
       messages,
     );
     const parsed = this.parseJSON(raw);
@@ -384,9 +386,20 @@ export class FinanceAIService {
   private summarizeBusinessPlanForContext(project: ProjectModel): string {
     const bp: any = project.analysisResultModel?.businessPlan;
     if (!bp || !bp.sections || bp.sections.length === 0) return 'Aucun business plan disponible.';
+
+    const IMPORTANT_SECTIONS = [
+      'company summary',
+      'opportunity',
+      'products & services',
+      'products services',
+      'marketing & sales',
+      'marketing sales',
+      'financial plan'
+    ];
+
     return bp.sections
-      .map((s: any) => `### ${s.name}\n${s.summary || s.data?.slice(0, 400) || ''}`)
-      .slice(0, 8)
+      .filter((s: any) => s && s.name && IMPORTANT_SECTIONS.includes(s.name.toLowerCase()))
+      .map((s: any) => `### ${s.name}\n${s.summary || s.data?.slice(0, 800) || ''}`)
       .join('\n\n');
   }
 

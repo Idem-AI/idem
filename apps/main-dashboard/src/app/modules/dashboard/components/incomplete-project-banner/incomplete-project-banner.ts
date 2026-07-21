@@ -19,15 +19,37 @@ export class IncompleteProjectBannerComponent {
 
   protected get missingElements(): string[] {
     const missing: string[] = [];
-    const branding = this.project().analysisResultModel?.branding;
+    const branding = this.project().analysisResultModel?.branding as any;
 
-    if (!branding?.logo) {
+    // Si le workflow est terminé (isComplete === true), rien ne manque
+    if (branding?.isComplete) {
+      return [];
+    }
+
+    // Pas de branding du tout → tout manque
+    if (!branding) {
+      missing.push(this.translate.instant('dashboard.incompleteBanner.elements.logo'));
+      missing.push(this.translate.instant('dashboard.incompleteBanner.elements.colors'));
+      missing.push(this.translate.instant('dashboard.incompleteBanner.elements.typography'));
+      return missing;
+    }
+
+    // Check if there are generated logos waiting for selection
+    const hasGeneratedLogos = branding.generatedLogos && branding.generatedLogos.length > 0;
+
+    if (!branding.logo) {
+      // Only report missing logo if there are no generated logos either
+      if (!hasGeneratedLogos) {
+        missing.push(this.translate.instant('dashboard.incompleteBanner.elements.logo'));
+      }
+    } else if (!branding.logo.variations?.withText) {
+      // Logo sélectionné mais variations non générées → workflow non terminé
       missing.push(this.translate.instant('dashboard.incompleteBanner.elements.logo'));
     }
-    if (!branding?.colors || !branding?.generatedColors?.length) {
+    if (!branding.colors && (!branding.generatedColors || !branding.generatedColors.length)) {
       missing.push(this.translate.instant('dashboard.incompleteBanner.elements.colors'));
     }
-    if (!branding?.typography || !branding?.generatedTypography?.length) {
+    if (!branding.typography && (!branding.generatedTypography || !branding.generatedTypography.length)) {
       missing.push(this.translate.instant('dashboard.incompleteBanner.elements.typography'));
     }
 
@@ -35,6 +57,8 @@ export class IncompleteProjectBannerComponent {
   }
 
   protected get isIncomplete(): boolean {
+    // Show banner only if there are actually missing elements, not based on isComplete flag
+    // isComplete is set only after user finalizes the workflow, but generated assets are sufficient to show content
     return this.missingElements.length > 0;
   }
 

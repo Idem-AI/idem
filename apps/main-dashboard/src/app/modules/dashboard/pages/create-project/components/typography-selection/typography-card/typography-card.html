@@ -2,16 +2,16 @@
   class="group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer h-full flex flex-col gap-3"
   [ngClass]="{
     'border-primary bg-primary/5 ring-1 ring-primary/20': isSelected,
-    'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800': !isSelected,
+    'border-[var(--glass-border)] bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)] hover:bg-[var(--glass-bg-light)]': !isSelected,
   }"
   (click)="onSelect()"
 >
   <!-- Font Preview (Aa) -->
-  <div class="flex items-end gap-3 pb-3 border-b border-gray-700/50">
-    <span class="text-4xl leading-none text-white" [style.fontFamily]="typography.primaryFont">
+  <div class="flex items-end gap-3 pb-3 border-b border-[var(--glass-border)]">
+    <span class="text-4xl leading-none text-text-primary" [style.fontFamily]="typography.primaryFont">
       Aa
     </span>
-    <span class="text-2xl leading-none text-gray-400" [style.fontFamily]="typography.secondaryFont">
+    <span class="text-2xl leading-none text-text-tertiary" [style.fontFamily]="typography.secondaryFont">
       Aa
     </span>
   </div>
@@ -19,17 +19,17 @@
   <!-- Font Names -->
   <div class="flex flex-col gap-1">
     <div class="flex items-center justify-between">
-      <span class="text-xs text-gray-500 uppercase tracking-wider">Headings</span>
+      <span class="text-xs text-text-tertiary uppercase tracking-wider">Headings</span>
       <span
-        class="text-sm text-white font-medium truncate max-w-[120px]"
+        class="text-sm text-text-primary font-medium truncate max-w-[120px]"
         [title]="typography.primaryFont"
       >
         {{ typography.primaryFont }}
       </span>
     </div>
     <div class="flex items-center justify-between">
-      <span class="text-xs text-gray-500 uppercase tracking-wider">Body</span>
-      <span class="text-sm text-gray-300 truncate max-w-[120px]" [title]="typography.secondaryFont">
+      <span class="text-xs text-text-tertiary uppercase tracking-wider">Body</span>
+      <span class="text-sm text-text-secondary truncate max-w-[120px]" [title]="typography.secondaryFont">
         {{ typography.secondaryFont }}
       </span>
     </div>

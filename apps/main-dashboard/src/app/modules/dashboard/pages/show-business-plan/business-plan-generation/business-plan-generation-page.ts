@@ -18,7 +18,7 @@ import { BusinessPlanGenerationComponent } from '../components/business-plan-gen
         <div class="text-center py-20">
           <div class="mb-4">
             <svg
-              class="mx-auto h-16 w-16 text-gray-400"
+              class="mx-auto h-16 w-16 text-text-tertiary"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

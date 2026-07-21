@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto sm:px-6 lg:px-8 text-gray-200 md:min-h-[75vh]">
+<div class="max-w-7xl mx-auto sm:px-6 lg:px-8 text-text-secondary md:min-h-[75vh]">
   @if (errorMessages().length > 0) {
     <div
       class="bg-red-500/10 border border-red-500/30 text-red-100 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6"
@@ -41,7 +41,7 @@
               >
                 {{ 'dashboard.createDeployment.title' | translate }}
               </h1>
-              <p class="text-gray-400 text-sm sm:text-base">
+              <p class="text-text-tertiary text-sm sm:text-base">
                 {{ 'dashboard.createDeployment.subtitle' | translate }}
               </p>
             </div>
@@ -50,7 +50,7 @@
       }
     </h2>
     <button
-      class="w-full sm:w-auto py-2 rounded-lg hover:bg-gray-800 text-gray-300 transition-all flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base"
+      class="w-full sm:w-auto py-2 rounded-lg hover:bg-[var(--glass-bg-light)] text-text-secondary transition-all flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base"
       (click)="resetView()"
     >
       <i class="pi pi-arrow-left"></i> {{ 'common.back' | translate }}

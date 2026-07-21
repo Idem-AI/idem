@@ -1,6 +1,7 @@
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
 import { LLMProvider, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
 import { SvgToPsdService } from '../svgToPsd.service';
 import * as fs from 'fs-extra';
 
@@ -13,6 +14,8 @@ import { LOGO_VARIATION_LIGHT_PROMPT } from './prompts/singleGenerations/logo-va
 import { LOGO_VARIATION_DARK_PROMPT } from './prompts/singleGenerations/logo-variation-dark.prompt';
 import { LOGO_VARIATION_MONOCHROME_PROMPT } from './prompts/singleGenerations/logo-variation-monochrome.prompt';
 import { LOGO_EDIT_PROMPT } from './prompts/singleGenerations/logo-edit.prompt';
+import { LOGO_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-critique.prompt';
+import { LOGO_REVISION_PROMPT } from './prompts/singleGenerations/logo-revision.prompt';
 
 import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.prompt';
 import {
@@ -35,7 +38,15 @@ import {
   COLORS_FROM_LOGO_PROMPT,
   TYPOGRAPHY_FROM_LOGO_PROMPT,
 } from './prompts/singleGenerations/colors-from-logo.prompt';
-import { generateLogoVariationsFromSvg } from '../logo-import.service';
+import {
+  generateLogoVariations,
+  AiRecolorRequest,
+  measureSvgVisibility,
+  applyColorMappingToSvg,
+} from '../logoVariationEngine.service';
+import { LOGO_VARIATION_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-variation-critique.prompt';
+import { resolveSvgContent } from '../logo-import.service';
+import { LOGO_VARIATION_RECOLOR_PROMPT } from './prompts/singleGenerations/logo-variation-recolor.prompt';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
 import crypto from 'crypto';
@@ -46,45 +57,133 @@ import { geminiMockupService } from '../brandMockup.service';
 import { StorageService } from '../storage.service';
 import { mockupHtmlGeneratorService } from './mockupHtmlGenerator.service';
 
+/** Verdict de l'agent critique sur un concept de logo */
+export interface LogoCritiqueResult {
+  verdict: 'pass' | 'fail';
+  score: number;
+  summary: string;
+  remarks: Array<{ criterion: string; issue: string; fix: string }>;
+}
+
+/** Événement émis pendant la génération streamée des concepts de logo */
+export interface ILogoStreamEvent {
+  type:
+    | 'concept_started'
+    | 'concept_generated'
+    | 'critique_started'
+    | 'critique_result'
+    | 'revision_started'
+    | 'concept_updated'
+    | 'concept_finalized'
+    | 'concept_cancelled'
+    | 'concept_error';
+  conceptIndex: number;
+  logo?: LogoModel;
+  critique?: LogoCritiqueResult;
+  message?: string;
+}
+
+/** Déclinaison de logo : type + fond cible */
+export type LogoVariationKind = 'lightBackground' | 'darkBackground' | 'monochrome';
+
+const VARIATION_BACKGROUNDS: Record<LogoVariationKind, string> = {
+  lightBackground: '#ffffff',
+  darkBackground: '#1a1a2e',
+  monochrome: '#f5f5f5',
+};
+
+/** Événement émis pendant la génération streamée des déclinaisons */
+export interface ILogoVariationStreamEvent {
+  type:
+    | 'variation_started'
+    | 'variation_generated'
+    | 'critique_started'
+    | 'critique_result'
+    | 'revision_started'
+    | 'variation_updated'
+    | 'variation_finalized'
+    | 'variation_cancelled'
+    | 'variation_error';
+  variant: LogoVariationKind;
+  svg?: string;
+  critique?: LogoCritiqueResult;
+  message?: string;
+}
+
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
   private logoJsonToSvgService: LogoJsonToSvgService;
   private storageService: StorageService;
 
+  /**
+   * Générations de logos en cours, pour l'annulation anticipée
+   * (l'utilisateur sélectionne un logo → on arrête les autres concepts).
+   * Clé : `${userId}_${projectId}` (concepts) / `variations_${userId}_${projectId}`.
+   */
+  private static readonly activeLogoGenerations = new Map<string, { cancelled: boolean }>();
+
+  private static logoGenerationKey(userId: string, projectId: string): string {
+    return `${userId}_${projectId}`;
+  }
+
+  private static variationsGenerationKey(userId: string, projectId: string): string {
+    return `variations_${userId}_${projectId}`;
+  }
+
+  /** Annule la génération streamée des déclinaisons (fermeture de page, etc.) */
+  cancelLogoVariationsGeneration(userId: string, projectId: string): boolean {
+    const state = BrandingService.activeLogoGenerations.get(
+      BrandingService.variationsGenerationKey(userId, projectId)
+    );
+    if (state) {
+      state.cancelled = true;
+      logger.info(`Logo variations generation cancelled - UserId: ${userId}, ProjectId: ${projectId}`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Annule la génération de logos en cours pour ce projet.
+   * Retourne true si une génération était effectivement en cours.
+   */
+  cancelLogoGeneration(userId: string, projectId: string): boolean {
+    const state = BrandingService.activeLogoGenerations.get(
+      BrandingService.logoGenerationKey(userId, projectId)
+    );
+    if (state) {
+      state.cancelled = true;
+      logger.info(`Logo generation cancelled - UserId: ${userId}, ProjectId: ${projectId}`);
+      return true;
+    }
+    return false;
+  }
+
   // Configuration LLM pour la génération de logos et variations
   // Optimisée pour qualité maximale avec vitesse préservée
   private static readonly LOGO_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.5-flash',
+    provider: AI_CONFIG.branding.logo.provider,
+    modelName: AI_CONFIG.branding.logo.modelName,
     llmOptions: {
-      maxOutputTokens: 1048, // SVG complet sans troncature (path + text + defs)
-      temperature: 0.7, // Variance créative — évite la convergence cercle-bleu
-      topP: 0.95, // Pool de sampling légèrement élargi pour les couleurs et concepts
-      topK: 40, // Sweet spot Gemini — au-delà, le JSON se dégrade
+      ...AI_CONFIG.branding.logo.llmOptions,
     },
   };
 
   // Configuration LLM optimisée pour la vitesse — génération de couleurs
   private static readonly COLORS_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.1-flash-lite',
+    provider: AI_CONFIG.branding.colors.provider,
+    modelName: AI_CONFIG.branding.colors.modelName,
     llmOptions: {
-      maxOutputTokens: 1200, // réduit fortement la latence
-      temperature: 0.05, // réponses plus déterministes
-      topP: 0.8,
-      topK: 20,
+      ...AI_CONFIG.branding.colors.llmOptions,
     },
   };
 
   // Configuration LLM optimisée pour la vitesse — génération de typographies
   private static readonly TYPOGRAPHY_LLM_CONFIG = {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.1-flash-lite',
+    provider: AI_CONFIG.branding.typography.provider,
+    modelName: AI_CONFIG.branding.typography.modelName,
     llmOptions: {
-      maxOutputTokens: 1800, // suffisant pour du JSON structuré
-      temperature: 0.3, // équilibre vitesse/cohérence
-      topP: 0.8,
-      topK: 20,
+      ...AI_CONFIG.branding.typography.llmOptions,
     },
   };
 
@@ -471,10 +570,12 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string,
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
-    pdfFormat: string = 'SLIDE_16_9'
+    pdfFormat: string = 'SLIDE_16_9',
+    forceRegenerate = false,
+    targetSections: string[] = []
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}, pdfFormat: ${pdfFormat}`
+      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}, pdfFormat: ${pdfFormat}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     // Get project
@@ -508,20 +609,38 @@ export class BrandingService extends GenericService {
 
     const cacheKey = cacheService.generateAIKey('branding', userId, projectId, contentHash);
 
-    // Check cache first
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: 'ai',
-      ttl: 7200, // 2 hours
-    });
+    // The cached result may be an incomplete brand guide (it is updated after each
+    // step), so only short-circuit on it when nothing needs to be (re)generated.
+    const expectedSectionCount = 8 + MOCKUP_CONFIG.MOCKUP_COUNT;
+    const currentSections = project.analysisResultModel?.branding?.sections || [];
+    const skipCacheRead =
+      forceRegenerate ||
+      targetSections.length > 0 ||
+      currentSections.length < expectedSectionCount;
 
-    if (cachedResult) {
-      logger.info(`Branding cache hit for projectId: ${projectId}`);
-      return cachedResult;
+    if (!skipCacheRead) {
+      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+        prefix: 'ai',
+        ttl: 7200, // 2 hours
+      });
+
+      if (cachedResult) {
+        logger.info(`Branding cache hit for projectId: ${projectId}`);
+        return cachedResult;
+      }
     }
 
     logger.info(`Branding cache miss, generating new content for projectId: ${projectId}`);
 
     try {
+      const branding = project.analysisResultModel?.branding;
+      const logoUrl = branding?.logo?.svg || '';
+      const logoVariations = branding?.logo?.variations;
+
+      const lightLogoUrl = logoVariations?.withText?.lightBackground || logoUrl;
+      const darkLogoUrl = logoVariations?.withText?.darkBackground || logoUrl;
+      const monochromeLogoUrl = logoVariations?.withText?.monochrome || logoUrl;
+
       // Define branding steps
       const steps: IPromptStep[] = [
         {
@@ -530,13 +649,17 @@ export class BrandingService extends GenericService {
           hasDependencies: false,
         },
         {
-          promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
+          promptConstant:
+            LOGO_SYSTEM_SECTION_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the primary logo image: "${logoUrl}"\n\n` +
+            projectDescription,
           stepName: 'Logo Principal',
           hasDependencies: false,
         },
         {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${lightLogoUrl}"\n\n` +
             '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
             projectDescription,
           stepName: 'Logo Variation Fond Clair',
@@ -545,6 +668,7 @@ export class BrandingService extends GenericService {
         {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${darkLogoUrl}"\n\n` +
             "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
             projectDescription,
           stepName: 'Logo Variation Fond Sombre',
@@ -553,13 +677,17 @@ export class BrandingService extends GenericService {
         {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${monochromeLogoUrl}"\n\n` +
             '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
             projectDescription,
           stepName: 'Logo Variation Monochrome',
           hasDependencies: false,
         },
         {
-          promptConstant: LOGO_BEST_PRACTICES_PAGE_PROMPT + projectDescription,
+          promptConstant:
+            LOGO_BEST_PRACTICES_PAGE_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n` +
+            projectDescription,
           stepName: 'Logo Bonnes Pratiques',
           hasDependencies: false,
         },
@@ -598,8 +726,17 @@ export class BrandingService extends GenericService {
       //   hasDependencies: false,
       // });
 
-      // Initialize empty sections array to collect results as they come in
-      let sections: SectionModel[] = [];
+      // Load existing sections if not forcing regeneration.
+      // Sections listed in targetSections are dropped so they get regenerated,
+      // while the others are kept as-is (resume semantics).
+      const existingSections = forceRegenerate
+        ? []
+        : targetSections.length > 0
+          ? currentSections.filter((s) => !targetSections.includes(s.name))
+          : currentSections;
+
+      // Initialize sections array to collect results
+      let sections: SectionModel[] = [...existingSections];
 
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
@@ -762,7 +899,17 @@ export class BrandingService extends GenericService {
               };
             }
 
-            sections.push(finalSection);
+            // Add or replace in sections array to avoid duplicates
+            const existingIndex = sections.findIndex((s) => s.name === finalSection.name);
+            if (existingIndex !== -1) {
+              sections[existingIndex] = finalSection;
+            } else {
+              sections.push(finalSection);
+            }
+
+            // Sort sections to match original step order
+            const stepOrder = steps.map((s) => s.stepName);
+            sections.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
             // Prepare the updated project data
             const updatedProjectData = {
@@ -779,7 +926,7 @@ export class BrandingService extends GenericService {
                   generatedTypography:
                     project.analysisResultModel.branding.generatedTypography || [],
                   pdfFormat: pdfFormat, // Stocker le format PDF choisi
-                  createdAt: new Date(),
+                  createdAt: project.analysisResultModel.branding.createdAt || new Date(),
                   updatedAt: new Date(),
                 },
               },
@@ -820,13 +967,19 @@ export class BrandingService extends GenericService {
             }
           },
           {
-            provider: LLMProvider.GEMINI,
-            modelName: 'gemini-3-flash-preview',
+            provider: AI_CONFIG.default.provider,
+            modelName: AI_CONFIG.default.modelName,
             userId,
           }, // promptConfig
           'branding', // promptType
-          userId
+          userId,
+          undefined, // finalizationCallback
+          existingSections
         );
+
+        // The stored PDF no longer matches the regenerated sections
+        const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId);
+        await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
 
         // Return the updated project (it should be available in cache or fetch it again)
         const finalProject = await this.projectRepository.findById(
@@ -935,15 +1088,28 @@ export class BrandingService extends GenericService {
   }> {
     logger.info(`Generating colors and typography in parallel for userId: ${userId}`);
 
-    // Créer le projet
-    project = {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: BrandIdentityBuilder.createEmpty(),
-      },
-    };
-    const createdProject = await projectService.createUserProject(userId, project);
+    // Réutiliser le projet existant (workflow complete-branding) au lieu de créer
+    // un doublon — voir generateColorsAndTypographyFromLogo.
+    const existingProject = project.id
+      ? await this.projectRepository.findById(project.id, `users/${userId}/projects`)
+      : null;
+
+    let createdProject: ProjectModel;
+    if (existingProject) {
+      logger.info(
+        `Reusing existing project for colors/typography generation - ProjectId: ${existingProject.id}`
+      );
+      createdProject = existingProject;
+    } else {
+      project = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: BrandIdentityBuilder.createEmpty(),
+        },
+      };
+      createdProject = await projectService.createUserProject(userId, project);
+    }
 
     if (!createdProject.id) {
       throw new Error(`Failed to create project`);
@@ -1032,7 +1198,8 @@ export class BrandingService extends GenericService {
     optimizedPrompt: string,
     project: ProjectModel,
     conceptIndex: number,
-    preferences?: LogoPreferences
+    preferences?: LogoPreferences,
+    skipQuotaCheck = false
   ): Promise<LogoModel> {
     logger.info(
       `Generating raw logo concept ${
@@ -1066,7 +1233,14 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck,
+      }
+    );
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
@@ -1236,7 +1410,9 @@ export class BrandingService extends GenericService {
    */
   async generateLogoConcepts(
     userId: string,
-    projectId: string
+    projectId: string,
+    forceRegenerate = false,
+    skipQuotaCheck = false
   ): Promise<{
     logos: LogoModel[];
   }> {
@@ -1257,8 +1433,20 @@ export class BrandingService extends GenericService {
       throw new Error(`Project is missing colors or typography. Cannot generate logos.`);
     }
 
+    // Load existing generated logos unless forcing a regeneration from scratch
+    const existingLogos = (!forceRegenerate && branding?.generatedLogos) ? branding.generatedLogos : [];
+    const existingLogosCount = existingLogos.length;
+
+    if (existingLogosCount >= 3) {
+      logger.info(`Logos already complete (${existingLogosCount}/3) for projectId: ${projectId}. Skipping.`);
+      return { logos: existingLogos };
+    }
+
+    const logosToGenerateCount = 3 - existingLogosCount;
+    const isRetry = existingLogosCount > 0 || skipQuotaCheck;
+
     logger.info(
-      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
+      `Generating ${logosToGenerateCount} logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
         preferences?.type || 'name'
       }`
     );
@@ -1275,9 +1463,9 @@ export class BrandingService extends GenericService {
     // Étape 3: Génération AI parallèle PURE (sans optimisation SVG)
     const aiStartTime = Date.now();
 
-    // Créer 3 promesses pour génération AI pure en parallèle
-    const logoPromises = Array.from({ length: 3 }, (_, index) =>
-      this.generateRawLogoConcept(optimizedPrompt, project, index, preferences)
+    // Créer promesses pour génération AI pure en parallèle pour les concepts restants
+    const logoPromises = Array.from({ length: logosToGenerateCount }, (_, index) =>
+      this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry)
     );
 
     // Attendre toutes les générations AI avec gestion d'erreurs robuste
@@ -1291,18 +1479,39 @@ export class BrandingService extends GenericService {
       if (result.status === 'fulfilled') {
         rawLogos.push(result.value);
       } else {
-        logger.error(`Logo concept ${index + 1} generation failed:`, result.reason);
+        logger.error(`Logo concept ${index + existingLogosCount + 1} generation failed:`, result.reason);
         failedIndexes.push(index);
       }
     });
 
+    // Retry des concepts échoués (une passe) pour atteindre 3 propositions de façon fiable
+    if (failedIndexes.length > 0) {
+      logger.warn(
+        `Retrying ${failedIndexes.length} failed logo concept(s): [${failedIndexes.join(', ')}]`
+      );
+      const retryResults = await Promise.allSettled(
+        failedIndexes.map((index) =>
+          this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry)
+        )
+      );
+      retryResults.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
+          rawLogos.push(result.value);
+        } else {
+          logger.error(`Logo concept ${failedIndexes[i] + existingLogosCount + 1} retry failed:`, result.reason);
+        }
+      });
+    }
+
     const aiGenerationTime = Date.now() - aiStartTime;
     logger.info(
-      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/3, Failed: ${failedIndexes.length}`
+      `AI generation completed in ${aiGenerationTime}ms - Success: ${rawLogos.length}/${logosToGenerateCount} after retry`
     );
 
     // Étape 4: Optimisation SVG en parallèle (séparée de l'AI)
     const optimizationStartTime = Date.now();
+
+    const finalLogosList = [...existingLogos, ...rawLogos];
 
     // Paralléliser l'optimisation SVG + mise à jour DB/cache
     const [finalOptimizedLogos, _] = await Promise.all([
@@ -1316,7 +1525,7 @@ export class BrandingService extends GenericService {
         project,
         selectedColors,
         selectedTypography,
-        rawLogos // Utiliser les logos non-optimisés pour la DB (plus rapide)
+        finalLogosList // Utiliser la liste complète de logos
       ),
     ]);
 
@@ -1329,8 +1538,300 @@ export class BrandingService extends GenericService {
     );
 
     return {
-      logos: finalOptimizedLogos as LogoModel[],
+      logos: [...existingLogos, ...finalOptimizedLogos] as LogoModel[],
     };
+  }
+
+  /**
+   * Agent critique : audite un concept de logo contre la doctrine design.
+   * Interne (pas de décompte de crédits) — le verdict pilote la boucle de révision.
+   */
+  private async critiqueLogoConcept(
+    logo: LogoModel,
+    project: ProjectModel
+  ): Promise<LogoCritiqueResult> {
+    // "conceptName" = titre créatif du concept ; le nom de marque est passé à part
+    // pour que le critique ne les confonde pas (le wordmark doit afficher la marque)
+    const logoJson = JSON.stringify({
+      conceptName: logo.name,
+      concept: logo.concept,
+      colors: logo.colors,
+      fonts: logo.fonts,
+      svg: logo.svg,
+    });
+    const brandName = project.name || this.extractProjectName(this.extractProjectDescription(project));
+    const prompt = LOGO_CRITIQUE_PROMPT.replace('{{LOGO_JSON}}', logoJson)
+      .replace(/\{\{BRAND_NAME\}\}/g, brandName)
+      .replace(/\{\{LOGO_TYPE\}\}/g, logo.type || 'unspecified');
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: 'Logo Critique',
+        maxOutputTokens: 1200,
+        modelParser: (content) => {
+          try {
+            return JSON.parse(content);
+          } catch (error) {
+            logger.error('Error parsing logo critique JSON:', error);
+            throw new Error('Failed to parse logo critique');
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project, {
+      ...BrandingService.LOGO_LLM_CONFIG,
+      llmOptions: {
+        ...BrandingService.LOGO_LLM_CONFIG.llmOptions,
+        temperature: 0.15,
+        maxOutputTokens: 1200,
+      },
+      skipQuotaCheck: true,
+    });
+    const parsed = sectionResults[0].parsedData;
+
+    return {
+      verdict: parsed?.verdict === 'fail' ? 'fail' : 'pass',
+      score: typeof parsed?.score === 'number' ? parsed.score : 75,
+      summary: typeof parsed?.summary === 'string' ? parsed.summary : '',
+      remarks: Array.isArray(parsed?.remarks)
+        ? parsed.remarks
+            .filter((r: any) => r && typeof r.issue === 'string')
+            .slice(0, 4)
+            .map((r: any) => ({
+              criterion: r.criterion || 'quality',
+              issue: r.issue,
+              fix: r.fix || r.issue,
+            }))
+        : [],
+    };
+  }
+
+  /**
+   * Agent de révision : corrige le logo à partir des remarques de la critique.
+   * Conserve le concept et l'id ; seuls les défauts pointés sont corrigés.
+   */
+  private async reviseLogoConcept(
+    logo: LogoModel,
+    critique: LogoCritiqueResult,
+    project: ProjectModel
+  ): Promise<LogoModel> {
+    const remarksText = critique.remarks
+      .map((r, i) => `${i + 1}. [${r.criterion}] ${r.fix}`)
+      .join('\n');
+
+    const brandName = project.name || this.extractProjectName(this.extractProjectDescription(project));
+    const prompt = LOGO_REVISION_PROMPT.replace(
+      '{{ORIGINAL_LOGO_JSON}}',
+      JSON.stringify({
+        id: logo.id,
+        name: logo.name,
+        concept: logo.concept,
+        colors: logo.colors,
+        fonts: logo.fonts,
+        svg: logo.svg,
+      })
+    )
+      .replace(/\{\{BRAND_NAME\}\}/g, brandName)
+      .replace('{{CRITIQUE_REMARKS}}', remarksText || critique.summary);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: 'Logo Revision',
+        maxOutputTokens: 3500,
+        modelParser: (content) => {
+          try {
+            return JSON.parse(content);
+          } catch (error) {
+            logger.error('Error parsing logo revision JSON:', error);
+            throw new Error('Failed to parse logo revision');
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project, {
+      ...BrandingService.LOGO_LLM_CONFIG,
+      skipQuotaCheck: true,
+    });
+    const logoData = sectionResults[0].parsedData;
+
+    if (!logoData?.svg || typeof logoData.svg !== 'string') {
+      throw new Error('Logo revision returned no SVG');
+    }
+
+    return {
+      ...logo,
+      name: logoData.name || logo.name,
+      concept: logoData.concept || logo.concept,
+      colors: Array.isArray(logoData.colors) ? logoData.colors : logo.colors,
+      fonts: Array.isArray(logoData.fonts) ? logoData.fonts : logo.fonts,
+      svg: logoData.svg,
+      iconSvg: this.extractIconFromSvg(logoData.svg),
+    };
+  }
+
+  /**
+   * Génération streamée des concepts de logo avec boucle qualité :
+   * génération → critique (agent design director) → révision si échec.
+   * Chaque étape est poussée au client via streamCallback (SSE), les logos
+   * finalisés sont persistés au fil de l'eau, et la génération peut être
+   * annulée à tout moment (sélection anticipée par l'utilisateur).
+   */
+  async generateLogoConceptsWithStreaming(
+    userId: string,
+    projectId: string,
+    streamCallback: (event: ILogoStreamEvent) => Promise<void>,
+    forceRegenerate = false,
+    preferencesOverride?: LogoPreferences
+  ): Promise<LogoModel[]> {
+    const project = await this.getProjectOptimized(userId, projectId);
+    if (!project) {
+      throw new Error(`Project not found with ID: ${projectId}`);
+    }
+
+    const branding = project.analysisResultModel?.branding;
+    const selectedColors = branding?.colors;
+    const selectedTypography = branding?.typography;
+    // Priorité aux préférences passées par le client (formulaire non encore persisté)
+    const preferences = preferencesOverride ?? branding?.logoPreferences;
+
+    if (!selectedColors || !selectedTypography) {
+      throw new Error(`Project is missing colors or typography. Cannot generate logos.`);
+    }
+
+    const existingLogos =
+      !forceRegenerate && branding?.generatedLogos ? branding.generatedLogos : [];
+
+    // Émettre les logos déjà générés (reprise après interruption)
+    for (let i = 0; i < existingLogos.length; i++) {
+      await streamCallback({ type: 'concept_finalized', conceptIndex: i, logo: existingLogos[i] });
+    }
+    if (existingLogos.length >= 3) {
+      logger.info(
+        `Streamed logos already complete (${existingLogos.length}/3) for projectId: ${projectId}`
+      );
+      return existingLogos;
+    }
+
+    const logosToGenerateCount = 3 - existingLogos.length;
+    const isRetry = existingLogos.length > 0;
+
+    const generationKey = BrandingService.logoGenerationKey(userId, projectId);
+    const cancelState = { cancelled: false };
+    BrandingService.activeLogoGenerations.set(generationKey, cancelState);
+
+    const projectDescription = this.extractProjectDescription(project);
+    const optimizedPrompt = this.buildOptimizedLogoPrompt(
+      projectDescription,
+      selectedColors,
+      selectedTypography,
+      preferences
+    );
+
+    const finalLogos: LogoModel[] = [...existingLogos];
+
+    // Persistance sérialisée : les concepts finissent en parallèle,
+    // les updates DB/cache se suivent pour éviter les écrasements.
+    let persistChain: Promise<void> = Promise.resolve();
+    const persistLogos = () => {
+      const snapshot = [...finalLogos];
+      persistChain = persistChain
+        .then(() =>
+          this.updateProjectWithLogosAsync(
+            userId,
+            projectId,
+            project,
+            selectedColors,
+            selectedTypography,
+            snapshot
+          )
+        )
+        .catch((error) => {
+          logger.error('Progressive logo persist failed:', error);
+        });
+    };
+
+    const processConcept = async (offset: number): Promise<LogoModel | null> => {
+      const index = existingLogos.length + offset;
+      try {
+        if (cancelState.cancelled) {
+          await streamCallback({ type: 'concept_cancelled', conceptIndex: index });
+          return null;
+        }
+        await streamCallback({ type: 'concept_started', conceptIndex: index });
+
+        let logo = await this.generateRawLogoConcept(
+          optimizedPrompt,
+          project,
+          index,
+          preferences,
+          isRetry
+        );
+        logo = this.optimizeLogoSvgs(logo);
+        await streamCallback({ type: 'concept_generated', conceptIndex: index, logo });
+
+        // Annulé pendant la génération : on garde le logo tel quel, sans passe qualité
+        if (!cancelState.cancelled) {
+          await streamCallback({ type: 'critique_started', conceptIndex: index });
+          let critique: LogoCritiqueResult | null = null;
+          try {
+            critique = await this.critiqueLogoConcept(logo, project);
+          } catch (error) {
+            logger.warn(`Logo critique failed for concept ${index + 1}, keeping logo as-is`);
+          }
+          if (critique) {
+            await streamCallback({ type: 'critique_result', conceptIndex: index, critique });
+
+            if (critique.verdict === 'fail' && !cancelState.cancelled) {
+              await streamCallback({ type: 'revision_started', conceptIndex: index, critique });
+              try {
+                let revised = await this.reviseLogoConcept(logo, critique, project);
+                revised = this.optimizeLogoSvgs(revised);
+                logo = revised;
+                await streamCallback({ type: 'concept_updated', conceptIndex: index, logo });
+              } catch (error) {
+                logger.warn(`Logo revision failed for concept ${index + 1}, keeping original`);
+              }
+            }
+          }
+        }
+
+        finalLogos.push(logo);
+        persistLogos();
+        await streamCallback({ type: 'concept_finalized', conceptIndex: index, logo });
+        return logo;
+      } catch (error: any) {
+        logger.error(`Streamed logo concept ${index + 1} failed:`, error);
+        try {
+          await streamCallback({
+            type: 'concept_error',
+            conceptIndex: index,
+            message: error.message,
+          });
+        } catch {
+          // le client a peut-être fermé la connexion
+        }
+        return null;
+      }
+    };
+
+    try {
+      await Promise.all(
+        Array.from({ length: logosToGenerateCount }, (_, offset) => processConcept(offset))
+      );
+      await persistChain;
+      logger.info(
+        `Streamed logo generation completed - ProjectId: ${projectId}, finalized: ${finalLogos.length}, cancelled: ${cancelState.cancelled}`
+      );
+      return finalLogos;
+    } finally {
+      BrandingService.activeLogoGenerations.delete(generationKey);
+    }
   }
 
   /**
@@ -1338,7 +1839,8 @@ export class BrandingService extends GenericService {
    */
   private async generateSingleLightVariation(
     logoStructure: any,
-    project: ProjectModel
+    project: ProjectModel,
+    skipQuotaCheck = false
   ): Promise<{ lightBackground?: string }> {
     const prompt = `Logo structure: ${JSON.stringify(
       logoStructure
@@ -1362,7 +1864,14 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck,
+      }
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -1371,7 +1880,8 @@ export class BrandingService extends GenericService {
    */
   private async generateSingleDarkVariation(
     logoStructure: any,
-    project: ProjectModel
+    project: ProjectModel,
+    skipQuotaCheck = false
   ): Promise<{ darkBackground?: string }> {
     const prompt = `Logo structure: ${JSON.stringify(
       logoStructure
@@ -1395,7 +1905,14 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck,
+      }
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -1404,7 +1921,8 @@ export class BrandingService extends GenericService {
    */
   private async generateSingleMonochromeVariation(
     logoStructure: any,
-    project: ProjectModel
+    project: ProjectModel,
+    skipQuotaCheck = false
   ): Promise<{ monochrome?: string }> {
     const prompt = `Logo structure: ${JSON.stringify(
       logoStructure
@@ -1428,7 +1946,14 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck,
+      }
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -1439,7 +1964,9 @@ export class BrandingService extends GenericService {
   async generateLogoVariations(
     userId: string,
     projectId: string,
-    selectedLogo: LogoModel
+    selectedLogo: LogoModel,
+    forceRegenerate = false,
+    skipQuotaCheck = false
   ): Promise<{
     withText: {
       lightBackground?: string;
@@ -1468,15 +1995,30 @@ export class BrandingService extends GenericService {
       svg: selectedLogo.iconSvg,
     };
 
-    // Execute all three variations in parallel
-    logger.info(`Starting parallel generation of 3 logo variations`);
+    const existingVariations = (!forceRegenerate && selectedLogo.variations?.withText) ? selectedLogo.variations.withText : {};
+    const isRetry = (selectedLogo.variations?.withText !== undefined) || skipQuotaCheck;
+
+    // Execute only the missing variations in parallel
+    logger.info(`Starting parallel generation of logo variations (resuming completed ones)`);
+    const lightPromise = existingVariations.lightBackground
+      ? Promise.resolve({ lightBackground: existingVariations.lightBackground })
+      : this.generateSingleLightVariation(logoStructure, project, isRetry);
+
+    const darkPromise = existingVariations.darkBackground
+      ? Promise.resolve({ darkBackground: existingVariations.darkBackground })
+      : this.generateSingleDarkVariation(logoStructure, project, isRetry);
+
+    const monochromePromise = existingVariations.monochrome
+      ? Promise.resolve({ monochrome: existingVariations.monochrome })
+      : this.generateSingleMonochromeVariation(logoStructure, project, isRetry);
+
     const [lightVariation, darkVariation, monochromeVariation] = await Promise.all([
-      this.generateSingleLightVariation(logoStructure, project),
-      this.generateSingleDarkVariation(logoStructure, project),
-      this.generateSingleMonochromeVariation(logoStructure, project),
+      lightPromise,
+      darkPromise,
+      monochromePromise,
     ]);
 
-    logger.info(`Successfully generated all 3 variations in parallel`);
+    logger.info(`Successfully processed all 3 variations`);
 
     // Create direct SVG variations (bypassing JSON-to-SVG conversion since we already have SVGs)
     const svgVariations = {
@@ -1553,6 +2095,262 @@ export class BrandingService extends GenericService {
         `Optimized logo variations cached - ProjectId: ${projectId}, Variations: ${Object.keys(
           optimizedVariations.iconOnly
         ).join('/')}`
+      );
+    }
+
+    return optimizedVariations;
+  }
+
+  /**
+   * Agent critique des déclinaisons : juge la fidélité géométrique et la
+   * lisibilité sur le fond cible, avec la mesure de visibilité réelle (rendu)
+   * en entrée. Interne — pas de décompte de crédits.
+   */
+  private async critiqueLogoVariation(
+    originalSvg: string,
+    variationSvg: string,
+    variant: LogoVariationKind,
+    project: ProjectModel
+  ): Promise<LogoCritiqueResult> {
+    const background = VARIATION_BACKGROUNDS[variant];
+    const visibility = await measureSvgVisibility(variationSvg, background);
+
+    const prompt = LOGO_VARIATION_CRITIQUE_PROMPT.replace(/\{\{VARIANT\}\}/g, variant)
+      .replace(/\{\{BACKGROUND\}\}/g, background)
+      .replace(/\{\{VISIBILITY\}\}/g, String(Math.round(visibility * 100)))
+      .replace('{{ORIGINAL_SVG}}', originalSvg)
+      .replace('{{VARIATION_SVG}}', variationSvg);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: `Variation Critique ${variant}`,
+        maxOutputTokens: 1200,
+        modelParser: (content) => {
+          try {
+            return JSON.parse(content);
+          } catch (error) {
+            logger.error('Error parsing variation critique JSON:', error);
+            throw new Error('Failed to parse variation critique');
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project, {
+      ...BrandingService.LOGO_LLM_CONFIG,
+      llmOptions: {
+        ...BrandingService.LOGO_LLM_CONFIG.llmOptions,
+        temperature: 0.15,
+        maxOutputTokens: 1200,
+      },
+      skipQuotaCheck: true,
+    });
+    const parsed = sectionResults[0].parsedData;
+
+    return {
+      verdict: parsed?.verdict === 'fail' ? 'fail' : 'pass',
+      score: typeof parsed?.score === 'number' ? parsed.score : 75,
+      summary: typeof parsed?.summary === 'string' ? parsed.summary : '',
+      remarks: Array.isArray(parsed?.remarks)
+        ? parsed.remarks
+            .filter((r: any) => r && typeof r.issue === 'string')
+            .slice(0, 4)
+            .map((r: any) => ({
+              criterion: r.criterion || 'quality',
+              issue: r.issue,
+              fix: r.fix || r.issue,
+            }))
+        : [],
+    };
+  }
+
+  /**
+   * Génération streamée des déclinaisons (fond clair / sombre / monochrome)
+   * avec boucle qualité : génération → critique (fidélité + lisibilité mesurée)
+   * → recoloration bornée si échec (la géométrie reste gelée). Chaque étape est
+   * poussée au client via SSE ; le résultat est persisté sur le projet.
+   */
+  async generateLogoVariationsWithStreaming(
+    userId: string,
+    projectId: string,
+    streamCallback: (event: ILogoVariationStreamEvent) => Promise<void>,
+    forceRegenerate = false
+  ): Promise<{
+    withText: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+    iconOnly: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+  }> {
+    const project = await this.getProjectOptimized(userId, projectId);
+    if (!project) {
+      throw new Error(`Project not found with ID: ${projectId}`);
+    }
+
+    const selectedLogo = project.analysisResultModel?.branding?.logo;
+    if (!selectedLogo?.svg) {
+      throw new Error('No selected logo found on project. Select a logo first.');
+    }
+
+    const existing =
+      !forceRegenerate && selectedLogo.variations?.withText ? selectedLogo.variations.withText : {};
+    const isRetry = selectedLogo.variations?.withText !== undefined;
+
+    const kinds: LogoVariationKind[] = ['lightBackground', 'darkBackground', 'monochrome'];
+    const results: Partial<Record<LogoVariationKind, string>> = {};
+
+    // Réémettre l'existant (reprise), ne générer que le manquant
+    for (const kind of kinds) {
+      const existingSvg = (existing as Record<string, string | undefined>)[kind];
+      if (existingSvg) {
+        results[kind] = existingSvg;
+        await streamCallback({ type: 'variation_finalized', variant: kind, svg: existingSvg });
+      }
+    }
+    const missingKinds = kinds.filter((kind) => !results[kind]);
+    if (missingKinds.length === 0) {
+      return { withText: { ...results }, iconOnly: { ...results } };
+    }
+
+    const generationKey = BrandingService.variationsGenerationKey(userId, projectId);
+    const cancelState = { cancelled: false };
+    BrandingService.activeLogoGenerations.set(generationKey, cancelState);
+
+    // Structure compacte pour l'IA (mêmes entrées que le flux non streamé)
+    const logoStructure = {
+      id: selectedLogo.id,
+      name: selectedLogo.name,
+      colors: selectedLogo.colors,
+      concept: selectedLogo.concept,
+      svg: selectedLogo.iconSvg,
+    };
+    const originalSvg = selectedLogo.iconSvg || selectedLogo.svg;
+
+    const generateOne = async (kind: LogoVariationKind): Promise<string | undefined> => {
+      switch (kind) {
+        case 'lightBackground':
+          return (await this.generateSingleLightVariation(logoStructure, project, isRetry))
+            .lightBackground;
+        case 'darkBackground':
+          return (await this.generateSingleDarkVariation(logoStructure, project, isRetry))
+            .darkBackground;
+        case 'monochrome':
+          return (await this.generateSingleMonochromeVariation(logoStructure, project, isRetry))
+            .monochrome;
+      }
+    };
+
+    const processVariant = async (kind: LogoVariationKind): Promise<void> => {
+      try {
+        if (cancelState.cancelled) {
+          await streamCallback({ type: 'variation_cancelled', variant: kind });
+          return;
+        }
+        await streamCallback({ type: 'variation_started', variant: kind });
+
+        let svg = await generateOne(kind);
+        if (!svg) {
+          throw new Error(`Empty ${kind} variation`);
+        }
+        svg = SvgOptimizerService.optimizeSvg(svg);
+        await streamCallback({ type: 'variation_generated', variant: kind, svg });
+
+        if (!cancelState.cancelled) {
+          await streamCallback({ type: 'critique_started', variant: kind });
+          let critique: LogoCritiqueResult | null = null;
+          try {
+            critique = await this.critiqueLogoVariation(originalSvg, svg, kind, project);
+          } catch (error) {
+            logger.warn(`Variation critique failed for ${kind}, keeping as-is`);
+          }
+          if (critique) {
+            await streamCallback({ type: 'critique_result', variant: kind, critique });
+
+            if (critique.verdict === 'fail' && !cancelState.cancelled) {
+              await streamCallback({ type: 'revision_started', variant: kind, critique });
+              try {
+                // Réparation bornée : remapping de couleurs uniquement, géométrie gelée
+                const mapping = await this.aiRecolorLogoVariation(
+                  {
+                    svg,
+                    variant: kind,
+                    background: VARIATION_BACKGROUNDS[kind],
+                    issue:
+                      critique.remarks.map((r) => r.fix).join('; ') || critique.summary,
+                  },
+                  project
+                );
+                if (mapping && Object.keys(mapping).length > 0) {
+                  const revised = SvgOptimizerService.optimizeSvg(
+                    await applyColorMappingToSvg(svg, mapping)
+                  );
+                  // Garde-fou : ne remplacer que si la visibilité ne régresse pas
+                  const background = VARIATION_BACKGROUNDS[kind];
+                  const [before, after] = await Promise.all([
+                    measureSvgVisibility(svg, background),
+                    measureSvgVisibility(revised, background),
+                  ]);
+                  if (after >= before) {
+                    svg = revised;
+                    await streamCallback({ type: 'variation_updated', variant: kind, svg });
+                  }
+                }
+              } catch (error) {
+                logger.warn(`Variation revision failed for ${kind}, keeping original`);
+              }
+            }
+          }
+        }
+
+        results[kind] = svg;
+        await streamCallback({ type: 'variation_finalized', variant: kind, svg });
+      } catch (error: any) {
+        logger.error(`Streamed variation ${kind} failed:`, error);
+        try {
+          await streamCallback({ type: 'variation_error', variant: kind, message: error.message });
+        } catch {
+          // client déconnecté
+        }
+      }
+    };
+
+    try {
+      await Promise.all(missingKinds.map((kind) => processVariant(kind)));
+    } finally {
+      BrandingService.activeLogoGenerations.delete(generationKey);
+    }
+
+    const optimizedVariations = {
+      withText: this.optimizeVariationSet({ ...results }),
+      iconOnly: this.optimizeVariationSet({ ...results }),
+    };
+
+    // Persistance sur le projet (même logique que le flux non streamé)
+    const updatedProjectData = {
+      ...project,
+      analysisResultModel: {
+        ...project.analysisResultModel,
+        branding: {
+          ...project.analysisResultModel.branding,
+          logo: {
+            ...selectedLogo,
+            variations: optimizedVariations,
+          },
+          updatedAt: new Date(),
+        },
+      },
+    };
+    const updatedProject = await this.projectRepository.update(
+      projectId,
+      updatedProjectData,
+      `users/${userId}/projects`
+    );
+    if (updatedProject) {
+      await cacheService.set(`project_${userId}_${projectId}`, updatedProject, {
+        prefix: 'project',
+        ttl: 3600,
+      });
+      logger.info(
+        `Streamed logo variations persisted - ProjectId: ${projectId}, kinds: ${Object.keys(results).join('/')}`
       );
     }
 
@@ -2377,15 +3175,34 @@ ${LOGO_EDIT_PROMPT}`;
       `Generating colors and typography from imported logo for userId: ${userId}, logo colors: ${logoColors.join(', ')}`
     );
 
-    // Créer le projet
-    project = {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: BrandIdentityBuilder.createEmpty(),
-      },
-    };
-    const createdProject = await projectService.createUserProject(userId, project);
+    // Logo importé déjà sauvegardé côté front (avec ses variations générées à
+    // l'import). On le préserve tel quel : cet endpoint génère couleurs et
+    // typographies, il ne doit pas remplacer le logo de l'utilisateur.
+    const payloadLogo = project.analysisResultModel?.branding?.logo;
+
+    // Réutiliser le projet existant (workflow complete-branding) au lieu de créer
+    // un doublon : les couleurs/typographies doivent être persistées sur le projet
+    // que le dashboard charge, pas sur un nouveau projet.
+    const existingProject = project.id
+      ? await this.projectRepository.findById(project.id, `users/${userId}/projects`)
+      : null;
+
+    let createdProject: ProjectModel;
+    if (existingProject) {
+      logger.info(
+        `Reusing existing project for logo-based colors/typography - ProjectId: ${existingProject.id}`
+      );
+      createdProject = existingProject;
+    } else {
+      project = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: BrandIdentityBuilder.createEmpty(),
+        },
+      };
+      createdProject = await projectService.createUserProject(userId, project);
+    }
 
     if (!createdProject.id) {
       throw new Error(`Failed to create project`);
@@ -2438,26 +3255,51 @@ ${LOGO_EDIT_PROMPT}`;
     const generationTime = Date.now() - startTime;
     logger.info(`Logo-based colors and typography generation completed in ${generationTime}ms`);
 
-    // Generate logo variations (light/dark/monochrome) programmatically
-    logger.info(`Generating logo variations from imported SVG`);
-    const logoVariations = generateLogoVariationsFromSvg(logoSvg);
+    // Préserver le logo déjà persisté (workflow complete-branding) ; repli sur
+    // celui du payload si l'écriture front n'a pas encore atteint la base.
+    const existingLogo = createdProject.analysisResultModel?.branding?.logo ?? payloadLogo;
 
-    // Optimize variations
-    const optimizedVariations = {
-      withText: this.optimizeVariationSet(logoVariations.withText),
-      iconOnly: this.optimizeVariationSet(logoVariations.iconOnly),
-    };
+    // Generate logo variations (light/dark/monochrome) with the hybrid engine —
+    // UNIQUEMENT si le logo n'en a pas déjà (elles sont normalement générées à
+    // l'import). Les regénérer ici était redondant et ajoutait une surface
+    // d'échec/latence à chaque génération de palette.
+    // logo.svg may hold a MinIO URL — resolve it to inline SVG first.
+    // Non-fatal: colors/typography must succeed even if variations fail.
+    let optimizedVariations = existingLogo?.variations;
+    if (!optimizedVariations?.withText) {
+      logger.info(`Generating logo variations from imported SVG`);
+      try {
+        const svgContent = await resolveSvgContent(logoSvg);
+        const logoVariations = await generateLogoVariations(svgContent, {
+          aiRecolor: (request) => this.aiRecolorLogoVariation(request, createdProject),
+        });
+        optimizedVariations = {
+          withText: this.optimizeVariationSet(logoVariations.withText),
+          iconOnly: this.optimizeVariationSet(logoVariations.iconOnly),
+        };
+      } catch (error) {
+        logger.error(`Logo variation generation failed, falling back to no variations:`, error);
+      }
+    }
 
-    // Update project with generated colors, typography, logo, and variations
-    const importedLogo: LogoModel = {
-      id: `imported-${Date.now()}`,
-      name: 'Imported Logo',
-      svg: logoSvg,
-      concept: 'User-imported logo',
-      colors: logoColors,
-      fonts: [],
-      variations: optimizedVariations,
-    };
+    // Conserver le logo importé de l'utilisateur (complété des variations si
+    // besoin). Ne JAMAIS écrire generatedLogos ici : ce champ est réservé aux
+    // logos générés par l'IA — le polluer avec le logo importé faussait la
+    // reprise du workflow et l'étape logo-selection.
+    const importedLogo: LogoModel = existingLogo
+      ? {
+          ...existingLogo,
+          ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+        }
+      : {
+          id: `imported-${Date.now()}`,
+          name: 'Imported Logo',
+          svg: logoSvg,
+          concept: 'User-imported logo',
+          colors: logoColors,
+          fonts: [],
+          ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+        };
 
     const updatedProjectData = {
       ...createdProject,
@@ -2468,7 +3310,7 @@ ${LOGO_EDIT_PROMPT}`;
           generatedColors: colors,
           generatedTypography: typography,
           logo: importedLogo,
-          generatedLogos: [importedLogo],
+          importedLogoColors: logoColors,
           updatedAt: new Date(),
         },
       },
@@ -2500,6 +3342,21 @@ ${LOGO_EDIT_PROMPT}`;
   }
 
   /**
+   * Parse tolérant du JSON renvoyé par le LLM : supprime les fences markdown
+   * (```json … ```) et le texte parasite autour de l'objet JSON.
+   */
+  private parseLlmJson(content: string): Record<string, unknown> {
+    const cleaned = content
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/, '');
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    const jsonStr = start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
+    return JSON.parse(jsonStr);
+  }
+
+  /**
    * Generates colors using the logo-based prompt
    */
   private async generateColorsFromLogoPrompt(
@@ -2514,7 +3371,10 @@ ${LOGO_EDIT_PROMPT}`;
         stepName: 'Colors From Logo Generation',
         modelParser: (content) => {
           try {
-            const parsedColors = JSON.parse(content);
+            const parsedColors = this.parseLlmJson(content);
+            if (!Array.isArray(parsedColors.colors) || parsedColors.colors.length === 0) {
+              throw new Error('Response JSON has no non-empty "colors" array');
+            }
             return parsedColors.colors;
           } catch (error) {
             logger.error(`Error parsing logo-based colors:`, error);
@@ -2548,7 +3408,13 @@ ${LOGO_EDIT_PROMPT}`;
         stepName: 'Typography From Logo Generation',
         modelParser: (content) => {
           try {
-            const parsedTypography = JSON.parse(content);
+            const parsedTypography = this.parseLlmJson(content);
+            if (
+              !Array.isArray(parsedTypography.typography) ||
+              parsedTypography.typography.length === 0
+            ) {
+              throw new Error('Response JSON has no non-empty "typography" array');
+            }
             return parsedTypography.typography;
           } catch (error) {
             logger.error(`Error parsing logo-based typography:`, error);
@@ -2565,6 +3431,50 @@ ${LOGO_EDIT_PROMPT}`;
       BrandingService.TYPOGRAPHY_LLM_CONFIG
     );
     return sectionResults[0].parsedData as TypographyModel[];
+  }
+
+  /**
+   * AI fallback for the variation engine QA: returns a bounded color mapping
+   * (hex → hex) to fix an unreadable variation. Never touches geometry.
+   * Quota check is skipped — this is an internal quality repair, not a user action.
+   */
+  private async aiRecolorLogoVariation(
+    request: AiRecolorRequest,
+    project: ProjectModel
+  ): Promise<Record<string, string> | null> {
+    try {
+      const prompt = LOGO_VARIATION_RECOLOR_PROMPT.replace(/\{\{VARIANT\}\}/g, request.variant)
+        .replace(/\{\{BACKGROUND\}\}/g, request.background)
+        .replace(/\{\{ISSUE\}\}/g, request.issue)
+        .replace('{{SVG}}', request.svg);
+
+      const steps: IPromptStep[] = [
+        {
+          promptConstant: prompt,
+          stepName: 'Logo Variation Recolor',
+          maxOutputTokens: 800,
+          modelParser: (content) => {
+            try {
+              return JSON.parse(content).mapping;
+            } catch (error) {
+              logger.error('Error parsing recolor mapping JSON:', error);
+              throw new Error('Failed to parse recolor mapping JSON');
+            }
+          },
+          hasDependencies: false,
+        },
+      ];
+
+      const sectionResults = await this.processSteps(steps, project, {
+        ...BrandingService.LOGO_LLM_CONFIG,
+        skipQuotaCheck: true,
+      });
+      const mapping = sectionResults[0].parsedData;
+      return mapping && typeof mapping === 'object' ? mapping : null;
+    } catch (error) {
+      logger.error('AI recolor fallback failed (variation kept as-is):', error);
+      return null;
+    }
   }
 
   /**

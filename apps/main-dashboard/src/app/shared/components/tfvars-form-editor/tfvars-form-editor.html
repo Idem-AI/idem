@@ -3,7 +3,7 @@
     <!-- Form Header -->
     <div class="flex-shrink-0 glass-card p-4 mb-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-white text-glow-primary">Terraform Variables</h3>
+        <h3 class="text-lg font-semibold text-text-primary text-glow-primary">Terraform Variables</h3>
         <p-button
           label="Add Variable"
           icon="pi pi-plus"
@@ -25,7 +25,7 @@
             <p-accordion-panel [value]="$index.toString()">
               <p-accordion-header>
                 <div class="flex items-center">
-                  <h4 class="text-lg font-medium text-white text-glow-primary">
+                  <h4 class="text-lg font-medium text-text-primary text-glow-primary">
                     {{ section.name }}
                   </h4>
                   @if (section.description) {
@@ -92,7 +92,7 @@
                               ></p-toggleswitch>
                               <label
                                 [for]="section.name + '_' + field.key"
-                                class="text-sm text-white"
+                                class="text-sm text-text-primary"
                               >
                                 {{ field.label }}
                               </label>
@@ -190,7 +190,7 @@
             <p-accordion-panel value="custom">
               <p-accordion-header>
                 <div class="flex items-center">
-                  <h4 class="text-lg font-medium text-white text-glow-primary">Custom Variables</h4>
+                  <h4 class="text-lg font-medium text-text-primary text-glow-primary">Custom Variables</h4>
                   <p-tag
                     [value]="(formDataSignal()!.customFields.length || 0) + ' variables'"
                     severity="info"
@@ -204,7 +204,7 @@
                   @for (field of formDataSignal()!.customFields; track trackField($index, field)) {
                     <div class="space-y-2">
                       <div class="flex items-center justify-between mb-2">
-                        <label class="block text-sm font-medium text-white">
+                        <label class="block text-sm font-medium text-text-primary">
                           {{ formatLabel(field.label) }}
                           @if (field.required) {
                             <span class="text-red-400 ml-1">*</span>
@@ -223,7 +223,7 @@
                       </div>
 
                       @if (field.description) {
-                        <p class="text-xs text-gray-400 mb-2">{{ field.description }}</p>
+                        <p class="text-xs text-text-tertiary mb-2">{{ field.description }}</p>
                       }
 
                       <div class="space-y-2">
@@ -271,7 +271,7 @@
                                 [formControlName]="field.key"
                                 [disabled]="readonlySignal()"
                               ></p-toggleswitch>
-                              <label [for]="'custom_' + field.key" class="text-sm text-white">
+                              <label [for]="'custom_' + field.key" class="text-sm text-text-primary">
                                 {{ field.label }}
                               </label>
                             </div>
@@ -381,7 +381,7 @@
                     id="custom_key"
                     formControlName="key"
                     placeholder="e.g., my_variable"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 sm:text-sm"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-text-tertiary focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 sm:text-sm"
                   />
                   @if (
                     customFieldForm().get('key')?.errors?.['required'] &&
@@ -433,7 +433,7 @@
                   id="custom_label"
                   formControlName="label"
                   placeholder="Auto-generated from key if empty"
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 sm:text-sm"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-text-tertiary focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 sm:text-sm"
                 />
               </div>
 
@@ -449,7 +449,7 @@
                   formControlName="description"
                   rows="2"
                   placeholder="Optional description for this variable"
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 sm:text-sm"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-text-tertiary focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 sm:text-sm"
                 ></textarea>
               </div>
 
@@ -495,7 +495,7 @@
     <div class="flex-1 flex items-center justify-center p-8">
       <div class="text-center">
         <svg
-          class="mx-auto h-12 w-12 text-gray-400"
+          class="mx-auto h-12 w-12 text-text-tertiary"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -508,7 +508,7 @@
           ></path>
         </svg>
         <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No variables found</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p class="mt-1 text-sm text-text-tertiary dark:text-gray-400">
           No Terraform variables are available for editing.
         </p>
       </div>

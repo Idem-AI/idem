@@ -1,4 +1,6 @@
-import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { LLMProvider, PromptConfig, PromptService, AIChatMessage } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
+
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
 import { BusinessPlanModel } from '../../models/businessPlan.model';
@@ -6,6 +8,7 @@ import { GenericService, IPromptStep, ISectionResult } from '../common/generic.s
 import { SectionModel } from '../../models/section.model';
 import { PdfService } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
+import { getRequestLanguage, SupportedLanguage } from '../../utils/request-language';
 import crypto from 'crypto';
 import { AGENT_COVER_PROMPT } from './prompts/agent-cover.prompt';
 import { AGENT_COMPANY_SUMMARY_PROMPT } from './prompts/agent-company-summary.prompt';
@@ -19,6 +22,18 @@ import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 
+export const BUSINESS_PLAN_SECTION_NAMES = [
+  'Cover Page',
+  'Company Summary',
+  'Opportunity',
+  'Target Audience',
+  'Products & Services',
+  'Marketing & Sales',
+  'Financial Plan',
+  'Goal Planning',
+  'Appendix',
+];
+
 export class BusinessPlanService extends GenericService {
   private pdfService: PdfService;
 
@@ -31,10 +46,12 @@ export class BusinessPlanService extends GenericService {
   async generateBusinessPlanWithStreaming(
     userId: string,
     projectId: string,
-    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
+    forceRegenerate = false,
+    targetSections: string[] = []
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}`
+      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     // Generate cache key based on project content
@@ -63,15 +80,24 @@ export class BusinessPlanService extends GenericService {
 
     const cacheKey = cacheService.generateAIKey('business-plan', userId, projectId, contentHash);
 
-    // Check cache first
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: 'ai',
-      ttl: 7200, // 2 hours
-    });
+    // The cached result may be an incomplete plan (it is updated after each step),
+    // so only short-circuit on it when nothing needs to be (re)generated.
+    const currentSections = project.analysisResultModel?.businessPlan?.sections || [];
+    const skipCacheRead =
+      forceRegenerate ||
+      targetSections.length > 0 ||
+      currentSections.length < BUSINESS_PLAN_SECTION_NAMES.length;
 
-    if (cachedResult) {
-      logger.info(`Business plan cache hit for projectId: ${projectId}`);
-      return cachedResult;
+    if (!skipCacheRead) {
+      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+        prefix: 'ai',
+        ttl: 7200, // 2 hours
+      });
+
+      if (cachedResult) {
+        logger.info(`Business plan cache hit for projectId: ${projectId}`);
+        return cachedResult;
+      }
     }
 
     logger.info(`Business plan cache miss, generating new content for projectId: ${projectId}`);
@@ -86,12 +112,53 @@ export class BusinessPlanService extends GenericService {
     const typography = project.analysisResultModel?.branding?.typography || {
       primary: 'Arial, sans-serif',
     };
-    const language = 'fr';
+    // Use the user's request language instead of a hard-coded 'fr' so the plan is
+    // generated in the language selected in the UI (falls back to 'en').
+    const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
 
     // Create brand context for all agents
     const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
       brandColors
     )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
+
+    // Build finance context if finance module exists
+    let financeContext = '';
+    if (project.analysisResultModel?.finance) {
+      const finance = project.analysisResultModel.finance;
+      const summaryText = [];
+      if (finance.computed) {
+        const ce = finance.computed.compteExploitation || [];
+        const seuil = finance.computed.seuilRentabilite || [];
+        const ft = finance.computed.fluxTresorerie || [];
+        
+        summaryText.push('--- DONNÉES FINANCIÈRES RÉELLES DU MODULE FINANCE ---');
+        summaryText.push(`Devise: ${finance.meta?.currency || 'FCFA'}`);
+        
+        summaryText.push('Projections de Chiffre d\'Affaires et Résultat Net:');
+        ce.forEach((y: any) => {
+          summaryText.push(`- Année ${y.year}: CA = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, Résultat Net = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, Marge brute = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
+        });
+        
+        if (seuil.length > 0) {
+          summaryText.push('Seuil de rentabilité (Break-even):');
+          seuil.forEach((s: any) => {
+            summaryText.push(`- Année ${s.year}: Seuil = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, Point Mort = ${s.pointMortJours} jours`);
+          });
+        }
+        
+        if (ft.length > 0) {
+          summaryText.push('Trésorerie de clôture:');
+          ft.forEach((f: any) => {
+            summaryText.push(`- Année ${f.year}: Trésorerie clôture = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
+          });
+        }
+      } else {
+        summaryText.push('--- DONNÉES DU MODULE FINANCE (Non calculées) ---');
+        summaryText.push(`Produits: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
+      }
+      financeContext = '\n\n' + summaryText.join('\n');
+    }
+
     try {
       // Define business plan steps with specialized agents
       const steps: IPromptStep[] = [
@@ -126,7 +193,7 @@ export class BusinessPlanService extends GenericService {
           hasDependencies: false,
         },
         {
-          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
           stepName: 'Financial Plan',
           hasDependencies: false,
         },
@@ -142,12 +209,21 @@ export class BusinessPlanService extends GenericService {
         },
       ];
       const promptConfig: PromptConfig = {
-        provider: LLMProvider.GEMINI,
-        modelName: 'gemini-3-flash-preview',
+        provider: AI_CONFIG.businessPlan.provider,
+        modelName: AI_CONFIG.businessPlan.modelName,
       };
 
-      // Initialize empty sections array to collect results as they come in
-      let sectionResults: SectionModel[] = [];
+      // Load existing sections if not forcing regeneration.
+      // Sections listed in targetSections are dropped so they get regenerated,
+      // while the others are kept as-is (resume semantics).
+      const existingSections = forceRegenerate
+        ? []
+        : targetSections.length > 0
+          ? currentSections.filter((s) => !targetSections.includes(s.name))
+          : currentSections;
+
+      // Initialize sections array with existing sections to collect results
+      let sectionResults: SectionModel[] = [...existingSections];
 
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
@@ -171,8 +247,17 @@ export class BusinessPlanService extends GenericService {
               summary: result.summary,
             };
 
-            // Add to sections array
-            sectionResults.push(section);
+            // Add or replace in sections array to avoid duplicates
+            const existingIndex = sectionResults.findIndex((s) => s.name === section.name);
+            if (existingIndex !== -1) {
+              sectionResults[existingIndex] = section;
+            } else {
+              sectionResults.push(section);
+            }
+
+            // Sort sections to match the original steps order
+            const stepOrder = steps.map((s) => s.stepName);
+            sectionResults.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
             // Update project immediately after each step
             logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
@@ -232,8 +317,14 @@ export class BusinessPlanService extends GenericService {
           },
           promptConfig,
           'business_plan',
-          userId
+          userId,
+          undefined, // finalizationCallback
+          existingSections
         );
+
+        // The stored PDF no longer matches the regenerated sections
+        const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+        await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
 
         // Return the updated project (it should be available in cache or fetch it again)
         const finalProject = await this.projectRepository.findById(
@@ -290,6 +381,10 @@ export class BusinessPlanService extends GenericService {
             ttl: 7200, // 2 hours
           });
           logger.info(`Business plan cached for projectId: ${projectId}`);
+
+          // The stored PDF no longer matches the regenerated sections
+          const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+          await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
         }
         return updatedProject;
       }
@@ -541,5 +636,149 @@ export class BusinessPlanService extends GenericService {
       project: savedProject,
       uploadedImages: Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
     };
+  }
+
+  /**
+   * Met à jour uniquement la section Financial Plan du business plan
+   * suite à une mise à jour des données financières du projet.
+   */
+  async updateFinancialPlanSection(userId: string, projectId: string, requestLanguage?: SupportedLanguage): Promise<void> {
+    logger.info(`Updating Financial Plan section of Business Plan for project ${projectId}`);
+    const project = await this.getProject(projectId, userId);
+    if (!project || !project.analysisResultModel?.businessPlan) {
+      logger.info(`No business plan exists to sync for project ${projectId}`);
+      return;
+    }
+
+    const bp = project.analysisResultModel.businessPlan;
+    const existingSections = bp.sections || [];
+    const finPlanIndex = existingSections.findIndex(s => s.name === 'Financial Plan');
+    if (finPlanIndex === -1) {
+      logger.info(`Financial Plan section not found in business plan for project ${projectId}`);
+      return;
+    }
+
+    const projectDescription =
+      this.extractProjectDescription(project) +
+      '\n' +
+      'Additional infos: ' +
+      JSON.stringify(project.additionalInfos);
+
+    const brandName = project.name || 'Startup';
+    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
+    const brandColors = project.analysisResultModel?.branding?.colors || {
+      primary: '#007bff',
+      secondary: '#6c757d',
+    };
+    const typography = project.analysisResultModel?.branding?.typography || {
+      primary: 'Arial, sans-serif',
+    };
+    const language = (requestLanguage || getRequestLanguage()) === 'fr' ? 'French' : 'English';
+
+    const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
+      brandColors
+    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
+
+    // Build finance context
+    let financeContext = '';
+    if (project.analysisResultModel?.finance) {
+      const finance = project.analysisResultModel.finance;
+      const summaryText = [];
+      if (finance.computed) {
+        const ce = finance.computed.compteExploitation || [];
+        const seuil = finance.computed.seuilRentabilite || [];
+        const ft = finance.computed.fluxTresorerie || [];
+        
+        summaryText.push('--- DONNÉES FINANCIÈRES RÉELLES DU MODULE FINANCE ---');
+        summaryText.push(`Devise: ${finance.meta?.currency || 'FCFA'}`);
+        
+        summaryText.push('Projections de Chiffre d\'Affaires et Résultat Net:');
+        ce.forEach((y: any) => {
+          summaryText.push(`- Année ${y.year}: CA = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, Résultat Net = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, Marge brute = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
+        });
+        
+        if (seuil.length > 0) {
+          summaryText.push('Seuil de rentabilité (Break-even):');
+          seuil.forEach((s: any) => {
+            summaryText.push(`- Année ${s.year}: Seuil = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, Point Mort = ${s.pointMortJours} jours`);
+          });
+        }
+        
+        if (ft.length > 0) {
+          summaryText.push('Trésorerie de clôture:');
+          ft.forEach((f: any) => {
+            summaryText.push(`- Année ${f.year}: Trésorerie clôture = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
+          });
+        }
+      } else {
+        summaryText.push('--- DONNÉES DU MODULE FINANCE (Non calculées) ---');
+        summaryText.push(`Produits: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
+      }
+      financeContext = '\n\n' + summaryText.join('\n');
+    }
+
+    const step: IPromptStep = {
+      promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
+      stepName: 'Financial Plan',
+      hasDependencies: false,
+    };
+
+    const promptConfig: PromptConfig = {
+      provider: AI_CONFIG.businessPlan.provider,
+      modelName: AI_CONFIG.businessPlan.modelName,
+      skipQuotaCheck: true,
+    };
+
+    const messages: AIChatMessage[] = [
+      {
+        role: 'user',
+        content: step.promptConstant,
+      },
+    ];
+
+    try {
+      const content = await this.runStepAndAppend(
+        step,
+        project,
+        true,
+        messages,
+        userId,
+        'Financial Plan Auto-Update',
+        '',
+        promptConfig
+      );
+
+      existingSections[finPlanIndex] = {
+        ...existingSections[finPlanIndex],
+        data: content,
+        summary: `Financial Plan for Project ${project.id} (Updated from Finance module)`,
+        updatedAt: new Date()
+      } as any;
+
+      const newProject = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          businessPlan: {
+            ...bp,
+            sections: existingSections,
+            updatedAt: new Date(),
+          },
+        },
+      };
+
+      await this.projectRepository.update(
+        projectId,
+        newProject,
+        `users/${userId}/projects`
+      );
+
+      const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+      await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+
+      logger.info(`Successfully auto-updated Financial Plan section in business plan for project ${projectId}`);
+    } catch (err: any) {
+      logger.error(`Failed to auto-update Financial Plan section: ${err.message}`, { stack: err.stack });
+    }
   }
 }

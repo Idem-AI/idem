@@ -11,6 +11,7 @@ export const routes: Routes = [
 
   {
     path: 'login',
+    title: 'navigation.titles.login',
     loadComponent: () => import('./modules/auth/pages/login/login').then((m) => m.Login),
     canActivate: [publicGuard],
     data: { layout: 'empty' },
@@ -21,6 +22,7 @@ export const routes: Routes = [
   // ============================================
   {
     path: 'console',
+    title: 'navigation.titles.console',
     loadComponent: () =>
       import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
         (m) => m.GlobalDashboard,
@@ -30,40 +32,14 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
-        (m) => m.GlobalDashboard,
-      ),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
+    redirectTo: 'console',
+    pathMatch: 'full',
   },
   {
     path: 'projects',
+    title: 'navigation.titles.projects',
     loadComponent: () =>
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
-  },
-  {
-    path: 'teams',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/my-teams/my-teams').then((m) => m.MyTeams),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
-  },
-  {
-    path: 'teams/create',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/create-team/create-team').then((m) => m.CreateTeam),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
-  },
-  {
-    path: 'teams/:teamId',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/team-details-global/team-details-global').then(
-        (m) => m.TeamDetailsGlobal,
-      ),
     canActivate: [authGuard],
     data: { layout: 'global' },
   },
@@ -73,6 +49,7 @@ export const routes: Routes = [
   // ============================================
   {
     path: 'chat',
+    title: 'navigation.titles.chat',
     loadComponent: () =>
       import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
     canActivate: [authGuard],
@@ -80,6 +57,7 @@ export const routes: Routes = [
   },
   {
     path: 'chat/new',
+    title: 'navigation.titles.chatNew',
     loadComponent: () =>
       import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
     canActivate: [authGuard],
@@ -91,6 +69,7 @@ export const routes: Routes = [
   // ============================================
   {
     path: 'project/dashboard',
+    title: 'navigation.titles.dashboard',
     loadComponent: () =>
       import('./modules/dashboard/pages/dashboard/dashboard').then((m) => m.DashboardComponent),
     canActivate: [authGuard],
@@ -98,6 +77,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/branding',
+    title: 'navigation.titles.branding',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-branding/show-branding').then(
         (m) => m.ShowBrandingComponent,
@@ -107,6 +87,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/complete-branding',
+    title: 'navigation.titles.completeBranding',
     loadComponent: () =>
       import('./modules/dashboard/pages/complete-branding/complete-branding').then(
         (m) => m.CompleteBrandingPage,
@@ -116,6 +97,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/branding/display',
+    title: 'navigation.titles.brandingDisplay',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-branding/components/branding-display/branding-display').then(
         (m) => m.BrandingDisplayComponent,
@@ -125,6 +107,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/branding/generate',
+    title: 'navigation.titles.brandingGenerate',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-branding/branding-generation/branding-generation-page').then(
         (m) => m.BrandingGenerationPage,
@@ -134,6 +117,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/branding/logo-variations',
+    title: 'navigation.titles.logoVariations',
     loadComponent: () =>
       import('./modules/dashboard/pages/create-project/components/logo-variations/logo-variations').then(
         (m) => m.LogoVariationsComponent,
@@ -143,6 +127,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/branding/select-colors',
+    title: 'navigation.titles.selectColors',
     loadComponent: () =>
       import('./modules/dashboard/pages/create-project/components/color-selection/color-selection').then(
         (m) => m.ColorSelectionComponent,
@@ -152,6 +137,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/branding/select-typography',
+    title: 'navigation.titles.selectTypography',
     loadComponent: () =>
       import('./modules/dashboard/pages/create-project/components/typography-selection/typography-selection').then(
         (m) => m.TypographySelectionComponent,
@@ -161,6 +147,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/business-plan',
+    title: 'navigation.titles.businessPlan',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-business-plan/show-business-plan').then(
         (m) => m.ShowBusinessPlan,
@@ -170,6 +157,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/business-plan/generate',
+    title: 'navigation.titles.businessPlanGenerate',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-business-plan/business-plan-generation/business-plan-generation-page').then(
         (m) => m.BusinessPlanGenerationPage,
@@ -179,6 +167,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/communication',
+    title: 'navigation.titles.communication',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-communication/show-communication').then(
         (m) => m.ShowCommunication,
@@ -188,6 +177,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/pitch-deck',
+    title: 'navigation.titles.pitchDeck',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-pitch-deck/show-pitch-deck').then(
         (m) => m.ShowPitchDeck,
@@ -197,6 +187,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/legal-docs',
+    title: 'navigation.titles.legalDocs',
     loadComponent: () =>
       import('./modules/dashboard/pages/legal-docs/legal-docs').then((m) => m.LegalDocsPage),
     canActivate: [authGuard],
@@ -204,6 +195,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/advisor',
+    title: 'navigation.titles.advisor',
     loadComponent: () =>
       import('./modules/dashboard/pages/advisor/advisor').then((m) => m.AdvisorPage),
     canActivate: [authGuard],
@@ -211,6 +203,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/diagrams',
+    title: 'navigation.titles.diagrams',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-diagrams/show-diagrams').then(
         (m) => m.ShowDiagramsComponent,
@@ -220,6 +213,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/diagrams/generate',
+    title: 'navigation.titles.diagramsGenerate',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-diagrams/diagram-generation/diagram-generation-page').then(
         (m) => m.DiagramGenerationPage,
@@ -229,6 +223,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/tests',
+    title: 'navigation.titles.tests',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-tests/show-tests').then((m) => m.ShowTestsComponent),
     canActivate: [authGuard],
@@ -236,6 +231,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/development/create',
+    title: 'navigation.titles.createDevelopment',
     loadComponent: () =>
       import('./modules/dashboard/pages/development/create-development/create-development').then(
         (m) => m.CreateDevelopmentComponent,
@@ -245,6 +241,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/development',
+    title: 'navigation.titles.development',
     loadComponent: () =>
       import('./modules/dashboard/pages/development/show-development/show-development').then(
         (m) => m.ShowDevelopment,
@@ -254,6 +251,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/ideploy',
+    title: 'navigation.titles.ideploy',
     loadComponent: () =>
       import('./modules/dashboard/pages/ideploy-overview/ideploy-overview').then(
         (m) => m.IDeployOverview,
@@ -263,6 +261,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/deployments/create',
+    title: 'navigation.titles.createDeployment',
     loadComponent: () =>
       import('./modules/dashboard/pages/deployment/create-deployment/create-deployment').then(
         (m) => m.CreateDeployment,
@@ -272,6 +271,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/deployments',
+    title: 'navigation.titles.deployments',
     loadComponent: () =>
       import('./modules/dashboard/pages/deployment/deployment-list/deployment-list').then(
         (m) => m.DeploymentList,
@@ -281,6 +281,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/deployments/:id',
+    title: 'navigation.titles.deploymentDetails',
     loadComponent: () =>
       import('./modules/dashboard/pages/deployment/deployment-details/deployment-details').then(
         (m) => m.DeploymentDetails,
@@ -288,33 +289,10 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { layout: 'dashboard' },
   },
-  {
-    path: 'project/teams',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/project-teams/project-teams').then((m) => m.ProjectTeams),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
-    path: 'project/teams/:teamId',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/team-details-project/team-details-project').then(
-        (m) => m.TeamDetailsProject,
-      ),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
-    path: 'project/teams/add',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/add-team-to-project/add-team-to-project').then(
-        (m) => m.AddTeamToProject,
-      ),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
+
   {
     path: 'project/profile',
+    title: 'navigation.titles.profilePage',
     loadComponent: () =>
       import('./modules/dashboard/pages/profile/profile').then((m) => m.ProfileComponent),
     canActivate: [authGuard],
@@ -326,6 +304,7 @@ export const routes: Routes = [
   // ============================================
   {
     path: 'project/finance',
+    title: 'navigation.titles.finance',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-overview/finance-overview').then(
         (m) => m.FinanceOverviewComponent,
@@ -335,6 +314,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/products',
+    title: 'navigation.titles.financeProducts',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -344,6 +324,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/sales',
+    title: 'navigation.titles.financeSales',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -353,6 +334,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/charges',
+    title: 'navigation.titles.financeCharges',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -362,6 +344,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/fixed-charges',
+    title: 'navigation.titles.financeFixedCharges',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -371,6 +354,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/taxes',
+    title: 'navigation.titles.financeTaxes',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -380,6 +364,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/revenue',
+    title: 'navigation.titles.financeRevenue',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -389,6 +374,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/investments',
+    title: 'navigation.titles.financeInvestments',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -398,6 +384,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/amortization',
+    title: 'navigation.titles.financeAmortization',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -407,6 +394,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/financing',
+    title: 'navigation.titles.financeFinancing',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -416,6 +404,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/ratios-params',
+    title: 'navigation.titles.financeRatiosParams',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -425,6 +414,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/exploitation',
+    title: 'navigation.titles.financeExploitation',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -434,6 +424,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/bilan',
+    title: 'navigation.titles.financeBilan',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -443,6 +434,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/cashflow',
+    title: 'navigation.titles.financeCashflow',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -452,6 +444,7 @@ export const routes: Routes = [
   },
   {
     path: 'project/finance/ratios',
+    title: 'navigation.titles.financeRatios',
     loadComponent: () =>
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
@@ -463,6 +456,7 @@ export const routes: Routes = [
   // Project creation route
   {
     path: 'create-project',
+    title: 'navigation.titles.createProject',
     loadComponent: () =>
       import('./modules/dashboard/pages/create-project/create-project').then(
         (m) => m.CreateProjectComponent,
@@ -472,6 +466,7 @@ export const routes: Routes = [
   // 404 Not Found route
   {
     path: 'not-found',
+    title: 'navigation.titles.notFound',
     loadComponent: () =>
       import('./shared/components/not-found/not-found.component').then((m) => m.NotFoundComponent),
     data: { layout: 'empty' },

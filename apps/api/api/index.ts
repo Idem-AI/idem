@@ -7,6 +7,9 @@ import express, { Express, Request, Response } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
 import { metricsMiddleware } from './middleware/metrics.middleware';
+import { languageMiddleware } from './middleware/language.middleware';
+import { requestTraceMiddleware } from './middleware/request-trace.middleware';
+import { revisionContextMiddleware } from './utils/revision-context.util';
 import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
@@ -18,6 +21,8 @@ import mongoDBConnection from './config/mongodb.config';
 import { storageService } from './services/storage.service';
 import { User } from './schemas/user.schema';
 import { Project } from './schemas/project.schema';
+import { ProjectRevision } from './schemas/revision.schema';
+import { CoherenceAlert } from './schemas/coherence.schema';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -55,12 +60,15 @@ function initFirebase(): void {
 }
 
 import { projectRoutes } from './routes/project.routes';
+import { contextRoutes } from './routes/context.routes';
+import { coherenceRoutes } from './routes/coherence.routes';
 import { brandingRoutes } from './routes/branding.routes';
 import { diagramRoutes } from './routes/diagram.routes';
 import { businessPlanRoutes } from './routes/businessPlan.routes';
 import { pitchDeckRoutes } from './routes/pitchDeck.routes';
 import { legalDocsRoutes } from './routes/legalDocs.routes';
 import { advisorRoutes } from './routes/advisor.routes';
+import { onboardingRoutes } from './routes/onboarding.routes';
 import { deploymentRoutes } from './routes/deployment.routes';
 import { developmentRoutes } from './routes/development.routes';
 import { userRoutes } from './routes/user.routes';
@@ -71,11 +79,7 @@ import cacheRoutes from './routes/cache.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
 import policyRoutes from './routes/policy.routes';
-import teamRoutes from './routes/team.routes';
-import invitationRoutes from './routes/invitation.routes';
-import projectTeamRoutes from './routes/project-team.routes';
-import migrationRoutes from './routes/migration.routes';
-import { teamsRoutes } from './routes/teams.routes';
+
 import contactRoutes from './routes/contactRoutes';
 import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
@@ -85,6 +89,11 @@ import { financeRoutes } from './routes/finance.routes';
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
+
+// Ouvre le contexte de traçage (requestId) en tout premier: tout ce qui suit
+// dans la chaîne (sécurité, morgan, routes, services IA) hérite de la
+// corrélation automatiquement via le logger (voir config/logger.ts).
+app.use(requestTraceMiddleware);
 
 // Hardening (helmet, hpp, trust proxy, hide X-Powered-By).
 applySecurity(app);
@@ -116,13 +125,24 @@ app.use(
 // Audit log for sensitive routes.
 app.use(auditLogger);
 
+// Resolve the user's UI language (query > body > Accept-Language) and expose it to
+// all downstream services so AI generation replies in the right language.
+app.use(languageMiddleware);
+
+// Seed the revision context (author user vs AI, source route) so the versioning
+// hook can attribute every project write — the "git blame" of project data.
+app.use(revisionContextMiddleware);
+
 app.use('/projects', projectRoutes);
+app.use('/project', contextRoutes);
+app.use('/project', coherenceRoutes);
 app.use('/project', brandingRoutes);
 app.use('/project', diagramRoutes);
 app.use('/project', businessPlanRoutes);
 app.use('/project', pitchDeckRoutes);
 app.use('/project', legalDocsRoutes);
 app.use('/project', advisorRoutes);
+app.use('/project', onboardingRoutes);
 app.use('/project', deploymentRoutes);
 app.use('/project', developmentRoutes);
 app.use('/auth', authRoutes);
@@ -134,12 +154,7 @@ app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
 app.use('/project', policyRoutes);
 
-// Authorization routes
-app.use('/teams', teamRoutes);
-app.use('/api/teams', teamsRoutes); // New centralized teams API
-app.use('/invitations', invitationRoutes);
-app.use('/projects', projectTeamRoutes);
-app.use('/migration', migrationRoutes);
+
 
 // Contact routes
 app.use('/api/contact', contactRoutes);
@@ -191,8 +206,20 @@ app.use((req: Request, res: Response) => {
 
 app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
   console.error('Global error handler:', err);
-  res.status(500).send('Something broke!');
+  
+  // S'assurer que les en-têtes CORS sont présents même en cas d'erreur
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message || 'Something broke!'
+  });
 });
+
 
 async function bootstrap() {
   await loadSecrets();
@@ -214,6 +241,8 @@ function startServer() {
       await Promise.all([
         User.init(), // Creates all indexes defined in UserSchema
         Project.init(), // Creates all indexes defined in ProjectSchema
+        ProjectRevision.init(), // Chronicle: unique (projectId, section, version) + log indexes
+        CoherenceAlert.init(), // Coherence Guard: alertes de synchronisation inter-artefacts
       ]);
       console.log('MongoDB indexes created successfully');
     } catch (error) {

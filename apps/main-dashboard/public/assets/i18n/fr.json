@@ -202,6 +202,12 @@
       },
       "pdf": {
         "download": "Télécharger le rapport PDF"
+      },
+      "bpMissingDialog": {
+        "title": "Business Plan requis",
+        "headline": "Générez d'abord votre Business Plan",
+        "description": "L'IA a besoin de votre Business Plan pour générer des prévisions financières cohérentes et personnalisées. Veuillez générer votre business plan avant de continuer.",
+        "generateCta": "Créer mon Business Plan"
       }
     },
     "sidebar": {
@@ -481,6 +487,25 @@
       },
       "cards": {
         "colors": "Couleurs"
+      },
+      "live": {
+        "title": "Création de vos logos en direct",
+        "subtitle": "Chaque concept est généré, audité par notre directeur artistique IA, puis corrigé si nécessaire — sous vos yeux.",
+        "selectHint": "Un logo vous plaît ? Cliquez dessus pour le choisir et arrêter le reste de la génération.",
+        "status": {
+          "pending": "En attente…",
+          "generating": "Génération du concept…",
+          "generated": "Concept généré",
+          "critiquing": "Contrôle qualité en cours…",
+          "revising": "Amélioration du logo…",
+          "final": "Validé",
+          "cancelled": "Annulé",
+          "error": "Échec de ce concept"
+        },
+        "critique": {
+          "title": "Avis du directeur artistique",
+          "revised": "Corrigé par l’agent"
+        }
       }
     },
     "logoVariations": {
@@ -574,7 +599,25 @@
         "darkBackground": "Optimisé pour les fonds sombres et modernes",
         "monochrome": "Version en noir et blanc pour toutes les utilisations"
       },
-      "selectionsMade": "{{count}} sélection(s) faite(s)"
+      "selectionsMade": "{{count}} sélection(s) faite(s)",
+      "live": {
+        "title": "Création des déclinaisons en direct",
+        "subtitle": "Chaque déclinaison est générée, vérifiée sur son fond cible par notre agent qualité, puis corrigée si nécessaire.",
+        "status": {
+          "pending": "En attente…",
+          "generating": "Génération de la déclinaison…",
+          "generated": "Déclinaison générée",
+          "critiquing": "Vérification sur le fond cible…",
+          "revising": "Correction des couleurs…",
+          "final": "Validée",
+          "cancelled": "Annulée",
+          "error": "Échec de cette déclinaison"
+        },
+        "critique": {
+          "title": "Avis de l'agent qualité",
+          "revised": "Corrigée par l'agent"
+        }
+      }
     },
     "projectDescription": {
       "hello": "Bonjour",
@@ -583,7 +626,9 @@
       "placeholder": "Une application qui génère des poèmes à partir de photos",
       "buttons": {
         "improvePrompt": "Améliorer l'invite",
+        "improving": "Amélioration...",
         "feelingLucky": "J'ai de la chance",
+        "generatingIdea": "Génération...",
         "continue": "Continuer"
       },
       "needInspiration": "Besoin d'inspiration ?",
@@ -639,6 +684,16 @@
         "selectType": "Sélectionnez un type",
         "selectScope": "Sélectionnez une portée",
         "selectTarget": "Sélectionnez une cible"
+      },
+      "dynamic": {
+        "sectionTitle": "Questions adaptées à votre projet",
+        "loading": "Analyse de votre projet pour adapter les questions…",
+        "error": "Impossible de générer les questions. Vous pouvez réessayer.",
+        "retry": "Réessayer",
+        "optional": "facultatif",
+        "selectPlaceholder": "Sélectionnez une option",
+        "textPlaceholder": "Votre réponse (facultatif)",
+        "otherPlaceholder": "Précisez…"
       }
     },
     "projectSummary": {
@@ -786,6 +841,20 @@
       },
       "errors": {
         "noActiveProject": "Aucun projet actif trouvé. Veuillez d'abord sélectionner un projet."
+      },
+      "modeLabel": "Mode de création",
+      "modeChat": "Conversation",
+      "modeForm": "Formulaire",
+      "switchToForm": "Passer au formulaire",
+      "foundations": {
+        "title": "Parlons de votre projet",
+        "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
+        "descriptionLabel": "Décrivez votre idée",
+        "descriptionPlaceholder": "Ex. une marketplace pour artisans locaux qui gère commandes et paiements…",
+        "nameLabel": "Nom du projet",
+        "namePlaceholder": "Ex. ArtisanHub",
+        "typeLabel": "Type de projet",
+        "continue": "Continuer"
       }
     },
     "logoChoice": {
@@ -805,7 +874,22 @@
       "extractedColors": "Couleurs détectées dans votre logo",
       "colorsUsedAsPrimary": "Ces couleurs seront utilisées comme couleurs primaires. Notre IA proposera des palettes complémentaires.",
       "generatingBranding": "Génération de votre identité visuelle...",
-      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo."
+      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo.",
+      "postImport": {
+        "title": "Votre logo est prêt. Que souhaitez-vous en faire ?",
+        "useAsIs": {
+          "title": "Utiliser tel quel",
+          "description": "Conservez votre logo exactement comme il est. Ses déclinaisons (fond clair, fond sombre, monochrome) sont générées automatiquement."
+        },
+        "improve": {
+          "title": "Améliorer avec l'IA",
+          "description": "L'IA analyse votre logo et génère des versions plus professionnelles, fidèles à votre identité (formes, couleurs, symbolique)."
+        },
+        "analyzing": "Analyse de votre logo en cours…",
+        "analysisError": "L'analyse du logo a échoué. Réessayez ou utilisez votre logo tel quel.",
+        "subtitle": "Vous pouvez le conserver tel quel ou laisser l'IA en proposer une version plus professionnelle.",
+        "back": "Retour à l'import"
+      }
     },
     "logoImport": {
       "dropzone": {
@@ -870,7 +954,7 @@
         "businessPlan": "Plan d'affaires",
         "pitchDeck": "Pitch Deck",
         "finance": "Prévisions financières",
-        "systemDesign": "Conception système",
+        "systemDesign": "Diagrammes",
         "development": "Développement",
         "launch": "Lancement"
       },
@@ -901,9 +985,9 @@
           "alt": "Prévisions financières"
         },
         "design": {
-          "title": "Conception système",
+          "title": "Diagrammes",
           "description": "Concevez l'architecture de votre système et les spécifications techniques",
-          "alt": "Conception système"
+          "alt": "Diagrammes"
         },
         "development": {
           "title": "Développement",
@@ -939,8 +1023,10 @@
       },
       "quotaWarning": {
         "title": "Avertissement de quota",
-        "daily": "Quotidien",
-        "weekly": "Hebdomadaire",
+        "daily": "Quotidien :",
+        "weekly": "Hebdomadaire :",
+        "credits": "Crédits",
+        "beta": "BÊTA",
         "messages": {
           "approaching": "Vous approchez de votre limite de quota",
           "daily": "Vous approchez de votre limite de quota quotidien",
@@ -949,6 +1035,21 @@
         },
         "buttons": {
           "viewDetails": "Voir les détails"
+        },
+        "tooltip": {
+          "title": "Informations de quota",
+          "exceededTitle": "Quota dépassé",
+          "exceededMessage": "Vous avez atteint vos limites d'utilisation",
+          "limitedTitle": "Fonctionnalité limitée",
+          "limitedMessage": "Non disponible en version bêta",
+          "nearlyReachedTitle": "Quota presque atteint",
+          "nearlyReachedMessage": "À utiliser avec modération",
+          "availableMessage": "Quotas disponibles",
+          "betaLimitations": "Limitations bêta :",
+          "maxStyles": "styles maximum",
+          "resolution": "Résolution :",
+          "maxTokens": "tokens max",
+          "featureNotAuthorized": "Fonctionnalité non autorisée"
         }
       }
     },
@@ -2049,6 +2150,50 @@
         "typography": "Typographies"
       },
       "completeButton": "Compléter l'identité de marque"
+    },
+    "generationPanel": {
+      "incompleteTitle": "Génération incomplète",
+      "incompleteSubtitle": "{{completed}} section(s) sur {{total}} ont été générées. La génération a probablement été interrompue : complétez-la pour obtenir un document complet.",
+      "completeTitle": "Document complet — toutes les sections ont été générées",
+      "status": {
+        "complete": "Générée",
+        "missing": "Manquante",
+        "empty": "Incomplète"
+      },
+      "actions": {
+        "resume": "Compléter la génération",
+        "regenerateAll": "Tout régénérer de zéro",
+        "regenerateSection": "Régénérer",
+        "regenerateSectionAria": "Régénérer la section {{section}}",
+        "showSections": "Régénérer une section",
+        "hideSections": "Masquer les sections"
+      },
+      "sections": {
+        "businessPlan": {
+          "Cover Page": "Page de couverture",
+          "Company Summary": "Présentation de l'entreprise",
+          "Opportunity": "Opportunité",
+          "Target Audience": "Audience cible",
+          "Products & Services": "Produits et services",
+          "Marketing & Sales": "Marketing et ventes",
+          "Financial Plan": "Plan financier",
+          "Goal Planning": "Planification des objectifs",
+          "Appendix": "Annexes"
+        },
+        "branding": {
+          "Brand Header": "En-tête de marque",
+          "Logo Principal": "Logo principal",
+          "Logo Variation Fond Clair": "Logo — fond clair",
+          "Logo Variation Fond Sombre": "Logo — fond sombre",
+          "Logo Variation Monochrome": "Logo — monochrome",
+          "Logo Bonnes Pratiques": "Bonnes pratiques du logo",
+          "Color Palette": "Palette de couleurs",
+          "Typography": "Typographie",
+          "Brand Mockup 1": "Mockup 1",
+          "Brand Mockup 2": "Mockup 2",
+          "Brand Mockup 3": "Mockup 3"
+        }
+      }
     }
   },
   "deployment": {
@@ -2091,7 +2236,55 @@
     "teams": "Équipes",
     "profile": "Profil",
     "settings": "Paramètres",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "titles": {
+      "login": "Connexion",
+      "console": "Console",
+      "projects": "Projets",
+      "chat": "Chat",
+      "chatNew": "Nouvelle conversation",
+      "dashboard": "Tableau de bord",
+      "branding": "Branding",
+      "completeBranding": "Branding complet",
+      "brandingDisplay": "Affichage du branding",
+      "brandingGenerate": "Génération de branding",
+      "logoVariations": "Variations de logo",
+      "selectColors": "Sélection des couleurs",
+      "selectTypography": "Sélection de la typographie",
+      "businessPlan": "Business Plan",
+      "businessPlanGenerate": "Génération du business plan",
+      "communication": "Communication",
+      "pitchDeck": "Pitch Deck",
+      "legalDocs": "Documents légaux",
+      "advisor": "Conseiller",
+      "diagrams": "Diagrammes",
+      "diagramsGenerate": "Génération de diagrammes",
+      "tests": "Tests",
+      "createDevelopment": "Créer un développement",
+      "development": "Développement",
+      "ideploy": "iDeploy",
+      "createDeployment": "Créer un déploiement",
+      "deployments": "Déploiements",
+      "deploymentDetails": "Détails du déploiement",
+      "profilePage": "Profil",
+      "finance": "Aperçu de la finance",
+      "financeProducts": "Finance Produits",
+      "financeSales": "Finance Objectifs de vente",
+      "financeCharges": "Finance Charges variables",
+      "financeFixedCharges": "Finance Charges fixes",
+      "financeTaxes": "Finance Taxes",
+      "financeRevenue": "Finance Revenus",
+      "financeInvestments": "Finance Investissements",
+      "financeAmortization": "Finance Amortissements",
+      "financeFinancing": "Finance Financements",
+      "financeRatiosParams": "Finance Paramètres des ratios",
+      "financeExploitation": "Finance Compte d'exploitation",
+      "financeBilan": "Finance Bilan",
+      "financeCashflow": "Finance Flux de trésorerie",
+      "financeRatios": "Finance Ratios",
+      "createProject": "Créer un projet",
+      "notFound": "Page non trouvée"
+    }
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2260,7 +2453,8 @@
         "targets": "Cible",
         "scope": "Portée",
         "teamSize": "Équipe",
-        "budget": "Budget"
+        "budget": "Budget",
+        "currency": "Devise"
       },
       "policies": {
         "accept": "J'accepte la",
@@ -2292,7 +2486,8 @@
       "errors": {
         "descriptionTooShort": "Pouvez-vous m'en dire un peu plus ? Quelques phrases suffisent pour bien démarrer.",
         "nameRequired": "Il me faut un nom pour votre projet. Lequel choisissez-vous ?",
-        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau."
+        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau.",
+        "planFailed": "Je n'ai pas pu préparer mes questions, mais on peut continuer directement vers le récapitulatif."
       },
       "actions": {
         "skip": "Passer cette question",
@@ -2307,7 +2502,9 @@
           "desktop": "Application desktop",
           "api": "API / Backend",
           "ai": "IA / ML",
-          "blockchain": "Blockchain"
+          "blockchain": "Blockchain",
+          "ecommerce": "Commerce / E-commerce",
+          "other": "Autres"
         },
         "targets": {
           "business": "Entreprises",
@@ -2335,7 +2532,12 @@
           "20k-50k": "20 000 € à 50 000 €",
           "gt-50k": "Plus de 50 000 €"
         }
-      }
+      },
+      "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
+      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
+      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
+      "aiWelcomeNoName": "Parfait ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions simples pour bien cadrer votre projet.",
+      "customCurrency": "D'accord. Quelle devise souhaitez-vous utiliser ?"
     },
     "branding": {
       "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
@@ -2375,7 +2577,8 @@
         "typographyTitle": "Typographies",
         "typographySubtitle": "Cliquez pour choisir votre duo de polices",
         "logosTitle": "Concepts de logos",
-        "logosSubtitle": "Cliquez pour choisir votre logo"
+        "logosSubtitle": "Cliquez pour choisir votre logo",
+        "typographySample": "Le vif renard brun saute par-dessus le chien."
       },
       "errors": {
         "generation": "La génération a échoué. On réessaie ?",
@@ -2457,6 +2660,31 @@
       "cardDone": "Votre {{title}} est prêt",
       "cardError": "La génération de votre {{title}} a échoué",
       "steps": "{{done}}/{{total}} étapes terminées"
+    },
+    "launcher": {
+      "title": "Que construisons-nous pour {{name}} ?",
+      "subtitle": "Choisissez un livrable à consulter ou à générer — ou écrivez votre demande ci-dessous.",
+      "hint": "Vous pouvez aussi tout simplement écrire ce dont vous avez besoin.",
+      "askShow": "Montre-moi mon {{title}}",
+      "askGenerate": "Générons mon {{title}}",
+      "features": {
+        "branding": "Logo, couleurs et typographie de votre marque.",
+        "businessPlan": "Le plan d'affaires complet de votre projet.",
+        "pitchDeck": "La présentation pour convaincre vos investisseurs.",
+        "finance": "Prévisions et tableaux financiers.",
+        "diagrams": "Schémas d'architecture et diagrammes techniques.",
+        "legalDocs": "Statuts, CGU, contrats et mentions légales."
+      },
+      "state": {
+        "ready": "Prêt",
+        "generate": "Générer",
+        "locked": "Verrouillé"
+      },
+      "locked": {
+        "needsBranding": "Complétez d'abord votre identité de marque."
+      },
+      "open": "Ouvrir",
+      "brandCalloutHint": "Logo, couleurs et typographie — la base de tous vos livrables."
     }
   }
 }

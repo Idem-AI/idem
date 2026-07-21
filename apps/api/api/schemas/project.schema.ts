@@ -56,14 +56,30 @@ const ProjectSchema = new Schema<ProjectDocument>(
     description: { type: String, required: true },
     type: {
       type: String,
-      enum: ['web', 'mobile', 'iot', 'desktop'],
+      enum: [
+        'web',
+        'mobile',
+        'iot',
+        'desktop',
+        'enterprise',
+        'ecommerce',
+        'api',
+        'ai',
+        'blockchain',
+        'landing',
+        'other',
+      ],
       required: true,
     },
     constraints: [{ type: String }],
-    teamSize: { type: String, required: true },
-    scope: { type: String, required: true },
+    // scope / teamSize sont optionnels : le plan d'onboarding IA les marque
+    // "optional" et l'utilisateur peut les ignorer sans bloquer la création.
+    teamSize: { type: String, default: '' },
+    scope: { type: String, default: '' },
     budgetIntervals: { type: String },
     targets: { type: String, required: true },
+    // Devise du projet (ex. XAF, EUR, USD…), utilisée par toutes les générations.
+    currency: { type: String, default: '' },
     userId: { type: String, required: true },
     selectedPhases: [{ type: String }],
     analysisResultModel: { type: Schema.Types.Mixed },

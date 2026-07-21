@@ -1,13 +1,13 @@
 <!-- Navbar -->
 <nav
-  class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10 px-3 py-3 lg:px-6 transition-all duration-300"
+  class="fixed top-0 left-0 right-0 z-50 glass border-b border-[var(--glass-border)] px-3 py-3 lg:px-6 transition-all duration-300"
 >
   <div class="flex items-center justify-between">
     <div class="flex items-center">
       <!-- Mobile menu button -->
       <button
         type="button"
-        class="inline-flex items-center p-2 text-sm text-gray-400 rounded-lg md:hidden hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 mr-2 transition-all duration-200"
+        class="inline-flex items-center p-2 text-sm text-text-tertiary rounded-lg md:hidden hover:bg-[var(--glass-bg-light)] focus:outline-none focus:ring-2 focus:ring-primary/50 mr-2 transition-all duration-200"
         (click)="toggleMobileDrawer()"
       >
         <span class="sr-only">{{ 'dashboard.sidebarGlobal.sr.openMobileMenu' | translate }}</span>
@@ -17,7 +17,7 @@
       <!-- Desktop sidebar toggle -->
       <button
         type="button"
-        class="hidden md:inline-flex items-center p-2 text-sm text-gray-400 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 mr-2 transition-all duration-200"
+        class="hidden md:inline-flex items-center p-2 text-sm text-text-tertiary rounded-lg hover:bg-[var(--glass-bg-light)] focus:outline-none focus:ring-2 focus:ring-primary/50 mr-2 transition-all duration-200"
         (click)="toggleSidebar()"
       >
         <span class="sr-only">{{ 'dashboard.sidebarGlobal.sr.toggleSidebar' | translate }}</span>
@@ -33,7 +33,7 @@
           <img
             src="/assets/icons/logo_white.png"
             [alt]="'dashboard.sidebarGlobal.logoAlt' | translate"
-            class="sm:w-[120px] w-[50px] h-auto"
+            class="sm:w-[120px] w-[50px] h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0"
           />
           <app-beta-badge></app-beta-badge>
         </a>
@@ -58,29 +58,29 @@
         <div class="relative">
           <button
             (click)="toggleDropdown()"
-            class="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-all duration-200"
+            class="flex items-center gap-2 p-1 rounded-full hover:bg-[var(--glass-bg-light)] transition-all duration-200"
           >
             <img
               [src]="user()!.photoURL"
               [alt]="'dashboard.sidebarGlobal.userAvatarAlt' | translate"
-              class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white/20"
+              class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-[var(--glass-border-medium)]"
             />
           </button>
 
           <!-- User Dropdown -->
           @if (isDropdownOpen()) {
             <div
-              class="absolute right-0 mt-2 w-56 glass-card border border-white/10 rounded-xl shadow-xl z-50 py-2"
+              class="absolute right-0 mt-2 w-56 glass-card border border-[var(--glass-border)] rounded-xl shadow-xl z-50 py-2"
             >
-              <div class="px-4 py-3 border-b border-white/10">
-                <p class="text-white font-medium truncate">{{ user()!.displayName }}</p>
-                <p class="text-gray-400 text-sm truncate">{{ user()!.email }}</p>
+              <div class="px-4 py-3 border-b border-[var(--glass-border)]">
+                <p class="text-text-primary font-medium truncate">{{ user()!.displayName }}</p>
+                <p class="text-text-tertiary text-sm truncate">{{ user()!.email }}</p>
               </div>
 
               <a
                 routerLink="/project/profile"
                 (click)="navigateTo('/project/profile')"
-                class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
+                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
                 <i class="pi pi-user text-primary"></i>
                 <span>{{ 'dashboard.sidebarGlobal.userMenu.profile' | translate }}</span>
@@ -89,13 +89,13 @@
               <a
                 routerLink="/settings"
                 (click)="navigateTo('/settings')"
-                class="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 transition-all duration-200"
+                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
                 <i class="pi pi-cog text-secondary"></i>
                 <span>{{ 'dashboard.sidebarGlobal.userMenu.settings' | translate }}</span>
               </a>
 
-              <hr class="border-white/10 my-2" />
+              <hr class="border-[var(--glass-border)] my-2" />
 
               <button
                 (click)="logout()"
@@ -108,7 +108,7 @@
           }
         </div>
       } @else {
-        <div class="w-10 h-10 rounded-full bg-gray-600 animate-pulse"></div>
+        <div class="w-10 h-10 rounded-full bg-[var(--color-surface-3)] animate-pulse"></div>
       }
     </div>
   </div>
@@ -117,14 +117,14 @@
 <!-- Desktop Sidebar -->
 <aside
   [@sidebarExpand]="sidebarState()"
-  class="hidden md:flex flex-col fixed left-0 top-20 h-[calc(100vh-5rem)] glass border-r border-white/10 transition-all duration-300 z-40"
+  class="hidden md:flex flex-col fixed left-0 top-20 h-[calc(100vh-5rem)] glass border-r border-[var(--glass-border)] transition-all duration-300 z-40"
   [class.w-64]="!isSidebarCollapsed()"
   [class.w-20]="isSidebarCollapsed()"
 >
   <!-- Sidebar Toggle -->
   <button
     (click)="toggleSidebar()"
-    class="absolute -right-3 top-24 w-6 h-6 glass-card hover:bg-primary/20 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border border-white/20 group"
+    class="absolute -right-3 top-24 w-6 h-6 glass-card hover:bg-primary/20 text-text-primary rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border border-[var(--glass-border-medium)] group"
   >
     <i
       class="pi text-xs transition-transform duration-300 group-hover:text-primary"
@@ -139,10 +139,10 @@
         [routerLink]="item.route"
         class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden"
         [class.bg-primary]="item.isActive"
-        [class.text-white]="item.isActive"
-        [class.text-gray-300]="!item.isActive"
+        [class.text-text-primary]="item.isActive"
+        [class.text-text-secondary]="!item.isActive"
         [class.hover:bg-primary]="!item.isActive"
-        [class.hover:text-white]="!item.isActive"
+        [class.hover:text-text-primary]="!item.isActive"
         [class.justify-center]="isSidebarCollapsed()"
         [class.px-3]="!isSidebarCollapsed()"
         [class.px-2]="isSidebarCollapsed()"
@@ -170,7 +170,7 @@
         <!-- Tooltip for collapsed state -->
         @if (isSidebarCollapsed()) {
           <div
-            class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50"
+            class="absolute left-full ml-2 px-2 py-1 bg-[var(--color-surface-1)] text-text-primary text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50"
           >
             {{ item.labelKey | translate }}
           </div>
@@ -180,11 +180,11 @@
   </nav>
 
   <!-- Sidebar Footer -->
-  <div class="p-4 border-t border-white/10 space-y-3">
+  <div class="p-4 border-t border-[var(--glass-border)] space-y-3">
     @if (!isSidebarCollapsed()) {
       <app-mode-toggle [current]="'advanced'" />
       <div class="text-center">
-        <p class="text-xs text-gray-400 mb-2">
+        <p class="text-xs text-text-tertiary mb-2">
           {{ 'dashboard.sidebarGlobal.poweredBy' | translate }}
         </p>
         <div class="text-primary font-bold text-sm">Idem</div>
@@ -213,21 +213,21 @@
     <!-- Drawer -->
     <div
       [@mobileDrawerSlide]
-      class="fixed left-0 top-0 bottom-0 w-80 glass border-r border-white/10 flex flex-col shadow-2xl"
+      class="fixed left-0 top-0 bottom-0 w-80 glass border-r border-[var(--glass-border)] flex flex-col shadow-2xl"
     >
       <!-- Header -->
-      <div class="flex items-center justify-between p-4 border-b border-white/10">
+      <div class="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
         <a routerLink="/console" class="flex items-center gap-2" (click)="toggleMobileDrawer()">
           <img
             src="/assets/icons/logo_white.png"
             [alt]="'dashboard.sidebarGlobal.logoAlt' | translate"
-            class="w-24 h-auto"
+            class="w-24 h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0"
           />
           <app-beta-badge></app-beta-badge>
         </a>
         <button
           (click)="toggleMobileDrawer()"
-          class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+          class="p-2 text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] rounded-lg transition-all duration-200"
         >
           <i class="pi pi-times text-lg"></i>
         </button>
@@ -240,7 +240,7 @@
 
         <!-- Mobile Quota Display -->
         @if (user()) {
-          <div class="pb-4 border-b border-white/10">
+          <div class="pb-4 border-b border-[var(--glass-border)]">
             <app-quota-display
               [quotaInfo]="quotaInfo() ?? null"
               [quotaDisplay]="quotaDisplay() ?? null"
@@ -253,7 +253,7 @@
 
         <!-- Mobile Navigation -->
         <div>
-          <h3 class="text-sm font-medium text-gray-400 mb-3">
+          <h3 class="text-sm font-medium text-text-tertiary mb-3">
             {{ 'dashboard.sidebarGlobal.mobile.navigation' | translate }}
           </h3>
           <nav class="space-y-2">
@@ -263,8 +263,8 @@
                 (click)="toggleMobileDrawer()"
                 class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200"
                 [class.bg-primary]="item.isActive"
-                [class.text-white]="item.isActive"
-                [class.hover:bg-white]="!item.isActive"
+                [class.text-text-primary]="item.isActive"
+                [class.hover:bg-surface-3]="!item.isActive"
               >
                 <i [class]="item.icon" class="text-lg"></i>
                 <span class="font-medium">{{ item.labelKey | translate }}</span>

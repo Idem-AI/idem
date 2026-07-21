@@ -7,9 +7,9 @@
   min-height: 36px;
   padding: 0.45rem 0.7rem;
   border-radius: 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: #fff;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-primary);
   font-size: 0.75rem;
   outline: none;
   transition: border-color 0.2s ease;
@@ -20,7 +20,7 @@
 }
 
 .chat-form-input::placeholder {
-  color: rgba(156, 163, 175, 0.6);
+  color: var(--color-text-tertiary);
 }
 
 .chat-form-input:disabled {

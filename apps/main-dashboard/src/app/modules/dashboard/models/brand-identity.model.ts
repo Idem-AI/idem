@@ -13,6 +13,7 @@ export interface BrandIdentityModel {
   generatedTypography: TypographyModel[];
   sections: SectionModel[];
   logoPreferences?: LogoPreferencesModel;
+  pdfFormat?: string; // Format PDF choisi lors de la génération de la charte (ex: SLIDE_16_9)
   pdfBlob?: Blob; // Optional PDF blob for optimized loading
   importedLogoColors?: string[]; // Couleurs extraites du logo importé (workflow import)
 }

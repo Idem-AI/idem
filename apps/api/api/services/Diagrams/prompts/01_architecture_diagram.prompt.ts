@@ -1,27 +1,16 @@
-export const ARCHITECTURE_DIAGRAM_PROMPT = `
-As a certified solutions architect, generate an immediate Mermaid block diagram with these specifications:
+export const ARCHITECTURE_DIAGRAM_PROMPT = `<objective>Generate a Mermaid block diagram using "block-beta" syntax.</objective>
 
-# Architecture Diagram - [SystemName]
+<requirements>
+1. Use Mermaid "block-beta" syntax.
+2. Explicitly define columns and spans.
+3. Minimum 3 visual elements (blocks, DBs, queues).
+4. Explicit connection arrow directions.
+5. Include style annotations for key components.
+6. Manage spacing using the "space" keyword.
+7. Use exact block types: [" "], (""), [(" ")].
+</requirements>
 
-## Strict Requirements:
-1. Must use Mermaid's "block-beta" syntax
-2. Columns and spans must be explicitly defined
-3. Minimum 3 visual elements (blocks, DBs, queues)
-4. Connection arrows with clear directions
-5. Style annotations for key components
-6. Space management with "space" keyword
-
-## Output Format:
-
-block-beta
-    [Column definition]
-    [Block hierarchy]
-    [Connections]
-    [Styles]
-
-## Structured Example:
-
-
+<example>
 block-beta
     columns 3
     doc>"Document"]:3
@@ -40,18 +29,10 @@ block-beta
     C --> db
     D --> C
     style m fill:#d6d,stroke:#333,stroke-width:4px
+</example>
 
-
-
-## Rules:
-- No explanations
-- No code comments
-- Use exact block types: [" "], (""), [(" ")]
-- Arrow directions must be explicit (--> vs <--)
-- Include column spans (e.g., :2, :3)
-- Must include at least one style directive
-
-- Verry Important: ALWAYS wrap your diagram with \`\`\`mermaid and \`\`\` tags
-- Verry Important: Your response MUST begin with \`\`\`mermaid and end with \`\`\`
-- Verry Important: Do NOT add any additional text, explanations or comments - ONLY the diagram code wrapped in \`\`\`mermaid ... \`\`\` tags
+<output_format>
+- Output ONLY the diagram code wrapped in \`\`\`mermaid and \`\`\` tags.
+- No explanations, introduction, or comments.
+</output_format>
 `;

@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
+
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
 import { PitchDeckModel } from '../../models/pitchDeck.model';
@@ -46,10 +48,12 @@ export class PitchDeckService extends GenericService {
   async generatePitchDeckWithStreaming(
     userId: string,
     projectId: string,
-    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
+    forceRegenerate = false,
+    targetSections: string[] = []
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}`
+      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     const project = await this.getProject(projectId, userId);
@@ -75,13 +79,24 @@ export class PitchDeckService extends GenericService {
       .substring(0, 16);
 
     const cacheKey = cacheService.generateAIKey('pitch-deck', userId, projectId, contentHash);
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: 'ai',
-      ttl: 7200,
-    });
-    if (cachedResult) {
-      logger.info(`Pitch deck cache hit for projectId: ${projectId}`);
-      return cachedResult;
+
+    // The cached result may be an incomplete deck (it is updated after each step),
+    // so only short-circuit on it when nothing needs to be (re)generated.
+    const currentSections = project.analysisResultModel?.pitchDeck?.sections || [];
+    const skipCacheRead =
+      forceRegenerate ||
+      targetSections.length > 0 ||
+      currentSections.length < PITCH_DECK_SLIDE_ORDER.length;
+
+    if (!skipCacheRead) {
+      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+        prefix: 'ai',
+        ttl: 7200,
+      });
+      if (cachedResult) {
+        logger.info(`Pitch deck cache hit for projectId: ${projectId}`);
+        return cachedResult;
+      }
     }
 
     const brandName = project.name || 'Startup';
@@ -158,11 +173,21 @@ export class PitchDeckService extends GenericService {
     ];
 
     const promptConfig: PromptConfig = {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: AI_CONFIG.pitchDeck.provider,
+      modelName: AI_CONFIG.pitchDeck.modelName,
     };
 
-    let sectionResults: SectionModel[] = [];
+
+    // Load existing sections if not forcing regeneration.
+    // Sections listed in targetSections are dropped so they get regenerated,
+    // while the others are kept as-is (resume semantics).
+    const existingSections = forceRegenerate
+      ? []
+      : targetSections.length > 0
+        ? currentSections.filter((s) => !targetSections.includes(s.name))
+        : currentSections;
+
+    let sectionResults: SectionModel[] = [...existingSections];
 
     if (streamCallback) {
       await this.processStepsWithStreaming(
@@ -180,7 +205,18 @@ export class PitchDeckService extends GenericService {
             data: result.data,
             summary: result.summary,
           };
-          sectionResults.push(section);
+          
+          // Add or replace in sections array to avoid duplicates
+          const existingIndex = sectionResults.findIndex((s) => s.name === section.name);
+          if (existingIndex !== -1) {
+            sectionResults[existingIndex] = section;
+          } else {
+            sectionResults.push(section);
+          }
+
+          // Sort sections to match original step order
+          const stepOrder = steps.map((s) => s.stepName);
+          sectionResults.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
           const currentProject = await this.projectRepository.findById(
             projectId,
@@ -212,8 +248,15 @@ export class PitchDeckService extends GenericService {
         },
         promptConfig,
         'pitch_deck',
-        userId
+        userId,
+        undefined, // finalizationCallback
+        existingSections
       );
+
+      // The stored PDF no longer matches the regenerated sections
+      await cacheService.delete(cacheService.generateAIKey('pitch-deck-pdf', userId, projectId), {
+        prefix: 'pdf',
+      });
 
       return this.projectRepository.findById(projectId, `users/${userId}/projects`);
     }
@@ -246,6 +289,10 @@ export class PitchDeckService extends GenericService {
 
     if (updated) {
       await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
+      // The stored PDF no longer matches the regenerated sections
+      await cacheService.delete(cacheService.generateAIKey('pitch-deck-pdf', userId, projectId), {
+        prefix: 'pdf',
+      });
     }
     return updated;
   }

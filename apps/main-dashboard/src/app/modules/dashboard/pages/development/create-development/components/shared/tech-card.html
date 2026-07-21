@@ -1,9 +1,9 @@
 <div
   class="template-card backdrop-blur-md rounded-xl border p-3 md:p-6 flex flex-col transition-all shadow-lg relative glass"
-  [class.bg-gray-900]="tech().isAvailable"
-  [class.bg-gray-900]="!tech().isAvailable"
-  [class.border-gray-800]="tech().isAvailable"
-  [class.border-gray-700]="!tech().isAvailable"
+  [class.bg-surface-1]="tech().isAvailable"
+  [class.bg-surface-1]="!tech().isAvailable"
+  [class.border-surface-2]="tech().isAvailable"
+  [class.border-surface-3]="!tech().isAvailable"
   [class.hover:border-primary]="tech().isAvailable"
   [class.hover:-translate-y-1]="tech().isAvailable"
   [class.cursor-pointer]="tech().isAvailable"
@@ -31,7 +31,7 @@
         />
       </div>
       <div class="flex flex-col">
-        <h4 class="text-sm md:text-xl font-semibold text-white leading-tight">
+        <h4 class="text-sm md:text-xl font-semibold text-text-primary leading-tight">
           {{ tech()!.name }}
         </h4>
         @if (!tech().isAvailable) {
@@ -45,13 +45,13 @@
       [class.border-primary]="selected() && tech().isAvailable"
       [class.border-gray-500]="!selected() && tech().isAvailable"
       [class.border-gray-600]="!tech().isAvailable"
-      [class.bg-gray-700]="!tech().isAvailable"
+      [class.bg-surface-3]="!tech().isAvailable"
       [class.cursor-pointer]="tech().isAvailable"
       [class.cursor-not-allowed]="!tech().isAvailable"
       (click)="selectTech()"
     >
       @if (selected()) {
-        <span class="pi pi-check text-white text-xs"></span>
+        <span class="pi pi-check text-text-primary text-xs"></span>
       }
     </div>
   </div>
@@ -59,8 +59,8 @@
   <!-- Description - hidden on mobile -->
   <p
     class="text-sm mb-4 flex-grow hidden md:block"
-    [class.text-gray-300]="tech().isAvailable"
-    [class.text-gray-500]="!tech().isAvailable"
+    [class.text-text-secondary]="tech().isAvailable"
+    [class.text-text-disabled]="!tech().isAvailable"
     [class.cursor-pointer]="tech().isAvailable"
     [class.cursor-not-allowed]="!tech().isAvailable"
     (click)="selectTech()"
@@ -78,10 +78,10 @@
     @for (badge of tech()!.badges; track badge) {
       <span
         class="text-xs px-2 py-1 rounded-md"
-        [class.bg-gray-800]="tech().isAvailable"
-        [class.text-gray-300]="tech().isAvailable"
-        [class.bg-gray-800]="!tech().isAvailable"
-        [class.text-gray-500]="!tech().isAvailable"
+        [class.bg-surface-2]="tech().isAvailable"
+        [class.text-text-secondary]="tech().isAvailable"
+        [class.bg-surface-2]="!tech().isAvailable"
+        [class.text-text-disabled]="!tech().isAvailable"
         >{{ badge }}</span
       >
     }
@@ -89,10 +89,10 @@
 
   <!-- Advanced Options Button -->
   @if (showAdvancedOptions() && tech()!.versions && tech()!.versions!.length > 0) {
-    <div class="mt-2 md:mt-4 pt-2 md:pt-3 border-t border-gray-800/30">
+    <div class="mt-2 md:mt-4 pt-2 md:pt-3 border-t border-[var(--glass-border-subtle)]">
       @if (isAdvancedOptionsVisible()) {
         <div class="mb-2 md:mb-3 animate-fade-in">
-          <p class="text-xs md:text-sm font-medium text-gray-300 mb-1 md:mb-2">Version:</p>
+          <p class="text-xs md:text-sm font-medium text-text-secondary mb-1 md:mb-2">Version:</p>
           <p-select
             [options]="tech()!.versions"
             placeholder="Select version"

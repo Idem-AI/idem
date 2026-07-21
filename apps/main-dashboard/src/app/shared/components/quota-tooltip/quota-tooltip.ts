@@ -1,11 +1,12 @@
-import { Component, Input, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, inject, computed, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { QuotaService } from '../../services/quota.service';
 
 @Component({
   selector: 'app-quota-tooltip',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative inline-block group">
@@ -14,7 +15,7 @@ import { QuotaService } from '../../services/quota.service';
 
       <!-- Tooltip -->
       <div
-        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 min-w-max"
+        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--color-surface-1)] text-text-primary text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 min-w-max"
       >
         @if (tooltipContent(); as content) {
           <div class="text-center">
@@ -22,19 +23,19 @@ import { QuotaService } from '../../services/quota.service';
             <div class="font-medium mb-1">{{ content.title }}</div>
 
             <!-- Main message -->
-            <div class="text-gray-300 mb-2">{{ content.message }}</div>
+            <div class="text-text-secondary mb-2">{{ content.message }}</div>
 
             <!-- Quota information -->
             @if (content.quotaInfo) {
-              <div class="border-t border-gray-700 pt-2 space-y-1">
-                <div class="flex justify-between text-xs">
-                  <span>Daily:</span>
+              <div class="border-t border-[var(--glass-border)] pt-2 space-y-1">
+                <div class="flex justify-between text-xs space-x-4">
+                  <span>{{ 'dashboard.dashboard.quotaWarning.daily' | translate }}</span>
                   <span [class]="content.quotaInfo.dailyStatus">
                     {{ content.quotaInfo.remainingDaily }}/{{ content.quotaInfo.dailyLimit }}
                   </span>
                 </div>
-                <div class="flex justify-between text-xs">
-                  <span>Weekly:</span>
+                <div class="flex justify-between text-xs space-x-4">
+                  <span>{{ 'dashboard.dashboard.quotaWarning.weekly' | translate }}</span>
                   <span [class]="content.quotaInfo.weeklyStatus">
                     {{ content.quotaInfo.remainingWeekly }}/{{ content.quotaInfo.weeklyLimit }}
                   </span>
@@ -44,8 +45,10 @@ import { QuotaService } from '../../services/quota.service';
 
             <!-- Beta restrictions -->
             @if (content.betaRestrictions) {
-              <div class="border-t border-gray-700 pt-2 text-xs">
-                <div class="text-orange-300 font-medium mb-1">Beta limitations:</div>
+              <div class="border-t border-[var(--glass-border)] pt-2 text-xs">
+                <div class="text-orange-300 font-medium mb-1">
+                  {{ 'dashboard.dashboard.quotaWarning.tooltip.betaLimitations' | translate }}
+                </div>
                 <ul class="text-left space-y-1">
                   @for (restriction of content.betaRestrictions; track restriction) {
                     <li>• {{ restriction }}</li>
@@ -69,8 +72,21 @@ export class QuotaTooltipComponent {
   @Input() customMessage: string = '';
 
   private readonly quotaService = inject(QuotaService);
+  private readonly translate = inject(TranslateService);
+
+  // Track language changes to update computed signal
+  private readonly langChange = signal<string>(this.translate.currentLang);
+
+  constructor() {
+    this.translate.onLangChange.subscribe((event) => {
+      this.langChange.set(event.lang);
+    });
+  }
 
   protected readonly tooltipContent = computed(() => {
+    // Establish dependency on langChange
+    this.langChange();
+
     const quotaInfo = this.quotaService.quotaInfo();
     const quotaDisplay = this.quotaService.quotaDisplay();
     const isBeta = this.quotaService.isBeta();
@@ -79,28 +95,28 @@ export class QuotaTooltipComponent {
     if (!quotaInfo) return null;
 
     // Determine title and main message
-    let title = 'Quota Information';
+    let title = this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.title');
     let message = this.customMessage;
 
     if (!message) {
       if (!quotaDisplay?.canUseFeature) {
-        title = 'Quota Exceeded';
-        message = 'You have reached your usage limits';
+        title = this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.exceededTitle');
+        message = this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.exceededMessage');
       } else if (
         isBeta &&
         this.featureName &&
         !this.quotaService.isFeatureAllowedInBeta(this.featureName)
       ) {
-        title = 'Limited Feature';
-        message = 'Not available in beta version';
+        title = this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.limitedTitle');
+        message = this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.limitedMessage');
       } else if (
         quotaDisplay?.dailyStatus === 'warning' ||
         quotaDisplay?.weeklyStatus === 'warning'
       ) {
-        title = 'Quota Nearly Reached';
-        message = 'Use with moderation';
+        title = this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.nearlyReachedTitle');
+        message = this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.nearlyReachedMessage');
       } else {
-        message = 'Quotas available';
+        message = this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.availableMessage');
       }
     }
 
@@ -118,13 +134,13 @@ export class QuotaTooltipComponent {
     let betaRestrictionsFormatted: string[] | null = null;
     if (isBeta && betaRestrictions) {
       betaRestrictionsFormatted = [
-        `${betaRestrictions.maxStyles} styles maximum`,
-        `Resolution: ${betaRestrictions.maxResolution}`,
-        `${betaRestrictions.maxOutputTokens} tokens max`,
+        `${betaRestrictions.maxStyles} ` + this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.maxStyles'),
+        this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.resolution') + ` ${betaRestrictions.maxResolution}`,
+        `${betaRestrictions.maxOutputTokens} ` + this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.maxTokens'),
       ];
 
       if (this.featureName && !betaRestrictions.allowedFeatures.includes(this.featureName)) {
-        betaRestrictionsFormatted.unshift('Feature not authorized');
+        betaRestrictionsFormatted.unshift(this.translate.instant('dashboard.dashboard.quotaWarning.tooltip.featureNotAuthorized'));
       }
     }
 

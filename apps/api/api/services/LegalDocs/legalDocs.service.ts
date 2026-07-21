@@ -13,6 +13,8 @@ import { cacheService } from '../cache.service';
 import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
 import { PAGE_FORMATS, PdfService } from '../pdf.service';
 import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG } from '../../config/ai.config';
+
 import { LEGAL_DOCS_CATALOG, getCatalogEntry } from './catalog';
 import { getLegalDocPrompt } from './prompts';
 
@@ -164,8 +166,8 @@ export class LegalDocsService extends GenericService {
     }));
 
     const promptConfig: PromptConfig = {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: AI_CONFIG.legalDocs.provider,
+      modelName: AI_CONFIG.legalDocs.modelName,
     };
 
     const now = new Date();

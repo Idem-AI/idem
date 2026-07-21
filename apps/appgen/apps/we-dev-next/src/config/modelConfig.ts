@@ -1,3 +1,4 @@
+// Test trigger: AppGen deployment pipeline (Update 2)
 interface ModelConfig {
   modelName: string;
   modelKey: string;
@@ -14,6 +15,16 @@ interface ModelConfig {
 }
 
 const defaultModelConfigs: ModelConfig[] = [
+  {
+    modelName: 'gemini-3.5-flash',
+    modelKey: 'gemini-3.5-flash',
+    useImage: true,
+    provider: 'gemini',
+    description: 'Gemini 3.5 Flash model',
+    functionCall: true,
+    temperature: 0.7,
+    topP: 0.95,
+  },
   {
     modelName: 'gemini-3.1-pro-preview',
     modelKey: 'gemini-3.1-pro-preview',

@@ -8,6 +8,9 @@ import {
   SelectedMockupSupport,
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
+import { AI_CONFIG } from '../config/ai.config';
+import { withGeminiFallback } from '../utils/gemini-fallback';
+
 
 export interface MockupGenerationRequest {
   logoImageBase64: string | null;
@@ -222,20 +225,35 @@ export class GeminiMockupService {
         `[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3.1-flash-image)`,
         {
           mockupName,
-          model: 'gemini-3.1-flash-image',
+          model: AI_CONFIG.branding.brandMockup.imageModel,
           mockupIndex: request.selectedSupport.mockupIndex,
           projectId,
         }
       );
 
-      const response = await this.geminiAI.models.generateContent({
-        model: 'gemini-3.1-flash-image',
-        contents: contents,
-        config: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          candidateCount: 1, // Générer UNE SEULE image par appel
-        },
-      });
+      const primaryImageModel = AI_CONFIG.branding.brandMockup.imageModel;
+      const fallbackImageModel = AI_CONFIG.fallback.imageModel;
+
+      const response = await withGeminiFallback(
+        () => this.geminiAI.models.generateContent({
+          model: primaryImageModel,
+          contents: contents,
+          config: {
+            responseModalities: ['TEXT', 'IMAGE'],
+            candidateCount: 1,
+          },
+        }),
+        () => this.geminiAI.models.generateContent({
+          model: fallbackImageModel,
+          contents: contents,
+          config: {
+            responseModalities: ['TEXT', 'IMAGE'],
+            candidateCount: 1,
+          },
+        }),
+        primaryImageModel,
+        fallbackImageModel
+      );
 
       logger.info(`[MOCKUP][${mockupName}] Gemini API response received`, {
         mockupName,
